@@ -11,7 +11,7 @@ Function estimates regression using defined formula and updates its parameters.
 nus(formula, data, h=10, holdout=FALSE,
     initial=c("whole","min","quarter","10 obs"),
     weights=c("dynamic","static","manual"),
-    gamma=c("adaptive","optimal","optimal.all","manual"),
+    persistence=c("adaptive","optimal","optimal.all","manual"),
     filter=c("none","MAE","RMSE","optimal","dynamic"),
     weights.v=NULL, silent=FALSE, legend=TRUE)
 }
