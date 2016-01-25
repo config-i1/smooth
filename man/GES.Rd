@@ -5,7 +5,7 @@
 General Exponential Smoothing
 }
 \description{
-Function builds General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
+Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
 ges(data, bounds=FALSE, seasonality=c("N","S","F"),
