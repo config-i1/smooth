@@ -9,7 +9,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
-    
+
     bounds <- substring(bounds[1],1,1);
     IC <- IC[1];
     CF.type <- CF.type[1];
@@ -139,7 +139,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             Stype <- "Z";
         }
     }
-    
+
     if(any(is.na(data))){
         if(silent==FALSE){
             message("Data contains NAs. These observations will be excluded.");
@@ -216,7 +216,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             }
         }
     }
-    
+
 ### Check the error type
     if(Etype!="Z" & Etype!="A" & Etype!="M"){
         message("Wrong error type! Should be 'Z', 'A' or 'M'.");
@@ -449,11 +449,11 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
         C.lower <- c(C.lower,rep(-Inf,n.exovars));
         C.upper <- c(C.upper,rep(Inf,n.exovars));
     }
-    
+
     C <- C[!is.na(C)];
     C.lower <- C.lower[!is.na(C.lower)];
     C.upper <- C.upper[!is.na(C.upper)];
-    
+
     return(list(C=C,C.lower=C.lower,C.upper=C.upper));
 }
 
@@ -641,7 +641,7 @@ checker <- function(inherits=TRUE){
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
         if(any(unlist(strsplit(model,""))=="C") | (Etype=="Z" | Ttype=="Z" | Stype=="Z")){
 # Produce the data for AIC weights
-            
+
             if(!is.null(models.pool)){
                 models.number <- length(models.pool);
             }
@@ -816,7 +816,7 @@ checker <- function(inherits=TRUE){
         matF <- init.ets$matF;
         matw <- init.ets$matw;
     }
-    
+
     if(all(unlist(strsplit(model,""))!="C")){
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype);
@@ -924,7 +924,7 @@ checker <- function(inherits=TRUE){
         else{
             CF.type <- CF.type.original;
         }
-        
+
         component.names <- "level";
         if(Ttype!="N"){
             component.names <- c(component.names,"trend");
@@ -993,7 +993,7 @@ checker <- function(inherits=TRUE){
             errors.mat <- errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg);
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- errors.mat[,1];
-# Produce point and interval forecasts 
+# Produce point and interval forecasts
             y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
 # Write down the forecasting intervals
@@ -1133,16 +1133,16 @@ if(silent==FALSE){
     }
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
     if(holdout==TRUE){
-        print(paste0("MPE: ",errormeasures["MPE"]*100,"%"));
-        print(paste0("MAPE: ",errormeasures["MAPE"]*100,"%"));
-        print(paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"));
-        print(paste0("MASE: ",errormeasures["MASE"]));
-        print(paste0("MASALE: ",errormeasures["MASALE"]*100,"%"));
         if(intervals==TRUE){
             print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
                     as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
                     "% of values are in the interval"));
         }
+        print(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
+                    paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
+                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"),sep="; "));
+        print(paste(paste0("MASE: ",errormeasures["MASE"]),
+                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%"),sep="; "));
     }
 }
 

@@ -225,7 +225,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     }
 
     matrixxt.resize(obs+seasfreq, ncomponents);
-    
+
     if(persistence.n_rows < ncomponents){
         if(T=='M' | S=='M'){
             vecg = persistence.submat(0,1,persistence.n_rows-1,1);
@@ -338,7 +338,7 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
             matrixF(1,0) = 0.0;
             matrixF(0,1) = phivalue;
             matrixF(1,1) = phivalue;
-            
+
             matrixw.set_size(1,2);
             matrixw(0,0) = 1.0;
             matrixw(0,1) = phivalue;
@@ -353,7 +353,7 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
             matrixF(0,1) = phivalue;
             matrixF(1,1) = phivalue;
             matrixF(2,2) = 1.0;
-            
+
             matrixw.set_size(1,3);
             matrixw(0,0) = 1.0;
             matrixw(0,1) = phivalue;
@@ -369,7 +369,7 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         }
     }
 
-    return wrap(List::create(Named("matF") = matrixF, Named("matw") = matrixw, Named("vecg") = matg, 
+    return wrap(List::create(Named("matF") = matrixF, Named("matw") = matrixw, Named("vecg") = matg,
                               Named("phi") = phivalue, Named("matxt") = matrixxt, Named("matxtreg") = matrixxtreg));
 }
 
@@ -397,7 +397,7 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
 # matxt is transformed into obs by n.components+freq matrix, where last freq are seasonal coefficients,
 # matw is matrix obs by n.components+freq with dummies in freq parts,
 # matF is a matrix as in Hyndman et al.
-# vecg is the vector of 
+# vecg is the vector of
 # dummy contains dummy variables for seasonal coefficients
 */
     if(S!='N'){
@@ -585,7 +585,7 @@ SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     arma::mat matrixwex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
-    
+
     return wrap(fitter(matrixxt, matrixF, matrixw, matyt, matg, E, T, S, freq, matrixwex, matrixxtreg));
 }
 
@@ -664,7 +664,7 @@ SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
     arma::mat matrixwex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
-    
+
     return wrap(forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq, matrixwex, matrixxtreg));
 }
 
@@ -733,7 +733,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
-  
+
     int obs = matyt.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
@@ -860,7 +860,7 @@ SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
     arma::mat matrixwex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
-    
+
     return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg));
 }
 

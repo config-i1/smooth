@@ -73,7 +73,7 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
+\code{\link[smooth]{es}, \link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
 }
 \examples{
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution
