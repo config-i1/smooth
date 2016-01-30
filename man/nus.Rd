@@ -50,12 +50,11 @@ The function creates the model of the following type:
   The list of the following values is returned:
 
   \itemize{
-    \item \code{y.est} - the fitted values and the forecast.
-    \item \code{last.a} - last values of the regression coefficients.
-    \item \code{a} - the matrix of all the coefficients.
-    \item \code{v} - weight matrix of NUS.
-    \item \code{g} - persistence matrix of NUS.
-    \item \code{eta} - filter values.
+    \item \code{fitted} - the fitted values and the forecast.
+    \item \code{states} - the matrix of all the coefficients.
+    \item \code{weights} - weight matrix of NUS.
+    \item \code{persistence} - persistence matrix of NUS.
+    \item \code{filter} - filter values.
     \item \code{residuals} - the residuals of the model.
   }
 }
@@ -73,14 +72,16 @@ Ivan Svetunkov
 \examples{
 
 ourdata <- matrix(c(rnorm(50,50,3)),50,1)
+ourdata <- cbind(ourdata,c(rep(0,10),1,1,rep(0,25),1,rep(0,10),1,1))
 ourcoefficients <- rep(NA,50)
 ourcoefficients[1] <- 0.5
 for(i in 2:50){ourcoefficients[i] <- ourcoefficients[i-1] + rnorm(1,0,1)}
-ourdata <- cbind(ourdata*ourcoefficients,ourdata)
-colnames(ourdata) <- c("y","x")
+ourdata <- cbind(ourdata[,1]*ourcoefficients+50*ourdata[,2]+rnorm(50,0,3)+500,
+                 ourdata)
+colnames(ourdata) <- c("y","x","dummy")
 ourdata <- data.frame(ourdata)
 
-nus(y~x,ourdata,h=10,holdout=TRUE)->test
+nus(y~x+dummy,ourdata,h=10,holdout=TRUE)->test
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

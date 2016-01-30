@@ -39,8 +39,11 @@ nus <- function(formula, data, h=10, holdout=FALSE,
   filter <- filter[1];
   initial <- initial[1];
 
-  n.vars <- length(all.vars(formula));
-  obs <- nrow(data)-h*holdout;
+    n.vars <- length(all.vars(formula));
+# Define obs, the number of observations of in-sample
+    obs <- nrow(data) - holdout*h;
+# Define obs.all, the overal number of observations (in-sample + holdout)
+    obs.all <- nrow(data) + (1 - holdout)*h;
 
 # Matrix of exogeneous variables used in the model construction (without the holdout)
 #  used.data <- data[1:obs,all.vars(formula)];
@@ -49,7 +52,7 @@ nus <- function(formula, data, h=10, holdout=FALSE,
 
   if(holdout==TRUE){
 # Matrix with all the exogeneous variables
-    all.data <- cbind(rep(1,(obs+h)),data[,all.vars(formula)[2:n.vars]]);
+    all.data <- cbind(rep(1,(obs.all)),data[,all.vars(formula)[2:n.vars]]);
     colnames(all.data) <- colnames(used.data);
   }
   else{
@@ -109,14 +112,13 @@ nus <- function(formula, data, h=10, holdout=FALSE,
   a[1,] <- a.ols;
 
 # vector of all actual values of y
-  y <- data[,all.vars(formula)[1]];
-
+    y <- ts(data[,all.vars(formula)[1]],frequency=frequency(data));
 # vector of all future calculated y
-  all.y.est <- rep(NA,length(y));
-  y.est.ols <- all.y.est;
+    all.y.est <- rep(NA,obs.all);
+    y.est.ols <- all.y.est;
 
 # The vector of calculated values of y during fitting
-  y.est <- rep(NA,obs);
+    y.est <- rep(NA,obs);
 
 # The matrix of weights
   v <- matrix(NA,nrow=(obs+1),ncol=n.vars);
@@ -131,7 +133,7 @@ nus <- function(formula, data, h=10, holdout=FALSE,
   g <- data.frame(g);
 
 # The vector of errors
-  e <- rep(NA,obs);
+  errors <- rep(NA,obs);
 
 # The vector for dynamic filter
   eta.all <- rep(NA,obs);
@@ -174,9 +176,9 @@ nus <- function(formula, data, h=10, holdout=FALSE,
 
       for (i in 1:obs){
         y.est[i] <- sum(a[i,]*used.data[i,]);
-        e[i] <- y[i] - y.est[i];
+        errors[i] <- y[i] - y.est[i];
 
-        if(abs(e[i]) > eta){
+        if(abs(errors[i]) > eta){
           g[i,] <- rep(alpha,n.vars);
         }
         else{
@@ -193,7 +195,7 @@ nus <- function(formula, data, h=10, holdout=FALSE,
         data.vec <- used.data[i,];
         data.vec[which(data.vec==0)] <- Inf;
 
-        a[(i+1),] <- a[i,] + v[i,]*g[i,]*e[i]/data.vec;
+        a[(i+1),] <- a[i,] + v[i,]*g[i,]*errors[i]/data.vec;
       }
     }
     else if(filter!="optimal" & persistence=="optimal"){
@@ -201,13 +203,13 @@ nus <- function(formula, data, h=10, holdout=FALSE,
 
       for (i in 1:obs){
         y.est[i] <- sum(a[i,]*used.data[i,]);
-        e[i] <- y[i] - y.est[i];
+        errors[i] <- y[i] - y.est[i];
 
         if(filter=="dynamical"){
           print("Dynamic filter and optimal persistence are not implemented yet. Implementing the absence of filter.")
         }
 
-        if(abs(e[i]) > eta){
+        if(abs(errors[i]) > eta){
           g[i,] <- rep(alpha,n.vars);
         }
         else{
@@ -225,7 +227,7 @@ nus <- function(formula, data, h=10, holdout=FALSE,
         data.vec <- used.data[i,];
         data.vec[which(data.vec==0)] <- Inf;
 
-        a[(i+1),] <- a[i,] + v[i,]*g[i,]*e[i]/data.vec;
+        a[(i+1),] <- a[i,] + v[i,]*g[i,]*errors[i]/data.vec;
       }
     }
     else if(filter=="optimal" & persistence!="optimal"){
@@ -233,10 +235,10 @@ nus <- function(formula, data, h=10, holdout=FALSE,
 
       for (i in 1:obs){
         y.est[i] <- sum(a[i,]*used.data[i,]);
-        e[i] <- y[i] - y.est[i];
+        errors[i] <- y[i] - y.est[i];
 
-        if(abs(e[i]) > eta){
-          g[i,] <- rep(abs((abs(e[i])-eta)/e[i]),n.vars);
+        if(abs(errors[i]) > eta){
+          g[i,] <- rep(abs((abs(errors[i])-eta)/errors[i]),n.vars);
         }
         else{
           g[i,] <- rep(0,n.vars);
@@ -253,13 +255,13 @@ nus <- function(formula, data, h=10, holdout=FALSE,
         data.vec <- used.data[i,];
         data.vec[which(data.vec==0)] <- Inf;
 
-        a[(i+1),] <- a[i,] + v[i,]*g[i,]*e[i]/data.vec;
+        a[(i+1),] <- a[i,] + v[i,]*g[i,]*errors[i]/data.vec;
       }
     }
 
     CF <- sum((y[1:obs] - y.est[1:obs])^2);
 
-    return(list(y.est=y.est, a=a, eta=eta, v=v, g=g, CF=CF, e=e));
+    return(list(y.est=y.est, a=a, eta=eta, v=v, g=g, CF=CF, errors=errors));
   }
 
 # Function constructs the regression using NUS and found parameters
@@ -270,10 +272,10 @@ nus <- function(formula, data, h=10, holdout=FALSE,
     }
     for (i in 1:obs){
       y.est[i] <- sum(a[i,]*used.data[i,]);
-      e[i] <- y[i] - y.est[i];
+      errors[i] <- y[i] - y.est[i];
 
       if(filter=="dynamic"){
-        eta.all[i+1] <- (pnorm(abs(e[i]/sqrt((eta.all[i]^2*i+e[i]^2)/(i+1))))-0.5)*2;
+        eta.all[i+1] <- (pnorm(abs(errors[i]/sqrt((eta.all[i]^2*i+errors[i]^2)/(i+1))))-0.5)*2;
         g[i,] <- rep(eta.all[i],n.vars);
       }
       else{
@@ -281,8 +283,8 @@ nus <- function(formula, data, h=10, holdout=FALSE,
           g[i,] <- 0.01;
         }
         else{
-          if(abs(e[i]) > eta){
-            g[i,] <- rep(abs((abs(e[i])-eta)/e[i]),n.vars);
+          if(abs(errors[i]) > eta){
+            g[i,] <- rep(abs((abs(errors[i])-eta)/errors[i]),n.vars);
           }
           else{
             g[i,] <- rep(0,n.vars);
@@ -303,11 +305,11 @@ nus <- function(formula, data, h=10, holdout=FALSE,
       data.vec <- used.data[i,];
       data.vec[which(data.vec==0)] <- Inf;
 
-      a[(i+1),] <- a[i,] + v[i,]*g[i,]*e[i]/data.vec;
+      a[(i+1),] <- a[i,] + v[i,]*g[i,]*errors[i]/data.vec;
 
     }
 
-    return(list(y.est=y.est, a=a, g=g, v=v, eta=eta, e=e));
+    return(list(y.est=y.est, a=a, g=g, v=v, eta=eta, errors=errors));
   }
 
   eta <- nus.filter(filter=filter)$eta;
@@ -337,7 +339,7 @@ nus <- function(formula, data, h=10, holdout=FALSE,
     g <- res.param$g;
     y.est <- res.param$y.est;
     a <- res.param$a;
-    e <- res.param$e;
+    errors <- res.param$errors;
   }
   else{
     res.param <- nus.construct(filter=filter, weights=weights, persistence=persistence, eta=eta);
@@ -346,44 +348,33 @@ nus <- function(formula, data, h=10, holdout=FALSE,
     g <- res.param$g;
     y.est <- res.param$y.est;
     a <- res.param$a;
-    e <- res.param$e;
+    errors <- res.param$errors;
   }
 
   last.a <- as.matrix(a[obs+1,])
   all.y.est[1:obs] <- y.est;
 
 if(silent==FALSE){
-  if(holdout==TRUE){
-    for (i in (obs+1):(obs+h)){
-      all.y.est[i] <- sum(last.a*all.data[i,]);
-      y.est.ols[i] <- sum(a.ols*all.data[i,]);
-    }
-
-    print(paste0("NUS MASE: ",MASE(y[(obs+1):(obs+h)],all.y.est[(obs+1):(obs+h)],MAE)));
-    print(paste0("OLS MASE: ",MASE(y[(obs+1):(obs+h)],y.est.ols[(obs+1):(obs+h)],MAE)));
-  }
-
   print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
-  par(mfcol=c(1,1))
-    plot(y,type="l",ylim=range(min(y,all.y.est),max(y,all.y.est)));
-#    lines(y[1:obs]);
-#    lines((all.y.est+eta),col="#22aa22");
-#    lines((all.y.est-eta),col="#22aa22");
-    lines(all.y.est[1:obs],col="purple",lwd=2,lty=2);
-#    lines(all.y.est,col="red");
+
     if(holdout==TRUE){
-        lines(c((obs+1):(obs+h)),all.y.est[(obs+1):(obs+h)],col="blue",lwd=2);
+        for (i in (obs+1):(obs.all)){
+            all.y.est[i] <- sum(last.a*all.data[i,]);
+            y.est.ols[i] <- sum(a.ols*all.data[i,]);
+        }
+
+        print(paste0("NUS MASE: ",MASE(y[(obs+1):(obs.all)],all.y.est[(obs+1):(obs.all)],MAE)));
+        print(paste0("OLS MASE: ",MASE(y[(obs+1):(obs.all)],y.est.ols[(obs+1):(obs.all)],MAE)));
+
+        y.for <- ts(all.y.est[(obs+1):obs.all],start=time(y)[obs]+deltat(y),frequency=frequency(y))
+        graphmaker(y,y.for,all.y.est);
     }
-    lines(y.est.ols,col="darkgreen",lty=2);
-    abline(v=obs,col="red",lwd=2)
-    if(legend==TRUE){
-        legend(x="bottomleft",
-               legend=c("Series","Fitted values","Point forecast","OLS forecast","Forecast origin"),
-               col=c("black","purple","blue","darkgreen","red"),
-               lwd=c(1,2,2,1,2),
-               lty=c(1,2,1,2,1));
+    else{
+        y.for <- ts(all.y.est[obs.all],start=time(y)[obs]+deltat(y),frequency=frequency(y))
+        graphmaker(y,y.for,all.y.est);
     }
 }
 
-  return(list(y.est=all.y.est, last.a=as.matrix(a[obs+1,]), a=a, v=v, g=g, eta=eta, residuals=e));
+  return(list(fitted=all.y.est, states=a, weights=v,
+              persistence=g, filter=eta, residuals=errors));
 }
