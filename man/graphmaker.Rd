@@ -4,10 +4,11 @@
   Linear graph construction function
 }
 \description{
-  The function makes a standard linear graph using at least actuals, forecasts.
+  The function makes a standard linear graph using at least actuals and forecasts.
 }
 \usage{
-  graphmaker(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=NULL,legend=TRUE)
+  graphmaker(actuals,forecast,fitted=NULL,
+             lower=NULL,upper=NULL,int.w=NULL,legend=TRUE)
 }
 \arguments{
   \item{actuals}{The vector of actual series.
