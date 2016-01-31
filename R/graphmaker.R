@@ -1,10 +1,12 @@
-graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,int.w=NULL,legend=TRUE){
+graphmaker <- function(actuals,forecast,fitted=NULL,
+                       lower=NULL,upper=NULL,int.w=NULL,legend=TRUE){
 # Function constructs the universal linear graph for any model
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
         intervals <- TRUE;
         if(is.null(int.w)){
-          message("The width of prediction intervals is not provided to graphmaker!");
+            message("The width of prediction intervals is not provided to graphmaker! Assuming 95%.");
+            int.w <- 0.95;
         }
     }
     else{
