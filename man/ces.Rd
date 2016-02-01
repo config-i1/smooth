@@ -72,6 +72,7 @@
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{actuals} - The data provided in the call of the function.
+    \item \code{holdout} - the holdout part of the original data.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.

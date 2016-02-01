@@ -444,7 +444,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     }
   }
 
-return(list(A=A,B=B,residuals=errors,errors=errors.mat,
+return(list(A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
             actuals=data,fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,
             states=matxt,ICs=ICs,FI=FI,xreg=matwex,accuracy=errormeasures));
 }
