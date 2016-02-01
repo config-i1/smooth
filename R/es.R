@@ -319,7 +319,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define matrix w for exogenous variables
             matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*% t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=datafreq);
+            matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+                                               t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
+                                         each=datafreq);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
@@ -338,13 +340,18 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Cost function for ETS
 CF <- function(C){
 
-    init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
-                            estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
+    init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+                            Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+                            estimate.phi, estimate.initial, estimate.initial.season,
+                            estimate.xreg);
 
     if(estimate.persistence==TRUE){
         if(bounds=="a" & (Ttype!="N") & (Stype!="N")){
             Theta.func <- function(Theta){
-                return(abs((init.ets$phi*C[1]+init.ets$phi+1)/(C[3]) + ((init.ets$phi-1)*(1+cos(Theta)-cos(seasfreq*Theta))+cos((seasfreq-1)*Theta)-init.ets$phi*cos((seasfreq+1)*Theta))/(2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))));
+                return(abs((init.ets$phi*C[1]+init.ets$phi+1)/(C[3]) +
+                               ((init.ets$phi-1)*(1+cos(Theta)-cos(seasfreq*Theta)) +
+                                    cos((seasfreq-1)*Theta)-init.ets$phi*cos((seasfreq+1)*Theta))/
+                               (2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))));
             }
             Theta <- 0.1;
             Theta <- suppressWarnings(optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par);
@@ -352,10 +359,17 @@ CF <- function(C){
         else{
             Theta <- 0;
         }
-        CF.res <- costfunc(init.ets$matxt,init.ets$matF,init.ets$matw,as.matrix(y[1:obs]),init.ets$vecg,h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,matwex,init.ets$matxtreg,bounds,init.ets$phi,Theta);
+        CF.res <- costfunc(init.ets$matxt,init.ets$matF,init.ets$matw,
+                           as.matrix(y[1:obs]),init.ets$vecg,h,
+                           Etype,Ttype,Stype,seasfreq,trace,CF.type,
+                           normalizer,matwex,init.ets$matxtreg,bounds,
+                           init.ets$phi,Theta);
     }
     else{
-        CF.res <- optimizerwrap(init.ets$matxt,init.ets$matF,init.ets$matw,as.matrix(y[1:obs]),init.ets$vecg,h,Etype,Ttype,Stype,seasfreq,trace,CF.type,normalizer,matwex,init.ets$matxtreg);
+        CF.res <- optimizerwrap(init.ets$matxt,init.ets$matF,init.ets$matw,
+                                as.matrix(y[1:obs]),init.ets$vecg,h,
+                                Etype,Ttype,Stype,seasfreq,trace,CF.type,
+                                normalizer,matwex,init.ets$matxtreg);
     }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -499,7 +513,9 @@ checker <- function(inherits=TRUE){
             assign("persistence",NULL,inherits=inherits);
             assign("smoothingparameters",cbind(c(0.3,0.2,0.1),rep(0.05,3)),inherits=inherits);
             assign("estimate.persistence",TRUE,inherits=inherits);
-            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE);
+            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
+                                            damped, phi, smoothingparameters, initialstates,
+                                            seasonalcoefs),inherits=TRUE);
             assign("vecg",basicparams$vecg,inherits=inherits);
         }
     }
@@ -522,7 +538,9 @@ checker <- function(inherits=TRUE){
             }
             assign("estimate.initial",TRUE,inherits=inherits);
             assign("initialstates",initialstates,inherits=inherits);
-            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y), damped, phi, smoothingparameters, initialstates, seasonalcoefs),inherits=TRUE);
+            assign("basicparams",initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
+                                            damped, phi, smoothingparameters, initialstates,
+                                            seasonalcoefs),inherits=TRUE);
             assign("matxt",basicparams$matxt,inherits=inherits);
         }
     }
@@ -533,7 +551,8 @@ checker <- function(inherits=TRUE){
             message("The length of seasonal initial states does not correspond to the frequency of the data!");
             message("Values of initial seasonals will be estimated.");
             seasonalcoefs <- decompose(ts(y[1:obs],frequency=datafreq),type="additive")$seasonal[1:datafreq];
-            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(y[1:obs],frequency=datafreq),type="multiplicative")$seasonal[1:datafreq]);
+            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(y[1:obs],frequency=datafreq),
+                                                           type="multiplicative")$seasonal[1:datafreq]);
             assign("initial.season",NULL,inherits=inherits);
             assign("seasonalcoefs",seasonalcoefs,inherits=inherits);
         }
@@ -575,7 +594,8 @@ checker <- function(inherits=TRUE){
         if(is.null(initial.season)){
             estimate.initial.season <- TRUE;
             seasonalcoefs <- decompose(ts(y[1:obs],frequency=datafreq),type="additive")$seasonal[1:datafreq];
-            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(y[1:obs],frequency=datafreq),type="multiplicative")$seasonal[1:datafreq]);
+            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(y[1:obs],frequency=datafreq),
+                                                           type="multiplicative")$seasonal[1:datafreq]);
         }
         else{
             estimate.initial.season <- FALSE;
@@ -807,8 +827,10 @@ checker <- function(inherits=TRUE){
     }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
-                                estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
+        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+                                Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+                                estimate.phi, estimate.initial, estimate.initial.season,
+                                estimate.xreg);
         vecg <- init.ets$vecg;
         phi <- init.ets$phi;
         matxt <- init.ets$matxt;
@@ -835,11 +857,17 @@ checker <- function(inherits=TRUE){
             matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h);
         }
 
-        errors.mat <- ts(errorerwrap(matxt,matF,matw,as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),start=start(data),frequency=frequency(data));
+        errors.mat <- ts(errorerwrap(matxt,matF,matw,as.matrix(y[1:obs]),h,
+                                     Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),
+                         start=start(data),frequency=frequency(data));
         colnames(errors.mat) <- paste0("Error",c(1:h));
         errors <- ts(errors.mat[,1],start=start(data),frequency=datafreq);
 
-        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matw,h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=datafreq);
+        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),
+                                   matF,matw,h,Ttype,Stype,seasfreq,
+                                   matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                   matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                    start=time(data)[obs]+deltat(data),frequency=datafreq);
 
 # Write down the forecasting intervals
         if(intervals==TRUE){
@@ -851,12 +879,20 @@ checker <- function(inherits=TRUE){
             else if(int.type=="s"){
                 y.var <- colMeans(errors.mat^2,na.rm=T);
                 if(Etype=="A"){
-                    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(y.for + qt((1-int.w)/2,
+                                           df=(obs - n.components - n.exovars))*sqrt(y.var),
+                                start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(y.for + qt(1-(1-int.w)/2,
+                                            df=(obs - n.components - n.exovars))*sqrt(y.var),
+                                 start=start(y.for),frequency=frequency(data));
                 }
                 else{
-                    y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(y.for*(1 + qt((1-int.w)/2,
+                                              df=(obs - n.components - n.exovars))*sqrt(y.var)),
+                                start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,
+                                               df=(obs - n.components - n.exovars))*sqrt(y.var)),
+                                 start=start(y.for),frequency=frequency(data));
                 }
             }
             else{
@@ -871,12 +907,16 @@ checker <- function(inherits=TRUE){
                 quant <- 1-(1-int.w)/2;
                 A2 <- nlminb(A,quantfunc)$par;
                 if(Etype=="A"){
-                    y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,
+                                start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,
+                                 start=start(y.for),frequency=frequency(data));
                 }
                 else{
-                    y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),
+                                start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),
+                                 start=start(y.for),frequency=frequency(data));
                 }
             }
         }
@@ -892,7 +932,8 @@ checker <- function(inherits=TRUE){
             n.param <- 0;
         }
         else{
-            n.param <- n.components*estimate.persistence + estimate.phi + (n.components - (Stype!="N"))*estimate.initial + seasfreq*estimate.initial.season;
+            n.param <- n.components*estimate.persistence + estimate.phi +
+                (n.components - (Stype!="N"))*estimate.initial + seasfreq*estimate.initial.season;
         }
 
         if(!is.null(xreg)){
@@ -971,8 +1012,10 @@ checker <- function(inherits=TRUE){
             estimate.phi <- basicparams$estimate.phi;
             phi <- basicparams$phi;
 
-            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq, Ttype, Stype, n.exovars, matxtreg,
-                                    estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg);
+            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+                                    Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+                                    estimate.phi, estimate.initial, estimate.initial.season,
+                                    estimate.xreg);
             vecg <- init.ets$vecg;
             phi <- init.ets$phi;
             matxt <- init.ets$matxt;
@@ -980,7 +1023,9 @@ checker <- function(inherits=TRUE){
             matF <- init.ets$matF;
             matw <- init.ets$matw;
 
-            fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,matwex,matxtreg);
+            fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),
+                                  matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,
+                                  matwex,matxtreg);
             matxt <- fitting$matxt;
             y.fit <- fitting$yfit;
 
@@ -990,11 +1035,15 @@ checker <- function(inherits=TRUE){
                 matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h);
             }
 
-            errors.mat <- errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg);
+            errors.mat <- errorerwrap(matxt,matF,matrix(matw,1,length(matw)),as.matrix(y[1:obs]),
+                                      h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg);
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- errors.mat[,1];
 # Produce point and interval forecasts
-            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
+            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),
+                                    matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,
+                                    matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                    matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
 # Write down the forecasting intervals
             if(intervals==TRUE){
@@ -1006,12 +1055,20 @@ checker <- function(inherits=TRUE){
                 else if(int.type=="s"){
                     y.var <- colMeans(errors.mat^2,na.rm=T);
                     if(Etype=="A"){
-                        y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=datafreq);
-                        y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=datafreq);
+                        y.low <- ts(y.for + qt((1-int.w)/2,
+                                               df=(obs - n.components - n.exovars))*sqrt(y.var),
+                                    start=start(y.for),frequency=datafreq);
+                        y.high <- ts(y.for + qt(1-(1-int.w)/2,
+                                                df=(obs - n.components - n.exovars))*sqrt(y.var),
+                                     start=start(y.for),frequency=datafreq);
                     }
                     else{
-                        y.low <- ts(y.for*(1 + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=datafreq);
-                        y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var)),start=start(y.for),frequency=datafreq);
+                        y.low <- ts(y.for*(1 + qt((1-int.w)/2,
+                                                  df=(obs - n.components - n.exovars))*sqrt(y.var)),
+                                    start=start(y.for),frequency=datafreq);
+                        y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,
+                                                   df=(obs - n.components - n.exovars))*sqrt(y.var)),
+                                     start=start(y.for),frequency=datafreq);
                     }
                 }
                 else{
@@ -1027,11 +1084,14 @@ checker <- function(inherits=TRUE){
                     A2 <- nlminb(A,quantfunc)$par;
                     if(Etype=="A"){
                         y.low <- y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2;
-                        y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,
+                                     start=start(y.for),frequency=frequency(data));
                     }
                     else{
-                        y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
-                        y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),start=start(y.for),frequency=frequency(data));
+                        y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),
+                                    start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),
+                                     start=start(y.for),frequency=frequency(data));
                     }
                 }
             }

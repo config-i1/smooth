@@ -158,7 +158,9 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 # Define matrix w for exogenous variables
       matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-      matxtreg[1:seas.lag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*% t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=seas.lag);
+      matxtreg[1:seas.lag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+                                         t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
+                                   each=seas.lag);
 # Redefine the number of components of CES.
       n.components <- n.components + n.exovars;
     }
@@ -215,7 +217,8 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     matF <- ces.elements$matF;
     vecg <- ces.elements$vecg;
 
-    CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),vecg,h,seasonality,seas.lag,trace,CF.type,normalizer,matwex,matxtreg);
+    CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),
+                               vecg,h,seasonality,seas.lag,trace,CF.type,normalizer,matwex,matxtreg);
 
     if(is.nan(CF.res) | is.na(CF.res)){
         CF.res <- 1e100;
@@ -322,18 +325,25 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
   }
 
 # Estimate the elements of the transitional equation, fitted values and errors
-  fitting <- cesfitterwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),vecg,seasonality,seas.lag,matwex,matxtreg)
+  fitting <- cesfitterwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),vecg,
+                           seasonality,seas.lag,matwex,matxtreg)
   matxt[,] <- fitting$matxt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
   matxtreg[,] <- fitting$xtreg;
 
-  errors.mat <- ts(ceserrorerwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),h,seasonality,seas.lag,matwex,matxtreg),start=start(data),frequency=frequency(data));
+  errors.mat <- ts(ceserrorerwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),h,
+                                  seasonality,seas.lag,matwex,matxtreg),start=start(data),
+                   frequency=frequency(data));
   colnames(errors.mat) <- paste0("Error",c(1:h));
   errors.mat <- ts(errors.mat,start=start(data),frequency=frequency(data));
   errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-  y.for <- ts(cesforecasterwrap(matrix(matxt[((obs-seas.lag+1):obs)+seas.lag,],nrow=seas.lag),matF,matrix(matw[1,],nrow=1),h,seasonality,seas.lag,matrix(matwex[(obs.all-h+1):obs.all,],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):obs.all,],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data));
-#  y.for <- ts(cesforecasterwrap(matrix(matxt[(obs+1),],nrow=seas.lag),matF,matrix(matw[1,],nrow=1),h,seasonality,seas.lag,matrix(matwex[(obs.all-h+1):obs.all,],ncol=n.exovars),matrix(matxtreg[(obs.all-h+1):obs.all,],ncol=n.exovars)),start=time(data)[obs]+deltat(data),frequency=frequency(data));
+  y.for <- ts(cesforecasterwrap(matrix(matxt[((obs-seas.lag+1):obs)+seas.lag,],nrow=seas.lag),
+                                matF,matrix(matw[1,],nrow=1),h,seasonality,seas.lag,
+                                matrix(matwex[(obs.all-h+1):obs.all,],ncol=n.exovars),
+                                matrix(matxtreg[(obs.all-h+1):obs.all,],ncol=n.exovars)),
+              start=time(data)[obs]+deltat(data),frequency=frequency(data));
+
 
   if(intervals==TRUE){
     y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),seasonality,seas.lag);
@@ -409,7 +419,8 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
       CF.type <- "1 step ahead";
     }
     print(paste0("Cost function used: ",CF.type,". CF value is: ",round(CF.objective,0)));
-    print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3), "; BIC: ", round(BIC.coef,3), "; CIC:", round(CIC.coef,3)));
+    print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3),
+                 "; BIC: ", round(BIC.coef,3), "; CIC:", round(CIC.coef,3)));
 
     if(intervals==TRUE){
         print(paste0(int.w*100,"% intervals were constructed"));
