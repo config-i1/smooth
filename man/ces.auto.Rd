@@ -31,7 +31,7 @@ ces.auto(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     If TRUE, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If FALSE, no bounds are used, which is fast but may result in non-stable model.
   }
   \item{models}{
-    The vector containing several types of seasonality that should be used in CES selection. See \link[CES]{ces} for more details about the possible types of seasonal models.
+    The vector containing several types of seasonality that should be used in CES selection. See \link[smooth]{ces} for more details about the possible types of seasonal models.
   }
   \item{xreg}{
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
@@ -65,7 +65,7 @@ ces.auto(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
   The function estimates several Complex Exponential Smoothing in the state-space 2 described in Svetunkov, Kourentzes (2015) with the information potential equal to the approximation error using different types of seasonality and chooses the one with the lowest value of information criterion.
 }
 \value{
-  The list of the returned values is the same as in \link[CES]{ces} function:
+  The list of the returned values is the same as in \link[smooth]{ces} function:
 
   \itemize{
     \item \code{A} - complex smoothing parameter in the form a0 + ia1
