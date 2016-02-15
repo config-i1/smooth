@@ -13,7 +13,7 @@ Here is the list of functions:
 
 Future works:
 
-8. sofa - Survival of the fittest algorythm applied to state-space models.
+8. sofa - Survival of the fittest algorithm applied to state-space models.
 
 For a quick and easy installation of the package firstly install "devtools" in R:
 > if (!require("devtools")){install.packages("devtools")}
