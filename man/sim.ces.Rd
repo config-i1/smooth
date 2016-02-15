@@ -77,7 +77,8 @@ sim.ces(seasonality="N",seas.freq=12,obs=60,persistence=c(0.8,1.01))->x
 # Create 60 observations of monthly data using simple seasonal CES
 sim.ces(seasonality="S",seas.freq=12,obs=60,persistence=c(1.3,1.5))->x
 
-# Create 60 observations of monthly data using partial seasonal CES with specified non-seasonal initials
+# Create 60 observations of monthly data using partial seasonal CES
+# with specified non-seasonal initials
 sim.ces(seasonality="P",seas.freq=12,obs=60,persistence=c(1.8,0.9,0.4),initial=c(5000,2500))->x
 
 # Create 60 observations of monthly data using full seasonal CES

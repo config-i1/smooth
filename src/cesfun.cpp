@@ -331,7 +331,7 @@ RcppExport arma::mat ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, S
 
 /* # Cost function calculation */
 double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
-                 int hor, char S, int freq, bool tr, std::string CFtype, int normalize, arma::mat wex, arma::mat xtreg) {
+                 int hor, char S, int freq, bool tr, std::string CFtype, double normalize, arma::mat wex, arma::mat xtreg) {
     double CFres = 0;
 
     List fitting = cesfitter(matrixxt, matrixF, matrixw, matyt, matg, S, freq, wex, xtreg);

@@ -8,8 +8,8 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=FALSE, seasonality=c("N","S","F"),
-    trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
+ges(data, bounds=FALSE, trace=FALSE,
+    CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
     use.test=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -21,8 +21,6 @@ ges(data, bounds=FALSE, seasonality=c("N","S","F"),
   \item{data}{ the data that needs to be forecasted.
   }
   \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization.
-  }
-  \item{seasonality}{ Can be \code{N} - None, \code{S} - Simple (just seasonal lags of states) and \code{F} - Full (combination of previous two). NOT WORKING CURRENTLY!
   }
   \item{trace}{ if \code{TRUE}, trace likelihood is used in the estimation
   }
@@ -69,6 +67,7 @@ The function creates the model of the following type:
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
+    \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
@@ -86,7 +85,7 @@ Ivan Svetunkov
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[prognosis]{es}, \link[prognosis]{sim.ets}}
+\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.ets}}
 }
 
 \examples{
