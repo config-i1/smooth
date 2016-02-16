@@ -12,7 +12,7 @@ ges <- function(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
     seasonality <-"N";
     int.type <- substring(int.type[1],1,1);
 
-    if(CF.type=="TLV" | CF.type=="TV" | CF.type=="GV"){
+    if(CF.type=="TLV" | CF.type=="TV" | CF.type=="GV" | CF.type=="hsteps"){
         trace <- TRUE;
     }
     else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
