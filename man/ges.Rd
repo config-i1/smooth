@@ -8,10 +8,9 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=FALSE, trace=FALSE,
-    CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
-    use.test=FALSE, intervals=FALSE, int.w=0.95,
+ges(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
+    CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
 }
@@ -22,22 +21,17 @@ ges(data, bounds=FALSE, trace=FALSE,
   }
   \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization.
   }
-  \item{trace}{ if \code{TRUE}, trace likelihood is used in the estimation
-  }
-  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
-  }
-  \item{use.test}{
-    If \code{TRUE} the statistical test is used on all the found parameters to define if they are significantly different from 1 and 0. If they are not then they are fixed to have the corresponding values. If both tests are not declined, nothing is changed dut to the uncertainty.
-  }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix.
   }
-  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
+  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  }
+  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
   \item{h}{ the forecasting horizon.
   }

@@ -166,7 +166,11 @@ RcppExport SEXP sserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h,
 
 /* # Cost function calculation */
 double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matrixv, arma::vec matyt, arma::vec matg,
-                 unsigned int hor, arma::uvec freqs, bool tr, std::string CFtype, double normalize, arma::mat wex, arma::mat xtreg) {
+                 unsigned int hor, arma::uvec freqs, std::string CFtype, double normalize, arma::mat wex, arma::mat xtreg) {
+/* # Silent the output of try catch */
+    std::ostream nullstream(0);
+    arma::set_stream_err2(nullstream);
+
     double CFres = 0;
     int obs = matyt.n_rows;
     int matobs = obs - hor + 1;
@@ -180,37 +184,43 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
 
     arma::mat materrors;
 /* # The matrix is cut of to be square. If the backcast is done to the additional points, this can be fixed. */
-    if(tr==true){
+    if(CFtype=="GV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, freqs, wex, xtreg);
-/* #  Matrix may be cut off if needed... */
-/*        materrors = materrors.rows(0,(materrors.n_rows-hor)); */
-
-        if(CFtype=="GV"){
-            materrors.resize(matobs,hor);
-            try{
-                CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
-            }
-            catch(const std::runtime_error){
-                CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
-            }
+        materrors.resize(matobs,hor);
+        try{
+            CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
         }
-        else if(CFtype=="TLV"){
-            for(int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
-            }
+        catch(const std::runtime_error){
+            CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
         }
-        else if(CFtype=="TV"){
-            for(int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
-            }
+    }
+    else if(CFtype=="TLV"){
+        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, freqs, wex, xtreg);
+        for(int i=0; i<hor; i=i+1){
+            CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
         }
-        else if(CFtype=="hsteps"){
-            CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
+    }
+    else if(CFtype=="TV"){
+        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, freqs, wex, xtreg);
+        for(int i=0; i<hor; i=i+1){
+            CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
         }
+    }
+    else if(CFtype=="hsteps"){
+        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, freqs, wex, xtreg);
+        CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
+    }
+    else if(CFtype=="MSE"){
+        arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+        CFres = arma::as_scalar(mean(pow(materrors,2)));
+    }
+    else if(CFtype=="MAE"){
+        arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+        CFres = arma::as_scalar(mean(abs(materrors)));
     }
     else{
         arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-        CFres = arma::as_scalar(mean(pow(materrors,2)));
+        CFres = arma::as_scalar(mean(pow(abs(materrors),0.5)));
     }
 
     return CFres;
@@ -220,7 +230,7 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
 RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEXP yt, SEXP vecg, SEXP h,
-                                SEXP seasfreqs, SEXP trace, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
+                                SEXP seasfreqs, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
 
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -237,7 +247,6 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEX
     unsigned int hor = as<int>(h);
     IntegerVector sfreqs(seasfreqs);
     arma::uvec freqs = as<arma::uvec>(sfreqs);
-    bool tr = as<bool>(trace);
     std::string CFtype = as<std::string>(CFt);
     double normalize = as<double>(normalizer);
     NumericMatrix mwex(matwex);
@@ -245,5 +254,5 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEX
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matrixv,matyt,matg,hor,freqs,tr,CFtype,normalize,wex,xtreg));
+    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matrixv,matyt,matg,hor,freqs,CFtype,normalize,wex,xtreg));
 }

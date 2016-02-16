@@ -61,7 +61,7 @@ sserrorerwrap <- function(matxt, matF, matw, yt, h, seasfreqs, matwex, matxtreg)
     .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, seasfreqs, matwex, matxtreg)
 }
 
-ssoptimizerwrap <- function(matxt, matF, matw, matv, yt, vecg, h, seasfreqs, trace, CFt, normalizer, matwex, matxtreg) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, h, seasfreqs, trace, CFt, normalizer, matwex, matxtreg)
+ssoptimizerwrap <- function(matxt, matF, matw, matv, yt, vecg, h, seasfreqs, CFt, normalizer, matwex, matxtreg) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, h, seasfreqs, CFt, normalizer, matwex, matxtreg)
 }
 

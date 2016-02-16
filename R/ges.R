@@ -1,7 +1,6 @@
-ges <- function(data, bounds=FALSE, trace=FALSE,
-                CF.type=c("TLV","GV","TV","hsteps","MAD","HAM"),
-                use.test=FALSE, intervals=FALSE, int.w=0.95,
+ges <- function(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
+                CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                 ...){
 # General Exponential Smoothing function
@@ -12,6 +11,18 @@ ges <- function(data, bounds=FALSE, trace=FALSE,
     CF.type <- CF.type[1];
     seasonality <-"N";
     int.type <- substring(int.type[1],1,1);
+
+    if(CF.type=="TLV" | CF.type=="TV" | CF.type=="GV"){
+        trace <- TRUE;
+    }
+    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+        trace <- FALSE;
+    }
+    else{
+        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
+        CF.type <- "MSE";
+        trace <- FALSE;
+    }
 
 # Check the provided type of interval
     if(int.type!="p" & int.type!="s" & int.type!="n"){
@@ -129,10 +140,6 @@ ges <- function(data, bounds=FALSE, trace=FALSE,
     }
 
 elements.ges <- function(C){
-    if(use.test==TRUE){
-        C[C.const1] <- 1;
-        C[C.const0] <- 0;
-    }
     matw <- matrix(C[1:n.components],1,n.components);
     matF <- matrix(C[(n.components+1):(n.components+4)],2,2);
     vecg <- matrix(C[7:8],2,1);
@@ -204,14 +211,14 @@ CF <- function(C){
     }
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,length(matw),byrow=TRUE), matrix(1,obs.all,length(matw)),
-                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), trace, CF.type,
+                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), CF.type,
                               normalizer, matwex, matxtreg);
 
     return(CF.res);
 }
 
 Likelihood.value <- function(C){
-    if(trace==TRUE & (CF.type=="TLV" | CF.type=="GV")){
+    if(CF.type=="GV"){
         return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
@@ -253,7 +260,7 @@ Likelihood.value <- function(C){
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
 
-    if(trace==TRUE & CF.type=="GV"){
+    if(trace==TRUE){
         normalizer <- mean(abs(diff(y[1:obs])));
     }
     else{
@@ -282,46 +289,16 @@ Likelihood.value <- function(C){
         n.param <- n.param + n.exovars;
     }
 
-    FI <- numDeriv::hessian(Likelihood.value,C);
-
-########## Statistical test of the imaginary part. If it is not far from 1, use 1.
-    if(use.test==TRUE){
-        FIvar <- solve(-FI,tol=1e-30);
-        C.constvals <- C;
-        for(i in 1:8){
-            if(abs((C[i]-1)/sqrt(abs(FIvar[i,i])))<qt(0.975,obs-n.param)){
-                C.constvals[i] <- 31337.31337;
-            }
-            if(i!=1){
-                if(abs((C[i])/sqrt(abs(FIvar[i,i])))<qt(0.975,obs-n.param)){
-                    C.constvals[i] <- 31337.31338;
-                }
-            }
-        }
-        C.const1 <- C.constvals==31337.31337;
-        C.const0 <- C.constvals==31337.31338;
-        C.const1 <- !(C.const1 & C.const0) & C.const1;
-        C.const1 <- !(C.const1 & C.const0) & C.const0;
-#        C <- C.orig
-        C[C.const1] <- 1;
-        C[C.const0] <- 0;
-
-# If any variable needs to be set constant, reestimate the model
-        if(any(C.const0+C.const1)){
-            res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
-            C <- res$solution;
-            CF.objective <- res$objective;
-
-            C <- res$par;
-            C[C.const1] <- 1;
-            C[C.const0] <- 0;
-
-            n.param <- length(C)
-            if(!is.null(xreg)){
-                n.param <- n.param + n.exovars;
-            }
-        }
+# Change the CF.type in order to calculate likelihood correctly.
+    CF.type.original <- CF.type;
+    if(trace==TRUE){
+        CF.type <- "GV";
     }
+    else{
+        CF.type <- "MSE";
+    }
+
+    FI <- numDeriv::hessian(Likelihood.value,C);
 
     elements <- elements.ges(C);
     matw <- elements$matw;
@@ -388,6 +365,9 @@ Likelihood.value <- function(C){
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");
+
+# Revert to the provided cost function
+    CF.type <- CF.type.original
 
     if(!is.null(xreg)){
         matxt <- cbind(matxt,matxtreg[1:nrow(matxt),]);
