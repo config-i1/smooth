@@ -8,9 +8,10 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric"),
+ges(data, bounds=FALSE, order=c(2), lags=c(1),
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+    backcast=FALSE, intervals=FALSE, int.w=0.95,
+    int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
 }
@@ -21,13 +22,19 @@ ges(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
   }
   \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization.
   }
+  \item{order}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{order=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
+  }
+  \item{lags}{ Defines lags for the corresponding order. If, for example, \code{order=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{order}.
+  }
+  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
+  }
+  \item{backcast}{ if \code{TRUE}, then the initial state after optimisation is smoothed out using backcast technique. Slows down the optimisation.
+  }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix.
-  }
-  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
@@ -44,17 +51,18 @@ ges(data, bounds=FALSE, intervals=FALSE, int.w=0.95,
 }
 \details{
 The function creates the model of the following type:
-\eqn{y_[t] = w' x_[t-1] + \epsilon_[t]}
-\eqn{x_[t] = F x_[t-1] + g \epsilon_[t]}
+\eqn{y_[t] = w' x_[t-l] + \epsilon_[t]}
+\eqn{x_[t] = F x_[t-l] + g \epsilon_[t]}
 
+Where \eqn{x_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}.
 }
 \value{
   The list of the following values is returned:
 
   \itemize{
     \item \code{persistence} - the persistence vector.
-    \item \code{mat.F} - matrix F.
-    \item \code{mat.w} - matrix w.
+    \item \code{matF} - matrix F.
+    \item \code{matw} - matrix w.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
@@ -84,11 +92,15 @@ Ivan Svetunkov
 
 \examples{
 
-ges(rnorm(118,100,3),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ges(rnorm(118,100,3),order=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+ges(rnorm(118,100,3),order=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
+
+ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+
+ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

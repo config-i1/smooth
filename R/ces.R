@@ -220,6 +220,10 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),
                                vecg,h,seasonality,seas.lag,trace,CF.type,normalizer,matwex,matxtreg);
 
+#    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw[1,],obs.all,length(matw),byrow=TRUE), matrix(1,obs.all,length(matw)),
+#                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), CF.type,
+#                              normalizer, matwex, matxtreg);
+
     if(is.nan(CF.res) | is.na(CF.res)){
         CF.res <- 1e100;
     }
