@@ -13,7 +13,8 @@ Here is the list of functions:
 
 Future works:
 
-8. sofa - Survival of the fittest algorithm applied to state-space models.
+8. ssarima - ARIMA estimated in state-space framework.
+9. sofa - Survival of the fittest algorithm applied to state-space models.
 
 For a quick and easy installation of the package firstly install "devtools" in R:
 > if (!require("devtools")){install.packages("devtools")}

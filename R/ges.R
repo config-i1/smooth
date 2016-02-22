@@ -172,7 +172,7 @@ forec.inter.ges <- function(matw,matF,vecg,h,s2,int.w,y.for){
 
     if(h>1){
         for(i in (2+maxlag):(h+maxlag)){
-            mat.var.states[,,i] <- matF %*% mat.var.states[,,i-modellags] %*% t(matF) + vecg %*% t(vecg) * s2;
+            mat.var.states[,,i] <- matF %*% mat.var.states[,,i-1] %*% t(matF) + vecg %*% t(vecg) * s2;
             vec.var[i-maxlag] <- matw %*% mat.var.states[,,i] %*% t(matw) + s2;
         }
     }
@@ -436,7 +436,7 @@ if(silent==FALSE){
     else{
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
     }
-    print(paste0("AIC: ",round(AIC.coef,3)," AICc: ", round(AICc.coef,3)));
+    print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3)));
     if(holdout==T){
         if(intervals==TRUE){
             print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
