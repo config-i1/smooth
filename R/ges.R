@@ -1,4 +1,4 @@
-ges <- function(data, bounds=FALSE, order=c(2), lags=c(1),
+ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                 backcast=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),

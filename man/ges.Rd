@@ -8,7 +8,7 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=FALSE, order=c(2), lags=c(1),
+ges(data, bounds=TRUE, order=c(2), lags=c(1),
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
     backcast=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
@@ -20,7 +20,7 @@ ges(data, bounds=FALSE, order=c(2), lags=c(1),
 
   \item{data}{ the data that needs to be forecasted.
   }
-  \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization.
+  \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization. May take more time.
   }
   \item{order}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{order=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
   }
