@@ -1,6 +1,6 @@
 ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
-                backcast=FALSE, intervals=FALSE, int.w=0.95,
+                backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                 ...){
@@ -302,7 +302,12 @@ Likelihood.value <- function(C){
         CF.type <- "MSE";
     }
 
-    FI <- numDeriv::hessian(Likelihood.value,C);
+    if(FI==TRUE){
+        FI <- numDeriv::hessian(Likelihood.value,C);
+    }
+    else{
+        FI <- NA;
+    }
 
     elements <- elements.ges(C);
     matw <- elements$matw;

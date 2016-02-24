@@ -10,7 +10,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 \usage{
 ges(data, bounds=TRUE, order=c(2), lags=c(1),
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
-    backcast=FALSE, intervals=FALSE, int.w=0.95,
+    backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
@@ -29,6 +29,8 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1),
   \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
   }
   \item{backcast}{ if \code{TRUE}, then the initial state after optimisation is smoothed out using backcast technique. Slows down the optimisation.
+  }
+  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
