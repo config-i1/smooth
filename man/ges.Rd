@@ -8,7 +8,8 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=TRUE, order=c(2), lags=c(1),
+ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
+    persistence=NULL, transition=NULL, measurement=NULL,
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
     backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
@@ -25,6 +26,14 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1),
   \item{order}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{order=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
   }
   \item{lags}{ Defines lags for the corresponding order. If, for example, \code{order=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{order}.
+  }
+  \item{initial}{ Vector of initial states \eqn{v_[t]} for GES. Should contain \code{order \%*\% lags} elements. If \code{NULL}, then estimated.
+  }
+  \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
+  }
+  \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated.
+  }
+  \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
   }
   \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
   }
@@ -52,20 +61,23 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1),
   }
 }
 \details{
-The function creates the model of the following type:
-\eqn{y_[t] = w' x_[t-l] + \epsilon_[t]}
-\eqn{x_[t] = F x_[t-l] + g \epsilon_[t]}
+The function creates the Single Source of Error State-space model of the following type:
 
-Where \eqn{x_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}.
+\eqn{y_[t] = w' v_[t-l] + \epsilon_[t]}
+
+\eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
+
+Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}.
 }
 \value{
   The list of the following values is returned:
 
   \itemize{
     \item \code{persistence} - the persistence vector.
-    \item \code{matF} - matrix F.
-    \item \code{matw} - matrix w.
-    \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
+    \item \code{transition} - matrix F.
+    \item \code{measurement} - matrix w.
+    \item \code{states} - the matrix of the fuzzy components of GES, where \code{rows} correspond to time and \code{cols} to states.
+    \item \code{initial} - the initial values of the state vector.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.

@@ -1,4 +1,5 @@
-ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
+ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
+                persistence=NULL, transition=NULL, measurement=NULL,
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                 backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
@@ -38,6 +39,12 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
         int.type <- "p";
     }
 
+# Check if the data is vector
+    if(!is.numeric(data) & !is.ts(data)){
+        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+    }
+
+# Check if the data contains NAs
     if(any(is.na(data))){
         message("Data contains NAs. These observations will be excluded.");
         datanew <- data[!is.na(data)];
@@ -45,6 +52,46 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
             datanew <- ts(datanew,start=start(data),frequency=frequency(data));
         }
         data <- datanew;
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(!is.null(initial)){
+        if(!is.numeric(initial) | !is.vector(initial)){
+            stop("The initial vector is not numeric!",call.=FALSE);
+        }
+        if(length(initial) != order %*% lags){
+            stop(paste0("Wrong length of initial vector. Should be ",order %*% lags," instead of ",length(initial),"."),call.=FALSE);
+        }
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(!is.null(persistence)){
+        if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
+            stop("The persistence vector is not numeric!",call.=FALSE);
+        }
+        if(length(persistence) != n.components){
+            stop(paste0("Wrong length of persistence vector. Should be ",n.components," instead of ",length(persistence),"."),call.=FALSE);
+        }
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(!is.null(transition)){
+        if((!is.numeric(transition) | !is.vector(transition)) & !is.matrix(transition)){
+            stop("The transition matrix is not numeric!",call.=FALSE);
+        }
+        if(length(transition) != n.components^2){
+            stop(paste0("Wrong length of transition matrix. Should be ",n.components^2," instead of ",length(transition),"."),call.=FALSE);
+        }
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(!is.null(measurement)){
+        if((!is.numeric(measurement) | !is.vector(measurement)) & !is.matrix(measurement)){
+            stop("The measurement vector is not numeric!",call.=FALSE);
+        }
+        if(length(measurement) != n.components){
+            stop(paste0("Wrong length of measurement vector. Should be ",n.components," instead of ",length(measurement),"."),call.=FALSE);
+        }
     }
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
@@ -141,11 +188,33 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1),
 
 elements.ges <- function(C){
 
-    matw <- matrix(C[1:n.components],1,n.components);
-    matF <- matrix(C[n.components+(1:(n.components^2))],n.components,n.components);
-    vecg <- matrix(C[n.components+n.components^2+(1:n.components)],n.components,1);
+    if(is.null(measurement)){
+        matw <- matrix(C[1:n.components],1,n.components);
+    }
+    else{
+        matw <- matrix(measurement,1,n.components);
+    }
 
-    xtvalues <- C[2*n.components+n.components^2+(1:(order %*% lags))];
+    if(is.null(transition)){
+        matF <- matrix(C[n.components+(1:(n.components^2))],n.components,n.components);
+    }
+    else{
+        matF <- matrix(transition,n.components,n.components);
+    }
+
+    if(is.null(persistence)){
+        vecg <- matrix(C[n.components+n.components^2+(1:n.components)],n.components,1);
+    }
+    else{
+        vecg <- matrix(persistence,n.components,1);
+    }
+
+    if(is.null(initial)){
+        xtvalues <- C[2*n.components+n.components^2+(1:(order %*% lags))];
+    }
+    else{
+        xtvalues <- initial;
+    }
 
     xt <- matrix(NA,maxlag,n.components);
     for(i in 1:n.components){
@@ -168,12 +237,14 @@ forec.inter.ges <- function(matw,matF,vecg,h,s2,int.w,y.for){
     mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
 # Vector of final variances
     vec.var <- rep(NA,h);
-    vec.var[1] <- s2;
+    vec.var[1:maxlag] <- s2;
 
     if(h>1){
-        for(i in (2+maxlag):(h+maxlag)){
-            mat.var.states[,,i] <- matF %*% mat.var.states[,,i-1] %*% t(matF) + vecg %*% t(vecg) * s2;
-            vec.var[i-maxlag] <- matw %*% mat.var.states[,,i] %*% t(matw) + s2;
+        if(any(modellags==1)){
+            for(i in (2):(h)){
+                mat.var.states[,,i] <- matF %*% mat.var.states[,,i-1] %*% t(matF) + vecg %*% t(vecg) * s2;
+                vec.var[i-maxlag] <- matw %*% mat.var.states[,,i] %*% t(matw) + s2;
+            }
         }
     }
 
@@ -315,6 +386,9 @@ Likelihood.value <- function(C){
     vecg <- elements$vecg;
     matxt[1:maxlag,] <- elements$xt;
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
+    if(is.null(initial)){
+        initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
+    }
 
     if(backcast==TRUE){
         fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
@@ -456,7 +530,7 @@ if(silent==FALSE){
     }
 }
 
-return(list(persistence=vecg,matF=matF,matw=matw,states=matxt,fitted=y.fit,forecast=y.for,
-            lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,actuals=data,
-            holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
+return(list(persistence=vecg,transition=matF,measurement=matw,states=matxt,initial=initial,
+            fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
+            actuals=data,holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
 }
