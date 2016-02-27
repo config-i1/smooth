@@ -186,7 +186,7 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
                     n.param," while the number of observations is ",obs,"!"),call.=FALSE)
     }
 
-elements.some <- function(C){
+elements.ges <- function(C){
 
     if(is.null(measurement)){
         matw <- matrix(C[1:n.components],1,n.components);
@@ -215,27 +215,6 @@ elements.some <- function(C){
     else{
         xtvalues <- initial;
     }
-
-    xt <- matrix(NA,maxlag,n.components);
-    for(i in 1:n.components){
-        xt[(maxlag - modellags + 1)[i]:maxlag,i] <- xtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-        xt[is.na(xt[1:maxlag,i]),i] <- rep(rev(xt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(xt[1:maxlag,i])];
-    }
-
-# If exogenous are included
-    if(!is.null(xreg)){
-        matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=maxlag);
-    }
-
-    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg));
-}
-
-elements.all <- function(C){
-    matw <- matrix(C[1:n.components],1,n.components);
-    matF <- matrix(C[n.components+(1:(n.components^2))],n.components,n.components);
-    vecg <- matrix(C[n.components+n.components^2+(1:n.components)],n.components,1);
-    xtvalues <- C[2*n.components+n.components^2+(1:(order %*% lags))];
 
     xt <- matrix(NA,maxlag,n.components);
     for(i in 1:n.components){
@@ -328,14 +307,6 @@ Likelihood.value <- function(C){
         return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))));
     }
 }
-
-# If none value is predefined, use elements with no ifs.
-    if(is.null(measurement) & is.null(transition) & is.null(persistence) & is.null(initial)){
-        elements.ges <- elements.all;
-    }
-    else{
-        elements.ges <- elements.some;
-    }
 
 #####Start the calculations#####
 # Initial values of matxt
