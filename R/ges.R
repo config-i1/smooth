@@ -235,15 +235,47 @@ elements.ges <- function(C){
 forec.inter.ges <- function(matw,matF,vecg,h,s2,int.w,y.for){
 # Array of variance of states
     mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
+    mat.var.states[,,1:maxlag] <- vecg %*% t(vecg) * s2;
+    mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 # Vector of final variances
     vec.var <- rep(NA,h);
     vec.var[1:maxlag] <- s2;
+# New transition and measurement for the internal use
+    matFnew <- matrix(rep(0,n.components),n.components,n.components);
+    matwnew <- matrix(rep(0,n.components),1,n.components);
+# selectionmat is needed for the correct selection of lagged variables in the array
+# newelements are needed for the correct fill in of all the previous matrices
+    selectionmat <- matFnew;
+    newelements <- rep(FALSE,n.components);
 
     if(h>1){
-        if(any(modellags==1)){
-            for(i in (2):(h)){
-                mat.var.states[,,i] <- matF %*% mat.var.states[,,i-1] %*% t(matF) + vecg %*% t(vecg) * s2;
-                vec.var[i-maxlag] <- matw %*% mat.var.states[,,i] %*% t(matw) + s2;
+# Define chunks, which correspond to the lags with h being the final one
+        chuncksofhorizon <- c(1,unique(modellags),h);
+        chuncksofhorizon <- sort(chuncksofhorizon);
+        chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
+        chuncksofhorizon <- unique(chuncksofhorizon);
+
+# Length of the vector, excluding the h at the end
+        chunkslength <- length(chuncksofhorizon) - 1;
+
+        for(j in 1:chunkslength){
+            selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
+            selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
+
+            newelements <- modellags<=(chuncksofhorizon[j]+1);
+            matFnew[newelements,newelements] <- matF[newelements,newelements];
+            matwnew[,newelements] <- matw[,newelements];
+
+            for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
+                selectionmat[modellags>chuncksofhorizon[j],] <- i;
+                selectionmat[,modellags>chuncksofhorizon[j]] <- i;
+
+                mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
+                                                              rep(c(1:n.components),n.components),
+                                                              i - c(selectionmat))];
+
+                mat.var.states[,,i] <- matFnew %*% mat.var.states.lagged %*% t(matFnew) + vecg %*% t(vecg) * s2;
+                vec.var[i] <- matwnew %*% mat.var.states.lagged %*% t(matwnew) + s2;
             }
         }
     }

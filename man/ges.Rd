@@ -105,17 +105,15 @@ Ivan Svetunkov
 }
 
 \examples{
-
 ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE)->test
 
 ges(rnorm(118,100,3),order=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),order=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),order=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE,intervals=T)->test
 
 ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
 
 ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
-
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
