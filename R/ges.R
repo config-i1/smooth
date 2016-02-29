@@ -341,38 +341,8 @@ Likelihood.value <- function(C){
 }
 
 #####Start the calculations#####
-# Initial values of matxt
-    slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-    intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
-
-# matw, matF, vecg, xt
-    C <- c(rep(1,n.components),
-#           as.vector(diag(n.components)),
-           rep(1,n.components^2),
-           rep(0,n.components),
-           intercept);
-
-    if((order %*% lags)>1){
-        C <- c(C,slope);
-    }
-    if((order %*% lags)>2){
-        C <- c(C,y[1:(order %*% lags-2)]);
-#        C <- c(C,rep(intercept,(order %*% lags)-2));
-    }
-# xtreg
-    if(!is.null(xreg)){
-        C <- c(C,matxtreg[maxlag,]);
-    }
 
     matxt <- matrix(NA,nrow=(obs+maxlag),ncol=n.components);
-
-    elements <- elements.ges(C);
-    matw <- elements$matw;
-    matF <- elements$matF;
-    vecg <- elements$vecg;
-    matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
-    matxt[1:maxlag,] <- elements$xt;
-
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
 
@@ -383,14 +353,54 @@ Likelihood.value <- function(C){
         normalizer <- 0;
     }
 
-    res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000),
-                          lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
-                          ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
-    C <- res$solution;
+# If there is something to optimise, let's do it.
+    if(is.null(initial) | is.null(measurement) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
+# Initial values of matxt
+        slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
+        intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
 
-    res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
-    C <- res$solution;
-    CF.objective <- res$objective;
+# matw, matF, vecg, xt
+        C <- c(rep(1,n.components),
+               rep(1,n.components^2),
+               rep(0,n.components),
+               intercept);
+
+        if((order %*% lags)>1){
+            C <- c(C,slope);
+        }
+        if((order %*% lags)>2){
+            C <- c(C,y[1:(order %*% lags-2)]);
+        }
+# xtreg
+        if(!is.null(xreg)){
+            C <- c(C,matxtreg[maxlag,]);
+        }
+
+        elements <- elements.ges(C);
+        matw <- elements$matw;
+        matF <- elements$matF;
+        vecg <- elements$vecg;
+        matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
+        matxt[1:maxlag,] <- elements$xt;
+
+        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000),
+                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
+                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
+        C <- res$solution;
+
+        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
+        C <- res$solution;
+        CF.objective <- res$objective;
+    }
+    else{
+# matw, matF, vecg, xt
+        C <- c(measurement,
+               c(transition),
+               c(persistence),
+               c(initial));
+
+        CF.objective <- CF(C);
+    }
 
     if(any(hin.constrains(C)<0) & silent==FALSE){
         message("Unstable model is estimated! Use 'bounds=TRUE' to address this issue!");
@@ -562,7 +572,7 @@ if(silent==FALSE){
     }
 }
 
-return(list(persistence=vecg,transition=matF,measurement=matw,states=matxt,initial=initial,
+return(list(states=matxt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
             actuals=data,holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
 }

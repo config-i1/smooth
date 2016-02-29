@@ -73,11 +73,11 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is 
   The list of the following values is returned:
 
   \itemize{
-    \item \code{persistence} - the persistence vector.
-    \item \code{transition} - matrix F.
-    \item \code{measurement} - matrix w.
     \item \code{states} - the matrix of the fuzzy components of GES, where \code{rows} correspond to time and \code{cols} to states.
-    \item \code{initial} - the initial values of the state vector.
+    \item \code{initial} - the initial values of the state vector (extracted from \code{states}).
+    \item \code{measurement} - matrix w.
+    \item \code{transition} - matrix F.
+    \item \code{persistence} - the persistence vector.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.

@@ -73,6 +73,8 @@ The details will be here soon.
     \item \code{persistence} - the persistence vector.
     \item \code{phi} - the value of damping parameter.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
+    \item \code{initial} - the intial values of the state vector (non-seasonal).
+    \item \code{initial.season} - the intial values of the seasonal part of state vector.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.

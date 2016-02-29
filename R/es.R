@@ -837,9 +837,7 @@ checker <- function(inherits=TRUE){
         matxtreg <- init.ets$matxtreg;
         matF <- init.ets$matF;
         matw <- init.ets$matw;
-    }
 
-    if(all(unlist(strsplit(model,""))!="C")){
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype);
         }
@@ -980,6 +978,13 @@ checker <- function(inherits=TRUE){
         }
         else{
             colnames(matxt) <- c(component.names);
+        }
+
+# Write down the initials. Done especially for Nikos and issue #10
+        initial <- matxt[seasfreq,1:(n.components - (Stype!="N"))]
+
+        if(Stype!="N"){
+          initial.season <- matxt[1:seasfreq,n.components]
         }
     }
     else{
