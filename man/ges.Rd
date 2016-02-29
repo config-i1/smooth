@@ -90,7 +90,7 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is 
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
-    \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
+    \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=TRUE}.
   }
 }
 \references{
