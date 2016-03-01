@@ -310,7 +310,9 @@ CF <- function(C){
     matF <- elements$matF;
     vecg <- elements$vecg;
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
-    matxt[1:maxlag,] <- elements$xt;
+    if(backcast==FALSE){
+        matxt[1:maxlag,] <- elements$xt;
+    }
 
     if(bounds==TRUE){
         if(any(is.nan(matF - vecg %*% matw))){
@@ -383,9 +385,9 @@ Likelihood.value <- function(C){
         matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
         matxt[1:maxlag,] <- elements$xt;
 
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000),
-                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
-                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
+        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
+#                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
+#                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
         C <- res$solution;
 
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
@@ -426,7 +428,9 @@ Likelihood.value <- function(C){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matxt[1:maxlag,] <- elements$xt;
+    if(backcast==FALSE){
+        matxt[1:maxlag,] <- elements$xt;
+    }
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
     if(is.null(initial)){
         initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
@@ -458,6 +462,7 @@ Likelihood.value <- function(C){
                                 modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),
                 frequency=frequency(data));
+    data <- ts(data,start=start(data),frequency=frequency(data));
     s2 <- mean(errors^2);
 
     if(any(is.na(y.fit),is.na(y.for))){
