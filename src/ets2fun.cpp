@@ -181,7 +181,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     NumericMatrix seasonalc(seasonalcoefs);
     arma::mat seascoef(seasonalc.begin(), seasonalc.nrow(), seasonalc.ncol(), false);
 
-    int ncomponents = 1;
+    unsigned int ncomponents = 1;
     int seasfreq = 1;
 
 /* # Define the number of components */
@@ -195,7 +195,6 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         seasfreq = freq;
     }
 
-    int obsused = std::min(12,obs);
     arma::mat matrixxt(seasfreq, ncomponents, arma::fill::ones);
     arma::mat vecg(ncomponents, 1, arma::fill::zeros);
     bool estimphi = TRUE;
@@ -227,7 +226,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     matrixxt.resize(obs+seasfreq, ncomponents);
 
     if(persistence.n_rows < ncomponents){
-        if(T=='M' | S=='M'){
+        if((T=='M') | (S=='M')){
             vecg = persistence.submat(0,1,persistence.n_rows-1,1);
         }
         else{
@@ -235,7 +234,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         }
     }
     else{
-        if(T=='M' | S=='M'){
+        if((T=='M') | (S=='M')){
             vecg = persistence.submat(0,1,ncomponents-1,1);
         }
         else{
@@ -325,7 +324,7 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 
     if(estimatexreg==TRUE){
         matrixxtreg.rows(0,0) = C.cols(C.n_cols - nexo,C.n_cols - 1);
-        for(int i=1; i < matrixxtreg.n_rows; i=i+1){
+        for(unsigned int i=1; i < matrixxtreg.n_rows; i=i+1){
             matrixxtreg.rows(i,i) = matrixxtreg.rows(i-1,i-1);
         }
     }
