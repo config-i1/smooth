@@ -4,8 +4,11 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
                 backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+                go.wild=FALSE,
                 ...){
-# General Exponential Smoothing function
+# General Exponential Smoothing function. Crazy thing...
+#
+#    Copyright (C) 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
@@ -225,7 +228,14 @@ elements.ges <- function(C){
 
 # If exogenous are included
     if(!is.null(xreg)){
-        matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=maxlag);
+        if(go.wild==FALSE){
+            matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=maxlag);
+            matF2 <- NA;
+        }
+        else{
+            matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars-n.exovars^2+1):(length(C)-n.exovars^2)],each=maxlag);
+            matF2 <- matrix(C[(length(C)-n.exovars^2+1):length(C)])
+        }
     }
 
     return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg));
@@ -310,6 +320,7 @@ CF <- function(C){
     matF <- elements$matF;
     vecg <- elements$vecg;
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
+    matF2 <- elements$matF2;
     if(backcast==FALSE){
         matxt[1:maxlag,] <- elements$xt;
     }
@@ -376,6 +387,9 @@ Likelihood.value <- function(C){
 # xtreg
         if(!is.null(xreg)){
             C <- c(C,matxtreg[maxlag,]);
+            if(go.wild==TRUE){
+                C <- diag(n.exovars);
+            }
         }
 
         elements <- elements.ges(C);
@@ -384,6 +398,7 @@ Likelihood.value <- function(C){
         vecg <- elements$vecg;
         matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
         matxt[1:maxlag,] <- elements$xt;
+        matF2 <- elements$matF2;
 
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
@@ -432,6 +447,7 @@ Likelihood.value <- function(C){
         matxt[1:maxlag,] <- elements$xt;
     }
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
+    matF2 <- elements$matF2;
     if(is.null(initial)){
         initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
     }
