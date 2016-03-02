@@ -8,7 +8,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
 #  information criteria.
-
+#
 #    Copyright (C) 2015  Ivan Svetunkov
 
 # Start measuring the time of calculations

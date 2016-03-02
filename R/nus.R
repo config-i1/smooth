@@ -4,6 +4,9 @@ nus <- function(formula, data, h=10, holdout=FALSE,
                 persistence=c("adaptive","optimal","optimal.all","manual"),
                 filter=c("none","MAE","RMSE","optimal","dynamic"),
                 weights.v=NULL, silent=FALSE, legend=TRUE){
+# This function needs to be completely rewritten...
+#
+# But still Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 #  Function builds regression using non-nuiform smoothing method.
 #   formula - the formula of regression.

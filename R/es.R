@@ -6,6 +6,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                int.type=c("parametric","semiparametric","nonparametric"),
                xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                ...){
+# How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
