@@ -90,11 +90,11 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
     arma::uvec backlags = lags;
     lags = maxlag - lags;
 
-    for(int i=0; i<lagslength; i=i+1){
+    for(unsigned int i=0; i<lagslength; i=i+1){
         backlags(i) = obsallnew * (i+1) - lags(i);
     }
 
-    for(int i=1; i<lagslength; i=i+1){
+    for(unsigned int i=1; i<lagslength; i=i+1){
         lags(i) = lags(i) + obsallnew * i;
     }
 
@@ -107,7 +107,7 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
     for(int j=0; j<4; j=j+1){
 
 /* # Cycle till the end of data */
-        for (int i=maxlag; i<obsall; i=i+1) {
+        for (unsigned int i=maxlag; i<obsall; i=i+1) {
             lagrows = lags - maxlag + i;
 
             matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
@@ -116,7 +116,7 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
             matrixxt.elem(find_nonfinite(matrixxt)) = matrixxt.elem(find_nonfinite(matrixxt) - 1);
         }
 /* # Cycle for the final bit of xt */
-        for(int i=obsall; i<obsallnew; i=i+1){
+        for(unsigned int i=obsall; i<obsallnew; i=i+1){
             lagrows = lags - maxlag + i;
 
             matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows));
@@ -126,7 +126,7 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
 /* # if controls the cycle and stops the final one from producing the backcast */
         if(j<3){
 /* # Backcast till the first maxlag values of xt */
-            for (int i=obsall-1; i>=maxlag; i=i-1) {
+            for (unsigned int i=obsall-1; i>=maxlag; i=i-1) {
                 lagrows = backlags + i - obsall;
 
                 matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
@@ -237,7 +237,7 @@ arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
 
     materrors.fill(NA_REAL);
 
-    for(int i=maxlag; i<obs+maxlag; i=i+1){
+    for(unsigned int i=maxlag; i<obs+maxlag; i=i+1){
         hh = std::min(hor, obs+maxlag-i);
         materrors.submat(i-maxlag, 0, i-maxlag, hh-1) = arma::trans(matyt.rows(i-maxlag, i-maxlag+hh-1) -
             ssforecaster(matrixxt.rows(i-maxlag,i-1), matrixF, matrixw.rows(i-maxlag,i-maxlag+hh-1), hh, lags,
@@ -310,13 +310,13 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
     }
     else if(CFtype=="TLV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
         }
     }
     else if(CFtype=="TV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
         }
     }
