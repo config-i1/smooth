@@ -49,12 +49,16 @@ costfunc <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfr
     .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta)
 }
 
-ssfitterwrap <- function(matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg) {
-    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg)
+ssfitterwrap <- function(matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg, matF2) {
+    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg, matF2)
 }
 
-ssfitterbackcastwrap <- function(matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg) {
-    .Call('smooth_ssfitterbackcastwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg)
+ssxtregfitterwrap <- function(matxtreg, matF2) {
+    .Call('smooth_ssxtregfitterwrap', PACKAGE = 'smooth', matxtreg, matF2)
+}
+
+ssfitterbackcastwrap <- function(matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg, matF2) {
+    .Call('smooth_ssfitterbackcastwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, modellags, matwex, matxtreg, matF2)
 }
 
 ssforecasterwrap <- function(matxt, matF, matw, h, modellags, matwex, matxtreg) {
@@ -65,7 +69,7 @@ sserrorerwrap <- function(matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
     .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
 }
 
-ssoptimizerwrap <- function(matxt, matF, matw, matv, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg)
+ssoptimizerwrap <- function(matxt, matF, matw, matv, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg, matF2) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, matv, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg, matF2)
 }
 

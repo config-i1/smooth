@@ -229,15 +229,18 @@ elements.ges <- function(C){
     if(!is.null(xreg)){
         if(go.wild==FALSE){
             matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=maxlag);
-            matF2 <- NA;
+            matF2 <- diag(n.exovars);
         }
         else{
             matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars-n.exovars^2+1):(length(C)-n.exovars^2)],each=maxlag);
-            matF2 <- matrix(C[(length(C)-n.exovars^2+1):length(C)])
+            matF2 <- matrix(C[(length(C)-n.exovars^2+1):length(C)],n.exovars,n.exovars)
         }
     }
+    else{
+        matF2 <- diag(n.exovars);
+    }
 
-    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg));
+    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg,matF2=matF2));
 }
 
 # Function makes interval forecasts
@@ -338,7 +341,7 @@ CF <- function(C){
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
                               as.matrix(y[1:obs]), matrix(vecg,n.components,1), h, modellags, CF.type,
-                              normalizer, backcast, matwex, matxtreg);
+                              normalizer, backcast, matwex, matxtreg, matF2);
 
     return(CF.res);
 }
@@ -387,7 +390,7 @@ Likelihood.value <- function(C){
         if(!is.null(xreg)){
             C <- c(C,matxtreg[maxlag,]);
             if(go.wild==TRUE){
-                C <- diag(n.exovars);
+                C <- c(C,c(diag(n.exovars)));
             }
         }
 
@@ -399,11 +402,13 @@ Likelihood.value <- function(C){
         matxt[1:maxlag,] <- elements$xt;
         matF2 <- elements$matF2;
 
+# Optimise model. First run
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
         C <- res$solution;
 
+# Optimise model. Second run
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
         C <- res$solution;
         CF.objective <- res$objective;
@@ -438,6 +443,7 @@ Likelihood.value <- function(C){
         FI <- NA;
     }
 
+# Prepare for fitting
     elements <- elements.ges(C);
     matw <- elements$matw;
     matF <- elements$matF;
@@ -451,32 +457,38 @@ Likelihood.value <- function(C){
         initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
     }
 
+# Do fitting
     if(backcast==TRUE){
         fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
-                                        as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg);
+                                        as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg, matF2);
     }
     else{
         fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
-                                as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg);
+                                as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg, matF2);
     }
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
     if(!is.null(xreg)){
-# Write down the matxtreg and copy values for the holdout
-        matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg;
-        matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h);
+# Write down the matxtreg and produce values for the holdout
+        matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
+        matxtreg[(obs.all-h):(obs.all),] <- ssxtregfitterwrap(matxtreg[(obs.all-h):(obs.all),],matF2);
     }
 
+# Produce matrix of errors
     errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]), h,
-                                  modellags, matwex, matxtreg), start=start(data), frequency=frequency(data));
+                                  modellags, matwex, matxtreg),
+                     start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-    y.for <- ts(ssforecasterwrap(matrix(matxt[(obs+1):nrow(matxt),],nrow=maxlag),matF,matrix(matw,obs.all,n.components,byrow=TRUE),h,
-                                modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                               matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),start=time(data)[obs]+deltat(data),
-                frequency=frequency(data));
+# Produce forecast
+    y.for <- ts(ssforecasterwrap(matrix(matxt[(obs+1):nrow(matxt),],nrow=maxlag),
+                                      matF,matrix(matw,obs.all,n.components,byrow=TRUE),h,
+                                      modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                      matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                start=time(data)[obs]+deltat(data), frequency=frequency(data));
+
     data <- ts(data,start=start(data),frequency=frequency(data));
     s2 <- mean(errors^2);
 
@@ -548,6 +560,10 @@ if(silent==FALSE){
     print(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", ")));
     print("Transition matrix F: ");
     print(round(matF,3));
+    if(go.wild==TRUE & !is.null(xreg)){
+        print("Transition matrix for xreg: ");
+        print(round(matF2,3));
+    }
     print(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", ")));
     print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
