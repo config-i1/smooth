@@ -472,7 +472,7 @@ Likelihood.value <- function(C){
     if(!is.null(xreg)){
 # Write down the matxtreg and produce values for the holdout
         matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
-        matxtreg[(obs.all-h):(obs.all),] <- ssxtregfitterwrap(matxtreg[(obs.all-h):(obs.all),],matF2);
+        matxtreg[(obs.all-h):(obs.all),] <- ssxtregfitterwrap(matrix(matxtreg[(obs.all-h):(obs.all),],h+1,n.exovars),matF2);
     }
 
 # Produce matrix of errors

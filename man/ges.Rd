@@ -57,7 +57,7 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
   }
   \item{legend}{ if \code{TRUE}, the legend is drawn on the output plot.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix is estimated for exogenous variables, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }
