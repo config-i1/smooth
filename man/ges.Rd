@@ -14,7 +14,7 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
     backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    ...)
+    go.wild=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -56,6 +56,8 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
   \item{silent}{ if \code{TRUE}, no output or graph is given.
   }
   \item{legend}{ if \code{TRUE}, the legend is drawn on the output plot.
+  }
+  \item{go.wild}{ if \code{TRUE}, the transition matrix is estimated for exogenous variables, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }

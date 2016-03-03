@@ -4,8 +4,7 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
                 backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-                go.wild=FALSE,
-                ...){
+                go.wild=FALSE, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
