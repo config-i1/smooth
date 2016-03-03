@@ -560,15 +560,16 @@ if(silent==FALSE){
     print(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", ")));
     print("Transition matrix F: ");
     print(round(matF,3));
-    if(go.wild==TRUE & !is.null(xreg)){
-        print("Transition matrix for xreg: ");
-        print(round(matF2,3));
-    }
     print(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", ")));
     print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
     if(!is.null(xreg)){
-        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
+#        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
+        print("Xreg coefficients were estimated...")
+        if(go.wild==TRUE){
+            print("Transition matrix for xreg: ");
+            print(round(matF2,3));
+        }
     }
     if(trace==TRUE){
         print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)));
@@ -610,5 +611,6 @@ if(silent==FALSE){
 
 return(list(states=matxt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,ICs=ICs,CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
+            actuals=data,holdout=y.holdout,xreg=xreg,transition2=matF2,
+            ICs=ICs,CF=CF.objective,FI=FI,accuracy=errormeasures));
 }

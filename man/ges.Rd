@@ -88,10 +88,11 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is 
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{transition2} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
     \item \code{FI} - Fisher Information estimated in the optimal point.
-    \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=TRUE}.
   }
 }
