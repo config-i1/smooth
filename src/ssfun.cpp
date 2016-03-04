@@ -29,6 +29,7 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ve
 
     arma::vec matyfit(obs, arma::fill::zeros);
     arma::vec materrors(obs, arma::fill::zeros);
+    arma::rowvec bufferforxtreg(matg2.n_rows);
 
     for (int i=maxlag; i<obsall; i=i+1) {
 
@@ -39,8 +40,9 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ve
 /* # This part is needed for the states of exponential smoothing */
         matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg * materrors(i-maxlag));
 /* # This one is needed for the states of xreg */
-        xtreg.row(i) = xtreg.row(i-1) * matrixF2 + arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
-        xtreg.elem(find_nonfinite(xtreg)) = xtreg.elem(find_nonfinite(xtreg) - 1);
+        bufferforxtreg = arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
+        bufferforxtreg.elem(find_nonfinite(bufferforxtreg)).fill(0);
+        xtreg.row(i) = xtreg.row(i-1) * matrixF2 + bufferforxtreg;
       }
 
     return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors, Named("xtreg") = xtreg);
