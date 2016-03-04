@@ -53,10 +53,6 @@ ssfitterwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtre
     .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-ssfitterbackcastwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2) {
-    .Call('smooth_ssfitterbackcastwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2)
-}
-
 ssxtregfitterwrap <- function(matxtreg, matF2) {
     .Call('smooth_ssxtregfitterwrap', PACKAGE = 'smooth', matxtreg, matF2)
 }
@@ -69,7 +65,7 @@ sserrorerwrap <- function(matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
     .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
 }
 
-ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg, matv, matF2, vecg2) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, backcast, matwex, matxtreg, matv, matF2, vecg2)
+ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
 }
 
