@@ -180,6 +180,9 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
     n.param <- 2*n.components+n.components^2 + order %*% lags;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
+        if(go.wild==TRUE){
+            n.param <- n.exovars^2 + n.exovars;
+        }
     }
 
     if(n.param >= obs-1){
