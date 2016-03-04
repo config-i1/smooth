@@ -13,6 +13,8 @@
 # RStudio files
 .Rproj.user/
 
+*.bak
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
