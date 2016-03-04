@@ -2,7 +2,7 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
                 persistence=NULL, transition=NULL, measurement=NULL,
                 persistence2=NULL, transition2=NULL,
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
-                backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
+                FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
                 xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                 go.wild=FALSE, ...){
@@ -339,9 +339,7 @@ CF <- function(C){
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
     matF2 <- elements$matF2;
     vecg2 <- elements$vecg2;
-    if(backcast==FALSE){
-        matxt[1:maxlag,] <- elements$xt;
-    }
+    matxt[1:maxlag,] <- elements$xt;
 
     if(bounds==TRUE){
         if(any(is.nan(matF - vecg %*% matw))){
@@ -353,11 +351,17 @@ CF <- function(C){
                 return(max(eigenvalues)*1E+100);
             }
         }
+        if(any(abs(1-vecg2)>1)){
+            return(max(abs(1-vecg2))*1E+100);
+        }
+        if(any(abs(matF2)>1)){
+            return(max(abs(matF2))*1E+100);
+        }
     }
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
                               as.matrix(y[1:obs]), matrix(vecg,n.components,1), h, modellags, CF.type,
-                              normalizer, backcast, matwex, matxtreg, matv, matF2, vecg2);
+                              normalizer, matwex, matxtreg, matv, matF2, vecg2);
 
     return(CF.res);
 }
@@ -467,9 +471,7 @@ Likelihood.value <- function(C){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    if(backcast==FALSE){
-        matxt[1:maxlag,] <- elements$xt;
-    }
+    matxt[1:maxlag,] <- elements$xt;
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
     matF2 <- elements$matF2;
     vecg2 <- elements$vecg2;
@@ -477,16 +479,8 @@ Likelihood.value <- function(C){
         initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
     }
 
-# Do fitting
-    if(backcast==TRUE){
-        fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
-                                        matrix(vecg,n.components,1), modellags,
-                                        matwex, matxtreg, matv, matF2, vecg2);
-    }
-    else{
-        fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
-                                matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
-    }
+    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
+                            matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
