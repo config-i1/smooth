@@ -262,7 +262,7 @@ elements.ges <- function(C){
 }
 
 # Function makes interval forecasts
-forec.inter.ges <- function(matw,matF,vecg,h,s2,int.w,y.for){
+forec.var.param <- function(matw,matF,vecg,h,s2,int.w){
 # Array of variance of states
     mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
     mat.var.states[,,1:maxlag] <- vecg %*% t(vecg) * s2;
@@ -310,10 +310,9 @@ forec.inter.ges <- function(matw,matF,vecg,h,s2,int.w,y.for){
         }
     }
 
-    y.low <- y.for + qt((1-int.w)/2, df=max(obs - n.param,1)) * sqrt(vec.var);
-    y.high <- y.for + qt(1-(1-int.w)/2, df=max(obs - n.param,1)) * sqrt(vec.var);
+    vec.var <- vec.var[1:h];
 
-    return(list(y.low=y.low,y.high=y.high));
+    return(vec.var);
 }
 
 # Function creates bounds for the estimates
@@ -508,7 +507,8 @@ Likelihood.value <- function(C){
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
     data <- ts(data,start=start(data),frequency=frequency(data));
-    s2 <- mean(errors^2);
+#    s2 <- mean(errors^2);
+    s2 <- as.vector(sum(errors^2)/(obs-n.param));
 
     if(any(is.na(y.fit),is.na(y.for))){
         message("Something went wrong during the optimisation and NAs were produced!");
@@ -517,9 +517,9 @@ Likelihood.value <- function(C){
 
     if(intervals==TRUE){
         if(int.type=="p"){
-            forec.int <- forec.inter.ges(matw,matF,vecg,h,s2,int.w,y.for);
-            y.low <- forec.int$y.low;
-            y.high <- forec.int$y.high;
+            y.var <- forec.var.param(matw,matF,vecg,h,s2,int.w);
+            y.low <- ts(c(y.for) + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
+            y.high <- ts(c(y.for) + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
         }
         else if(int.type=="s"){
             y.var <- colMeans(errors.mat^2,na.rm=T);

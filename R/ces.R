@@ -350,7 +350,8 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
 
   if(intervals==TRUE){
-    y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),seasonality,seas.lag);
+    s2 <- as.vector(sum(errors^2)/(obs-n.param));
+    y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,s2,seasonality,seas.lag);
     y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
     y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
   }
