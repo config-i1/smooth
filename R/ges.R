@@ -1,5 +1,6 @@
 ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
                 persistence=NULL, transition=NULL, measurement=NULL,
+                persistence2=NULL, transition2=NULL,
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                 backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric"),
@@ -139,7 +140,6 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
 # Fill in the initial values for exogenous coefs using OLS
         matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
 # Redefine the number of components of ETS.
-#        n.components <- n.components + 1;
         }
 ##### The case with matrices and data frames #####
         else if(is.matrix(xreg) | is.data.frame(xreg)){
@@ -164,18 +164,17 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
 # Fill in the initial values for exogenous coefs using OLS
             matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
 # Redefine the number of components of ETS.
-#            n.components <- n.components + n.exovars;
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
         }
-# Redefine the number of all the parameters. Used in AIC mainly!
-#        n.param <- n.param + n.exovars;
+        matv <- matwex;
     }
     else{
         n.exovars <- 1;
         matwex <- matrix(0,max(obs+maxlag,obs.all),1);
         matxtreg <- matrix(0,max(obs+maxlag,obs.all),1);
+        matv <- matrix(1,max(obs+maxlag,obs.all),1);
     }
 
     n.param <- 2*n.components+n.components^2 + order %*% lags;
@@ -226,21 +225,37 @@ elements.ges <- function(C){
     }
 
 # If exogenous are included
+# vecg2 - persistence for exogenous variables
+# matF2 - transition matrix for exogenous variables
     if(!is.null(xreg)){
         if(go.wild==FALSE){
             matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars+1):length(C)],each=maxlag);
             matF2 <- diag(n.exovars);
+            vecg2 <- matrix(0,n.exovars,1);
         }
         else{
-            matxtreg[1:maxlag,] <- rep(C[(length(C)-n.exovars-n.exovars^2+1):(length(C)-n.exovars^2)],each=maxlag);
-            matF2 <- matrix(C[(length(C)-n.exovars^2+1):length(C)],n.exovars,n.exovars)
+            matxtreg[1:maxlag,] <- rep(C[(length(C)-2*n.exovars-n.exovars^2+1):(length(C)-n.exovars-n.exovars^2)],each=maxlag);
+            if(is.null(transition2)){
+                matF2 <- matrix(C[(length(C)-n.exovars^2-n.exovars+1):(length(C)-n.exovars)],n.exovars,n.exovars)
+            }
+            else{
+                matF <- matrix(transition,n.exovars,n.exovars);
+            }
+
+            if(is.null(persistence2)){
+                vecg2 <- matrix(C[(length(C)-n.exovars+1):length(C)],n.exovars,1);
+            }
+            else{
+                vecg2 <- matrix(persistence2,n.exovars,1);
+            }
         }
     }
     else{
         matF2 <- diag(n.exovars);
+        vecg2 <- matrix(0,n.exovars,1);
     }
 
-    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg,matF2=matF2));
+    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg,matF2=matF2,vecg2=vecg2));
 }
 
 # Function makes interval forecasts
@@ -323,6 +338,7 @@ CF <- function(C){
     vecg <- elements$vecg;
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
     matF2 <- elements$matF2;
+    vecg2 <- elements$vecg2;
     if(backcast==FALSE){
         matxt[1:maxlag,] <- elements$xt;
     }
@@ -339,9 +355,9 @@ CF <- function(C){
         }
     }
 
-    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
+    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
                               as.matrix(y[1:obs]), matrix(vecg,n.components,1), h, modellags, CF.type,
-                              normalizer, backcast, matwex, matxtreg, matF2);
+                              normalizer, backcast, matwex, matxtreg, matv, matF2, vecg2);
 
     return(CF.res);
 }
@@ -387,10 +403,12 @@ Likelihood.value <- function(C){
             C <- c(C,y[1:(order %*% lags-2)]);
         }
 # xtreg
+# initials, transition matrix and persistence vector
         if(!is.null(xreg)){
             C <- c(C,matxtreg[maxlag,]);
             if(go.wild==TRUE){
                 C <- c(C,c(diag(n.exovars)));
+                C <- c(C,rep(0,n.exovars));
             }
         }
 
@@ -401,6 +419,7 @@ Likelihood.value <- function(C){
         matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
         matxt[1:maxlag,] <- elements$xt;
         matF2 <- elements$matF2;
+        vecg2 <- elements$vecg2;
 
 # Optimise model. First run
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
@@ -453,18 +472,20 @@ Likelihood.value <- function(C){
     }
     matxtreg[1:maxlag,] <- elements$matxtreg[1:maxlag,];
     matF2 <- elements$matF2;
+    vecg2 <- elements$vecg2;
     if(is.null(initial)){
         initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
     }
 
 # Do fitting
     if(backcast==TRUE){
-        fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
-                                        as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg, matF2);
+        fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
+                                        matrix(vecg,n.components,1), modellags,
+                                        matwex, matxtreg, matv, matF2, vecg2);
     }
     else{
-        fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), matrix(1,obs.all,n.components),
-                                as.matrix(y[1:obs]), matrix(vecg,n.components,1), modellags, matwex, matxtreg, matF2);
+        fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
+                                matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
     }
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
@@ -565,10 +586,14 @@ if(silent==FALSE){
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
     if(!is.null(xreg)){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
-        print("Xreg coefficients were estimated...")
         if(go.wild==TRUE){
+            print("Xreg coefficients were estimated in the insane style.");
+            print(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", ")));
             print("Transition matrix for xreg: ");
             print(round(matF2,3));
+        }
+        else{
+            print("Xreg coefficients were estimated in the normal style.");
         }
     }
     if(trace==TRUE){
@@ -611,6 +636,6 @@ if(silent==FALSE){
 
 return(list(states=matxt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,xreg=xreg,transition2=matF2,
+            actuals=data,holdout=y.holdout,xreg=xreg,persistence2=vecg2,transition2=matF2,
             ICs=ICs,CF=CF.objective,FI=FI,accuracy=errormeasures));
 }

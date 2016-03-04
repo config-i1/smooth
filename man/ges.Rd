@@ -10,6 +10,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 \usage{
 ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
     persistence=NULL, transition=NULL, measurement=NULL,
+    persistence2=NULL, transition2=NULL,
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
     backcast=FALSE, FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
@@ -34,6 +35,10 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
   \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated.
   }
   \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
+  }
+  \item{persistence2}{ Persistence vector \eqn{g2}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transition2}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
   }
@@ -65,11 +70,13 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
 \details{
 The function creates the Single Source of Error State-space model of the following type:
 
-\eqn{y_[t] = w' v_[t-l] + \epsilon_[t]}
+\eqn{y_[t] = w' v_[t-l] + x_t a_[t-1] \epsilon_[t]}
 
 \eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
 
-Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}.
+\eqn{a_[t] = F_2 a_[t-1] + g_2 \epsilon_[t] / x_[t]}
+
+Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
 }
 \value{
   The list of the following values is returned:
@@ -89,6 +96,7 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is 
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{persistence2} - persistence vector g for exogenous variables.
     \item \code{transition2} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.

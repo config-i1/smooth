@@ -4,8 +4,8 @@
 
 using namespace Rcpp;
 
-List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matrixv, arma::vec matyt,
-            arma::vec matg, arma::uvec lags, arma::mat wex, arma::mat xtreg, arma::mat matrixF2) {
+List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg, arma::uvec lags,
+              arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # matrixxt should have a length of obs + maxlag.
  * # matrixw should have obs rows (can be all similar).
  * # matgt should be a vector
@@ -36,9 +36,9 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ma
 
         matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
         materrors(i-maxlag) = matyt(i-maxlag) - matyfit(i-maxlag);
-        matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
-        matrixxt.elem(find_nonfinite(matrixxt)) = matrixxt.elem(find_nonfinite(matrixxt) - 1);
-        xtreg.row(i) = xtreg.row(i-1) * matrixF2;
+        matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg * materrors(i-maxlag));
+        xtreg.row(i) = xtreg.row(i-1) * matrixF2 + arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
+        xtreg.elem(find_nonfinite(xtreg)) = xtreg.elem(find_nonfinite(xtreg) - 1);
       }
 
     return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors, Named("xtreg") = xtreg);
@@ -46,16 +46,14 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ma
 
 /* # Wrapper for ssfitter */
 // [[Rcpp::export]]
-RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEXP yt, SEXP vecg,
-                             SEXP modellags, SEXP matwex, SEXP matxtreg, SEXP matF2) {
+RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP modellags,
+                             SEXP matwex, SEXP matxtreg, SEXP matv, SEXP matF2, SEXP vecg2) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
     arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    NumericMatrix vv(matv);
-    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     NumericMatrix vg(vecg);
@@ -66,35 +64,18 @@ RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEXP y
     arma::mat wex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
+    NumericMatrix vv(matv);
+    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
     NumericMatrix mF2(matF2);
     arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
+    NumericMatrix vg2(vecg2);
+    arma::vec matg2(vg2.begin(), vg2.nrow(), false);
 
-    return wrap(ssfitter(matrixxt, matrixF, matrixw, matrixv, matyt, matg, lags, wex, xtreg, matrixF2));
+    return wrap(ssfitter(matrixxt, matrixF, matrixw, matyt, matg, lags, wex, xtreg, matrixv, matrixF2, matg2));
 }
 
-/* # Function fills in the values of the provided xtreg using the transition matrix. Needed for forecasts. */
-arma::mat ssxtregfitter(arma::mat xtreg, arma::mat matrixF2){
-
-    for(int i=0; i<(xtreg.n_rows-1); i=i+1){
-        xtreg.row(i+1) = xtreg.row(i) * matrixF2;
-    }
-
-    return(xtreg);
-}
-
-/* # Wrapper for ssxtregfitter */
-// [[Rcpp::export]]
-RcppExport SEXP ssxtregfitterwrap(SEXP matxtreg, SEXP matF2){
-    NumericMatrix mxtreg(matxtreg);
-    arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
-    NumericMatrix mF2(matF2);
-    arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
-
-    return(wrap(ssxtregfitter(xtreg, matrixF2)));
-}
-
-List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matrixv, arma::vec matyt,
-            arma::vec matg, arma::uvec lags, arma::mat wex, arma::mat xtreg, arma::mat matrixF2) {
+List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg, arma::uvec lags,
+                      arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # matrixxt should have a length of obs + maxlag.
  * # matrixw should have obs rows (can be all similar).
  * # matgt should be a vector
@@ -136,9 +117,9 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
 
             matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
             materrors(i-maxlag) = matyt(i-maxlag) - matyfit(i-maxlag);
-            matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
-            matrixxt.elem(find_nonfinite(matrixxt)) = matrixxt.elem(find_nonfinite(matrixxt) - 1);
-            xtreg.row(i) = xtreg.row(i-1) * matrixF2;
+            matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg * materrors(i-maxlag));
+            xtreg.row(i) = xtreg.row(i-1) * matrixF2 + arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
+            xtreg.elem(find_nonfinite(xtreg)) = xtreg.elem(find_nonfinite(xtreg) - 1);
         }
 /* # Cycle for the final bit of xt */
         for(int i=obsall; i<obsallnew; i=i+1){
@@ -157,9 +138,9 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
 
                 matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
                 materrors(i-maxlag) = matyt(i-maxlag) - matyfit(i-maxlag);
-                matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
-                matrixxt.elem(find_nonfinite(matrixxt)) = matrixxt.elem(find_nonfinite(matrixxt) + 1);
-                xtreg.row(i) = xtreg.row(i+1) * matrixF2.i();
+                matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg * materrors(i-maxlag));
+                xtreg.row(i) = xtreg.row(i+1) * matrixF2.i() + arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
+                xtreg.elem(find_nonfinite(xtreg)) = xtreg.elem(find_nonfinite(xtreg) + 1);
             }
 /* # Backcast small bit of xt */
             for (int i=maxlag-1; i>=0; i=i-1) {
@@ -179,16 +160,14 @@ List ssfitterbackcast(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, 
 
 /* # Wrapper for ssfitter with backcasting */
 // [[Rcpp::export]]
-RcppExport SEXP ssfitterbackcastwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEXP yt, SEXP vecg,
-                             SEXP modellags, SEXP matwex, SEXP matxtreg, SEXP matF2) {
+RcppExport SEXP ssfitterbackcastwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+                             SEXP modellags, SEXP matwex, SEXP matxtreg, SEXP matv, SEXP matF2, SEXP vecg2) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
     arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    NumericMatrix vv(matv);
-    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     NumericMatrix vg(vecg);
@@ -199,10 +178,35 @@ RcppExport SEXP ssfitterbackcastwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv
     arma::mat wex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
+    NumericMatrix vv(matv);
+    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
+    NumericMatrix mF2(matF2);
+    arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
+    NumericMatrix vg2(vecg2);
+    arma::vec matg2(vg2.begin(), vg2.nrow(), false);
+
+    return wrap(ssfitterbackcast(matrixxt, matrixF, matrixw, matyt, matg, lags, wex, xtreg, matrixv, matrixF2, matg2));
+}
+
+/* # Function fills in the values of the provided xtreg using the transition matrix. Needed for forecast of coefficients of xreg. */
+arma::mat ssxtregfitter(arma::mat xtreg, arma::mat matrixF2){
+
+    for(int i=0; i<(xtreg.n_rows-1); i=i+1){
+        xtreg.row(i+1) = xtreg.row(i) * matrixF2;
+    }
+
+    return(xtreg);
+}
+
+/* # Wrapper for ssxtregfitter */
+// [[Rcpp::export]]
+RcppExport SEXP ssxtregfitterwrap(SEXP matxtreg, SEXP matF2){
+    NumericMatrix mxtreg(matxtreg);
+    arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
     NumericMatrix mF2(matF2);
     arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
 
-    return wrap(ssfitterbackcast(matrixxt, matrixF, matrixw, matrixv, matyt, matg, lags, wex, xtreg, matrixF2));
+    return(wrap(ssxtregfitter(xtreg, matrixF2)));
 }
 
 /* # Function produces the point forecasts for the specified model */
@@ -304,9 +308,9 @@ RcppExport SEXP sserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h,
 }
 
 /* # Cost function calculation */
-double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matrixv, arma::vec matyt, arma::vec matg,
+double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg,
                    unsigned int hor, arma::uvec lags, std::string CFtype, double normalize, bool backcasting,
-                   arma::mat wex, arma::mat xtreg, arma::mat matrixF2) {
+                   arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # Silent the output of try catch */
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
@@ -318,10 +322,10 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
     List fitting;
 
     if(backcasting==TRUE){
-        fitting = ssfitterbackcast(matrixxt, matrixF, matrixw, matrixv, matyt, matg, lags, wex, xtreg, matrixF2);
+        fitting = ssfitterbackcast(matrixxt, matrixF, matrixw, matyt, matg, lags, wex, xtreg, matrixv, matrixF2, matg2);
     }
     else{
-        fitting = ssfitter(matrixxt, matrixF, matrixw, matrixv, matyt, matg, lags, wex, xtreg, matrixF2);
+        fitting = ssfitter(matrixxt, matrixF, matrixw, matyt, matg, lags, wex, xtreg, matrixv, matrixF2, matg2);
     }
 
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matxt"]);
@@ -377,9 +381,9 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
 
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
-RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEXP yt, SEXP vecg, SEXP h,
+RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h,
                                 SEXP modellags, SEXP CFt, SEXP normalizer, SEXP backcast,
-                                SEXP matwex, SEXP matxtreg, SEXP matF2) {
+                                SEXP matwex, SEXP matxtreg, SEXP matv, SEXP matF2, SEXP vecg2) {
 
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -387,8 +391,6 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEX
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
     arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
-    NumericMatrix vv(matv);
-    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), false);
     NumericMatrix vg(vecg);
@@ -403,8 +405,12 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP matv, SEX
     arma::mat wex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
+    NumericMatrix vv(matv);
+    arma::mat matrixv(vv.begin(), vv.nrow(), vv.ncol(), false);
     NumericMatrix mF2(matF2);
     arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
+    NumericMatrix vg2(vecg2);
+    arma::vec matg2(vg2.begin(), vg2.nrow(), false);
 
-    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matrixv,matyt,matg,hor,lags,CFtype,normalize,backcasting,wex,xtreg,matrixF2));
+    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,lags,CFtype,normalize,backcasting,wex,xtreg,matrixv,matrixF2,matg2));
 }
