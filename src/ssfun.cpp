@@ -228,6 +228,7 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
 /* # The matrix is cut of to be square. If the backcast is done to the additional points, this can be fixed. */
     if(CFtype=="GV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
+        materrors.row(0) = materrors.row(0)*hor;
         materrors.resize(matobs,hor);
         try{
             CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
@@ -238,18 +239,21 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
     }
     else if(CFtype=="TLV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
+        materrors.row(0) = materrors.row(0)*hor;
         for(int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
         }
     }
     else if(CFtype=="TV"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
+        materrors.row(0) = materrors.row(0)*hor;
         for(int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
         }
     }
     else if(CFtype=="hsteps"){
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
+        materrors.row(0) = materrors.row(0)*hor;
         CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
     }
     else if(CFtype=="MSE"){

@@ -577,20 +577,22 @@ if(silent==FALSE){
     print("Transition matrix F: ");
     print(round(matF,3));
     print(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", ")));
-    print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
     if(!is.null(xreg)){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
         if(go.wild==TRUE){
             print("Xreg coefficients were estimated in the insane style.");
-            print(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", ")));
-            print("Transition matrix for xreg: ");
-            print(round(matF2,3));
+            if(n.exovars > 5){
+                print(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", ")));
+                print("Transition matrix for xreg: ");
+                print(round(matF2,3));
+            }
         }
         else{
             print("Xreg coefficients were estimated in the normal style.");
         }
     }
+    print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
     if(trace==TRUE){
         print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)));
     }
