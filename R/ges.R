@@ -269,7 +269,7 @@ forec.var.param <- function(matw,matF,vecg,h,s2,int.w){
     mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 # Vector of final variances
     vec.var <- rep(NA,h);
-    vec.var[1:maxlag] <- s2;
+    vec.var[1:min(h,maxlag)] <- s2;
 # New transition and measurement for the internal use
     matFnew <- matrix(rep(0,n.components),n.components,n.components);
     matwnew <- matrix(rep(0,n.components),1,n.components);
@@ -309,8 +309,6 @@ forec.var.param <- function(matw,matF,vecg,h,s2,int.w){
             }
         }
     }
-
-    vec.var <- vec.var[1:h];
 
     return(vec.var);
 }
