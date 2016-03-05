@@ -345,6 +345,7 @@ double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, ar
 /* # The matrix is cut of to be square. If the bcakcast is done to the additional points, this can be fixed. */
     if(tr==true){
         materrors = ceserrorer(matrixxt,matrixF,matrixw,matyt,hor,S,freq,wex,xtreg);
+        materrors(0,0) = materrors(0,0)*hor;
 /* #  Matrix may be cut off if needed... */
         materrors = materrors.rows(0,(materrors.n_rows-hor));
         if(CFtype=="GV"){

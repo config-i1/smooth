@@ -750,6 +750,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
     if(E=='M'){
         if(tr==true){
             materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg));
+            materrors(0,0) = materrors(0,0)*hor;
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
