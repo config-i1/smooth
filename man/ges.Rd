@@ -8,7 +8,7 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
+ges(data, bounds=TRUE, orders=c(2), lags=c(1), initial=NULL,
     persistence=NULL, transition=NULL, measurement=NULL,
     persistence2=NULL, transition2=NULL,
     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
@@ -24,11 +24,11 @@ ges(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
   }
   \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization. May take more time.
   }
-  \item{order}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{order=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
+  \item{orders}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{orders=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
   }
-  \item{lags}{ Defines lags for the corresponding order. If, for example, \code{order=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{order}.
+  \item{lags}{ Defines lags for the corresponding orders. If, for example, \code{orders=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{orders}.
   }
-  \item{initial}{ Vector of initial states \eqn{v_[t]} for GES. Should contain \code{order \%*\% lags} elements. If \code{NULL}, then estimated.
+  \item{initial}{ Vector of initial states \eqn{v_[t]} for GES. Should contain \code{orders \%*\% lags} elements. If \code{NULL}, then estimated.
   }
   \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
   }
@@ -74,7 +74,7 @@ The function creates the Single Source of Error State-space model of the followi
 
 \eqn{a_[t] = F_2 a_[t-1] + g_2 \epsilon_[t] / x_[t]}
 
-Where \eqn{v_[t]} is a state vector (defined using \code{order}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
+Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
 }
 \value{
   The list of the following values is returned:
@@ -114,15 +114,15 @@ Ivan Svetunkov
 }
 
 \examples{
-ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE,intervals=TRUE)->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE,intervals=TRUE)->test
 
-ges(rnorm(118,100,3),order=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),order=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
 
-ges(rnorm(118,100,3),order=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

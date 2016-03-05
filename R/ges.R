@@ -1,4 +1,4 @@
-ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
+ges <- function(data, bounds=TRUE, orders=c(2), lags=c(1), initial=NULL,
                 persistence=NULL, transition=NULL, measurement=NULL,
                 persistence2=NULL, transition2=NULL,
                 CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
@@ -16,13 +16,13 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
     CF.type <- CF.type[1];
     int.type <- substring(int.type[1],1,1);
 
-    if(length(order) != length(lags)){
-        stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'order' (",length(order),")."), call.=FALSE);
+    if(length(orders) != length(lags)){
+        stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
     }
 
-    modellags <- matrix(rep(lags,times=order),ncol=1);
+    modellags <- matrix(rep(lags,times=orders),ncol=1);
     maxlag <- max(modellags);
-    n.components <- sum(order);
+    n.components <- sum(orders);
 
     if(CF.type=="TLV" | CF.type=="TV" | CF.type=="GV" | CF.type=="hsteps"){
         trace <- TRUE;
@@ -62,8 +62,8 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
         if(!is.numeric(initial) | !is.vector(initial)){
             stop("The initial vector is not numeric!",call.=FALSE);
         }
-        if(length(initial) != order %*% lags){
-            stop(paste0("Wrong length of initial vector. Should be ",order %*% lags," instead of ",length(initial),"."),call.=FALSE);
+        if(length(initial) != orders %*% lags){
+            stop(paste0("Wrong length of initial vector. Should be ",orders %*% lags," instead of ",length(initial),"."),call.=FALSE);
         }
     }
 
@@ -177,7 +177,7 @@ ges <- function(data, bounds=TRUE, order=c(2), lags=c(1), initial=NULL,
         matv <- matrix(1,max(obs+maxlag,obs.all),1);
     }
 
-    n.param <- 2*n.components+n.components^2 + order %*% lags;
+    n.param <- 2*n.components+n.components^2 + orders %*% lags;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){
@@ -214,7 +214,7 @@ elements.ges <- function(C){
     }
 
     if(is.null(initial)){
-        xtvalues <- C[2*n.components+n.components^2+(1:(order %*% lags))];
+        xtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
     }
     else{
         xtvalues <- initial;
@@ -400,11 +400,11 @@ Likelihood.value <- function(C){
                rep(0,n.components),
                intercept);
 
-        if((order %*% lags)>1){
+        if((orders %*% lags)>1){
             C <- c(C,slope);
         }
-        if((order %*% lags)>2){
-            C <- c(C,y[1:(order %*% lags-2)]);
+        if((orders %*% lags)>2){
+            C <- c(C,y[1:(orders %*% lags-2)]);
         }
 # xtreg
 # initials, transition matrix and persistence vector
@@ -427,8 +427,8 @@ Likelihood.value <- function(C){
 
 # Optimise model. First run
         res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
-#                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),order %*% lags)),
-#                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),order %*% lags)));
+#                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
+#                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
 
 # Optimise model. Second run
@@ -450,7 +450,7 @@ Likelihood.value <- function(C){
         message("Unstable model is estimated! Use 'bounds=TRUE' to address this issue!");
     }
 
-# Change the CF.type in order to calculate likelihood correctly.
+# Change the CF.type in orders to calculate likelihood correctly.
     CF.type.original <- CF.type;
     if(trace==TRUE){
         CF.type <- "GV";
@@ -476,7 +476,7 @@ Likelihood.value <- function(C){
     matF2 <- elements$matF2;
     vecg2 <- elements$vecg2;
     if(is.null(initial)){
-        initial <- C[2*n.components+n.components^2+(1:(order %*% lags))];
+        initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
     }
 
     fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
