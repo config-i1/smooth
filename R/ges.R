@@ -582,7 +582,7 @@ if(silent==FALSE){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
         if(go.wild==TRUE){
             print("Xreg coefficients were estimated in the insane style.");
-            if(n.exovars > 5){
+            if(n.exovars <= 5){
                 print(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", ")));
                 print("Transition matrix for xreg: ");
                 print(round(matF2,3));
