@@ -242,7 +242,7 @@ elements.ges <- function(C){
                 matF2 <- matrix(C[(length(C)-n.exovars^2-n.exovars+1):(length(C)-n.exovars)],n.exovars,n.exovars)
             }
             else{
-                matF <- matrix(transition,n.exovars,n.exovars);
+                matF2 <- matrix(transition,n.exovars,n.exovars);
             }
 
             if(is.null(persistence2)){
@@ -426,13 +426,13 @@ Likelihood.value <- function(C){
         vecg2 <- elements$vecg2;
 
 # Optimise model. First run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-10, "maxeval"=5000));
+        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
 
 # Optimise model. Second run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
+        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
         C <- res$solution;
         CF.objective <- res$objective;
     }
