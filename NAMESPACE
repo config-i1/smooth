@@ -1,4 +1,5 @@
-import(zoo, nloptr, numDeriv, Rcpp, polynom)
+import(zoo, Rcpp, nloptr::nloptr, numDeriv::hessian,
+       polynom::as.polylist,polynom::as.polynomial,polynom::polynomial)
 export(es, ges, nus, ces, ces.auto, ssarima,
        sim.ces, sim.ets,
        sowhat, MPE, MAPE, SMAPE, MASE, GMRAE, graphmaker)
