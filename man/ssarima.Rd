@@ -79,6 +79,8 @@ The function constructs ARIMA in the Single Source of Error State-space form:
 Where \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
+
+The model always includes constant term.
 }
 \value{
   The list of the following values is returned:
@@ -134,8 +136,8 @@ ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         lags=c(1,4),h=18,holdout=TRUE,bounds=FALSE)->test
 
 # ARIMA(1,0,0) with trace forecast estimation
-ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
-ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
