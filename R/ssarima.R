@@ -255,7 +255,9 @@ polyroots <- function(C){
     polysos.ar <- prod(as.polylist(lapply(P,polynomial))) * polysos.i;
     polysos.ma <- prod(as.polylist(lapply(Q,polynomial)));
 
-    matF[1:(length(polysos.ar)-1),1] <- -(polysos.ar)[2:length(polysos.ar)];
+    if(length((polysos.ar))!=1){
+        matF[1:(length(polysos.ar)-1),1] <- -(polysos.ar)[2:length(polysos.ar)];
+    }
 ### The MA parameters are in the style "1 + b1 * B".
     vecg <- (-polysos.ar + polysos.ma)[2:(n.components+1)];
     vecg[is.na(vecg)] <- 0;
@@ -419,7 +421,8 @@ Likelihood.value <- function(C){
 # initial values of state vector and the constant term
         slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
         intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
-        C <- c(C,intercept,slope,diff(y[1:(n.components-1)]));
+        initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1)]));
+        C <- c(C,initial.stuff[1:n.components]);
         if(constant==TRUE){
             C <- c(C,mean(y[1:obs]));
         }
