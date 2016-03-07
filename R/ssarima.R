@@ -505,6 +505,9 @@ Likelihood.value <- function(C){
     if(constant==TRUE){
         const <- C[length(C)];
     }
+    else{
+        const <- 0;
+    }
 
 #    if(!is.null(xreg)){
 # Write down the matxtreg and produce values for the holdout
