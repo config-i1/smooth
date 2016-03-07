@@ -1,5 +1,5 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-                    initial=NULL, persistence=NULL, transition=NULL,
+                    constant=TRUE, initial=NULL, persistence=NULL, transition=NULL,
                     persistence2=NULL, transition2=NULL,
                     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
@@ -267,8 +267,11 @@ polyroots <- function(C){
         xt <- initial;
     }
 
-    if(is.null(xreg)){
+    if(constant==TRUE){
         xtreg <- C[length(C)];
+    }
+    else{
+        xtreg <- 0;
     }
 
     return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=prod(as.polylist(lapply(P,polynomial))),polysos.ma=polysos.ma));
@@ -414,8 +417,10 @@ Likelihood.value <- function(C){
                rep(0.1,sum(ma.orders)));
 
 # initial values of state vector and the constant term
-        C <- c(C,mean(y[1:n.components]),diff(y[1:(n.components)]),
-               mean(y[1:obs]));
+        C <- c(C,mean(y[1:n.components]),diff(y[1:(n.components)]))
+        if(constant==TRUE){
+            C <- c(C,mean(y[1:obs]));
+        }
 
 # xtreg
 # initials, transition matrix and persistence vector
