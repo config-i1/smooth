@@ -1213,7 +1213,8 @@ if(silent==FALSE){
 }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,fitted=y.fit,
+        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,
+                    initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                     errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,
                     CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
