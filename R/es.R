@@ -747,7 +747,7 @@ checker <- function(inherits=TRUE){
                 C.upper <- Cs$C.upper;
                 C.lower <- Cs$C.lower;
 
-                res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
                 C <- res$solution;
 
@@ -816,7 +816,7 @@ checker <- function(inherits=TRUE){
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
 
-            res <- nloptr::nloptr(C, CF, lb=C.lower, ub=C.upper,
+            res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
             C <- res$solution;
             CF.objective <- res$objective;
@@ -948,7 +948,7 @@ checker <- function(inherits=TRUE){
         }
 
         if(FI==TRUE){
-            FI <- numDeriv::hessian(Likelihood.value,C);
+            FI <- hessian(Likelihood.value,C);
         }
         else{
             FI <- NULL;

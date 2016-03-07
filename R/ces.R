@@ -275,7 +275,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
 # Estimate CES
   if(bounds==TRUE){
-    res <- nloptr::cobyla(C, CF, hin=constrains, lower=lowerb, upper=upperb);
+    res <- cobyla(C, CF, hin=constrains, lower=lowerb, upper=upperb);
     C <- res$par;
     CF.objective <- res$value;
   }
@@ -286,7 +286,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
   }
 
   llikelihood <- likelihood(C);
-  FI <- numDeriv::hessian(likelihood,C);
+  FI <- hessian(likelihood,C);
 
   if(!is.null(xreg)){
     FI <- FI[1:(n.components-n.exovars),1:(n.components-n.exovars)];

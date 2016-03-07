@@ -426,13 +426,13 @@ Likelihood.value <- function(C){
         vecg2 <- elements$vecg2;
 
 # Optimise model. First run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
 
 # Optimise model. Second run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
         C <- res$solution;
         CF.objective <- res$objective;
     }
@@ -460,7 +460,7 @@ Likelihood.value <- function(C){
     }
 
     if(FI==TRUE){
-        FI <- numDeriv::hessian(Likelihood.value,C);
+        FI <- hessian(Likelihood.value,C);
     }
     else{
         FI <- NA;
