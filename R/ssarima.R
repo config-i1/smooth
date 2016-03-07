@@ -417,7 +417,9 @@ Likelihood.value <- function(C){
                rep(0.1,sum(ma.orders)));
 
 # initial values of state vector and the constant term
-        C <- c(C,mean(y[1:n.components]),diff(y[1:(n.components)]))
+        slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
+        intercept <- mean(y[1:min(12,obs)]) - initialstates[1,2] * (mean(c(1:min(12,obs))) - 1);
+        C <- c(C,intercept,slope,diff(y[1:(n.components-1)]));
         if(constant==TRUE){
             C <- c(C,mean(y[1:obs]));
         }
