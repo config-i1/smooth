@@ -1,5 +1,5 @@
-\name{ges}
-\alias{ges}
+\name{ssarima}
+\alias{ssarima}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 General Exponential Smoothing
@@ -8,31 +8,33 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, orders=c(2), lags=c(1), initial=NULL,
-    persistence=NULL, transition=NULL, measurement=NULL,
-    persistence2=NULL, transition2=NULL,
-    CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
-    FI=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric"),
-    bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    xreg=NULL, go.wild=FALSE, ...)
+ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
+        initial=NULL, persistence=NULL, transition=NULL,
+        persistence2=NULL, transition2=NULL,
+        CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+        FI=FALSE, intervals=FALSE, int.w=0.95,
+        int.type=c("parametric","semiparametric","nonparametric"),
+        bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+        xreg=NULL, go.wild=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
 
   \item{data}{ the data that needs to be forecasted.
   }
-  \item{orders}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{orders=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
+  \item{ar.orders}{ The vector of autoregressive orders, corresponding to seasonal lags. For example \code{ar.orders=c(1,1)} with \code{lags=c(1,12)} will lead to model with AR(1), SAR(1).
   }
-  \item{lags}{ Defines lags for the corresponding orders. If, for example, \code{orders=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{orders}.
+  \item{i.orders}{ The vector of differences, corresponding to seasonal lags. For example \code{i.orders=c(0,1)} with \code{lags=c(1,12)} will lead to model with I(0), SI(1).
   }
-  \item{initial}{ Vector of initial states \eqn{v_[t]} for GES. Should contain \code{orders \%*\% lags} elements. If \code{NULL}, then estimated.
+  \item{ma.orders}{ The vector of moving average orders, corresponding to seasonal lags. For example \code{i.orders=c(1,2)} with \code{lags=c(1,12)} will lead to model with MA(1), SMA(2).
   }
-  \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
+  \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
   }
-  \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated.
+  \item{initial}{ Vector of initial states \eqn{v_[t]} for ARIMA. Can be useful if the model has been already estimated on te data before. If \code{NULL}, then estimated.
   }
-  \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
+  \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. Can be used if the model has been already estimated on te data before. If \code{NULL}, then estimated.
+  }
+  \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. Can be used if the model has been already estimated on te data before. If \code{NULL}, then estimated.
   }
   \item{persistence2}{ Persistence vector \eqn{g2}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
@@ -66,26 +68,30 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
 }
 \details{
-The function estimates the Single Source of Error State-space model of the following type:
+The function constructs ARIMA in the Single Source of Error State-space form:
 
-\eqn{y_[t] = w' v_[t-l] + x_t a_[t-1] \epsilon_[t]}
+\eqn{y_[t] = w' v_[t-1] + x_t a_[t-1] \epsilon_[t]}
 
-\eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
+\eqn{v_[t] = F v_[t-1] + g \epsilon_[t]}
 
 \eqn{a_[t] = F_2 a_[t-1] + g_2 \epsilon_[t] / x_[t]}
 
-Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
+Where \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
+
+Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
 }
 \value{
   The list of the following values is returned:
 
   \itemize{
     \item \code{model} - the name of the estimated model.
-    \item \code{states} - the matrix of the fuzzy components of GES, where \code{rows} correspond to time and \code{cols} to states.
+    \item \code{states} - the matrix of the fuzzy components of ssarima, where \code{rows} correspond to time and \code{cols} to states.
     \item \code{initial} - the initial values of the state vector (extracted from \code{states}).
-    \item \code{measurement} - matrix w.
     \item \code{transition} - matrix F.
     \item \code{persistence} - the persistence vector.
+    \item \code{AR} - the matrix of coefficients of AR terms.
+    \item \code{I} - the matrix of coefficients of I terms.
+    \item \code{MA} - the matrix of coefficients of MA terms.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
@@ -104,28 +110,34 @@ Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is
   }
 }
 \references{
-No references yet.
+    \enumerate{
+        \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
+    }
 }
 \author{
-Ivan Svetunkov
+    Ivan Svetunkov
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.ets}}
+\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.ets}, \link[smooth]{ges}}
 }
 
 \examples{
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE,intervals=TRUE)->test
+# ARIMA(1,0,0)
+ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,intervals=TRUE)->test
 
-ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
+# SARIMA(1,0,0)(1,0,0)[4]
+ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)->test
 
-ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
+# SARIMA(1,1,1)(0,0,1)[4]
+ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
+        lags=c(1,4),h=18,holdout=TRUE,bounds=FALSE)->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
-
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+# ARIMA(1,0,0) with trace forecast estimation
+ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ ges }
-\keyword{ Exponential Smoothing }% __ONLY ONE__ keyword per line
+\keyword{ SARIMA }
+\keyword{ ARIMA }% __ONLY ONE__ keyword per line

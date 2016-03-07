@@ -11,8 +11,8 @@ Package contains several exponential (and not) smoothing functions used in time 
 \tabular{ll}{
 Package: \tab smooth\cr
 Type: \tab Package\cr
-Version: \tab 0.4\cr
-Date: \tab 2016-01-27 - 2016-03-04\cr
+Version: \tab 0.5\cr
+Date: \tab 2016-01-27 - 2016-03-07\cr
 License: \tab GPL-2 \cr
 }
 The following functions are included in the package:
@@ -21,6 +21,7 @@ The following functions are included in the package:
     \item \link[smooth]{ces} - Complex Exponential Smoothing.
     \item \link[smooth]{ces.auto} - Automatic selection between seasonal and non-seasonal CES.
     \item \link[smooth]{ges} - Generalised Exponential Smoothing.
+    \item \link[smooth]{ssarima} - SARIMA in state-space framework.
     \item \link[smooth]{nus} - Non-Uniform Smoothing.
     \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
     \item \link[smooth]{sim.ets} - simulate time series using ETS as a model.
@@ -42,7 +43,7 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
         \item{Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
     }
 }
-\keyword{ exponential smoothing, ets, ces, ges, nus, forecasting, time series}
+\keyword{ exponential smoothing, ETS, CES, GES, ARIMA, SARIMA, NUS, forecasting, time series}
 \seealso{
 \code{\link[forecast:forecast]{forecast}}
 }

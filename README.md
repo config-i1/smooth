@@ -7,13 +7,13 @@ Here is the list of functions:
 2. ces - Complex Exponential Smoothing. Function estimates CES and makes forecast.
 3. ces.auto - selection between seasonal and non-seasonal CES models.
 4. ges - Generalised Exponential Smoothing. Next step from CES. The paper on this is in the process.
-5. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
-6. sim.ets - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
-7. sim.ces - simulation of time series data using CES model with a predefined (or random) smoothing parameters and initials.
+5. ssarima - SARIMA estimated in state-space framework (WORK IN PROGRESS).
+6. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
+7. sim.ets - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
+8. sim.ces - simulation of time series data using CES model with a predefined (or random) smoothing parameters and initials.
 
 Future works:
 
-8. ssarima - SARIMA estimated in state-space framework.
 9. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
 For a quick and easy installation of the package firstly install "devtools" in R:
