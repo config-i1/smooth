@@ -9,7 +9,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-        initial=NULL, persistence=NULL, transition=NULL,
+        constant=TRUE, initial=NULL, persistence=NULL, transition=NULL,
         persistence2=NULL, transition2=NULL,
         CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
         FI=FALSE, intervals=FALSE, int.w=0.95,
@@ -29,6 +29,8 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   \item{ma.orders}{ The vector of moving average orders, corresponding to seasonal lags. For example \code{i.orders=c(1,2)} with \code{lags=c(1,12)} will lead to model with MA(1), SMA(2).
   }
   \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
+  }
+  \item{constant}{ If \code{TRUE}, the constant term is estimated as well.
   }
   \item{initial}{ Vector of initial states \eqn{v_[t]} for ARIMA. Can be useful if the model has been already estimated on te data before. If \code{NULL}, then estimated.
   }
