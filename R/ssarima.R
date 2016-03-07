@@ -247,13 +247,13 @@ polyroots <- function(C){
         }
     }
 
-    polysos.i <- polynom::as.polynomial(1);
+    polysos.i <- as.polynomial(1);
     for(i in 1:length(lags)){
-        polysos.i <- polysos.i * polynom::polynomial(D[[i]])^i.orders[i];
+        polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
     }
 
-    polysos.ar <- prod(polynom::as.polylist(lapply(P,polynom::polynomial))) * polysos.i;
-    polysos.ma <- prod(polynom::as.polylist(lapply(Q,polynom::polynomial)));
+    polysos.ar <- prod(as.polylist(lapply(P,polynomial))) * polysos.i;
+    polysos.ma <- prod(as.polylist(lapply(Q,polynomial)));
 
     matF[1:(length(polysos.ar)-1),1] <- -(polysos.ar)[2:length(polysos.ar)];
 ### The MA parameters are in the style "1 + b1 * B".
@@ -271,7 +271,7 @@ polyroots <- function(C){
         xtreg <- C[length(C)];
     }
 
-    return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=prod(polynom::as.polylist(lapply(P,polynom::polynomial))),polysos.ma=polysos.ma));
+    return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=prod(as.polylist(lapply(P,polynomial))),polysos.ma=polysos.ma));
 }
 
 # Function makes interval forecasts
@@ -436,13 +436,13 @@ Likelihood.value <- function(C){
 #        vecg2 <- elements$vecg2;
 
 # Optimise model. First run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
 
 # Optimise model. Second run
-        res <- nloptr::nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
         C <- res$solution;
         CF.objective <- res$objective;
     }
@@ -472,7 +472,7 @@ Likelihood.value <- function(C){
     }
 
     if(FI==TRUE){
-        FI <- numDeriv::hessian(Likelihood.value,C);
+        FI <- hessian(Likelihood.value,C);
     }
     else{
         FI <- NA;
