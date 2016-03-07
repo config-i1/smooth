@@ -1,5 +1,5 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-                    constant=TRUE, initial=NULL, persistence=NULL, transition=NULL,
+                    constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
                     persistence2=NULL, transition2=NULL,
                     CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
@@ -502,6 +502,10 @@ Likelihood.value <- function(C){
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
+    if(constant==TRUE){
+        const <- C[length(C)];
+    }
+
 #    if(!is.null(xreg)){
 # Write down the matxtreg and produce values for the holdout
     matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
@@ -664,7 +668,9 @@ if(silent==FALSE){
         cat("Matrix of MA terms:\n");
         print(round(MAterms,3));
     }
-    cat(paste0("Constant value is: ",round(C[length(C)],3),"\n"));
+    if(constant==TRUE){
+        cat(paste0("Constant value is: ",round(C[length(C)],3),"\n"));
+    }
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
     if(!is.null(xreg)){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
@@ -728,7 +734,7 @@ if(silent==FALSE){
 }
 
 return(list(model=modelname,states=matxt,initial=initial,transition=matF,persistence=vecg,
-            AR=ARterms,I=Iterms,MA=MAterms,
+            AR=ARterms,I=Iterms,MA=MAterms,constant=const,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
             actuals=data,holdout=y.holdout,xreg=xreg,persistence2=vecg2,transition2=matF2,
             ICs=ICs,CF=CF.objective,FI=FI,accuracy=errormeasures));
