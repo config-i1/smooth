@@ -9,7 +9,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-        constant=TRUE, initial=NULL, persistence=NULL, transition=NULL,
+        constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
         persistence2=NULL, transition2=NULL,
         CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
         FI=FALSE, intervals=FALSE, int.w=0.95,
@@ -30,7 +30,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
   }
-  \item{constant}{ If \code{TRUE}, the constant term is estimated as well.
+  \item{constant}{ If \code{TRUE}, the constant term is included in the model.
   }
   \item{initial}{ Vector of initial states \eqn{v_[t]} for ARIMA. Can be useful if the model has been already estimated on te data before. If \code{NULL}, then estimated.
   }
@@ -96,6 +96,7 @@ The model always includes constant term.
     \item \code{AR} - the matrix of coefficients of AR terms.
     \item \code{I} - the matrix of coefficients of I terms.
     \item \code{MA} - the matrix of coefficients of MA terms.
+    \item \code{constant} - the value of the constant term.
     \item \code{fitted} - the fitted values of ETS.
     \item \code{forecast} - the point forecast of ETS.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
