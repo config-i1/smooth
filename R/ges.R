@@ -105,22 +105,16 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
 
 # Define the actual values
     y <- as.vector(data);
-
-# Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-
     datafreq <- frequency(data);
 
-# Now let's prepare the provided exogenous data for the inclusion in ETS
+#### Now let's prepare the provided exogenous data for the inclusion in ETS
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
     if(!is.null(xreg)){
         if(any(is.na(xreg))){
             message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
         }
-##### The case with vectors and ts objects, but not matrices #####
+## The case with vectors and ts objects, but not matrices #####
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # If xreg is vector or simple ts
         if(length(xreg)!=obs & length(xreg)!=obs.all){
@@ -141,7 +135,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
         matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
 # Redefine the number of components of ETS.
         }
-##### The case with matrices and data frames #####
+## The case with matrices and data frames #####
         else if(is.matrix(xreg) | is.data.frame(xreg)){
     # If xreg is matrix or data frame
             if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
@@ -179,8 +173,10 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
 
     n.param <- 2*n.components+n.components^2 + orders %*% lags;
     if(!is.null(xreg)){
+# Number of initial states
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){
+# Number of parameters in the transition matrix + persistence vector
             n.param <- n.exovars^2 + n.exovars;
         }
     }
