@@ -406,29 +406,30 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
   if(silent==FALSE){
 # Print time elapsed on the construction
-    print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
-    print("Model constructed:");
-    print(ces.name);
-    print(paste0("a0 + ia1: ",A));
+    cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
+    cat("Model constructed:\n");
+    cat(ces.name);
+    cat(paste0("\na0 + ia1: ",A,"\n"));
 
     if(seasonality=="P"){
-      print(paste0("b: ",B));
+      cat(paste0("b: ",B,"\n"));
     }
     else if(seasonality=="F"){
-      print(paste0("b0 + ib1: ",B));
+      cat(paste0("b0 + ib1: ",B,"\n"));
     }
 
-    print("ABS Eigenvalues for stability condition:");
-    print(1-constrains(C));
+    cat("ABS Eigenvalues for stability condition:\n");
+    cat(1-constrains(C));
+    cat("\n");
     if(trace==FALSE){
       CF.type <- "1 step ahead";
     }
-    print(paste0("Cost function used: ",CF.type,". CF value is: ",round(CF.objective,0)));
-    print(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3),
-                 "; BIC: ", round(BIC.coef,3), "; CIC:", round(CIC.coef,3)));
+    cat(paste0("Cost function used: ",CF.type,". CF value is: ",round(CF.objective,0),"\n"));
+    cat(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3),
+                 "; BIC: ", round(BIC.coef,3), "; CIC:", round(CIC.coef,3),"\n"));
 
     if(intervals==TRUE){
-        print(paste0(int.w*100,"% intervals were constructed"));
+        cat(paste0(int.w*100,"% intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    lower=y.low,upper=y.high,int.w=int.w,legend=legend);
     }
@@ -437,15 +438,15 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     }
     if(holdout==T){
         if(intervals==TRUE){
-            print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
+            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
                     as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval"));
+                    "% of values are in the interval\n"));
         }
-        print(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
+        cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
                     paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"),sep="; "));
-        print(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%"),sep="; "));
+                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
+        cat(paste(paste0("MASE: ",errormeasures["MASE"]),
+                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%\n"),sep="; "));
     }
   }
 

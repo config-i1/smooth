@@ -382,7 +382,7 @@ Likelihood.value <- function(C){
     errors <- rep(NA,obs);
 
     if(trace==TRUE){
-        normalizer <- mean(abs(diff(y[1:obs])));
+        normalizer <- sum(abs(diff(y[1:obs])))/(obs-1);
     }
     else{
         normalizer <- 0;
@@ -392,7 +392,7 @@ Likelihood.value <- function(C){
     if(is.null(initial) | is.null(measurement) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
 # Initial values of matxt
         slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
+        intercept <- sum(y[1:min(12,obs)])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
 
 # matw, matF, vecg, xt
         C <- c(rep(1,n.components),
@@ -559,8 +559,8 @@ Likelihood.value <- function(C){
     if(holdout==T){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
         errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
+                           MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(diff(as.vector(data)[1:obs])))/(obs-1)),
+                           MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(as.vector(data)[1:obs]))/obs),
                            MPE(as.vector(y.holdout),as.vector(y.for),round=5),
                            SMAPE(as.vector(y.holdout),as.vector(y.for),round=5));
         names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
@@ -574,34 +574,34 @@ Likelihood.value <- function(C){
 
 if(silent==FALSE){
 # Print time elapsed on the construction
-    print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
+    cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
 
-    print(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", ")));
-    print("Transition matrix F: ");
+    cat(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", "),"\n"));
+    cat("Transition matrix F: \n");
     print(round(matF,3));
-    print(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", ")));
+    cat(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", "),"\n"));
 #    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
     if(!is.null(xreg)){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
         if(go.wild==TRUE){
-            print("Xreg coefficients were estimated in the insane style.");
+            cat("Xreg coefficients were estimated in the insane style.\n");
             if(n.exovars <= 5){
-                print(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", ")));
-                print("Transition matrix for xreg: ");
+                cat(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", "),"\n"));
+                cat("Transition matrix for xreg: \n");
                 print(round(matF2,3));
             }
         }
         else{
-            print("Xreg coefficients were estimated in the normal style.");
+            cat("Xreg coefficients were estimated in the normal style.\n");
         }
     }
-    print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
+    cat(paste0("Residuals sigma: ",round(s2,3),"\n"));
     if(trace==TRUE){
-        print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)));
+        cat(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
     }
     else{
-        print(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0)));
+        cat(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0),"\n"));
     }
     if(intervals==TRUE){
         if(int.type=="p"){
@@ -613,25 +613,25 @@ if(silent==FALSE){
         if(int.type=="n"){
             int.type <- "nonparametric";
         }
-        print(paste0(int.w*100,"% ",int.type," intervals were constructed"));
+        cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    lower=y.low,upper=y.high,int.w=int.w,legend=legend);
     }
     else{
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
     }
-    print(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3)));
+    cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
     if(holdout==T){
         if(intervals==TRUE){
-            print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
+            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
                     as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval"));
+                    "% of values are in the interval\n"));
         }
-        print(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
+        cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
                     paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"),sep="; "));
-        print(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%"),sep="; "));
+                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
+        cat(paste(paste0("MASE: ",errormeasures["MASE"]),
+                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%\n"),sep="; "));
     }
 }
 

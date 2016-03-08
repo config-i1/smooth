@@ -641,8 +641,8 @@ Likelihood.value <- function(C){
     if(holdout==T){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
         errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
+                           MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(diff(as.vector(data)[1:obs])))/(obs-1)),
+                           MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(as.vector(data)[1:obs]))/obs),
                            MPE(as.vector(y.holdout),as.vector(y.for),round=5),
                            SMAPE(as.vector(y.holdout),as.vector(y.for),round=5));
         names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
@@ -712,7 +712,7 @@ if(silent==FALSE){
     else{
         cat(paste0(n.components," initial states were estimated.\n"));
     }
-    cat(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3),"\n"));
+    cat(paste0("Residuals sigma: ",round(s2,3),"\n"));
     if(trace==TRUE){
         cat(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
     }
@@ -729,7 +729,7 @@ if(silent==FALSE){
         if(int.type=="n"){
             int.type <- "nonparametric";
         }
-        print(paste0(int.w*100,"% ",int.type," intervals were constructed"));
+        cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    lower=y.low,upper=y.high,int.w=int.w,legend=legend);
     }
@@ -739,9 +739,9 @@ if(silent==FALSE){
     cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
     if(holdout==T){
         if(intervals==TRUE){
-            print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
+            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
                     as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval"));
+                    "% of values are in the interval\n"));
         }
         cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
                     paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
