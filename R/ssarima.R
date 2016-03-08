@@ -252,14 +252,26 @@ polyroots <- function(C){
         polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
     }
 
-    polysos.ar <- prod(as.polylist(lapply(P,polynomial))) * polysos.i;
-    polysos.ma <- prod(as.polylist(lapply(Q,polynomial)));
+#starttime <- Sys.time();
+    polysos.ar <- 1;
+    polysos.ma <- 1;
+    for(i in 1:length(P)){
+        polysos.ar <- polysos.ar * polynomial(P[[i]]);
+    }
+    polysos.ari <- polysos.ar * polysos.i;
 
-    if(length((polysos.ar))!=1){
-        matF[1:(length(polysos.ar)-1),1] <- -(polysos.ar)[2:length(polysos.ar)];
+    for(i in 1:length(Q)){
+        polysos.ma <- polysos.ma * polynomial(Q[[i]]);
+    }
+#    polysos.ar <- prod(as.polylist(lapply(P,polynomial))) * polysos.i;
+#    polysos.ma <- prod(as.polylist(lapply(Q,polynomial)));
+#print(Sys.time() - starttime);
+
+    if(length((polysos.ari))!=1){
+        matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
     }
 ### The MA parameters are in the style "1 + b1 * B".
-    vecg <- (-polysos.ar + polysos.ma)[2:(n.components+1)];
+    vecg <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
     vecg[is.na(vecg)] <- 0;
 
     if(is.null(initial)){
@@ -276,7 +288,7 @@ polyroots <- function(C){
         xtreg <- 0;
     }
 
-    return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=prod(as.polylist(lapply(P,polynomial))),polysos.ma=polysos.ma));
+    return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
 
 # Function makes interval forecasts
@@ -405,7 +417,7 @@ Likelihood.value <- function(C){
     errors <- rep(NA,obs);
 
     if(trace==TRUE){
-        normalizer <- mean(abs(diff(y[1:obs])));
+        normalizer <- .Internal(mean(abs(diff(y[1:obs]))));
     }
     else{
         normalizer <- 0;
@@ -420,11 +432,11 @@ Likelihood.value <- function(C){
 
 # initial values of state vector and the constant term
         slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
+        intercept <- .Internal(mean(y[1:min(12,obs)])) - slope * (.Internal(mean(c(1:min(12,obs)))) - 1);
         initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1)]));
         C <- c(C,initial.stuff[1:n.components]);
         if(constant==TRUE){
-            C <- c(C,mean(y[1:obs]));
+            C <- c(C,.Internal(mean(y[1:obs])));
         }
 
 # xtreg
