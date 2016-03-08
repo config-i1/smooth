@@ -417,7 +417,7 @@ Likelihood.value <- function(C){
     errors <- rep(NA,obs);
 
     if(trace==TRUE){
-        normalizer <- mean(abs(diff(y[1:obs])));
+        normalizer <- sum(abs(diff(y[1:obs])))/(obs-1);
     }
     else{
         normalizer <- 0;
@@ -432,11 +432,11 @@ Likelihood.value <- function(C){
 
 # initial values of state vector and the constant term
         slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- mean(y[1:min(12,obs)]) - slope * (mean(c(1:min(12,obs))) - 1);
+        intercept <- sum(y[1:min(12,obs)])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
         initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1)]));
         C <- c(C,initial.stuff[1:n.components]);
         if(constant==TRUE){
-            C <- c(C,mean(y[1:obs]));
+            C <- c(C,sum(y[1:obs])/obs);
         }
 
 # xtreg
