@@ -168,10 +168,14 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     datafreq <- frequency(data);
 
-# Check the length of the provided data
-    if(Stype!="N" & (obs/datafreq)<2){
-        message("Not enough observations for the seasonal model. Only non-seasonal models are available.");
-        Stype <- "N";
+### Check the length of the provided data. Say bad words if:
+# 1. Seasonal model, <=2 seasons of data and no initial seasonals.
+# 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
+    if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) | (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
+    	if(is.null(initial.season)){
+        	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
+       		Stype <- "N";
+       	}
     }
 
 # If model selection is chosen, forget about the initial values and persistence
