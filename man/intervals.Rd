@@ -1,10 +1,10 @@
 \name{intervals}
 \alias{intervals}
 \title{
-Prediction intervals construction
+    Prediction intervals construction
 }
 \description{
-Function produces different types of intervals depending on the parameters using the provided vector or matrix of random variables.
+    Function returns quantiles of distribution using different methods based on the provided vector or matrix of random variables.
 }
 \usage{
 intervals(x,ev=median(x),int.w=0.95,int.type=c("a","p","s","n"))
@@ -16,7 +16,7 @@ intervals(x,ev=median(x),int.w=0.95,int.type=c("a","p","s","n"))
 }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{a} stands for \code{asymmetric}, \code{p} - for \code{parametric}, \code{s} - for \code{semiparametric} and \code{n} - for \code{nonparametric}. Only asymmetric intervals are currently implemented.
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{"a"} stands for \code{"asymmetric"}, \code{"p"} - for \code{"parametric"}, \code{"s"} - for \code{"semiparametric"} and \code{"n"} - for \code{"nonparametric"}. Only asymmetric intervals are currently implemented.
   }
 }
 \details{
