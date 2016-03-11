@@ -11,11 +11,12 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"), initial=NULL,
     initial.season=NULL, IC=c("AICc","AIC","BIC"),
-    trace=FALSE, CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     ...)
+
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -36,8 +37,6 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{initial.season}{ The vector of initial values for seasonal components. If \code{NULL}, they are estimated in the optimization.
   }
   \item{IC}{ The information criterion to use in the model selection.
-  }
-  \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }

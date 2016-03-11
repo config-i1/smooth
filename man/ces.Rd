@@ -72,8 +72,8 @@
     \item \code{holdout} - the holdout part of the original data.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=\code{FALSE}} then NA is returned.
-    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=\code{FALSE}} then NA is returned.
+    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex IC).
     \item \code{CF.type} - Type of cost function used in the estimation.

@@ -554,11 +554,11 @@ Likelihood.value <- function(C){
 
     if(holdout==T){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
-        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
+        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
                            MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(diff(as.vector(data)[1:obs])))/(obs-1)),
                            MASE(as.vector(y.holdout),as.vector(y.for),sum(abs(as.vector(data)[1:obs]))/obs),
-                           MPE(as.vector(y.holdout),as.vector(y.for),round=5),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),round=5));
+                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5));
         names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
     }
     else{

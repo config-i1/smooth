@@ -17,8 +17,8 @@ ceserrorerwrap <- function(matxt, matF, matw, yt, h, Stype, seasfreq, matwex, ma
     .Call('smooth_ceserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Stype, seasfreq, matwex, matxtreg)
 }
 
-cesoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg) {
-    .Call('smooth_cesoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg)
+cesoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg) {
+    .Call('smooth_cesoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg)
 }
 
 initparams <- function(Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs) {
@@ -37,16 +37,16 @@ forecasterwrap <- function(matxt, matF, matw, h, Ttype, Stype, seasfreq, matwex,
     .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matxt, matF, matw, h, Ttype, Stype, seasfreq, matwex, matxtreg)
 }
 
-errorerwrap <- function(matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, trace, matwex, matxtreg) {
-    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, trace, matwex, matxtreg)
+errorerwrap <- function(matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, multisteps, matwex, matxtreg) {
+    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, multisteps, matwex, matxtreg)
 }
 
-optimizerwrap <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg) {
-    .Call('smooth_optimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg)
+optimizerwrap <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg) {
+    .Call('smooth_optimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg)
 }
 
-costfunc <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta) {
-    .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, trace, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta)
+costfunc <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta) {
+    .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta)
 }
 
 ssfitterwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2) {
@@ -65,7 +65,7 @@ sserrorerwrap <- function(matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
     .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
 }
 
-ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, modellags, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
+ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
 }
 

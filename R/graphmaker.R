@@ -30,10 +30,20 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
 
     if(legend==TRUE){
         layout(matrix(c(1,2),2,1),heights=c(0.86,0.14));
-        par(mar=c(2,3,3,1));
+        if(is.null(main)){
+            par(mar=c(2,3,2,1));
+        }
+        else{
+            par(mar=c(2,3,3,1));
+        }
     }
     else{
-        par(mar=c(3,3,3,1));
+        if(is.null(main)){
+            par(mar=c(3,3,2,1));
+        }
+        else{
+            par(mar=c(3,3,3,1));
+        }
     }
 
     plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[h]),

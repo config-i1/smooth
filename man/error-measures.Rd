@@ -22,12 +22,12 @@
     }
 }
 \usage{
-    MPE(actual,forecast,round=3)
-    MAPE(actual,forecast,round=3)
-    SMAPE(actual,forecast,round=3)
-    MASE(actual,forecast,scale,round=3)
-    GMRAE(actual,forecast,benchmark,round=3)
-    TRAE(actual,forecast,benchmark,round=3)
+    MPE(actual,forecast,digits=3)
+    MAPE(actual,forecast,digits=3)
+    SMAPE(actual,forecast,digits=3)
+    MASE(actual,forecast,scale,digits=3)
+    GMRAE(actual,forecast,benchmark,digits=3)
+    TRAE(actual,forecast,benchmark,digits=3)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -43,7 +43,7 @@
   \item{benchmark}{
         The vector or matrix of the forecasts of the benchmark model.
   }
-  \item{round}{
+  \item{digits}{
         Number of digits of the output.
   }
 }
@@ -71,14 +71,14 @@
 y <- rnorm(100,10,2)
 esmodel <- es(y[1:90],model="ANN",h=10)
 
-MPE(y[91:100],esmodel$forecast,round=5)
-MAPE(y[91:100],esmodel$forecast,round=5)
-SMAPE(y[91:100],esmodel$forecast,round=5)
-MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),round=5)
-MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),round=5)
+MPE(y[91:100],esmodel$forecast,digits=5)
+MAPE(y[91:100],esmodel$forecast,digits=5)
+SMAPE(y[91:100],esmodel$forecast,digits=5)
+MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),digits=5)
 
 esmodel2 <- es(y[1:90],model="AAN",h=10)
-GMRAE(y[91:100],esmodel2$forecast,esmodel$forecast,round=5)
+GMRAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
 
 }
 \keyword{ error measures }

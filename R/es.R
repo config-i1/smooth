@@ -1123,11 +1123,11 @@ checker <- function(inherits=TRUE){
 
     if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
-        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),round=5),
+        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
-                           MPE(as.vector(y.holdout),as.vector(y.for),round=5),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),round=5));
+                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5));
         names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
     }
     else{

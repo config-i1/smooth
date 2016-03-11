@@ -8,33 +8,32 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-ces.auto(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
-    models=c("N","F"), xreg=NULL, intervals=FALSE, int.w=0.95,
-    IC=c("CIC","AIC","AICc","BIC"), trace=FALSE, CF.type=c("TLV","TV","GV","hsteps"),
-    use.test=FALSE, silent=FALSE, legend=TRUE)
+ces.auto(data, C=c(1.1, 1), models=c("N","F"),
+         IC=c("CIC","AIC","AICc","BIC"),
+         CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+         use.test=FALSE, intervals=FALSE, int.w=0.95,
+         bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+         xreg=NULL)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{
     Either numeric vector or time series vector.
   }
-  \item{h}{
-    The forecasting horizon.
-  }
-  \item{holdout}{
-    If TRUE, the holdout sample of size h will be taken from the data. If FALSE, no holdout is defined.
-  }
   \item{C}{
     The initial value of complex smoothing parameter, where C[1] = a0, C[2] = a1.
-  }
-  \item{bounds}{
-    If TRUE, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If FALSE, no bounds are used, which is fast but may result in non-stable model.
   }
   \item{models}{
     The vector containing several types of seasonality that should be used in CES selection. See \link[smooth]{ces} for more details about the possible types of seasonal models.
   }
-  \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
+  \item{IC}{
+    The information criterion used in the model selection procedure. CIC - "Complex IC" is prefered due to the features of complex components etimation.
+  }
+  \item{CF.type}{
+  Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
+  }
+  \item{use.test}{
+    If TRUE the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{intervals}{
     If TRUE, the prediction intervals are constructed.
@@ -42,23 +41,23 @@ ces.auto(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
   \item{int.w}{
     The width of prediction intervals. Default is 95\%.
   }
-  \item{IC}{
-    The information criterion used in the model selection procedure. CIC - "Complex IC" is prefered due to the features of complex components etimation.
+  \item{bounds}{
+    If TRUE, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If FALSE, no bounds are used, which is fast but may result in non-stable model.
   }
-  \item{trace}{
-    If TRUE, the likelihood with h-steps ahead error is used.
+  \item{holdout}{
+    If TRUE, the holdout sample of size h will be taken from the data. If FALSE, no holdout is defined.
   }
-  \item{CF.type}{
-    Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation, "hsteps" - optimisation using only h-steps ahead error.
-  }
-  \item{use.test}{
-    If TRUE the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
+  \item{h}{
+    The forecasting horizon.
   }
   \item{silent}{
     If TRUE, no output is given and no plot is drawn.
   }
   \item{legend}{
     If FALSE, the legend in the graph is skiped.
+  }
+  \item{xreg}{
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
   }
 }
 \details{

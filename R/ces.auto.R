@@ -1,7 +1,9 @@
-ces.auto <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
-                models=c("N","F"), xreg=NULL, intervals=FALSE, int.w=0.95,
-                IC=c("CIC","AIC","AICc","BIC"), trace=FALSE, CF.type=c("TLV","TV","GV","hsteps"),
-                use.test=FALSE, silent=FALSE, legend=TRUE){
+ces.auto <- function(data, C=c(1.1, 1), models=c("N","F"),
+                IC=c("CIC","AIC","AICc","BIC"),
+                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+                use.test=FALSE, intervals=FALSE, int.w=0.95,
+                bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+                xreg=NULL){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -10,11 +12,18 @@ ces.auto <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 #    Copyright (C) 2015  Ivan Svetunkov
 
   CF.type <- CF.type[1];
-# If the wrong CF.type is defined, change it back to default
-  if(trace==TRUE & all(CF.type!=c("TLV","TV","GV","hsteps"))){
-    message(paste0("Wrong cost function type defined: '",CF.type, "'. Changing it to 'TLV'"));
-    CF.type <- "TLV";
-  }
+# Check if CF.type is appropriate
+    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+        multisteps <- TRUE;
+    }
+    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+        multisteps <- FALSE;
+    }
+    else{
+        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
+        CF.type <- "MSE";
+        multisteps <- FALSE;
+    }
 
 # If the pool of models is wrong, fall back to default
   if(any(models!="N" & models!="S" & models!="P" & models!="F")){
@@ -41,7 +50,7 @@ ces.auto <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
     ces.model <- ces(data,h=h,holdout=holdout,C=C,silent=silent,bounds=bounds,
                      seasonality=models,xreg=xreg,intervals=intervals,int.w=int.w,
-                     use.test=use.test,trace=trace,CF.type=CF.type);
+                     use.test=use.test,CF.type=CF.type);
     return(ces.model);
   }
 
@@ -56,7 +65,7 @@ ces.auto <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     }
     ces.model[[j]] <- ces(data,h=h,holdout=holdout,C=C,silent=TRUE,bounds=bounds,
                      seasonality=i,xreg=xreg,intervals=intervals,int.w=int.w,
-                     use.test=use.test,trace=trace,CF.type=CF.type);
+                     use.test=use.test,CF.type=CF.type);
     j <- j+1;
   }
 
@@ -91,7 +100,7 @@ ces.auto <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
       print(paste0("b: ",best.model$B));
     }
 
-    if(trace==FALSE){
+    if(multisteps==FALSE){
       CF.type <- "1 step ahead";
     }
     print(paste0("Cost function used: ",CF.type));
