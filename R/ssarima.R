@@ -672,15 +672,6 @@ if(silent==FALSE){
     cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
 
-#    if(n.components >=5){
-#        print("Number of components is too big to be printed out...");
-#    }
-#    else{
-#        print(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", ")));
-#        print("Transition matrix F: ");
-#        print(round(matF,3));
-#        print(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", ")));
-#    }
     if(any(ARterms!=0)){
         cat("Matrix of AR terms:\n");
         print(round(ARterms,3));
@@ -692,7 +683,7 @@ if(silent==FALSE){
     if(constant==TRUE){
         cat(paste0("Constant value is: ",round(C[length(C)],3),"\n"));
     }
-#    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
+
     if(!is.null(xreg)){
 #        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
         if(go.wild==TRUE){
@@ -731,11 +722,12 @@ if(silent==FALSE){
             int.type <- "nonparametric";
         }
         cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
     if(holdout==T){

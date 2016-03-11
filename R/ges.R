@@ -610,11 +610,12 @@ if(silent==FALSE){
             int.type <- "nonparametric";
         }
         cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
     if(holdout==T){

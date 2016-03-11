@@ -1135,11 +1135,13 @@ checker <- function(inherits=TRUE){
         errormeasures <- NA;
     }
 
+    modelname <- paste0("ETS(",model,")");
+
 if(silent==FALSE){
 # Print time elapsed on the construction
     print(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds"));
     if(all(unlist(strsplit(model,""))!="C")){
-        print(paste0("Model constructed: ",model));
+        print(paste0("Model constructed: ETS(",model,")"));
         print(paste0("Persistence vector: ", paste(round(vecg,3),collapse=", ")));
         if(damped==TRUE){
             print(paste0("Damping parameter: ", round(phi,3)));
@@ -1175,11 +1177,12 @@ if(silent==FALSE){
             int.type <- "nonparametric";
         }
         print(paste0(int.w*100,"% ",int.type," intervals were constructed"));
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                   int.w=int.w,legend=legend,main=modelname);
     }
 #    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^multisteps),0)))
     if(holdout==TRUE){

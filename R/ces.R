@@ -386,17 +386,25 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
 
 # Right down the smoothing parameters
-  A <- complex(real=C[1],imaginary=C[2]);
+    A <- complex(real=C[1],imaginary=C[2]);
 
-  if(seasonality=="P"){
-    B <- C[3];
-  }
-  else if(seasonality=="F"){
-    B <- complex(real=C[3],imaginary=C[4]);
-  }
-  else{
-    B <- NA;
-  }
+    if(seasonality=="P"){
+        B <- C[3];
+        modelname <- "CES(P)";
+    }
+    else if(seasonality=="F"){
+        B <- complex(real=C[3],imaginary=C[4]);
+        modelname <- "CES(F)";
+    }
+    else{
+        B <- NA;
+        if(seasonality=="N"){
+            modelname <- "CES(N)";
+        }
+        else{
+            modelname <- "CES(S)";
+        }
+    }
 
   if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
@@ -438,11 +446,12 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
     if(intervals==TRUE){
         cat(paste0(int.w*100,"% intervals were constructed\n"));
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                   int.w=int.w,legend=legend,main=modelname);
     }
     if(holdout==T){
         if(intervals==TRUE){
@@ -458,7 +467,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     }
   }
 
-return(list(A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
+return(list(model=modelname,A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
             actuals=data,fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,
             states=matxt,ICs=ICs,CF.type=CF.type,FI=FI,xreg=matwex,accuracy=errormeasures));
 }
