@@ -34,7 +34,7 @@ double errorf(double yact, double yfit, char Etype){
     }
 }
 
-/* # Function is needed to estimate the correct error for ETS when trace model selection with r(matxt) is sorted out. */
+/* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matxt) is sorted out. */
 arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     if(Etype=='A'){
         return yact - yfit;
@@ -667,14 +667,14 @@ SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg){
     return wrap(forecaster(matrixxt, matrixF, matrixw, hor, T, S, freq, matrixwex, matrixxtreg));
 }
 
-/* # Function produces matrix of errors based on trace forecast */
+/* # Function produces matrix of errors based on multisteps forecast */
 arma::mat errorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt,
-int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::mat matrixxtreg) {
+int hor, char E, char T, char S, int freq, bool multi, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
     int hh = 0;
     arma::mat materrors(obs, hor);
 
-//    if(tr==true){
+//    if(multi==true){
 //        materrors.set_size(obs, hor);
         materrors.fill(NA_REAL);
 /*    }
@@ -682,7 +682,7 @@ int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::m
         materrors.set_size(obs, 1);
     }
 
-    if(tr==true){ */
+    if(multi==true){ */
         for(int i = 0; i < obs; i=i+1){
             hh = std::min(hor, obs-i);
             materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),
@@ -703,7 +703,7 @@ int hor, char E, char T, char S, int freq, bool tr, arma::mat matrixwex, arma::m
 /* # Wrapper for errorer */
 // [[Rcpp::export]]
 RcppExport SEXP errorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype,
-SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
+SEXP seasfreq, SEXP multisteps, SEXP matwex, SEXP matxtreg){
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
     NumericMatrix mF(matF);
@@ -717,18 +717,18 @@ SEXP seasfreq, SEXP trace, SEXP matwex, SEXP matxtreg){
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
     int freq = as<int>(seasfreq);
-    bool tr = as<bool>(trace);
+    bool multi = as<bool>(multisteps);
     NumericMatrix mwex(matwex);
     arma::mat matrixwex(mwex.begin(), mwex.nrow(), mwex.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return wrap(errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg));
+    return wrap(errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg));
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double optimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
-int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int normalize, arma::mat matrixwex, arma::mat matrixxtreg){
+int hor, char E, char T, char S, int freq, bool multi, std::string CFtype, int normalize, arma::mat matrixwex, arma::mat matrixxtreg){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
@@ -746,11 +746,18 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
     matrixxtreg = as<arma::mat>(mxtregfromfit);
 
     arma::mat materrors;
+    arma::rowvec horvec(hor);
+
+    if(multi==true){
+        for(int i=0; i<hor; i=i+1){
+            horvec(i) = hor - i;
+        }
+    }
 
     if(E=='M'){
-        if(tr==true){
-            materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg));
-            materrors(0,0) = materrors(0,0)*hor;
+        if(multi==true){
+            materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg));
+            materrors.row(0) = materrors.row(0) % horvec;
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
@@ -762,7 +769,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
                 }
                 CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
             }
-            else if(CFtype=="TLV"){
+            else if(CFtype=="trace"){
                 for(int i=0; i<hor; i=i+1){
                     CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
                 }
@@ -774,7 +781,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
                 }
                 CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
             }
-            else if(CFtype=="hsteps"){
+            else if(CFtype=="MSEh"){
                 CFres = arma::as_scalar(exp(log(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))) + (2 / double(obs)) * yactsum));
             }
         }
@@ -793,8 +800,9 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
         }
     }
     else{
-        if(tr==true){
-            materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, tr, matrixwex, matrixxtreg);
+        if(multi==true){
+            materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg);
+            materrors.row(0) = materrors.row(0) % horvec;
             if(CFtype=="GV"){
                 materrors.resize(matobs,hor);
                 try{
@@ -804,7 +812,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
                     CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
                 }
             }
-            else if(CFtype=="TLV"){
+            else if(CFtype=="trace"){
                 for(int i=0; i<hor; i=i+1){
                     CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
                 }
@@ -814,7 +822,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
                     CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
                 }
             }
-            else if(CFtype=="hsteps"){
+            else if(CFtype=="MSEh"){
                 CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
             }
         }
@@ -837,7 +845,7 @@ int hor, char E, char T, char S, int freq, bool tr, std::string CFtype, int norm
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
 RcppExport SEXP optimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
-SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
+SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
     NumericMatrix mF(matF);
@@ -853,7 +861,7 @@ SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
     int freq = as<int>(seasfreq);
-    bool tr = as<bool>(trace);
+    bool multi = as<bool>(multisteps);
     std::string CFtype = as<std::string>(CFt);
     double normalize = as<double>(normalizer);
     NumericMatrix mwex(matwex);
@@ -861,14 +869,14 @@ SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
     NumericMatrix mxtreg(matxtreg);
     arma::mat matrixxtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg));
+    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,multi,CFtype,normalize,matrixwex,matrixxtreg));
 }
 
 /* # Function is used in cases when the persistence vector needs to be estimated.
 # If bounds are violated, it returns a state vector with zeroes. */
 // [[Rcpp::export]]
 RcppExport SEXP costfunc(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
-SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt,
+SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP seasfreq, SEXP multisteps, SEXP CFt,
 SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) {
 /* Function is needed to implement constrains on smoothing parameters */
     NumericMatrix mxt(matxt);
@@ -886,7 +894,7 @@ SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) 
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
     int freq = as<int>(seasfreq);
-    bool tr = as<bool>(trace);
+    bool multi = as<bool>(multisteps);
     std::string CFtype = as<std::string>(CFt);
     double normalize = as<double>(normalizer);
     NumericMatrix mwex(matwex);
@@ -977,7 +985,7 @@ SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) 
         }
     }
 
-    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,tr,CFtype,normalize,matrixwex,matrixxtreg));
+    return wrap(optimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,E,T,S,freq,multi,CFtype,normalize,matrixwex,matrixxtreg));
 }
 
 /*

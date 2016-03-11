@@ -8,55 +8,52 @@
   Function estimates CES in state-space form with information potential equal to errors and returns several variables.
 }
 \usage{
-  ces(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
-      seasonality=c("N","S","P","F"), xreg=NULL, trace=FALSE,
-      CF.type=c("TLV","TV","GV","hsteps"), use.test=FALSE,
-      intervals=FALSE, int.w=0.95,
-      silent=FALSE, legend=TRUE)
+  ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
+      CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+      use.test=FALSE, intervals=FALSE, int.w=0.95,
+      bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+      xreg=NULL)
 }
 \arguments{
   \item{data}{
     Either numeric vector or time series vector.
   }
-  \item{h}{
-    The forecasting horizon.
-  }
-  \item{holdout}{
-    If TRUE, the holdout sample of size h will be taken from the data. If FALSE, no holdout is defined.
-  }
   \item{C}{
     The initial value of complex smoothing parameter, where C[1] = a0, C[2] = a1.
-  }
-  \item{bounds}{
-    If TRUE, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If FALSE, no bounds are used, which is fast but may result in non-stable model.
   }
   \item{seasonality}{
     The type of seasonality used in CES. Can be: "N" - No seasonality; "S" - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); "P" - Partial seasonality with real seasonal components (equivalent to additive seasonality); "F" - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data).
     Any seasonal CES can only be constructed for time series vectors.
   }
-  \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
-  }
-  \item{trace}{
-    If TRUE, the likelihood with h-steps ahead error is used.
-  }
   \item{CF.type}{
-    Type of Cost Function used in trace optimization. Can be "GV" - Generalized Variance, "TLV" - Total Logarythmic Variation and "TV" - Total Variation, "hsteps" - optimisation using only h-steps ahead error.
+  Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{use.test}{
-    If TRUE the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
+    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{intervals}{
-    If TRUE, the prediction intervals are constructed.
+    If \code{TRUE}, the prediction intervals are constructed.
   }
   \item{int.w}{
     The width of prediction intervals. Default is 95\%.
   }
+  \item{bounds}{
+    If \code{TRUE}, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If \code{FALSE}, no bounds are used, which is fast but may result in non-stable model.
+  }
+  \item{holdout}{
+    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
+  }
+  \item{h}{
+    The forecasting horizon.
+  }
   \item{silent}{
-    If TRUE, no output is given and no plot is drawn.
+    If \code{TRUE}, no output is given and no plot is drawn.
   }
   \item{legend}{
-    If FALSE, the legend in the graph is skiped.
+    If \code{FALSE}, the legend in the graph is skiped.
+  }
+  \item{xreg}{
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
   }
 }
 \details{
@@ -75,10 +72,11 @@
     \item \code{holdout} - the holdout part of the original data.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=\code{FALSE}} then NA is returned.
+    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=\code{FALSE}} then NA is returned.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex IC).
+    \item \code{CF.type} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information.
     \item \code{accuracy} - the vector or accuracy measures. Includes MAPE, MASE and MASALE. Available only when \code{holdout=T}.
   }

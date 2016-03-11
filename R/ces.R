@@ -1,8 +1,8 @@
-ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
-                seasonality=c("N","S","P","F"), xreg=NULL, trace=FALSE,
-                CF.type=c("TLV","TV","GV","hsteps"), use.test=FALSE,
-                intervals=FALSE, int.w=0.95,
-                silent=FALSE, legend=TRUE){
+ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
+                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+                use.test=FALSE, intervals=FALSE, int.w=0.95,
+                bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+                xreg=NULL){
 
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
@@ -22,11 +22,19 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     seasonality <- "F";
   }
 
-# If the wrong CF.type is defined, change it back to default
-  if(trace==TRUE & all(CF.type!=c("TLV","TV","GV","hsteps"))){
-    message(paste0("Wrong cost function type defined: '",CF.type, "'. Changing it to 'TLV'"));
-    CF.type <- "TLV";
-  }
+# Check if CF.type is appropriate
+    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+        multisteps <- TRUE;
+    }
+    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+        multisteps <- FALSE;
+    }
+    else{
+        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
+        CF.type <- "MSE";
+        multisteps <- FALSE;
+    }
+    CF.type.original <- CF.type;
 
   if(any(is.na(data))){
     if(silent==FALSE){
@@ -218,7 +226,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     vecg <- ces.elements$vecg;
 
     CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),
-                               vecg,h,seasonality,seas.lag,trace,CF.type,normalizer,matwex,matxtreg);
+                               vecg,h,seasonality,seas.lag,multisteps,CF.type,normalizer,matwex,matxtreg);
 
 #    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw[1,],obs.all,length(matw),byrow=TRUE), matrix(1,obs.all,length(matw)),
 #                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), CF.type,
@@ -248,11 +256,11 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
 # Likelihood function
   likelihood <- function(C){
-    if(trace==TRUE & (CF.type=="GV" | CF.type=="TLV")){
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)));
+    if(CF.type=="GV"){
+        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))));
+        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
     }
   }
 
@@ -266,7 +274,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     upperb <- rep(2,n.components);
   }
 
-  if(trace==TRUE & CF.type=="GV"){
+  if(CF.type=="GV"){
     normalizer <- mean(abs(diff(y[1:obs])));
   }
   else{
@@ -293,12 +301,12 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
   }
 
 # Information criteria are calculated here with the constant part "log(2*pi*exp(1)/obs)*obs".
-  AIC.coef <- 2*n.param*h^trace - 2*llikelihood;
+  AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
   AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
-  BIC.coef <- log(obs)*n.param*h^trace - 2 * llikelihood;
+  BIC.coef <- log(obs)*n.param*h^multisteps - 2 * llikelihood;
 # Information criterion derived and used especially for CES
 #   k here is equal to number of coefficients/2 + number of complex initial states of CES.
-  CIC.coef <- 2*(length(C)/2 + seas.lag)*h^trace - 2*llikelihood;
+  CIC.coef <- 2*(length(C)/2 + seas.lag)*h^multisteps - 2*llikelihood;
 
   ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
   names(ICs) <- c("AIC", "AICc", "BIC","CIC");
@@ -421,7 +429,7 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
     cat("ABS Eigenvalues for stability condition:\n");
     cat(1-constrains(C));
     cat("\n");
-    if(trace==FALSE){
+    if(multisteps==FALSE){
       CF.type <- "1 step ahead";
     }
     cat(paste0("Cost function used: ",CF.type,". CF value is: ",round(CF.objective,0),"\n"));
@@ -452,5 +460,5 @@ ces <- function(data, h=1, holdout=FALSE, C=c(1.1, 1), bounds=FALSE,
 
 return(list(A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
             actuals=data,fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,
-            states=matxt,ICs=ICs,FI=FI,xreg=matwex,accuracy=errormeasures));
+            states=matxt,ICs=ICs,CF.type=CF.type,FI=FI,xreg=matwex,accuracy=errormeasures));
 }

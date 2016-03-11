@@ -331,7 +331,7 @@ RcppExport arma::mat ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, S
 
 /* # Cost function calculation */
 double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
-                 int hor, char S, int freq, bool tr, std::string CFtype, double normalize, arma::mat wex, arma::mat xtreg) {
+                 int hor, char S, int freq, bool multi, std::string CFtype, double normalize, arma::mat wex, arma::mat xtreg) {
     double CFres = 0;
 
     List fitting = cesfitter(matrixxt, matrixF, matrixw, matyt, matg, S, freq, wex, xtreg);
@@ -342,17 +342,25 @@ double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, ar
     xtreg = as<arma::mat>(mxtregfromfit);
 
     arma::mat materrors;
-/* # The matrix is cut of to be square. If the bcakcast is done to the additional points, this can be fixed. */
-    if(tr==true){
+    arma::rowvec horvec(hor);
+
+    if(multi==true){
+        for(int i=0; i<hor; i=i+1){
+            horvec(i) = hor - i;
+        }
         materrors = ceserrorer(matrixxt,matrixF,matrixw,matyt,hor,S,freq,wex,xtreg);
-        materrors(0,0) = materrors(0,0)*hor;
+        materrors.row(0) = materrors.row(0) % horvec;
+    }
+
+/* # The matrix is cut of to be square. If the bcakcast is done to the additional points, this can be fixed. */
+    if(multi==true){
 /* #  Matrix may be cut off if needed... */
         materrors = materrors.rows(0,(materrors.n_rows-hor));
         if(CFtype=="GV"){
             materrors = materrors / normalize;
             CFres = double(log(det(trans(materrors) * (materrors) / materrors.n_rows)) + hor * log(materrors.n_rows * pow(normalize,2)));
         }
-        else if(CFtype=="TLV"){
+        else if(CFtype=="trace"){
             for(int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(log(mean(pow(materrors.col(i),2))));
             }
@@ -360,13 +368,23 @@ double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, ar
         else if(CFtype=="TV"){
             CFres = arma::as_scalar(sum(mean(pow(materrors,2),0),1));
         }
-        else if(CFtype=="hsteps"){
+        else if(CFtype=="MSEh"){
             CFres = arma::as_scalar(mean(pow(materrors.col(hor-1),2)));
         }
     }
     else{
-        arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-        CFres = arma::as_scalar(mean(pow(materrors,2)));
+        if(CFtype=="MSE"){
+            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+            CFres = arma::as_scalar(mean(pow(materrors,2)));
+        }
+        else if(CFtype=="MAE"){
+            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+            CFres = arma::as_scalar(mean(abs(materrors)));
+        }
+        else{
+            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+            CFres = arma::as_scalar(mean(pow(abs(materrors),0.5)));
+        }
     }
 
     return CFres;
@@ -375,7 +393,7 @@ double cesoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, ar
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
 RcppExport double cesoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h,
-                                SEXP Stype, SEXP seasfreq, SEXP trace, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
+                                SEXP Stype, SEXP seasfreq, SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP matwex, SEXP matxtreg) {
 /*  std::cout << "Function started" << std::endl; */
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -390,7 +408,7 @@ RcppExport double cesoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SE
     int hor = as<int>(h);
     char S = as<char>(Stype);
     int freq = as<int>(seasfreq);
-    bool tr = as<bool>(trace);
+    bool multi = as<bool>(multisteps);
     std::string CFtype = as<std::string>(CFt);
     double normalize = as<double>(normalizer);
     NumericMatrix mwex(matwex);
@@ -398,5 +416,5 @@ RcppExport double cesoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SE
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return cesoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,S,freq,tr,CFtype,normalize,wex,xtreg);
+    return cesoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,S,freq,multi,CFtype,normalize,wex,xtreg);
 }

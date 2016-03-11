@@ -1,7 +1,7 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                bounds=c("usual","admissible"), initial=NULL,
                initial.season=NULL, IC=c("AICc","AIC","BIC"),
-               trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
+               CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric"),
                xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -32,24 +32,17 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # Check if CF.type is appropriate in the case of trace==TRUE
-    if(trace==TRUE){
-        if(CF.type!="GV" & CF.type!="TLV" & CF.type!="TV" & CF.type!="hsteps"){
-            message(paste0("The strange Cost Function is chosen for trace: ",CF.type));
-            sowhat(CF.type);
-            message("Switching to 'TLV'");
-            CF.type <- "TLV";
-        }
+    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+        multisteps <- TRUE;
     }
-    else(
-        if(CF.type!="MAE" & CF.type!="HAM" & CF.type!="MSE"){
-            if(CF.type!="TLV"){
-                message(paste0("Weird Cost Function defined: ",CF.type, ". Did you forget to switch trace on?"));
-                sowhat(CF.type);
-                message("Switching to 'MSE'");
-            }
-            CF.type <- "MSE";
-        }
-    )
+    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+        multisteps <- FALSE;
+    }
+    else{
+        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
+        CF.type <- "MSE";
+        multisteps <- FALSE;
+    }
     CF.type.original <- CF.type;
 
 # Check if "bounds" parameter makes any sense
@@ -366,14 +359,14 @@ CF <- function(C){
         }
         CF.res <- costfunc(init.ets$matxt,init.ets$matF,init.ets$matw,
                            as.matrix(y[1:obs]),init.ets$vecg,h,
-                           Etype,Ttype,Stype,seasfreq,trace,CF.type,
+                           Etype,Ttype,Stype,seasfreq,multisteps,CF.type,
                            normalizer,matwex,init.ets$matxtreg,bounds,
                            init.ets$phi,Theta);
     }
     else{
         CF.res <- optimizerwrap(init.ets$matxt,init.ets$matF,init.ets$matw,
                                 as.matrix(y[1:obs]),init.ets$vecg,h,
-                                Etype,Ttype,Stype,seasfreq,trace,CF.type,
+                                Etype,Ttype,Stype,seasfreq,multisteps,CF.type,
                                 normalizer,matwex,init.ets$matxtreg);
     }
 
@@ -477,11 +470,11 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
 }
 
 Likelihood.value <- function(C){
-    if((trace==TRUE) & (CF.type=="GV")){
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)));
+    if(CF.type=="GV"){
+        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))));
+        return(-obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
     }
 }
 
@@ -492,9 +485,9 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
 # Hyndman likelihood is: llikelihood <- obs*log(obs*CF.objective)
     llikelihood <- Likelihood.value(C);
 
-    AIC.coef <- 2*n.param*h^trace - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^trace * (n.param + 1) / (obs - n.param - 1);
-    BIC.coef <- log(obs)*n.param*h^trace - 2*llikelihood;
+    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs - n.param - 1);
+    BIC.coef <- log(obs)*n.param*h^multisteps - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");
@@ -636,14 +629,6 @@ checker <- function(inherits=TRUE){
 
     normalizer <- mean(abs(diff(y[1:obs])));
 
-# If we use trace, define matrix of errors.
-    if(trace==TRUE){
-        mat.error <- matrix(NA,nrow=obs,ncol=h);
-    }
-    else{
-        mat.error <- matrix(NA,nrow=obs,ncol=1);
-    }
-
     basicparams <- initparams(Ttype, Stype, datafreq, obs, as.matrix(y),
                               damped, phi, smoothingparameters, initialstates, seasonalcoefs);
     n.components <- basicparams$n.components;
@@ -661,7 +646,7 @@ checker <- function(inherits=TRUE){
 #    but it doesn't make much sense and makes things more complicated
     if(estimate.persistence==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
 
-# Number of observations in the mat.error matrix excluding NAs.
+# Number of observations in the error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1;
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
         if(any(unlist(strsplit(model,""))=="C") | (Etype=="Z" | Ttype=="Z" | Stype=="Z")){
@@ -709,7 +694,7 @@ checker <- function(inherits=TRUE){
                                       rep(season.pool,each=length(trends.pool)));
             }
 
-# Number of observations in the mat.error matrix excluding NAs.
+# Number of observations in the error matrix excluding NAs.
             errors.mat.obs <- obs - h + 1;
 
             results <- as.list(c(1:models.number));
@@ -758,7 +743,7 @@ checker <- function(inherits=TRUE){
                 n.param <- n.components + damped + (n.components - (Stype!="N")) + seasfreq*(Stype!="N");
 
 # Change CF.type for the more appropriate model selection
-                if(trace==TRUE){
+                if(multisteps==TRUE){
                     CF.type <- "GV";
                 }
                 else{
@@ -767,12 +752,7 @@ checker <- function(inherits=TRUE){
                 IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype);
                 ICs <- IC.values$ICs;
 #Change back
-                if(trace==TRUE){
-                    CF.type <- CF.type.original;
-                }
-                else{
-                    CF.type <- CF.type.original;
-                }
+                CF.type <- CF.type.original;
 
                 results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,res$objective,C);
             }
@@ -787,7 +767,7 @@ checker <- function(inherits=TRUE){
             IC.selection[is.nan(IC.selection)] <- 1E100;
 
             if(any(unlist(strsplit(model,""))=="C")){
-                IC.selection <- IC.selection/(h^trace);
+                IC.selection <- IC.selection/(h^multisteps);
                 IC.weights <- exp(-0.5*(IC.selection-min(IC.selection)))/sum(exp(-0.5*(IC.selection-min(IC.selection))));
             }
             else{
@@ -944,7 +924,7 @@ checker <- function(inherits=TRUE){
         }
 
 # Change CF.type for the more appropriate model selection
-        if(trace==TRUE){
+        if(multisteps==TRUE){
             CF.type <- "GV";
         }
         else{
@@ -962,7 +942,7 @@ checker <- function(inherits=TRUE){
         llikelihood <- IC.values$llikelihood;
         ICs <- IC.values$ICs;
 # Change back
-        if(trace==TRUE){
+        if(multisteps==TRUE){
             CF.type <- CF.type.original;
         }
         else{
@@ -1172,8 +1152,8 @@ if(silent==FALSE){
             print(paste0("Xreg coefficients: ", paste(round(matxtreg[seasfreq,],3),collapse=", ")));
         }
         print(paste0("Residuals sigma: ",round(sqrt(mean(errors^2)),3)));
-        if(trace==TRUE){
-            print(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0)));
+        if(multisteps==TRUE){
+            print(paste0("CF type: ",CF.type, "; CF value is: ",round(CF.objective,0)));
         }
         else{
             print(paste0("CF type: one step ahead using ",CF.type,"; CF value is: ",round(CF.objective,0)));
@@ -1201,7 +1181,7 @@ if(silent==FALSE){
     else{
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
     }
-#    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^trace),0)))
+#    print(paste0("Biased log-likelihood: ",round((llikelihood - n.param*h^multisteps),0)))
     if(holdout==TRUE){
         if(intervals==TRUE){
             print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
@@ -1221,12 +1201,12 @@ if(silent==FALSE){
                     initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                     errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,
-                    CF=CF.objective,FI=FI,xreg=xreg,accuracy=errormeasures));
+                    CF=CF.objective,CF.type=CF.type,FI=FI,xreg=xreg,accuracy=errormeasures));
     }
     else{
         return(list(model=model,fitted=y.fit,forecast=y.for,
                     lower=y.low,upper=y.high,residuals=errors,
                     actuals=data,holdout=y.holdout,ICs=IC.weights,
-                    xreg=xreg,accuracy=errormeasures));
+                    CF.type=CF.type,xreg=xreg,accuracy=errormeasures));
     }
 }

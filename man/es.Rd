@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
     bounds=c("usual","admissible"), initial=NULL,
     initial.season=NULL, IC=c("AICc","AIC","BIC"),
-    trace=FALSE, CF.type=c("TLV","GV","TV","hsteps","MSE","MAE","HAM"),
+    trace=FALSE, CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -29,7 +29,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{phi}{ The value of damping parameter. If \code{NULL} then the parameter is estimated.
   }
-  \item{bounds}{ What type of bouds to use for the smoothing parameters.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters.
   }
   \item{initial}{ The vector of initial values for level and trend. If \code{NULL}, it is estimated in the optimization.
   }
@@ -39,7 +39,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{trace}{ If TRUE, the trace likelihood is used in the estimation with trace of the length \code{h}.
   }
-  \item{CF.type}{ Type of Cost Function used in trace optimization. If \code{trace=FALSE}, \code{CF.type} can be \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error) or \code{HAM} (Half Absolute Moment). In case of \code{trace=TRUE} it can be \code{GV} - Generalized Variance, \code{TLV} - Total Logarythmic Variation and \code{TV} - Total Variation, \code{hsteps} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then model selection is done using \code{MSE} or \code{GV} respectively.
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
@@ -85,6 +85,7 @@ The details will be here soon.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
+    \item \code{CF.type} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
@@ -102,6 +103,7 @@ The details will be here soon.
     \item \code{actuals},
     \item \code{holdout},
     \item \code{ICs} - the IC weights used in the combination.
+    \item \code{CF.type},
     \item \code{xreg},
     \item \code{accuracy}.
   }

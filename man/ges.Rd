@@ -11,7 +11,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 ges(data, orders=c(2), lags=c(1), initial=NULL,
     persistence=NULL, transition=NULL, measurement=NULL,
     persistence2=NULL, transition2=NULL,
-    CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric"),
     bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -38,7 +38,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{transition2}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
@@ -99,6 +99,7 @@ Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is
     \item \code{transition2} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
+    \item \code{CF.type} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=TRUE}.
   }
@@ -121,7 +122,7 @@ ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->t
 
 ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="trace")->test
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 }

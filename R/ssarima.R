@@ -1,7 +1,7 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
                     persistence2=NULL, transition2=NULL,
-                    CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+                    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric"),
                     bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -45,17 +45,18 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     modellags <- matrix(rep(1,times=n.components),ncol=1);
     maxlag <- 1;
 
-    if(CF.type=="TLV" | CF.type=="TV" | CF.type=="GV" | CF.type=="hsteps"){
-        trace <- TRUE;
+    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+        multisteps <- TRUE;
     }
     else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
-        trace <- FALSE;
+        multisteps <- FALSE;
     }
     else{
         message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
         CF.type <- "MSE";
-        trace <- FALSE;
+        multisteps <- FALSE;
     }
+    CF.type.original <- CF.type;
 
 # Check the provided type of interval
     if(int.type!="p" & int.type!="s" & int.type!="n"){
@@ -397,18 +398,19 @@ CF <- function(C){
     }
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
-                              as.matrix(y[1:obs]), matrix(vecg,n.components,1), h, modellags, CF.type,
-                              normalizer, matwex, matxtreg, matv, matF2, vecg2);
+                              as.matrix(y[1:obs]), matrix(vecg,n.components,1),
+                              h, modellags, multisteps, CF.type, normalizer,
+                              matwex, matxtreg, matv, matF2, vecg2);
 
     return(CF.res);
 }
 
 Likelihood.value <- function(C){
     if(CF.type=="GV"){
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + CF(C)));
+        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(-obs/2 *((h^trace)*log(2*pi*exp(1)) + log(CF(C))));
+        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
     }
 }
 
@@ -416,7 +418,7 @@ Likelihood.value <- function(C){
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
 
-    if(trace==TRUE){
+    if(multisteps==TRUE){
         normalizer <- sum(abs(diff(y[1:obs])))/(obs-1);
     }
     else{
@@ -485,8 +487,7 @@ Likelihood.value <- function(C){
     }
 
 # Change the CF.type in orders to calculate likelihood correctly.
-    CF.type.original <- CF.type;
-    if(trace==TRUE){
+    if(multisteps==TRUE){
         CF.type <- "GV";
     }
     else{
@@ -580,8 +581,8 @@ Likelihood.value <- function(C){
 # Information criteria
     llikelihood <- Likelihood.value(C);
 
-    AIC.coef <- 2*n.param*h^trace - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^trace * (n.param + 1) / (obs - n.param - 1);
+    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs - n.param - 1);
     BIC.coef <- log(obs)*n.param - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
@@ -713,8 +714,8 @@ if(silent==FALSE){
         cat(paste0(n.components," initial states were estimated.\n"));
     }
     cat(paste0("Residuals sigma: ",round(s2,3),"\n"));
-    if(trace==TRUE){
-        cat(paste0("CF type: trace with ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
+    if(multisteps==TRUE){
+        cat(paste0("CF type: ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
     }
     else{
         cat(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0),"\n"));
@@ -757,5 +758,5 @@ return(list(model=modelname,states=matxt,initial=initial,transition=matF,persist
             AR=ARterms,I=Iterms,MA=MAterms,constant=const,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
             actuals=data,holdout=y.holdout,xreg=xreg,persistence2=vecg2,transition2=matF2,
-            ICs=ICs,CF=CF.objective,FI=FI,accuracy=errormeasures));
+            ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }

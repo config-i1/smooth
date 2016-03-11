@@ -11,7 +11,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
         persistence2=NULL, transition2=NULL,
-        CF.type=c("MSE","MAE","HAM","TLV","GV","TV","hsteps"),
+        CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
         FI=FALSE, intervals=FALSE, int.w=0.95,
         int.type=c("parametric","semiparametric","nonparametric"),
         bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -42,7 +42,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{transition2}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{CF.type}{ type of trace likelihood cost function: \code{TV} - Total Variation, \code{GV} - Generalized Variance (not working properly yet), \code{TLV} - Total Logarithmic Variance, \code{hsteps} - optimisation using only h-steps ahead error.
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
@@ -110,6 +110,7 @@ The model always includes constant term.
     \item \code{transition2} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
+    \item \code{CF.type} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information estimated in the optimal point.
     \item \code{accuracy} - the vector or accuracy measures. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=TRUE}.
   }
@@ -139,7 +140,7 @@ ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         lags=c(1,4),h=18,holdout=TRUE,bounds=FALSE)->test
 
 # ARIMA(1,0,0) with trace forecast estimation
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="TLV")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="trace")->test
 ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

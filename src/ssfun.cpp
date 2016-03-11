@@ -164,7 +164,7 @@ arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
 
     materrors.fill(NA_REAL);
 
-    for(unsigned int i=maxlag; i<obs+maxlag; i=i+1){
+    for(int i=maxlag; i<obs+maxlag; i=i+1){
         hh = std::min(hor, obs+maxlag-i);
         materrors.submat(i-maxlag, 0, i-maxlag, hh-1) = arma::trans(matyt.rows(i-maxlag, i-maxlag+hh-1) -
             ssforecaster(matrixxt.rows(i-maxlag,i-1), matrixF, matrixw.rows(i-maxlag,i-maxlag+hh-1), hh, lags,
@@ -199,7 +199,7 @@ RcppExport SEXP sserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h,
 
 /* # Cost function calculation */
 double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg,
-                   unsigned int hor, arma::uvec lags, std::string CFtype, double normalize,
+                   unsigned int hor, arma::uvec lags, bool multi, std::string CFtype, double normalize,
                    arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # Silent the output of try catch */
     std::ostream nullstream(0);
@@ -225,10 +225,18 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
     xtreg = as<arma::mat>(mxtregfromfit);
 
     arma::mat materrors;
+    arma::rowvec horvec(hor);
+
+    if(multi==true){
+        for(int i=0; i<hor; i=i+1){
+            horvec(i) = hor - i;
+        }
+        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
+        materrors.row(0) = materrors.row(0) % horvec;
+    }
+
 /* # The matrix is cut of to be square. If the backcast is done to the additional points, this can be fixed. */
     if(CFtype=="GV"){
-        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        materrors(0,0) = materrors(0,0)*hor;
         materrors.resize(matobs,hor);
         try{
             CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
@@ -237,23 +245,17 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
             CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
         }
     }
-    else if(CFtype=="TLV"){
-        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        materrors(0,0) = materrors(0,0)*hor;
-        for(unsigned int i=0; i<hor; i=i+1){
+    else if(CFtype=="trace"){
+        for(int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
         }
     }
     else if(CFtype=="TV"){
-        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        materrors(0,0) = materrors(0,0)*hor;
-        for(unsigned int i=0; i<hor; i=i+1){
+        for(int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
         }
     }
-    else if(CFtype=="hsteps"){
-        materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
-        materrors(0,0) = materrors(0,0)*hor;
+    else if(CFtype=="MSEh"){
         CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
     }
     else if(CFtype=="MSE"){
@@ -276,7 +278,7 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
 /* # Wrapper for optimiser */
 // [[Rcpp::export]]
 RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h,
-                                SEXP modellags, SEXP CFt, SEXP normalizer,
+                                SEXP modellags, SEXP multisteps, SEXP CFt, SEXP normalizer,
                                 SEXP matwex, SEXP matxtreg, SEXP matv, SEXP matF2, SEXP vecg2) {
 
     NumericMatrix mxt(matxt);
@@ -292,6 +294,7 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP 
     unsigned int hor = as<int>(h);
     IntegerVector mlags(modellags);
     arma::uvec lags = as<arma::uvec>(mlags);
+    bool multi = as<bool>(multisteps);
     std::string CFtype = as<std::string>(CFt);
     double normalize = as<double>(normalizer);
     NumericMatrix mwex(matwex);
@@ -305,5 +308,5 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP 
     NumericMatrix vg2(vecg2);
     arma::vec matg2(vg2.begin(), vg2.nrow(), false);
 
-    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,lags,CFtype,normalize,wex,xtreg,matrixv,matrixF2,matg2));
+    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,lags,multi,CFtype,normalize,wex,xtreg,matrixv,matrixF2,matg2));
 }
