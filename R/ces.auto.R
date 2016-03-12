@@ -1,7 +1,8 @@
-ces.auto <- function(data, C=c(1.1, 1), models=c("N","F"),
+ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 IC=c("CIC","AIC","AICc","BIC"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
+                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
                 xreg=NULL){
 # Function estimates several CES models in state-space form with sigma = error,
@@ -11,12 +12,17 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","F"),
 
 #    Copyright (C) 2015  Ivan Svetunkov
 
-  CF.type <- CF.type[1];
-# Check if CF.type is appropriate
-    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+    go.wild <- FALSE;
+
+# Start measuring the time of calculations
+    start.time <- Sys.time();
+
+    CF.type <- CF.type[1];
+# Check if the appropriate CF.type is defined
+    if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
     }
-    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+    else if(any(CF.type==c("MSE","MAE","HAM"))){
         multisteps <- FALSE;
     }
     else{
@@ -25,109 +31,115 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","F"),
         multisteps <- FALSE;
     }
 
+    int.type <- int.type[1];
+# Check the provided type of interval
+    if(all(int.type!=c("a","p","s","n"))){
+        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
+        int.type <- "p";
+    }
+
 # If the pool of models is wrong, fall back to default
-  if(any(models!="N" & models!="S" & models!="P" & models!="F")){
-    message("The pool of models includes a strange type of model! Reverting to default pool.");
-    models <- c("N","S","P","F");
-  }
+    if(any(models!="N" & models!="S" & models!="P" & models!="F")){
+        message("The pool of models includes a strange type of model! Reverting to default pool.");
+        models <- c("N","S","P","F");
+    }
 
-  if(any(is.na(data))){
+    if(any(is.na(data))){
+        if(silent==FALSE){
+        message("Data contains NAs. These observations will be excluded.")
+        }
+        datanew <- data[!is.na(data)]
+        if(is.ts(data)){
+        datanew <- ts(datanew,start=start(data),frequency=frequency(data))
+        }
+        data <- datanew
+    }
+
+    if(frequency(data)==1){
+        if(silent==FALSE){
+        message("The data is not seasonal. Simple CES was the only solution here.");
+        }
+
+        ces.model <- ces(data, C=C, seasonality="N",
+                         CF.type=CF.type,
+                         use.test=use.test, intervals=intervals, int.w=int.w,
+                         int.type=int.type,
+                         bounds=bounds, holdout=holdout, h=h, silent=silent, legend=legend,
+                         xreg=xreg);
+        return(ces.model);
+    }
+
+    IC <- IC[1]
+
+    ces.model <- as.list(models);
+    IC.vector <- c(1:length(models));
+
+    j <- 1;
     if(silent==FALSE){
-      message("Data contains NAs. These observations will be excluded.")
+        cat("Estimating CES with seasonality: ")
     }
-    datanew <- data[!is.na(data)]
-    if(is.ts(data)){
-      datanew <- ts(datanew,start=start(data),frequency=frequency(data))
+    for(i in models){
+        if(silent==FALSE){
+            cat(paste0('"',i,'" '));
+        }
+        ces.model[[j]] <- ces(data, C=C, seasonality=i,
+                              CF.type=CF.type,
+                              use.test=use.test, intervals=intervals, int.w=int.w,
+                              int.type=int.type,
+                              bounds=bounds, holdout=holdout, h=h, silent=TRUE, legend=legend,
+                              xreg=xreg);
+        IC.vector[j] <- ces.model[[j]]$ICs[IC];
+        j <- j+1;
     }
-    data <- datanew
-  }
 
-  if(frequency(data)==1){
+    best.model <- ces.model[[which(IC.vector==min(IC.vector))]];
+
     if(silent==FALSE){
-      message("The data is not seasonal. Simple CES was the only solution here.");
-    }
-    models <- "N";
-
-    ces.model <- ces(data,h=h,holdout=holdout,C=C,silent=silent,bounds=bounds,
-                     seasonality=models,xreg=xreg,intervals=intervals,int.w=int.w,
-                     use.test=use.test,CF.type=CF.type);
-    return(ces.model);
-  }
-
-  IC <- IC[1]
-
-  ces.model <- as.list(models);
-
-  j <- 1;
-  for(i in models){
-    if(silent==FALSE){
-      print(paste0("Estimating CES with seasonality = '",i,"'"));
-    }
-    ces.model[[j]] <- ces(data,h=h,holdout=holdout,C=C,silent=TRUE,bounds=bounds,
-                     seasonality=i,xreg=xreg,intervals=intervals,int.w=int.w,
-                     use.test=use.test,CF.type=CF.type);
-    j <- j+1;
-  }
-
-  IC.vector <- c(1:length(models));
-
-  for(i in 1:length(models)){
-    IC.vector[i] <- ces.model[[i]]$ICs[IC];
-  }
-
-  best.model <- ces.model[[which(IC.vector==min(IC.vector))]];
-
-  if(silent==FALSE){
-    cat(" \n");
-    print(paste0("The best model is with seasonality = '",models[which(IC.vector==min(IC.vector))],"'"));
+        cat(" \n");
+        cat(paste0('The best model is with seasonality = "',models[which(IC.vector==min(IC.vector))],'"\n'));
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
-    obs.all <- length(data) + (1 - holdout)*h;
-
+        obs.all <- length(data) + (1 - holdout)*h;
 # Define obs, the number of observations of in-sample
-    obs <- length(data) - holdout*h;
+        obs <- length(data) - holdout*h;
 
-    y.fit <- best.model$fitted;
-    y.for <- best.model$forecast;
-    y.high <- best.model$upper;
-    y.low <- best.model$lower;
-
-    print(paste0("a0 + ia1: ",best.model$A));
-    if(models[which(IC.vector==min(IC.vector))]=="F"){
-      print(paste0("b0 + ib1: ",best.model$B));
-    }
-    else if(models[which(IC.vector==min(IC.vector))]=="P"){
-      print(paste0("b: ",best.model$B));
-    }
-
-    if(multisteps==FALSE){
-      CF.type <- "1 step ahead";
-    }
-    print(paste0("Cost function used: ",CF.type));
-    print(paste0("AIC: ",round(best.model$ICs["AIC"],3),"; AICc: ", round(best.model$ICs["AICc"],3),
-                 "; BIC: ", round(best.model$ICs["BIC"],3), "; CIC: ", round(best.model$ICs["CIC"],3)));
-    if(intervals==TRUE){
-        print(paste0(int.w*100,"% intervals were constructed"));
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   lower=y.low,upper=y.high,int.w=int.w,legend=legend);
-    }
-    else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
-    }
-    if(holdout==T){
+        y.fit <- best.model$fitted;
+        y.for <- best.model$forecast;
+        y.high <- best.model$upper;
+        y.low <- best.model$lower;
         errormeasures <- best.model$accuracy;
-        if(intervals==TRUE){
-            print(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
-                    as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval"));
+        n.components <- 2;
+        if(!is.null(best.model$B)){
+            n.components <- n.components + 1 + 1*is.complex(best.model$B);
         }
-        print(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
-                    paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"),sep="; "));
-        print(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%"),sep="; "));
-    }
-  }
+# Not the same as in the function, but should be fine...
+        s2 <- as.vector(sum(best.model$residuals^2)/obs);
 
-  return(best.model);
+# Make plot
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                       lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+        }
+        else{
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+        }
+
+# Calculate the number os observations in the interval
+        if(all(holdout==TRUE,intervals==TRUE)){
+            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<y.high &
+                                   as.vector(data)[(obs+1):obs.all]>y.low)/h*100;
+        }
+        else{
+            insideintervals <- NULL;
+        }
+# Print output
+        ssoutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
+                 phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=best.model$A, B=best.model$B,
+                 n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+                 CF.type=CF.type, CF.objective=best.model$CF, intervals=intervals,
+                 int.type=int.type, int.w=int.w, ICs=best.model$ICs,
+                 holdout=holdout, insideintervals=insideintervals, errormeasures=best.model$accuracy);
+    }
+
+    return(best.model);
 }

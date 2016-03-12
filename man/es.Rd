@@ -9,13 +9,12 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 }
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
-    bounds=c("usual","admissible"), initial=NULL,
-    initial.season=NULL, IC=c("AICc","AIC","BIC"),
-    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
-    FI=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-    xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    ...)
+   initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
+   CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+   FI=FALSE, intervals=FALSE, int.w=0.95,
+   int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+   bounds=c("usual","admissible"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+   xreg=NULL, ...)
 
 }
 %- maybe also 'usage' for other objects documented here.
@@ -29,8 +28,6 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
   \item{phi}{ The value of damping parameter. If \code{NULL} then the parameter is estimated.
-  }
-  \item{bounds}{ What type of bounds to use for the smoothing parameters.
   }
   \item{initial}{ The vector of initial values for level and trend. If \code{NULL}, it is estimated in the optimization.
   }
@@ -48,7 +45,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
   }
-  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters.
   }
   \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
   }
@@ -57,6 +54,8 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{silent}{ If \code{TRUE}, no output or graphs are printed out.
   }
   \item{legend}{ If \code{TRUE}, the legend is drawn in the outplot.
+  }
+  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }

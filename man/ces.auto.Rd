@@ -8,10 +8,11 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-ces.auto(data, C=c(1.1, 1), models=c("N","F"),
+ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
          IC=c("CIC","AIC","AICc","BIC"),
          CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
          use.test=FALSE, intervals=FALSE, int.w=0.95,
+         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
          bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
          xreg=NULL)
 }
@@ -33,28 +34,30 @@ ces.auto(data, C=c(1.1, 1), models=c("N","F"),
   Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
   \item{use.test}{
-    If TRUE the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
+    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{intervals}{
-    If TRUE, the prediction intervals are constructed.
+    If \code{TRUE}, the prediction intervals are constructed.
   }
   \item{int.w}{
     The width of prediction intervals. Default is 95\%.
   }
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
+  }
   \item{bounds}{
-    If TRUE, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If FALSE, no bounds are used, which is fast but may result in non-stable model.
+    If \code{TRUE}, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If \code{FALSE}, no bounds are used, which is fast but may result in non-stable model.
   }
   \item{holdout}{
-    If TRUE, the holdout sample of size h will be taken from the data. If FALSE, no holdout is defined.
+    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
   }
   \item{h}{
     The forecasting horizon.
   }
   \item{silent}{
-    If TRUE, no output is given and no plot is drawn.
+    If \code{TRUE}, no output is given and no plot is drawn.
   }
   \item{legend}{
-    If FALSE, the legend in the graph is skiped.
+    If \code{FALSE}, the legend in the graph is skiped.
   }
   \item{xreg}{
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
@@ -64,23 +67,7 @@ ces.auto(data, C=c(1.1, 1), models=c("N","F"),
   The function estimates several Complex Exponential Smoothing in the state-space 2 described in Svetunkov, Kourentzes (2015) with the information potential equal to the approximation error using different types of seasonality and chooses the one with the lowest value of information criterion.
 }
 \value{
-  The list of the returned values is the same as in \link[smooth]{ces} function:
-
-  \itemize{
-    \item \code{A} - complex smoothing parameter in the form a0 + ia1
-    \item \code{B} - smoothing parameter for the seasonal component. Can either be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"}) in a form b0 + ib1.
-    \item \code{residuals} - the residuals of the estimated model.
-    \item \code{errors} - The matrix of 1 to h steps ahead errors.
-    \item \code{actuals} - The provided data in the call of the function.
-    \item \code{fitted} - the fitted values of CES.
-    \item \code{forecast} - the point forecast of CES.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
-    \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex IC).
-    \item \code{FI} - Fisher Information.
-    \item \code{accuracy} - the vector or accuracy measures. Includes MAPE, MASE and MASALE. Available only when \code{holdout=T}.
-  }
+  The list of the returned values is the same as in \link[smooth]{ces} function.
 }
 \references{
     \itemize{

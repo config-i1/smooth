@@ -4,13 +4,14 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
                 xreg=NULL){
-
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
 #  information criteria.
 #
-#    Copyright (C) 2015  Ivan Svetunkov
+#    Copyright (C) 2015 - 2016i  Ivan Svetunkov
+
+    go.wild <- FALSE;
 
 # Start measuring the time of calculations
   start.time <- Sys.time();
@@ -30,11 +31,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         int.type <- "p";
     }
 
-# Check if CF.type is appropriate
-    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+# Check if the appropriate CF.type is defined
+    if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
     }
-    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+    else if(any(CF.type==c("MSE","MAE","HAM"))){
         multisteps <- FALSE;
     }
     else{
@@ -128,73 +129,76 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
-  if(!is.null(xreg)){
-    if(any(is.na(xreg))){
-      message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
-    }
-    if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
+    if(!is.null(xreg)){
+        if(any(is.na(xreg))){
+            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
+        }
+        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # If xreg is vector or simple ts
-      if(length(xreg)!=obs & length(xreg)!=obs.all){
-        stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
-      }
-      if(length(xreg)==obs){
-        if(silent==FALSE){
-	        message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-        }
-        xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-      }
+            if(length(xreg)!=obs & length(xreg)!=obs.all){
+                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
+            }
+            if(length(xreg)==obs){
+                if(silent==FALSE){
+	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                }
+                xreg <- c(as.vector(xreg),rep(xreg[obs],h));
+            }
 # Number of exogenous variables
-      n.exovars <- 1;
+            n.exovars <- 1;
 # Define matrix w for exogenous variables
-      matwex <- matrix(xreg,ncol=1);
+            matwex <- matrix(xreg,ncol=1);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-      matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),1);
-      colnames(matxtreg) <- "exogenous";
+            matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),1);
+            colnames(matxtreg) <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-      matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+            matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
 # Redefine the number of components of CES.
-      n.components <- n.components + 1;
-    }
-    else if(is.matrix(xreg) | is.data.frame(xreg)){
+            n.components <- n.components + 1;
+        }
+        else if(is.matrix(xreg) | is.data.frame(xreg)){
     # If xreg is matrix or data frame
-      if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-        stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
-      }
-      if(nrow(xreg)==obs){
-        if(silent==FALSE){
-	        message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-        }
-        for(j in 1:h){
-          xreg <- rbind(xreg,xreg[obs,]);
-        }
-#        rownames(xreg) <- c(1:obs.all);
-      }
+            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
+                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
+            }
+            if(nrow(xreg)==obs){
+                if(silent==FALSE){
+	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                }
+                for(j in 1:h){
+                    xreg <- rbind(xreg,xreg[obs,]);
+                }
+            }
 # mat.x is needed for the initial values of coefs estimation using OLS
-      mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
-      n.exovars <- ncol(xreg);
+            mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
+            n.exovars <- ncol(xreg);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-      matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.exovars)
-      colnames(matxtreg) <- paste0("x",c(1:n.exovars));
+            matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.exovars)
+            colnames(matxtreg) <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-      matwex <- as.matrix(xreg);
+            matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-      matxtreg[1:maxlag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
-                                         t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                   each=maxlag);
+            matxtreg[1:maxlag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+                                             t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
+                                       each=maxlag);
 # Redefine the number of components of CES.
-      n.components <- n.components + n.exovars;
+            n.components <- n.components + n.exovars;
+        }
+        else{
+            stop("Unknown format of xreg. Aborting!",call.=F);
+        }
+# Redefine the number of all the parameters. Used in AIC mainly!
+        n.param <- n.param + n.exovars;
     }
     else{
-      stop("Unknown format of xreg. Aborting!",call.=F);
+        n.exovars <- 1;
+        matwex <- matrix(0,obs.all,1);
+        matxtreg <- matrix(0,max(obs.all+maxlag,obs+2*maxlag),1);
+        matv <- matrix(1,max(obs+maxlag,obs.all),1);
     }
-# Redefine the number of all the parameters. Used in AIC mainly!
-    n.param <- n.param + n.exovars;
-  }
-  else{
-    n.exovars <- 1;
-    matwex <- matrix(0,obs.all,1);
-    matxtreg <- matrix(0,max(obs.all+maxlag,obs+2*maxlag),1);
-  }
+##### Let's not go wild with xreg for now! #####
+    matF2 <- matrix(1,1,1);
+    vecg2 <- matrix(1,1,1);
 
 # Define the vector of fitted, forecasted values and overall
   y.fit <- rep(NA,obs);
@@ -240,9 +244,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),
                                vecg,h,seasonality,maxlag,multisteps,CF.type,normalizer,matwex,matxtreg);
 
-#    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw[1,],obs.all,length(matw),byrow=TRUE), matrix(1,obs.all,length(matw)),
-#                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), CF.type,
-#                              normalizer, matwex, matxtreg);
+#    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw[1,],obs.all,n.components,byrow=TRUE),
+#                              as.matrix(y[1:obs]), as.matrix(vecg),
+#                              h, modellags, multisteps, CF.type, normalizer,
+#                              matwex, matxtreg, matv, matF2, vecg2);
 
     if(is.nan(CF.res) | is.na(CF.res)){
         CF.res <- 1e100;
@@ -351,6 +356,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Estimate the elements of the transitional equation, fitted values and errors
   fitting <- cesfitterwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),vecg,
                            seasonality,maxlag,matwex,matxtreg)
+#  fitting <- ssfitterwrap(matxt, matF, matrix(matw[1,],obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
+#                          as.matrix(vecg), modellags, matwex, matxtreg, matv, matF2, vecg2);
   matxt[,] <- fitting$matxt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
   matxtreg[,] <- fitting$xtreg;
@@ -393,17 +400,6 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         y.high <- NA;
     }
 
-#  if(intervals==TRUE){
-#    s2 <- as.vector(sum(errors^2)/(obs-n.param));
-#    y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,s2,seasonality,maxlag);
-#    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-#    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-#  }
-#  else{
-#    y.low=NA;
-#    y.high=NA;
-#  }
-
   if(any(is.na(y.fit),is.na(y.for))){
     message("Something went wrong during the optimisation and NAs were produced!");
     message("Please check the input and report this error if it persists to the maintainer.");
@@ -433,7 +429,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         modelname <- "CES(F)";
     }
     else{
-        B <- NA;
+        B <- NULL;
         if(seasonality=="N"){
             modelname <- "CES(N)";
         }
@@ -457,31 +453,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
 
   if(silent==FALSE){
-# Print time elapsed on the construction
-    cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
-    cat("Model constructed:\n");
-    cat(ces.name);
-    cat(paste0("\na0 + ia1: ",A,"\n"));
-
-    if(seasonality=="P"){
-      cat(paste0("b: ",B,"\n"));
-    }
-    else if(seasonality=="F"){
-      cat(paste0("b0 + ib1: ",B,"\n"));
-    }
-
-    cat("ABS Eigenvalues for stability condition:\n");
-    cat(1-constrains(C));
-    cat("\n");
-    if(multisteps==FALSE){
-      CF.type <- "1 step ahead";
-    }
-    cat(paste0("Cost function used: ",CF.type,". CF value is: ",round(CF.objective,0),"\n"));
-    cat(paste0("AIC: ",round(AIC.coef,3),"; AICc: ", round(AICc.coef,3),
-                 "; BIC: ", round(BIC.coef,3), "; CIC:", round(CIC.coef,3),"\n"));
-
+# Make plot
     if(intervals==TRUE){
-        cat(paste0(int.w*100,"% intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
                    int.w=int.w,legend=legend,main=modelname);
     }
@@ -489,21 +462,28 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    int.w=int.w,legend=legend,main=modelname);
     }
-    if(holdout==T){
-        if(intervals==TRUE){
-            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
-                    as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval\n"));
-        }
-        cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
-                    paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
-        cat(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%\n"),sep="; "));
+
+# Calculate the number os observations in the interval
+    if(all(holdout==TRUE,intervals==TRUE)){
+        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<y.high &
+                               as.vector(data)[(obs+1):obs.all]>y.low)/h*100;
     }
+    else{
+        insideintervals <- NULL;
+    }
+# Print output
+    ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+             phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=A, B=B,
+             n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+             int.type=int.type, int.w=int.w, ICs=ICs,
+             holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+
+#    cat("ABS Eigenvalues for stability condition:\n");
+#    cat(1-constrains(C));
   }
 
 return(list(model=modelname,A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
             actuals=data,fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,
-            states=matxt,ICs=ICs,CF.type=CF.type,FI=FI,xreg=matwex,accuracy=errormeasures));
+            states=matxt,ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,xreg=matwex,accuracy=errormeasures));
 }

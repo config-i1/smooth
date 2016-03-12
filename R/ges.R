@@ -24,6 +24,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     maxlag <- max(modellags);
     n.components <- sum(orders);
 
+# Check if the appropriate CF.type is defined
     if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
     }
@@ -105,7 +106,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     obs <- length(data) - holdout*h;
 
 # Define the actual values
-    y <- as.vector(data);
+    y <- matrix(data[1:obs],obs,1);
     datafreq <- frequency(data);
 
 #### Now let's prepare the provided exogenous data for the inclusion in ETS
@@ -145,17 +146,18 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
             if(nrow(xreg)==obs){
                 message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
                 for(j in 1:h){
-                xreg <- rbind(xreg,xreg[obs,]);
+                    xreg <- rbind(xreg,xreg[obs,]);
                 }
             }
 # matx is needed for the initial values of coefs estimation using OLS
-            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
             n.exovars <- ncol(xreg);
+            matobs <- nrow(xreg);
+            matx <- matrix(cbind(rep(1,obs.all),xreg),matobs,n.exovars);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
             matxtreg <- matrix(NA,max(obs+maxlag,obs.all),n.exovars);
             colnames(matxtreg) <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matwex <- as.matrix(xreg);
+            matwex <- matrix(xreg,matobs,n.exovars);
 # Fill in the initial values for exogenous coefs using OLS
             matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
 # Redefine the number of components of ETS.
@@ -305,8 +307,7 @@ CF <- function(C){
     }
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
-                              as.matrix(y[1:obs]), matrix(vecg,n.components,1),
-                              h, modellags, multisteps, CF.type, normalizer,
+                              y, vecg, h, modellags, multisteps, CF.type, normalizer,
                               matwex, matxtreg, matv, matF2, vecg2);
     return(CF.res);
 }
@@ -327,7 +328,7 @@ Likelihood.value <- function(C){
     errors <- rep(NA,obs);
 
     if(multisteps==TRUE){
-        normalizer <- sum(abs(diff(y[1:obs])))/(obs-1);
+        normalizer <- sum(abs(diff(c(y))))/(obs-1);
     }
     else{
         normalizer <- 0;
@@ -336,8 +337,8 @@ Likelihood.value <- function(C){
 # If there is something to optimise, let's do it.
     if(is.null(initial) | is.null(measurement) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
 # Initial values of matxt
-        slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- sum(y[1:min(12,obs)])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
+        slope <- cov(y[1:min(12,obs),],c(1:min(12,obs)))/var(c(1:min(12,obs)));
+        intercept <- sum(y[1:min(12,obs),])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
 
 # matw, matF, vecg, xt
         C <- c(rep(1,n.components),
@@ -349,7 +350,7 @@ Likelihood.value <- function(C){
             C <- c(C,slope);
         }
         if((orders %*% lags)>2){
-            C <- c(C,y[1:(orders %*% lags-2)]);
+            C <- c(C,y[1:(orders %*% lags-2),]);
         }
 # xtreg
 # initials, transition matrix and persistence vector
@@ -423,8 +424,8 @@ Likelihood.value <- function(C){
         initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
     }
 
-    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
-                            matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
+    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y,
+                            vecg, modellags, matwex, matxtreg, matv, matF2, vecg2);
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
@@ -435,7 +436,7 @@ Likelihood.value <- function(C){
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]), h,
+    errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y, h,
                                   modellags, matwex, matxtreg),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
@@ -448,9 +449,8 @@ Likelihood.value <- function(C){
                                       matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
-    data <- ts(data,start=start(data),frequency=frequency(data));
 #    s2 <- mean(errors^2);
-    s2 <- as.vector(sum(errors^2)/(obs-n.param));
+    s2 <- c(sum(errors^2)/(obs-n.param));
 
     if(any(is.na(y.fit),is.na(y.for))){
         message("Something went wrong during the optimisation and NAs were produced!");
@@ -518,50 +518,8 @@ Likelihood.value <- function(C){
     modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
 
 if(silent==FALSE){
-# Print time elapsed on the construction
-    cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
-    cat(paste0("Model estimated: ",modelname,"\n"));
-
-    cat(paste0("Persistence vector g: ", paste(round(vecg,3),collapse=", "),"\n"));
-    cat("Transition matrix F: \n");
-    print(round(matF,3));
-    cat(paste0("Measurement vector w: ",paste(round(matw,3),collapse=", "),"\n"));
-#    print(paste0("Initial components: ", paste(round(matxt[maxlag,1:n.components],3),collapse=", ")));
-    if(!is.null(xreg)){
-#        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
-        if(go.wild==TRUE){
-            cat("Xreg coefficients were estimated in the insane style.\n");
-            if(n.exovars <= 5){
-                cat(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", "),"\n"));
-                cat("Transition matrix for xreg: \n");
-                print(round(matF2,3));
-            }
-        }
-        else{
-            cat("Xreg coefficients were estimated in the normal style.\n");
-        }
-    }
-    cat(paste0("Residuals sigma: ",round(s2,3),"\n"));
-    if(multisteps==TRUE){
-        cat(paste0("CF type: ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
-    }
-    else{
-        cat(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0),"\n"));
-    }
+# Make plot
     if(intervals==TRUE){
-        if(int.type=="p"){
-            int.type <- "parametric";
-        }
-        else if(int.type=="s"){
-            int.type <- "semiparametric";
-        }
-        else if(int.type=="n"){
-            int.type <- "nonparametric";
-        }
-        else if(int.type=="a"){
-            int.type <- "asymmetric";
-        }
-        cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
                    int.w=int.w,legend=legend,main=modelname);
     }
@@ -569,19 +527,21 @@ if(silent==FALSE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    int.w=int.w,legend=legend,main=modelname);
     }
-    cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
-    if(holdout==T){
-        if(intervals==TRUE){
-            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
-                    as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval\n"));
-        }
-        cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
-                    paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
-        cat(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%\n"),sep="; "));
+# Calculate the number os observations in the interval
+    if(all(holdout==TRUE,intervals==TRUE)){
+        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<y.high &
+                               as.vector(data)[(obs+1):obs.all]>y.low)/h*100;
     }
+    else{
+        insideintervals <- NULL;
+    }
+# Print output
+    ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=matF, measurement=matw,
+             phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
+             n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+             int.type=int.type, int.w=int.w, ICs=ICs,
+             holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
 }
 
 return(list(model=modelname,states=matxt,initial=initial,measurement=matw,transition=matF,persistence=vecg,

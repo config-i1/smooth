@@ -8,7 +8,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                     xreg=NULL, go.wild=FALSE, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
-#    require(polynom);
+#
 #    Copyright (C) 2016  Ivan Svetunkov
 
 ##### Testing period. Switch off several things
@@ -44,10 +44,11 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     modellags <- matrix(rep(1,times=n.components),ncol=1);
     maxlag <- 1;
 
-    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+# Check if the appropriate CF.type is defined
+    if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
     }
-    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+    else if(any(CF.type==c("MSE","MAE","HAM"))){
         multisteps <- FALSE;
     }
     else{
@@ -120,7 +121,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Define the actual values and write down the original ts frequency
-    y <- as.vector(data);
+    y <- matrix(data[1:obs],obs,1);
     datafreq <- frequency(data);
 
 # Prepare lists for the polynomials
@@ -271,9 +272,8 @@ polyroots <- function(C){
         matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
     }
 ### The MA parameters are in the style "1 + b1 * B".
-    vecg <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
-    vecg[is.na(vecg)] <- 0;
-    vecg <- as.matrix(vecg);
+    vecg[,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
+    vecg[is.na(vecg),] <- 0;
 
     if(is.null(initial)){
         xt <- C[(n.coef+1):(n.coef+n.components)];
@@ -330,8 +330,7 @@ CF <- function(C){
     }
 
     CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
-                              as.matrix(y[1:obs]), matrix(vecg,n.components,1),
-                              h, modellags, multisteps, CF.type, normalizer,
+                              y, vecg, h, modellags, multisteps, CF.type, normalizer,
                               matwex, matxtreg, matv, matF2, vecg2);
 
     return(CF.res);
@@ -351,7 +350,7 @@ Likelihood.value <- function(C){
     errors <- rep(NA,obs);
 
     if(multisteps==TRUE){
-        normalizer <- sum(abs(diff(y[1:obs])))/(obs-1);
+        normalizer <- sum(abs(diff(y)))/(obs-1);
     }
     else{
         normalizer <- 0;
@@ -365,12 +364,12 @@ Likelihood.value <- function(C){
                rep(0.1,sum(ma.orders)));
 
 # initial values of state vector and the constant term
-        slope <- cov(y[1:min(12,obs)],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- sum(y[1:min(12,obs)])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
-        initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1)]));
+        slope <- cov(y[1:min(12,obs),],c(1:min(12,obs)))/var(c(1:min(12,obs)));
+        intercept <- sum(y[1:min(12,obs),])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
+        initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1),]));
         C <- c(C,initial.stuff[1:n.components]);
         if(constant==TRUE){
-            C <- c(C,sum(y[1:obs])/obs);
+            C <- c(C,sum(y)/obs);
         }
 
 # xtreg
@@ -445,10 +444,8 @@ Likelihood.value <- function(C){
         initial <- elements$xt;
     }
 
-    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
-                            matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
-#    fitting <- ssfitterbackcastwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]),
-#                                matrix(vecg,n.components,1), modellags, matwex, matxtreg, matv, matF2, vecg2);
+    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y,
+                            vecg, modellags, matwex, matxtreg, matv, matF2, vecg2);
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
@@ -466,20 +463,19 @@ Likelihood.value <- function(C){
 #    }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), as.matrix(y[1:obs]), h,
-                                  modellags, matwex, matxtreg),
+    errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y, h,
+                                   modellags, matwex, matxtreg),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
     y.for <- ts(ssforecasterwrap(matrix(matxt[(obs+1):nrow(matxt),],nrow=1),
-                                      matF,matrix(matw,obs.all,n.components,byrow=TRUE),h,
-                                      modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                      matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                                 matF,matrix(matw,obs.all,n.components,byrow=TRUE),h,
+                                 modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                 matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
-    data <- ts(data,start=start(data),frequency=frequency(data));
 #    s2 <- mean(errors^2);
     s2 <- as.vector(sum(errors^2)/(obs-n.param));
 
@@ -600,61 +596,16 @@ Likelihood.value <- function(C){
         modelname <- paste0("SARIMA",modelname);
     }
 
-if(silent==FALSE){
-# Print time elapsed on the construction
-    cat(paste0("Time elapsed: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
-    cat(paste0("Model estimated: ",modelname,"\n"));
-
-    if(any(ARterms!=0)){
-        cat("Matrix of AR terms:\n");
-        print(round(ARterms,3));
-    }
-    if(any(MAterms!=0)){
-        cat("Matrix of MA terms:\n");
-        print(round(MAterms,3));
-    }
     if(constant==TRUE){
-        cat(paste0("Constant value is: ",round(C[length(C)],3),"\n"));
+        const <- C[length(C)];
+    }
+    else{
+        const <- NULL;
     }
 
-    if(!is.null(xreg)){
-#        print(paste0("Xreg coefficients: ", paste(round(matxtreg[maxlag,],3),collapse=", ")));
-        if(go.wild==TRUE){
-            cat("Xreg coefficients were estimated in the insane style.\n");
-            if(n.exovars <= 5){
-                cat(paste0("Persistence vector for xreg: ", paste(round(vecg2,3),collapse=", "),"\n"));
-                cat("Transition matrix for xreg: \n");
-                print(round(matF2,3));
-            }
-        }
-        else{
-            cat("Xreg coefficients were estimated in the normal style.\n");
-        }
-    }
-    if(n.components==1){
-        cat(paste0(n.components," initial state was estimated.\n"));
-    }
-    else{
-        cat(paste0(n.components," initial states were estimated.\n"));
-    }
-    cat(paste0("Residuals sigma: ",round(s2,3),"\n"));
-    if(multisteps==TRUE){
-        cat(paste0("CF type: ",CF.type, "; CF value is: ",round(CF.objective,0),"\n"));
-    }
-    else{
-        cat(paste0("CF type: one step ahead; CF value is: ",round(CF.objective,0),"\n"));
-    }
+if(silent==FALSE){
+# Make plot
     if(intervals==TRUE){
-        if(int.type=="p"){
-            int.type <- "parametric";
-        }
-        else if(int.type=="s"){
-            int.type <- "semiparametric";
-        }
-        else if(int.type=="a"){
-            int.type <- "asymmetric";
-        }
-        cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
                    int.w=int.w,legend=legend,main=modelname);
     }
@@ -662,21 +613,21 @@ if(silent==FALSE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
                    int.w=int.w,legend=legend,main=modelname);
     }
-    cat(paste0("AIC: ",round(ICs["AIC"],3)," AICc: ", round(ICs["AICc"],3)," BIC: ", round(ICs["BIC"],3),"\n"));
-    if(holdout==T){
-        if(intervals==TRUE){
-            cat(paste0(round(sum(as.vector(data)[(obs+1):obs.all]<y.high &
-                    as.vector(data)[(obs+1):obs.all]>y.low)/h*100,0),
-                    "% of values are in the interval\n"));
-        }
-        cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
-                    paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                    paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%"),sep="; "));
-        cat("\n");
-        cat(paste(paste0("MASE: ",errormeasures["MASE"]),
-                    paste0("MASALE: ",errormeasures["MASALE"]*100,"%"),sep="; "));
-        cat("\n");
+# Calculate the number os observations in the interval
+    if(all(holdout==TRUE,intervals==TRUE)){
+        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<y.high &
+                               as.vector(data)[(obs+1):obs.all]>y.low)/h*100;
     }
+    else{
+        insideintervals <- NULL;
+    }
+# Print output
+    ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+         phi=NULL, ARterms=ARterms, MAterms=MAterms, const=const, A=NULL, B=NULL,
+         n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+         CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+         int.type=int.type, int.w=int.w, ICs=ICs,
+         holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
 }
 
 return(list(model=modelname,states=matxt,initial=initial,transition=matF,persistence=vecg,
