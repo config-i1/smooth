@@ -174,8 +174,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # If model selection is chosen, forget about the initial values and persistence
-    if(Etype=="Z" | Ttype=="Z" | Stype=="Z"){
-        if(!is.null(initial) | !is.null(initial.season) | !is.null(persistence) | !is.null(phi)){
+    if(any(Etype=="Z",Ttype=="Z",Stype=="Z")){
+        if(any(!is.null(initial),!is.null(initial.season),!is.null(persistence),!is.null(phi))){
             message("Model selection doesn't go well with the predefined values.");
             message("Switching to the estimation of all the parameters.");
             initial <- NULL;
@@ -187,7 +187,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ### Check all the parameters for the possible errors.
     if(!is.null(persistence)){
-        if(!is.numeric(persistence) | !is.vector(persistence)){
+        if(any(!is.numeric(persistence),!is.vector(persistence))){
             message("The persistence is not a numeric vector!");
             message("Changing to the estimation of persistence vector values.");
             persistence <- NULL;
@@ -203,7 +203,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ### Check if the meaningfull initials are passed
     if(!is.null(initial)){
-        if(!is.numeric(initial) | !is.vector(initial)){
+        if(any(!is.numeric(initial),!is.vector(initial))){
             message("The initial vector is not numeric!");
             message("Values of initial vector will be estimated.");
             initial <- NULL;
@@ -218,21 +218,21 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 ### Check the error type
-    if(Etype!="Z" & Etype!="A" & Etype!="M"){
+    if(all(Etype!=c("Z","A","M"))){
         message("Wrong error type! Should be 'Z', 'A' or 'M'.");
         message("Changing to 'Z'");
         Etype <- "Z";
     }
 
 ### Check the trend type
-    if(Ttype!="Z" & Ttype!="N" & Ttype!="A" & Ttype!="M"){
+    if(all(Ttype!=c("Z","N","A","M"))){
         message("Wrong trend type! Should be 'Z', 'N', 'A' or 'M'.");
         message("Changing to 'Z'");
         Ttype <- "Z";
     }
 
 ### Check the seasonality type
-    if(Stype!="Z" & Stype!="N" & Stype!="A" & Stype!="M"){
+    if(all(Stype!=c("Z","N","A","M"))){
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.");
         if(datafreq==1){
             if(silent==FALSE){
@@ -247,7 +247,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             Stype <- "Z";
         }
     }
-    if(Stype!="N" & datafreq==1){
+    if(all(Stype!="N",datafreq==1)){
         if(silent==FALSE){
             message("Cannot build the seasonal model on the data with the frequency 1.");
             message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
@@ -339,7 +339,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
 CF <- function(C){
-
     init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
                             Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
                             estimate.phi, estimate.initial, estimate.initial.season,
@@ -641,12 +640,12 @@ checker <- function(inherits=TRUE){
 # Fill in the vector of initial values and vector of constrains used in estimation
 # This also should include in theory  "| estimate.phi==TRUE",
 #    but it doesn't make much sense and makes things more complicated
-    if(estimate.persistence==TRUE | estimate.initial==TRUE | estimate.initial.season==TRUE){
+    if(any(estimate.persistence,estimate.initial,estimate.initial.season)){
 
 # Number of observations in the error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1;
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
-        if(any(unlist(strsplit(model,""))=="C") | (Etype=="Z" | Ttype=="Z" | Stype=="Z")){
+        if(any(unlist(strsplit(model,""))=="C") | any(Etype=="Z",Ttype=="Z",Stype=="Z")){
 # Produce the data for AIC weights
 
             if(!is.null(models.pool)){
