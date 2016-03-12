@@ -11,6 +11,7 @@
   ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
       CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
       use.test=FALSE, intervals=FALSE, int.w=0.95,
+      int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
       bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
       xreg=NULL)
 }
@@ -36,6 +37,8 @@
   }
   \item{int.w}{
     The width of prediction intervals. Default is 95\%.
+  }
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
   }
   \item{bounds}{
     If \code{TRUE}, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If \code{FALSE}, no bounds are used, which is fast but may result in non-stable model.

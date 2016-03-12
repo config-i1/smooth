@@ -3,7 +3,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
                 persistence2=NULL, transition2=NULL,
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 FI=FALSE, intervals=FALSE, int.w=0.95,
-                int.type=c("parametric","semiparametric","nonparametric"),
+                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                 xreg=NULL, go.wild=FALSE, ...){
 # General Exponential Smoothing function. Crazy thing...
@@ -24,10 +24,10 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     maxlag <- max(modellags);
     n.components <- sum(orders);
 
-    if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
+    if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
     }
-    else if(CF.type=="MSE" | CF.type=="MAE" | CF.type=="HAM"){
+    else if(any(CF.type==c("MSE","MAE","HAM"))){
         multisteps <- FALSE;
     }
     else{
@@ -38,7 +38,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     CF.type.original <- CF.type;
 
 # Check the provided type of interval
-    if(int.type!="p" & int.type!="s" & int.type!="n"){
+    if(all(int.type!=c("a","p","s","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
         int.type <- "p";
     }
@@ -258,58 +258,6 @@ elements.ges <- function(C){
     return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matxtreg=matxtreg,matF2=matF2,vecg2=vecg2));
 }
 
-# Function makes interval forecasts
-forec.var.param <- function(matw,matF,vecg,h,s2,int.w){
-# Array of variance of states
-    mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
-    mat.var.states[,,1:maxlag] <- vecg %*% t(vecg) * s2;
-    mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
-# Vector of final variances
-    vec.var <- rep(NA,h);
-    vec.var[1:min(h,maxlag)] <- s2;
-# New transition and measurement for the internal use
-    matFnew <- matrix(rep(0,n.components),n.components,n.components);
-    matwnew <- matrix(rep(0,n.components),1,n.components);
-# selectionmat is needed for the correct selection of lagged variables in the array
-# newelements are needed for the correct fill in of all the previous matrices
-    selectionmat <- matFnew;
-    newelements <- rep(FALSE,n.components);
-
-    if(h>1){
-# Define chunks, which correspond to the lags with h being the final one
-        chuncksofhorizon <- c(1,unique(modellags),h);
-        chuncksofhorizon <- sort(chuncksofhorizon);
-        chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
-        chuncksofhorizon <- unique(chuncksofhorizon);
-
-# Length of the vector, excluding the h at the end
-        chunkslength <- length(chuncksofhorizon) - 1;
-
-        for(j in 1:chunkslength){
-            selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
-            selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
-
-            newelements <- modellags<=(chuncksofhorizon[j]+1);
-            matFnew[newelements,newelements] <- matF[newelements,newelements];
-            matwnew[,newelements] <- matw[,newelements];
-
-            for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
-                selectionmat[modellags>chuncksofhorizon[j],] <- i;
-                selectionmat[,modellags>chuncksofhorizon[j]] <- i;
-
-                mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
-                                                              rep(c(1:n.components),n.components),
-                                                              i - c(selectionmat))];
-
-                mat.var.states[,,i] <- matFnew %*% mat.var.states.lagged %*% t(matFnew) + vecg %*% t(vecg) * s2;
-                vec.var[i] <- matwnew %*% mat.var.states.lagged %*% t(matwnew) + s2;
-            }
-        }
-    }
-
-    return(vec.var);
-}
-
 # Function creates bounds for the estimates
 hin.constrains <- function(C){
 
@@ -510,21 +458,22 @@ Likelihood.value <- function(C){
     }
 
     if(intervals==TRUE){
-        if(int.type=="p"){
-            y.var <- forec.var.param(matw,matF,vecg,h,s2,int.w);
-            y.low <- ts(c(y.for) + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-            y.high <- ts(c(y.for) + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-        }
-        else if(int.type=="s"){
-            y.var <- colMeans(errors.mat^2,na.rm=T);
-            y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-            y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components - n.exovars))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
+        if(h==1){
+            errors.x <- as.vector(errors);
+            ev <- median(errors);
         }
         else{
-            y.var <- apply(errors.mat,2,quantile,probs=c((1-int.w)/2,1-(1-int.w)/2),na.rm=T);
-            y.low <- ts(y.for + y.var[1,],start=start(y.for),frequency=frequency(data));
-            y.high <- ts(y.for + y.var[2,],start=start(y.for),frequency=frequency(data));
+            errors.x <- errors.mat;
+            ev <- apply(errors.mat,2,median,na.rm=TRUE);
         }
+        if(int.type!="a"){
+            ev <- 0;
+        }
+
+        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                 measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
     }
     else{
         y.low <- NA;
@@ -606,8 +555,11 @@ if(silent==FALSE){
         else if(int.type=="s"){
             int.type <- "semiparametric";
         }
-        if(int.type=="n"){
+        else if(int.type=="n"){
             int.type <- "nonparametric";
+        }
+        else if(int.type=="a"){
+            int.type <- "asymmetric";
         }
         cat(paste0(int.w*100,"% ",int.type," intervals were constructed\n"));
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,

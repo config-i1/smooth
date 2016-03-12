@@ -3,7 +3,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial.season=NULL, IC=c("AICc","AIC","BIC"),
                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
-               int.type=c("parametric","semiparametric","nonparametric"),
+               int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                xreg=NULL, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
@@ -17,13 +17,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
-    if(int.type!="p" & int.type!="s" & int.type!="n"){
-        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'semiparametric'."));
-        int.type <- "s";
-    }
-#### While intervals are not fully supported, use semi-parametric instead of parametric.
-    if(int.type=="p"){
-        int.type <- "s";
+    if(all(int.type!=c("a","p","s","n"))){
+        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
+        int.type <- "p";
     }
 
 # Check if the data is vector
@@ -132,6 +128,12 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(Stype=="C"){
             Stype <- "Z";
         }
+    }
+
+#### While intervals are not fully supported, use semi-parametric instead of parametric.
+    if(any(Ttype==c("M","Z","C"),Stype==c("M","Z","C")) & int.type=="p"){
+        message("Sorry, but parametric intervals are not currently available for this ETS model. Switching to semiparametric.");
+        int.type <- "s";
     }
 
     if(any(is.na(data))){
@@ -495,12 +497,6 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
     return(list(llikelihood=llikelihood,ICs=ICs));
 }
 
-#Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
-quantfunc <- function(A){
-    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2);
-    return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])));
-}
-
 checker <- function(inherits=TRUE){
 ### Check the length of initials and persistence vectors
 # Check the persistence vector length
@@ -637,6 +633,7 @@ checker <- function(inherits=TRUE){
     vecg <- basicparams$vecg;
     estimate.phi <- basicparams$estimate.phi;
     phi <- basicparams$phi;
+    modellags <- basicparams$modellags[basicparams$modellags!=0];
 
     checker(inherits=TRUE);
 
@@ -730,6 +727,7 @@ checker <- function(inherits=TRUE){
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
+                modellags <- basicparams$modellags[basicparams$modellags!=0];
 
                 Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg);
                 C <- Cs$C;
@@ -792,6 +790,7 @@ checker <- function(inherits=TRUE){
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
+                modellags <- basicparams$modellags[basicparams$modellags!=0];
             }
         }
         else{
@@ -852,62 +851,6 @@ checker <- function(inherits=TRUE){
                                    matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
-# Write down the forecasting intervals
-        if(intervals==TRUE){
-            if(int.type=="p"){
-#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
-                y.low <- NA;
-                y.high <- NA;
-            }
-            else if(int.type=="s"){
-                y.var <- colMeans(errors.mat^2,na.rm=T);
-                if(Etype=="A"){
-                    y.low <- ts(y.for + qt((1-int.w)/2,
-                                           df=(obs - n.components - n.exovars))*sqrt(y.var),
-                                start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for + qt(1-(1-int.w)/2,
-                                            df=(obs - n.components - n.exovars))*sqrt(y.var),
-                                 start=start(y.for),frequency=frequency(data));
-                }
-                else{
-                    y.low <- ts(y.for*(1 + qt((1-int.w)/2,
-                                              df=(obs - n.components - n.exovars))*sqrt(y.var)),
-                                start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,
-                                               df=(obs - n.components - n.exovars))*sqrt(y.var)),
-                                 start=start(y.for),frequency=frequency(data));
-                }
-            }
-            else{
-                ye <- errors.mat;
-                xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat));
-                xe <- xe[!is.na(ye)];
-                ye <- ye[!is.na(ye)];
-
-                A <- rep(1,3);
-                quant <- (1-int.w)/2;
-                A1 <- nlminb(A,quantfunc)$par;
-                quant <- 1-(1-int.w)/2;
-                A2 <- nlminb(A,quantfunc)$par;
-                if(Etype=="A"){
-                    y.low <- ts(y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2,
-                                start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,
-                                 start=start(y.for),frequency=frequency(data));
-                }
-                else{
-                    y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),
-                                start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),
-                                 start=start(y.for),frequency=frequency(data));
-                }
-            }
-        }
-        else{
-            y.low <- NA;
-            y.high <- NA;
-        }
-
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
             C <- c(vecg,phi,initial,initial.season);
             errors.mat.obs <- obs - h + 1;
@@ -921,6 +864,37 @@ checker <- function(inherits=TRUE){
 
         if(!is.null(xreg)){
             n.param <- n.param + n.exovars;
+        }
+
+        s2 <- as.vector(sum(errors^2)/(obs-n.param));
+# Write down the forecasting intervals
+        if(intervals==TRUE){
+            if(h==1){
+                errors.x <- as.vector(errors);
+                ev <- median(errors);
+            }
+            else{
+                errors.x <- errors.mat;
+                ev <- apply(errors.mat,2,median,na.rm=TRUE);
+            }
+            if(int.type!="a"){
+                ev <- 0;
+            }
+
+            quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                      measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+            if(Etype=="A"){
+                y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+            }
+            else{
+                y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+            }
+        }
+        else{
+            y.low <- NA;
+            y.high <- NA;
         }
 
 # Change CF.type for the more appropriate model selection
@@ -1001,6 +975,7 @@ checker <- function(inherits=TRUE){
             vecg <- basicparams$vecg;
             estimate.phi <- basicparams$estimate.phi;
             phi <- basicparams$phi;
+            modellags <- basicparams$modellags[basicparams$modellags!=0];
 
             init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
                                     Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
@@ -1035,56 +1010,38 @@ checker <- function(inherits=TRUE){
                                     matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
+
+        s2 <- as.vector(sum(errors^2)/(obs-n.param));
 # Write down the forecasting intervals
             if(intervals==TRUE){
-                if(int.type=="p"){
-#            y.var <- forecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,var(errors),Etype,Ttype,Stype,seasfreq)
-                    y.low <- NA;
-                    y.high <- NA;
-                }
-                else if(int.type=="s"){
-                    y.var <- colMeans(errors.mat^2,na.rm=T);
-                    if(Etype=="A"){
-                        y.low <- ts(y.for + qt((1-int.w)/2,
-                                               df=(obs - n.components - n.exovars))*sqrt(y.var),
-                                    start=start(y.for),frequency=datafreq);
-                        y.high <- ts(y.for + qt(1-(1-int.w)/2,
-                                                df=(obs - n.components - n.exovars))*sqrt(y.var),
-                                     start=start(y.for),frequency=datafreq);
-                    }
-                    else{
-                        y.low <- ts(y.for*(1 + qt((1-int.w)/2,
-                                                  df=(obs - n.components - n.exovars))*sqrt(y.var)),
-                                    start=start(y.for),frequency=datafreq);
-                        y.high <- ts(y.for*(1 + qt(1-(1-int.w)/2,
-                                                   df=(obs - n.components - n.exovars))*sqrt(y.var)),
-                                     start=start(y.for),frequency=datafreq);
-                    }
+                if(h==1){
+                    errors.x <- as.vector(errors);
+                    ev <- median(errors);
                 }
                 else{
-                    ye <- errors.mat;
-                    xe <- matrix(c(1:h),byrow=TRUE,ncol=h,nrow=nrow(errors.mat));
-                    xe <- xe[!is.na(ye)];
-                    ye <- ye[!is.na(ye)];
+                    errors.x <- errors.mat;
+                    ev <- apply(errors.mat,2,median,na.rm=TRUE);
+                }
+                if(int.type!="a"){
+                    ev <- 0;
+                }
 
-                    A <- rep(1,3);
-                    quant <- (1-int.w)/2;
-                    A1 <- nlminb(A,quantfunc)$par;
-                    quant <- 1-(1-int.w)/2;
-                    A2 <- nlminb(A,quantfunc)$par;
-                    if(Etype=="A"){
-                        y.low <- y.for + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2;
-                        y.high <- ts(y.for + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2,
-                                     start=start(y.for),frequency=frequency(data));
-                    }
-                    else{
-                        y.low <- ts(y.for*(1 + A1[1] + A1[2]*c(1:h) + A1[3]*c(1:h)^2),
-                                    start=start(y.for),frequency=frequency(data));
-                        y.high <- ts(y.for*(1 + A2[1] + A2[2]*c(1:h) + A2[3]*c(1:h)^2),
-                                     start=start(y.for),frequency=frequency(data));
-                    }
+                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                        measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                if(Etype=="A"){
+                    y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                }
+                else{
+                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
                 }
             }
+            else{
+                y.low <- NA;
+                y.high <- NA;
+            }
+
             fitted.list[,i] <- y.fit;
             forecasts.list[,i] <- y.for;
             if(intervals==TRUE){

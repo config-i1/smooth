@@ -1,6 +1,7 @@
 ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
+                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
                 xreg=NULL){
 
@@ -16,11 +17,18 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
   seasonality <- seasonality[1];
   CF.type <- CF.type[1];
+  int.type <- int.type[1];
 # If the user typed wrong seasonality, use the "Full" instead
   if(seasonality!="N" & seasonality!="S" & seasonality!="P" & seasonality!="F"){
     message(paste0("Wrong seasonality type: '",seasonality, "'. Changing it to 'F'"));
     seasonality <- "F";
   }
+
+# Check the provided type of intervals
+    if(all(int.type!=c("a","p","s","n"))){
+        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
+        int.type <- "p";
+    }
 
 # Check if CF.type is appropriate
     if(CF.type=="trace" | CF.type=="TV" | CF.type=="GV" | CF.type=="MSEh"){
@@ -60,9 +68,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 #   matxt - the matrix with the components, pt.lags is the lags used in pt matrix.
   if(seasonality=="N"){
   # No seasonality
-    seas.lag <- 1;
+    maxlag <- 1;
+    modellags <- c(1,1);
     matw <- matrix(c(1,0,0,1),2,2);
-    matxt <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),2);
+    matxt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
     colnames(matxt) <- c("level","potential");
     matxt[1,] <- c(mean(y[1:min(10,obs)]),mean(y[1:min(10,obs)])/C[1]);
     ces.name <- "Complex Exponential Smoothing";
@@ -72,45 +81,48 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
   else if(seasonality=="S"){
   # Simple seasonality, lagged CES
-    seas.lag <- frequency(data);
+    maxlag <- frequency(data);
+    modellags <- c(maxlag,maxlag);
     matw <- matrix(c(1,0,0,1),2,2);
-    matxt <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),2);
+    matxt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
     colnames(matxt) <- c("level.s","potential.s");
-    matxt[1:seas.lag,1] <- y[1:seas.lag];
-    matxt[1:seas.lag,2] <- matxt[1:seas.lag,1]/C[1];
+    matxt[1:maxlag,1] <- y[1:maxlag];
+    matxt[1:maxlag,2] <- matxt[1:maxlag,1]/C[1];
     ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
-    n.param <- length(C) + 2*seas.lag;
+    n.param <- length(C) + 2*maxlag;
     n.components <- 2;
   }
   else if(seasonality=="P"){
   # Partial seasonality with a real part only
-    seas.lag <- frequency(data);
+    maxlag <- frequency(data);
+    modellags <- c(1,1,maxlag);
     C <- c(C,0.5);
     matw <- matrix(c(1,0,0,1,1,0),2,3);
-    pt.lags <- c(1,1,seas.lag);
-    matxt <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),3);
+    pt.lags <- c(1,1,maxlag);
+    matxt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),3);
     colnames(matxt) <- c("level","potential","seasonal");
-    matxt[1:seas.lag,1] <- mean(y[1:seas.lag]);
-    matxt[1:seas.lag,2] <- matxt[1:seas.lag,1]/C[1];
-    matxt[1:seas.lag,3] <- decompose(data,type="a")$figure;
+    matxt[1:maxlag,1] <- mean(y[1:maxlag]);
+    matxt[1:maxlag,2] <- matxt[1:maxlag,1]/C[1];
+    matxt[1:maxlag,3] <- decompose(data,type="a")$figure;
     ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
-    n.param <- length(C) + 2 + seas.lag;
+    n.param <- length(C) + 2 + maxlag;
     n.components <- 3;
   }
   else if(seasonality=="F"){
   # Full seasonality with both real and imaginary parts
-    seas.lag <- frequency(data);
+    maxlag <- frequency(data);
+    modellags <- c(1,1,maxlag,maxlag);
     C <- c(C,C);
     matw <- matrix(c(1,0,0,1,1,0,0,1),2,4);
-    pt.lags <- c(1,1,seas.lag,seas.lag);
-    matxt <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),4);
+    pt.lags <- c(1,1,maxlag,maxlag);
+    matxt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),4);
     colnames(matxt) <- c("level","potential","seasonal 1", "seasonal 2");
-    matxt[1:seas.lag,1] <- mean(y[1:seas.lag]);
-    matxt[1:seas.lag,2] <- matxt[1:seas.lag,1]/C[1];
-    matxt[1:seas.lag,3] <- decompose(data,type="a")$figure;
-    matxt[1:seas.lag,4] <- matxt[1:seas.lag,3]/C[3];
+    matxt[1:maxlag,1] <- mean(y[1:maxlag]);
+    matxt[1:maxlag,2] <- matxt[1:maxlag,1]/C[1];
+    matxt[1:maxlag,3] <- decompose(data,type="a")$figure;
+    matxt[1:maxlag,4] <- matxt[1:maxlag,3]/C[3];
     ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
-    n.param <- length(C) + 2 + 2*seas.lag;
+    n.param <- length(C) + 2 + 2*maxlag;
     n.components <- 4;
   }
 
@@ -136,10 +148,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Define matrix w for exogenous variables
       matwex <- matrix(xreg,ncol=1);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-      matxtreg <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),1);
+      matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),1);
       colnames(matxtreg) <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-      matxtreg[1:seas.lag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+      matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
 # Redefine the number of components of CES.
       n.components <- n.components + 1;
     }
@@ -161,14 +173,14 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
       mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
       n.exovars <- ncol(xreg);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-      matxtreg <- matrix(NA,max(obs.all+seas.lag,obs+2*seas.lag),n.exovars)
+      matxtreg <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.exovars)
       colnames(matxtreg) <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
       matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-      matxtreg[1:seas.lag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+      matxtreg[1:maxlag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
                                          t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                   each=seas.lag);
+                                   each=maxlag);
 # Redefine the number of components of CES.
       n.components <- n.components + n.exovars;
     }
@@ -181,7 +193,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   else{
     n.exovars <- 1;
     matwex <- matrix(0,obs.all,1);
-    matxtreg <- matrix(0,max(obs.all+seas.lag,obs+2*seas.lag),1);
+    matxtreg <- matrix(0,max(obs.all+maxlag,obs+2*maxlag),1);
   }
 
 # Define the vector of fitted, forecasted values and overall
@@ -218,7 +230,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   CF <- function(C){
     # Obtain the elements of CES
     if(!is.null(xreg)){
-      matxtreg[1:seas.lag,] <- rep(C[(n.components-n.exovars+1):n.components],each=seas.lag);
+      matxtreg[1:maxlag,] <- rep(C[(n.components-n.exovars+1):n.components],each=maxlag);
     }
 
     ces.elements <- state.space.elements(seasonality, C);
@@ -226,7 +238,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     vecg <- ces.elements$vecg;
 
     CF.res <- cesoptimizerwrap(matxt,matF,matrix(matw[1,],nrow=1),matrix(y[1:obs],ncol=1),
-                               vecg,h,seasonality,seas.lag,multisteps,CF.type,normalizer,matwex,matxtreg);
+                               vecg,h,seasonality,maxlag,multisteps,CF.type,normalizer,matwex,matxtreg);
 
 #    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw[1,],obs.all,length(matw),byrow=TRUE), matrix(1,obs.all,length(matw)),
 #                              as.matrix(y[1:obs]), matrix(vecg,length(vecg),1), h, matrix(1,2,1), CF.type,
@@ -306,7 +318,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   BIC.coef <- log(obs)*n.param*h^multisteps - 2 * llikelihood;
 # Information criterion derived and used especially for CES
 #   k here is equal to number of coefficients/2 + number of complex initial states of CES.
-  CIC.coef <- 2*(length(C)/2 + seas.lag)*h^multisteps - 2*llikelihood;
+  CIC.coef <- 2*(length(C)/2 + maxlag)*h^multisteps - 2*llikelihood;
 
   ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
   names(ICs) <- c("AIC", "AICc", "BIC","CIC");
@@ -333,40 +345,64 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Change F and g matrices if exogenous variables are presented
   if(!is.null(xreg)){
-    matxtreg[1:seas.lag,] <- rep(C[(n.components-n.exovars+1):n.components],each=seas.lag);
+    matxtreg[1:maxlag,] <- rep(C[(n.components-n.exovars+1):n.components],each=maxlag);
   }
 
 # Estimate the elements of the transitional equation, fitted values and errors
   fitting <- cesfitterwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),vecg,
-                           seasonality,seas.lag,matwex,matxtreg)
+                           seasonality,maxlag,matwex,matxtreg)
   matxt[,] <- fitting$matxt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
   matxtreg[,] <- fitting$xtreg;
 
   errors.mat <- ts(ceserrorerwrap(matxt,matF,matrix(matw[1,],nrow=1),as.matrix(y[1:obs]),h,
-                                  seasonality,seas.lag,matwex,matxtreg),start=start(data),
+                                  seasonality,maxlag,matwex,matxtreg),start=start(data),
                    frequency=frequency(data));
   colnames(errors.mat) <- paste0("Error",c(1:h));
   errors.mat <- ts(errors.mat,start=start(data),frequency=frequency(data));
   errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-  y.for <- ts(cesforecasterwrap(matrix(matxt[((obs-seas.lag+1):obs)+seas.lag,],nrow=seas.lag),
-                                matF,matrix(matw[1,],nrow=1),h,seasonality,seas.lag,
+  y.for <- ts(cesforecasterwrap(matrix(matxt[((obs-maxlag+1):obs)+maxlag,],nrow=maxlag),
+                                matF,matrix(matw[1,],nrow=1),h,seasonality,maxlag,
                                 matrix(matwex[(obs.all-h+1):obs.all,],ncol=n.exovars),
                                 matrix(matxtreg[(obs.all-h+1):obs.all,],ncol=n.exovars)),
               start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
 
-  if(intervals==TRUE){
     s2 <- as.vector(sum(errors^2)/(obs-n.param));
-    y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,s2,seasonality,seas.lag);
-    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
-  }
-  else{
-    y.low=NA;
-    y.high=NA;
-  }
+    if(intervals==TRUE){
+        if(h==1){
+            errors.x <- as.vector(errors);
+            ev <- median(errors);
+        }
+        else{
+            errors.x <- errors.mat;
+            ev <- apply(errors.mat,2,median,na.rm=TRUE);
+        }
+        if(int.type!="a"){
+            ev <- 0;
+        }
+
+        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                 measurement=matrix(matw[1,],nrow=1), transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+    }
+    else{
+        y.low <- NA;
+        y.high <- NA;
+    }
+
+#  if(intervals==TRUE){
+#    s2 <- as.vector(sum(errors^2)/(obs-n.param));
+#    y.var <- cesforecastervar(matF,matrix(matw[1,],nrow=1),vecg,h,s2,seasonality,maxlag);
+#    y.low <- ts(y.for + qt((1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
+#    y.high <- ts(y.for + qt(1-(1-int.w)/2,df=(obs - n.components))*sqrt(y.var),start=start(y.for),frequency=frequency(data));
+#  }
+#  else{
+#    y.low=NA;
+#    y.high=NA;
+#  }
 
   if(any(is.na(y.fit),is.na(y.for))){
     message("Something went wrong during the optimisation and NAs were produced!");

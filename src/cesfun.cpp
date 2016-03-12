@@ -247,48 +247,6 @@ RcppExport arma::vec cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
   return cesforecaster(matrixxt,matrixF,matrixw,hor,S,freq,wex,xtreg);
 }
 
-// [[Rcpp::export]]
-RcppExport arma::vec cesforecastervar(SEXP matF, SEXP matw, SEXP vecg, SEXP h,
-                                   SEXP errvar, SEXP Stype, SEXP seasfreq) {
-    NumericMatrix mF(matF);
-    NumericMatrix vw(matw);
-    NumericMatrix vg(vecg);
-    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
-    arma::rowvec matrixw(vw.begin(), vw.ncol(), false);
-    arma::mat matg(vg.begin(), vg.nrow(), vg.ncol(), false);
-    int hor = as<int>(h);
-    double evar = as<double>(errvar);
-    char S = as<char>(Stype);
-    int freq = as<int>(seasfreq);
-    int ncomponents = vg.nrow();
-
-    arma::vec variances(hor,arma::fill::zeros);
-
-    if((S=='N') | (S=='S')){
-        variances.fill(evar);
-        if(hor>freq){
-            for(int i=freq; i<hor; i=i+1){
-              variances.row(i) = evar*(variances(i-freq)/evar + pow((matrixw * cesmatrixpower(matrixF,(i-freq)/freq) * matg),2));
-            }
-        }
-    }
-    else{
-        variances.fill(evar);
-/* # Fill in variances for the trend first */
-        for(int i=1; i<hor; i=i+1){
-          variances.row(i) = evar*(variances(i-1)/evar + pow((matrixw.submat(0,0,0,1) * cesmatrixpower(matrixF.submat(0,0,1,1),(i-1)) * matg.submat(0,0,1,0)),2));
-        }
-/* # And then variances for the seasonality, if the forecast horizon is higher than freq */
-        if(hor>freq){
-            for(int i=freq; i<hor; i=i+1){
-              variances.row(i) = evar*(variances(i-freq)/evar + pow((matrixw.submat(0,2,0,ncomponents-1) * cesmatrixpower(matrixF.submat(2,2,ncomponents-1,ncomponents-1),(i-freq)/freq) * matg.submat(2,0,ncomponents-1,0)),2));
-            }
-        }
-    }
-
-    return variances;
-}
-
 arma::mat ceserrorer(arma::mat matrixxt,arma::mat matrixF,arma::rowvec matrixw,arma::vec matyt,int hor,char S,int freq,arma::mat wex,arma::mat xtreg){
     int obs = matyt.n_rows;
     int hh;

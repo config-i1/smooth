@@ -183,16 +183,21 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 
     unsigned int ncomponents = 1;
     int seasfreq = 1;
+    arma::vec modellags(3);
+    modellags.fill(0);
+    modellags(0) = 1;
 
 /* # Define the number of components */
     if(T!='N'){
         ncomponents += 1;
+        modellags(1) = 1;
     }
 
 /* # Define the number of components and model frequency */
     if(S!='N'){
         ncomponents += 1;
         seasfreq = freq;
+        modellags(1) = freq;
     }
 
     arma::mat matrixxt(seasfreq, ncomponents, arma::fill::ones);
@@ -258,7 +263,9 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         estimphi = FALSE;
     }
 
-    return wrap(List::create(Named("n.components") = ncomponents, Named("seasfreq") = seasfreq, Named("matxt") = matrixxt, Named("vecg") = vecg, Named("estimate.phi") = estimphi, Named("phi") = phivalue));
+    return wrap(List::create(Named("n.components") = ncomponents, Named("seasfreq") = seasfreq, Named("modellags") = modellags,
+                             Named("matxt") = matrixxt, Named("vecg") = vecg, Named("estimate.phi") = estimphi,
+                             Named("phi") = phivalue));
 }
 
 /*

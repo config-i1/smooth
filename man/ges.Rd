@@ -13,7 +13,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
     persistence2=NULL, transition2=NULL,
     CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric"),
+    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     xreg=NULL, go.wild=FALSE, ...)
 }
@@ -46,7 +46,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix.
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
   }
   \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization. May take more time.
   }
