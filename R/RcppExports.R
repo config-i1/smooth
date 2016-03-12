@@ -9,10 +9,6 @@ cesforecasterwrap <- function(matxt, matF, matw, h, Stype, seasfreq, matwex, mat
     .Call('smooth_cesforecasterwrap', PACKAGE = 'smooth', matxt, matF, matw, h, Stype, seasfreq, matwex, matxtreg)
 }
 
-cesforecastervar <- function(matF, matw, vecg, h, errvar, Stype, seasfreq) {
-    .Call('smooth_cesforecastervar', PACKAGE = 'smooth', matF, matw, vecg, h, errvar, Stype, seasfreq)
-}
-
 ceserrorerwrap <- function(matxt, matF, matw, yt, h, Stype, seasfreq, matwex, matxtreg) {
     .Call('smooth_ceserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Stype, seasfreq, matwex, matxtreg)
 }
