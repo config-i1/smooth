@@ -31,7 +31,7 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
         multisteps <- FALSE;
     }
 
-    int.type <- int.type[1];
+    int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
     if(all(int.type!=c("a","p","s","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));

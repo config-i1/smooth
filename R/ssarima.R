@@ -17,9 +17,6 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-    CF.type <- CF.type[1];
-    int.type <- substring(int.type[1],1,1);
-
     if(any(ar.orders<0) | any(i.orders<0) | any(ma.orders<0)){
         stop("Wrong order of the model!",call.=FALSE);
     }
@@ -44,6 +41,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     modellags <- matrix(rep(1,times=n.components),ncol=1);
     maxlag <- 1;
 
+    CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
     if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
@@ -58,6 +56,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
     CF.type.original <- CF.type;
 
+    int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
     if(all(int.type!=c("a","p","s","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));

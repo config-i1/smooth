@@ -13,9 +13,6 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-    CF.type <- CF.type[1];
-    int.type <- substring(int.type[1],1,1);
-
     if(length(orders) != length(lags)){
         stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
     }
@@ -24,6 +21,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     maxlag <- max(modellags);
     n.components <- sum(orders);
 
+    CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
     if(any(CF.type==c("trace","TV","GV","MSEh"))){
         multisteps <- TRUE;
@@ -38,6 +36,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     }
     CF.type.original <- CF.type;
 
+    int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
     if(all(int.type!=c("a","p","s","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
