@@ -204,28 +204,30 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     arma::mat vecg(ncomponents, 1, arma::fill::zeros);
     bool estimphi = TRUE;
 
-/* # Define the initial states for level and trend components */
-    if(T=='N'){
+// # Define the initial states for level and trend components
+    switch(T){
+    case 'N':
         matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
-    }
-    else if(T=='A'){
+    break;
+    case 'A':
         matrixxt.cols(0,0).each_row() = initial.submat(0,0,0,0);
         matrixxt.cols(1,1).each_row() = initial.submat(0,1,0,1);
-    }
-    else if(T=='M'){
-/* # The initial matrix is filled with ones, that is why we don't need to fill in initial trend */
+    break;
+// # The initial matrix is filled with ones, that is why we don't need to fill in initial trend
+    case 'M':
         matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
         matrixxt.cols(1,1).each_row() = initial.submat(0,3,0,3);
+    break;
     }
 
 /* # Define the initial states for seasonal component */
-    if(S!='N'){
-        if(S=='A'){
-            matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(0,0);
-        }
-        else{
-            matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(1,1);
-        }
+    switch(S){
+    case 'A':
+        matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(0,0);
+    break;
+    case 'M':
+        matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(1,1);
+    break;
     }
 
     matrixxt.resize(obs+seasfreq, ncomponents);
@@ -337,8 +339,11 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
 /* # The default values of matrices are set for ZNN  models */
-    if(S=='N'){
-        if(T!='N'){
+    switch(S){
+    case 'N':
+        switch(T){
+        case 'A':
+        case 'M':
             matrixF.set_size(2,2);
             matrixF(0,0) = 1.0;
             matrixF(1,0) = 0.0;
@@ -348,10 +353,14 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
             matrixw.set_size(1,2);
             matrixw(0,0) = 1.0;
             matrixw(0,1) = phivalue;
+        break;
         }
-    }
-    else{
-        if(T!='N'){
+    break;
+    case 'A':
+    case 'M':
+        switch(T){
+        case 'A':
+        case 'M':
             matrixF.set_size(3,3);
             matrixF.fill(0.0);
             matrixF(0,0) = 1.0;
@@ -364,14 +373,15 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
             matrixw(0,0) = 1.0;
             matrixw(0,1) = phivalue;
             matrixw(0,2) = 1.0;
-        }
-        else{
+        break;
+        case 'N':
             matrixF.set_size(2,2);
             matrixF.fill(0.0);
             matrixF.diag().fill(1.0);
 
             matrixw.set_size(1,2);
             matrixw.fill(1.0);
+        break;
         }
     }
 
@@ -406,7 +416,9 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
 # vecg is the vector of
 # dummy contains dummy variables for seasonal coefficients
 */
-    if(S!='N'){
+    switch(S){
+    case 'A':
+    case 'M':
         ncomponents = matrixxt.n_cols-1;
         ncomponentsall = ncomponents + freq;
 
@@ -445,8 +457,8 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
                 j=j+1;
             }
         }
-    }
-    else{
+    break;
+    case 'N':
         ncomponents = matrixxt.n_cols;
         ncomponentsall = ncomponents;
         matrixxtnew = matrixxt;
@@ -466,21 +478,41 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
         }
     }
 
-    if((T!='M') & (S!='M')){
-        for (int i=0; i<obs; i=i+1) {
-            matyfit.row(i) = matrixwnew.row(i) * trans(matrixxtnew.row(i)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
-            materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
-            matrixxtreg.row(i+1) = matrixxtreg.row(i);
+    switch(T){
+    case 'N':
+    case 'A':
+        switch(S){
+        case 'N':
+        case 'A':
+            for (int i=0; i<obs; i=i+1) {
+                matyfit.row(i) = matrixwnew.row(i) * trans(matrixxtnew.row(i)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
+                materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
+                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtreg.row(i+1) = matrixxtreg.row(i);
 /*            if(S=='A'){
                 avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
                 matrixxtnew(i+1,0) = matrixxtnew(i+1,0) + avec(0,0);
                 matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec;
             } */
+            }
+        break;
+        case 'M':
+            for (int i=0; i<obs; i=i+1) {
+                matyfit.row(i) = matrixwnew.row(i).cols(0,1) * trans(matrixxtnew.row(i).cols(0,1)) * sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
+                materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
+                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtnew.elem(find(matrixxtnew.row(i+1).cols(2,ncomponentsall-1)<0)).zeros();
+                matrixxtreg.row(i+1) = matrixxtreg.row(i);
+/*            avec.fill(as_scalar(exp(mean(log(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
+            matrixxtnew(i+1,0) = matrixxtnew(i+1,0) * avec(0,0);
+            matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec; */
+            }
         }
-    }
-    else if((T!='A') & (S!='A')){
-        if((T=='M') | (S=='M')){
+    break;
+    case 'M':
+        switch(S){
+        case 'N':
+        case 'M':
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = exp(matrixwnew.row(i) * log(trans(matrixxtnew.row(i)))) + matrixwex.row(i) * trans(matrixxtreg.row(i));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
@@ -501,53 +533,43 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
                 matrixxtnew(i+1,0) = matrixxtnew(i+1,0) + a(0,0);
                 matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall) - a; */
             }
-        }
-    }
-    else if((T=='A') & (S=='M')){
-        for (int i=0; i<obs; i=i+1) {
-            matyfit.row(i) = matrixwnew.row(i).cols(0,1) * trans(matrixxtnew.row(i).cols(0,1)) * sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
-            materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
-            matrixxtnew.elem(find(matrixxtnew.row(i+1).cols(2,ncomponentsall-1)<0)).zeros();
-            matrixxtreg.row(i+1) = matrixxtreg.row(i);
-/*            avec.fill(as_scalar(exp(mean(log(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
-            matrixxtnew(i+1,0) = matrixxtnew(i+1,0) * avec(0,0);
-            matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) / avec; */
-        }
-    }
-    else if((T=='M') & (S=='A')){
-        for (int i=0; i<obs; i=i+1) {
-            if(arma::as_scalar(matrixxtnew(i,1))<0){
-                matrixxtnew(i+1,0) = matrixxtnew(i,0) * matrixxtnew(i,1);
-                matrixxtnew(i+1,1) = matrixxtnew(i,1);
-                matyfit.row(i) = matrixxtnew(i,0) * matrixxtnew(i,1) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
-            }
-            else{
-                matrixxtnew(i+1,0) = matrixxtnew(i,0) * pow(matrixxtnew(i,1),matrixFnew(0,1));
-                matrixxtnew(i+1,1) = pow(matrixxtnew(i,1),matrixFnew(1,1));
-                matyfit.row(i) = exp(matrixwnew.row(i).cols(0,1) * log(trans(matrixxtnew.row(i).cols(0,1)))) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
-            }
-            if(arma::as_scalar(matyfit.row(i))<0){
-                matyfit.row(i) = 0;
-            }
-            materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-            matrixxtnew.row(i+1).cols(0,1) = matrixxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
-            matrixxtnew.row(i+1).cols(2,ncomponentsall-1) = matrixxtnew.row(i).cols(2,ncomponentsall-1) * trans(matrixFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
-            if((arma::as_scalar(matrixxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,0))))){
-                matrixxtnew(i+1,0) = 0.0001;
-            }
-            if((arma::as_scalar(matrixxtnew(i+1,1))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,1))))){
-                matrixxtnew(i+1,1) = 0.0001;
-            }
-            matrixxtreg.row(i+1) = matrixxtreg.row(i);
+        break;
+        case 'A':
+            for (int i=0; i<obs; i=i+1) {
+                if(arma::as_scalar(matrixxtnew(i,1))<0){
+                    matrixxtnew(i+1,0) = matrixxtnew(i,0) * matrixxtnew(i,1);
+                    matrixxtnew(i+1,1) = matrixxtnew(i,1);
+                    matyfit.row(i) = matrixxtnew(i,0) * matrixxtnew(i,1) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
+                }
+                else{
+                    matrixxtnew(i+1,0) = matrixxtnew(i,0) * pow(matrixxtnew(i,1),matrixFnew(0,1));
+                    matrixxtnew(i+1,1) = pow(matrixxtnew(i,1),matrixFnew(1,1));
+                    matyfit.row(i) = exp(matrixwnew.row(i).cols(0,1) * log(trans(matrixxtnew.row(i).cols(0,1)))) + sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
+                }
+                if(arma::as_scalar(matyfit.row(i))<0){
+                    matyfit.row(i) = 0;
+                }
+                materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
+                matrixxtnew.row(i+1).cols(0,1) = matrixxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
+                matrixxtnew.row(i+1).cols(2,ncomponentsall-1) = matrixxtnew.row(i).cols(2,ncomponentsall-1) * trans(matrixFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
+                if((arma::as_scalar(matrixxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,0))))){
+                    matrixxtnew(i+1,0) = 0.0001;
+                }
+                if((arma::as_scalar(matrixxtnew(i+1,1))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,1))))){
+                    matrixxtnew(i+1,1) = 0.0001;
+                }
+                matrixxtreg.row(i+1) = matrixxtreg.row(i);
 /*            avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
             matrixxtnew(i+1,0) = (matrixxtnew(i+1,0) + avec(0,0));
             matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) = matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1) - avec; */
+            }
         }
     }
 
 // # Fill in matxt for the seasonal models
-    if(S!='N'){
+    switch(S){
+    case 'A':
+    case 'M':
         matrixxt.submat(freq-1,0,matrixxt.n_rows-1,ncomponents-1) = matrixxtnew.cols(0,ncomponents-1);
 
         for(int i=0; i < std::floor(obs/freq); i=i+1){
@@ -561,8 +583,8 @@ arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat
                 j=j+1;
             }
         }
-    }
-    else{
+    break;
+    case 'N':
         matrixxt = matrixxtnew;
     }
 
@@ -607,7 +629,9 @@ int hor, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     arma::mat seasxt(hor, 1, arma::fill::zeros);
     arma::mat matyforxreg(hor, 1, arma::fill::zeros);
 
-    if(S!='N'){
+    switch(S){
+    case 'A':
+    case 'M':
         hh = std::min(hor,freq);
         seasxt.submat(0, 0, hh-1, 0) = matrixxt.submat(0,matrixxt.n_cols-1,hh-1,matrixxt.n_cols-1);
 
@@ -620,30 +644,33 @@ int hor, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
         matrixxtnew = matrixxt.submat(matrixxt.n_rows-1, 0, matrixxt.n_rows-1, matrixxt.n_cols-2);
         matrixwnew = matrixw.cols(0, matrixw.n_cols-2);
         matrixFnew = matrixF.submat(0, 0, matrixF.n_rows-2, matrixF.n_cols-2);
-    }
-    else{
+    break;
+    case 'N':
         matrixxtnew = matrixxt.submat(matrixxt.n_rows-1, 0, matrixxt.n_rows-1, matrixxt.n_cols-1);
         matrixwnew = matrixw;
         matrixFnew = matrixF;
     }
 
-    if(T!='M'){
+    switch(T){
+    case 'N':
+    case 'A':
         for(int i = 0; i < hor; i=i+1){
             matyfor.row(i) = matrixwnew * matrixpower(matrixFnew,i) * trans(matrixxtnew);
             matyforxreg.row(i) = matrixwex.row(i) * trans(matrixxtreg.row(i));
         }
-    }
-    else{
+    break;
+    case 'M':
         for(int i = 0; i < hor; i=i+1){
             matyfor.row(i) = exp(matrixwnew * matrixpower(matrixFnew,i) * log(trans(matrixxtnew)));
             matyforxreg.row(i) = matrixwex.row(i) * trans(matrixxtreg.row(i));
         }
     }
 
-    if(S=='A'){
+    switch(S){
+    case 'A':
         matyfor = matyfor + seasxt;
-    }
-    else if(S=='M'){
+    break;
+    case 'M':
         matyfor = matyfor % seasxt;
     }
 
@@ -681,29 +708,14 @@ int hor, char E, char T, char S, int freq, bool multi, arma::mat matrixwex, arma
     int hh = 0;
     arma::mat materrors(obs, hor);
 
-//    if(multi==true){
-//        materrors.set_size(obs, hor);
-        materrors.fill(NA_REAL);
-/*    }
-    else{
-        materrors.set_size(obs, 1);
-    }
+    materrors.fill(NA_REAL);
 
-    if(multi==true){ */
-        for(int i = 0; i < obs; i=i+1){
-            hh = std::min(hor, obs-i);
-            materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),
-                forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq, matrixwex.rows(i, i+hh-1),
-                    matrixxtreg.rows(i, i+hh-1)), E));
-        }
-/*    }
-    else{
-	    for(int i = 0; i < obs; i=i+1){
-	    materrors.row(i) = trans(errorvf(matyt.row(i),
-            forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, 1, T, S, freq, matrixwex.rows(i, i+hh-1),
+    for(int i = 0; i < obs; i=i+1){
+        hh = std::min(hor, obs-i);
+        materrors.submat(i, 0, i, hh-1) = trans(errorvf(matyt.rows(i, i+hh-1),
+            forecaster(matrixxt.rows(i,i+freq-1), matrixF, matrixw, hh, T, S, freq, matrixwex.rows(i, i+hh-1),
                 matrixxtreg.rows(i, i+hh-1)), E));
-	    }
-    } */
+    }
     return materrors;
 }
 
@@ -733,6 +745,16 @@ SEXP seasfreq, SEXP multisteps, SEXP matwex, SEXP matxtreg){
     return wrap(errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg));
 }
 
+int CFtypeswitch (std::string const& CFtype) {
+    if (CFtype == "GV") return 1;
+    if (CFtype == "trace") return 2;
+    if (CFtype == "TV") return 3;
+    if (CFtype == "MSEh") return 4;
+    if (CFtype == "MAE") return 5;
+    if (CFtype == "HAM") return 6;
+    if (CFtype == "MSE") return 7;
+}
+
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double optimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt, arma::mat matg,
 int hor, char E, char T, char S, int freq, bool multi, std::string CFtype, int normalize, arma::mat matrixwex, arma::mat matrixxtreg){
@@ -759,91 +781,91 @@ int hor, char E, char T, char S, int freq, bool multi, std::string CFtype, int n
         for(int i=0; i<hor; i=i+1){
             horvec(i) = hor - i;
         }
-    }
-
-    if(E=='M'){
-        if(multi==true){
-            materrors = log(1 + errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg));
-            materrors.row(0) = materrors.row(0) % horvec;
+        materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg);
+        if(E=='M'){
+            materrors = log(1 + materrors);
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
-            if(CFtype=="GV"){
-                materrors.resize(matobs,hor);
-                try{
-                    CFres = double(log(arma::prod(eig_sym(trans(materrors) * (materrors) / matobs))));
-                }
-                catch(const std::runtime_error){
-                    CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
-                }
-                CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
-            }
-            else if(CFtype=="trace"){
-                for(int i=0; i<hor; i=i+1){
-                    CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
-                }
-                CFres = CFres + (2 / double(obs)) * double(hor) * yactsum;
-            }
-            else if(CFtype=="TV"){
-                for(int i=0; i<hor; i=i+1){
-                    CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
-                }
-                CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
-            }
-            else if(CFtype=="MSEh"){
-                CFres = arma::as_scalar(exp(log(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))) + (2 / double(obs)) * yactsum));
-            }
         }
-        else{
-            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-            materrors = log(1+materrors);
-            if(CFtype=="HAM"){
-                CFres = arma::as_scalar(exp(log(mean(sqrt(abs(materrors)))) + (2 / double(obs)) * yactsum));
-            }
-            else if(CFtype=="MAE"){
-                CFres = arma::as_scalar(exp(log(mean(abs(materrors))) + (2 / double(obs)) * yactsum));
-            }
-            else{
-                CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
-            }
-        }
+        materrors.row(0) = materrors.row(0) % horvec;
     }
     else{
-        if(multi==true){
-            materrors = errorer(matrixxt, matrixF, matrixw, matyt, hor, E, T, S, freq, multi, matrixwex, matrixxtreg);
-            materrors.row(0) = materrors.row(0) % horvec;
-            if(CFtype=="GV"){
-                materrors.resize(matobs,hor);
-                try{
-                    CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
-                }
-                catch(const std::runtime_error){
-                    CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
-                }
-            }
-            else if(CFtype=="trace"){
-                for(int i=0; i<hor; i=i+1){
-                    CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
-                }
-            }
-            else if(CFtype=="TV"){
-                for(int i=0; i<hor; i=i+1){
-                    CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
-                }
-            }
-            else if(CFtype=="MSEh"){
-                CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
-            }
+        arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+        materrors = materrorsfromfit;
+        if(E=='M'){
+            materrors = log(1 + materrors);
         }
-        else{
-            arma::mat materrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-            if(CFtype=="HAM"){
-                CFres = arma::as_scalar(mean(sqrt(abs(materrors))));
+    }
+
+    switch(E){
+    case 'M':
+        switch(CFtypeswitch(CFtype)){
+        case 1:
+            materrors.resize(matobs,hor);
+            try{
+                CFres = double(log(arma::prod(eig_sym(trans(materrors) * (materrors) / matobs))));
             }
-            else if(CFtype=="MAE"){
-                CFres = arma::as_scalar(mean(abs(materrors)));
+            catch(const std::runtime_error){
+                CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
             }
-            else{
-                CFres = arma::as_scalar(mean(pow(materrors,2)));
+            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+        break;
+        case 2:
+            for(int i=0; i<hor; i=i+1){
+                CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
             }
+            CFres = CFres + (2 / double(obs)) * double(hor) * yactsum;
+        break;
+        case 3:
+            for(int i=0; i<hor; i=i+1){
+                CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
+            }
+            CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
+        break;
+        case 4:
+            CFres = arma::as_scalar(exp(log(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))) + (2 / double(obs)) * yactsum));
+        break;
+        case 5:
+            CFres = arma::as_scalar(exp(log(mean(abs(materrors))) + (2 / double(obs)) * yactsum));
+        break;
+        case 6:
+            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(materrors)))) + (2 / double(obs)) * yactsum));
+        break;
+        case 7:
+            CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
+        }
+    break;
+    case 'A':
+        switch(CFtypeswitch(CFtype)){
+        case 1:
+            materrors.resize(matobs,hor);
+            try{
+                CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
+            }
+            catch(const std::runtime_error){
+                CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
+            }
+        break;
+        case 2:
+            for(int i=0; i<hor; i=i+1){
+                CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
+            }
+        break;
+        case 3:
+            for(int i=0; i<hor; i=i+1){
+                CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
+            }
+        break;
+        case 4:
+            CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
+        break;
+        case 5:
+            CFres = arma::as_scalar(mean(abs(materrors)));
+        break;
+        case 6:
+            CFres = arma::as_scalar(mean(sqrt(abs(materrors))));
+        break;
+        case 7:
+            CFres = arma::as_scalar(mean(pow(materrors,2)));
         }
     }
     return CFres;

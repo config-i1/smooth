@@ -322,8 +322,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
   BIC.coef <- log(obs)*n.param*h^multisteps - 2 * llikelihood;
 # Information criterion derived and used especially for CES
-#   k here is equal to number of coefficients/2 + number of complex initial states of CES.
-  CIC.coef <- 2*(length(C)/2 + maxlag)*h^multisteps - 2*llikelihood;
+#   k here is equal to number of coefficients/2 (number of numbers) + number of complex initial states of CES.
+  CIC.coef <- 2 * (ceiling(length(C)/2) + maxlag) * h ^ multisteps - 2 * llikelihood;
 
   ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
   names(ICs) <- c("AIC", "AICc", "BIC","CIC");
