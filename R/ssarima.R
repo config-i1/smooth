@@ -175,8 +175,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                 }
             }
 # matx is needed for the initial values of coefs estimation using OLS
-            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
             n.exovars <- ncol(xreg);
+            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
 # Define the second matxtreg to fill in the coefs of the exogenous vars
             matxtreg <- matrix(NA,max(obs+maxlag,obs.all),n.exovars);
             colnames(matxtreg) <- paste0("x",c(1:n.exovars));

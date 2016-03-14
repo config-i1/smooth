@@ -150,13 +150,12 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
             }
 # matx is needed for the initial values of coefs estimation using OLS
             n.exovars <- ncol(xreg);
-            matobs <- nrow(xreg);
-            matx <- matrix(cbind(rep(1,obs.all),xreg),matobs,n.exovars);
+            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
 # Define the second matxtreg to fill in the coefs of the exogenous vars
             matxtreg <- matrix(NA,max(obs+maxlag,obs.all),n.exovars);
             colnames(matxtreg) <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matwex <- matrix(xreg,matobs,n.exovars);
+            matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
             matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
 # Redefine the number of components of ETS.

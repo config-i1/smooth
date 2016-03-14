@@ -131,7 +131,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 #### While intervals are not fully supported, use semi-parametric instead of parametric.
-    if(any(Ttype==c("M","Z","C"),Stype==c("M","Z","C")) & int.type=="p"){
+    if(any(Ttype==c("M","Z","C"),Stype==c("M","Z","C")) & int.type=="p" & intervals==TRUE){
         message("Sorry, but parametric intervals are not currently available for this ETS model. Switching to semiparametric.");
         int.type <- "s";
     }
