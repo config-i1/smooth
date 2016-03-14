@@ -322,6 +322,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
                                                t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
                                          each=datafreq);
+            colnames(matxtreg) <- colnames(xreg);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);

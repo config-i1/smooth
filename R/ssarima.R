@@ -184,7 +184,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
             matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
             matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
-# Redefine the number of components of ETS.
+            colnames(matxtreg) <- colnames(xreg);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);

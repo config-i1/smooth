@@ -158,7 +158,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
             matwex <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
             matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
-# Redefine the number of components of ETS.
+            colnames(matxtreg) <- colnames(xreg);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
