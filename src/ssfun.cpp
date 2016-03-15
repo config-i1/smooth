@@ -187,7 +187,7 @@ arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
 
     materrors.fill(NA_REAL);
 
-    for(int i=maxlag; i<obs+maxlag; i=i+1){
+    for(unsigned int i=maxlag; i<obs+maxlag; i=i+1){
         hh = std::min(hor, obs+maxlag-i);
         materrors.submat(i-maxlag, 0, i-maxlag, hh-1) = arma::trans(matyt.rows(i-maxlag, i-maxlag+hh-1) -
             ssforecaster(matrixxt.rows(i-maxlag,i-1), matrixF, matrixw.rows(i-maxlag,i-maxlag+hh-1), hh, lags,
@@ -251,7 +251,7 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
     arma::rowvec horvec(hor);
 
     if(multi==true){
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             horvec(i) = hor - i;
         }
         materrors = sserrorer(matrixxt, matrixF, matrixw, matyt, hor, lags, wex, xtreg);
@@ -269,12 +269,12 @@ double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arm
         }
     }
     else if(CFtype=="trace"){
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
         }
     }
     else if(CFtype=="TV"){
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
         }
     }
