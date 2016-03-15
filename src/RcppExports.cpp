@@ -266,15 +266,18 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
-// ssxtregfitterwrap
-RcppExport SEXP ssxtregfitterwrap(SEXP matxtreg, SEXP matF2);
-RcppExport SEXP smooth_ssxtregfitterwrap(SEXP matxtregSEXP, SEXP matF2SEXP) {
+// ssstatetailwrap
+RcppExport SEXP ssstatetailwrap(SEXP matxt, SEXP matF, SEXP matxtreg, SEXP matF2, SEXP modellags);
+RcppExport SEXP smooth_ssstatetailwrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matxtregSEXP, SEXP matF2SEXP, SEXP modellagsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
     Rcpp::traits::input_parameter< SEXP >::type matxtreg(matxtregSEXP);
     Rcpp::traits::input_parameter< SEXP >::type matF2(matF2SEXP);
-    __result = Rcpp::wrap(ssxtregfitterwrap(matxtreg, matF2));
+    Rcpp::traits::input_parameter< SEXP >::type modellags(modellagsSEXP);
+    __result = Rcpp::wrap(ssstatetailwrap(matxt, matF, matxtreg, matF2, modellags));
     return __result;
 END_RCPP
 }

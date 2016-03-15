@@ -49,8 +49,8 @@ ssfitterwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtre
     .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-ssxtregfitterwrap <- function(matxtreg, matF2) {
-    .Call('smooth_ssxtregfitterwrap', PACKAGE = 'smooth', matxtreg, matF2)
+ssstatetailwrap <- function(matxt, matF, matxtreg, matF2, modellags) {
+    .Call('smooth_ssstatetailwrap', PACKAGE = 'smooth', matxt, matF, matxtreg, matF2, modellags)
 }
 
 ssforecasterwrap <- function(matxt, matF, matw, h, modellags, matwex, matxtreg) {

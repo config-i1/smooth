@@ -125,6 +125,14 @@ ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="trace")->test
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))->test
+
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=FALSE,xreg=c(1:118))->test
+
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),go.wild=TRUE)->test
+
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),go.wild=TRUE,CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

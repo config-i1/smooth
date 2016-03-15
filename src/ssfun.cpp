@@ -79,24 +79,47 @@ RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vec
 }
 
 /* # Function fills in the values of the provided xtreg using the transition matrix. Needed for forecast of coefficients of xreg. */
-arma::mat ssxtregfitter(arma::mat xtreg, arma::mat matrixF2){
+List ssstatetail(arma::mat matrixxt, arma::mat matrixF, arma::mat xtreg, arma::mat matrixF2, arma::uvec lags){
+
+    int obsall = matrixxt.n_rows;
+    int lagslength = lags.n_rows;
+    unsigned int maxlag = max(lags);
+
+    lags = maxlag - lags;
+
+    for(int i=1; i<lagslength; i=i+1){
+        lags(i) = lags(i) + obsall * i;
+    }
+
+    arma::uvec lagrows(lagslength, arma::fill::zeros);
+
+    for (int i=maxlag; i<obsall; i=i+1) {
+        lagrows = lags - maxlag + i;
+        matrixxt.row(i) = arma::trans(matrixF * matrixxt(lags - maxlag + i));
+      }
 
     for(int i=0; i<(xtreg.n_rows-1); i=i+1){
         xtreg.row(i+1) = xtreg.row(i) * matrixF2;
     }
 
-    return(xtreg);
+    return(List::create(Named("matxt") = matrixxt, Named("xtreg") = xtreg));
 }
 
-/* # Wrapper for ssxtregfitter */
+/* # Wrapper for ssstatetail */
 // [[Rcpp::export]]
-RcppExport SEXP ssxtregfitterwrap(SEXP matxtreg, SEXP matF2){
+RcppExport SEXP ssstatetailwrap(SEXP matxt, SEXP matF, SEXP matxtreg, SEXP matF2, SEXP modellags){
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
     NumericMatrix mF2(matF2);
     arma::mat matrixF2(mF2.begin(), mF2.nrow(), mF2.ncol(), false);
+    IntegerVector mlags(modellags);
+    arma::uvec lags = as<arma::uvec>(mlags);
 
-    return(wrap(ssxtregfitter(xtreg, matrixF2)));
+    return(wrap(ssstatetail(matrixxt, matrixF, xtreg, matrixF2, lags)));
 }
 
 /* # Function produces the point forecasts for the specified model */
