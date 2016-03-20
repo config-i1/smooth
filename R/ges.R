@@ -57,6 +57,9 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
         }
         data <- datanew;
     }
+    else{
+        data <- ts(data,start=start(data),frequency=frequency(data));
+    }
 
 # Check the provided vector of initials: length and provided values.
     if(!is.null(initial)){
