@@ -1104,8 +1104,8 @@ if(silent==FALSE){
     }
 # Calculate the number os observations in the interval
     if(all(holdout==TRUE,intervals==TRUE)){
-        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<y.high &
-                               as.vector(data)[(obs+1):obs.all]>y.low)/h*100;
+        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
+                               as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
     }
     else{
         insideintervals <- NULL;
