@@ -7,7 +7,7 @@
 using namespace Rcpp;
 
 // cesfitterwrap
-RcppExport List cesfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
+RcppExport SEXP cesfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
 RcppExport SEXP smooth_cesfitterwrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP vecgSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP, SEXP matwexSEXP, SEXP matxtregSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -26,7 +26,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // cesforecasterwrap
-RcppExport arma::vec cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
+RcppExport SEXP cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
 RcppExport SEXP smooth_cesforecasterwrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP hSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP, SEXP matwexSEXP, SEXP matxtregSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
@@ -44,7 +44,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ceserrorerwrap
-RcppExport arma::mat ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
+RcppExport SEXP ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg);
 RcppExport SEXP smooth_ceserrorerwrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP hSEXP, SEXP StypeSEXP, SEXP seasfreqSEXP, SEXP matwexSEXP, SEXP matxtregSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
