@@ -753,6 +753,7 @@ int CFtypeswitch (std::string const& CFtype) {
     if (CFtype == "MAE") return 5;
     if (CFtype == "HAM") return 6;
     if (CFtype == "MSE") return 7;
+    else return 7;
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */

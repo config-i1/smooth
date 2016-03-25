@@ -137,7 +137,7 @@ List cesfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::m
 
 /* # Wrapper for cesfitter */
 // [[Rcpp::export]]
-RcppExport List cesfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+RcppExport SEXP cesfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
                            SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
@@ -156,7 +156,7 @@ RcppExport List cesfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP ve
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol());
 
-    return cesfitter(matrixxt, matrixF, matrixw, matyt, matg, S, freq, wex, xtreg);
+    return wrap(cesfitter(matrixxt, matrixF, matrixw, matyt, matg, S, freq, wex, xtreg));
 }
 
 arma::vec cesforecaster(arma::mat matrixxt,arma::mat matrixF,arma::rowvec matrixw,
@@ -228,7 +228,7 @@ arma::vec cesforecaster(arma::mat matrixxt,arma::mat matrixF,arma::rowvec matrix
 }
 
 // [[Rcpp::export]]
-RcppExport arma::vec cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
+RcppExport SEXP cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
                                     SEXP Stype, SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
@@ -244,7 +244,7 @@ RcppExport arma::vec cesforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol(), false);
 
-  return cesforecaster(matrixxt,matrixF,matrixw,hor,S,freq,wex,xtreg);
+  return wrap(cesforecaster(matrixxt,matrixF,matrixw,hor,S,freq,wex,xtreg));
 }
 
 arma::mat ceserrorer(arma::mat matrixxt,arma::mat matrixF,arma::rowvec matrixw,arma::vec matyt,int hor,char S,int freq,arma::mat wex,arma::mat xtreg){
@@ -266,7 +266,7 @@ arma::mat ceserrorer(arma::mat matrixxt,arma::mat matrixF,arma::rowvec matrixw,a
 }
 
 // [[Rcpp::export]]
-RcppExport arma::mat ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Stype,
+RcppExport SEXP ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Stype,
                                  SEXP seasfreq, SEXP matwex, SEXP matxtreg) {
     NumericMatrix mxt(matxt);
     arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol(), false);
@@ -284,7 +284,7 @@ RcppExport arma::mat ceserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, S
     NumericMatrix mxtreg(matxtreg);
     arma::mat xtreg(mxtreg.begin(), mxtreg.nrow(), mxtreg.ncol(), false);
 
-  return ceserrorer(matrixxt,matrixF,matrixw,matyt,hor,S,freq,wex,xtreg);
+  return wrap(ceserrorer(matrixxt,matrixF,matrixw,matyt,hor,S,freq,wex,xtreg));
 }
 
 /* # Cost function calculation */
