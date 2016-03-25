@@ -546,8 +546,8 @@ for(k in 1:nseries){
 
 # Print the number of processed series
         if (silent == FALSE){
-          cat(paste0(rep("\b",nchar(k-1))));
-          cat(k);
+            cat(paste0(rep("\b",nchar(k-1)),collapse=""));
+            cat(k);
         }
     }
 }
