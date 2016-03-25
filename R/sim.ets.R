@@ -83,7 +83,7 @@ r.value <- function(Etype, Ttype, Stype, xt){
             else {
                 r <- 1 / c(xt[3],(xt[1] * xt[3]),(exp(matw[1:2] %*% log(xt[1:2]))))
             }
-        }        
+        }
     }
     else{
         if(Ttype!="M" & Stype!="M"){
@@ -292,7 +292,7 @@ for(k in 1:nseries){
             }
         }
         else if(bounds=="r"){
-            vecg <- runif(persistence.length,0,0.3)            
+            vecg <- runif(persistence.length,0,0.3)
             if(Ttype!="N"){
                 vecg[2] <- runif(1,0,vecg[1])
             }
@@ -526,46 +526,15 @@ for(k in 1:nseries){
         arr.xt[,,k] <- matxt
         mat.g[k,] <- vecg
         vec.likelihood[k] <- likelihood
-        
+
 # Print the number of processed series
         if (silent == FALSE){
-          if(k<=10){
-              cat("\b")
-          }
-          else if(k>10 & k<=100){
-              cat("\b")
-              cat("\b")
-          }
-          else if(k>100 & k<=1000){
-              cat("\b")
-              cat("\b")
-              cat("\b")
-          }
-          else if(k>1000 & k<=10000){
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")
-          }
-          else if(k>10000 & k<=100000){
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")
-          }
-          else{
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")
-              cat("\b")            
-          }
+          cat(pate0(rep("\b",nchar(k-1))));
           cat(k)
         }
     }
 }
+##### End of loop #####
 
     if(nseries==1){
         y <- ts(y,frequency=frequency)
