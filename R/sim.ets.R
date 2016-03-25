@@ -286,6 +286,8 @@ ry.value <- function(Etype, Ttype, Stype, xt){
 
 ##### Start the loop #####
 for(k in 1:nseries){
+###### Produce several matrices with the pregenerated or predefined data, then pass it to Rcpp ######
+##### If the vectors are predefined, just copy them #####
 # If the persistence is NULL or was of the wrong length, generate the values
     if(is.null(persistence)){
 # For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
@@ -428,8 +430,7 @@ for(k in 1:nseries){
 # Generate ones for the possible intermittency
     ot <- rbinom(obs,1,iprob);
 
-############## This part should be rewritten in Rcpp. The list should be returned...
-    ##############
+############## This part should be rewritten in Rcpp. The list should be returned...  ##############
 ###### Simulate the data #####
     j <- modelfreq + 1;
     if(Stype=="N"){
