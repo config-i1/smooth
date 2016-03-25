@@ -43,7 +43,11 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution.
+
+  \code{parametric} intervals for multiplicative models are approximated using the same script as for additive. They are a bit wider than should be but are still efficient.
+
+  PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MIXED MODELS ARE NOT THERE YET!
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters.
   }
