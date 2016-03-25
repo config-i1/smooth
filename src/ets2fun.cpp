@@ -391,8 +391,8 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 
 
 /* # Function fits ETS model to the data */
-List fitter(arma::mat matrixxt, arma::mat  matrixF, arma::mat  matrixw, arma::mat  matyt,
-arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
+List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt,
+            arma::mat matg, char E, char T, char S, int freq, arma::mat matrixwex, arma::mat matrixxtreg) {
     int obs = matyt.n_rows;
     int freqtail = 0;
     int j;
@@ -1021,3 +1021,42 @@ SEXP normalizer, SEXP matwex, SEXP matxtreg, SEXP bounds, SEXP phi, SEXP Theta) 
 /*
 # autoets - function estimates all the necessary ETS models and returns the one with the smallest chosen IC.
 */
+
+// ##### Script for sim.ets function
+List simulateETS(arma::mat matrixxt, arma::mat matrixerrors, arma::mat matrixot,
+                 arma::mat matrixF, arma::mat matrixw, arma::mat matg,
+                 unsigned int obs, unsigned int nseries,
+                 char E, char T, char S, arma::uvec lags) {
+    arma::mat matyt(obs, nseries);
+
+
+    return List::create(Named("matxt") = matrixxt, Named("y") = matyt);
+}
+
+/* # Wrapper for simulateets */
+// [[Rcpp::export]]
+RcppExport SEXP simulateETSwrap(SEXP matxt, SEXP errors, SEXP ot, SEXP matF, SEXP matw, SEXP vecg,
+                                SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags) {
+    NumericMatrix mxt(matxt);
+    arma::mat matrixxt(mxt.begin(), mxt.nrow(), mxt.ncol());
+    NumericMatrix merrors(errors);
+    arma::mat matrixerrors(merrors.begin(), merrors.nrow(), merrors.ncol(), false);
+    NumericMatrix mot(ot);
+    arma::mat matrixot(mot.begin(), mot.nrow(), mot.ncol(), false);
+    NumericMatrix mF(matF);
+    arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
+    NumericMatrix vw(matw);
+    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    NumericMatrix vg(vecg);
+    arma::vec matg(vg.begin(), vg.nrow(), vg.ncol(), false);
+    unsigned int obs = merrors.nrow();
+    unsigned int nseries = merrors.ncol();
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+    IntegerVector mlags(modellags);
+    arma::uvec lags = as<arma::uvec>(mlags);
+
+    return wrap(simulateETS(matrixxt, matrixerrors, matrixot, matrixF, matrixw, matg,
+                            obs, nseries, E, T, S, lags));
+}
