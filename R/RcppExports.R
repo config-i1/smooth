@@ -21,36 +21,40 @@ initparams <- function(Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingp
     .Call('smooth_initparams', PACKAGE = 'smooth', Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
 }
 
-etsmatrices <- function(matxt, vecg, phi, Cvalues, ncomponentsR, seasfreq, Ttype, Stype, nexovars, matxtreg, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg) {
-    .Call('smooth_etsmatrices', PACKAGE = 'smooth', matxt, vecg, phi, Cvalues, ncomponentsR, seasfreq, Ttype, Stype, nexovars, matxtreg, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg)
+etsmatrices <- function(matxt, vecg1, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matxtreg, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg) {
+    .Call('smooth_etsmatrices', PACKAGE = 'smooth', matxt, vecg1, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matxtreg, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg)
 }
 
-fitterwrap <- function(matxt, matF, matw, yt, vecg, Etype, Ttype, Stype, seasfreq, matwex, matxtreg) {
-    .Call('smooth_fitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, Etype, Ttype, Stype, seasfreq, matwex, matxtreg)
+fitterwrap <- function(matxt, matF, matw, yt, vecg1, modellags, Etype, Ttype, Stype, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_fitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg1, modellags, Etype, Ttype, Stype, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-forecasterwrap <- function(matxt, matF, matw, h, Ttype, Stype, seasfreq, matwex, matxtreg) {
-    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matxt, matF, matw, h, Ttype, Stype, seasfreq, matwex, matxtreg)
+statetailwrap <- function(matxt, matF, matxtreg, matF2, modellags, Ttype, Stype) {
+    .Call('smooth_statetailwrap', PACKAGE = 'smooth', matxt, matF, matxtreg, matF2, modellags, Ttype, Stype)
 }
 
-errorerwrap <- function(matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, multisteps, matwex, matxtreg) {
-    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Etype, Ttype, Stype, seasfreq, multisteps, matwex, matxtreg)
+forecasterwrap <- function(matxt, matF, matw, h, Ttype, Stype, modellags, matwex, matxtreg) {
+    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matxt, matF, matw, h, Ttype, Stype, modellags, matwex, matxtreg)
 }
 
-optimizerwrap <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg) {
-    .Call('smooth_optimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg)
+errorerwrap <- function(matxt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-costfunc <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta) {
-    .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta)
+optimizerwrap <- function(matxt, matF, matw, yt, vecg1, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_optimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg1, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-simulateETSwrap <- function(matxt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags) {
-    .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', matxt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags)
+costfunc <- function(matxt, matF, matw, yt, vecg1, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2, bounds, phi, Theta) {
+    .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg1, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2, bounds, phi, Theta)
 }
 
-ssfitterwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2) {
-    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2)
+simulateETSwrap <- function(matxt, errors, ot, matF, matw, vecg1, Etype, Ttype, Stype, modellags) {
+    .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', matxt, errors, ot, matF, matw, vecg1, Etype, Ttype, Stype, modellags)
+}
+
+ssfitterwrap <- function(matxt, matF, matw, yt, vecg1, modellags, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg1, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }
 
 ssstatetailwrap <- function(matxt, matF, matxtreg, matF2, modellags) {
@@ -61,11 +65,11 @@ ssforecasterwrap <- function(matxt, matF, matw, h, modellags, matwex, matxtreg) 
     .Call('smooth_ssforecasterwrap', PACKAGE = 'smooth', matxt, matF, matw, h, modellags, matwex, matxtreg)
 }
 
-sserrorerwrap <- function(matxt, matF, matw, yt, h, modellags, matwex, matxtreg) {
-    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, modellags, matwex, matxtreg)
+sserrorerwrap <- function(matxt, matF, matw, yt, h, modellags, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, h, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }
 
-ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
+ssoptimizerwrap <- function(matxt, matF, matw, yt, vecg1, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg1, h, modellags, multisteps, CFt, normalizer, matwex, matxtreg, matv, matF2, vecg2)
 }
 

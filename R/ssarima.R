@@ -472,8 +472,8 @@ Likelihood.value <- function(C){
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matxt, matF, matw, y, h,
-                                   modellags, matwex, matxtreg),
+    errors.mat <- ts(sserrorerwrap(matxt, matF, matw, y, h, modellags,
+                                   matwex, matxtreg, matv, matF2, vecg2),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));

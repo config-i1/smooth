@@ -132,10 +132,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 #### While intervals are not fully supported, use semi-parametric instead of parametric.
     if(any(Ttype==c("M","Z","C"),Stype==c("M","Z","C")) & int.type=="p" & intervals==TRUE){
-        if(Ttype!="M" | Stype!="M"){
-            message("Sorry, but parametric intervals are not currently available for this ETS model. Switching to semiparametric.");
-            int.type <- "s";
-        }
+        message("Sorry, but parametric intervals are not currently available for this ETS model. Switching to semiparametric.");
+        int.type <- "s";
     }
 
     if(any(is.na(data))){
@@ -280,7 +278,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(any(is.na(xreg))){
             message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
         }
-##### The case with vectors and ts objects, but not matrices #####
+##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # If xreg is vector or simple ts
         if(length(xreg)!=obs & length(xreg)!=obs.all){
@@ -295,12 +293,12 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define matrix w for exogenous variables
         matwex <- matrix(xreg,ncol=1);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-        matxtreg <- matrix(NA,max(obs+datafreq,obs.all),1);
+        matxtreg <- matrix(NA,obs.all+datafreq,1);
         exocomponent.names <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
         matxtreg[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
         }
-##### The case with matrices and data frames #####
+##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
     # If xreg is matrix or data frame
             if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
@@ -316,7 +314,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
             n.exovars <- ncol(xreg);
 # Define the second matxtreg to fill in the coefs of the exogenous vars
-            matxtreg <- matrix(NA,max(obs+datafreq,obs.all),n.exovars);
+            matxtreg <- matrix(NA,obs.all+datafreq,n.exovars);
             exocomponent.names <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
             matwex <- as.matrix(xreg);
@@ -329,6 +327,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
         }
+        matv <- matwex;
         estimate.xreg <- TRUE;
     }
     else{
@@ -336,13 +335,17 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         n.exovars <- 1;
         matwex <- matrix(0,max(obs+datafreq,obs.all),1);
         matxtreg <- matrix(0,max(obs+datafreq,obs.all),1);
+        matv <- matrix(1,max(obs+datafreq,obs.all),1);
         estimate.xreg <- FALSE;
     }
+
+    matF2 <- diag(n.exovars);
+    vecg2 <- matrix(0,n.exovars,1);
 
 ##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
 CF <- function(C){
-    init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+    init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                             Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
                             estimate.phi, estimate.initial, estimate.initial.season,
                             estimate.xreg);
@@ -351,9 +354,9 @@ CF <- function(C){
         if(bounds=="a" & (Ttype!="N") & (Stype!="N")){
             Theta.func <- function(Theta){
                 return(abs((init.ets$phi*C[1]+init.ets$phi+1)/(C[3]) +
-                               ((init.ets$phi-1)*(1+cos(Theta)-cos(seasfreq*Theta)) +
-                                    cos((seasfreq-1)*Theta)-init.ets$phi*cos((seasfreq+1)*Theta))/
-                               (2*(1+cos(Theta))*(1-cos(seasfreq*Theta)))));
+                               ((init.ets$phi-1)*(1+cos(Theta)-cos(maxlag*Theta)) +
+                                    cos((maxlag-1)*Theta)-init.ets$phi*cos((maxlag+1)*Theta))/
+                               (2*(1+cos(Theta))*(1-cos(maxlag*Theta)))));
             }
             Theta <- 0.1;
             Theta <- suppressWarnings(optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par);
@@ -361,17 +364,15 @@ CF <- function(C){
         else{
             Theta <- 0;
         }
-        CF.res <- costfunc(init.ets$matxt,init.ets$matF,init.ets$matw,
-                           y,init.ets$vecg,h,
-                           Etype,Ttype,Stype,seasfreq,multisteps,CF.type,
-                           normalizer,matwex,init.ets$matxtreg,bounds,
-                           init.ets$phi,Theta);
+        CF.res <- costfunc(init.ets$matxt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+                           h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                           matwex, matxtreg, matv, matF2, vecg2,
+                           bounds, init.ets$phi, Theta);
     }
     else{
-        CF.res <- optimizerwrap(init.ets$matxt,init.ets$matF,init.ets$matw,
-                                y,init.ets$vecg,h,
-                                Etype,Ttype,Stype,seasfreq,multisteps,CF.type,
-                                normalizer,matwex,init.ets$matxtreg);
+        CF.res <- optimizerwrap(init.ets$matxt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+                                h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                                matwex, matxtreg, matv, matF2, vecg2);
     }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -382,7 +383,7 @@ CF <- function(C){
 }
 
 # Function constructs default bounds where C values should lie
-C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg){
+C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg){
     C <- NA;
     C.lower <- NA;
     C.upper <- NA;
@@ -399,7 +400,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
             C.upper <- c(C.upper,1);
         }
         if(estimate.initial==TRUE){
-            C <- c(C,matxt[seasfreq,1:(n.components - (Stype!="N"))]);
+            C <- c(C,matxt[maxlag,1:(n.components - (Stype!="N"))]);
             if(Ttype!="M"){
                 C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
                 C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
@@ -411,14 +412,14 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
         }
         if(Stype!="N"){
             if(estimate.initial.season==TRUE){
-                C <- c(C,matxt[1:seasfreq,n.components]);
+                C <- c(C,matxt[1:maxlag,n.components]);
                 if(Stype=="A"){
-                    C.lower <- c(C.lower,rep(-Inf,seasfreq));
-                    C.upper <- c(C.upper,rep(Inf,seasfreq));
+                    C.lower <- c(C.lower,rep(-Inf,maxlag));
+                    C.upper <- c(C.upper,rep(Inf,maxlag));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(0,seasfreq));
-                    C.upper <- c(C.upper,rep(10,seasfreq));
+                    C.lower <- c(C.lower,rep(0,maxlag));
+                    C.upper <- c(C.upper,rep(10,maxlag));
                 }
             }
         }
@@ -435,7 +436,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
             C.upper <- c(C.upper,1);
         }
         if(estimate.initial==TRUE){
-            C <- c(C,matxt[seasfreq,1:(n.components - (Stype!="N"))]);
+            C <- c(C,matxt[maxlag,1:(n.components - (Stype!="N"))]);
             if(Ttype!="M"){
                 C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
                 C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
@@ -447,21 +448,21 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,mat
         }
         if(Stype!="N"){
             if(estimate.initial.season==TRUE){
-                C <- c(C,matxt[1:seasfreq,n.components]);
+                C <- c(C,matxt[1:maxlag,n.components]);
                 if(Stype=="A"){
-                    C.lower <- c(C.lower,rep(-Inf,seasfreq));
-                    C.upper <- c(C.upper,rep(Inf,seasfreq));
+                    C.lower <- c(C.lower,rep(-Inf,maxlag));
+                    C.upper <- c(C.upper,rep(Inf,maxlag));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(-0.0001,seasfreq));
-                    C.upper <- c(C.upper,rep(20,seasfreq));
+                    C.lower <- c(C.lower,rep(-0.0001,maxlag));
+                    C.upper <- c(C.upper,rep(20,maxlag));
                 }
             }
         }
     }
 
     if(!is.null(xreg)){
-        C <- c(C,matxtreg[seasfreq,]);
+        C <- c(C,matxtreg[maxlag,]);
         C.lower <- c(C.lower,rep(-Inf,n.exovars));
         C.upper <- c(C.upper,rep(Inf,n.exovars));
     }
@@ -585,7 +586,7 @@ checker <- function(inherits=TRUE){
     }
 
 # Define matrix of seasonal coefficients. The first column consists of additive, the second - multiplicative elements
-# If the seasonal model is chosen and initials are provided, fill in the first "seasfreq" values of seasonal component.
+# If the seasonal model is chosen and initials are provided, fill in the first "maxlag" values of seasonal component.
     if(Stype!="N"){
         if(is.null(initial.season)){
             estimate.initial.season <- TRUE;
@@ -630,14 +631,17 @@ checker <- function(inherits=TRUE){
     basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
                               damped, phi, smoothingparameters, initialstates, seasonalcoefs);
     n.components <- basicparams$n.components;
-    seasfreq <- basicparams$seasfreq;
+    maxlag <- basicparams$maxlag;
     matxt <- basicparams$matxt;
     vecg <- basicparams$vecg;
     estimate.phi <- basicparams$estimate.phi;
     phi <- basicparams$phi;
-    modellags <- basicparams$modellags[basicparams$modellags!=0];
+    modellags <- basicparams$modellags;
 
     checker(inherits=TRUE);
+
+# Define the number of rows that should be in the matxt
+    obs.xt <- obs.all;
 
 ############ Start the estimation depending on the model ############
 # Fill in the vector of initial values and vector of constrains used in estimation
@@ -724,23 +728,23 @@ checker <- function(inherits=TRUE){
                 basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
                                           damped, phi, smoothingparameters, initialstates, seasonalcoefs);
                 n.components <- basicparams$n.components;
-                seasfreq <- basicparams$seasfreq;
+                maxlag <- basicparams$maxlag;
                 matxt <- basicparams$matxt;
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
-                modellags <- basicparams$modellags[basicparams$modellags!=0];
+                modellags <- basicparams$modellags;
 
-                Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg);
+                Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
                 C <- Cs$C;
                 C.upper <- Cs$C.upper;
                 C.lower <- Cs$C.lower;
 
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
                 C <- res$solution;
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + seasfreq*(Stype!="N");
+                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N");
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
@@ -769,6 +773,7 @@ checker <- function(inherits=TRUE){
             if(any(unlist(strsplit(model,""))=="C")){
                 IC.selection <- IC.selection/(h^multisteps);
                 IC.weights <- exp(-0.5*(IC.selection-min(IC.selection)))/sum(exp(-0.5*(IC.selection-min(IC.selection))));
+                ICs <- sum(IC.selection * IC.weights);
             }
             else{
                 i <- which(IC.selection==min(IC.selection))[1];
@@ -787,16 +792,16 @@ checker <- function(inherits=TRUE){
                 basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
                                           damped, phi, smoothingparameters, initialstates, seasonalcoefs);
                 n.components <- basicparams$n.components;
-                seasfreq <- basicparams$seasfreq;
+                maxlag <- basicparams$maxlag;
                 matxt <- basicparams$matxt;
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
-                modellags <- basicparams$modellags[basicparams$modellags!=0];
+                modellags <- basicparams$modellags;
             }
         }
         else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg);
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
             C <- Cs$C;
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
@@ -808,12 +813,12 @@ checker <- function(inherits=TRUE){
         }
     }
     else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,seasfreq,n.components,matxtreg);
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
             C <- Cs$C;
     }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
                                 estimate.xreg);
@@ -831,24 +836,35 @@ checker <- function(inherits=TRUE){
             model <- paste0(Etype,Ttype,Stype);
         }
 
-        fitting <- fitterwrap(matxt,matF,matw,y,vecg,Etype,Ttype,Stype,seasfreq,matwex,matxtreg);
-        matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*seasfreq),frequency=datafreq);
+        fitting <- fitterwrap(matxt, matF, matw, y, vecg,
+                              modellags, Etype, Ttype, Stype,
+                              matwex, matxtreg, matv, matF2, vecg2)
+        matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
         y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
         if(!is.null(xreg)){
 # Write down the matxtreg and copy values for the holdout
-            matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg;
-            matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h);
+            matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
         }
 
-        errors.mat <- ts(errorerwrap(matxt,matF,matw,y,h,
-                                     Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg),
+# Calculate the tails of matxtreg and matxt
+        statestails <- statetailwrap(matrix(rbind(matxt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                     matrix(matxtreg[(obs.xt-h):(obs.xt),],h+1,n.exovars), matF2,
+                                     modellags, Ttype, Stype);
+        if(!is.null(xreg)){
+# Write down the matxtreg and produce values for the holdout
+            matxtreg[(obs.xt-h):(obs.xt),] <- statestails$xtreg;
+        }
+
+        errors.mat <- ts(errorerwrap(matxt, matF, matw, y,
+                                     h, Etype, Ttype, Stype, modellags,
+                                     matwex, matxtreg, matv, matF2, vecg2),
                          start=start(data),frequency=frequency(data));
         colnames(errors.mat) <- paste0("Error",c(1:h));
         errors <- ts(errors.mat[,1],start=start(data),frequency=datafreq);
 
-        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),
-                                   matF,matw,h,Ttype,Stype,seasfreq,
+        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                                   matF, matw, h, Ttype, Stype, modellags,
                                    matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                    matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
@@ -861,7 +877,7 @@ checker <- function(inherits=TRUE){
         }
         else{
             n.param <- n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial + seasfreq*estimate.initial.season;
+                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season;
         }
 
         if(!is.null(xreg)){
@@ -942,10 +958,10 @@ checker <- function(inherits=TRUE){
         }
 
 # Write down the initials. Done especially for Nikos and issue #10
-        initial <- matxt[seasfreq,1:(n.components - (Stype!="N"))]
+        initial <- matxt[maxlag,1:(n.components - (Stype!="N"))]
 
         if(Stype!="N"){
-          initial.season <- matxt[1:seasfreq,n.components]
+          initial.season <- matxt[1:maxlag,n.components]
         }
     }
     else{
@@ -972,14 +988,14 @@ checker <- function(inherits=TRUE){
             basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
                                       damped, phi, smoothingparameters, initialstates, seasonalcoefs);
             n.components <- basicparams$n.components;
-            seasfreq <- basicparams$seasfreq;
+            maxlag <- basicparams$maxlag;
             matxt <- basicparams$matxt;
             vecg <- basicparams$vecg;
             estimate.phi <- basicparams$estimate.phi;
             phi <- basicparams$phi;
             modellags <- basicparams$modellags;
 
-            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
+            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                     Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
                                     estimate.phi, estimate.initial, estimate.initial.season,
                                     estimate.xreg);
@@ -990,28 +1006,36 @@ checker <- function(inherits=TRUE){
             matF <- init.ets$matF;
             matw <- init.ets$matw;
 
-            fitting <- fitterwrap(matxt,matF,matrix(matw,1,length(matw)),y,
-                                  matrix(vecg,length(vecg),1),Etype,Ttype,Stype,seasfreq,
-                                  matwex,matxtreg);
+            fitting <- fitterwrap(matxt, matF, matw, y, vecg,
+                                  modellags, Etype, Ttype, Stype,
+                                  matwex, matxtreg, matv, matF2, vecg2);
             matxt <- fitting$matxt;
             y.fit <- fitting$yfit;
 
             if(!is.null(xreg)){
 # Write down the matxtreg and copy values for the holdout
-                matxtreg[1:nrow(fitting$matxtreg),] <- fitting$matxtreg;
-                matxtreg[(obs.all-h+1):obs.all,] <- rep(matxtreg[1,],each=h);
+                matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
             }
 
-            errors.mat <- errorerwrap(matxt,matF,matrix(matw,1,length(matw)),y,
-                                      h,Etype,Ttype,Stype,seasfreq,TRUE,matwex,matxtreg);
+# Calculate the tails of matxtreg and matxt
+            statestails <- statetailwrap(matrix(rbind(matxt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                         matrix(matxtreg[(obs.xt-h):(obs.xt),],h+1,n.exovars), matF2,
+                                         modellags, Ttype, Stype);
+            if(!is.null(xreg)){
+# Write down the matxtreg and produce values for the holdout
+                matxtreg[(obs.xt-h):(obs.xt),] <- statestails$xtreg;
+            }
+
+            errors.mat <- errorerwrap(matxt, matF, matw, y,
+                                      h, Etype, Ttype, Stype, modellags,
+                                      matwex, matxtreg, matv, matF2, vecg2);
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- errors.mat[,1];
 # Produce point and interval forecasts
-            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+seasfreq),],nrow=seasfreq),
-                                    matF,matrix(matw,nrow=1),h,Ttype,Stype,seasfreq,
+            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                                    matF, matw, h, Ttype, Stype, modellags,
                                     matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
-
 
         s2 <- as.vector(sum(errors^2)/(obs-n.param));
 # Write down the forecasting intervals
@@ -1071,6 +1095,7 @@ checker <- function(inherits=TRUE){
             y.low <- NA;
             y.high <- NA;
         }
+        names(ICs) <- paste0("Combined ",IC);
     }
 
     if(any(is.na(y.fit),is.na(y.for))){
