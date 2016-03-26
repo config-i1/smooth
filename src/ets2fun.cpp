@@ -46,6 +46,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
 }
 
 /* # Function returns value of r used in components estimation */
+/// Need to do similar stuff for w() and f()
 arma::rowvec rvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char Ttype, char Stype, int ncomponents){
     arma::rowvec r(ncomponents);
     arma::rowvec xtnew;

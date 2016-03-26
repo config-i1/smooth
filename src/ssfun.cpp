@@ -45,7 +45,8 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ve
         xtreg.row(i) = xtreg.row(i-1) * matrixF2 + bufferforxtreg;
       }
 
-    return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit, Named("errors") = materrors, Named("xtreg") = xtreg);
+    return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit,
+                        Named("errors") = materrors, Named("xtreg") = xtreg);
 }
 
 /* # Wrapper for ssfitter */
@@ -331,5 +332,6 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP 
     NumericMatrix vg2(vecg2);
     arma::vec matg2(vg2.begin(), vg2.nrow(), false);
 
-    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,lags,multi,CFtype,normalize,wex,xtreg,matrixv,matrixF2,matg2));
+    return wrap(ssoptimizer(matrixxt,matrixF,matrixw,matyt,matg,hor,lags,multi,
+                            CFtype,normalize,wex,xtreg,matrixv,matrixF2,matg2));
 }
