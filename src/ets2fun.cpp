@@ -156,12 +156,14 @@ arma::rowvec fvalue(arma::rowvec matrixxt, arma::mat matrixF, char T, char S){
 }
 
 /* # Function returns value of g() -- the update of states -- used in components estimation for the persistence */
-arma::rowvec gvalue2(arma::rowvec matrixxt, arma::mat matrixF, char E, char T, char S){
+arma::rowvec gvalue2(arma::rowvec matrixxt, arma::mat matrixF, arma::mat matrixw, char E, char T, char S){
     arma::rowvec g(matrixxt.n_cols, arma::fill::ones);
     arma::rowvec matrixxtnew = matrixxt;
 
+// AZZ
     switch(E){
     case 'A':
+// ANZ
         switch(T){
         case 'N':
             switch(S){
@@ -170,16 +172,79 @@ arma::rowvec gvalue2(arma::rowvec matrixxt, arma::mat matrixF, char E, char T, c
                 g(1) = 1 / matrixxt(0);
             break;
             }
+        break;
+// AAZ
         case 'A':
             switch(S){
             case 'M':
                 g.cols(0,1) = g.cols(0,1) / matrixxt(2);
-                g(2) = 1 / as_scalar(matrixF.submat(0,0,0,1) * trans(matrixxt.cols(0,1)));
+                g(2) = 1 / as_scalar(matrixw.cols(0,1) * trans(matrixxt.cols(0,1)));
             break;
             }
+        break;
+// AMZ
+        case 'M':
+            switch(S){
+            case 'N':
+            case 'A':
+                g(1) = g(1) / matrixxt(0);
+            break;
+            case 'M':
+                g(0) = g(0) / matrixxt(2);
+                g(1) = g(1) / (matrixxt(0) * matrixxt(2));
+                g(2) = g(2) / as_scalar(exp(matrixw.cols(0,1) * trans(log(matrixxt.cols(0,1)))));
+            break;
+            }
+        break;
         }
     break;
-
+// MZZ
+    case 'M':
+// MNZ
+        switch(T){
+        case 'N':
+            switch(S){
+            case 'N':
+                g(0) = matrixxt(0);
+            case 'A':
+                g.cols(0,1).fill(matrixxt(0) + matrixxt(1));
+            break;
+            case 'M':
+                g = matrixxt;
+            break;
+            }
+        break;
+// MAZ
+        case 'A':
+            switch(S){
+            case 'N':
+            case 'A':
+                g.fill(as_scalar(matrixw * trans(matrixxt)));
+            break;
+            case 'M':
+                g.cols(0,1).fill(as_scalar(matrixw.cols(0,1) * trans(matrixxt.cols(0,1))));
+                g(2) = matrixxt(2);
+            break;
+            }
+        break;
+// MMZ
+        case 'M':
+            switch(S){
+            case 'N':
+                g(0) = as_scalar(exp(matrixw * trans(log(matrixxt))));
+                g(1) = pow(matrixxt(2),matrixw(2));
+            break;
+            case 'A':
+                g.cols(0,2) = as_scalar(exp(matrixw.cols(0,1) * trans(log(matrixxt.cols(0,1)))) + matrixxt(2));
+                g(1) = g(0) / matrixxt(0);
+            break;
+            case 'M':
+                g = trans(exp(matrixF * trans(log(matrixxt))));
+            break;
+            }
+        break;
+        }
+    break;
     }
 
     return g;
