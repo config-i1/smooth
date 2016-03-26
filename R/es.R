@@ -977,7 +977,7 @@ checker <- function(inherits=TRUE){
             vecg <- basicparams$vecg;
             estimate.phi <- basicparams$estimate.phi;
             phi <- basicparams$phi;
-            modellags <- basicparams$modellags[basicparams$modellags!=0];
+            modellags <- basicparams$modellags;
 
             init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, seasfreq,
                                     Ttype, Stype, n.exovars, matxtreg, estimate.persistence,

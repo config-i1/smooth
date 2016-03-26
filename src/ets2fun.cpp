@@ -388,54 +388,62 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 
     unsigned int ncomponents = 1;
     int seasfreq = 1;
-    arma::vec modellags(3);
-    modellags.fill(0);
-    modellags(0) = 1;
+    arma::vec modellags(3, arma::fill::ones);
 
 /* # Define the number of components */
     if(T!='N'){
         ncomponents += 1;
-        modellags(1) = 1;
+        if(S!='N'){
+            ncomponents += 1;
+            seasfreq = freq;
+            modellags(2) = freq;
+        }
+        else{
+            modellags.resize(2);
+        }
     }
-
+    else{
 /* # Define the number of components and model frequency */
-    if(S!='N'){
-        ncomponents += 1;
-        seasfreq = freq;
-        modellags(1) = freq;
+        if(S!='N'){
+            ncomponents += 1;
+            seasfreq = freq;
+            modellags(1) = freq;
+            modellags.resize(2);
+        }
+        else{
+            modellags.resize(1);
+        }
     }
 
-    arma::mat matrixxt(seasfreq, ncomponents, arma::fill::ones);
-    arma::mat vecg(ncomponents, 1, arma::fill::zeros);
+    arma::mat matrixxt(obs+seasfreq, ncomponents, arma::fill::ones);
+    arma::vec vecg(ncomponents, arma::fill::zeros);
     bool estimphi = TRUE;
 
 // # Define the initial states for level and trend components
     switch(T){
     case 'N':
-        matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
+        matrixxt.submat(0,0,seasfreq-1,0).each_row() = initial.submat(0,2,0,2);
     break;
     case 'A':
-        matrixxt.cols(0,0).each_row() = initial.submat(0,0,0,0);
-        matrixxt.cols(1,1).each_row() = initial.submat(0,1,0,1);
+        matrixxt.submat(0,0,seasfreq-1,1).each_row() = initial.submat(0,0,0,1);
     break;
 // # The initial matrix is filled with ones, that is why we don't need to fill in initial trend
     case 'M':
-        matrixxt.cols(0,0).each_row() = initial.submat(0,2,0,2);
-        matrixxt.cols(1,1).each_row() = initial.submat(0,3,0,3);
+        matrixxt.submat(0,0,seasfreq-1,1).each_row() = initial.submat(0,2,0,3);
     break;
     }
 
 /* # Define the initial states for seasonal component */
     switch(S){
     case 'A':
-        matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(0,0);
+        matrixxt.submat(0,ncomponents-1,seasfreq-1,ncomponents-1) = seascoef.col(0);
     break;
     case 'M':
-        matrixxt.cols(ncomponents-1,ncomponents-1) = seascoef.cols(1,1);
+        matrixxt.submat(0,ncomponents-1,seasfreq-1,ncomponents-1) = seascoef.col(1);
     break;
     }
 
-    matrixxt.resize(obs+seasfreq, ncomponents);
+//    matrixxt.resize(obs+seasfreq, ncomponents);
 
     if(persistence.n_rows < ncomponents){
         if((T=='M') | (S=='M')){
@@ -517,9 +525,9 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
     if(estimateinitial==TRUE){
-        matrixxt.cols(0,0).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi,ncomponents*estimatepersistence + estimatephi).t()));
+        matrixxt.col(0).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi,ncomponents*estimatepersistence + estimatephi).t()));
         if(T!='N'){
-            matrixxt.cols(1,1).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi + 1,ncomponents*estimatepersistence + estimatephi + 1).t()));
+            matrixxt.col(1).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi + 1,ncomponents*estimatepersistence + estimatephi + 1).t()));
         }
     }
 
@@ -594,6 +602,52 @@ RcppExport SEXP etsmatrices(SEXP matxt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
                               Named("phi") = phivalue, Named("matxt") = matrixxt, Named("matxtreg") = matrixxtreg));
 }
 
+List fitter2(arma::mat matrixxt, arma::mat matrixF, arma::rowvec matrixw, arma::vec matyt, arma::vec matg,
+             arma::uvec lags, char E, char T, char S,
+             arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::vec matg2) {
+    /* # matrixxt should have a length of obs + maxlag.
+    * # matrixw should have obs rows (can be all similar).
+    * # matgt should be a vector
+    * # lags is a vector of lags
+    * # wex is the matrix with the exogenous variables
+    * # xtreg is the matrix with the parameters for the exogenous (repeated)
+    */
+
+    int obs = matyt.n_rows;
+    int obsall = matrixxt.n_rows;
+    int lagslength = lags.n_rows;
+    unsigned int maxlag = max(lags);
+
+    lags = maxlag - lags;
+
+    for(int i=1; i<lagslength; i=i+1){
+        lags(i) = lags(i) + obsall * i;
+    }
+
+    arma::uvec lagrows(lagslength, arma::fill::zeros);
+
+    arma::vec matyfit(obs, arma::fill::zeros);
+    arma::vec materrors(obs, arma::fill::zeros);
+    arma::rowvec bufferforxtreg(matg2.n_rows);
+
+    for (int i=maxlag; i<obsall; i=i+1) {
+
+        lagrows = lags - maxlag + i;
+
+        matyfit.row(i-maxlag) = matrixw * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
+        materrors(i-maxlag) = matyt(i-maxlag) - matyfit(i-maxlag);
+        /* # This part is needed for the states of exponential smoothing */
+        matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) +
+            trans(gvalue2(matrixxt.row(i), matrixF, matrixw.row(i), E, T, S)) % matg * materrors(i-maxlag));
+        /* # This one is needed for the states of xreg */
+        bufferforxtreg = arma::trans(matg2 / arma::trans(matrixv.row(i-maxlag)) * materrors(i-maxlag));
+        bufferforxtreg.elem(find_nonfinite(bufferforxtreg)).fill(0);
+        xtreg.row(i) = xtreg.row(i-1) * matrixF2 + bufferforxtreg;
+    }
+
+    return List::create(Named("matxt") = matrixxt, Named("yfit") = matyfit,
+                        Named("errors") = materrors, Named("xtreg") = xtreg);
+}
 
 /* # Function fits ETS model to the data */
 List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat matyt,
@@ -692,7 +746,8 @@ List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat 
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = matrixwnew.row(i) * trans(matrixxtnew.row(i)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) %
+                    gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
                 matrixxtreg.row(i+1) = matrixxtreg.row(i);
 /*            if(S=='A'){
                 avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));

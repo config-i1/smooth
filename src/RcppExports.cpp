@@ -245,6 +245,26 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// simulateETSwrap
+RcppExport SEXP simulateETSwrap(SEXP matxt, SEXP errors, SEXP ot, SEXP matF, SEXP matw, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags);
+RcppExport SEXP smooth_simulateETSwrap(SEXP matxtSEXP, SEXP errorsSEXP, SEXP otSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP vecgSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP modellagsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< SEXP >::type matxt(matxtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type errors(errorsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ot(otSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type vecg(vecgSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type modellags(modellagsSEXP);
+    __result = Rcpp::wrap(simulateETSwrap(matxt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags));
+    return __result;
+END_RCPP
+}
 // ssfitterwrap
 RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP modellags, SEXP matwex, SEXP matxtreg, SEXP matv, SEXP matF2, SEXP vecg2);
 RcppExport SEXP smooth_ssfitterwrap(SEXP matxtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP vecgSEXP, SEXP modellagsSEXP, SEXP matwexSEXP, SEXP matxtregSEXP, SEXP matvSEXP, SEXP matF2SEXP, SEXP vecg2SEXP) {

@@ -4,7 +4,7 @@
 
 using namespace Rcpp;
 
-List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg, arma::uvec lags,
+List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::rowvec matrixw, arma::vec matyt, arma::vec matg, arma::uvec lags,
               arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # matrixxt should have a length of obs + maxlag.
  * # matrixw should have obs rows (can be all similar).
@@ -35,7 +35,7 @@ List ssfitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::ve
 
         lagrows = lags - maxlag + i;
 
-        matyfit.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
+        matyfit.row(i-maxlag) = matrixw * matrixxt(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
         materrors(i-maxlag) = matyt(i-maxlag) - matyfit(i-maxlag);
 /* # This part is needed for the states of exponential smoothing */
         matrixxt.row(i) = arma::trans(matrixF * matrixxt(lagrows) + matg * materrors(i-maxlag));
@@ -58,7 +58,7 @@ RcppExport SEXP ssfitterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP vec
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    arma::rowvec matrixw(vw.begin(), vw.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), vyt.ncol(), false);
     NumericMatrix vg(vecg);
@@ -124,7 +124,7 @@ RcppExport SEXP ssstatetailwrap(SEXP matxt, SEXP matF, SEXP matxtreg, SEXP matF2
 }
 
 /* # Function produces the point forecasts for the specified model */
-arma::mat ssforecaster(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
+arma::mat ssforecaster(arma::mat matrixxt, arma::mat matrixF, arma::rowvec matrixw,
                        unsigned int hor, arma::uvec lags,
                        arma::mat wex, arma::mat xtreg) {
 /* # Provide only the sufficient matrixxt (with the length = maxlag).
@@ -151,7 +151,7 @@ arma::mat ssforecaster(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
     for (int i=maxlag; i<(hor+maxlag); i=i+1) {
         lagrows = lags - maxlag + i;
         matrixxtnew.row(i) = arma::trans(matrixF * matrixxtnew(lagrows));
-        matyfor.row(i-maxlag) = matrixw.row(i-maxlag) * matrixxtnew(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
+        matyfor.row(i-maxlag) = matrixw * matrixxtnew(lagrows) + wex.row(i-maxlag) * arma::trans(xtreg.row(i-maxlag));
     }
 
     return matyfor;
@@ -166,7 +166,7 @@ RcppExport SEXP ssforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    arma::rowvec matrixw(vw.begin(), vw.ncol(), false);
     unsigned int hor = as<int>(h);
     IntegerVector mlags(modellags);
     arma::uvec lags = as<arma::uvec>(mlags);
@@ -178,7 +178,7 @@ RcppExport SEXP ssforecasterwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP h,
     return wrap(ssforecaster(matrixxt, matrixF, matrixw, hor, lags, wex, xtreg));
 }
 
-arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
+arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::rowvec matrixw,
                     arma::vec matyt, unsigned int hor, arma::uvec lags,
                     arma::mat wex, arma::mat xtreg){
     unsigned int obs = matyt.n_rows;
@@ -191,7 +191,7 @@ arma::mat sserrorer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw,
     for(unsigned int i=maxlag; i<obs+maxlag; i=i+1){
         hh = std::min(hor, obs+maxlag-i);
         materrors.submat(i-maxlag, 0, i-maxlag, hh-1) = arma::trans(matyt.rows(i-maxlag, i-maxlag+hh-1) -
-            ssforecaster(matrixxt.rows(i-maxlag,i-1), matrixF, matrixw.rows(i-maxlag,i-maxlag+hh-1), hh, lags,
+            ssforecaster(matrixxt.rows(i-maxlag,i-1), matrixF, matrixw, hh, lags,
                          wex.rows(i-maxlag,i-maxlag+hh-1), xtreg.rows(i-maxlag,i-maxlag+hh-1)));
     }
 
@@ -207,7 +207,7 @@ RcppExport SEXP sserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h,
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    arma::rowvec matrixw(vw.begin(), vw.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), false);
     unsigned int hor = as<int>(h);
@@ -222,7 +222,7 @@ RcppExport SEXP sserrorerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP h,
 }
 
 /* # Cost function calculation */
-double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::vec matyt, arma::vec matg,
+double ssoptimizer(arma::mat matrixxt, arma::mat matrixF, arma::rowvec matrixw, arma::vec matyt, arma::vec matg,
                    unsigned int hor, arma::uvec lags, bool multi, std::string CFtype, double normalize,
                    arma::mat wex, arma::mat xtreg, arma::mat matrixv, arma::mat matrixF2, arma::mat matg2) {
 /* # Silent the output of try catch */
@@ -310,7 +310,7 @@ RcppExport SEXP ssoptimizerwrap(SEXP matxt, SEXP matF, SEXP matw, SEXP yt, SEXP 
     NumericMatrix mF(matF);
     arma::mat matrixF(mF.begin(), mF.nrow(), mF.ncol(), false);
     NumericMatrix vw(matw);
-    arma::mat matrixw(vw.begin(), vw.nrow(), vw.ncol(), false);
+    arma::rowvec matrixw(vw.begin(), vw.ncol(), false);
     NumericMatrix vyt(yt);
     arma::vec matyt(vyt.begin(), vyt.nrow(), false);
     NumericMatrix vg(vecg);

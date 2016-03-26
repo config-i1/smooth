@@ -45,6 +45,10 @@ costfunc <- function(matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfr
     .Call('smooth_costfunc', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, h, Etype, Ttype, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg, bounds, phi, Theta)
 }
 
+simulateETSwrap <- function(matxt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags) {
+    .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', matxt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags)
+}
+
 ssfitterwrap <- function(matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2) {
     .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matxt, matF, matw, yt, vecg, modellags, matwex, matxtreg, matv, matF2, vecg2)
 }

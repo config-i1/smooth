@@ -331,7 +331,7 @@ CF <- function(C){
         }
     }
 
-    CF.res <- ssoptimizerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE),
+    CF.res <- ssoptimizerwrap(matxt, matF, matw,
                               y, vecg, h, modellags, multisteps, CF.type, normalizer,
                               matwex, matxtreg, matv, matF2, vecg2);
 
@@ -446,7 +446,7 @@ Likelihood.value <- function(C){
         initial <- elements$xt;
     }
 
-    fitting <- ssfitterwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y,
+    fitting <- ssfitterwrap(matxt, matF, matw, y,
                             vecg, modellags, matwex, matxtreg, matv, matF2, vecg2);
     matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
@@ -472,7 +472,7 @@ Likelihood.value <- function(C){
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matxt, matF, matrix(matw,obs.all,n.components,byrow=TRUE), y, h,
+    errors.mat <- ts(sserrorerwrap(matxt, matF, matw, y, h,
                                    modellags, matwex, matxtreg),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
@@ -480,7 +480,7 @@ Likelihood.value <- function(C){
 
 # Produce forecast
     y.for <- ts(ssforecasterwrap(matrix(matxt[(obs+1):nrow(matxt),],nrow=1),
-                                 matF,matrix(matw,obs.all,n.components,byrow=TRUE),h,
+                                 matF,matw,h,
                                  modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                  matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
