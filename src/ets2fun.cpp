@@ -45,9 +45,213 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
     }
 }
 
-/* # Function returns value of r used in components estimation */
-/// Need to do similar stuff for w() and f()
-arma::rowvec rvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char Ttype, char Stype, int ncomponents){
+/* # Function returns value of w() -- y-fitted -- used in the measurement equation */
+arma::rowvec wvalue(arma::rowvec matrixxt, arma::rowvec matrixw, char T, char S){
+    arma::rowvec matrixxtnew = matrixxt;
+
+    switch(S){
+// ZZN
+    case 'N':
+        switch(T){
+        case 'N':
+        case 'A':
+            matrixxtnew = matrixw * matrixxt.t();
+        break;
+        case 'M':
+            matrixxtnew = exp(matrixw * log(matrixxt.t()));
+        break;
+        }
+    break;
+// ZZA
+    case 'A':
+        switch(T){
+        case 'N':
+        case 'A':
+            matrixxtnew = matrixw * matrixxt.t();
+        break;
+        case 'M':
+            matrixxtnew = exp(matrixw.cols(0,1) * log(trans(matrixxt.cols(0,1)))) + matrixxt(2);
+        break;
+        }
+    break;
+// ZZM
+    case 'M':
+        switch(T){
+        case 'N':
+        case 'M':
+            matrixxtnew = exp(matrixw * log(matrixxt.t()));
+        break;
+        case 'A':
+            matrixxtnew = (matrixw.cols(0,1) * trans(matrixxt.cols(0,1))) * matrixxt(2);
+        break;
+        }
+    break;
+    }
+
+    return matrixxtnew;
+}
+
+/* # Function returns value of r() -- additive or multiplicative error -- used in the error term of measurement equation.
+     This is mainly needed by sim.ets */
+arma::rowvec rvalue(arma::rowvec matrixxt, arma::rowvec matrixw, char E, char T, char S){
+    arma::rowvec matrixxtnew(matrixxt.n_cols, arma::fill::ones);
+
+    switch(E){
+// MZZ
+    case 'M':
+        return wvalue(matrixxt, matrixw, T, S);
+    break;
+// AZZ
+    case 'A':
+    default:
+        return matrixxtnew;
+    }
+}
+
+/* # Function returns value of f() -- new states without the update -- used in the transition equation */
+arma::rowvec fvalue(arma::rowvec matrixxt, arma::mat matrixF, char T, char S){
+    arma::rowvec matrixxtnew = matrixxt;
+
+    switch(S){
+// ZZN
+    case 'N':
+        switch(T){
+        case 'N':
+        case 'A':
+            matrixxtnew = matrixF * matrixxt.t();
+        break;
+        case 'M':
+            matrixxtnew = exp(matrixF * log(matrixxt.t()));
+        break;
+        }
+    break;
+// ZZA
+    case 'A':
+        switch(T){
+        case 'N':
+        case 'A':
+            matrixxtnew = matrixF * matrixxt.t();
+        break;
+        case 'M':
+            matrixxtnew.cols(0,1) = exp(matrixF.submat(0,0,1,1) * log(trans(matrixxt.cols(0,1))));
+            matrixxtnew(2) = matrixxt(2);
+        break;
+        }
+    break;
+// ZZM
+    case 'M':
+        switch(T){
+        case 'N':
+        case 'M':
+            matrixxtnew = exp(matrixF * log(matrixxt.t()));
+        break;
+        case 'A':
+            matrixxtnew = matrixF * matrixxt.t();
+        break;
+        }
+    break;
+    }
+
+    return matrixxtnew;
+}
+
+/* # Function returns value of g() -- the update of states -- used in components estimation for the persistence */
+arma::rowvec gvalue2(arma::rowvec matrixxt, arma::mat matrixF, arma::mat matrixw, char E, char T, char S){
+    arma::rowvec g(matrixxt.n_cols, arma::fill::ones);
+    arma::rowvec matrixxtnew = matrixxt;
+
+// AZZ
+    switch(E){
+    case 'A':
+// ANZ
+        switch(T){
+        case 'N':
+            switch(S){
+            case 'M':
+                g(0) = 1 / matrixxt(1);
+                g(1) = 1 / matrixxt(0);
+            break;
+            }
+        break;
+// AAZ
+        case 'A':
+            switch(S){
+            case 'M':
+                g.cols(0,1) = g.cols(0,1) / matrixxt(2);
+                g(2) = 1 / as_scalar(matrixw.cols(0,1) * trans(matrixxt.cols(0,1)));
+            break;
+            }
+        break;
+// AMZ
+        case 'M':
+            switch(S){
+            case 'N':
+            case 'A':
+                g(1) = g(1) / matrixxt(0);
+            break;
+            case 'M':
+                g(0) = g(0) / matrixxt(2);
+                g(1) = g(1) / (matrixxt(0) * matrixxt(2));
+                g(2) = g(2) / as_scalar(exp(matrixw.cols(0,1) * trans(log(matrixxt.cols(0,1)))));
+            break;
+            }
+        break;
+        }
+    break;
+// MZZ
+    case 'M':
+// MNZ
+        switch(T){
+        case 'N':
+            switch(S){
+            case 'N':
+                g(0) = matrixxt(0);
+            case 'A':
+                g.cols(0,1).fill(matrixxt(0) + matrixxt(1));
+            break;
+            case 'M':
+                g = matrixxt;
+            break;
+            }
+        break;
+// MAZ
+        case 'A':
+            switch(S){
+            case 'N':
+            case 'A':
+                g.fill(as_scalar(matrixw * trans(matrixxt)));
+            break;
+            case 'M':
+                g.cols(0,1).fill(as_scalar(matrixw.cols(0,1) * trans(matrixxt.cols(0,1))));
+                g(2) = matrixxt(2);
+            break;
+            }
+        break;
+// MMZ
+        case 'M':
+            switch(S){
+            case 'N':
+                g(0) = as_scalar(exp(matrixw * trans(log(matrixxt))));
+                g(1) = pow(matrixxt(2),matrixw(2));
+            break;
+            case 'A':
+                g.cols(0,2) = as_scalar(exp(matrixw.cols(0,1) * trans(log(matrixxt.cols(0,1)))) + matrixxt(2));
+                g(1) = g(0) / matrixxt(0);
+            break;
+            case 'M':
+                g = trans(exp(matrixF * trans(log(matrixxt))));
+            break;
+            }
+        break;
+        }
+    break;
+    }
+
+    return g;
+}
+
+/* # Old version # */
+arma::rowvec gvalue(arma::rowvec matxt, arma::rowvec matrixw, char Etype, char Ttype, char Stype, int ncomponents){
     arma::rowvec r(ncomponents);
     arma::rowvec xtnew;
 
@@ -488,7 +692,7 @@ List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat 
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = matrixwnew.row(i) * trans(matrixxtnew.row(i)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
                 matrixxtreg.row(i+1) = matrixxtreg.row(i);
 /*            if(S=='A'){
                 avec.fill(as_scalar(mean(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1),1)));
@@ -501,7 +705,7 @@ List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat 
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = matrixwnew.row(i).cols(0,1) * trans(matrixxtnew.row(i).cols(0,1)) * sum(matrixwnew.row(i).cols(2,ncomponentsall-1) % matrixxtnew.row(i).cols(2,ncomponentsall-1)) + matrixwex.row(i) * trans(matrixxtreg.row(i));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtnew.row(i+1) = matrixxtnew.row(i) * trans(matrixFnew) + trans(materrors.row(i)) * matgnew.row(i) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
                 matrixxtnew.elem(find(matrixxtnew.row(i+1).cols(2,ncomponentsall-1)<0)).zeros();
                 matrixxtreg.row(i+1) = matrixxtreg.row(i);
 /*            avec.fill(as_scalar(exp(mean(log(matrixxtnew.submat(i+1, ncomponents, i+1, ncomponentsall-1)),1))));
@@ -517,7 +721,7 @@ List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat 
             for (int i=0; i<obs; i=i+1) {
                 matyfit.row(i) = exp(matrixwnew.row(i) * log(trans(matrixxtnew.row(i)))) + matrixwex.row(i) * trans(matrixxtreg.row(i));
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matrixxtnew.row(i+1) = exp(log(matrixxtnew.row(i)) * trans(matrixFnew)) + trans(materrors.row(i)) * matgnew.row(i) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
+                matrixxtnew.row(i+1) = exp(log(matrixxtnew.row(i)) * trans(matrixFnew)) + trans(materrors.row(i)) * matgnew.row(i) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall);
                 if(arma::as_scalar(matrixxtnew(i+1,0))<0){
                     matrixxtnew(i+1,0) = 0.0001;
                 }
@@ -551,8 +755,8 @@ List fitter(arma::mat matrixxt, arma::mat matrixF, arma::mat matrixw, arma::mat 
                     matyfit.row(i) = 0;
                 }
                 materrors(i,0) = errorf(matyt(i,0), matyfit(i,0), E);
-                matrixxtnew.row(i+1).cols(0,1) = matrixxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
-                matrixxtnew.row(i+1).cols(2,ncomponentsall-1) = matrixxtnew.row(i).cols(2,ncomponentsall-1) * trans(matrixFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % rvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
+                matrixxtnew.row(i+1).cols(0,1) = matrixxtnew.row(i+1).cols(0,1) + trans(materrors.row(i)) * matgnew.row(i).cols(0,1) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(0,1);
+                matrixxtnew.row(i+1).cols(2,ncomponentsall-1) = matrixxtnew.row(i).cols(2,ncomponentsall-1) * trans(matrixFnew.submat(2,2,ncomponentsall-1,ncomponentsall-1)) + trans(materrors.row(i)) * matgnew.row(i).cols(2,ncomponentsall-1) % gvalue(matrixxtnew.row(i), matrixwnew.row(i), E, T, S, ncomponentsall).cols(2,ncomponentsall-1);
                 if((arma::as_scalar(matrixxtnew(i+1,0))<0) || (std::isnan(arma::as_scalar(matrixxtnew(i+1,0))))){
                     matrixxtnew(i+1,0) = 0.0001;
                 }
