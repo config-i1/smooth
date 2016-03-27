@@ -10,7 +10,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 \usage{
 ges(data, orders=c(2), lags=c(1), initial=NULL,
     persistence=NULL, transition=NULL, measurement=NULL,
-    persistence2=NULL, transition2=NULL,
+    persistenceX=NULL, transitionX=NULL,
     CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -34,9 +34,9 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
   }
-  \item{persistence2}{ Persistence vector \eqn{g2}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{persistenceX}{ Persistence vector \eqn{g2}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{transition2}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{transitionX}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
@@ -72,7 +72,7 @@ The function estimates the Single Source of Error State-space model of the follo
 
 \eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
 
-\eqn{a_[t] = F_2 a_[t-1] + g_2 \epsilon_[t] / x_[t]}
+\eqn{a_[t] = FX a_[t-1] + gX \epsilon_[t] / x_[t]}
 
 Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
 }
@@ -95,8 +95,8 @@ Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
-    \item \code{persistence2} - persistence vector g for exogenous variables.
-    \item \code{transition2} - transition matrix F for exogenous variables.
+    \item \code{persistenceX} - persistence vector g for exogenous variables.
+    \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
     \item \code{CF.type} - Type of cost function used in the estimation.

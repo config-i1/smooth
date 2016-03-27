@@ -255,7 +255,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         Stype <- "N";
     }
 
-
     if(any(y<=0)){
         if(Etype=="M"){
             message("Can't apply multiplicative model to non-positive data. Switching error to 'A'");
@@ -291,12 +290,12 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Number of exogenous variables
         n.exovars <- 1;
 # Define matrix w for exogenous variables
-        matwex <- matrix(xreg,ncol=1);
-# Define the second matxtreg to fill in the coefs of the exogenous vars
-        matxtreg <- matrix(NA,obs.all+datafreq,1);
+        matxt <- matrix(xreg,ncol=1);
+# Define the second matat to fill in the coefs of the exogenous vars
+        matat <- matrix(NA,obs.all+datafreq,1);
         exocomponent.names <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-        matxtreg[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+        matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
@@ -313,40 +312,38 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # mat.x is needed for the initial values of coefs estimation using OLS
             mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
             n.exovars <- ncol(xreg);
-# Define the second matxtreg to fill in the coefs of the exogenous vars
-            matxtreg <- matrix(NA,obs.all+datafreq,n.exovars);
+# Define the second matat to fill in the coefs of the exogenous vars
+            matat <- matrix(NA,obs.all+datafreq,n.exovars);
             exocomponent.names <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matwex <- as.matrix(xreg);
+            matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matxtreg[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+            matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
                                                t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
                                          each=datafreq);
-            colnames(matxtreg) <- colnames(xreg);
+            colnames(matat) <- colnames(xreg);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
         }
-        matv <- matwex;
         estimate.xreg <- TRUE;
     }
     else{
 # "1" is needed for the final forecast simplification
         n.exovars <- 1;
-        matwex <- matrix(0,max(obs+datafreq,obs.all),1);
-        matxtreg <- matrix(0,max(obs+datafreq,obs.all),1);
-        matv <- matrix(1,max(obs+datafreq,obs.all),1);
+        matxt <- matrix(0,max(obs+datafreq,obs.all),1);
+        matat <- matrix(0,max(obs+datafreq,obs.all),1);
         estimate.xreg <- FALSE;
     }
-
-    matF2 <- diag(n.exovars);
-    vecg2 <- matrix(0,n.exovars,1);
+# Transition and persistence for xreg
+    matFX <- diag(n.exovars);
+    vecgX <- matrix(0,n.exovars,1);
 
 ##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
 CF <- function(C){
-    init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                            Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+    init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
+                            Ttype, Stype, n.exovars, matat, estimate.persistence,
                             estimate.phi, estimate.initial, estimate.initial.season,
                             estimate.xreg);
 
@@ -364,15 +361,15 @@ CF <- function(C){
         else{
             Theta <- 0;
         }
-        CF.res <- costfunc(init.ets$matxt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+        CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                           matwex, matxtreg, matv, matF2, vecg2,
+                           matxt, matat, matFX, vecgX,
                            bounds, init.ets$phi, Theta);
     }
     else{
-        CF.res <- optimizerwrap(init.ets$matxt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+        CF.res <- optimizerwrap(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                                 h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                                matwex, matxtreg, matv, matF2, vecg2);
+                                matxt, matat, matFX, vecgX);
     }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -383,7 +380,7 @@ CF <- function(C){
 }
 
 # Function constructs default bounds where C values should lie
-C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg){
+C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat){
     C <- NA;
     C.lower <- NA;
     C.upper <- NA;
@@ -400,7 +397,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxt
             C.upper <- c(C.upper,1);
         }
         if(estimate.initial==TRUE){
-            C <- c(C,matxt[maxlag,1:(n.components - (Stype!="N"))]);
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
             if(Ttype!="M"){
                 C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
                 C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
@@ -412,7 +409,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxt
         }
         if(Stype!="N"){
             if(estimate.initial.season==TRUE){
-                C <- c(C,matxt[1:maxlag,n.components]);
+                C <- c(C,matvt[1:maxlag,n.components]);
                 if(Stype=="A"){
                     C.lower <- c(C.lower,rep(-Inf,maxlag));
                     C.upper <- c(C.upper,rep(Inf,maxlag));
@@ -436,7 +433,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxt
             C.upper <- c(C.upper,1);
         }
         if(estimate.initial==TRUE){
-            C <- c(C,matxt[maxlag,1:(n.components - (Stype!="N"))]);
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
             if(Ttype!="M"){
                 C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
                 C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
@@ -448,7 +445,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxt
         }
         if(Stype!="N"){
             if(estimate.initial.season==TRUE){
-                C <- c(C,matxt[1:maxlag,n.components]);
+                C <- c(C,matvt[1:maxlag,n.components]);
                 if(Stype=="A"){
                     C.lower <- c(C.lower,rep(-Inf,maxlag));
                     C.upper <- c(C.upper,rep(Inf,maxlag));
@@ -462,7 +459,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxt
     }
 
     if(!is.null(xreg)){
-        C <- c(C,matxtreg[maxlag,]);
+        C <- c(C,matat[maxlag,]);
         C.lower <- c(C.lower,rep(-Inf,n.exovars));
         C.upper <- c(C.upper,rep(Inf,n.exovars));
     }
@@ -538,7 +535,7 @@ checker <- function(inherits=TRUE){
             assign("basicparams",initparams(Ttype, Stype, datafreq, obs, y,
                                             damped, phi, smoothingparameters, initialstates,
                                             seasonalcoefs),inherits=TRUE);
-            assign("matxt",basicparams$matxt,inherits=inherits);
+            assign("matvt",basicparams$matvt,inherits=inherits);
         }
     }
 
@@ -632,7 +629,7 @@ checker <- function(inherits=TRUE){
                               damped, phi, smoothingparameters, initialstates, seasonalcoefs);
     n.components <- basicparams$n.components;
     maxlag <- basicparams$maxlag;
-    matxt <- basicparams$matxt;
+    matvt <- basicparams$matvt;
     vecg <- basicparams$vecg;
     estimate.phi <- basicparams$estimate.phi;
     phi <- basicparams$phi;
@@ -640,7 +637,7 @@ checker <- function(inherits=TRUE){
 
     checker(inherits=TRUE);
 
-# Define the number of rows that should be in the matxt
+# Define the number of rows that should be in the matvt
     obs.xt <- obs.all;
 
 ############ Start the estimation depending on the model ############
@@ -729,13 +726,13 @@ checker <- function(inherits=TRUE){
                                           damped, phi, smoothingparameters, initialstates, seasonalcoefs);
                 n.components <- basicparams$n.components;
                 maxlag <- basicparams$maxlag;
-                matxt <- basicparams$matxt;
+                matvt <- basicparams$matvt;
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
                 modellags <- basicparams$modellags;
 
-                Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
+                Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
                 C <- Cs$C;
                 C.upper <- Cs$C.upper;
                 C.lower <- Cs$C.lower;
@@ -793,7 +790,7 @@ checker <- function(inherits=TRUE){
                                           damped, phi, smoothingparameters, initialstates, seasonalcoefs);
                 n.components <- basicparams$n.components;
                 maxlag <- basicparams$maxlag;
-                matxt <- basicparams$matxt;
+                matvt <- basicparams$matvt;
                 vecg <- basicparams$vecg;
                 estimate.phi <- basicparams$estimate.phi;
                 phi <- basicparams$phi;
@@ -801,7 +798,7 @@ checker <- function(inherits=TRUE){
             }
         }
         else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
             C <- Cs$C;
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
@@ -813,19 +810,19 @@ checker <- function(inherits=TRUE){
         }
     }
     else{
-            Cs <- C.values(bounds,Ttype,Stype,vecg,matxt,phi,maxlag,n.components,matxtreg);
+            Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
             C <- Cs$C;
     }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                                Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+        init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
+                                Ttype, Stype, n.exovars, matat, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
                                 estimate.xreg);
         vecg <- init.ets$vecg;
         phi <- init.ets$phi;
-        matxt <- init.ets$matxt;
-        matxtreg <- init.ets$matxtreg;
+        matvt <- init.ets$matvt;
+        matat <- init.ets$matat;
         matF <- init.ets$matF;
         matw <- init.ets$matw;
 
@@ -836,37 +833,37 @@ checker <- function(inherits=TRUE){
             model <- paste0(Etype,Ttype,Stype);
         }
 
-        fitting <- fitterwrap(matxt, matF, matw, y, vecg,
+        fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                               modellags, Etype, Ttype, Stype,
-                              matwex, matxtreg, matv, matF2, vecg2)
-        matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
+                              matxt, matat, matFX, vecgX)
+        matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
         y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
         if(!is.null(xreg)){
-# Write down the matxtreg and copy values for the holdout
-            matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
+# Write down the matat and copy values for the holdout
+            matat[1:nrow(fitting$matat),] <- fitting$matat;
         }
 
-# Calculate the tails of matxtreg and matxt
-        statestails <- statetailwrap(matrix(rbind(matxt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-                                     matrix(matxtreg[(obs.xt-h):(obs.xt),],h+1,n.exovars), matF2,
+# Calculate the tails of matat and matvt
+        statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                     matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                      modellags, Ttype, Stype);
         if(!is.null(xreg)){
-# Write down the matxtreg and produce values for the holdout
-            matxtreg[(obs.xt-h):(obs.xt),] <- statestails$xtreg;
+# Write down the matat and produce values for the holdout
+            matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
         }
 
-        errors.mat <- ts(errorerwrap(matxt, matF, matw, y,
+        errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                      h, Etype, Ttype, Stype, modellags,
-                                     matwex, matxtreg, matv, matF2, vecg2),
+                                     matxt, matat, matFX, vecgX),
                          start=start(data),frequency=frequency(data));
         colnames(errors.mat) <- paste0("Error",c(1:h));
         errors <- ts(errors.mat[,1],start=start(data),frequency=datafreq);
 
-        y.for <- ts(forecasterwrap(matrix(matxt[(obs+1):(obs+maxlag),],nrow=maxlag),
+        y.for <- ts(forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                    matF, matw, h, Ttype, Stype, modellags,
-                                   matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                   matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                                   matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                   matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
@@ -950,18 +947,18 @@ checker <- function(inherits=TRUE){
         }
 
         if(!is.null(xreg)){
-            matxt <- cbind(matxt,matxtreg[1:nrow(matxt),]);
-            colnames(matxt) <- c(component.names,exocomponent.names);
+            matvt <- cbind(matvt,matat[1:nrow(matvt),]);
+            colnames(matvt) <- c(component.names,exocomponent.names);
         }
         else{
-            colnames(matxt) <- c(component.names);
+            colnames(matvt) <- c(component.names);
         }
 
 # Write down the initials. Done especially for Nikos and issue #10
-        initial <- matxt[maxlag,1:(n.components - (Stype!="N"))]
+        initial <- matvt[maxlag,1:(n.components - (Stype!="N"))]
 
         if(Stype!="N"){
-          initial.season <- matxt[1:maxlag,n.components]
+          initial.season <- matvt[1:maxlag,n.components]
         }
     }
     else{
@@ -989,53 +986,53 @@ checker <- function(inherits=TRUE){
                                       damped, phi, smoothingparameters, initialstates, seasonalcoefs);
             n.components <- basicparams$n.components;
             maxlag <- basicparams$maxlag;
-            matxt <- basicparams$matxt;
+            matvt <- basicparams$matvt;
             vecg <- basicparams$vecg;
             estimate.phi <- basicparams$estimate.phi;
             phi <- basicparams$phi;
             modellags <- basicparams$modellags;
 
-            init.ets <- etsmatrices(matxt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                                    Ttype, Stype, n.exovars, matxtreg, estimate.persistence,
+            init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
+                                    Ttype, Stype, n.exovars, matat, estimate.persistence,
                                     estimate.phi, estimate.initial, estimate.initial.season,
                                     estimate.xreg);
             vecg <- init.ets$vecg;
             phi <- init.ets$phi;
-            matxt <- init.ets$matxt;
-            matxtreg <- init.ets$matxtreg;
+            matvt <- init.ets$matvt;
+            matat <- init.ets$matat;
             matF <- init.ets$matF;
             matw <- init.ets$matw;
 
-            fitting <- fitterwrap(matxt, matF, matw, y, vecg,
+            fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                                   modellags, Etype, Ttype, Stype,
-                                  matwex, matxtreg, matv, matF2, vecg2);
-            matxt <- fitting$matxt;
+                                  matxt, matat, matFX, vecgX);
+            matvt <- fitting$matvt;
             y.fit <- fitting$yfit;
 
             if(!is.null(xreg)){
-# Write down the matxtreg and copy values for the holdout
-                matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
+# Write down the matat and copy values for the holdout
+                matat[1:nrow(fitting$matat),] <- fitting$matat;
             }
 
-# Calculate the tails of matxtreg and matxt
-            statestails <- statetailwrap(matrix(rbind(matxt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-                                         matrix(matxtreg[(obs.xt-h):(obs.xt),],h+1,n.exovars), matF2,
+# Calculate the tails of matat and matvt
+            statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                         matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                          modellags, Ttype, Stype);
             if(!is.null(xreg)){
-# Write down the matxtreg and produce values for the holdout
-                matxtreg[(obs.xt-h):(obs.xt),] <- statestails$xtreg;
+# Write down the matat and produce values for the holdout
+                matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
             }
 
-            errors.mat <- errorerwrap(matxt, matF, matw, y,
+            errors.mat <- errorerwrap(matvt, matF, matw, y,
                                       h, Etype, Ttype, Stype, modellags,
-                                      matwex, matxtreg, matv, matF2, vecg2);
+                                      matxt, matat, matFX, vecgX);
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- errors.mat[,1];
 # Produce point and interval forecasts
-            y.for <- forecasterwrap(matrix(matxt[(obs+1):(obs+maxlag),],nrow=maxlag),
+            y.for <- forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                     matF, matw, h, Ttype, Stype, modellags,
-                                    matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                    matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars));
+                                    matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
         s2 <- as.vector(sum(errors^2)/(obs-n.param));
 # Write down the forecasting intervals
@@ -1165,7 +1162,7 @@ if(silent==FALSE){
 }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matxt,
+        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matvt,
                     initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                     errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,

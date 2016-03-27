@@ -1,6 +1,6 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
-                    persistence2=NULL, transition2=NULL,
+                    persistenceX=NULL, transitionX=NULL,
                     CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -114,7 +114,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 # Define obs, the number of observations of in-sample
     obs <- length(data) - holdout*h;
 
-# Define the number of rows that should be in the matxt
+# Define the number of rows that should be in the matvt
     obs.xt <- obs.all + maxlag;
 
 # Check if the data is vector
@@ -135,7 +135,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
     matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
     vecg <- matrix(0.1,n.components,1);
-    matxt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+    matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
 
 # Now let's prepare the provided exogenous data for the inclusion in ETS
 # Check the exogenous variable if it is present and
@@ -157,12 +157,12 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 # Number of exogenous variables
         n.exovars <- 1;
 # Define matrix w for exogenous variables
-        matwex <- matrix(xreg,ncol=1);
-# Define the second matxtreg to fill in the coefs of the exogenous vars
-        matxtreg <- matrix(NA,obs.xt,1);
-        colnames(matxtreg) <- "exogenous";
+        matxt <- matrix(xreg,ncol=1);
+# Define the second matat to fill in the coefs of the exogenous vars
+        matat <- matrix(NA,obs.xt,1);
+        colnames(matat) <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-        matxtreg[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+        matat[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
 # Redefine the number of components of ETS.
         }
 ##### The case with matrices and data frames #####
@@ -180,27 +180,25 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 # matx is needed for the initial values of coefs estimation using OLS
             n.exovars <- ncol(xreg);
             matx <- as.matrix(cbind(rep(1,obs.all),xreg));
-# Define the second matxtreg to fill in the coefs of the exogenous vars
-            matxtreg <- matrix(NA,obs.xt,n.exovars);
-            colnames(matxtreg) <- paste0("x",c(1:n.exovars));
+# Define the second matat to fill in the coefs of the exogenous vars
+            matat <- matrix(NA,obs.xt,n.exovars);
+            colnames(matat) <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matwex <- as.matrix(xreg);
+            matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matxtreg[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
-            colnames(matxtreg) <- colnames(xreg);
+            matat[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
+            colnames(matat) <- colnames(xreg);
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
         }
-        matv <- matwex;
     }
     else{
         n.exovars <- 1;
-        matwex <- matrix(1,max(obs+1,obs.all),1);
-        matxtreg <- matrix(0,obs.xt,1);
-        matv <- matrix(1,max(obs+1,obs.all),1);
-        matF2 <- matrix(1,1,1);
-        vecg2 <- matrix(0,1,1);
+        matxt <- matrix(1,max(obs+1,obs.all),1);
+        matat <- matrix(0,obs.xt,1);
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
     }
 
     n.param <- n.components + sum(ar.orders) + sum(ma.orders);
@@ -285,13 +283,13 @@ polyroots <- function(C){
     }
 
     if(constant==TRUE){
-        xtreg <- C[length(C)];
+        matat <- C[length(C)];
     }
     else{
-        xtreg <- 0;
+        matat <- 0;
     }
 
-    return(list(matF=matF,vecg=vecg,xt=xt,xtreg=xtreg,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
+    return(list(matF=matF,vecg=vecg,xt=xt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
 
 # Function creates bounds for the estimates
@@ -315,12 +313,12 @@ CF <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matxt[1,] <- elements$xt;
+    matvt[1,] <- elements$xt;
     polysos.ar <- elements$polysos.ar;
     polysos.ma <- elements$polysos.ma;
-    matxtreg[1,] <- elements$xtreg;
-#    matF2 <- elements$matF2;
-#    vecg2 <- elements$vecg2;
+    matat[1,] <- elements$matat;
+#    matFX <- elements$matFX;
+#    vecgX <- elements$vecgX;
 
     if(bounds==TRUE){
         if(any(abs(polyroot(polysos.ar))<1)){
@@ -331,9 +329,9 @@ CF <- function(C){
         }
     }
 
-    CF.res <- ssoptimizerwrap(matxt, matF, matw,
-                              y, vecg, h, modellags, multisteps, CF.type, normalizer,
-                              matwex, matxtreg, matv, matF2, vecg2);
+    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
+                              h, modellags, multisteps, CF.type, normalizer,
+                              matxt, matat, matFX, vecgX);
 
     return(CF.res);
 }
@@ -374,10 +372,10 @@ Likelihood.value <- function(C){
             C <- c(C,sum(y)/obs);
         }
 
-# xtreg
+# matat
 # initials, transition matrix and persistence vector
         if(!is.null(xreg)){
-            C <- c(C,matxtreg[maxlag,]);
+            C <- c(C,matat[maxlag,]);
             if(go.wild==TRUE){
                 C <- c(C,c(diag(n.exovars)));
                 C <- c(C,rep(0,n.exovars));
@@ -387,10 +385,10 @@ Likelihood.value <- function(C){
         elements <- polyroots(C);
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matxt[1,] <- elements$xt;
-        matxtreg[1,] <- elements$xtreg;
-#        matF2 <- elements$matF2;
-#        vecg2 <- elements$vecg2;
+        matvt[1,] <- elements$xt;
+        matat[1,] <- elements$matat;
+#        matFX <- elements$matFX;
+#        vecgX <- elements$vecgX;
 
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
@@ -438,17 +436,17 @@ Likelihood.value <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matxt[1,] <- elements$xt;
-    matxtreg[1,] <- elements$xtreg;
-#    matF2 <- elements$matF2;
-#    vecg2 <- elements$vecg2;
+    matvt[1,] <- elements$xt;
+    matat[1,] <- elements$matat;
+#    matFX <- elements$matFX;
+#    vecgX <- elements$vecgX;
     if(is.null(initial)){
         initial <- elements$xt;
     }
 
-    fitting <- ssfitterwrap(matxt, matF, matw, y,
-                            vecg, modellags, matwex, matxtreg, matv, matF2, vecg2);
-    matxt <- ts(fitting$matxt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
+    fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
+                            matxt, matat, matFX, vecgX);
+    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
     if(constant==TRUE){
@@ -459,30 +457,30 @@ Likelihood.value <- function(C){
     }
 
 #    if(!is.null(xreg)){
-# Write down the matxtreg and produce values for the holdout
-    matxtreg[1:nrow(fitting$xtreg),] <- fitting$xtreg;
+# Write down the matat and produce values for the holdout
+    matat[1:nrow(fitting$matat),] <- fitting$matat;
 #    }
 
-# Calculate the tails of matxtreg and matxt
-    statestails <- ssstatetailwrap(matrix(rbind(matxt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-                                   matrix(matxtreg[(obs.xt-h):(obs.xt),],h+1,n.exovars), matF2, modellags);
+# Calculate the tails of matat and matvt
+    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
     if(!is.null(xreg)){
-# Write down the matxtreg and produce values for the holdout
-        matxtreg[(obs.xt-h):(obs.xt),] <- statestails$xtreg;
+# Write down the matat and produce values for the holdout
+        matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matxt, matF, matw, y, h, modellags,
-                                   matwex, matxtreg, matv, matF2, vecg2),
+    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
+                                   matxt, matat, matFX, vecgX),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
-    y.for <- ts(ssforecasterwrap(matrix(matxt[(obs+1):nrow(matxt),],nrow=1),
+    y.for <- ts(ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
                                  matF,matw,h,
-                                 modellags,matrix(matwex[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                 matrix(matxtreg[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                                 modellags,matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                 matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
 #    s2 <- mean(errors^2);
@@ -529,15 +527,15 @@ Likelihood.value <- function(C){
 # Revert to the provided cost function
     CF.type <- CF.type.original
 
-# Fill in the rest of matxt
-    matxt <- rbind(matxt,as.matrix(statestails$matxt[-c(1:maxlag),]));
-    matxt <- ts(matxt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
+# Fill in the rest of matvt
+    matvt <- rbind(matvt,as.matrix(statestails$matvt[-c(1:maxlag),]));
+    matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
-        matxt <- cbind(matxt,matxtreg[1:nrow(matxt),]);
-        colnames(matxt) <- c(paste0("Component ",c(1:n.components)),colnames(matxtreg));
+        matvt <- cbind(matvt,matat[1:nrow(matvt),]);
+        colnames(matvt) <- c(paste0("Component ",c(1:n.components)),colnames(matat));
     }
     else{
-        colnames(matxt) <- paste0("Component ",c(1:n.components));
+        colnames(matvt) <- paste0("Component ",c(1:n.components));
     }
 
 # AR terms
@@ -642,9 +640,9 @@ if(silent==FALSE){
          holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
 }
 
-return(list(model=modelname,states=matxt,initial=initial,transition=matF,persistence=vecg,
+return(list(model=modelname,states=matvt,initial=initial,transition=matF,persistence=vecg,
             AR=ARterms,I=Iterms,MA=MAterms,constant=const,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,xreg=xreg,persistence2=vecg2,transition2=matF2,
+            actuals=data,holdout=y.holdout,xreg=xreg,persistenceX=vecgX,transitionX=matFX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }
