@@ -60,55 +60,55 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
     }
 
-r.value <- function(Etype, Ttype, Stype, xt){
+r.value <- function(Etype, Ttype, Stype, vt){
 # Function returns the value of r for the error term for the inclusion in transition equation depending on several parameters
     if(Etype=="A"){
 # AZZ
         r <- 1;
         r <- rep(r,persistence.length);
         if(Stype=="N" & Ttype=="M"){
-            r <- 1 / c(1,xt[1]);
+            r <- 1 / c(1,vt[1]);
         }
         else if(Stype=="A" & Ttype=="M"){
-            r <- 1 / c(1,xt[1],1);
+            r <- 1 / c(1,vt[1],1);
         }
         else if(Stype=="M"){
             if(Ttype=="N"){
-                r <- 1 / c(xt[2],xt[1]);
+                r <- 1 / c(vt[2],vt[1]);
             }
             else if(Ttype=="A"){
-                r <- 1 / c(xt[3],xt[3],(matw[1:2] %*% xt[1:2]));
+                r <- 1 / c(vt[3],vt[3],(matw[1:2] %*% vt[1:2]));
             }
             else {
-                r <- 1 / c(xt[3],(xt[1] * xt[3]),(exp(matw[1:2] %*% log(xt[1:2]))));
+                r <- 1 / c(vt[3],(vt[1] * vt[3]),(exp(matw[1:2] %*% log(vt[1:2]))));
             }
         }
     }
     else{
         if(Ttype!="M" & Stype!="M"){
 # MNN, MAN, MNA, MAA
-                r <- matw %*% xt;
+                r <- matw %*% vt;
                 r <- rep(r,persistence.length);
         }
         else if((Ttype=="M" | Ttype=="N") & (Stype=="M" | Stype=="N")){
 # MNN, MMN, MNM, MMM
-            r <- exp(matF %*% log(xt));
+            r <- exp(matF %*% log(vt));
         }
         else if(Ttype=="A" & Stype=="M"){
 # MAM
-            r <- matw[1:2] %*% xt[1:2];
-            r <- c(r,r,xt[3]);
+            r <- matw[1:2] %*% vt[1:2];
+            r <- c(r,r,vt[3]);
         }
         else if(Ttype=="M" & Stype=="A"){
 # MMA
-            r <- exp(matw[1:2] %*% log(xt[1:2])) + xt[3];
-            r <- c(r, r/xt[1], xt[3]);
+            r <- exp(matw[1:2] %*% log(vt[1:2])) + vt[3];
+            r <- c(r, r/vt[1], vt[3]);
         }
     }
     return(r);
 }
 
-ry.value <- function(Etype, Ttype, Stype, xt){
+ry.value <- function(Etype, Ttype, Stype, vt){
 # Function returns the value of r for the error term for the inclusion in measurement equation, depending on several parameters
     if(Etype=="A"){
 # AZZ
@@ -117,19 +117,19 @@ ry.value <- function(Etype, Ttype, Stype, xt){
     else{
         if(Ttype!="M" & Stype!="M"){
 # MNN, MAN, MNA, MAA
-                r <- matw %*% xt;
+                r <- matw %*% vt;
         }
         else if((Ttype=="M" | Ttype=="N") & (Stype=="M" | Stype=="N")){
 # MNN, MMN, MNM, MMM
-            r <- exp(matw %*% log(xt));
+            r <- exp(matw %*% log(vt));
         }
         else if(Ttype=="A" & Stype=="M"){
 # MAM
-            r <- (matw[1:2] %*% xt[1:2]) * xt[3];
+            r <- (matw[1:2] %*% vt[1:2]) * vt[3];
         }
         else if(Ttype=="M" & Stype=="A"){
 # MMA
-            r <- exp(matw[1:2] %*% log(xt[1:2])) + xt[3];
+            r <- exp(matw[1:2] %*% log(vt[1:2])) + vt[3];
         }
     }
     return(r);
@@ -212,8 +212,8 @@ ry.value <- function(Etype, Ttype, Stype, xt){
     y <- rep(NA,obs);
 
 # Create the matrix of state vectors
-    matxt <- matrix(NA,nrow=(obs+modelfreq),ncol=persistence.length);
-    colnames(matxt) <- component.names;
+    matvt <- matrix(NA,nrow=(obs+modelfreq),ncol=persistence.length);
+    colnames(matvt) <- component.names;
 
 # Check the persistence vector length
     if(!is.null(persistence)){
@@ -252,13 +252,13 @@ ry.value <- function(Etype, Ttype, Stype, xt){
 
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     if(seasonal.component==TRUE & !is.null(initial.season)){
-        matxt[1:modelfreq,(n.components+1)] <- initial.season;
+        matvt[1:modelfreq,(n.components+1)] <- initial.season;
     }
 
     if(nseries > 1){
 # The array of the components
-        arr.xt <- array(NA,c(obs+modelfreq,persistence.length,nseries));
-        dimnames(arr.xt) <- list(NULL,component.names,NULL);
+        arr.vt <- array(NA,c(obs+modelfreq,persistence.length,nseries));
+        dimnames(arr.vt) <- list(NULL,component.names,NULL);
 # The matrix of the final data
         mat.yt <- matrix(NA,obs,nseries);
 # The matrix of the error term
@@ -350,31 +350,31 @@ for(k in 1:nseries){
 # Generate initial states of level and trend if they were not supplied
     if(is.null(initial)){
         if(Ttype=="N"){
-            matxt[1:modelfreq,1] <- runif(1,0,1000);
+            matvt[1:modelfreq,1] <- runif(1,0,1000);
         }
         else if(Ttype=="A"){
-            matxt[1:modelfreq,1] <- runif(1,0,5000);
-            matxt[1:modelfreq,2] <- runif(1,-100,100);
+            matvt[1:modelfreq,1] <- runif(1,0,5000);
+            matvt[1:modelfreq,2] <- runif(1,-100,100);
         }
         else{
-            matxt[1:modelfreq,1] <- runif(1,500,5000);
-            matxt[1:modelfreq,2] <- 1;
+            matvt[1:modelfreq,1] <- runif(1,500,5000);
+            matvt[1:modelfreq,2] <- 1;
         }
     }
     else{
-        matxt[1:modelfreq,1:n.components] <- rep(initial,each=modelfreq);
+        matvt[1:modelfreq,1:n.components] <- rep(initial,each=modelfreq);
     }
 
 # Generate seasonal states if they were not supplied
     if(seasonal.component==TRUE & is.null(initial.season)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
-            matxt[1:modelfreq,n.components+1] <- runif(modelfreq,-500,500);
-            matxt[1:modelfreq,n.components+1] <- matxt[1:modelfreq,n.components+1] - mean(matxt[1:modelfreq,n.components+1]);
+            matvt[1:modelfreq,n.components+1] <- runif(modelfreq,-500,500);
+            matvt[1:modelfreq,n.components+1] <- matvt[1:modelfreq,n.components+1] - mean(matvt[1:modelfreq,n.components+1]);
         }
         else{
-            matxt[1:modelfreq,n.components+1] <- runif(modelfreq,0.3,1.7);
-            matxt[1:modelfreq,n.components+1] <- matxt[1:modelfreq,n.components+1] / exp(mean(log(matxt[1:modelfreq,n.components+1])));
+            matvt[1:modelfreq,n.components+1] <- runif(modelfreq,0.3,1.7);
+            matvt[1:modelfreq,n.components+1] <- matvt[1:modelfreq,n.components+1] / exp(mean(log(matvt[1:modelfreq,n.components+1])));
         }
     }
 
@@ -392,7 +392,7 @@ for(k in 1:nseries){
 # Center errors just in case
         errors <- errors - mean(errors);
 # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        errors <- errors * sqrt(abs(matxt[1,1]));
+        errors <- errors * sqrt(abs(matvt[1,1]));
 # If the error is multiplicative, scale it!
         if(Etype=="M" & max(abs(errors))>0.05){
             errors <- 0.05 * errors / max(abs(errors));
@@ -406,7 +406,7 @@ for(k in 1:nseries){
 # Center the errors around 0.5
           errors <- errors - 0.5;
 # Make a meaningful variance of data. Something resembling to var=1.
-          errors <- errors / sqrt(var(errors)) * sqrt(abs(matxt[1,1]));
+          errors <- errors / sqrt(var(errors)) * sqrt(abs(matvt[1,1]));
 # If the error is multiplicative, scale it!
             if(Etype=="M" & max(abs(errors))>0.05){
                 errors <- 0.05 * errors / max(abs(errors));
@@ -414,7 +414,7 @@ for(k in 1:nseries){
         }
         else if(randomizer=="rt"){
 # Make a meaningful variance of data.
-          errors <- errors * sqrt(abs(matxt[1,1]));
+          errors <- errors * sqrt(abs(matvt[1,1]));
 # If the error is multiplicative, scale it!
             if(Etype=="M" & max(abs(errors))>0.05){
                 errors <- 0.05 * errors / max(abs(errors));
@@ -437,22 +437,22 @@ for(k in 1:nseries){
         if(Ttype!="M"){
 ### ZNN and ZAN
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- matw %*% matxt[cbind((j-lags),c(1:persistence.length))] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,] <- matF %*% matxt[cbind((j-lags),c(1:persistence.length))] + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- matw %*% matvt[cbind((j-lags),c(1:persistence.length))] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,] <- matF %*% matvt[cbind((j-lags),c(1:persistence.length))] + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
                 j <- j + 1;
             }
         }
         else{
 ### ZMN
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- exp(matw %*% log(matxt[cbind((j-lags),c(1:persistence.length))])) + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,] <- exp(matF %*% log(matxt[cbind((j-lags),c(1:persistence.length))])) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- exp(matw %*% log(matvt[cbind((j-lags),c(1:persistence.length))])) + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,] <- exp(matF %*% log(matvt[cbind((j-lags),c(1:persistence.length))])) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
 #Failsafe for the negative components
-                if(matxt[j,1] < 0){
-                    matxt[j,1] <- matxt[j-1,1];
+                if(matvt[j,1] < 0){
+                    matvt[j,1] <- matvt[j-1,1];
                 }
-                if(matxt[j,2] < 0){
-                    matxt[j,2] <- matxt[j-1,2];
+                if(matvt[j,2] < 0){
+                    matvt[j,2] <- matvt[j-1,2];
                 }
                 j <- j + 1;
             }
@@ -462,31 +462,31 @@ for(k in 1:nseries){
         if(Ttype!="M"){
 ### ZNA and ZAA
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- matw %*% matxt[cbind((j-lags),c(1:persistence.length))] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,] <- matF %*% matxt[cbind((j-lags),c(1:persistence.length))] + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- matw %*% matvt[cbind((j-lags),c(1:persistence.length))] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,] <- matF %*% matvt[cbind((j-lags),c(1:persistence.length))] + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
 # Renormalize seasonal component
-                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,1] <- matxt[j,1] + at;
-                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] - at;
+                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,1] <- matvt[j,1] + at;
+                matvt[(j-frequency+1):(j),n.components+1] <- matvt[(j-frequency+1):(j),n.components+1] - at;
                 j <- j + 1;
             }
         }
         else{
 ### ZMA
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- exp(matw[1:n.components] %*% log(matxt[cbind((j-lags[1:n.components]),c(1:n.components))])) + matxt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,] <- Re(exp(matF %*% log(as.complex(matxt[cbind((j-lags),c(1:persistence.length))])))) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- exp(matw[1:n.components] %*% log(matvt[cbind((j-lags[1:n.components]),c(1:n.components))])) + matvt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,] <- Re(exp(matF %*% log(as.complex(matvt[cbind((j-lags),c(1:persistence.length))])))) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
 #Failsafe for the negative components
-                if(matxt[j,1] < 0){
-                    matxt[j,1] <- matxt[j-1,1];
+                if(matvt[j,1] < 0){
+                    matvt[j,1] <- matvt[j-1,1];
                 }
-                if(matxt[j,2] < 0){
-                    matxt[j,2] <- matxt[j-1,2];
+                if(matvt[j,2] < 0){
+                    matvt[j,2] <- matvt[j-1,2];
                 }
 # Renormalize seasonal component
-                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,1] <- matxt[j,1] + at;
-                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] - at;
+                at <- vecg[n.components+1] / frequency * errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,1] <- matvt[j,1] + at;
+                matvt[(j-frequency+1):(j),n.components+1] <- matvt[(j-frequency+1):(j),n.components+1] - at;
                 j <- j + 1;
             }
         }
@@ -495,36 +495,36 @@ for(k in 1:nseries){
         if(Ttype!="M"){
 ### ZNM and ZAM
             while(j<=(obs+modelfreq)){
-                vec.r <- r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                y[j-modelfreq] <- matw[1:n.components] %*% matxt[cbind((j-lags[1:n.components]),c(1:n.components))] * matxt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,1:n.components] <- matF[1:n.components,1:n.components] %*% matxt[cbind((j-lags[1:n.components]),c(1:n.components))] + vecg[1:n.components] * errors[j-modelfreq] * vec.r[1:n.components];
-                matxt[j,(n.components+1)] <- matxt[j-frequency,(n.components+1)] + vecg[n.components+1] * errors[j-modelfreq] * vec.r[n.components+1];
+                vec.r <- r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- matw[1:n.components] %*% matvt[cbind((j-lags[1:n.components]),c(1:n.components))] * matvt[j-frequency,n.components+1] + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,1:n.components] <- matF[1:n.components,1:n.components] %*% matvt[cbind((j-lags[1:n.components]),c(1:n.components))] + vecg[1:n.components] * errors[j-modelfreq] * vec.r[1:n.components];
+                matvt[j,(n.components+1)] <- matvt[j-frequency,(n.components+1)] + vecg[n.components+1] * errors[j-modelfreq] * vec.r[n.components+1];
 # Failsafe mechanism for the cases with negative multiplicative seasonals
-                if(matxt[j,(n.components+1)] < 0){
-                    matxt[j,(n.components+1)] <- matxt[j-frequency,(n.components+1)];
+                if(matvt[j,(n.components+1)] < 0){
+                    matvt[j,(n.components+1)] <- matvt[j-frequency,(n.components+1)];
                 }
 # Renormalize seasonal component. It is done differently comparing with Hyndman et. al. 2008!
-                matxt[(j-frequency+1):(j),n.components+1] <- matxt[(j-frequency+1):(j),n.components+1] / exp(mean(log(matxt[(j-frequency+1):(j),n.components+1])));
+                matvt[(j-frequency+1):(j),n.components+1] <- matvt[(j-frequency+1):(j),n.components+1] / exp(mean(log(matvt[(j-frequency+1):(j),n.components+1])));
                 j <- j + 1;
             }
         }
         else{
 ### ZMM
             while(j<=(obs+modelfreq)){
-                y[j-modelfreq] <- exp(matw %*% log(matxt[cbind((j-lags),c(1:persistence.length))])) + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
-                matxt[j,] <- Re(exp(matF %*% log(as.complex(matxt[cbind((j-lags),c(1:persistence.length))])))) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, xt=matxt[cbind((j-lags),c(1:persistence.length))]);
+                y[j-modelfreq] <- exp(matw %*% log(matvt[cbind((j-lags),c(1:persistence.length))])) + errors[j-modelfreq] * ry.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
+                matvt[j,] <- Re(exp(matF %*% log(as.complex(matvt[cbind((j-lags),c(1:persistence.length))])))) + vecg * errors[j-modelfreq] * r.value(Etype=Etype, Ttype=Ttype, Stype=Stype, vt=matvt[cbind((j-lags),c(1:persistence.length))]);
 # Failsafe mechanism for the cases with negative components
-                if(matxt[j,1] < 0){
-                    matxt[j,1] <- matxt[j-1,1];
+                if(matvt[j,1] < 0){
+                    matvt[j,1] <- matvt[j-1,1];
                 }
-                if(matxt[j,2] < 0){
-                    matxt[j,2] <- matxt[j-1,2];
+                if(matvt[j,2] < 0){
+                    matvt[j,2] <- matvt[j-1,2];
                 }
-                if(matxt[j,3] < 0){
-                    matxt[j,3] <- matxt[j-frequency,3];
+                if(matvt[j,3] < 0){
+                    matvt[j,3] <- matvt[j-frequency,3];
                 }
 # Renormalize seasonal component. It is done differently comparing with Hyndman et. al. 2008!
-                matxt[(j-frequency+1):(j),3] <- matxt[(j-frequency+1):(j),3] / exp(mean(log(matxt[(j-frequency+1):(j),3])));
+                matvt[(j-frequency+1):(j),3] <- matvt[(j-frequency+1):(j),3] / exp(mean(log(matvt[(j-frequency+1):(j),3])));
                 j <- j + 1;
             }
         }
@@ -541,7 +541,7 @@ for(k in 1:nseries){
         mat.yt[,k] <- y;
         mat.ot[,k] <- ot;
         mat.errors[,k] <- errors;
-        arr.xt[,,k] <- matxt;
+        arr.vt[,,k] <- matvt;
         mat.g[k,] <- vecg;
         vec.likelihood[k] <- likelihood;
 
@@ -557,14 +557,14 @@ for(k in 1:nseries){
     if(nseries==1){
         y <- ts(y,frequency=frequency);
         errors <- ts(errors,frequency=frequency);
-        matxt <- ts(matxt,frequency=frequency,start=c(0,frequency-modelfreq+1));
-        return(list(model=model,data=y,states=matxt,persistence=vecg,residuals=errors,
+        matvt <- ts(matvt,frequency=frequency,start=c(0,frequency-modelfreq+1));
+        return(list(model=model,data=y,states=matvt,persistence=vecg,residuals=errors,
                     intermittency=ot,likelihood=likelihood));
     }
     else{
         mat.yt <- ts(mat.yt,frequency=frequency);
         mat.errors <- ts(mat.errors,frequency=frequency);
-        return(list(model=model,data=mat.yt,states=arr.xt,persistence=mat.g,residuals=mat.errors,
+        return(list(model=model,data=mat.yt,states=arr.vt,persistence=mat.g,residuals=mat.errors,
                     intermittency=mat.ot,likelihood=vec.likelihood));
     }
 }

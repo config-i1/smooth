@@ -17,6 +17,26 @@ cesoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, Stype, seasfreq, mu
     .Call('smooth_cesoptimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matwex, matxtreg)
 }
 
+ssfitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, matxt, matat, matFX, vecgX) {
+    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, modellags, matxt, matat, matFX, vecgX)
+}
+
+ssstatetailwrap <- function(matvt, matF, matat, matFX, modellags) {
+    .Call('smooth_ssstatetailwrap', PACKAGE = 'smooth', matvt, matF, matat, matFX, modellags)
+}
+
+ssforecasterwrap <- function(matvt, matF, matw, h, modellags, matxt, matat) {
+    .Call('smooth_ssforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, modellags, matxt, matat)
+}
+
+sserrorerwrap <- function(matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX) {
+    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX)
+}
+
+ssoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX) {
+    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX)
+}
+
 initparams <- function(Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs) {
     .Call('smooth_initparams', PACKAGE = 'smooth', Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
 }
@@ -51,25 +71,5 @@ costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, St
 
 simulateETSwrap <- function(matvt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags) {
     .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', matvt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags)
-}
-
-ssfitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, matxt, matat, matFX, vecgX) {
-    .Call('smooth_ssfitterwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, modellags, matxt, matat, matFX, vecgX)
-}
-
-ssstatetailwrap <- function(matvt, matF, matat, matFX, modellags) {
-    .Call('smooth_ssstatetailwrap', PACKAGE = 'smooth', matvt, matF, matat, matFX, modellags)
-}
-
-ssforecasterwrap <- function(matvt, matF, matw, h, modellags, matxt, matat) {
-    .Call('smooth_ssforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, modellags, matxt, matat)
-}
-
-sserrorerwrap <- function(matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX) {
-    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX)
-}
-
-ssoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX) {
-    .Call('smooth_ssoptimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX)
 }
 
