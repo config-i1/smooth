@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Smoothing functions
-Version: 0.555555
-Date: 2016-03-25
+Version: 0.6
+Date: 2016-03-28
 Author: Ivan Svetunkov
 Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 BugReports:	https://github.com/config-i1/smooth/issues
