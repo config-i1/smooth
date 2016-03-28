@@ -29,7 +29,7 @@ List ssfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma:
 
     arma::vec matyfit(obs, arma::fill::zeros);
     arma::vec materrors(obs, arma::fill::zeros);
-    arma::rowvec bufferforxtreg(vecGX.n_rows);
+    arma::rowvec bufferforat(vecGX.n_rows);
 
     for (int i=maxlag; i<obsall; i=i+1) {
 
@@ -43,9 +43,9 @@ List ssfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma:
         matrixVt.row(i) = arma::trans(matrixF * matrixVt(lagrows) + vecG * materrors(i-maxlag));
 
 /* # Transition equation for xreg */
-        bufferforxtreg = arma::trans(vecGX / arma::trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag));
-        bufferforxtreg.elem(find_nonfinite(bufferforxtreg)).fill(0);
-        matrixAt.row(i) = matrixAt.row(i-1) * matrixFX + bufferforxtreg;
+        bufferforat = arma::trans(vecGX / arma::trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag));
+        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+        matrixAt.row(i) = matrixAt.row(i-1) * matrixFX + bufferforat;
       }
 
     return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
@@ -147,22 +147,22 @@ arma::mat ssforecaster(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowve
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
     arma::vec matyfor(hor, arma::fill::zeros);
-    arma::mat matrixxtnew(hh, matrixVt.n_cols, arma::fill::zeros);
+    arma::mat matrixVtnew(hh, matrixVt.n_cols, arma::fill::zeros);
 // This needs to be fixed! The matrixXnew should change with matrixFX!!!
-    arma::mat matrixXnew(hh, matrixAt.n_cols, arma::fill::zeros);
+    arma::mat matrixAtnew(hh, matrixAt.n_cols, arma::fill::zeros);
 
     lags = maxlag - lags;
     for(int i=1; i<lagslength; i=i+1){
         lags(i) = lags(i) + hh * i;
     }
 
-    matrixxtnew.submat(0,0,maxlag-1,matrixxtnew.n_cols-1) = matrixVt.submat(0,0,maxlag-1,matrixxtnew.n_cols-1);
+    matrixVtnew.submat(0,0,maxlag-1,matrixVtnew.n_cols-1) = matrixVt.submat(0,0,maxlag-1,matrixVtnew.n_cols-1);
 
 /* # Fill in the new xt matrix using F. Do the forecasts. */
     for (int i=maxlag; i<(hor+maxlag); i=i+1) {
         lagrows = lags - maxlag + i;
-        matrixxtnew.row(i) = arma::trans(matrixF * matrixxtnew(lagrows));
-        matyfor.row(i-maxlag) = rowvecW * matrixxtnew(lagrows) + matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag));
+        matrixVtnew.row(i) = arma::trans(matrixF * matrixVtnew(lagrows));
+        matyfor.row(i-maxlag) = rowvecW * matrixVtnew(lagrows) + matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag));
     }
 
     return matyfor;
@@ -252,8 +252,8 @@ double ssoptimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, 
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matvt"]);
     matrixVt = as<arma::mat>(mxtfromfit);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
-    NumericMatrix mxtregfromfit = as<NumericMatrix>(fitting["matat"]);
-    matrixAt = as<arma::mat>(mxtregfromfit);
+    NumericMatrix matrixAtfromfit = as<NumericMatrix>(fitting["matat"]);
+    matrixAt = as<arma::mat>(matrixAtfromfit);
 
     arma::mat materrors;
     arma::rowvec horvec(hor);

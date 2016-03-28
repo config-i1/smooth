@@ -97,7 +97,7 @@ double rvalue(arma::vec matrixVt, arma::rowvec rowvecW, char E, char T, char S){
 
 /* # Function returns value of f() -- new states without the update -- used in the transition equation */
 arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
-    arma::vec matrixxtnew = matrixVt;
+    arma::vec matrixVtnew = matrixVt;
 
     switch(S){
 // ZZN
@@ -105,10 +105,10 @@ arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
         switch(T){
         case 'N':
         case 'A':
-            matrixxtnew = matrixF * matrixVt;
+            matrixVtnew = matrixF * matrixVt;
         break;
         case 'M':
-            matrixxtnew = exp(matrixF * log(matrixVt));
+            matrixVtnew = exp(matrixF * log(matrixVt));
         break;
         }
     break;
@@ -117,11 +117,11 @@ arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
         switch(T){
         case 'N':
         case 'A':
-            matrixxtnew = matrixF * matrixVt;
+            matrixVtnew = matrixF * matrixVt;
         break;
         case 'M':
-            matrixxtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
-            matrixxtnew(2) = matrixVt(2);
+            matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
+            matrixVtnew(2) = matrixVt(2);
         break;
         }
     break;
@@ -130,16 +130,16 @@ arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
         switch(T){
         case 'N':
         case 'M':
-            matrixxtnew = exp(matrixF * log(matrixVt));
+            matrixVtnew = exp(matrixF * log(matrixVt));
         break;
         case 'A':
-            matrixxtnew = matrixF * matrixVt;
+            matrixVtnew = matrixF * matrixVt;
         break;
         }
     break;
     }
 
-    return matrixxtnew;
+    return matrixVtnew;
 }
 
 /* # Function returns value of g() -- the update of states -- used in components estimation for the persistence */
@@ -536,7 +536,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 
     arma::vec matyfit(obs, arma::fill::zeros);
     arma::vec materrors(obs, arma::fill::zeros);
-    arma::rowvec bufferforxtreg(vecGX.n_rows);
+    arma::rowvec bufferforat(vecGX.n_rows);
 
     for (int i=maxlag; i<obsall; i=i+1) {
 
@@ -552,9 +552,9 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
                                       gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
 
 /* # Transition equation for xreg */
-        bufferforxtreg = arma::trans(vecGX / arma::trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag));
-        bufferforxtreg.elem(find_nonfinite(bufferforxtreg)).fill(0);
-        matrixAt.row(i) = matrixAt.row(i-1) * matrixFX + bufferforxtreg;
+        bufferforat = arma::trans(vecGX / arma::trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag));
+        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+        matrixAt.row(i) = matrixAt.row(i-1) * matrixFX + bufferforat;
     }
 
     return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
@@ -662,21 +662,20 @@ arma::mat forecaster(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
     arma::vec matyfor(hor, arma::fill::zeros);
-    arma::mat matrixxtnew(hh, matrixVt.n_cols, arma::fill::zeros);
-    arma::mat matrixxtregnew(hh, matrixAt.n_cols, arma::fill::zeros);
+    arma::mat matrixVtnew(hh, matrixVt.n_cols, arma::fill::zeros);
 
     lags = maxlag - lags;
     for(int i=1; i<lagslength; i=i+1){
         lags(i) = lags(i) + hh * i;
     }
 
-    matrixxtnew.submat(0,0,maxlag-1,matrixxtnew.n_cols-1) = matrixVt.submat(0,0,maxlag-1,matrixxtnew.n_cols-1);
+    matrixVtnew.submat(0,0,maxlag-1,matrixVtnew.n_cols-1) = matrixVt.submat(0,0,maxlag-1,matrixVtnew.n_cols-1);
 
 /* # Fill in the new xt matrix using F. Do the forecasts. */
     for (int i=maxlag; i<(hor+maxlag); i=i+1) {
         lagrows = lags - maxlag + i;
-        matrixxtnew.row(i) = arma::trans(fvalue(matrixxtnew(lagrows), matrixF, T, S));
-        matyfor.row(i-maxlag) = wvalue(matrixxtnew(lagrows), rowvecW, T, S) + matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag));
+        matrixVtnew.row(i) = arma::trans(fvalue(matrixVtnew(lagrows), matrixF, T, S));
+        matyfor.row(i-maxlag) = wvalue(matrixVtnew(lagrows), rowvecW, T, S) + matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag));
     }
 
     return matyfor;
@@ -803,8 +802,8 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matvt"]);
     matrixVt = as<arma::mat>(mxtfromfit);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
-    NumericMatrix mxtregfromfit = as<NumericMatrix>(fitting["matat"]);
-    matrixAt = as<arma::mat>(mxtregfromfit);
+    NumericMatrix matrixAtfromfit = as<NumericMatrix>(fitting["matat"]);
+    matrixAt = as<arma::mat>(matrixAtfromfit);
 
     arma::mat materrors;
     arma::rowvec horvec(hor);

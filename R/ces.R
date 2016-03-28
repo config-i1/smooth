@@ -361,7 +361,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 #                          as.matrix(vecg), modellags, matxt, matat, matFX, vecgX);
   matvt[,] <- fitting$matvt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
-  matat[,] <- fitting$xtreg;
+  matat[,] <- fitting$matat;
 
   errors.mat <- ts(ceserrorerwrap(matvt,matF,matrix(matw[1,],nrow=1),y,h,
                                   seasonality,maxlag,matxt,matat),start=start(data),
