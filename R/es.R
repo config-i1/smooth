@@ -130,12 +130,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
-#### While intervals are not fully supported, use semi-parametric instead of parametric.
-    if(any(Ttype==c("M","Z","C"),Stype==c("M","Z","C")) & int.type=="p" & intervals==TRUE){
-        message("Sorry, but parametric intervals are not currently available for this ETS model. Switching to semiparametric.");
-        int.type <- "s";
-    }
-
     if(any(is.na(data))){
         if(silent==FALSE){
             message("Data contains NAs. These observations will be excluded.");
@@ -896,15 +890,35 @@ checker <- function(inherits=TRUE){
                 ev <- 0;
             }
 
-            quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                      measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
-            if(Etype=="A"){
-                y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+            if(!(Etype=="A" & Ttype=="A" & Stype=="A") | !(Etype=="M" & Ttype=="M" & Stype=="M")){
+                simulateint <- TRUE;
             }
             else{
-                y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                simulateint <- FALSE;
+            }
+
+            if(int.type=="p" & simulateint==TRUE){
+                matg <- matrix(vecg,n.components,10000);
+                arrvt <- array(NA,c(h+maxlag,n.components,10000));
+                arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],10000);
+                materrors <- matrix(rnorm(10000,0,sqrt(s2)),h,10000);
+                matot <- matrix(1,h,10000);
+
+                y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
+                y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+                y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+            }
+            else{
+                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                          measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                if(Etype=="A"){
+                    y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                }
+                else{
+                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                }
             }
         }
         else{
@@ -958,7 +972,7 @@ checker <- function(inherits=TRUE){
         initial <- matvt[maxlag,1:(n.components - (Stype!="N"))]
 
         if(Stype!="N"){
-          initial.season <- matvt[1:maxlag,n.components]
+            initial.season <- matvt[1:maxlag,n.components]
         }
     }
     else{
@@ -1049,15 +1063,35 @@ checker <- function(inherits=TRUE){
                     ev <- 0;
                 }
 
-                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                        measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
-                if(Etype=="A"){
-                    y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                if(!(Etype=="A" & Ttype=="A" & Stype=="A") | !(Etype=="M" & Ttype=="M" & Stype=="M")){
+                    simulateint <- TRUE;
                 }
                 else{
-                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                    simulateint <- FALSE;
+                }
+
+                if(int.type=="p" & simulateint==TRUE){
+                    matg <- matrix(vecg,n.components,1000);
+                    arrvt <- array(NA,c(h+maxlag,n.components,1000));
+                    arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],1000);
+                    materrors <- matrix(rnorm(1000,0,sqrt(s2)),h,1000);
+                    matot <- matrix(1,h,1000);
+
+                    y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
+                    y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+                }
+                else{
+                    quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                                              measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                    if(Etype=="A"){
+                        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                    }
+                    else{
+                        y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                    }
                 }
             }
             else{

@@ -366,22 +366,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // simulateETSwrap
-RcppExport SEXP simulateETSwrap(SEXP matvt, SEXP errors, SEXP ot, SEXP matF, SEXP matw, SEXP vecg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags);
-RcppExport SEXP smooth_simulateETSwrap(SEXP matvtSEXP, SEXP errorsSEXP, SEXP otSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP vecgSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP modellagsSEXP) {
+RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags);
+RcppExport SEXP smooth_simulateETSwrap(SEXP arrvtSEXP, SEXP materrorsSEXP, SEXP matotSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP matgSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP modellagsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< SEXP >::type matvt(matvtSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type errors(errorsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type ot(otSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type arrvt(arrvtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type materrors(materrorsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matot(matotSEXP);
     Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
     Rcpp::traits::input_parameter< SEXP >::type matw(matwSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type vecg(vecgSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matg(matgSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type modellags(modellagsSEXP);
-    __result = Rcpp::wrap(simulateETSwrap(matvt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags));
+    __result = Rcpp::wrap(simulateETSwrap(arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags));
     return __result;
 END_RCPP
 }

@@ -69,7 +69,7 @@ costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, St
     .Call('smooth_costfunc', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, bounds, phi, Theta)
 }
 
-simulateETSwrap <- function(matvt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags) {
-    .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', matvt, errors, ot, matF, matw, vecg, Etype, Ttype, Stype, modellags)
+simulateETSwrap <- function(arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags) {
+    .Call('smooth_simulateETSwrap', PACKAGE = 'smooth', arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
 }
 

@@ -81,7 +81,6 @@ double wvalue(arma::vec matrixVt, arma::rowvec rowvecW, char T, char S){
 /* # Function returns value of r() -- additive or multiplicative error -- used in the error term of measurement equation.
      This is mainly needed by sim.ets */
 double rvalue(arma::vec matrixVt, arma::rowvec rowvecW, char E, char T, char S){
-    double yfit = 1;
 
     switch(E){
 // MZZ
@@ -91,7 +90,7 @@ double rvalue(arma::vec matrixVt, arma::rowvec rowvecW, char E, char T, char S){
 // AZZ
     case 'A':
     default:
-        return yfit;
+        return 1.0;
     }
 }
 
@@ -1101,41 +1100,79 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 */
 
 // ##### Script for sim.ets function
-List simulateETS(arma::mat matrixVt, arma::mat matrixerrors, arma::mat matrixot,
-                 arma::mat matrixF, arma::rowvec rowvecW, arma::mat vecG,
+List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
+                 arma::mat matrixF, arma::rowvec rowvecW, arma::mat matrixG,
                  unsigned int obs, unsigned int nseries,
                  char E, char T, char S, arma::uvec lags) {
+
     arma::mat matY(obs, nseries);
 
+    int lagslength = lags.n_rows;
+    unsigned int maxlag = max(lags);
+    int obsall = obs + maxlag;
 
+    lags = maxlag - lags;
 
-    return List::create(Named("matvt") = matrixVt, Named("y") = matY);
+    for(int i=1; i<lagslength; i=i+1){
+        lags(i) = lags(i) + obsall * i;
+    }
+
+    arma::uvec lagrows(lagslength, arma::fill::zeros);
+    arma::mat matrixVt(obsall, lagslength, arma::fill::zeros);
+
+    for(unsigned int i=0; i<nseries; i=i+1){
+        matrixVt = arrayVt.slice(i);
+        for (int j=maxlag; j<obsall; j=j+1) {
+
+            lagrows = lags - maxlag + j;
+/* # Measurement equation and the error term */
+            matY(j-maxlag,i) = matrixot(j-maxlag,i) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
+                                 rvalue(matrixVt(lagrows), rowvecW, E, T, S) * matrixerrors(j-maxlag,i));
+/* # Transition equation */
+            matrixVt.row(j) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S) +
+                                          gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % matrixG.col(i) * matrixerrors(j-maxlag,i));
+        }
+        arrayVt.slice(i) = matrixVt;
+    }
+
+    return List::create(Named("arrvt") = arrayVt, Named("matyt") = matY);
 }
 
 /* # Wrapper for simulateets */
 // [[Rcpp::export]]
-RcppExport SEXP simulateETSwrap(SEXP matvt, SEXP errors, SEXP ot, SEXP matF, SEXP matw, SEXP vecg,
+RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
                                 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags) {
-    NumericMatrix matvt_n(matvt);
-    arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
-    NumericMatrix merrors(errors);
-    arma::mat matrixerrors(merrors.begin(), merrors.nrow(), merrors.ncol(), false);
-    NumericMatrix mot(ot);
-    arma::mat matrixot(mot.begin(), mot.nrow(), mot.ncol(), false);
+
+// ### arrvt should contain array of obs x ncomponents x nseries elements.
+    NumericVector arrvt_n(arrvt);
+    IntegerVector arrvt_dim = arrvt_n.attr("dim");
+    arma::cube arrayVt(arrvt_n.begin(),arrvt_dim[0], arrvt_dim[1], arrvt_dim[2], false);
+
+    NumericMatrix materrors_n(materrors);
+    arma::mat matrixerrors(materrors_n.begin(), materrors_n.nrow(), materrors_n.ncol(), false);
+
+    NumericMatrix matot_n(matot);
+    arma::mat matrixot(matot_n.begin(), matot_n.nrow(), matot_n.ncol(), false);
+
     NumericMatrix matF_n(matF);
     arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol(), false);
+
     NumericMatrix matw_n(matw);
-    arma::mat rowvecW(matw_n.begin(), matw_n.nrow(), matw_n.ncol(), false);
-    NumericMatrix vecg_n(vecg);
-    arma::vec vecG(vecg_n.begin(), vecg_n.nrow(), vecg_n.ncol(), false);
-    unsigned int obs = merrors.nrow();
-    unsigned int nseries = merrors.ncol();
+    arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
+
+// ### matg should contain persistence vectors in each column
+    NumericMatrix matg_n(matg);
+    arma::mat matrixG(matg_n.begin(), matg_n.nrow(), matg_n.ncol(), false);
+
+    unsigned int obs = materrors_n.nrow();
+    unsigned int nseries = materrors_n.ncol();
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
+
     IntegerVector modellags_n(modellags);
     arma::uvec lags = as<arma::uvec>(modellags_n);
 
-    return wrap(simulateETS(matrixVt, matrixerrors, matrixot, matrixF, rowvecW, vecG,
+    return wrap(simulateETS(arrayVt, matrixerrors, matrixot, matrixF, rowvecW, matrixG,
                             obs, nseries, E, T, S, lags));
 }

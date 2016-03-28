@@ -43,11 +43,17 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{int.w}{ Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution.
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word.
 
-  \code{parametric} intervals for multiplicative models are approximated using the same script as for additive. They are a bit wider than should be but are still efficient.
+  \itemize{
+    \item \code{parametric} use the state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-  PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MIXED MODELS ARE NOT THERE YET!
+    \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
+
+    \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999).
+
+    \item Finally \code{asymmetric} are based on half moment of distribution.
+  }
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters.
   }
