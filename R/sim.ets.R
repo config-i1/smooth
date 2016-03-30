@@ -333,11 +333,21 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    matot[,] <- rbinom(obs*nseries,1,iprob);
+    if((iprob < 1) & (iprob > 0)){
+        matot[,] <- rbinom(obs*nseries,1,iprob);
+    }
+    else{
+        matot[,] <- 1;
+    }
 
     simulateddata <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags);
 
-    matyt <- simulateddata$matyt;
+    if((iprob < 1) & (iprob > 0)){
+        matyt <- round(simulateddata$matyt,0);
+    }
+    else{
+        matyt <- simulateddata$matyt;
+    }
     arrvt <- simulateddata$arrvt;
 
     if(nseries==1){

@@ -1,8 +1,21 @@
 pintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
-                      measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL){
+                      measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
+                      vt=matrix(0,length(measurement),1), iprob=1){
 # Function constructs intervals based on the provided random variable.
 # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
 # based on errors the horison is estimated as ncol(errors)
+
+    matrixpower <- function(A,n){
+        if(n==0){
+            return(diag(nrow(A)));
+        }
+        else if(n==1){
+            return(A);
+        }
+        else if(n>1){
+            return(A %*% matrixpower(A, n-1));
+        }
+    }
 
     int.type <- int.type[1]
     hsmN <- gamma(0.75)*pi^(-0.5)*2^(-0.75);
@@ -85,6 +98,9 @@ quantfunc <- function(A){
 
 ##### Parametric intervals from GES
         else if(int.type=="p"){
+            s2i <- iprob*(1-iprob);
+            s2 <- s2 * iprob;
+
             n.components <- nrow(transition);
             maxlag <- max(modellags);
             h <- n.var;
@@ -94,13 +110,10 @@ quantfunc <- function(A){
             mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
             mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 
-# Vector of final variances
-            vec.var <- rep(NA,h);
-            vec.var[1:min(h,maxlag)] <- s2;
-
 # New transition and measurement for the internal use
-            transitionnew <- matrix(rep(0,n.components),n.components,n.components);
-            measurementnew <- matrix(rep(0,n.components),1,n.components);
+            transitionnew <- matrix(0,n.components,n.components);
+            measurementnew <- matrix(0,1,n.components);
+            vtnew <- matrix(0,n.components,1);
 
 # selectionmat is needed for the correct selection of lagged variables in the array
 # newelements are needed for the correct fill in of all the previous matrices
@@ -116,6 +129,13 @@ quantfunc <- function(A){
 # Length of the vector, excluding the h at the end
             chunkslength <- length(chuncksofhorizon) - 1;
 
+# Vector of final variances
+            vec.var <- rep(NA,h);
+            newelements <- modellags<=(chuncksofhorizon[1]);
+            measurementnew[,newelements] <- measurement[,newelements];
+            vtnew[newelements,] <- vt[newelements,]
+            vec.var[1:min(h,maxlag)] <- s2 + s2i * (measurementnew %*% vtnew)^2;
+
             for(j in 1:chunkslength){
                 selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
                 selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
@@ -123,6 +143,7 @@ quantfunc <- function(A){
                 newelements <- modellags<=(chuncksofhorizon[j]+1);
                 transitionnew[newelements,newelements] <- transition[newelements,newelements];
                 measurementnew[,newelements] <- measurement[,newelements];
+                vtnew[newelements,] <- vt[newelements,]
 
                 for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
                     selectionmat[modellags>chuncksofhorizon[j],] <- i;
@@ -133,7 +154,8 @@ quantfunc <- function(A){
                                                               i - c(selectionmat))];
 
                     mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
-                    vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
+                    vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2 +
+                                  s2i * (measurementnew %*% matrixpower(transitionnew,i-1) %*% vtnew)^2;
                 }
             }
 
@@ -151,8 +173,13 @@ quantfunc <- function(A){
             lower <- ev + lowerquant / hsmN^2 * Im(hm(errors,ev))^2;
         }
         else if(any(int.type==c("s","p"))){
-            upper <- ev + upperquant * sqrt(mean((errors-ev)^2,na.rm=T));
-            lower <- ev + lowerquant * sqrt(mean((errors-ev)^2,na.rm=T));
+            s2i <- iprob*(1-iprob);
+            newelements <- modellags<=1;
+            measurement <- measurement[,newelements];
+            vt <- vt[newelements,]
+            s2i <- s2i * (measurement %*% vt)^2;
+            upper <- ev + upperquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
+            lower <- ev + lowerquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
         }
         else if(int.type=="n"){
             upper <- quantile(errors,(1+int.w)/2);

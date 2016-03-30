@@ -14,7 +14,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    FI=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
    bounds=c("usual","admissible"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-   xreg=NULL, ...)
+   xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 
 }
 %- maybe also 'usage' for other objects documented here.
@@ -67,11 +67,23 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
+  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
+  }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }
 }
 \details{
-The details will be here soon.
+The function estimates ETS in a form of the Single Source of Error State-space model of the following type:
+
+\eqn{y_[t] = o_[t] (w(v_[t-l]) + x_t a_[t-1] + r(v_[t-l]) \epsilon_[t])}
+
+\eqn{v_[t] = f(v_[t-l]) + g(v_[t-l]) \epsilon_[t]}
+
+\eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
+
+Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters. w(.) is the measurement function, r(.) is an error function, f(.) is transition function and g(.) is persistence function.
 }
 \value{
   The list of the following values is returned for the simpler models:

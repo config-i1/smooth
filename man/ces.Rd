@@ -13,7 +13,7 @@
       use.test=FALSE, intervals=FALSE, int.w=0.95,
       int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
       bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-      xreg=NULL)
+      xreg=NULL, go.wild=FALSE, intermittent=FALSE)
 }
 \arguments{
   \item{data}{
@@ -57,6 +57,10 @@
   }
   \item{xreg}{
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
+  }
+  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
+  }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
 }
 \details{

@@ -5,7 +5,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                     FI=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                     bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-                    xreg=NULL, go.wild=FALSE, ...){
+                    xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
 #
@@ -126,6 +126,17 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     y <- matrix(data[1:obs],obs,1);
     datafreq <- frequency(data);
 
+    if(intermittent==TRUE){
+        ot <- (y!=0)*1;
+        iprob <- mean(ot);
+        obs.ot <- sum(ot);
+    }
+    else{
+        ot <- rep(1,obs);
+        iprob <- 1;
+        obs.ot <- obs;
+    }
+
 # Prepare lists for the polynomials
     P <- list(NA);
     D <- list(NA);
@@ -209,9 +220,15 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         }
     }
 
-    if(n.param >= obs-1){
-        stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                    n.param," while the number of observations is ",obs,"!"),call.=FALSE)
+    if(n.param >= obs.ot-1){
+        if(intermittent==TRUE){
+            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                        n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);
+        }
+        else{
+            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                        n.param," while the number of observations is ",obs.ot,"!"),call.=FALSE);
+        }
     }
 
 polyroots <- function(C){
@@ -331,7 +348,7 @@ CF <- function(C){
 
     CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
                               h, modellags, multisteps, CF.type, normalizer,
-                              matxt, matat, matFX, vecgX);
+                              matxt, matat, matFX, vecgX, ot);
 
     return(CF.res);
 }
@@ -445,7 +462,7 @@ Likelihood.value <- function(C){
     }
 
     fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
-                            matxt, matat, matFX, vecgX);
+                            matxt, matat, matFX, vecgX, ot);
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
@@ -471,16 +488,16 @@ Likelihood.value <- function(C){
 
 # Produce matrix of errors
     errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
-                                   matxt, matat, matFX, vecgX),
+                                   matxt, matat, matFX, vecgX, ot),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
-    y.for <- ts(ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
-                                 matF,matw,h,
-                                 modellags,matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                 matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+    y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
+                                         matF,matw,h,
+                                         modellags,matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
 #    s2 <- mean(errors^2);
@@ -504,8 +521,11 @@ Likelihood.value <- function(C){
             ev <- 0;
         }
 
+        vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
+
         quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                 measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                                 measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
+                                 vt=vt, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
     }

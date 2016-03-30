@@ -3,7 +3,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-                xreg=NULL){
+                xreg=NULL, go.wild=FALSE, intermittent=FALSE){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -64,6 +64,17 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Define the actual values
   y <- matrix(as.vector(data[1:obs]),obs,1);
+
+  if(intermittent==TRUE){
+      ot <- (y!=0)*1;
+      iprob <- mean(ot);
+      obs.ot <- sum(ot);
+  }
+  else{
+      ot <- rep(1,obs);
+      iprob <- 1;
+      obs.ot <- obs;
+  }
 
 # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
 #   matvt - the matrix with the components, lags is the lags used in pt matrix.
@@ -182,7 +193,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                                              t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
                                        each=maxlag);
 # Redefine the number of components of CES.
-            n.components <- n.components + n.exovars;
+#            n.components <- n.components + n.exovars;
         }
         else{
             stop("Unknown format of xreg. Aborting!",call.=F);
@@ -233,7 +244,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   CF <- function(C){
     # Obtain the elements of CES
     if(!is.null(xreg)){
-      matat[1:maxlag,] <- rep(C[(n.components-n.exovars+1):n.components],each=maxlag);
+      matat[1:maxlag,] <- rep(C[(n.components+1):(n.components+n.exovars)],each=maxlag);
     }
 
     ces.elements <- state.space.elements(seasonality, C);
@@ -242,7 +253,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
     CF.res <- cesoptimizerwrap(matvt, matF, matrix(matw[1,],nrow=1), y, vecg,
                                h, seasonality, maxlag, multisteps, CF.type, normalizer,
-                               matxt, matat);
+                               matxt, matat, ot);
 
 #    CF.res <- ssoptimizerwrap(matvt, matF, matrix(matw[1,],1,n.components,byrow=TRUE),
 #                              y, as.matrix(vecg),
@@ -314,7 +325,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   FI <- hessian(likelihood,C);
 
   if(!is.null(xreg)){
-    FI <- FI[1:(n.components-n.exovars),1:(n.components-n.exovars)];
+    FI <- FI[1:n.components,1:n.components];
   }
 
 # Information criteria are calculated here with the constant part "log(2*pi*exp(1)/obs)*obs".
@@ -350,27 +361,28 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Change F and g matrices if exogenous variables are presented
   if(!is.null(xreg)){
-    matat[1:maxlag,] <- rep(C[(n.components-n.exovars+1):n.components],each=maxlag);
+    matat[1:maxlag,] <- rep(C[(n.components+1):(n.components+n.exovars)],each=maxlag);
   }
 
 # Estimate the elements of the transitional equation, fitted values and errors
   fitting <- cesfitterwrap(matvt, matF, matrix(matw[1,],nrow=1), y, vecg,
                            seasonality, maxlag,
-                           matxt, matat)
+                           matxt, matat, ot)
 #  fitting <- ssfitterwrap(matvt, matF, matrix(matw[1,],obs.all,n.components,byrow=TRUE), y,
 #                          as.matrix(vecg), modellags, matxt, matat, matFX, vecgX);
   matvt[,] <- fitting$matvt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
   matat[,] <- fitting$matat;
 
-  errors.mat <- ts(ceserrorerwrap(matvt,matF,matrix(matw[1,],nrow=1),y,h,
-                                  seasonality,maxlag,matxt,matat),start=start(data),
+  errors.mat <- ts(ceserrorerwrap(matvt, matF, matrix(matw[1,],nrow=1), y,
+                                  h, seasonality, maxlag,
+                                  matxt, matat, ot),start=start(data),
                    frequency=frequency(data));
   colnames(errors.mat) <- paste0("Error",c(1:h));
   errors.mat <- ts(errors.mat,start=start(data),frequency=frequency(data));
   errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-  y.for <- ts(cesforecasterwrap(matrix(matvt[((obs-maxlag+1):obs)+maxlag,],nrow=maxlag),
+  y.for <- ts(iprob * cesforecasterwrap(matrix(matvt[((obs-maxlag+1):obs)+maxlag,],nrow=maxlag),
                                 matF, matrix(matw[1,],nrow=1), h, seasonality, maxlag,
                                 matrix(matxt[(obs.all-h+1):obs.all,],ncol=n.exovars),
                                 matrix(matat[(obs.all-h+1):obs.all,],ncol=n.exovars)),
@@ -391,8 +403,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
             ev <- 0;
         }
 
+        vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
+
         quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                 measurement=matrix(matw[1,],nrow=1), transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                                 measurement=matrix(matw[1,],nrow=1), transition=matF, persistence=vecg,
+                                 s2=s2, modellags=modellags, vt=vt, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
     }

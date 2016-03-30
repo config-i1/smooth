@@ -4,7 +4,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                bounds=c("usual","admissible"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-               xreg=NULL, ...){
+               xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
     go.wild <- FALSE;
@@ -157,6 +157,17 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     datafreq <- frequency(data);
 
+    if(intermittent==TRUE){
+        ot <- (y!=0)*1;
+        iprob <- mean(ot);
+        obs.ot <- sum(ot);
+    }
+    else{
+        ot <- rep(1,obs);
+        iprob <- 1;
+        obs.ot <- obs;
+    }
+
 ### Check the length of the provided data. Say bad words if:
 # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
 # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
@@ -249,7 +260,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         Stype <- "N";
     }
 
-    if(any(y<=0)){
+    if((any(y<=0) & intermittent==FALSE)| (intermittent==TRUE & any(y<0))){
         if(Etype=="M"){
             message("Can't apply multiplicative model to non-positive data. Switching error to 'A'");
             Etype <- "A";
@@ -357,13 +368,13 @@ CF <- function(C){
         }
         CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                           matxt, matat, matFX, vecgX,
+                           matxt, matat, matFX, vecgX, ot,
                            bounds, init.ets$phi, Theta);
     }
     else{
         CF.res <- optimizerwrap(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                                 h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                                matxt, matat, matFX, vecgX);
+                                matxt, matat, matFX, vecgX, ot);
     }
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -651,7 +662,7 @@ checker <- function(inherits=TRUE){
             }
             else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
-                if(any(y<=0)){
+                if((any(y<=0) & intermittent==FALSE) | (intermittent==TRUE & any(y<0))){
                     if(silent==FALSE){
                         message("Only additive models are allowed with the negative data.");
                     }
@@ -829,7 +840,7 @@ checker <- function(inherits=TRUE){
 
         fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                               modellags, Etype, Ttype, Stype,
-                              matxt, matat, matFX, vecgX)
+                              matxt, matat, matFX, vecgX, ot)
         matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
         y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
@@ -849,12 +860,12 @@ checker <- function(inherits=TRUE){
 
         errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                      h, Etype, Ttype, Stype, modellags,
-                                     matxt, matat, matFX, vecgX),
+                                     matxt, matat, matFX, vecgX, ot),
                          start=start(data),frequency=frequency(data));
         colnames(errors.mat) <- paste0("Error",c(1:h));
-        errors <- ts(errors.mat[,1],start=start(data),frequency=datafreq);
+        errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
 
-        y.for <- ts(forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+        y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                    matF, matw, h, Ttype, Stype, modellags,
                                    matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
@@ -890,11 +901,11 @@ checker <- function(inherits=TRUE){
                 ev <- 0;
             }
 
-            if(!(Etype=="A" & Ttype=="A" & Stype=="A") | !(Etype=="M" & Ttype=="M" & Stype=="M")){
-                simulateint <- TRUE;
+            if(all(c(Etype,Stype,Ttype)!="M") | all(c(Etype,Stype,Ttype)!="A")){
+                simulateint <- FALSE;
             }
             else{
-                simulateint <- FALSE;
+                simulateint <- TRUE;
             }
 
             if(int.type=="p" & simulateint==TRUE){
@@ -902,15 +913,23 @@ checker <- function(inherits=TRUE){
                 arrvt <- array(NA,c(h+maxlag,n.components,10000));
                 arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],10000);
                 materrors <- matrix(rnorm(10000,0,sqrt(s2)),h,10000);
-                matot <- matrix(1,h,10000);
+                if(iprob!=1){
+                    matot <- matrix(rbinom(10000,1,iprob),h,10000);
+                }
+                else{
+                    matot <- matrix(1,h,10000);
+                }
 
                 y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
                 y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
                 y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
             }
             else{
+                vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
+
                 quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                          measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                                          measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
+                                          vt=vt, iprob=iprob);
                 if(Etype=="A"){
                     y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
@@ -1019,7 +1038,7 @@ checker <- function(inherits=TRUE){
 
             fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                                   modellags, Etype, Ttype, Stype,
-                                  matxt, matat, matFX, vecgX);
+                                  matxt, matat, matFX, vecgX, ot);
             matvt <- fitting$matvt;
             y.fit <- fitting$yfit;
 
@@ -1039,11 +1058,11 @@ checker <- function(inherits=TRUE){
 
             errors.mat <- errorerwrap(matvt, matF, matw, y,
                                       h, Etype, Ttype, Stype, modellags,
-                                      matxt, matat, matFX, vecgX);
+                                      matxt, matat, matFX, vecgX, ot);
             colnames(errors.mat) <- paste0("Error",c(1:h));
-            errors <- errors.mat[,1];
+            errors <- fitting$errors;
 # Produce point and interval forecasts
-            y.for <- forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+            y.for <- iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                     matF, matw, h, Ttype, Stype, modellags,
                                     matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars));
@@ -1075,15 +1094,22 @@ checker <- function(inherits=TRUE){
                     arrvt <- array(NA,c(h+maxlag,n.components,1000));
                     arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],1000);
                     materrors <- matrix(rnorm(1000,0,sqrt(s2)),h,1000);
-                    matot <- matrix(1,h,1000);
+                    if(iprob!=1){
+                        matot <- matrix(rbinom(1000,1,iprob),h,1000);
+                    }
+                    else{
+                        matot <- matrix(1,h,1000);
+                    }
 
                     y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
                     y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
                     y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
                 }
                 else{
+                    vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
                     quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
-                                              measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags);
+                                              measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
+                                              vt=vt, iprob=iprob);
                     if(Etype=="A"){
                         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
                         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));

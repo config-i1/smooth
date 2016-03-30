@@ -15,7 +15,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    xreg=NULL, go.wild=FALSE, ...)
+    xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -62,19 +62,21 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }
 }
 \details{
 The function estimates the Single Source of Error State-space model of the following type:
 
-\eqn{y_[t] = w' v_[t-l] + x_t a_[t-1] \epsilon_[t]}
+\eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
 
 \eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
 
-\eqn{a_[t] = FX a_[t-1] + gX \epsilon_[t] / x_[t]}
+\eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
 
-Where \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
+Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
 }
 \value{
   The list of the following values is returned:

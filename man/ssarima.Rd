@@ -15,7 +15,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         FI=FALSE, intervals=FALSE, int.w=0.95,
         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
         bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-        xreg=NULL, go.wild=FALSE, ...)
+        xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -66,19 +66,21 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }
 }
 \details{
 The function constructs ARIMA in the Single Source of Error State-space form:
 
-\eqn{y_[t] = w' v_[t-1] + x_t a_[t-1] \epsilon_[t]}
+\eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
 
 \eqn{v_[t] = F v_[t-1] + g \epsilon_[t]}
 
-\eqn{a_[t] = F_2 a_[t-1] + g_2 \epsilon_[t] / x_[t]}
+\eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
 
-Where \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
+Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
 

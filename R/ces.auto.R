@@ -4,7 +4,7 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-                xreg=NULL){
+                xreg=NULL, go.wild=FALSE, intermittent=FALSE){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -65,7 +65,7 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                          use.test=use.test, intervals=intervals, int.w=int.w,
                          int.type=int.type,
                          bounds=bounds, holdout=holdout, h=h, silent=silent, legend=legend,
-                         xreg=xreg);
+                         xreg=xreg, go.wild=go.wild, intermittent=intermittent);
         return(ces.model);
     }
 
@@ -87,7 +87,7 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                               use.test=use.test, intervals=intervals, int.w=int.w,
                               int.type=int.type,
                               bounds=bounds, holdout=holdout, h=h, silent=TRUE, legend=legend,
-                              xreg=xreg);
+                              xreg=xreg, go.wild=go.wild, intermittent=intermittent);
         IC.vector[j] <- ces.model[[j]]$ICs[IC];
         j <- j+1;
     }

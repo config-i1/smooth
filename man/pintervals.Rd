@@ -8,7 +8,8 @@
 }
 \usage{
 pintervals(errors,ev=median(errors),int.w=0.95,int.type=c("a","p","s","n"), df=NULL,
-           measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL)
+           measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
+           vt=matrix(0,length(measurement),1), iprob=1)
 }
 \arguments{
     \item{errors}{ The vector or matrix of the random variable. Can be, for example, a matrix of 1 to h steps ahead errors.
@@ -31,13 +32,19 @@ pintervals(errors,ev=median(errors),int.w=0.95,int.type=c("a","p","s","n"), df=N
     }
     \item{modellags}{ Lags used in State-space model. Only needed for parameteric intervals.
     }
+    \item{vt}{ The final value of the state vector. Used for intermittent data only. Currently this is incorrect for seasonal models. But do we care about them in case of intermittency anyway?!
+    }
+    \item{iprob}{ The probability of intermittent demand occurance.
+    }
 }
 \details{
     If \code{errors} is matrix, then several steps ahead prediction intervals are constructed. Otherwise only one step ahead is done.
-    Parametric intervals are available only for additive state-space models (additive trend and or seasonality).
-    Semiparametric intervals are based on the variances of errors provided in the input.
-    Nonparametric intervals are based on quantile regressions (Taylor and Bunn, 1999).
-    The asymmetric intervals are constructed using half moment of distribution. See Svetunkov ISIR, 2016 presentation for the details.
+    \enumerate{
+        \item \code{parametric} intervals are available only for additive state-space models (additive trend and or seasonality).
+        \item \core{semiparametric} intervals are based on the variances of errors provided in the input.
+        \item \code{nonparametric} intervals are based on quantile regressions (Taylor and Bunn, 1999).
+        \item \code{asymmetric} intervals are constructed using half moment of distribution. See Svetunkov ISIR, 2016 presentation for the details.
+    }
 }
 \value{
   The function returns:
