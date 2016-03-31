@@ -223,7 +223,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         vecgX <- matrix(0,1,1);
     }
 
-    n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent;
+# 1 stands for the variance
+    n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent + 1;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){

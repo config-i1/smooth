@@ -89,67 +89,68 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
 #   matvt - the matrix with the components, lags is the lags used in pt matrix.
-  if(seasonality=="N"){
-  # No seasonality
-    maxlag <- 1;
-    modellags <- c(1,1);
-    matw <- matrix(c(1,0,0,1),2,2);
-    matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
-    colnames(matvt) <- c("level","potential");
-    matvt[1,] <- c(mean(y[1:min(10,obs)]),mean(y[1:min(10,obs)])/C[1]);
-    ces.name <- "Complex Exponential Smoothing";
+    if(seasonality=="N"){
+# No seasonality
+        maxlag <- 1;
+        modellags <- c(1,1);
+        matw <- matrix(c(1,0,0,1),2,2);
+        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
+        colnames(matvt) <- c("level","potential");
+        matvt[1,] <- c(mean(y[1:min(10,obs)]),mean(y[1:min(10,obs)])/C[1]);
+        ces.name <- "Complex Exponential Smoothing";
 # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
-    n.param <- length(C) + 2;
-    n.components <- 2;
-  }
-  else if(seasonality=="S"){
-  # Simple seasonality, lagged CES
-    maxlag <- frequency(data);
-    modellags <- c(maxlag,maxlag);
-    matw <- matrix(c(1,0,0,1),2,2);
-    matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
-    colnames(matvt) <- c("level.s","potential.s");
-    matvt[1:maxlag,1] <- y[1:maxlag];
-    matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
-    ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
-    n.param <- length(C) + 2*maxlag;
-    n.components <- 2;
-  }
-  else if(seasonality=="P"){
-  # Partial seasonality with a real part only
-    maxlag <- frequency(data);
-    modellags <- c(1,1,maxlag);
-    C <- c(C,0.5);
-    matw <- matrix(c(1,0,0,1,1,0),2,3);
-    lags <- c(1,1,maxlag);
-    matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),3);
-    colnames(matvt) <- c("level","potential","seasonal");
-    matvt[1:maxlag,1] <- mean(y[1:maxlag]);
-    matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
-    matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
-    ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
-    n.param <- length(C) + 2 + maxlag;
-    n.components <- 3;
-  }
-  else if(seasonality=="F"){
-  # Full seasonality with both real and imaginary parts
-    maxlag <- frequency(data);
-    modellags <- c(1,1,maxlag,maxlag);
-    C <- c(C,C);
-    matw <- matrix(c(1,0,0,1,1,0,0,1),2,4);
-    lags <- c(1,1,maxlag,maxlag);
-    matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),4);
-    colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
-    matvt[1:maxlag,1] <- mean(y[1:maxlag]);
-    matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
-    matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
-    matvt[1:maxlag,4] <- matvt[1:maxlag,3]/C[3];
-    ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
-    n.param <- length(C) + 2 + 2*maxlag;
-    n.components <- 4;
-  }
+        n.param <- length(C) + 2;
+        n.components <- 2;
+    }
+    else if(seasonality=="S"){
+# Simple seasonality, lagged CES
+        maxlag <- frequency(data);
+        modellags <- c(maxlag,maxlag);
+        matw <- matrix(c(1,0,0,1),2,2);
+        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
+        colnames(matvt) <- c("level.s","potential.s");
+        matvt[1:maxlag,1] <- y[1:maxlag];
+        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
+        ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
+        n.param <- length(C) + 2*maxlag;
+        n.components <- 2;
+    }
+    else if(seasonality=="P"){
+# Partial seasonality with a real part only
+        maxlag <- frequency(data);
+        modellags <- c(1,1,maxlag);
+        C <- c(C,0.5);
+        matw <- matrix(c(1,0,0,1,1,0),2,3);
+        lags <- c(1,1,maxlag);
+        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),3);
+        colnames(matvt) <- c("level","potential","seasonal");
+        matvt[1:maxlag,1] <- mean(y[1:maxlag]);
+        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
+        matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
+        ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
+        n.param <- length(C) + 2 + maxlag;
+        n.components <- 3;
+    }
+    else if(seasonality=="F"){
+# Full seasonality with both real and imaginary parts
+        maxlag <- frequency(data);
+        modellags <- c(1,1,maxlag,maxlag);
+        C <- c(C,C);
+        matw <- matrix(c(1,0,0,1,1,0,0,1),2,4);
+        lags <- c(1,1,maxlag,maxlag);
+        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),4);
+        colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
+        matvt[1:maxlag,1] <- mean(y[1:maxlag]);
+        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
+        matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
+        matvt[1:maxlag,4] <- matvt[1:maxlag,3]/C[3];
+        ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
+        n.param <- length(C) + 2 + 2*maxlag;
+        n.components <- 4;
+    }
 
-  n.param <- n.param + intermittent;
+# 1 stands for the variance
+    n.param <- n.param + intermittent + 1;
 
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
