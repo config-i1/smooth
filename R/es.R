@@ -165,11 +165,18 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         ot <- (y!=0)*1;
         iprob <- mean(ot);
         obs.ot <- sum(ot);
+        yot <- matrix(y[y!=0],obs.ot,1);
     }
     else{
         ot <- rep(1,obs);
         iprob <- 1;
         obs.ot <- obs;
+        yot <- y;
+    }
+
+# If the data is not intermittent, let's assume that the parameter was switched unintentionally.
+    if(iprob==1){
+        intermittent <- FALSE;
     }
 
 # Variable will contain maximum number of parameters to estimate
@@ -269,6 +276,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     if((multisteps==TRUE) & (obs.ot < h+1)){
         message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
+    }
+    else if((multisteps==TRUE) & (obs.ot < 2*h)){
+        message(paste0("Number of observations is really low for a multisteps cost function! We will, try but cannot guarantee anything..."));
     }
 
 ### Check the error type
@@ -494,7 +504,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
                 C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
             }
             else{
-                C.lower <- c(C.lower,1,0.01);
+                C.lower <- c(C.lower,0.1,0.01);
                 C.upper <- c(C.upper,Inf,3);
             }
         }
@@ -618,9 +628,9 @@ checker <- function(inherits=TRUE){
             estimate.initial <- TRUE;
             initialstates <- matrix(NA,1,4);
 # "-1" is needed, so the level would correspond to the values before the in-sample
-            initialstates[1,2] <- cov(y[1:min(12,obs),],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-            initialstates[1,1] <- mean(y[1:min(12,obs),]) - initialstates[1,2] * (mean(c(1:min(12,obs))) - 1);
-            initialstates[1,3] <- mean(y[1:min(12,obs),]);
+            initialstates[1,2] <- cov(yot[1:min(12,obs.ot)],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+            initialstates[1,1] <- mean(yot[1:min(12,obs.ot)]) - initialstates[1,2] * (mean(c(1:min(12,obs.ot))) - 1);
+            initialstates[1,3] <- mean(yot[1:min(12,obs.ot)]);
             initialstates[1,4] <- 1;
         }
         else{
@@ -631,7 +641,7 @@ checker <- function(inherits=TRUE){
     else{
         if(is.null(initial)){
             estimate.initial <- TRUE;
-            initialstates <- matrix(rep(mean(y[1:min(12,obs),]),4),nrow=1);
+            initialstates <- matrix(rep(mean(yot[1:min(12,obs.ot)]),4),nrow=1);
         }
         else{
             estimate.initial <- FALSE;
@@ -664,7 +674,7 @@ checker <- function(inherits=TRUE){
         estimate.persistence <- FALSE;
     }
     else{
-        smoothingparameters <- cbind(c(0.3,0.2,0.1),rep(0.05,3));
+        smoothingparameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
         estimate.persistence <- TRUE;
     }
 
@@ -794,9 +804,18 @@ checker <- function(inherits=TRUE){
                 C.upper <- Cs$C.upper;
                 C.lower <- Cs$C.lower;
 
+# Parameters are chosen to speed up the optimisation process and have decent accuracy
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
                 C <- res$solution;
+                res <- nloptr(C, CF,
+                            opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
+                C <- res$solution;
+
+                if(all(C==Cs$C)){
+                    warning(paste0("Failed to optimise the model ",current.model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                        call.=FALSE, immediate.=TRUE);
+                }
 
                 n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent;
 
@@ -861,8 +880,17 @@ checker <- function(inherits=TRUE){
             C.lower <- Cs$C.lower;
 
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+                          opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
+            res <- nloptr(C, CF,
+                          opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
+            C <- res$solution;
+
+            if(all(C==Cs$C)){
+                warning(paste0("Failed to optimise the model ",model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                        call.=FALSE, immediate.=TRUE);
+            }
+
             CF.objective <- res$objective;
         }
     }

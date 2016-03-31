@@ -557,6 +557,14 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S) +
                                       gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
 
+/* Failsafe for cases when unreasonable value for state vector was produced */
+        if(!matrixVt.row(i).is_finite()){
+            matrixVt.row(i) = trans(matrixVt(lagrows));
+        }
+        if(((T=='M') | (S=='M')) & (any(matrixVt.row(i) < 0))){
+            matrixVt.row(i) = trans(matrixVt(lagrows));
+        }
+
 /* # Transition equation for xreg */
         bufferforat = arma::trans(vecGX / arma::trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag));
         bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
@@ -1167,6 +1175,13 @@ List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
 /* # Transition equation */
             matrixVt.row(j) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S) +
                                           gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % matrixG.col(i) * matrixerrors(j-maxlag,i));
+/* Failsafe for cases when unreasonable value for state vector was produced */
+            if(!matrixVt.row(j).is_finite()){
+                matrixVt.row(j) = trans(matrixVt(lagrows));
+            }
+            if(((E=='M') | (T=='M') | (S=='M')) & (any(matrixVt.row(j) < 0))){
+                matrixVt.row(j) = trans(matrixVt(lagrows));
+            }
         }
         arrayVt.slice(i) = matrixVt;
     }

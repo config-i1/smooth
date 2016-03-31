@@ -130,11 +130,20 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
         obs.ot <- obs;
     }
 
+# If the data is not intermittent, let's assume that the parameter was switched unintentionally.
+    if(iprob==1){
+        intermittent <- FALSE;
+    }
+
 # Stop if number of observations is less than horizon and multisteps is chosen.
     if((multisteps==TRUE) & (obs.ot < h+1)){
         message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
+    else if((multisteps==TRUE) & (obs.ot < 2*h)){
+        message(paste0("Number of observations is really low for a multisteps cost function! We will try but cannot guarantee anything..."));
+    }
+
 
 #### Now let's prepare the provided exogenous data for the inclusion in ETS
 # Check the exogenous variable if it is present and
