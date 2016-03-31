@@ -147,6 +147,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Define obs, the number of observations of in-sample
     obs <- length(data) - holdout*h;
 
+# If obs is negative, this means that we can't do anything...
+    if(obs<=0){
+        stop("Not enough observations in sample.",call.=FALSE);
+    }
 # Define the actual values
     y <- matrix(data[1:obs],obs,1);
 
@@ -168,15 +172,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         obs.ot <- obs;
     }
 
-### Check the length of the provided data. Say bad words if:
-# 1. Seasonal model, <=2 seasons of data and no initial seasonals.
-# 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
-    if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) | (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
-    	if(is.null(initial.season)){
-        	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
-       		Stype <- "N";
-       	}
-    }
+# Variable will contain maximum number of parameters to estimate
+    n.param.test <- 0;
 
 # If model selection is chosen, forget about the initial values and persistence
     if(any(Etype=="Z",Ttype=="Z",Stype=="Z")){
@@ -187,6 +184,19 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             initial.season <- NULL;
             persistence <- NULL;
             phi <- NULL;
+        }
+    }
+
+### Check the length of the provided data. Say bad words if:
+# 1. Seasonal model, <=2 seasons of data and no initial seasonals.
+# 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
+    if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) | (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
+    	if(is.null(initial.season)){
+        	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
+       		Stype <- "N";
+    	}
+        else{
+            n.param.test <- n.param.test - length(initial.season);
         }
     }
 
@@ -202,6 +212,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 message("The length of persistence vector is wrong! It should not be greater than 3.");
                 message("Changing to the estimation of persistence vector values.");
                 persistence <- NULL;
+            }
+            else{
+                n.param.test <- n.param.test - length(persistence);
             }
         }
     }
@@ -219,7 +232,40 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 message("Values of initial vector will be estimated.");
                 initial <- NULL;
             }
+            else{
+                n.param.test <- n.param.test - length(initial);
+            }
         }
+    }
+
+    if(!is.null(phi)){
+        if(!is.numeric(phi) & (damped==TRUE)){
+            message("The provided value of phi is meaningless.");
+            message("phi will be estimated.");
+            phi <- NULL;
+        }
+        else{
+            n.param.test <- n.param.test - 1;
+        }
+    }
+
+### n.param.test includes:
+# 2: 1 initial and 1 smoothing for level component;
+# 2: 1 initial and 1 smoothing for trend component;
+# 1: 1 phi value.
+# 1 + datafreq: datafreq initials and 1 smoothing for seasonal component;
+    n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N");
+
+# Stop if number of observations is less than number of parameters
+    if(obs.ot < n.param.test){
+        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
+        stop("Not enough observations for the fit of the model!",call.=FALSE);
+    }
+
+# Stop if number of observations is less than horizon and multisteps is chosen.
+    if((multisteps==TRUE) & (obs.ot < h+1)){
+        message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
+        stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
 
 ### Check the error type
@@ -260,6 +306,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         Stype <- "N";
     }
 
+# If the non-positive values are present, check if it is intermittent, if negatives are here, switch to additive models
     if((any(y<=0) & intermittent==FALSE)| (intermittent==TRUE & any(y<0))){
         if(Etype=="M"){
             message("Can't apply multiplicative model to non-positive data. Switching error to 'A'");
@@ -886,7 +933,8 @@ checker <- function(inherits=TRUE){
             n.param <- n.param + n.exovars;
         }
 
-        s2 <- as.vector(sum(errors^2)/(obs-n.param));
+        s2 <- as.vector(sum((errors*ot)^2)/(obs-n.param));
+
 # Write down the forecasting intervals
         if(intervals==TRUE){
             if(h==1){
@@ -901,7 +949,7 @@ checker <- function(inherits=TRUE){
                 ev <- 0;
             }
 
-            if(all(c(Etype,Stype,Ttype)!="M") | all(c(Etype,Stype,Ttype)!="A")){
+            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 0.1)){
                 simulateint <- FALSE;
             }
             else{
@@ -1067,7 +1115,7 @@ checker <- function(inherits=TRUE){
                                     matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
-        s2 <- as.vector(sum(errors^2)/(obs-n.param));
+            s2 <- as.vector(sum((errors*ot)^2)/(obs-n.param));
 # Write down the forecasting intervals
             if(intervals==TRUE){
                 if(h==1){
@@ -1082,11 +1130,11 @@ checker <- function(inherits=TRUE){
                     ev <- 0;
                 }
 
-                if(!(Etype=="A" & Ttype=="A" & Stype=="A") | !(Etype=="M" & Ttype=="M" & Stype=="M")){
-                    simulateint <- TRUE;
+                if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 0.1)){
+                    simulateint <- FALSE;
                 }
                 else{
-                    simulateint <- FALSE;
+                    simulateint <- TRUE;
                 }
 
                 if(int.type=="p" & simulateint==TRUE){

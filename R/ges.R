@@ -107,6 +107,11 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
 # Define obs, the number of observations of in-sample
     obs <- length(data) - holdout*h;
 
+# If obs is negative, this means that we can't do anything...
+    if(obs<=0){
+        stop("Not enough observations in sample.",call.=FALSE);
+    }
+
 # Define the number of rows that should be in the matvt
     obs.xt <- obs.all + maxlag;
 
@@ -123,6 +128,12 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
         ot <- rep(1,obs);
         iprob <- 1;
         obs.ot <- obs;
+    }
+
+# Stop if number of observations is less than horizon and multisteps is chosen.
+    if((multisteps==TRUE) & (obs.ot < h+1)){
+        message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
+        stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
 
 #### Now let's prepare the provided exogenous data for the inclusion in ETS
@@ -328,10 +339,10 @@ CF <- function(C){
 
 Likelihood.value <- function(C){
     if(CF.type=="GV"){
-        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
+        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
     }
 }
 

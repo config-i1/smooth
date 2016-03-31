@@ -41,7 +41,7 @@ pintervals(errors,ev=median(errors),int.w=0.95,int.type=c("a","p","s","n"), df=N
     If \code{errors} is matrix, then several steps ahead prediction intervals are constructed. Otherwise only one step ahead is done.
     \enumerate{
         \item \code{parametric} intervals are available only for additive state-space models (additive trend and or seasonality).
-        \item \core{semiparametric} intervals are based on the variances of errors provided in the input.
+        \item \code{semiparametric} intervals are based on the variances of errors provided in the input.
         \item \code{nonparametric} intervals are based on quantile regressions (Taylor and Bunn, 1999).
         \item \code{asymmetric} intervals are constructed using half moment of distribution. See Svetunkov ISIR, 2016 presentation for the details.
     }

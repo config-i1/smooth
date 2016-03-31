@@ -806,10 +806,18 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
 
+    arma::uvec nonzeroes = find(vecOt>0);
     int obs = vecYt.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
-    double yactsum = arma::as_scalar(arma::sum(log(vecYt.elem(find(vecOt>0)))));
+    double yactsum;
+// This correction of yactsum is needed for intermittent demand...
+    if((nonzeroes.n_rows>0) & (E=='M')){
+        yactsum = arma::as_scalar(obs * log(mean(vecYt.elem(nonzeroes))));
+    }
+    else{
+        yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
+    }
 
     List fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                           matrixXt, matrixAt, matrixFX, vecGX, vecOt);
