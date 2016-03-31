@@ -446,13 +446,17 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 
     if(S!='N'){
         if(estimateinitialseason==TRUE){
-            matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = C.cols(ncomponents*estimatepersistence + estimatephi + (ncomponents - 1)*estimateinitial,ncomponents*estimatepersistence + estimatephi + (ncomponents - 1)*estimateinitial + maxlag - 1).t();
+            matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = C.cols(ncomponents*estimatepersistence +
+                            estimatephi + (ncomponents - 1)*estimateinitial,ncomponents*estimatepersistence +
+                            estimatephi + (ncomponents - 1)*estimateinitial + maxlag - 1).t();
 /* # Normalise the initial seasons */
             if(S=='A'){
-                matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) - as_scalar(mean(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)));
+                matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) -
+                            as_scalar(mean(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)));
             }
             else{
-                matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = exp(log(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)) - as_scalar(mean(log(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)))));
+                matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = exp(log(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)) -
+                            as_scalar(mean(log(matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1)))));
             }
         }
     }
@@ -807,17 +811,18 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     arma::set_stream_err2(nullstream);
 
     arma::uvec nonzeroes = find(vecOt>0);
-    int obs = vecYt.n_rows;
+    int obs = nonzeroes.n_rows;
     double CFres = 0;
     int matobs = obs - hor + 1;
-    double yactsum;
+    double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
+
 // This correction of yactsum is needed for intermittent demand...
-    if((nonzeroes.n_rows>0) & (E=='M')){
-        yactsum = arma::as_scalar(obs * log(mean(vecYt.elem(nonzeroes))));
-    }
-    else{
-        yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
-    }
+//    if((nonzeroes.n_rows>0) & (E=='M')){
+//        yactsum = arma::as_scalar(obs * log(mean(vecYt.elem(nonzeroes))));
+//    }
+//    else{
+//        yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
+//    }
 
     List fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                           matrixXt, matrixAt, matrixFX, vecGX, vecOt);
@@ -844,6 +849,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     else{
         arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
         materrors = materrorsfromfit;
+        materrors = materrors.elem(nonzeroes);
         if(E=='M'){
             materrors = log(1 + materrors);
         }
@@ -1099,7 +1105,8 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
             else{
                 double Bvalue = phivalue*(4-3*vecG(2))+vecG(2)*(1-phivalue) / maxlag;
                 double Cvalue = sqrt(pow(Bvalue,2)-8*(pow(phivalue,2)*pow((1-vecG(2)),2)+2*(phivalue-1)*(1-vecG(2))-1)+8*pow(vecG(2),2)*(1-phivalue) / maxlag);
-                double Dvalue = (phivalue*(1-vecG(0))+1)*(1-cos(theta))-vecG(2)*((1+phivalue)*(1-cos(theta)-cos(maxlag*theta))+cos((maxlag-1)*theta)+phivalue*cos((maxlag+1)*theta))/(2*(1+cos(theta))*(1-cos(maxlag*theta)));
+                double Dvalue = (phivalue*(1-vecG(0))+1)*(1-cos(theta))-vecG(2)*((1+phivalue)*(1-cos(theta)-cos(maxlag*theta))+
+                                 cos((maxlag-1)*theta)+phivalue*cos((maxlag+1)*theta))/(2*(1+cos(theta))*(1-cos(maxlag*theta)));
 // alpha restriction
                 if((vecG(0)>((Bvalue + Cvalue)/(4*phivalue))) || (vecG(0)<(1-1/phivalue-vecG(2)*(1-maxlag+phivalue*(1+maxlag))/(2*phivalue*maxlag)))){
                     vecG.zeros();

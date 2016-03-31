@@ -254,7 +254,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # 2: 1 initial and 1 smoothing for trend component;
 # 1: 1 phi value.
 # 1 + datafreq: datafreq initials and 1 smoothing for seasonal component;
-    n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N");
+# 1: estimation of iprob;
+# 1: estimation of variance;
+    n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") +
+        intermittent + 1;
 
 # Stop if number of observations is less than number of parameters
     if(obs.ot < n.param.test){
@@ -525,10 +528,12 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 
 Likelihood.value <- function(C){
     if(CF.type=="GV"){
-        return(-obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        return(obs.ot*log(iprob)*(h^multisteps)
+               -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(-obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        return(obs.ot*log(iprob)
+               -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
     }
 }
 
@@ -540,7 +545,7 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
     llikelihood <- Likelihood.value(C);
 
     AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs - n.param - 1);
+    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs.ot - n.param - 1);
     BIC.coef <- log(obs)*n.param*h^multisteps - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
@@ -793,7 +798,7 @@ checker <- function(inherits=TRUE){
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
                 C <- res$solution;
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N");
+                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent;
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
@@ -926,14 +931,15 @@ checker <- function(inherits=TRUE){
         }
         else{
             n.param <- n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season;
+                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
+                intermittent;
         }
 
         if(!is.null(xreg)){
             n.param <- n.param + n.exovars;
         }
 
-        s2 <- as.vector(sum((errors*ot)^2)/(obs-n.param));
+        s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
 
 # Write down the forecasting intervals
         if(intervals==TRUE){
@@ -1115,7 +1121,7 @@ checker <- function(inherits=TRUE){
                                     matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars));
 
-            s2 <- as.vector(sum((errors*ot)^2)/(obs-n.param));
+            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
 # Write down the forecasting intervals
             if(intervals==TRUE){
                 if(h==1){

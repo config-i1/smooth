@@ -160,6 +160,15 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
             }
             initial <- NULL;
         }
+        else{
+            if(Ttype=="M" & initial[2]<=0){
+                if(silent == FALSE){
+                    message("Wrong initial value for multiplicative trend! It should be greater than zero!");
+                    message("Using random number generator instead!");
+                }
+                initial <- NULL;
+            }
+        }
     }
 
     if(!is.null(initial.season)){

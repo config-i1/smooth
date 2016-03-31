@@ -204,7 +204,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     matFX <- diag(n.exovars);
     vecgX <- matrix(0,n.exovars,1);
 
-    n.param <- 2*n.components+n.components^2 + orders %*% lags;
+    n.param <- 2*n.components+n.components^2 + orders %*% lags + intermittent;
     if(!is.null(xreg)){
 # Number of initial states
         n.param <- n.param + n.exovars;
@@ -337,12 +337,15 @@ CF <- function(C){
     return(CF.res);
 }
 
+# Likelihood function
 Likelihood.value <- function(C){
     if(CF.type=="GV"){
-        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        return(obs.ot*log(iprob)*(h^multisteps)
+               -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
     else{
-        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
+        return(obs.ot*log(iprob)
+               -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
     }
 }
 
@@ -478,7 +481,7 @@ Likelihood.value <- function(C){
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
 #    s2 <- mean(errors^2);
-    s2 <- c(sum(errors^2)/(obs-n.param));
+    s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
 
     if(any(is.na(y.fit),is.na(y.for))){
         message("Something went wrong during the optimisation and NAs were produced!");
@@ -515,8 +518,8 @@ Likelihood.value <- function(C){
     llikelihood <- Likelihood.value(C);
 
     AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs - n.param - 1);
-    BIC.coef <- log(obs)*n.param - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs.ot - n.param - 1);
+    BIC.coef <- log(obs.ot)*n.param - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");

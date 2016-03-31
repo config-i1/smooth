@@ -149,6 +149,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     n.components <- 4;
   }
 
+  n.param <- n.param + intermittent;
+
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
     if(!is.null(xreg)){
@@ -294,13 +296,15 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
 
 # Likelihood function
-  likelihood <- function(C){
-    if(CF.type=="GV"){
-        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
-    }
-    else{
-        return(log(iprob)*T*h^multisteps -obs/2 *((h^multisteps)*log(2*pi*exp(1)) + log(CF(C))));
-    }
+  Likelihood.value <- function(C){
+      if(CF.type=="GV"){
+          return(obs.ot*log(iprob)*(h^multisteps)
+                 -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+      }
+      else{
+          return(obs.ot*log(iprob)
+                 -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+      }
   }
 
   if(!is.null(xreg)){
@@ -332,8 +336,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     CF.objective <- res$objective;
   }
 
-  llikelihood <- likelihood(C);
-  FI <- hessian(likelihood,C);
+  llikelihood <- Likelihood.value(C);
+  FI <- hessian(Likelihood.value,C);
 
   if(!is.null(xreg)){
     FI <- FI[1:n.components,1:n.components];
@@ -341,8 +345,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Information criteria are calculated here with the constant part "log(2*pi*exp(1)/obs)*obs".
   AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-  AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
-  BIC.coef <- log(obs)*n.param*h^multisteps - 2 * llikelihood;
+  AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs.ot - n.param - 1);
+  BIC.coef <- log(obs.ot)*n.param*h^multisteps - 2 * llikelihood;
 # Information criterion derived and used especially for CES
 #   k here is equal to number of coefficients/2 (number of numbers) + number of complex initial states of CES.
   CIC.coef <- 2 * (ceiling(length(C)/2) + maxlag) * h ^ multisteps - 2 * llikelihood;
@@ -400,7 +404,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
               start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
 
-    s2 <- as.vector(sum(errors^2)/(obs-n.param));
+    s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
     if(intervals==TRUE){
         if(h==1){
             errors.x <- as.vector(errors);
