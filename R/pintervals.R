@@ -1,6 +1,6 @@
 pintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
                       measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
-                      vt=matrix(0,length(measurement),1), iprob=1){
+                      y.for=rep(0,ncol(errors)), iprob=1){
 # Function constructs intervals based on the provided random variable.
 # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
 # based on errors the horison is estimated as ncol(errors)
@@ -113,7 +113,6 @@ quantfunc <- function(A){
 # New transition and measurement for the internal use
             transitionnew <- matrix(0,n.components,n.components);
             measurementnew <- matrix(0,1,n.components);
-            vtnew <- matrix(0,n.components,1);
 
 # selectionmat is needed for the correct selection of lagged variables in the array
 # newelements are needed for the correct fill in of all the previous matrices
@@ -133,8 +132,7 @@ quantfunc <- function(A){
             vec.var <- rep(NA,h);
             newelements <- modellags<=(chuncksofhorizon[1]);
             measurementnew[,newelements] <- measurement[,newelements];
-            vtnew[newelements,] <- vt[newelements,]
-            vec.var[1:min(h,maxlag)] <- s2 + s2i * (measurementnew %*% vtnew)^2;
+            vec.var[1:min(h,maxlag)] <- s2 + s2i * (y.for[1])^2;
 
             for(j in 1:chunkslength){
                 selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
@@ -143,7 +141,6 @@ quantfunc <- function(A){
                 newelements <- modellags<=(chuncksofhorizon[j]+1);
                 transitionnew[newelements,newelements] <- transition[newelements,newelements];
                 measurementnew[,newelements] <- measurement[,newelements];
-                vtnew[newelements,] <- vt[newelements,]
 
                 for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
                     selectionmat[modellags>chuncksofhorizon[j],] <- i;
@@ -155,7 +152,7 @@ quantfunc <- function(A){
 
                     mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
                     vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2 +
-                                  s2i * (measurementnew %*% matrixpower(transitionnew,i-1) %*% vtnew)^2;
+                                  s2i * (y.for[i])^2;
                 }
             }
 
@@ -176,8 +173,7 @@ quantfunc <- function(A){
             s2i <- iprob*(1-iprob);
             newelements <- modellags<=1;
             measurement <- measurement[,newelements];
-            vt <- vt[newelements,]
-            s2i <- s2i * (measurement %*% vt)^2;
+            s2i <- s2i * (y.for[1])^2;
             upper <- ev + upperquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
             lower <- ev + lowerquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
         }

@@ -135,11 +135,13 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         ot <- (y!=0)*1;
         iprob <- mean(ot);
         obs.ot <- sum(ot);
+        yot <- matrix(y[y!=0],obs.ot,1);
     }
     else{
         ot <- rep(1,obs);
         iprob <- 1;
         obs.ot <- obs;
+        yot <- y;
     }
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
@@ -250,6 +252,11 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                         n.param," while the number of observations is ",obs.ot,"!"),call.=FALSE);
         }
     }
+
+# These three are needed in order to use ssgeneralfun.cpp functions
+    Etype <- "A";
+    Ttype <- "A";
+    Stype <- "N";
 
 polyroots <- function(C){
     n.coef <- 0;
@@ -366,9 +373,12 @@ CF <- function(C){
         }
     }
 
-    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
-                              h, modellags, multisteps, CF.type, normalizer,
-                              matxt, matat, matFX, vecgX, ot);
+#    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
+#                              h, modellags, multisteps, CF.type, normalizer,
+#                              matxt, matat, matFX, vecgX, ot);
+    CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
+                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                            matxt, matat, matFX, vecgX, ot);
 
     return(CF.res);
 }
@@ -403,12 +413,12 @@ Likelihood.value <- function(C){
                rep(0.1,sum(ma.orders)));
 
 # initial values of state vector and the constant term
-        slope <- cov(y[1:min(12,obs),],c(1:min(12,obs)))/var(c(1:min(12,obs)));
-        intercept <- sum(y[1:min(12,obs),])/min(12,obs) - slope * (sum(c(1:min(12,obs)))/min(12,obs) - 1);
-        initial.stuff <- c(intercept,slope,diff(y[1:(n.components-1),]));
+        slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+        intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+        initial.stuff <- c(intercept,slope,diff(yot[1:(n.components-1),]));
         C <- c(C,initial.stuff[1:n.components]);
         if(constant==TRUE){
-            C <- c(C,sum(y)/obs);
+            C <- c(C,sum(yot)/obs);
         }
 
 # matat
@@ -483,8 +493,11 @@ Likelihood.value <- function(C){
         initial <- elements$xt;
     }
 
-    fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
-                            matxt, matat, matFX, vecgX, ot);
+#    fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
+#                            matxt, matat, matFX, vecgX, ot);
+    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
+                          modellags, Etype, Ttype, Stype,
+                          matxt, matat, matFX, vecgX, ot);
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
@@ -501,26 +514,38 @@ Likelihood.value <- function(C){
 #    }
 
 # Calculate the tails of matat and matvt
-    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
+#    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+#                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
+    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+                                 matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
+                                 modellags, Ttype, Stype);
     if(!is.null(xreg)){
 # Write down the matat and produce values for the holdout
         matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
-                                   matxt, matat, matFX, ot),
-                     start=start(data), frequency=frequency(data));
+#    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
+#                                   matxt, matat, matFX, ot),
+#                     start=start(data), frequency=frequency(data));
+    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
+                                 h, Etype, Ttype, Stype, modellags,
+                                 matxt, matat, matFX, ot),
+                     start=start(data),frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
-    y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
-                                         matF, matw, h,
-                                         modellags, matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-                start=time(data)[obs]+deltat(data), frequency=frequency(data));
+#    y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
+#                                         matF, matw, h,
+#                                         modellags, matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+#                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
+#                start=time(data)[obs]+deltat(data), frequency=frequency(data));
+    y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                               matF, matw, h, Ttype, Stype, modellags,
+                               matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                               matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
+                start=time(data)[obs]+deltat(data),frequency=datafreq);
 
 #    s2 <- mean(errors^2);
     s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
@@ -545,9 +570,9 @@ Likelihood.value <- function(C){
 
         vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                 vt=vt, iprob=iprob);
+                                 y.for=y.for, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
     }

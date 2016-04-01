@@ -70,16 +70,18 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Define the actual values
   y <- matrix(as.vector(data[1:obs]),obs,1);
 
-  if(intermittent==TRUE){
-      ot <- (y!=0)*1;
-      iprob <- mean(ot);
-      obs.ot <- sum(ot);
-  }
-  else{
-      ot <- rep(1,obs);
-      iprob <- 1;
-      obs.ot <- obs;
-  }
+    if(intermittent==TRUE){
+        ot <- (y!=0)*1;
+        iprob <- mean(ot);
+        obs.ot <- sum(ot);
+        yot <- matrix(y[y!=0],obs.ot,1);
+    }
+    else{
+        ot <- rep(1,obs);
+        iprob <- 1;
+        obs.ot <- obs;
+        yot <- y;
+    }
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
     if(iprob==1){
@@ -105,7 +107,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matw <- matrix(c(1,0,0,1),2,2);
         matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
         colnames(matvt) <- c("level","potential");
-        matvt[1,] <- c(mean(y[1:min(10,obs)]),mean(y[1:min(10,obs)])/C[1]);
+        matvt[1,] <- c(mean(yot[1:min(10,obs)]),mean(yot[1:min(10,obs)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
 # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
         n.param <- length(C) + 2;
@@ -160,6 +162,12 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # 1 stands for the variance
     n.param <- n.param + intermittent + 1;
+
+    # Stop if number of observations is less than number of parameters
+    if(obs.ot < n.param){
+        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param,"."));
+        stop(paste0("Not enough observations for the fit of CES(",seasonality,") model!"),call.=FALSE);
+    }
 
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
@@ -278,10 +286,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                                h, seasonality, maxlag, multisteps, CF.type, normalizer,
                                matxt, matat, matFX, vecgX, ot);
 
-#    CF.res <- ssoptimizerwrap(matvt, matF, matrix(matw[1,],1,n.components,byrow=TRUE),
-#                              y, as.matrix(vecg),
-#                              h, modellags, multisteps, CF.type, normalizer,
-#                              matxt, matat, matFX, vecgX);
+#    CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
+#                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+#                            matxt, matat, matFX, vecgX, ot);
 
     if(is.nan(CF.res) | is.na(CF.res)){
         CF.res <- 1e100;
@@ -430,9 +437,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
         vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matrix(matw[1,],nrow=1), transition=matF, persistence=vecg,
-                                 s2=s2, modellags=modellags, vt=vt, iprob=iprob);
+                                 s2=s2, modellags=modellags, y.for=y.for, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
     }

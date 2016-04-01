@@ -920,7 +920,7 @@ checker <- function(inherits=TRUE){
 
         fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                               modellags, Etype, Ttype, Stype,
-                              matxt, matat, matFX, vecgX, ot)
+                              matxt, matat, matFX, vecgX, ot);
         matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
         y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
@@ -1009,9 +1009,9 @@ checker <- function(inherits=TRUE){
             else{
                 vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                          vt=vt, iprob=iprob);
+                                          y.for=y.for, iprob=iprob);
                 if(Etype=="A"){
                     y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
@@ -1189,9 +1189,9 @@ checker <- function(inherits=TRUE){
                 }
                 else{
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
-                    quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs - n.param),
+                    quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                              vt=vt, iprob=iprob);
+                                              y.for=y.for, iprob=iprob);
                     if(Etype=="A"){
                         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
                         y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
