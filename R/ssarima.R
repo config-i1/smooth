@@ -510,16 +510,16 @@ Likelihood.value <- function(C){
 
 # Produce matrix of errors
     errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
-                                   matxt, matat, matFX, vecgX, ot),
+                                   matxt, matat, matFX, ot),
                      start=start(data), frequency=frequency(data));
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
     y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
-                                         matF,matw,h,
-                                         modellags,matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                                         matF, matw, h,
+                                         modellags, matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                 start=time(data)[obs]+deltat(data), frequency=frequency(data));
 
 #    s2 <- mean(errors^2);

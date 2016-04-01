@@ -5,16 +5,16 @@ cesfitterwrap <- function(matvt, matF, matw, yt, vecg, Stype, seasfreq, matxt, m
     .Call('smooth_cesfitterwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, Stype, seasfreq, matxt, matat, ot)
 }
 
-cesforecasterwrap <- function(matvt, matF, matw, h, Stype, seasfreq, matxt, matat) {
-    .Call('smooth_cesforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Stype, seasfreq, matxt, matat)
+cesforecasterwrap <- function(matvt, matF, matw, h, Stype, seasfreq, matxt, matat, matFX) {
+    .Call('smooth_cesforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Stype, seasfreq, matxt, matat, matFX)
 }
 
-ceserrorerwrap <- function(matvt, matF, matw, yt, h, Stype, seasfreq, matxt, matat, ot) {
-    .Call('smooth_ceserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Stype, seasfreq, matxt, matat, ot)
+ceserrorerwrap <- function(matvt, matF, matw, yt, h, Stype, seasfreq, matxt, matat, matFX, ot) {
+    .Call('smooth_ceserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Stype, seasfreq, matxt, matat, matFX, ot)
 }
 
-cesoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matxt, matat, ot) {
-    .Call('smooth_cesoptimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matxt, matat, ot)
+cesoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot) {
+    .Call('smooth_cesoptimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, Stype, seasfreq, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot)
 }
 
 ssfitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, matxt, matat, matFX, vecgX, ot) {
@@ -25,12 +25,12 @@ ssstatetailwrap <- function(matvt, matF, matat, matFX, modellags) {
     .Call('smooth_ssstatetailwrap', PACKAGE = 'smooth', matvt, matF, matat, matFX, modellags)
 }
 
-ssforecasterwrap <- function(matvt, matF, matw, h, modellags, matxt, matat) {
-    .Call('smooth_ssforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, modellags, matxt, matat)
+ssforecasterwrap <- function(matvt, matF, matw, h, modellags, matxt, matat, matFX) {
+    .Call('smooth_ssforecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, modellags, matxt, matat, matFX)
 }
 
-sserrorerwrap <- function(matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX, ot) {
-    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, vecgX, ot)
+sserrorerwrap <- function(matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, ot) {
+    .Call('smooth_sserrorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, modellags, matxt, matat, matFX, ot)
 }
 
 ssoptimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot) {
@@ -53,12 +53,12 @@ statetailwrap <- function(matvt, matF, matat, matFX, modellags, Ttype, Stype) {
     .Call('smooth_statetailwrap', PACKAGE = 'smooth', matvt, matF, matat, matFX, modellags, Ttype, Stype)
 }
 
-forecasterwrap <- function(matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat) {
-    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat)
+forecasterwrap <- function(matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat, matFX) {
+    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat, matFX)
 }
 
-errorerwrap <- function(matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, vecgX, ot) {
-    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, vecgX, ot)
+errorerwrap <- function(matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, ot) {
+    .Call('smooth_errorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, ot)
 }
 
 optimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot) {

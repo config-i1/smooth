@@ -940,7 +940,7 @@ checker <- function(inherits=TRUE){
 
         errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                      h, Etype, Ttype, Stype, modellags,
-                                     matxt, matat, matFX, vecgX, ot),
+                                     matxt, matat, matFX, ot),
                          start=start(data),frequency=frequency(data));
         colnames(errors.mat) <- paste0("Error",c(1:h));
         errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
@@ -948,7 +948,7 @@ checker <- function(inherits=TRUE){
         y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                    matF, matw, h, Ttype, Stype, modellags,
                                    matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                   matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars)),
+                                   matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
@@ -1140,14 +1140,14 @@ checker <- function(inherits=TRUE){
 
             errors.mat <- errorerwrap(matvt, matF, matw, y,
                                       h, Etype, Ttype, Stype, modellags,
-                                      matxt, matat, matFX, vecgX, ot);
+                                      matxt, matat, matFX, ot);
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- fitting$errors;
 # Produce point and interval forecasts
             y.for <- iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                     matF, matw, h, Ttype, Stype, modellags,
                                     matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars));
+                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
 
             s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
 # Write down the forecasting intervals

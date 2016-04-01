@@ -158,7 +158,8 @@ RcppExport SEXP cesfitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP ve
 }
 
 arma::vec cesforecaster(arma::mat matrixVt,arma::mat matrixF,arma::rowvec rowvecW,
-                     int hor,char S,int freq,arma::mat matrixXt,arma::mat matrixAt){
+                     int hor,char S,int freq,
+                     arma::mat matrixXt,arma::mat matrixAt, arma::mat matrixFX){
     int hh;
     int ncomponents = matrixVt.n_cols;
 
@@ -226,28 +227,37 @@ arma::vec cesforecaster(arma::mat matrixVt,arma::mat matrixF,arma::rowvec rowvec
 }
 
 // [[Rcpp::export]]
-RcppExport SEXP cesforecasterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP h,
-                                    SEXP Stype, SEXP seasfreq, SEXP matxt, SEXP matat) {
+RcppExport SEXP cesforecasterwrap(SEXP matvt, SEXP matF, SEXP matw,
+                                  SEXP h, SEXP Stype, SEXP seasfreq,
+                                  SEXP matxt, SEXP matat, SEXP matFX) {
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol(), false);
+
     NumericMatrix matF_n(matF);
     arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol(), false);
+
     NumericMatrix matw_n(matw);
     arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
+
     unsigned int hor = as<int>(h);
     char S = as<char>(Stype);
     unsigned int freq = as<int>(seasfreq);
+
     NumericMatrix matxt_n(matxt);
     arma::mat matrixXt(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+
     NumericMatrix matat_n(matat);
     arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol(), false);
 
-  return wrap(cesforecaster(matrixVt,matrixF,rowvecW,hor,S,freq,matrixXt,matrixAt));
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
+
+  return wrap(cesforecaster(matrixVt, matrixF, rowvecW, hor, S, freq, matrixXt, matrixAt, matrixFX));
 }
 
 arma::mat ceserrorer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt,
                      int hor, char S, int freq,
-                     arma::mat matrixXt, arma::mat matrixAt, arma::vec vecOt){
+                     arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecOt){
     int obs = vecYt.n_rows;
     int hh;
     arma::mat materrors(obs, hor);
@@ -260,14 +270,17 @@ arma::mat ceserrorer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW
       } */
     for(int i=freq; i<obs+freq; i=i+1){
         hh = std::min(hor, obs+freq-i);
-        materrors.submat(i-freq, 0, i-freq, hh-1) = arma::trans(vecOt.rows(i-freq, i-freq+hh-1) % (vecYt.rows(i-freq, i-freq+hh-1) - cesforecaster(matrixVt.rows(i-freq,i-1),matrixF,rowvecW,hh,S,freq,matrixXt.rows(i-freq,i-freq+hh-1),matrixAt.rows(i-freq,i-freq+hh-1))));
+        materrors.submat(i-freq, 0, i-freq, hh-1) = arma::trans(vecOt.rows(i-freq, i-freq+hh-1) % (vecYt.rows(i-freq, i-freq+hh-1) -
+            cesforecaster(matrixVt.rows(i-freq,i-1), matrixF, rowvecW,
+                          hh, S, freq,
+                          matrixXt.rows(i-freq,i-freq+hh-1), matrixAt.rows(i-freq,i-freq+hh-1), matrixFX)));
     }
     return materrors;
 }
 
 // [[Rcpp::export]]
 RcppExport SEXP ceserrorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP h, SEXP Stype,
-                                 SEXP seasfreq, SEXP matxt, SEXP matat, SEXP ot) {
+                                 SEXP seasfreq, SEXP matxt, SEXP matat, SEXP matFX, SEXP ot) {
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol(), false);
 
@@ -290,18 +303,21 @@ RcppExport SEXP ceserrorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP h
     NumericMatrix matat_n(matat);
     arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol(), false);
 
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
+
     NumericVector ot_n(ot);
     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
 
   return wrap(ceserrorer(matrixVt, matrixF, rowvecW, vecYt,
                          hor, S, freq,
-                         matrixXt, matrixAt, vecOt));
+                         matrixXt, matrixAt, matrixFX, vecOt));
 }
 
 /* # Cost function calculation */
 double cesoptimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::mat vecYt, arma::vec vecG,
                  int hor, char S, int freq, bool multi, std::string CFtype, double normalize,
-                 arma::mat matrixXt, arma::mat matrixAt, arma::vec vecOt) {
+                 arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::mat vecGX, arma::vec vecOt) {
     double CFres = 0;
 
     List fitting = cesfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, S, freq, matrixXt, matrixAt, vecOt);
@@ -318,7 +334,7 @@ double cesoptimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW,
         for(int i=0; i<hor; i=i+1){
             horvec(i) = hor - i;
         }
-        materrors = ceserrorer(matrixVt, matrixF, rowvecW, vecYt, hor, S, freq, matrixXt, matrixAt, vecOt);
+        materrors = ceserrorer(matrixVt, matrixF, rowvecW, vecYt, hor, S, freq, matrixXt, matrixAt, matrixFX, vecOt);
         materrors.row(0) = materrors.row(0) % horvec;
     }
 
@@ -364,7 +380,7 @@ double cesoptimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW,
 // [[Rcpp::export]]
 RcppExport double cesoptimizerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP h,
                                 SEXP Stype, SEXP seasfreq, SEXP multisteps, SEXP CFt, SEXP normalizer,
-                                SEXP matxt, SEXP matat, SEXP ot) {
+                                SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot) {
 /*  std::cout << "Function started" << std::endl; */
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -394,10 +410,16 @@ RcppExport double cesoptimizerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SE
     NumericMatrix matat_n(matat);
     arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
 
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
+
+    NumericMatrix vecgX_n(vecgX);
+    arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow(), false);
+
     NumericVector ot_n(ot);
     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
 
     return cesoptimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
                         hor, S, freq, multi, CFtype, normalize,
-                        matrixXt, matrixAt, vecOt);
+                        matrixXt, matrixAt, matrixFX, vecGX, vecOt);
 }

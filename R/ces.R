@@ -276,7 +276,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
     CF.res <- cesoptimizerwrap(matvt, matF, matrix(matw[1,],nrow=1), y, vecg,
                                h, seasonality, maxlag, multisteps, CF.type, normalizer,
-                               matxt, matat, ot);
+                               matxt, matat, matFX, vecgX, ot);
 
 #    CF.res <- ssoptimizerwrap(matvt, matF, matrix(matw[1,],1,n.components,byrow=TRUE),
 #                              y, as.matrix(vecg),
@@ -401,7 +401,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
   errors.mat <- ts(ceserrorerwrap(matvt, matF, matrix(matw[1,],nrow=1), y,
                                   h, seasonality, maxlag,
-                                  matxt, matat, ot),start=start(data),
+                                  matxt, matat, matFX, ot),start=start(data),
                    frequency=frequency(data));
   colnames(errors.mat) <- paste0("Error",c(1:h));
   errors.mat <- ts(errors.mat,start=start(data),frequency=frequency(data));
@@ -410,7 +410,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   y.for <- ts(iprob * cesforecasterwrap(matrix(matvt[((obs-maxlag+1):obs)+maxlag,],nrow=maxlag),
                                 matF, matrix(matw[1,],nrow=1), h, seasonality, maxlag,
                                 matrix(matxt[(obs.all-h+1):obs.all,],ncol=n.exovars),
-                                matrix(matat[(obs.all-h+1):obs.all,],ncol=n.exovars)),
+                                matrix(matat[(obs.all-h+1):obs.all,],ncol=n.exovars), matFX),
               start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
 
