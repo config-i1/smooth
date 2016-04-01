@@ -239,29 +239,43 @@ arma::vec gvalue(arma::vec matrixVt, arma::mat matrixF, arma::mat rowvecW, char 
     return g;
 }
 
-/* # Function is needed for the renormalisation of seasonal components. NOT IMPLEMENTED YET! */
-arma::mat avalue(int maxlag, double(error), double gamma, double yfit, char E, char S, char T){
-    arma::mat a(1,maxlag);
-    if(S=='A'){
-        if(E=='M'){
-            a.fill(gamma / maxlag * yfit * error);
+/* # Function is needed for the renormalisation of seasonal components. It should be done seasonal-wise.*/
+arma::mat normaliser(arma::mat Vt, int obsall, unsigned int maxlag, char S, char T){
+
+    unsigned int ncomponents = Vt.n_cols;
+    arma::vec meanseason(maxlag, arma::fill::zeros);
+
+    switch(S){
+    case 'A':
+        meanseason.fill(arma::as_scalar(mean(Vt.col(ncomponents-1))));
+        Vt.col(ncomponents-1) = Vt.col(ncomponents-1) - meanseason;
+        switch(T){
+        case 'N':
+        case 'A':
+            Vt.col(0) = Vt.col(0) + meanseason;
+        break;
+        case 'M':
+            Vt.col(0) = Vt.col(0) + meanseason / Vt.col(1);
+        break;
         }
-        else{
-            a.fill(gamma / maxlag * error);
+    break;
+    case 'M':
+        meanseason.fill(arma::as_scalar(exp(mean(log(Vt.col(ncomponents-1))))));
+        Vt.col(ncomponents-1) = Vt.col(ncomponents-1) / meanseason;
+        switch(T){
+        case 'N':
+        case 'M':
+            Vt.col(0) = Vt.col(0) / meanseason;
+        break;
+        case 'A':
+            Vt.col(0) = Vt.col(0) % meanseason;
+            Vt.col(1) = Vt.col(1) % meanseason;
+        break;
         }
+    break;
     }
-    else if(S=='M'){
-        if(E=='M'){
-            a.fill(1 + gamma / maxlag * yfit * error);
-        }
-        else{
-            a.fill(1 + gamma / maxlag * error);
-        }
-    }
-    else{
-        a.fill(0);
-    }
-    return(a);
+
+    return(Vt);
 }
 
 /* # initparams - function that initialises the basic parameters of ETS */
@@ -563,6 +577,13 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         }
         if(((T=='M') | (S=='M')) & (any(matrixVt.row(i) < 0))){
             matrixVt.row(i) = trans(matrixVt(lagrows));
+        }
+
+/* Renormalise components if the seasonal model is chosen */
+        if(S!='N'){
+            if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
+                matrixVt.rows(i-maxlag+1,i) = normaliser(matrixVt.rows(i-maxlag+1,i), obsall, maxlag, S, T);
+            }
         }
 
 /* # Transition equation for xreg */
