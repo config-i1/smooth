@@ -65,8 +65,8 @@ optimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttyp
     .Call('smooth_optimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot)
 }
 
-costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot, bounds, phi, Theta) {
-    .Call('smooth_costfunc', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot, bounds, phi, Theta)
+costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot, bounds) {
+    .Call('smooth_costfunc', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, matxt, matat, matFX, vecgX, ot, bounds)
 }
 
 simulateETSwrap <- function(arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags) {

@@ -3,7 +3,7 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+                bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
                 xreg=NULL, go.wild=FALSE, intermittent=FALSE){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
@@ -16,6 +16,13 @@ ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+    bounds <- substring(bounds[1],1,1);
+# Check if "bounds" parameter makes any sense
+    if(bounds!="n" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'admissible'.");
+        bounds <- "a";
+    }
 
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined

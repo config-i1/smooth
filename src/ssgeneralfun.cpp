@@ -848,14 +848,6 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     int matobs = obs - hor + 1;
     double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
 
-// This correction of yactsum is needed for intermittent demand...
-//    if((nonzeroes.n_rows>0) & (E=='M')){
-//        yactsum = arma::as_scalar(obs * log(mean(vecYt.elem(nonzeroes))));
-//    }
-//    else{
-//        yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
-//    }
-
     List fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                           matrixXt, matrixAt, matrixFX, vecGX, vecOt);
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matvt"]);
@@ -1019,13 +1011,13 @@ RcppExport SEXP optimizerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP ve
 }
 
 /* # Function is used in cases when the persistence vector needs to be estimated.
-# If bounds are violated, it returns a state vector with zeroes. */
+# If bounds are violated, it returns variance of yt. */
 // [[Rcpp::export]]
 RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
                               SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
                               SEXP multisteps, SEXP CFt, SEXP normalizer,
                               SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
-                              SEXP bounds, SEXP phi, SEXP Theta) {
+                              SEXP bounds) {
 /* Function is needed to implement admissible constrains on smoothing parameters */
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -1073,10 +1065,12 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
 
     char boundtype = as<char>(bounds);
-    double phivalue = as<double>(phi);
-    double theta = as<double>(Theta);
 
     unsigned int maxlag = max(lags);
+
+// Values needed for eigenvalues calculation
+    arma::cx_vec eigval;
+    arma::mat matrixD = matrixF;
 
     if(boundtype=='u'){
 // alpha in (0,1)
@@ -1106,60 +1100,19 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
             }
         }
     }
-    else{
-        if(S=='N'){
-// alpha restrictions with no seasonality
-            if((vecG(0)>1+1/phivalue) || (vecG(0)<1-1/phivalue)){
-                vecG.zeros();
-                matrixVt.zeros();
-            }
-            if(T!='N'){
-// beta restrictions with no seasonality
-                if((vecG(1)>(1+phivalue)*(2-vecG(0))) || (vecG(1)<vecG(0)*(phivalue-1))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
+    else if(boundtype=='a'){
+        if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
+            if(max(abs(eigval))>1){
+                return wrap(max(abs(eigval))*1E+100);
             }
         }
         else{
-            if(T=='N'){
-// alpha restrictions with no trend
-                if((vecG(0)>2-vecG(1)) ||  (vecG(0)<(-2/(maxlag-1)))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
-// gamma restrictions with no trend
-                if((vecG(1)>2-vecG(0)) || (vecG(1)<std::max(-maxlag*vecG(0),0.0))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
-            }
-            else{
-                double Bvalue = phivalue*(4-3*vecG(2))+vecG(2)*(1-phivalue) / maxlag;
-                double Cvalue = sqrt(pow(Bvalue,2)-8*(pow(phivalue,2)*pow((1-vecG(2)),2)+2*(phivalue-1)*(1-vecG(2))-1)+8*pow(vecG(2),2)*(1-phivalue) / maxlag);
-                double Dvalue = (phivalue*(1-vecG(0))+1)*(1-cos(theta))-vecG(2)*((1+phivalue)*(1-cos(theta)-cos(maxlag*theta))+
-                                 cos((maxlag-1)*theta)+phivalue*cos((maxlag+1)*theta))/(2*(1+cos(theta))*(1-cos(maxlag*theta)));
-// alpha restriction
-                if((vecG(0)>((Bvalue + Cvalue)/(4*phivalue))) || (vecG(0)<(1-1/phivalue-vecG(2)*(1-maxlag+phivalue*(1+maxlag))/(2*phivalue*maxlag)))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
-// beta restriction
-                if((vecG(1)>(Dvalue+vecG(0)*(phivalue-1))) || (vecG(1)<(phivalue-1)*(vecG(2)/maxlag+vecG(0)))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
-// gamma restriction
-                if((vecG(2)>(1+1/phivalue-vecG(0))) || (vecG(2)<(std::max(1-1/phivalue-vecG(0),0.0)))){
-                    vecG.zeros();
-                    matrixVt.zeros();
-                }
-            }
+            return wrap(1E+300);
         }
     }
 
-    return wrap(optimizer(matrixVt,matrixF,rowvecW,vecYt,vecG,
-                          hor,lags,E,T,S,multi,CFtype,normalize,
+    return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
+                          hor, lags, E, T, S, multi, CFtype, normalize,
                           matrixXt, matrixAt, matrixFX, vecGX, vecOt));
 }
 

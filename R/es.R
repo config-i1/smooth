@@ -3,7 +3,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-               bounds=c("usual","admissible"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+               bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
@@ -12,6 +12,12 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     start.time <- Sys.time();
 
     bounds <- substring(bounds[1],1,1);
+# Check if "bounds" parameter makes any sense
+    if(bounds!="u" & bounds!="a" & bounds!="n"){
+        message("The strange bounds are defined. Switching to 'usual'.");
+        bounds <- "u";
+    }
+
     IC <- IC[1];
 
 # Check if the data is vector
@@ -39,12 +45,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     if(all(int.type!=c("a","p","s","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
         int.type <- "p";
-    }
-
-# Check if "bounds" parameter makes any sense
-    if(bounds!="u" & bounds!="a"){
-        message("The strange bounds are defined. Switching to 'usual'.");
-        bounds <- "u";
     }
 
     if(!is.character(model)){
@@ -412,30 +412,10 @@ CF <- function(C){
                             estimate.phi, estimate.initial, estimate.initial.season,
                             estimate.xreg);
 
-    if(estimate.persistence==TRUE){
-        if(bounds=="a" & (Ttype!="N") & (Stype!="N")){
-            Theta.func <- function(Theta){
-                return(abs((init.ets$phi*C[1]+init.ets$phi+1)/(C[3]) +
-                               ((init.ets$phi-1)*(1+cos(Theta)-cos(maxlag*Theta)) +
-                                    cos((maxlag-1)*Theta)-init.ets$phi*cos((maxlag+1)*Theta))/
-                               (2*(1+cos(Theta))*(1-cos(maxlag*Theta)))));
-            }
-            Theta <- 0.1;
-            Theta <- suppressWarnings(optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par);
-        }
-        else{
-            Theta <- 0;
-        }
-        CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
-                           h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                           matxt, matat, matFX, vecgX, ot,
-                           bounds, init.ets$phi, Theta);
-    }
-    else{
-        CF.res <- optimizerwrap(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
-                                h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                                matxt, matat, matFX, vecgX, ot);
-    }
+    CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+                       h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                       matxt, matat, matFX, vecgX, ot,
+                       bounds);
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
         CF.res <- 1e100;
@@ -486,7 +466,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
             }
         }
     }
-    else{
+    else if(bounds=="a"){
         if(estimate.persistence==TRUE){
             C <- c(C,vecg);
             C.lower <- c(C.lower,rep(-5,length(vecg)));
@@ -518,6 +498,42 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
                 else{
                     C.lower <- c(C.lower,rep(-0.0001,maxlag));
                     C.upper <- c(C.upper,rep(20,maxlag));
+                }
+            }
+        }
+    }
+    else{
+        if(estimate.persistence==TRUE){
+            C <- c(C,vecg);
+            C.lower <- c(C.lower,rep(-Inf,length(vecg)));
+            C.upper <- c(C.upper,rep(Inf,length(vecg)));
+        }
+        if(estimate.phi==TRUE){
+            C <- c(C,phi);
+            C.lower <- c(C.lower,-Inf);
+            C.upper <- c(C.upper,Inf);
+        }
+        if(estimate.initial==TRUE){
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+            if(Ttype!="M"){
+                C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
+                C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
+            }
+            else{
+                C.lower <- c(C.lower,-Inf,-Inf);
+                C.upper <- c(C.upper,Inf,Inf);
+            }
+        }
+        if(Stype!="N"){
+            if(estimate.initial.season==TRUE){
+                C <- c(C,matvt[1:maxlag,n.components]);
+                if(Stype=="A"){
+                    C.lower <- c(C.lower,rep(-Inf,maxlag));
+                    C.upper <- c(C.upper,rep(Inf,maxlag));
+                }
+                else{
+                    C.lower <- c(C.lower,rep(-Inf,maxlag));
+                    C.upper <- c(C.upper,rep(Inf,maxlag));
                 }
             }
         }
@@ -808,7 +824,7 @@ checker <- function(inherits=TRUE){
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
                 C <- res$solution;
-                res <- nloptr(C, CF,
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                             opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
                 C <- res$solution;
 
@@ -882,7 +898,7 @@ checker <- function(inherits=TRUE){
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
-            res <- nloptr(C, CF,
+            res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
             C <- res$solution;
 
@@ -1025,6 +1041,10 @@ checker <- function(inherits=TRUE){
         else{
             y.low <- NA;
             y.high <- NA;
+        }
+
+        if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
+            message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
         }
 
 # Change CF.type for the more appropriate model selection

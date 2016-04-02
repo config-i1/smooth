@@ -14,7 +14,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
         FI=FALSE, intervals=FALSE, int.w=0.95,
         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-        bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+        bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
         xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -52,7 +52,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
   }
-  \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization. May take more time.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
@@ -139,11 +139,11 @@ ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)->test
 
 # SARIMA(1,1,1)(0,0,1)[4]
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
-        lags=c(1,4),h=18,holdout=TRUE,bounds=FALSE)->test
+        lags=c(1,4),h=18,holdout=TRUE,bounds="n")->test
 
 # ARIMA(1,0,0) with trace forecast estimation
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="trace")->test
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="trace")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="GV")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

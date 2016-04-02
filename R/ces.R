@@ -2,7 +2,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+                bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
                 xreg=NULL, go.wild=FALSE, intermittent=FALSE){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
@@ -15,6 +15,13 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+    bounds <- substring(bounds[1],1,1);
+# Check if "bounds" parameter makes any sense
+    if(bounds!="n" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'admissible'.");
+        bounds <- "a";
+    }
 
     seasonality <- seasonality[1];
 # If the user typed wrong seasonality, use the "Full" instead
@@ -342,7 +349,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
 
 # Estimate CES
-  if(bounds==TRUE){
+  if(bounds=="a"){
     res <- cobyla(C, CF, hin=constrains, lower=lowerb, upper=upperb);
     C <- res$par;
     CF.objective <- res$value;
@@ -459,11 +466,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     matvt <- cbind(matvt,matat);
   }
 
-  if(silent==FALSE){
-    if(bounds==FALSE & sum(1-constrains(C)>1)>=1){
-      message("Non-stable model estimated! Use with care! To avoid that reestimate ces using 'bounds=TRUE'.");
+    if(silent==FALSE){
+        if(bounds=="a" & sum(1-constrains(C)>1)>=1){
+        message("Non-stable model estimated! Use with care! To avoid that reestimate ces using admissible bounds.");
+        }
     }
-  }
 
 # Right down the smoothing parameters
     A <- complex(real=C[1],imaginary=C[2]);

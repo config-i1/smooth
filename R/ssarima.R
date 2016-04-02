@@ -4,7 +4,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                     CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                    bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+                    bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                     xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
@@ -16,6 +16,13 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+    bounds <- substring(bounds[1],1,1);
+# Check if "bounds" parameter makes any sense
+    if(bounds!="n" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'admissible'.");
+        bounds <- "a";
+    }
 
     if(any(ar.orders<0) | any(i.orders<0) | any(ma.orders<0)){
         stop("Wrong order of the model!",call.=FALSE);
@@ -364,12 +371,14 @@ CF <- function(C){
 #    matFX <- elements$matFX;
 #    vecgX <- elements$vecgX;
 
-    if(bounds==TRUE){
-        if(any(abs(polyroot(polysos.ar))<1)){
-            return(max(abs(polyroot(polysos.ar)))*1E+100);
+    if(bounds=="a"){
+        arroots <- abs(polyroot(polysos.ar));
+        if(any(arroots<1)){
+            return(max(arroots)*1E+100);
         }
-        if(any(abs(polyroot(polysos.ma))<1)){
-            return(max(abs(polyroot(polysos.ma)))*1E+100);
+        maroots <- abs(polyroot(polysos.ma));
+        if(any(maroots<1)){
+            return(max(maroots)*1E+100);
         }
     }
 
@@ -436,6 +445,10 @@ Likelihood.value <- function(C){
         vecg <- elements$vecg;
         matvt[1,] <- elements$xt;
         matat[1,] <- elements$matat;
+        polysos.ar <- elements$polysos.ar;
+        polysos.ma <- elements$polysos.ma;
+        arroots <- abs(polyroot(polysos.ar));
+        maroots <- abs(polyroot(polysos.ma));
 #        matFX <- elements$matFX;
 #        vecgX <- elements$vecgX;
 
@@ -462,8 +475,8 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-    if(any(hin.constrains(C)<0) & silent==FALSE){
-        message("Unstable model is estimated! Use 'bounds=TRUE' to address this issue!");
+    if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
+        message("Unstable model estimated! Use a different value of 'bounds' parameter to address this issue!");
     }
 
 # Change the CF.type in orders to calculate likelihood correctly.

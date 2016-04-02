@@ -13,7 +13,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
    FI=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-   bounds=c("usual","admissible"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+   bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
    xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 
 }
@@ -57,7 +57,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     \item Finally \code{asymmetric} are based on half moment of distribution.
   }
   }
-  \item{bounds}{ What type of bounds to use for the smoothing parameters.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
   }

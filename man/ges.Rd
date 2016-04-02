@@ -14,7 +14,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
     CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
     FI=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-    bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+    bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
     xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -48,7 +48,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
   }
-  \item{bounds}{ if \code{TRUE}, the stability condition is taken into account during the optimization. May take more time.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
@@ -118,15 +118,15 @@ Ivan Svetunkov
 }
 
 \examples{
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=TRUE,intervals=TRUE)->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",intervals=TRUE)->test
 
-ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds="a")->test
 
-ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds=TRUE)->test
+ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds="a")->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="trace")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="trace")->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds=FALSE,CF.type="GV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="GV")->test
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))->test
 

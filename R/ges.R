@@ -4,7 +4,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 FI=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=TRUE, holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
+                bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
                 xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
@@ -12,6 +12,13 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+    bounds <- substring(bounds[1],1,1);
+# Check if "bounds" parameter makes any sense
+    if(bounds!="n" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'admissible'.");
+        bounds <- "a";
+    }
 
     if(length(orders) != length(lags)){
         stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
@@ -303,23 +310,6 @@ elements.ges <- function(C){
     return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matat=matat,matFX=matFX,vecgX=vecgX));
 }
 
-# Function creates bounds for the estimates
-hin.constrains <- function(C){
-
-    elements <- elements.ges(C);
-    matw <- elements$matw;
-    matF <- elements$matF;
-    vecg <- elements$vecg;
-
-    if(any(is.nan(matF - vecg %*% matw))){
-        D <- -0.1;
-    }
-    else{
-        D <- 1 - abs(eigen(matF - vecg %*% matw)$values);
-    }
-    return(D);
-}
-
 # Cost function for GES
 CF <- function(C){
     elements <- elements.ges(C);
@@ -331,30 +321,11 @@ CF <- function(C){
     vecgX <- elements$vecgX;
     matvt[1:maxlag,] <- elements$xt;
 
-    if(bounds==TRUE){
-        if(any(is.nan(matF - vecg %*% matw))){
-            return(1E+300);
-        }
-        else{
-            eigenvalues <- abs(eigen(matF - vecg %*% matw)$values);
-            if(any(eigenvalues>1)){
-                return(max(eigenvalues)*1E+100);
-            }
-        }
-        if(any(abs(1-vecgX)>1)){
-            return(max(abs(1-vecgX))*1E+100);
-        }
-        if(any(abs(matFX)>1)){
-            return(max(abs(matFX))*1E+100);
-        }
-    }
+    CF.res <- costfunc(matvt, matF, matw, y, vecg,
+                   h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                   matxt, matat, matFX, vecgX, ot,
+                   bounds);
 
-#    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
-#                              h, modellags, multisteps, CF.type, normalizer,
-#                              matxt, matat, matFX, vecgX, ot);
-        CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
-                                h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                                matxt, matat, matFX, vecgX, ot);
     return(CF.res);
 }
 
@@ -441,8 +412,8 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-    if(any(hin.constrains(C)<0) & silent==FALSE){
-        message("Unstable model is estimated! Use 'bounds=TRUE' to address this issue!");
+    if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
+        message("Unstable model estimated! Use a different value of 'bounds' parameter to address this issue!");
     }
 
 # Change the CF.type in orders to calculate likelihood correctly.

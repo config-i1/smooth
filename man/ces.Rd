@@ -12,7 +12,7 @@
       CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
       use.test=FALSE, intervals=FALSE, int.w=0.95,
       int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-      bounds=FALSE, holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
+      bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
       xreg=NULL, go.wild=FALSE, intermittent=FALSE)
 }
 \arguments{
@@ -40,8 +40,7 @@
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
   }
-  \item{bounds}{
-    If \code{TRUE}, the smoothing parameter is chosen from the stability region, which makes estimation much slower. If \code{FALSE}, no bounds are used, which is fast but may result in non-stable model.
+  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{holdout}{
     If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
@@ -108,7 +107,7 @@ y_ces_holdout <- ces(y,h=20,holdout=TRUE)
 y_ces_no_holdout <- ces(y,h=20,holdout=FALSE)
 
 y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-y_ces <- ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds=TRUE)
+y_ces <- ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds="a")
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
