@@ -1066,8 +1066,6 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
     char boundtype = as<char>(bounds);
 
-    unsigned int maxlag = max(lags);
-
 // Values needed for eigenvalues calculation
     arma::cx_vec eigval;
     arma::mat matrixD = matrixF;
