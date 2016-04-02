@@ -1043,10 +1043,6 @@ checker <- function(inherits=TRUE){
             y.high <- NA;
         }
 
-        if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
-            message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
-        }
-
 # Change CF.type for the more appropriate model selection
         if(multisteps==TRUE){
             CF.type <- "GV";
@@ -1279,6 +1275,9 @@ checker <- function(inherits=TRUE){
     modelname <- paste0("ETS(",model,")");
 
 if(silent==FALSE){
+    if(all(unlist(strsplit(model,""))!="C") & any(abs(eigen(matF - vecg %*% matw)$values)>1)){
+        message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
+    }
 # Make plot
     if(intervals==TRUE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,

@@ -466,12 +466,6 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     matvt <- cbind(matvt,matat);
   }
 
-    if(silent==FALSE){
-        if(bounds=="a" & sum(1-constrains(C)>1)>=1){
-        message("Non-stable model estimated! Use with care! To avoid that reestimate ces using admissible bounds.");
-        }
-    }
-
 # Right down the smoothing parameters
     A <- complex(real=C[1],imaginary=C[2]);
 
@@ -508,6 +502,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
 
   if(silent==FALSE){
+    if(bounds!="a" & sum(1-constrains(C)>1)>=1){
+        message("Non-stable model was estimated! Use with care! To avoid that reestimate ces using admissible bounds.");
+    }
 # Make plot
     if(intervals==TRUE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,

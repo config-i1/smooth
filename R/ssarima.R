@@ -475,10 +475,6 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-    if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
-        message("Unstable model estimated! Use a different value of 'bounds' parameter to address this issue!");
-    }
-
 # Change the CF.type in orders to calculate likelihood correctly.
     if(multisteps==TRUE){
         CF.type <- "GV";
@@ -500,6 +496,10 @@ Likelihood.value <- function(C){
     vecg <- elements$vecg;
     matvt[1,] <- elements$xt;
     matat[1,] <- elements$matat;
+    polysos.ar <- elements$polysos.ar;
+    polysos.ma <- elements$polysos.ma;
+    arroots <- abs(polyroot(polysos.ar));
+    maroots <- abs(polyroot(polysos.ma));
 #    matFX <- elements$matFX;
 #    vecgX <- elements$vecgX;
     if(is.null(initial)){
@@ -694,6 +694,22 @@ Likelihood.value <- function(C){
     }
 
 if(silent==FALSE){
+    if(any(maroots<1)){
+        if(bounds!="a"){
+            message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+        }
+        else{
+            message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+        }
+    }
+    if(any(arroots<1)){
+        if(bounds!="a"){
+            message("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!");
+        }
+        else{
+            message("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer.");
+        }
+    }
 # Make plot
     if(intervals==TRUE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,

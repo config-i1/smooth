@@ -412,10 +412,6 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-    if(any(abs(eigen(matF - vecg %*% matw)$values)>1) & silent==FALSE){
-        message("Unstable model estimated! Use a different value of 'bounds' parameter to address this issue!");
-    }
-
 # Change the CF.type in orders to calculate likelihood correctly.
     if(multisteps==TRUE){
         CF.type <- "GV";
@@ -563,6 +559,14 @@ Likelihood.value <- function(C){
     modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
 
 if(silent==FALSE){
+    if(any(abs(eigen(matF - vecg %*% matw)$values)>1)){
+        if(bounds!="a"){
+            message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+        }
+        else{
+            message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+        }
+    }
 # Make plot
     if(intervals==TRUE){
         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
