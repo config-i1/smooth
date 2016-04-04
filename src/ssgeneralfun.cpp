@@ -37,7 +37,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 double wvalue(arma::vec matrixVt, arma::rowvec rowvecW, char T, char S){
 // matrixVt is a vector here!
-    double yfit;
+    double yfit = 0;
 
     switch(S){
 // ZZN
@@ -860,7 +860,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     arma::rowvec horvec(hor);
 
     if(multi==true){
-        for(int i=0; i<hor; i=i+1){
+        for(unsigned int i=0; i<hor; i=i+1){
             horvec(i) = hor - i;
         }
         materrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
@@ -893,13 +893,13 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 2:
-            for(int i=0; i<hor; i=i+1){
+            for(unsigned int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
             }
             CFres = CFres + (2 / double(obs)) * double(hor) * yactsum;
         break;
         case 3:
-            for(int i=0; i<hor; i=i+1){
+            for(unsigned int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
             }
             CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
@@ -929,12 +929,12 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             }
         break;
         case 2:
-            for(int i=0; i<hor; i=i+1){
+            for(unsigned int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
             }
         break;
         case 3:
-            for(int i=0; i<hor; i=i+1){
+            for(unsigned int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
             }
         break;
