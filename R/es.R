@@ -118,18 +118,32 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         damped <- TRUE;
     }
 
-    if(any(unlist(strsplit(model,""))=="C")){
-        if(Etype=="C"){
-            Etype <- "Z";
+# Define if we want to select or combine models... or do none of the above.
+    if(is.null(models.pool)){
+        if(any(unlist(strsplit(model,""))=="C")){
+            model.do <- "combine";
+            if(Etype=="C"){
+                Etype <- "Z";
+            }
+            if(Ttype=="C"){
+                Ttype <- "Z";
+            }
+            if(Stype=="C"){
+                Stype <- "Z";
+            }
         }
-        if(Ttype=="C"){
-            Ttype <- "Z";
+        else if(any(unlist(strsplit(model,""))=="Z")){
+            model.do <- "select";
         }
-        if(Stype=="C"){
-            Stype <- "Z";
+        else{
+            model.do <- "nothing";
         }
     }
+    else{
+        model.do <- "select";
+    }
 
+# Check the data for NAs
     if(any(is.na(data))){
         if(silent==FALSE){
             message("Data contains NAs. These observations will be excluded.");
@@ -732,11 +746,71 @@ checker <- function(inherits=TRUE){
 # Number of observations in the error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1;
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
-        if(any(unlist(strsplit(model,""))=="C") | any(Etype=="Z",Ttype=="Z",Stype=="Z")){
-# Produce the data for AIC weights
+        if(any(model.do==c("combine","select"))){
+
+##### This huge chunk of code must be transfered into .cpp fil along with all the model selection thingies. #####
+            estimation.script <- function(Etype,Ttype,Stype,damped,phi){
+                environment(C.values) <- environment();
+                environment(CF) <- environment();
+                environment(IC.calc) <- environment();
+                environment(Likelihood.value) <- environment();
+
+                basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
+                                          damped, phi, smoothingparameters, initialstates, seasonalcoefs);
+                n.components <- basicparams$n.components;
+                maxlag <- basicparams$maxlag;
+                matvt <- basicparams$matvt;
+                vecg <- basicparams$vecg;
+                estimate.phi <- basicparams$estimate.phi;
+                phi <- basicparams$phi;
+                modellags <- basicparams$modellags;
+
+                Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
+                C <- Cs$C;
+                C.upper <- Cs$C.upper;
+                C.lower <- Cs$C.lower;
+
+# Parameters are chosen to speed up the optimisation process and have decent accuracy
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
+                C <- res$solution;
+                environment(CF) <- environment();
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                              opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
+                C <- res$solution;
+
+                if(all(C==Cs$C)){
+                    warning(paste0("Failed to optimise the model ",current.model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                            call.=FALSE, immediate.=TRUE);
+                }
+
+                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent;
+
+# Change CF.type for the more appropriate model selection
+                if(multisteps==TRUE){
+                    CF.type <- "GV";
+                }
+                else{
+                    CF.type <- "MSE";
+                }
+
+                IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype);
+                ICs <- IC.values$ICs;
+#Change back
+                CF.type <- CF.type.original;
+
+                return(list(ICs=ICs,objective=res$objective,C=C));
+            }
+
+# Number of observations in the error matrix excluding NAs.
+            errors.mat.obs <- obs - h + 1;
 
             if(!is.null(models.pool)){
                 models.number <- length(models.pool);
+
+# List for the estimated models in the pool
+                results <- as.list(c(1:models.number));
+                j <- 0;
             }
             else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
@@ -758,97 +832,159 @@ checker <- function(inherits=TRUE){
                     errors.pool <- Etype;
                 }
 
-                if(Ttype!="Z"){
-                    if(damped==TRUE){
-                        trends.pool <- paste0(Ttype,"d");
+# List for the estimated models in the pool
+                results <- list(NA);
+
+### Use brains in order to define models to estimate ###
+                if(model.do=="select" & any(c(Ttype,Stype)=="Z")){
+                    if(silent==FALSE){
+                        cat("Forming the pool of models based on... ");
+                    }
+
+# Some preparation variables
+                    if(Etype!="Z"){
+                        small.pool.error <- Etype;
+                        errors.pool <- Etype;
                     }
                     else{
-                        trends.pool <- Ttype;
+                        small.pool.error <- "A";
+                        errors.pool <- c("A","M");
                     }
-                }
 
-                if(Stype!="Z"){
-                    season.pool <- Stype;
-                }
-
-                models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
-                models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
-                                      trends.pool,
-                                      rep(season.pool,each=length(trends.pool)));
-            }
-
-# Number of observations in the error matrix excluding NAs.
-            errors.mat.obs <- obs - h + 1;
-
-            results <- as.list(c(1:models.number));
-
-            if(silent==FALSE){
-                cat("Building model: ");
-            }
-# Start cycle of models
-            for(j in 1:models.number){
-                    current.model <- models.pool[j];
-                    Etype <- substring(current.model,1,1);
-                    Ttype <- substring(current.model,2,2);
-                    if(nchar(current.model)==4){
-                        damped <- TRUE;
-                        phi <- NULL;
-                        Stype <- substring(current.model,4,4);
+                    if(Ttype!="Z"){
+                        if(damped==TRUE){
+                            small.pool.trend <- paste0(Ttype,"d");
+                            trends.pool <- small.pool.trend;
+                        }
+                        else{
+                            small.pool.trend <- Ttype;
+                            trends.pool <- Ttype;
+                        }
                     }
                     else{
-                        damped <- FALSE;
-                        phi <- 1;
-                        Stype <- substring(current.model,3,3);
+                        small.pool.trend <- c("N","A");
+                        trends.pool <- c("N","A","Ad","M","Md");
                     }
 
-                if(silent==FALSE){
-                    cat(paste0(current.model," "));
-                }
+                    if(Stype!="Z"){
+                        small.pool.season <- Stype;
+                        season.pool <- Stype;
+                    }
+                    else{
+                        small.pool.season <- c("N","A");
+                        season.pool <- c("N","A","M");
+                    }
 
-                basicparams <- initparams(Ttype, Stype, datafreq, obs, y,
-                                          damped, phi, smoothingparameters, initialstates, seasonalcoefs);
-                n.components <- basicparams$n.components;
-                maxlag <- basicparams$maxlag;
-                matvt <- basicparams$matvt;
-                vecg <- basicparams$vecg;
-                estimate.phi <- basicparams$estimate.phi;
-                phi <- basicparams$phi;
-                modellags <- basicparams$modellags;
+                    small.pool <- paste0(rep(small.pool.error,length(small.pool.trend)*length(small.pool.season)),
+                                         rep(small.pool.trend,each=length(small.pool.season)),
+                                         rep(small.pool.season,length(small.pool.trend)));
+                    tested.model <- NULL;
+# This is the step between models to check
+                    l <- 1;
 
-                Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
-                C <- Cs$C;
-                C.upper <- Cs$C.upper;
-                C.lower <- Cs$C.lower;
+                    for(j in 1:(length(small.pool.trend)*length(small.pool.season))){
+                        if(j==4){
+                            j <- 3;
+                            break();
+                        }
+                        current.model <- small.pool[j];
+                        Etype_n <- substring(current.model,1,1);
+                        Ttype_n <- substring(current.model,2,2);
+                        if(nchar(current.model)==4){
+                            damped_n <- TRUE;
+                            phi_n <- NULL;
+                            Stype_n <- substring(current.model,4,4);
+                        }
+                        else{
+                            damped_n <- FALSE;
+                            phi_n <- 1;
+                            Stype_n <- substring(current.model,3,3);
+                        }
 
-# Parameters are chosen to speed up the optimisation process and have decent accuracy
-                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
-                C <- res$solution;
-                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                            opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
-                C <- res$solution;
+                        res <- estimation.script(Etype=Etype_n,Ttype=Ttype_n,Stype=Stype_n,damped=damped_n,phi=phi_n);
+                        results[[j]] <- c(res$ICs,Etype_n,Ttype_n,Stype_n,damped_n,res$objective,res$C);
 
-                if(all(C==Cs$C)){
-                    warning(paste0("Failed to optimise the model ",current.model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
-                        call.=FALSE, immediate.=TRUE);
-                }
+                        tested.model <- c(tested.model,current.model);
+                        if(silent==FALSE){
+                            cat(paste0(current.model,", "));
+                        }
+                        if(j>1){
+# If the first is better than the second, then choose first
+                            if(results[[j-l]][IC] <= results[[j]][IC]){
+# If Ttype is the same, then we checked seasonality
+                                if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
+                                    season.pool <- "N";
+                                    l <- 2;
+                                }
+# Otherwise we checked trend
+                                else{
+                                    trends.pool <- "N";
+                                }
+                            }
+                            else{
+                                if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
+                                    season.pool <- c("A","M");
+                                    small.pool[3] <- small.pool[4];
+                                }
+                                else{
+                                    trends.pool <- c("A","Ad","M","Md");
+                                }
+                            }
+                        }
+                    }
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent;
-
-# Change CF.type for the more appropriate model selection
-                if(multisteps==TRUE){
-                    CF.type <- "GV";
+                    models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
+                                          trends.pool,
+                                          rep(season.pool,each=length(trends.pool)));
+                    models.pool <- c(models.pool,small.pool[c(1:min(3,length(small.pool)))]);
+                    models.pool <- unique(models.pool);
+                    models.number <- length(models.pool);
+# Find the models that have already been estimated in the pool
+                    estimated.models <- rowSums(matrix(models.pool,models.number,length(tested.model))==matrix(tested.model,models.number,length(tested.model),byrow=T));
+# Put them in front places of the pool
+                    models.pool <- models.pool[order(estimated.models,decreasing=T)]
                 }
                 else{
-                    CF.type <- "MSE";
+                    models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
+                    models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
+                                          trends.pool,
+                                          rep(season.pool,each=length(trends.pool)));
+                    j <- 0;
                 }
-                IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype);
-                ICs <- IC.values$ICs;
-#Change back
-                CF.type <- CF.type.original;
-
-                results[[j]] <- c(ICs,Etype,Ttype,Stype,damped,res$objective,C);
             }
+
+            if(silent==FALSE){
+                cat("Estimation progress:    ");
+            }
+# Start cycle of models
+            while(j < models.number){
+                j <- j + 1;
+                if(silent==FALSE){
+                    if(j==1){
+                        cat("\b");
+                    }
+                    cat(paste0(rep("\b",nchar(round((j-1)/models.number,2)*100)+1),collapse=""));
+                    cat(paste0(round(j/models.number,2)*100,"%"));
+                }
+
+                current.model <- models.pool[j];
+                Etype <- substring(current.model,1,1);
+                Ttype <- substring(current.model,2,2);
+                if(nchar(current.model)==4){
+                    damped <- TRUE;
+                    phi <- NULL;
+                    Stype <- substring(current.model,4,4);
+                }
+                else{
+                    damped <- FALSE;
+                    phi <- 1;
+                    Stype <- substring(current.model,3,3);
+                }
+
+                res <- estimation.script(Etype,Ttype,Stype,damped,phi);
+                results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C);
+            }
+
             if(silent==FALSE){
                 cat("... Done! \n");
             }
@@ -859,7 +995,7 @@ checker <- function(inherits=TRUE){
 
             IC.selection[is.nan(IC.selection)] <- 1E100;
 
-            if(any(unlist(strsplit(model,""))=="C")){
+            if(model.do=="combine"){
                 IC.selection <- IC.selection/(h^multisteps);
                 IC.weights <- exp(-0.5*(IC.selection-min(IC.selection)))/sum(exp(-0.5*(IC.selection-min(IC.selection))));
                 ICs <- sum(IC.selection * IC.weights);
@@ -915,7 +1051,7 @@ checker <- function(inherits=TRUE){
             C <- Cs$C;
     }
 
-    if(all(unlist(strsplit(model,""))!="C")){
+    if(model.do!="combine"){
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matat, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
@@ -1165,6 +1301,8 @@ checker <- function(inherits=TRUE){
                                     matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                     matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
 
+            n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag + intermittent;
+
             s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
 # Write down the forecasting intervals
             if(intervals==TRUE){
@@ -1275,7 +1413,7 @@ checker <- function(inherits=TRUE){
     modelname <- paste0("ETS(",model,")");
 
 if(silent==FALSE){
-    if(all(unlist(strsplit(model,""))!="C") & any(abs(eigen(matF - vecg %*% matw)$values)>1)){
+    if(model.do!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>1.0001)){
         message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
     }
 # Make plot
@@ -1297,7 +1435,7 @@ if(silent==FALSE){
     }
 
 # Print output
-    if(all(unlist(strsplit(model,""))!="C")){
+    if(model.do!="combine"){
         if(damped==TRUE){
             phivalue <- phi;
         }
