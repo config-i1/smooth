@@ -283,7 +283,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Stop if number of observations is less than number of parameters
     if(obs.ot < n.param.test){
         message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
-        stop("Not enough observations for the fit of the model!",call.=FALSE);
+        stop("Not enough observations for the fit of the ETS(",model,")! Try a different model.",call.=FALSE);
     }
 
 # Stop if number of observations is less than horizon and multisteps is chosen.
