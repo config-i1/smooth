@@ -750,6 +750,7 @@ checker <- function(inherits=TRUE){
 
 ##### This huge chunk of code must be transfered into .cpp fil along with all the model selection thingies. #####
             estimation.script <- function(Etype,Ttype,Stype,damped,phi){
+# Start functions from current environment
                 environment(C.values) <- environment();
                 environment(CF) <- environment();
                 environment(IC.calc) <- environment();
@@ -860,33 +861,40 @@ checker <- function(inherits=TRUE){
                             small.pool.trend <- Ttype;
                             trends.pool <- Ttype;
                         }
+                        check.T <- FALSE;
                     }
                     else{
                         small.pool.trend <- c("N","A");
                         trends.pool <- c("N","A","Ad","M","Md");
+                        check.T <- TRUE;
                     }
 
                     if(Stype!="Z"){
                         small.pool.season <- Stype;
                         season.pool <- Stype;
+                        check.S <- FALSE;
                     }
                     else{
-                        small.pool.season <- c("N","A");
+                        small.pool.season <- c("N","A","M");
                         season.pool <- c("N","A","M");
+                        check.S <- TRUE;
                     }
 
+# If ZZZ, then the vector is: "ANN" "ANA" "ANM" "AAN" "AAA" "AAM"
                     small.pool <- paste0(rep(small.pool.error,length(small.pool.trend)*length(small.pool.season)),
                                          rep(small.pool.trend,each=length(small.pool.season)),
                                          rep(small.pool.season,length(small.pool.trend)));
                     tested.model <- NULL;
-# This is the step between models to check
-                    l <- 1;
 
-                    for(j in 1:(length(small.pool.trend)*length(small.pool.season))){
-                        if(j==4){
-                            j <- 3;
-                            break();
-                        }
+# Counter + checks for the components
+                    j <- 1;
+                    i <- 0;
+                    check <- TRUE;
+                    bestj <- 1;
+
+### Form the pool of models using brain
+                    while(check==TRUE){
+                        i <- i + 1;
                         current.model <- small.pool[j];
                         Etype_n <- substring(current.model,1,1);
                         Ttype_n <- substring(current.model,2,2);
@@ -902,7 +910,7 @@ checker <- function(inherits=TRUE){
                         }
 
                         res <- estimation.script(Etype=Etype_n,Ttype=Ttype_n,Stype=Stype_n,damped=damped_n,phi=phi_n);
-                        results[[j]] <- c(res$ICs,Etype_n,Ttype_n,Stype_n,damped_n,res$objective,res$C);
+                        results[[i]] <- c(res$ICs,Etype_n,Ttype_n,Stype_n,damped_n,res$objective,res$C);
 
                         tested.model <- c(tested.model,current.model);
                         if(silent==FALSE){
@@ -910,39 +918,58 @@ checker <- function(inherits=TRUE){
                         }
                         if(j>1){
 # If the first is better than the second, then choose first
-                            if(results[[j-l]][IC] <= results[[j]][IC]){
+                            if(results[[bestj]][IC] <= results[[i]][IC]){
 # If Ttype is the same, then we checked seasonality
-                                if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
-                                    season.pool <- results[[j-l]][6];
-                                    l <- 2;
+                                if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
+                                    season.pool <- results[[bestj]][6];
+                                    check.S <- FALSE;
+                                    j <- which(small.pool!=small.pool[bestj] &
+                                                   substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool);
                                 }
 # Otherwise we checked trend
                                 else{
-                                    trends.pool <- results[[j-l]][5];
+                                    trends.pool <- results[[bestj]][5];
+                                    check.T <- FALSE;
                                 }
                             }
                             else{
-                                if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
-                                    season.pool <- c("A","M");
-                                    small.pool[3] <- small.pool[4];
+                                if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
+                                    season.pool <- season.pool[season.pool!=results[[bestj]][6]];
+                                    if(length(season.pool)>1){
+# Select another seasonal model, that is not from the previous iteration and not the current one
+                                        bestj <- j;
+                                        j <- 3;
+                                    }
+                                    else{
+                                        bestj <- j;
+                                        j <- which(substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool &
+                                                  substring(small.pool,2,2)!=substring(current.model,2,2));
+                                        check.S <- FALSE;
+                                    }
                                 }
                                 else{
                                     trends.pool <- c("A","Ad","M","Md");
+                                    check.T <- FALSE;
                                 }
                             }
+
+                            if(all(c(check.T,check.S)==FALSE)){
+                                check <- FALSE;
+                            }
+
+                        }
+                        else{
+                            j <- 2;
                         }
                     }
 
                     models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
                                           trends.pool,
                                           rep(season.pool,each=length(trends.pool)));
-                    models.pool <- c(models.pool,small.pool[c(1:min(3,length(small.pool)))]);
-                    models.pool <- unique(models.pool);
+
+                    models.pool <- unique(c(tested.model,models.pool));
                     models.number <- length(models.pool);
-# Find the models that have already been estimated in the pool
-                    estimated.models <- rowSums(matrix(models.pool,models.number,length(tested.model))==matrix(tested.model,models.number,length(tested.model),byrow=T));
-# Put them in front places of the pool
-                    models.pool <- models.pool[order(estimated.models,decreasing=T)];
+                    j <- length(tested.model);
                 }
                 else{
                     models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
@@ -988,8 +1015,8 @@ checker <- function(inherits=TRUE){
             if(silent==FALSE){
                 cat("... Done! \n");
             }
-            IC.selection <- rep(NA,length(models.pool));
-            for(i in 1:length(models.pool)){
+            IC.selection <- rep(NA,models.number);
+            for(i in 1:models.number){
                 IC.selection[i] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))));
             }
 
