@@ -913,12 +913,12 @@ checker <- function(inherits=TRUE){
                             if(results[[j-l]][IC] <= results[[j]][IC]){
 # If Ttype is the same, then we checked seasonality
                                 if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
-                                    season.pool <- results[[j-1]][6];
+                                    season.pool <- results[[j-l]][6];
                                     l <- 2;
                                 }
 # Otherwise we checked trend
                                 else{
-                                    trends.pool <- results[[j-1]][5];
+                                    trends.pool <- results[[j-l]][5];
                                 }
                             }
                             else{
