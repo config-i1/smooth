@@ -152,7 +152,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(is.ts(data)){
             datanew <- ts(datanew,start=start(data),frequency=frequency(data));
         }
-        data <- datanew
+        data <- datanew;
     }
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
