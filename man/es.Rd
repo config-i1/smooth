@@ -25,7 +25,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 
   The parameter \code{model} can also be a vector of names of models for a finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will estimate only two models and select the best of them.
 
-  Keep in mind that when model selection or combination is selected, the optimiser may return not as accurate estimates of parameters as when individual model is selected. This may happen because of the decreased precision of optimiser, which is done intentionally to speed up the optimisation process.
+  Keep in mind that when model selection or combination is selected, the optimiser may return not as accurate estimates of parameters as when individual model is selected. This may happen because of the decreased precision of optimiser, which is done intentionally to speed up the optimisation process. Furthermore, model selection uses Branch and Bound method and may skip some models that could have slightly smaller information criteria.
   }
   \item{persistence}{ The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
@@ -153,7 +153,11 @@ es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
 es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
 
 # Model selection example
-es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,trace=FALSE,bounds="a") -> test
+es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,bounds="a") -> test
+
+# Model selection. Compare AICc of these two models:
+es(M3$N1683$x,"ZZZ",h=10,holdout=T)->test
+es(M3$N1683$x,"MAdM",h=10,holdout=T)->test
 
 # Combination example
 es(M3$N1245$x,model="CCC",h=8,holdout=TRUE) -> test
