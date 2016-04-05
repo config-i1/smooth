@@ -913,12 +913,12 @@ checker <- function(inherits=TRUE){
                             if(results[[j-l]][IC] <= results[[j]][IC]){
 # If Ttype is the same, then we checked seasonality
                                 if(substring(current.model,2,2) == substring(small.pool[j-l],2,2)){
-                                    season.pool <- "N";
+                                    season.pool <- results[[j-1]][6];
                                     l <- 2;
                                 }
 # Otherwise we checked trend
                                 else{
-                                    trends.pool <- "N";
+                                    trends.pool <- results[[j-1]][5];
                                 }
                             }
                             else{
@@ -942,7 +942,8 @@ checker <- function(inherits=TRUE){
 # Find the models that have already been estimated in the pool
                     estimated.models <- rowSums(matrix(models.pool,models.number,length(tested.model))==matrix(tested.model,models.number,length(tested.model),byrow=T));
 # Put them in front places of the pool
-                    models.pool <- models.pool[order(estimated.models,decreasing=T)]
+                    models.pool <- models.pool[order(estimated.models,decreasing=T)];
+print(models.pool)
                 }
                 else{
                     models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
