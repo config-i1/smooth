@@ -234,14 +234,14 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
     else{
         n.exovars <- 1;
-        matxt <- matrix(1,max(obs+1,obs.all),1);
+        matxt <- matrix(1,obs.xt,1);
         matat <- matrix(0,obs.xt,1);
         matFX <- matrix(1,1,1);
         vecgX <- matrix(0,1,1);
     }
 
 # 1 stands for the variance
-    n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent + 1;
+    n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent + 1 + constant;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){
@@ -532,10 +532,10 @@ Likelihood.value <- function(C){
     statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
                                  matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                  modellags, Ttype, Stype);
-    if(!is.null(xreg)){
+#    if(!is.null(xreg)){
 # Write down the matat and produce values for the holdout
         matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
-    }
+#    }
 
 # Produce matrix of errors
 #    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
