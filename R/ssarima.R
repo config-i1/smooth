@@ -240,6 +240,15 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         vecgX <- matrix(0,1,1);
     }
 
+# This should be done for general case
+    if(constant==TRUE){
+        n.exovars <- 1;
+        matxt <- matrix(1,obs.xt,1);
+        matat <- matrix(0,obs.xt,1);
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
+    }
+
 # 1 stands for the variance
     n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent + 1 + constant;
     if(!is.null(xreg)){
