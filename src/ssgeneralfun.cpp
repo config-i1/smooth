@@ -407,7 +407,8 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 // [[Rcpp::export]]
 RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
                             SEXP modellags, SEXP Ttype, SEXP Stype, SEXP nexovars, SEXP matat,
-                            SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg){
+                            SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg,
+                            SEXP matFX, SEXP vecgX, SEXP gowild){
 
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -439,6 +440,14 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     bool estimateinitial = as<bool>(estiminit);
     bool estimateinitialseason = as<bool>(estiminitseason);
     bool estimatexreg = as<bool>(estimxreg);
+
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol());
+
+    NumericMatrix vecgX_n(vecgX);
+    arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow());
+
+    bool wild = as<bool>(gowild);
 
     arma::mat matrixF(1,1,arma::fill::ones);
     arma::mat rowvecW(1,1,arma::fill::ones);
@@ -476,7 +485,18 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
     if(estimatexreg==TRUE){
-        matrixAt.each_row() = C.cols(C.n_cols - nexo,C.n_cols - 1);
+        if(wild==TRUE){
+            matrixAt.each_row() = C.cols(C.n_cols - (2*nexo + std::pow(nexo,2)),
+                                  C.n_cols - (1 + nexo + std::pow(nexo,2)));
+            for(int i=0; i < nexo; i = i+1){
+                matrixFX.row(i) = C.cols(C.n_cols - (nexo + nexo * (nexo - i)),
+                                         C.n_cols - (1 + nexo + nexo*(nexo - (i + 1))));
+            }
+            vecGX = C.cols(C.n_cols - nexo, C.n_cols - 1).t();
+        }
+        else{
+            matrixAt.each_row() = C.cols(C.n_cols - nexo,C.n_cols - 1);
+        }
     }
 
 /* # The default values of matrices are set for ZNN  models */
@@ -527,7 +547,8 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
     return wrap(List::create(Named("matF") = matrixF, Named("matw") = rowvecW, Named("vecg") = vecG,
-                              Named("phi") = phivalue, Named("matvt") = matrixVt, Named("matat") = matrixAt));
+                             Named("phi") = phivalue, Named("matvt") = matrixVt, Named("matat") = matrixAt,
+                             Named("matFX") = matrixFX, Named("vecgX") = vecGX));
 }
 
 List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,

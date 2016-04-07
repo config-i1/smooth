@@ -7,7 +7,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
-    go.wild <- FALSE;
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
@@ -424,11 +423,11 @@ CF <- function(C){
     init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                             Ttype, Stype, n.exovars, matat, estimate.persistence,
                             estimate.phi, estimate.initial, estimate.initial.season,
-                            estimate.xreg);
+                            estimate.xreg, matFX, vecgX, go.wild);
 
     CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                        h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                       matxt, init.ets$matat, matFX, vecgX, ot,
+                       matxt, init.ets$matat, init.ets$matFX, init.ets$vecgX, ot,
                        bounds);
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -557,6 +556,12 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
         C <- c(C,matat[maxlag,]);
         C.lower <- c(C.lower,rep(-Inf,n.exovars));
         C.upper <- c(C.upper,rep(Inf,n.exovars));
+        if(go.wild==TRUE){
+            C <- c(C,as.vector(matFX));
+            C <- c(C,as.vector(vecgX));
+            C.lower <- c(C.lower,rep(-Inf,(n.exovars+1)*n.exovars));
+            C.upper <- c(C.upper,rep(Inf,(n.exovars+1)*n.exovars));
+        }
     }
 
     C <- C[!is.na(C)];
@@ -802,7 +807,7 @@ checker <- function(inherits=TRUE){
 
                 return(list(ICs=ICs,objective=res$objective,C=C));
             }
-
+##### End of estimation script #####
 # Number of observations in the error matrix excluding NAs.
             errors.mat.obs <- obs - h + 1;
 
@@ -972,6 +977,17 @@ checker <- function(inherits=TRUE){
                     j <- length(tested.model);
                 }
                 else{
+# Make the corrections in the pool for combinations
+                    if(Etype!="Z"){
+                        errors.pool <- Etype;
+                    }
+                    if(Ttype!="Z"){
+                        trends.pool <- Ttype;
+                    }
+                    if(Stype!="Z"){
+                        season.pool <- Stype;
+                    }
+
                     models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
                     models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
                                           trends.pool,
@@ -1082,13 +1098,15 @@ checker <- function(inherits=TRUE){
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matat, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
-                                estimate.xreg);
+                                estimate.xreg, matFX, vecgX, go.wild);
         vecg <- init.ets$vecg;
         phi <- init.ets$phi;
         matvt <- init.ets$matvt;
         matat <- init.ets$matat;
         matF <- init.ets$matF;
         matw <- init.ets$matw;
+        matFX <- init.ets$matFX;
+        vecgX <- init.ets$vecgX;
 
         if(damped==TRUE){
             model <- paste0(Etype,Ttype,"d",Stype);
@@ -1182,8 +1200,16 @@ checker <- function(inherits=TRUE){
                 }
 
                 y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
-                y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
-                y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+                if(!is.null(xreg)){
+                    y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                                                  matF, matw, h, Ttype, Stype, modellags,
+                                                  matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+                }
+                else{
+                    y.exo.for <- rep(0,h);
+                }
+                y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+                y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             }
             else{
                 vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
@@ -1289,13 +1315,15 @@ checker <- function(inherits=TRUE){
             init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                     Ttype, Stype, n.exovars, matat, estimate.persistence,
                                     estimate.phi, estimate.initial, estimate.initial.season,
-                                    estimate.xreg);
+                                    estimate.xreg, matFX, vecgX, go.wild);
             vecg <- init.ets$vecg;
             phi <- init.ets$phi;
             matvt <- init.ets$matvt;
             matat <- init.ets$matat;
             matF <- init.ets$matF;
             matw <- init.ets$matw;
+            matFX <- init.ets$matFX;
+            vecgX <- init.ets$vecgX;
 
             fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                                   modellags, Etype, Ttype, Stype,
@@ -1365,8 +1393,16 @@ checker <- function(inherits=TRUE){
                     }
 
                     y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
-                    y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T),start=start(y.for),frequency=frequency(data));
+                    if(!is.null(xreg)){
+                        y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                                                               matF, matw, h, Ttype, Stype, modellags,
+                                                               matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+                    }
+                    else{
+                        y.exo.for <- rep(0,h);
+                    }
+                    y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
                 }
                 else{
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
@@ -1477,7 +1513,7 @@ if(silent==FALSE){
                  holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
     }
     else{
-        cat(paste0("AIC weights were used to produce the combination of forecasts\n"));
+        cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
         ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                  phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                  n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
@@ -1491,8 +1527,9 @@ if(silent==FALSE){
         return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matvt,
                     initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                    errors=errors.mat,actuals=data,holdout=y.holdout,ICs=ICs,
-                    CF=CF.objective,CF.type=CF.type,FI=FI,xreg=xreg,accuracy=errormeasures));
+                    errors=errors.mat,actuals=data,holdout=y.holdout,
+                    xreg=xreg,persistenceX=vecgX,transitionX=matFX,
+                    ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
     }
     else{
         return(list(model=model,fitted=y.fit,forecast=y.for,

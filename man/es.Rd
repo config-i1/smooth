@@ -69,7 +69,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
+  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
@@ -105,6 +105,9 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{persistenceX} - persistence vector g for exogenous variables.
+    \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
     \item \code{CF.type} - Type of cost function used in the estimation.
@@ -156,8 +159,8 @@ es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
 es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,bounds="a") -> test
 
 # Model selection. Compare AICc of these two models:
-es(M3$N1683$x,"ZZZ",h=10,holdout=T)->test
-es(M3$N1683$x,"MAdM",h=10,holdout=T)->test
+es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)->test
+es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)->test
 
 # Combination example
 es(M3$N1245$x,model="CCC",h=8,holdout=TRUE) -> test
