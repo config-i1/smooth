@@ -359,13 +359,13 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # If xreg is vector or simple ts
-        if(length(xreg)!=obs & length(xreg)!=obs.all){
-            stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
-        }
-        if(length(xreg)==obs){
-            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-            xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-        }
+            if(length(xreg)!=obs & length(xreg)!=obs.all){
+                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+            }
+            if(length(xreg)==obs){
+                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                xreg <- c(as.vector(xreg),rep(xreg[obs],h));
+            }
 # Number of exogenous variables
         n.exovars <- 1;
 # Define matrix w for exogenous variables
@@ -428,7 +428,7 @@ CF <- function(C){
 
     CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                        h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-                       matxt, matat, matFX, vecgX, ot,
+                       matxt, init.ets$matat, matFX, vecgX, ot,
                        bounds);
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
@@ -1066,7 +1066,7 @@ checker <- function(inherits=TRUE){
             C <- res$solution;
 
             if(all(C==Cs$C)){
-                warning(paste0("Failed to optimise the model ",model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                warning(paste0("Failed to optimise the model ETS(",model,"). Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
                         call.=FALSE, immediate.=TRUE);
             }
 
