@@ -210,7 +210,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ### Check the length of the provided data. Say bad words if:
 # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
 # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
-    if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) | (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
+    if((Stype!="N" & (obs <= 2*datafreq) & is.null(initial.season)) |
+       (Stype!="N" & (obs <= datafreq) & is.null(initial.season) & is.null(persistence))){
     	if(is.null(initial.season)){
         	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
        		Stype <- "N";
@@ -786,7 +787,9 @@ checker <- function(inherits=TRUE){
                 C <- res$solution;
 
                 if(all(C==Cs$C)){
-                    warning(paste0("Failed to optimise the model ",current.model,". Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                    warning(paste0("Failed to optimise the model ETS(",current.model,
+                                   "). Try different parameters maybe?\nAnd check all the messages and warnings...",
+                                   "\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
                             call.=FALSE, immediate.=TRUE);
                 }
 
@@ -1082,7 +1085,9 @@ checker <- function(inherits=TRUE){
             C <- res$solution;
 
             if(all(C==Cs$C)){
-                warning(paste0("Failed to optimise the model ETS(",model,"). Try different parameters maybe?\nAnd check all the messages and warnings...\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                warning(paste0("Failed to optimise the model ETS(",model,
+                               "). Try different parameters maybe?\nAnd check all the messages and warnings...",
+                               "\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
                         call.=FALSE, immediate.=TRUE);
             }
 
