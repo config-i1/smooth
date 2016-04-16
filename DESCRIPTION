@@ -12,5 +12,5 @@ Depends: R (>= 3.1.2), stats, graphics, zoo, nloptr, numDeriv, polynom
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:
-    Rcpp, RcppArmadillo
+    Rcpp, RcppArmadillo (>= 0.6.500.0.0)
 Suggests: Mcomp
