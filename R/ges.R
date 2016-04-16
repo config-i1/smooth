@@ -296,7 +296,7 @@ elements.ges <- function(C){
             matFX <- matrix(C[(length(C)-n.exovars^2-n.exovars+1):(length(C)-n.exovars)],n.exovars,n.exovars)
         }
         else{
-            matFX <- matrix(transition,n.exovars,n.exovars);
+            matFX <- matrix(transitionX,n.exovars,n.exovars);
         }
 
         if(is.null(persistenceX)){

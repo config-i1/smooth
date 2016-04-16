@@ -408,7 +408,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
                             SEXP modellags, SEXP Ttype, SEXP Stype, SEXP nexovars, SEXP matat,
                             SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg,
-                            SEXP matFX, SEXP vecgX, SEXP gowild){
+                            SEXP matFX, SEXP vecgX, SEXP gowild, SEXP estimFX, SEXP estimgX){
 
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -448,30 +448,37 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow());
 
     bool wild = as<bool>(gowild);
+    bool estimateFX = as<bool>(estimFX);
+    bool estimategX = as<bool>(estimgX);
 
     arma::mat matrixF(1,1,arma::fill::ones);
     arma::mat rowvecW(1,1,arma::fill::ones);
 
+    int currentelement = 0;
+
     if(estimatepersistence==TRUE){
-        vecG = C.cols(0,ncomponents-1).t();
+        vecG = C.cols(currentelement,currentelement + ncomponents-1).t();
+        currentelement = currentelement + ncomponents;
     }
 
     if(estimatephi==TRUE){
-        phivalue = as_scalar(C.cols(ncomponents*estimatepersistence,ncomponents*estimatepersistence));
+        phivalue = as_scalar(C.col(currentelement));
+        currentelement = currentelement + 1;
     }
 
     if(estimateinitial==TRUE){
-        matrixVt.col(0).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi,ncomponents*estimatepersistence + estimatephi).t()));
+        matrixVt.col(0).fill(as_scalar(C.col(currentelement).t()));
+        currentelement = currentelement + 1;
         if(T!='N'){
-            matrixVt.col(1).fill(as_scalar(C.cols(ncomponents*estimatepersistence + estimatephi + 1,ncomponents*estimatepersistence + estimatephi + 1).t()));
+            matrixVt.col(1).fill(as_scalar(C.col(currentelement).t()));
+            currentelement = currentelement + 1;
         }
     }
 
     if(S!='N'){
         if(estimateinitialseason==TRUE){
-            matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = C.cols(ncomponents*estimatepersistence +
-                            estimatephi + (ncomponents - 1)*estimateinitial,ncomponents*estimatepersistence +
-                            estimatephi + (ncomponents - 1)*estimateinitial + maxlag - 1).t();
+            matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = C.cols(currentelement, currentelement + maxlag - 1).t();
+            currentelement = currentelement + maxlag;
 /* # Normalise the initial seasons */
             if(S=='A'){
                 matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) = matrixVt.submat(0,ncomponents-1,maxlag-1,ncomponents-1) -
@@ -485,17 +492,20 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
     if(estimatexreg==TRUE){
+        matrixAt.each_row() = C.cols(currentelement,currentelement + nexo - 1);
+        currentelement = currentelement + nexo;
         if(wild==TRUE){
-            matrixAt.each_row() = C.cols(C.n_cols - (2*nexo + std::pow(nexo,2)),
-                                  C.n_cols - (1 + nexo + std::pow(nexo,2)));
-            for(int i=0; i < nexo; i = i+1){
-                matrixFX.row(i) = C.cols(C.n_cols - (nexo + nexo * (nexo - i)),
-                                         C.n_cols - (1 + nexo + nexo*(nexo - (i + 1))));
+            if(estimateFX==TRUE){
+                for(int i=0; i < nexo; i = i+1){
+                    matrixFX.row(i) = C.cols(currentelement, currentelement + nexo - 1);
+                    currentelement = currentelement + nexo;
+                }
             }
-            vecGX = C.cols(C.n_cols - nexo, C.n_cols - 1).t();
-        }
-        else{
-            matrixAt.each_row() = C.cols(C.n_cols - nexo,C.n_cols - 1);
+
+            if(estimategX==TRUE){
+                vecGX = C.cols(currentelement, currentelement + nexo - 1).t();
+                currentelement = currentelement + nexo;
+            }
         }
     }
 

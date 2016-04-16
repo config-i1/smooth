@@ -1,5 +1,6 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
+               persistenceX=NULL, transitionX=NULL,
                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -221,7 +222,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
-### Check all the parameters for the possible errors.
+### Check the persistence vector for the possible errors.
     if(!is.null(persistence)){
         if(any(!is.numeric(persistence),!is.vector(persistence))){
             message("The persistence is not a numeric vector!");
@@ -259,6 +260,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
+# Check phi
     if(!is.null(phi)){
         if(!is.numeric(phi) & (damped==TRUE)){
             message("The provided value of phi is meaningless.");
@@ -349,6 +351,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
     }
 
+##### All of this should be moved to an external function #####
 # Now let's prepare the provided exogenous data for the inclusion in ETS
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
@@ -412,11 +415,61 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         n.exovars <- 1;
         matxt <- matrix(0,max(obs+datafreq,obs.all),1);
         matat <- matrix(0,max(obs+datafreq,obs.all),1);
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
         estimate.xreg <- FALSE;
+        estimate.Fx <- FALSE;
+        estimate.gx <- FALSE;
     }
-# Transition and persistence for xreg
-    matFX <- diag(n.exovars);
-    vecgX <- matrix(0,n.exovars,1);
+
+# Now check transition and persistence of exogenous variables
+    if(estimate.xreg==TRUE & go.wild==TRUE){
+# First - transition matrix
+        if(!is.null(transitionX)){
+            if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
+                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
+            }
+            else{
+                if(length(transitionX) != n.exovars^2){
+                    stop("The size of transition matrix for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
+                }
+                else{
+                    matFX <- matrix(transitionX,n.exovars,n.exovars);
+                    estimate.Fx <- FALSE;
+                }
+            }
+        }
+        else{
+            matFX <- diag(n.exovars);
+            estimate.Fx <- TRUE;
+        }
+# Now - persistence vector
+        if(!is.null(persistenceX)){
+            if(!is.numeric(persistenceX) & !is.vector(persistenceX) & !is.matrix(persistenceX)){
+                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
+            }
+            else{
+                if(length(persistenceX) != n.exovars){
+                    stop("The size of persistence vector for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
+                }
+                else{
+                    vecgX <- matrix(persistenceX,n.exovars,1);
+                    estimate.gx <- FALSE;
+                }
+            }
+        }
+        else{
+            vecgX <- matrix(0,n.exovars,1);
+            estimate.gx <- TRUE;
+        }
+    }
+    else if(go.wild==FALSE){
+        matFX <- diag(n.exovars);
+        estimate.Fx <- FALSE;
+
+        vecgX <- matrix(0,n.exovars,1);
+        estimate.gx <- FALSE;
+    }
 
 ##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
@@ -424,7 +477,7 @@ CF <- function(C){
     init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                             Ttype, Stype, n.exovars, matat, estimate.persistence,
                             estimate.phi, estimate.initial, estimate.initial.season,
-                            estimate.xreg, matFX, vecgX, go.wild);
+                            estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
 
     CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                        h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
@@ -553,15 +606,22 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
         }
     }
 
-    if(!is.null(xreg)){
+    if(estimate.xreg==TRUE){
         C <- c(C,matat[maxlag,]);
         C.lower <- c(C.lower,rep(-Inf,n.exovars));
         C.upper <- c(C.upper,rep(Inf,n.exovars));
         if(go.wild==TRUE){
-            C <- c(C,as.vector(matFX));
-            C <- c(C,as.vector(vecgX));
-            C.lower <- c(C.lower,rep(-Inf,(n.exovars+1)*n.exovars));
-            C.upper <- c(C.upper,rep(Inf,(n.exovars+1)*n.exovars));
+            if(estimate.Fx==TRUE){
+                C <- c(C,as.vector(matFX));
+                C.lower <- c(C.lower,rep(-Inf,n.exovars^2));
+                C.upper <- c(C.upper,rep(Inf,n.exovars^2));
+            }
+            if(estimate.gx==TRUE){
+                C <- c(C,as.vector(vecgX));
+                C.lower <- c(C.lower,rep(-Inf,n.exovars));
+                C.upper <- c(C.upper,rep(Inf,n.exovars));
+            }
+
         }
     }
 
@@ -793,7 +853,8 @@ checker <- function(inherits=TRUE){
                             call.=FALSE, immediate.=TRUE);
                 }
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent;
+                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent +
+                           estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
@@ -1103,7 +1164,7 @@ checker <- function(inherits=TRUE){
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matat, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
-                                estimate.xreg, matFX, vecgX, go.wild);
+                                estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
         vecg <- init.ets$vecg;
         phi <- init.ets$phi;
         matvt <- init.ets$matvt;
@@ -1153,7 +1214,8 @@ checker <- function(inherits=TRUE){
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
-        if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE){
+        if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE &
+           estimate.xreg==FALSE & estimate.Fx==FALSE & estimate.gx==FALSE){
             C <- c(vecg,phi,initial,initial.season);
             errors.mat.obs <- obs - h + 1;
             CF.objective <- CF(C);
@@ -1161,12 +1223,8 @@ checker <- function(inherits=TRUE){
         }
         else{
             n.param <- n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
-                intermittent;
-        }
-
-        if(!is.null(xreg)){
-            n.param <- n.param + n.exovars;
+                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season + intermittent +
+                estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
 
         s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
@@ -1320,7 +1378,7 @@ checker <- function(inherits=TRUE){
             init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                     Ttype, Stype, n.exovars, matat, estimate.persistence,
                                     estimate.phi, estimate.initial, estimate.initial.season,
-                                    estimate.xreg, matFX, vecgX, go.wild);
+                                    estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
             vecg <- init.ets$vecg;
             phi <- init.ets$phi;
             matvt <- init.ets$matvt;

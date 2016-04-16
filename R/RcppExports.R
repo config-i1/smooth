@@ -21,8 +21,8 @@ initparams <- function(Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingp
     .Call('smooth_initparams', PACKAGE = 'smooth', Ttype, Stype, datafreq, obsR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
 }
 
-etsmatrices <- function(matvt, vecg, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild) {
-    .Call('smooth_etsmatrices', PACKAGE = 'smooth', matvt, vecg, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild)
+etsmatrices <- function(matvt, vecg, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild, estimFX, estimgX) {
+    .Call('smooth_etsmatrices', PACKAGE = 'smooth', matvt, vecg, phi, Cvalues, ncomponentsR, modellags, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild, estimFX, estimgX)
 }
 
 fitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, Etype, Ttype, Stype, matxt, matat, matFX, vecgX, ot) {

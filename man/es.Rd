@@ -10,6 +10,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
    initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
+   persistenceX=NULL, transitionX=NULL,
    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
    FI=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -36,6 +37,10 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{initial.season}{ The vector of initial values for seasonal components. If \code{NULL}, they are estimated in the optimization.
   }
   \item{IC}{ The information criterion to use in the model selection.
+  }
+  \item{persistenceX}{ Persistence vector \eqn{g2}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{ Transition matrix \eqn{F2} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
