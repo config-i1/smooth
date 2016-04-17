@@ -463,7 +463,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             estimate.gx <- TRUE;
         }
     }
-    else if(go.wild==FALSE){
+    else if(estimate.xreg==TRUE & go.wild==FALSE){
         matFX <- diag(n.exovars);
         estimate.Fx <- FALSE;
 
