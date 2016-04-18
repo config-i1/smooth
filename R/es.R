@@ -965,6 +965,9 @@ checker <- function(inherits=TRUE){
                     while(check==TRUE){
                         i <- i + 1;
                         current.model <- small.pool[j];
+                        if(silent==FALSE){
+                            cat(paste0(current.model,", "));
+                        }
                         Etype_n <- substring(current.model,1,1);
                         Ttype_n <- substring(current.model,2,2);
                         if(nchar(current.model)==4){
@@ -982,9 +985,7 @@ checker <- function(inherits=TRUE){
                         results[[i]] <- c(res$ICs,Etype_n,Ttype_n,Stype_n,damped_n,res$objective,res$C);
 
                         tested.model <- c(tested.model,current.model);
-                        if(silent==FALSE){
-                            cat(paste0(current.model,", "));
-                        }
+
                         if(j>1){
 # If the first is better than the second, then choose first
                             if(results[[bestj]][IC] <= results[[i]][IC]){
