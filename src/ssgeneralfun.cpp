@@ -798,10 +798,10 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
                   arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecOt){
     int obs = vecYt.n_rows;
     int hh = 0;
-    arma::mat materrors(obs, hor);
+    arma::mat materrors(obs, hor, arma::fill::zeros);
     unsigned int maxlag = max(lags);
 
-    materrors.fill(NA_REAL);
+//    materrors.fill(NA_REAL);
 
     for(int i = 0; i < obs; i=i+1){
         hh = std::min(hor, obs-i);
@@ -876,7 +876,8 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     arma::uvec nonzeroes = find(vecOt>0);
     int obs = nonzeroes.n_rows;
     double CFres = 0;
-    int matobs = obs - hor + 1;
+    int matobs = obs + hor - 1;
+// yactsum is needed for multiplicative error models
     double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
 
     List fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
@@ -898,8 +899,19 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         if(E=='M'){
             materrors = log(1 + materrors);
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
+// This correction is needed in order to take the correct number of observations in the error matrix
+            yactsum = yactsum / obs * matobs;
         }
-        materrors.row(0) = materrors.row(0) % horvec;
+// Fix for GV in order to perform better in the sides of the series
+        if(CFtype=="GV"){
+            materrors.resize(obs+hor-1,hor);
+            for(unsigned int i=0; i<(hor-1); i=i+1){
+                materrors.submat(obs+i,i+1,obs + i,hor-1) = materrors.submat(0,0,0,hor-i-2);
+            }
+        }
+        else{
+            materrors.row(0) = materrors.row(0) % horvec;
+        }
     }
     else{
         arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
@@ -914,7 +926,6 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     case 'M':
         switch(CFtypeswitch(CFtype)){
         case 1:
-            materrors.resize(matobs,hor);
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(materrors) * (materrors) / matobs))));
             }
