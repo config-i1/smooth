@@ -903,15 +903,15 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             yactsum = yactsum / obs * matobs;
         }
 // Fix for GV in order to perform better in the sides of the series
-        if(CFtype=="GV"){
+//        if(CFtype=="GV"){
             materrors.resize(obs+hor-1,hor);
             for(unsigned int i=0; i<(hor-1); i=i+1){
                 materrors.submat(obs+i,i+1,obs + i,hor-1) = materrors.submat(0,0,0,hor-i-2);
             }
-        }
+/*        }
         else{
             materrors.row(0) = materrors.row(0) % horvec;
-        }
+        } */
     }
     else{
         arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
@@ -935,19 +935,16 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 2:
-            for(unsigned int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
-            }
-            CFres = CFres + (2 / double(obs)) * double(hor) * yactsum;
+            CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1))
+                    + (2 / double(obs)) * double(hor) * yactsum;
         break;
         case 3:
-            for(unsigned int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
-            }
-            CFres = exp(log(CFres) + (2 / double(obs)) * double(hor) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors,2)) / double(matobs), 1))
+                        + (2 / double(obs)) * double(hor) * yactsum));
         break;
         case 4:
-            CFres = arma::as_scalar(exp(log(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(sum(pow(materrors.col(hor-1),2)) / double(matobs))
+                                        + (2 / double(obs)) * yactsum));
         break;
         case 5:
             CFres = arma::as_scalar(exp(log(mean(abs(materrors))) + (2 / double(obs)) * yactsum));
@@ -971,17 +968,13 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             }
         break;
         case 2:
-            for(unsigned int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(log(mean(pow(materrors.submat(0,i,obs-i-1,i),2))));
-            }
+            CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1));
         break;
         case 3:
-            for(unsigned int i=0; i<hor; i=i+1){
-                CFres = CFres + arma::as_scalar(mean(pow(materrors.submat(0,i,obs-i-1,i),2)));
-            }
+            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1));
         break;
         case 4:
-            CFres = arma::as_scalar(mean(pow(materrors.submat(0,hor-1,obs-hor,hor-1),2)));
+            CFres = arma::as_scalar(sum(pow(materrors.col(hor-1),2)) / double(matobs));
         break;
         case 5:
             CFres = arma::as_scalar(mean(abs(materrors)));
