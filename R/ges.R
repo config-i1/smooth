@@ -452,7 +452,7 @@ Likelihood.value <- function(C){
 # Calculate the tails of matat and matvt
 #    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
 #                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
-    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+    statestails <- statetailwrap(matrix(rbind(as.matrix(matvt[(obs+1):(obs+maxlag),]),matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
                                  matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                  modellags, Ttype, Stype);
     if(!is.null(xreg)){
