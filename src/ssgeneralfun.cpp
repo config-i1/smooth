@@ -798,17 +798,23 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
                   arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecOt){
     int obs = vecYt.n_rows;
     int hh = 0;
-    arma::mat materrors(obs, hor, arma::fill::zeros);
+    arma::mat materrors(obs+hor-1, hor, arma::fill::zeros);
     unsigned int maxlag = max(lags);
 
 //    materrors.fill(NA_REAL);
 
     for(int i = 0; i < obs; i=i+1){
         hh = std::min(hor, obs-i);
-        materrors.submat(i, 0, i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
+        materrors.submat(hor-1+i, 0, hor-1+i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
             forecaster(matrixVt.rows(i,i+maxlag-1), matrixF, rowvecW, hh, T, S, lags, matrixXt.rows(i, i+hh-1),
                 matrixAt.rows(i, i+hh-1), matrixFX), E));
     }
+
+// Fix for GV in order to perform better in the sides of the series
+    for(unsigned int i=0; i<(hor-1); i=i+1){
+        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2);
+    }
+
     return materrors;
 }
 
@@ -902,16 +908,6 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
 // This correction is needed in order to take the correct number of observations in the error matrix
             yactsum = yactsum / obs * matobs;
         }
-// Fix for GV in order to perform better in the sides of the series
-//        if(CFtype=="GV"){
-            materrors.resize(obs+hor-1,hor);
-            for(unsigned int i=0; i<(hor-1); i=i+1){
-                materrors.submat(obs+i,i+1,obs + i,hor-1) = materrors.submat(0,0,0,hor-i-2);
-            }
-/*        }
-        else{
-            materrors.row(0) = materrors.row(0) % horvec;
-        } */
     }
     else{
         arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
