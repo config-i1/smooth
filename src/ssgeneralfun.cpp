@@ -801,8 +801,6 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
     arma::mat materrors(obs+hor-1, hor, arma::fill::zeros);
     unsigned int maxlag = max(lags);
 
-//    materrors.fill(NA_REAL);
-
     for(int i = 0; i < obs; i=i+1){
         hh = std::min(hor, obs-i);
         materrors.submat(hor-1+i, 0, hor-1+i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),

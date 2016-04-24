@@ -217,14 +217,11 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         	message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
        		Stype <- "N";
     	}
-        else{
-            n.param.test <- n.param.test - length(initial.season);
-        }
     }
 
 ### Check the persistence vector for the possible errors.
     if(!is.null(persistence)){
-        if(any(!is.numeric(persistence),!is.vector(persistence))){
+        if(!is.numeric(persistence)){
             message("The persistence is not a numeric vector!");
             message("Changing to the estimation of persistence vector values.");
             persistence <- NULL;
@@ -235,15 +232,16 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 message("Changing to the estimation of persistence vector values.");
                 persistence <- NULL;
             }
-            else{
-                n.param.test <- n.param.test - length(persistence);
-            }
         }
+    }
+# If persistence is null or has been changed in the previous check, write down the number of parameters
+    if(is.null(persistence)){
+        n.param.test <- n.param.test - length(persistence);
     }
 
 ### Check if the meaningfull initials are passed
     if(!is.null(initial)){
-        if(any(!is.numeric(initial),!is.vector(initial))){
+        if(!is.numeric(initial)){
             message("The initial vector is not numeric!");
             message("Values of initial vector will be estimated.");
             initial <- NULL;
@@ -258,6 +256,30 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 n.param.test <- n.param.test - length(initial);
             }
         }
+    }
+# If initial is null or has been changed in the previous check, write down the number of parameters
+    if(is.null(initial)){
+        n.param.test <- n.param.test - length(initial);
+    }
+
+### Check if the meaningfull initials are passed
+    if(!is.null(initial.season)){
+        if(!is.numeric(initial.season)){
+            message("The initial.season vector is not numeric!");
+            message("Values of initial.season vector will be estimated.");
+            initial.season <- NULL;
+        }
+        else{
+            if(length(initial.season)!=datafreq){
+                message("The length of initial.season vector is wrong! It should correspond to the frequency of the data.");
+                message("Values of initial.season vector will be estimated.");
+                initial.season <- NULL;
+            }
+        }
+    }
+# If the initial.season has been changed to estimation, do things...
+    if(Stype!="N" & is.null(initial.season)){
+        n.param.test <- n.param.test - length(initial.season);
     }
 
 # Check phi
@@ -814,7 +836,7 @@ checker <- function(inherits=TRUE){
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
         if(any(model.do==c("combine","select"))){
 
-##### This huge chunk of code must be transfered into .cpp fil along with all the model selection thingies. #####
+##### This huge chunk of code must be transfered into .cpp file along with all the model selection thingies. #####
             estimation.script <- function(Etype,Ttype,Stype,damped,phi){
 # Start functions from current environment
                 environment(C.values) <- environment();
