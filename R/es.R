@@ -1264,7 +1264,8 @@ checker <- function(inherits=TRUE){
             n.param <- 0;
         }
         else{
-            n.param <- n.components*estimate.persistence + estimate.phi +
+# 1 stand for the variance
+            n.param <- 1 + n.components*estimate.persistence + estimate.phi +
                 (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season + intermittent +
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
