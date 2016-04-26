@@ -383,56 +383,80 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# If xreg is vector or simple ts
-            if(length(xreg)!=obs & length(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+# Check if xreg contains something meaningful
+            if(all(xreg==xreg[1])){
+                warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
+                        call.=FALSE, immediate.=TRUE);
+                xreg <- NULL;
             }
-            if(length(xreg)==obs){
-                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-            }
+            else{
+                if(length(xreg)!=obs & length(xreg)!=obs.all){
+                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!", call.=F);
+                }
+                if(length(xreg)==obs){
+                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    xreg <- c(as.vector(xreg),rep(xreg[obs],h));
+                }
 # Number of exogenous variables
-        n.exovars <- 1;
+                n.exovars <- 1;
 # Define matrix w for exogenous variables
-        matxt <- matrix(xreg,ncol=1);
+                matxt <- matrix(xreg,ncol=1);
 # Define the second matat to fill in the coefs of the exogenous vars
-        matat <- matrix(NA,obs.all+datafreq,1);
-        exocomponent.names <- "exogenous";
+                matat <- matrix(NA,obs.all+datafreq,1);
+                exocomponent.names <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
-        matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+                matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
+            }
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
-    # If xreg is matrix or data frame
-            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
-            }
-            if(nrow(xreg)==obs){
-	            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                for(j in 1:h){
-                xreg <- rbind(xreg,xreg[obs,]);
+            checkvariability <- apply(xreg==rep(xreg[1,],each=nrow(xreg)),2,all);
+            if(any(checkvariability)){
+                if(all(checkvariability)){
+                    warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
+                            call.=FALSE, immediate.=TRUE);
+                    xreg <- NULL;
+                }
+                else{
+                    warning("Some exogenous variables do not have any variability. Dropping them out.",
+                            call.=FALSE, immediate.=TRUE);
+                    xreg <- as.matrix(xreg[,!checkvariability]);
                 }
             }
+
+            if(!is.null(xreg)){
+                if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
+                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+                }
+                if(nrow(xreg)==obs){
+	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    for(j in 1:h){
+                    xreg <- rbind(xreg,xreg[obs,]);
+                    }
+                }
 # mat.x is needed for the initial values of coefs estimation using OLS
-            mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
-            n.exovars <- ncol(xreg);
+                mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
+                n.exovars <- ncol(xreg);
 # Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,obs.all+datafreq,n.exovars);
-            exocomponent.names <- paste0("x",c(1:n.exovars));
+                matat <- matrix(NA,obs.all+datafreq,n.exovars);
+                exocomponent.names <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
-            matxt <- as.matrix(xreg);
+                matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
-            matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
-                                               t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                         each=datafreq);
-            colnames(matat) <- colnames(xreg);
+                matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
+                                                  t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
+                                          each=datafreq);
+                colnames(matat) <- colnames(xreg);
+            }
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
         }
         estimate.xreg <- TRUE;
     }
-    else{
+
+### In case we changed xreg to null...
+    if(is.null(xreg)){
 # "1" is needed for the final forecast simplification
         n.exovars <- 1;
         matxt <- matrix(0,max(obs+datafreq,obs.all),1);
