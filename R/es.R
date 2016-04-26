@@ -455,7 +455,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         estimate.xreg <- TRUE;
     }
 
-### In case we changed xreg to null...
+##### In case we changed xreg to null...
     if(is.null(xreg)){
 # "1" is needed for the final forecast simplification
         n.exovars <- 1;
