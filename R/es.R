@@ -360,15 +360,15 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # If the non-positive values are present, check if it is intermittent, if negatives are here, switch to additive models
     if((any(y<=0) & intermittent==FALSE)| (intermittent==TRUE & any(y<0))){
         if(Etype=="M"){
-            message("Can't apply multiplicative model to non-positive data. Switching error to 'A'");
+            warning("Can't apply multiplicative model to non-positive data. Switching error to 'A'", call.=FALSE);
             Etype <- "A";
         }
         if(Ttype=="M"){
-            message("Can't apply multiplicative model to non-positive data. Switching trend to 'A'");
+            warning("Can't apply multiplicative model to non-positive data. Switching trend to 'A'", call.=FALSE);
             Ttype <- "A";
         }
         if(Stype=="M"){
-            message("Can't apply multiplicative model to non-positive data. Switching seasonal to 'A'");
+            warning("Can't apply multiplicative model to non-positive data. Switching seasonal to 'A'", call.=FALSE);
             Stype <- "A";
         }
     }
@@ -378,7 +378,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Check the exogenous variable if it is present and
 # fill in the values of xreg if it is absent in the holdout sample.
     if(!is.null(xreg)){
-        if(any(is.na(xreg))){
+        if(any(is.na(xreg)) & silent==FALSE){
             message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
         }
 ##### The case with vectors and ts objects, but not matrices
@@ -394,7 +394,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                     stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!", call.=F);
                 }
                 if(length(xreg)==obs){
-                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    if(silent==FALSE){
+                        message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    }
                     xreg <- c(as.vector(xreg),rep(xreg[obs],h));
                 }
 # Number of exogenous variables
@@ -429,7 +431,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                     stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
                 }
                 if(nrow(xreg)==obs){
-	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    if(silent==FALSE){
+	                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                    }
                     for(j in 1:h){
                     xreg <- rbind(xreg,xreg[obs,]);
                     }
