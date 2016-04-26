@@ -250,7 +250,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # 1 stands for the variance
-    n.param <- n.components + sum(ar.orders) + sum(ma.orders) + intermittent + 1 + constant;
+    n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + intermittent + constant;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){

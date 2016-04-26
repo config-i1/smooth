@@ -223,7 +223,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     vecgX <- matrix(0,n.exovars,1);
 
 # 1 stands for the variance
-    n.param <- 2*n.components+n.components^2 + orders %*% lags + intermittent + 1;
+    n.param <- 1 + 2*n.components + n.components^2 + orders %*% lags + intermittent;
 
     if(!is.null(xreg)){
 # Number of initial states

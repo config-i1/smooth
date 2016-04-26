@@ -887,7 +887,14 @@ checker <- function(inherits=TRUE){
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
                 C <- res$solution;
-                environment(CF) <- environment();
+
+                if(any(C==Cs$C)){
+                    C[C==Cs$C] <- 0;
+                    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                    C <- res$solution;
+                }
+
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
                 C <- res$solution;
@@ -1188,6 +1195,14 @@ checker <- function(inherits=TRUE){
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
+
+            if(any(C==Cs$C)){
+                C[C==Cs$C] <- 0;
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                C <- res$solution;
+            }
+
             res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                           opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
             C <- res$solution;
@@ -1261,6 +1276,10 @@ checker <- function(inherits=TRUE){
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
+        if(Etype=="M" & any(y.for<1)){
+            y.for[y.for<1] <- 1;
+        }
+
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE &
            estimate.xreg==FALSE & estimate.Fx==FALSE & estimate.gx==FALSE){
             C <- c(vecg,phi,initial,initial.season);
@@ -1269,7 +1288,8 @@ checker <- function(inherits=TRUE){
             n.param <- 0;
         }
         else{
-            n.param <- n.components*estimate.persistence + estimate.phi +
+# 1 stand for the variance
+            n.param <- 1 + n.components*estimate.persistence + estimate.phi +
                 (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season + intermittent +
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
