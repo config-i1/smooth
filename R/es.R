@@ -384,7 +384,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # Check if xreg contains something meaningful
-            if(all(xreg==xreg[1])){
+            if(all(xreg[1:obs]==xreg[1])){
                 warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
                         call.=FALSE, immediate.=TRUE);
                 xreg <- NULL;
@@ -412,7 +412,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
-            checkvariability <- apply(xreg==rep(xreg[1,],each=nrow(xreg)),2,all);
+            checkvariability <- apply(xreg[1:obs,]==rep(xreg[1,],each=obs),2,all);
             if(any(checkvariability)){
                 if(all(checkvariability)){
                     warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
