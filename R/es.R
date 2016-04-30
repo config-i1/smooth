@@ -889,7 +889,7 @@ checker <- function(inherits=TRUE){
 
 # Parameters are chosen to speed up the optimisation process and have decent accuracy
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
+                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
 
                 if(any(C==Cs$C)){
@@ -900,7 +900,7 @@ checker <- function(inherits=TRUE){
                 }
 
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                              opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=400));
+                              opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
                 C <- res$solution;
 
                 if(all(C==Cs$C)){
