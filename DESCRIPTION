@@ -8,7 +8,7 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 BugReports:	https://github.com/config-i1/smooth/issues
 Description: The set of smoothing functions used for time series analysis and in forecasting.
 License: GPL (>=2) | file LICENSE
-Depends: R (>= 3.1.2), stats, graphics, zoo, nloptr, numDeriv, polynom
+Depends: R (>= 3.0.2), stats, graphics, zoo, nloptr, numDeriv, polynom
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:
