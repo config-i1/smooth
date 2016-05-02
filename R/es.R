@@ -888,18 +888,18 @@ checker <- function(inherits=TRUE){
                 C.lower <- Cs$C.lower;
 
 # Parameters are chosen to speed up the optimisation process and have decent accuracy
-                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                res <- nloptr(C, CF,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
 
                 if(any(C==Cs$C)){
                     C[C==Cs$C] <- 0;
-                    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                    res <- nloptr(C, CF,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                     C <- res$solution;
                 }
 
-                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                res <- nloptr(C, CF,
                               opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
                 C <- res$solution;
 
@@ -1196,18 +1196,18 @@ checker <- function(inherits=TRUE){
             C.upper <- Cs$C.upper;
             C.lower <- Cs$C.lower;
 
-            res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+            res <- nloptr(C, CF,
                           opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
 
             if(any(C==Cs$C)){
                 C[C==Cs$C] <- 0;
-                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                res <- nloptr(C, CF,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
             }
 
-            res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+            res <- nloptr(C, CF,
                           opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
             C <- res$solution;
 
