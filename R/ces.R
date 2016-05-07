@@ -114,7 +114,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matw <- matrix(c(1,0,0,1),2,2);
         matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
         colnames(matvt) <- c("level","potential");
-        matvt[1,] <- c(mean(yot[1:min(10,obs)]),mean(yot[1:min(10,obs)])/C[1]);
+        matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
 # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
         n.param <- length(C) + 2;
@@ -171,8 +171,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     n.param <- n.param + intermittent + 1;
 
     # Stop if number of observations is less than number of parameters
-    if(obs.ot < n.param){
-        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param,"."));
+    if(obs.ot <= n.param){
+        message(paste0("Number of non-zero observations is ",obs.ot,", while the number of parameters to estimate is ", n.param,"."));
         stop(paste0("Not enough observations for the fit of CES(",seasonality,") model!"),call.=FALSE);
     }
 
