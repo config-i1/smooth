@@ -975,7 +975,6 @@ checker <- function(inherits=TRUE){
                     }
                     else{
                         small.pool.error <- "A";
-                        errors.pool <- c("A","M");
                     }
 
                     if(Ttype!="Z"){
@@ -991,7 +990,6 @@ checker <- function(inherits=TRUE){
                     }
                     else{
                         small.pool.trend <- c("N","A");
-                        trends.pool <- c("N","A","Ad","M","Md");
                         check.T <- TRUE;
                     }
 
@@ -1002,7 +1000,6 @@ checker <- function(inherits=TRUE){
                     }
                     else{
                         small.pool.season <- c("N","A","M");
-                        season.pool <- c("N","A","M");
                         check.S <- TRUE;
                     }
 
@@ -1075,7 +1072,6 @@ checker <- function(inherits=TRUE){
                                     }
                                 }
                                 else{
-                                    trends.pool <- c("A","Ad","M","Md");
                                     check.T <- FALSE;
                                 }
                             }
