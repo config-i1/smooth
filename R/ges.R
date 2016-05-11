@@ -274,17 +274,17 @@ elements.ges <- function(C){
     }
 
     if(is.null(initial)){
-        xtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+        vtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
     }
     else{
-        xtvalues <- initial;
+        vtvalues <- initial;
     }
 
-    xt <- matrix(NA,maxlag,n.components);
+    vt <- matrix(NA,maxlag,n.components);
     for(i in 1:n.components){
-        xt[(maxlag - modellags + 1)[i]:maxlag,i] <- xtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-        xt[is.na(xt[1:maxlag,i]),i] <- rep(rev(xt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(xt[1:maxlag,i])];
+        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
     }
 
 # If exogenous are included
@@ -307,7 +307,7 @@ elements.ges <- function(C){
         }
     }
 
-    return(list(matw=matw,matF=matF,vecg=vecg,xt=xt,matat=matat,matFX=matFX,vecgX=vecgX));
+    return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,matat=matat,matFX=matFX,vecgX=vecgX));
 }
 
 # Cost function for GES
@@ -319,7 +319,7 @@ CF <- function(C){
     matat[1:maxlag,] <- elements$matat[1:maxlag,];
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
-    matvt[1:maxlag,] <- elements$xt;
+    matvt[1:maxlag,] <- elements$vt;
 
     CF.res <- costfunc(matvt, matF, matw, y, vecg,
                    h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
@@ -360,7 +360,7 @@ Likelihood.value <- function(C){
         slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
         intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
 
-# matw, matF, vecg, xt
+# matw, matF, vecg, vt
         C <- c(rep(1,n.components),
                rep(1,n.components^2),
                rep(0,n.components),
@@ -387,7 +387,7 @@ Likelihood.value <- function(C){
         matF <- elements$matF;
         vecg <- elements$vecg;
         matat[1:maxlag,] <- elements$matat[1:maxlag,];
-        matvt[1:maxlag,] <- elements$xt;
+        matvt[1:maxlag,] <- elements$vt;
         matFX <- elements$matFX;
         vecgX <- elements$vecgX;
 
@@ -403,7 +403,7 @@ Likelihood.value <- function(C){
         CF.objective <- res$objective;
     }
     else{
-# matw, matF, vecg, xt
+# matw, matF, vecg, vt
         C <- c(measurement,
                c(transition),
                c(persistence),
@@ -432,7 +432,7 @@ Likelihood.value <- function(C){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1:maxlag,] <- elements$xt;
+    matvt[1:maxlag,] <- elements$vt;
     matat[1:maxlag,] <- elements$matat[1:maxlag,];
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
