@@ -372,6 +372,17 @@ Likelihood.value <- function(C){
         if((orders %*% lags)>2){
             C <- c(C,yot[1:(orders %*% lags-2),]);
         }
+#        if((orders %*% lags)>1){
+#            if(length(lags>1)){
+#                for(i in lags[-1]){
+#                    C <- c(C,decompose(ts(c(y),frequency=i),type="additive")$seasonal[1:i]);
+#                }
+#            }
+#            else{
+#                C <- c(C,slope);
+#                C <- c(C,yot[1:(orders %*% lags-2),]);
+#            }
+#        }
 # matat
 # initials, transition matrix and persistence vector
         if(!is.null(xreg)){
