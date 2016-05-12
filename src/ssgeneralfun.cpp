@@ -881,6 +881,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     int obs = nonzeroes.n_rows;
     double CFres = 0;
     int matobs = obs + hor - 1;
+    arma::urowvec matobselem(hor);
 // yactsum is needed for multiplicative error models
     double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
 
@@ -893,18 +894,21 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     matrixAt = as<arma::mat>(matrixAtfromfit);
 
     arma::mat materrors;
-    arma::rowvec horvec(hor);
 
     if(multi==true){
-        for(unsigned int i=0; i<hor; i=i+1){
-            horvec(i) = hor - i;
-        }
         materrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
         if(E=='M'){
             materrors = log(1 + materrors);
             materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
 // This correction is needed in order to take the correct number of observations in the error matrix
             yactsum = yactsum / obs * matobs;
+        }
+
+        if(CFtype=="TV" | CFtype=="trace"){
+            for(int i=0; i<hor; i=i+1){
+                matobselem(i) = matobs - i;
+                materrors(hor-1,i) = materrors(hor-1,i) * (hor - i);
+            }
         }
     }
     else{
@@ -933,7 +937,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
         case 3:
-            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors,2)) / double(matobs), 1))
+            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors.submat(0,0,obs-1,hor-1),2)) / matobselem, 1))
                         + (2 / double(obs)) * double(hor) * yactsum));
         break;
         case 4:
@@ -953,7 +957,6 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     case 'A':
         switch(CFtypeswitch(CFtype)){
         case 1:
-            materrors.resize(matobs,hor);
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
             }
@@ -965,7 +968,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1));
         break;
         case 3:
-            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1));
+            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / matobselem, 1));
         break;
         case 4:
             CFres = arma::as_scalar(sum(pow(materrors.col(hor-1),2)) / double(matobs));
