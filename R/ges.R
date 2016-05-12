@@ -543,7 +543,7 @@ Likelihood.value <- function(C){
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,as.matrix(statestails$matvt[-c(1:maxlag),]));
+    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=n.components));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
