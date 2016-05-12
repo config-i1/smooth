@@ -423,6 +423,8 @@ Likelihood.value <- function(C){
         normalizer <- 0;
     }
 
+############################################## To be fixed ##############################################
+# Needs to be done properly... does not take into account the provided data...
 # If there is something to optimise, let's do it.
     if(is.null(initial) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
 
@@ -474,8 +476,7 @@ Likelihood.value <- function(C){
     }
     else{
 # matF, vecg, xt
-##############################################
-# Needs to be done properly... An additional part of code for that...
+        transition <- matrix(transition,n.components,n.components);
         C <- c(transition[,1]);
         C <- c(c(transition),
                c(persistence),
@@ -617,7 +618,7 @@ Likelihood.value <- function(C){
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,as.matrix(statestails$matvt[-c(1:maxlag),]));
+    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=n.components));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
