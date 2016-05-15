@@ -810,7 +810,7 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
 
 // Fix for GV in order to perform better in the sides of the series
     for(unsigned int i=0; i<(hor-1); i=i+1){
-        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2);
+        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(i+1);
     }
 
     return materrors;
@@ -881,7 +881,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     int obs = nonzeroes.n_rows;
     double CFres = 0;
     int matobs = obs + hor - 1;
-    arma::urowvec matobselem(hor);
+//    arma::urowvec matobselem(hor);
 // yactsum is needed for multiplicative error models
     double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
 
@@ -904,12 +904,12 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             yactsum = yactsum / obs * matobs;
         }
 
-        if(CFtype=="TV" | CFtype=="trace"){
+/*        if((CFtype=="TV") | (CFtype=="trace") | (CFtype=="MSEh")){
             for(int i=0; i<hor; i=i+1){
                 matobselem(i) = matobs - i;
                 materrors(hor-1,i) = materrors(hor-1,i) * (hor - i);
             }
-        }
+        } */
     }
     else{
         arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
@@ -937,7 +937,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
         case 3:
-            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors.submat(0,0,obs-1,hor-1),2)) / matobselem, 1))
+            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors.submat(0,0,obs-1,hor-1),2)) / double(matobs), 1))
                         + (2 / double(obs)) * double(hor) * yactsum));
         break;
         case 4:
@@ -968,7 +968,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1));
         break;
         case 3:
-            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / matobselem, 1));
+            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1));
         break;
         case 4:
             CFres = arma::as_scalar(sum(pow(materrors.col(hor-1),2)) / double(matobs));
