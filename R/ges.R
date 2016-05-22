@@ -363,7 +363,7 @@ Likelihood.value <- function(C){
 # matw, matF, vecg, vt
         C <- c(rep(1,n.components),
                rep(1,n.components^2),
-               rep(0,n.components),
+               rep(0.1,n.components),
                intercept);
 
         if((orders %*% lags)>1){
