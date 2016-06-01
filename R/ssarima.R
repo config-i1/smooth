@@ -307,13 +307,12 @@ polyroots <- function(C){
             Q[[i]] <- 1;
         }
     }
-
+##### Polynom multiplication is the slowest part now #####
     polysos.i <- as.polynomial(1);
     for(i in 1:length(lags)){
         polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
     }
 
-#starttime <- Sys.time();
     polysos.ar <- 1;
     polysos.ma <- 1;
     for(i in 1:length(P)){
@@ -324,9 +323,6 @@ polyroots <- function(C){
     for(i in 1:length(Q)){
         polysos.ma <- polysos.ma * polynomial(Q[[i]]);
     }
-#    polysos.ar <- prod(as.polylist(lapply(P,polynomial))) * polysos.i;
-#    polysos.ma <- prod(as.polylist(lapply(Q,polynomial)));
-#print(Sys.time() - starttime);
 
     if(length((polysos.ari))!=1){
         matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
