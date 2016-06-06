@@ -312,8 +312,14 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         materrors <- materrors - colMeans(materrors);
 # Change variance to make some sense. Errors should not be rediculously high and not too low.
         materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+
+# If the error is multiplicative, scale it!
+        if(Etype=="M"){
+            exceedingerrors <- apply(abs(materrors),2,max)>0.95;
+            materrors[,exceedingerrors] <- 0.95 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+        }
     }
-# If arguments are passed, use them.
+# If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT'S HE DOING!
     else{
         materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,",", toString(as.character(list(...))),")")));
         if(randomizer=="rbeta"){
@@ -328,15 +334,9 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
 
 # Center errors if all of them are positive or negative to get rid of systematic bias.
-        if(apply(materrors>0,2,all) | apply(materrors<0,2,all)){
-            materrors <- materrors - colMeans(materrors);
-        }
-    }
-
-# If the error is multiplicative, scale it!
-    if(Etype=="M"){
-        exceedingerrors <- apply(abs(materrors),2,max)>0.05;
-        materrors[,exceedingerrors] <- 0.05 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+#        if(apply(materrors>0,2,all) | apply(materrors<0,2,all)){
+#            materrors <- materrors - colMeans(materrors);
+#        }
     }
 
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));

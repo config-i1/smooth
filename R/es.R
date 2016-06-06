@@ -351,7 +351,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     if(all(Stype!="N",datafreq==1)){
         if(silent==FALSE){
-            message("Cannot build the seasonal model on the data with the frequency 1.");
+            message("Cannot build the seasonal model on data with frequency 1.");
             message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
         }
         Stype <- "N";
@@ -360,15 +360,15 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # If the non-positive values are present, check if it is intermittent, if negatives are here, switch to additive models
     if((any(y<=0) & intermittent==FALSE)| (intermittent==TRUE & any(y<0))){
         if(Etype=="M"){
-            warning("Can't apply multiplicative model to non-positive data. Switching error to 'A'", call.=FALSE);
+            warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
             Etype <- "A";
         }
         if(Ttype=="M"){
-            warning("Can't apply multiplicative model to non-positive data. Switching trend to 'A'", call.=FALSE);
+            warning("Can't apply multiplicative model to non-positive data. Switching trend type to 'A'", call.=FALSE);
             Ttype <- "A";
         }
         if(Stype=="M"){
-            warning("Can't apply multiplicative model to non-positive data. Switching seasonal to 'A'", call.=FALSE);
+            warning("Can't apply multiplicative model to non-positive data. Switching seasonality type to 'A'", call.=FALSE);
             Stype <- "A";
         }
     }
@@ -718,7 +718,7 @@ checker <- function(inherits=TRUE){
             message("The length of persistence vector does not correspond to the chosen model!");
             message("Values will be estimated");
             assign("persistence",NULL,inherits=inherits);
-            assign("smoothingparameters",cbind(c(0.3,0.2,0.1),rep(0.05,3)),inherits=inherits);
+            assign("smoothingparameters",cbind(c(0.2,0.1,0.05),rep(0.05,3)),inherits=inherits);
             assign("estimate.persistence",TRUE,inherits=inherits);
             assign("basicparams",initparams(Ttype, Stype, datafreq, obs, y,
                                             damped, phi, smoothingparameters, initialstates,
@@ -943,7 +943,7 @@ checker <- function(inherits=TRUE){
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
                 if((any(y<=0) & intermittent==FALSE) | (intermittent==TRUE & any(y<0))){
                     if(silent==FALSE){
-                        message("Only additive models are allowed with the negative data.");
+                        message("Only additive models are allowed with non-positive data.");
                     }
                     errors.pool <- c("A");
                     trends.pool <- c("N","A","Ad");
