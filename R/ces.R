@@ -1,5 +1,5 @@
 ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
-                CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 use.test=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
@@ -32,7 +32,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
-    if(any(CF.type==c("trace","TV","GV","MSEh"))){
+    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
         multisteps <- TRUE;
     }
     else if(any(CF.type==c("MSE","MAE","HAM"))){
@@ -321,7 +321,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Likelihood function
   Likelihood.value <- function(C){
-      if(CF.type=="GV"){
+      if(CF.type=="TFL"){
           return(obs.ot*log(iprob)*(h^multisteps)
                  -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
       }
@@ -341,7 +341,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     upperb <- rep(2,n.components);
   }
 
-  if(CF.type=="GV"){
+  if(CF.type=="TFL"){
     normalizer <- mean(abs(diff(y)));
   }
   else{

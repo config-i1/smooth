@@ -1,7 +1,7 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
                     persistenceX=NULL, transitionX=NULL,
-                    CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+                    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                     FI=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                     bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -50,7 +50,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
-    if(any(CF.type==c("trace","TV","GV","MSEh"))){
+    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
         multisteps <- TRUE;
     }
     else if(any(CF.type==c("MSE","MAE","HAM"))){
@@ -398,7 +398,7 @@ CF <- function(C){
 }
 
 Likelihood.value <- function(C){
-    if(CF.type=="GV"){
+    if(CF.type=="TFL"){
         return(obs.ot*log(iprob)*(h^multisteps)
                -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
@@ -483,7 +483,7 @@ Likelihood.value <- function(C){
 
 # Change the CF.type in orders to calculate likelihood correctly.
     if(multisteps==TRUE){
-        CF.type <- "GV";
+        CF.type <- "TFL";
     }
     else{
         CF.type <- "MSE";

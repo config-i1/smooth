@@ -9,7 +9,7 @@
 }
 \usage{
   ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
-      CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+      CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
       use.test=FALSE, intervals=FALSE, int.w=0.95,
       int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
       bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
@@ -26,8 +26,7 @@
     The type of seasonality used in CES. Can be: "N" - No seasonality; "S" - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); "P" - Partial seasonality with real seasonal components (equivalent to additive seasonality); "F" - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data).
     Any seasonal CES can only be constructed for time series vectors.
   }
-  \item{CF.type}{
-  Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
   \item{use.test}{
     If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.

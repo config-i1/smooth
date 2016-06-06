@@ -11,7 +11,7 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
         persistenceX=NULL, transitionX=NULL,
-        CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+        CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
         FI=FALSE, intervals=FALSE, int.w=0.95,
         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
         bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -42,7 +42,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
   \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }

@@ -859,9 +859,9 @@ RcppExport SEXP errorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt,
 }
 
 int CFtypeswitch (std::string const& CFtype) {
-    if (CFtype == "GV") return 1;
-    if (CFtype == "trace") return 2;
-    if (CFtype == "TV") return 3;
+    if (CFtype == "TFL") return 1;
+    if (CFtype == "MLSTFE") return 2;
+    if (CFtype == "MSTFE") return 3;
     if (CFtype == "MSEh") return 4;
     if (CFtype == "MAE") return 5;
     if (CFtype == "HAM") return 6;
@@ -904,7 +904,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             yactsum = yactsum / obs * matobs;
         }
 
-/*        if((CFtype=="TV") | (CFtype=="trace") | (CFtype=="MSEh")){
+/*        if((CFtype=="MSTFE") | (CFtype=="MLSTFE") | (CFtype=="MSEh")){
             for(int i=0; i<hor; i=i+1){
                 matobselem(i) = matobs - i;
                 materrors(hor-1,i) = materrors(hor-1,i) * (hor - i);

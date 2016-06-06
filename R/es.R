@@ -1,7 +1,7 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
                persistenceX=NULL, transitionX=NULL,
-               CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+               CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
@@ -27,7 +27,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
-    if(any(CF.type==c("trace","TV","GV","MSEh"))){
+    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
         multisteps <- TRUE;
     }
     else if(any(CF.type==c("MSE","MAE","HAM"))){
@@ -683,7 +683,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 }
 
 Likelihood.value <- function(C){
-    if(CF.type=="GV"){
+    if(CF.type=="TFL"){
         return(obs.ot*log(iprob)*(h^multisteps)
                -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
     }
@@ -915,7 +915,7 @@ checker <- function(inherits=TRUE){
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
-                    CF.type <- "GV";
+                    CF.type <- "TFL";
                 }
                 else{
                     CF.type <- "MSE";
@@ -1364,7 +1364,7 @@ checker <- function(inherits=TRUE){
 
 # Change CF.type for the more appropriate model selection
         if(multisteps==TRUE){
-            CF.type <- "GV";
+            CF.type <- "TFL";
         }
         else{
             CF.type <- "MSE";

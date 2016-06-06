@@ -342,16 +342,16 @@ double cesoptimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW,
     if(multi==true){
 /* #  Matrix may be cut off if needed... */
         materrors = materrors.rows(0,(materrors.n_rows-hor));
-        if(CFtype=="GV"){
+        if(CFtype=="TFL"){
             materrors = materrors / normalize;
             CFres = double(log(det(trans(materrors) * (materrors) / materrors.n_rows)) + hor * log(materrors.n_rows * pow(normalize,2)));
         }
-        else if(CFtype=="trace"){
+        else if(CFtype=="MLSTFE"){
             for(int i=0; i<hor; i=i+1){
                 CFres = CFres + arma::as_scalar(log(mean(pow(materrors.col(i),2))));
             }
         }
-        else if(CFtype=="TV"){
+        else if(CFtype=="MSTFE"){
             CFres = arma::as_scalar(sum(mean(pow(materrors,2),0),1));
         }
         else if(CFtype=="MSEh"){
