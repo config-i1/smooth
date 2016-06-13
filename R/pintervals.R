@@ -36,7 +36,8 @@ pintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p"
 
 #Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
 quantfunc <- function(A){
-    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2);
+#    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2);
+    ee <- ye - (A[1]*xe^A[2]);
     return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])));
 }
 
@@ -85,15 +86,19 @@ quantfunc <- function(A){
             xe <- xe[!is.na(ye)];
             ye <- ye[!is.na(ye)];
 
-            A <- rep(1,3);
+#            A <- rep(1,3);
+            A <- rep(1,2);
             quant <- (1+int.w)/2;
             A <- nlminb(A,quantfunc)$par;
-            upper <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
+#            upper <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
+            upper <- A[1]*c(1:n.var)^A[2];
 
-            A <- rep(1,3);
+#            A <- rep(1,3);
+            A <- rep(1,2);
             quant <- (1-int.w)/2;
             A <- nlminb(A,quantfunc)$par;
-            lower <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
+#            lower <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
+            lower <- A[1]*c(1:n.var)^A[2];
         }
 
 ##### Parametric intervals from GES

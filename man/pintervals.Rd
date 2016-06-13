@@ -42,7 +42,7 @@ pintervals(errors,ev=median(errors),int.w=0.95,int.type=c("a","p","s","n"), df=N
     \enumerate{
         \item \code{parametric} intervals are available only for additive state-space models (additive trend and or seasonality).
         \item \code{semiparametric} intervals are based on the variances of errors provided in the input.
-        \item \code{nonparametric} intervals are based on quantile regressions (Taylor and Bunn, 1999).
+        \item \code{nonparametric} intervals are based on quantile regressions (Taylor and Bunn, 1999), although the underlying function is not a polynom, but a power function: y = a t^b, which makes it flexible, but at the same time does not produce rediculous cases as polynoms sometimes do. The intervals are usually pretty wide, but that's the feature of "nonparametric" things, not a bug.
         \item \code{asymmetric} intervals are constructed using half moment of distribution. See Svetunkov ISIR, 2016 presentation for the details.
     }
 }
