@@ -1221,7 +1221,7 @@ checker <- function(inherits=TRUE){
             Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
             C <- Cs$C;
     }
-
+##### If we do not combine, then go #####
     if(model.do!="combine"){
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matat, estimate.persistence,
@@ -1316,7 +1316,7 @@ checker <- function(inherits=TRUE){
                 ev <- 0;
             }
 
-            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 0.1)){
+            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 1)){
                 simulateint <- FALSE;
             }
             else{
@@ -1358,8 +1358,8 @@ checker <- function(inherits=TRUE){
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                           y.for=y.for, iprob=iprob);
                 if(Etype=="A"){
-                    y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(c(y.for) + iprob*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + iprob*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                 }
                 else{
                     y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1421,6 +1421,7 @@ checker <- function(inherits=TRUE){
             initial.season <- matvt[1:maxlag,n.components]
         }
     }
+##### If we do combine, then combine #####
     else{
 # Produce the forecasts using AIC weights
         models.number <- length(IC.selection);
@@ -1505,6 +1506,7 @@ checker <- function(inherits=TRUE){
             else{
                 s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot-n.param));
             }
+
 # Write down the forecasting intervals
             if(intervals==TRUE){
                 if(h==1){
@@ -1519,7 +1521,7 @@ checker <- function(inherits=TRUE){
                     ev <- 0;
                 }
 
-                if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 0.1)){
+                if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 1)){
                     simulateint <- FALSE;
                 }
                 else{
@@ -1560,8 +1562,8 @@ checker <- function(inherits=TRUE){
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                               y.for=y.for, iprob=iprob);
                     if(Etype=="A"){
-                        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                        y.low <- ts(c(y.for) + iprob*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(c(y.for) + iprob*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                     }
                     else{
                         y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
