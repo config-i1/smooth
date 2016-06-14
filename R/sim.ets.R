@@ -315,11 +315,12 @@ sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 
 # If the error is multiplicative, scale it!
         if(Etype=="M"){
-            exceedingerrors <- apply(abs(materrors),2,max)>0.95;
-            materrors[,exceedingerrors] <- 0.95 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+            exceedingerrors <- apply(abs(materrors),2,max)>0.1;
+            materrors[,exceedingerrors] <- 0.1 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+            materrors <- exp(materrors) - 1;
         }
     }
-# If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT'S HE DOING!
+# If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,",", toString(as.character(list(...))),")")));
         if(randomizer=="rbeta"){

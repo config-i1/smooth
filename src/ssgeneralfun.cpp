@@ -1196,7 +1196,7 @@ List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
     return List::create(Named("arrvt") = arrayVt, Named("matyt") = matY);
 }
 
-/* # Wrapper for simulateets */
+/* # Wrapper for simulateETS */
 // [[Rcpp::export]]
 RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
                                 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags) {

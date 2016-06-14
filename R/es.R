@@ -1276,8 +1276,8 @@ checker <- function(inherits=TRUE){
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                     start=time(data)[obs]+deltat(data),frequency=datafreq);
 
-        if(Etype=="M" & any(y.for<1)){
-            y.for[y.for<1] <- 1;
+        if(Etype=="M" & any(y.for<0)){
+            y.for[y.for<0] <- 1;
         }
 
         if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE &
@@ -1294,7 +1294,13 @@ checker <- function(inherits=TRUE){
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
 
-        s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+# If error additive, estimate as normal. Otherwise - lognormal
+        if(Etype=="A"){
+            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+        }
+        else{
+            s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot-n.param));
+        }
 
 # Write down the forecasting intervals
         if(intervals==TRUE){
@@ -1318,15 +1324,19 @@ checker <- function(inherits=TRUE){
             }
 
             if(int.type=="p" & simulateint==TRUE){
-                matg <- matrix(vecg,n.components,10000);
-                arrvt <- array(NA,c(h+maxlag,n.components,10000));
-                arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],10000);
-                materrors <- matrix(rnorm(10000,0,sqrt(s2)),h,10000);
+                n.samples <- 10000
+                matg <- matrix(vecg,n.components,n.samples);
+                arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
+                arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],n.samples);
+                materrors <- matrix(rnorm(n.samples,0,sqrt(s2)),h,n.samples);
+                if(Etype=="M"){
+                    materrors <- exp(materrors) - 1;
+                }
                 if(iprob!=1){
-                    matot <- matrix(rbinom(10000,1,iprob),h,10000);
+                    matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
                 }
                 else{
-                    matot <- matrix(1,h,10000);
+                    matot <- matrix(1,h,n.samples);
                 }
 
                 y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
@@ -1488,7 +1498,13 @@ checker <- function(inherits=TRUE){
 
             n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag + intermittent;
 
-            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+# If error additive, estimate as normal. Otherwise - lognormal
+            if(Etype=="A"){
+                s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+            }
+            else{
+                s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot-n.param));
+            }
 # Write down the forecasting intervals
             if(intervals==TRUE){
                 if(h==1){
@@ -1511,15 +1527,19 @@ checker <- function(inherits=TRUE){
                 }
 
                 if(int.type=="p" & simulateint==TRUE){
-                    matg <- matrix(vecg,n.components,1000);
-                    arrvt <- array(NA,c(h+maxlag,n.components,1000));
-                    arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],1000);
-                    materrors <- matrix(rnorm(1000,0,sqrt(s2)),h,1000);
+                    n.samples <- 5000
+                    matg <- matrix(vecg,n.components,n.samples);
+                    arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
+                    arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],n.samples);
+                    materrors <- matrix(rnorm(n.samples,0,sqrt(s2)),h,n.samples);
+                    if(Etype=="M"){
+                        materrors <- exp(materrors) - 1;
+                    }
                     if(iprob!=1){
-                        matot <- matrix(rbinom(1000,1,iprob),h,1000);
+                        matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
                     }
                     else{
-                        matot <- matrix(1,h,1000);
+                        matot <- matrix(1,h,n.samples);
                     }
 
                     y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
