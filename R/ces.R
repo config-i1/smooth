@@ -493,8 +493,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
                            MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5));
-        names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
+                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
+                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
+        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
   }
   else{
         y.holdout <- NA;

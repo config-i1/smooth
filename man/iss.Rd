@@ -1,0 +1,59 @@
+\name{iss}
+\alias{iss}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+  Intermittent State Space
+}
+\description{
+  Functin calculates the probability for intermittent state space model. This is needed in order to forecast intermittent demand using other functions.
+}
+\usage{
+  iss(data, intermittent=c("simple","croston","tsb"),
+      h=10, imodel=NULL, ipersistence=NULL)
+}
+\arguments{
+  \item{data}{
+    Either numeric vector or time series vector.
+  }
+  \item{intermittent}{
+    The type of method used in probability estimation. Can be \code{"simple"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
+  }
+  \item{h}{
+    Forecast horizon.
+  }
+  \item{imodel}{
+    Type of ETS model used for the estimation. Normally this should be either \code{"ANN"} or \code{"MNN"}.
+  }
+  \item{ipersistence}{
+    The persistence vector. If \code{NULL}, then it is estimated on the sample.
+  }
+}
+\details{
+  The function estimates probability of demand occurance, using one of the ETS state-space models.
+}
+\value{
+  An object of es() type is returned.
+}
+\references{
+    \itemize{
+        \item{Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research, 214, 606-615.}
+        \item{Croston, J. (1972) Forecasting and stock control for intermittent demands. Operational Research Quarterly, 23(3), 289-303.}
+    }
+}
+\author{
+ Ivan Svetunkov, \email{ivan@svetunkov.ru}
+}
+\seealso{
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{es}}
+}
+\examples{
+y <- rpois(100,0.1)
+iss(y)
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ iss }
+\keyword{ intermittent demand }
+\keyword{ intermittent demand state space model }
+\keyword{ exponential smoothing }
+\keyword{ forecasting }

@@ -62,8 +62,8 @@ MASE <- function(actual,forecast,scale,digits=3){
     }
 }
 
-GMRAE <-function(actual,forecast,benchmark,digits=3){
-# This function calculates Geometric Mean Relative Absolute Error
+RelMAE <-function(actual,forecast,benchmark,digits=3){
+# This function calculates Average Rellative MAE
 # actual - actual values,
 # forecast - forecasted or fitted values.
 # benchmark - forecasted or fitted values of etalon method.
@@ -75,24 +75,7 @@ GMRAE <-function(actual,forecast,benchmark,digits=3){
         message("Can't procede further on.");
     }
     else{
-        return(round(exp(mean(log(abs(actual-forecast)/abs(actual-benchmark)),na.rm=TRUE)),digits=digits));
-    }
-}
-
-TRAE <-function(actual,forecast,benchmark,digits=3){
-# This function calculates Trigonometric Relative Absolute Error. It returns the vector or matrix of values.
-# actual - actual values,
-# forecast - forecasted or fitted values.
-# benchmark - forecasted or fitted values of etalon method.
-    if((length(actual) != length(forecast)) | (length(actual) != length(benchmark)) | (length(benchmark) != length(forecast))){
-        message("The length of the provided data differs.");
-        message(paste0("Length of actual: ",length(actual)));
-        message(paste0("Length of forecast: ",length(forecast)));
-        message(paste0("Length of benchmark: ",length(benchmark)));
-        message("Can't procede further on.");
-    }
-    else{
-        return(round(1-atan(abs(actual-forecast)/abs(actual-benchmark))/(pi/4),digits=digits));
+        return(round(mean(abs(actual-forecast),na.rm=TRUE)/mean(abs(actual-benchmark),na.rm=TRUE),digits=digits));
     }
 }
 
@@ -102,5 +85,14 @@ hm <- function(x,C=mean(x),digits=5,...)
 
     x <- x[!is.na(x)];
     result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
+    return(result);
+}
+
+cbias <- function(x,C=mean(x),digits=5,...)
+{
+# This function calculates half moment
+
+    result <- hm(x,C,digits);
+    result <- 1 - Arg(result)/(pi/4)
     return(result);
 }

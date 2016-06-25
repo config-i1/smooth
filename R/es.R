@@ -5,7 +5,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                FI=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-               xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
+               xreg=NULL, go.wild=FALSE, intermittent=c("none","simple","croston","tsb"), ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -19,6 +19,16 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
     IC <- IC[1];
+    if(all(IC!=c("AICc","AIC","BIC"))){
+        message(paste0("Strange type of information criteria defined: ",IC,". Switching to 'AICc'."));
+        IC <- "AICc";
+    }
+
+    if(all(intermittent!=c("n","s","c","t","none","simple","croston","tsb"))){
+        message(paste0("Strange type of intermittency defined: ",intermittent,". Switching to 'simple'."));
+        intermittent <- "s";
+    }
+    intermittent <- substring(intermittent[1],1,1);
 
 # Check if the data is vector
     if(!is.numeric(data) & !is.ts(data)){
@@ -175,22 +185,24 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     datafreq <- frequency(data);
 
-    if(intermittent==TRUE){
+    if(intermittent!="n"){
         ot <- (y!=0)*1;
-        iprob <- mean(ot);
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
+        pt <- matrix(mean(y),obs,1);
+        pt.for <- matrix(1,h,1);
     }
     else{
         ot <- rep(1,obs);
-        iprob <- 1;
         obs.ot <- obs;
         yot <- y;
+        pt <- matrix(1,obs,1);
+        pt.for <- matrix(1,h,1);
     }
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(iprob==1){
-        intermittent <- FALSE;
+    if(pt[1,]==1){
+        intermittent <- "n";
     }
 
 # Variable will contain maximum number of parameters to estimate
@@ -302,7 +314,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # 1: estimation of iprob;
 # 1: estimation of variance;
     n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") +
-        intermittent + 1;
+        (intermittent!="n") + 1;
 
 # Stop if number of observations is less than number of parameters
     if(obs.ot < n.param.test){
@@ -358,7 +370,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # If the non-positive values are present, check if it is intermittent, if negatives are here, switch to additive models
-    if((any(y<=0) & intermittent==FALSE)| (intermittent==TRUE & any(y<0))){
+    if((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0))){
         if(Etype=="M"){
             warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
             Etype <- "A";
@@ -683,13 +695,24 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 }
 
 Likelihood.value <- function(C){
-    if(CF.type=="TFL"){
-        return(obs.ot*log(iprob)*(h^multisteps)
-               -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+    if(intermittent=="n"){
+        if(CF.type=="TFL"){
+            return(obs*(h^multisteps) - obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        }
+        else{
+            return(obs - obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        }
     }
     else{
-        return(obs.ot*log(iprob)
-               -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        if(CF.type=="TFL"){
+            return(sum(log(pt)*ot)*(h^multisteps) +
+                       sum(log(1-pt)*(1-ot))*(h^multisteps) +
+                       -obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        }
+        else{
+            return(sum(log(pt)*ot) + sum(log(1-pt)*(1-ot)) +
+                       -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        }
     }
 }
 
@@ -910,8 +933,28 @@ checker <- function(inherits=TRUE){
                             call.=FALSE, immediate.=TRUE);
                 }
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") + intermittent +
+                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") +
                            estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
+
+                if(intermittent!="n"){
+                    intermittent_model <- iss(y,intermittent=intermittent,h=h);
+# 1 for initial state. And two more for smoothing parameter and variance.
+                    n.param <- n.param + 1;
+                    if(intermittent!="s"){
+                        n.param <- n.param + 2;
+                        if(intermittent=="c"){
+                            pt[,] <- 1/(1+intermittent_model$fitted);
+                            pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
+                        }
+                    }
+                    else{
+                        pt[,] <- rep(intermittent_model$fitted,obs);
+                        pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
+                    }
+                }
+                else{
+                    pt.for <- matrix(rep(1,h),h,1);
+                }
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
@@ -941,7 +984,7 @@ checker <- function(inherits=TRUE){
             }
             else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
-                if((any(y<=0) & intermittent==FALSE) | (intermittent==TRUE & any(y<0))){
+                if((any(y<=0) & intermittent=="n") | (intermittent!="n" & any(y<0))){
                     if(silent==FALSE){
                         message("Only additive models are allowed with non-positive data.");
                     }
@@ -1214,6 +1257,31 @@ checker <- function(inherits=TRUE){
                         call.=FALSE, immediate.=TRUE);
             }
 
+            n.param <- 0;
+            if(intermittent!="n"){
+                intermittent_model <- iss(y,intermittent=intermittent,h=h);
+# 1 for initial state. And two more for smoothing parameter and variance.
+                n.param <- n.param + 1;
+                if(intermittent!="s"){
+                    n.param <- n.param + 2;
+                    if(intermittent=="c"){
+                        zeroes <- c(0,which(y!=0),obs+1);
+                        zeroes <- diff(zeroes) - 1;
+                        zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
+                        zeroes <- zeroes + 1;
+                        pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
+                        pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
+                    }
+                }
+                else{
+                    pt[,] <- rep(intermittent_model$fitted,obs);
+                    pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
+                }
+            }
+            else{
+                pt.for <- matrix(rep(1,h),h,1);
+            }
+
             CF.objective <- res$objective;
         }
     }
@@ -1270,7 +1338,7 @@ checker <- function(inherits=TRUE){
         colnames(errors.mat) <- paste0("Error",c(1:h));
         errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
 
-        y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+        y.for <- ts(pt.for*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                    matF, matw, h, Ttype, Stype, modellags,
                                    matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
@@ -1290,7 +1358,7 @@ checker <- function(inherits=TRUE){
         else{
 # 1 stand for the variance
             n.param <- 1 + n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season + intermittent +
+                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
 
@@ -1332,8 +1400,8 @@ checker <- function(inherits=TRUE){
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
-                if(iprob!=1){
-                    matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
+                if(intermittent!="n"){
+                    matot <- matrix(rbinom(n.samples,1,pt.for[1]),h,n.samples);
                 }
                 else{
                     matot <- matrix(1,h,n.samples);
@@ -1356,10 +1424,10 @@ checker <- function(inherits=TRUE){
 
                 quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                          y.for=y.for, iprob=iprob);
+                                          y.for=y.for, iprob=pt.for[1]);
                 if(Etype=="A"){
-                    y.low <- ts(c(y.for) + iprob*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + iprob*quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(c(y.for) + pt.for[1]*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + pt.for[1]*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                 }
                 else{
                     y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1492,12 +1560,12 @@ checker <- function(inherits=TRUE){
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- fitting$errors;
 # Produce point and interval forecasts
-            y.for <- iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                                    matF, matw, h, Ttype, Stype, modellags,
-                                    matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                    matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
+            y.for <- pt.for[1]*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+                                              matF, matw, h, Ttype, Stype, modellags,
+                                              matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
+                                              matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
 
-            n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag + intermittent;
+            n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag + (intermittent!="n");
 
 # If error additive, estimate as normal. Otherwise - lognormal
             if(Etype=="A"){
@@ -1537,8 +1605,8 @@ checker <- function(inherits=TRUE){
                     if(Etype=="M"){
                         materrors <- exp(materrors) - 1;
                     }
-                    if(iprob!=1){
-                        matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
+                    if(pt.for[1]!=1){
+                        matot <- matrix(rbinom(n.samples,1,pt.for[1]),h,n.samples);
                     }
                     else{
                         matot <- matrix(1,h,n.samples);
@@ -1560,10 +1628,10 @@ checker <- function(inherits=TRUE){
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
                     quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                              y.for=y.for, iprob=iprob);
+                                              y.for=y.for, iprob=pt.for[1]);
                     if(Etype=="A"){
-                        y.low <- ts(c(y.for) + iprob*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                        y.high <- ts(c(y.for) + iprob*quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                        y.low <- ts(c(y.for) + pt.for[1]*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(c(y.for) + pt.for[1]*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                     }
                     else{
                         y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1617,8 +1685,10 @@ checker <- function(inherits=TRUE){
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
                            MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5));
-        names(errormeasures) <- c("MAPE","MASE","MASALE","MPE","SMAPE");
+                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
+                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
+        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
     }
     else{
         y.holdout <- NA;

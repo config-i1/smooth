@@ -4,8 +4,7 @@
 \alias{MAPE}
 \alias{SMAPE}
 \alias{MASE}
-\alias{GMRAE}
-\alias{TRAE}
+\alias{RelMAE}
 
 \title{
     Error measures
@@ -17,8 +16,7 @@
         \item{MAPE - Mean Absolute Percentage Error,}
         \item{SMAPE - Symmetric Mean Absolute Percentage Error,}
         \item{MASE - Mean Absolute Scaled Error,}
-        \item{GMRAE - Geometric Mean Relative Absolute Error.}
-        \item{TRAE - Trigonometric Relative Absolute Error.}
+        \item{RelMAE - Average Rellative Mean Absolute Error.}
     }
 }
 \usage{
@@ -26,8 +24,7 @@
     MAPE(actual,forecast,digits=3)
     SMAPE(actual,forecast,digits=3)
     MASE(actual,forecast,scale,digits=3)
-    GMRAE(actual,forecast,benchmark,digits=3)
-    TRAE(actual,forecast,benchmark,digits=3)
+    RelMAE(actual,forecast,benchmark,digits=3)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -48,7 +45,7 @@
   }
 }
 \value{
-    All the functions but \code{TRAE} return the scalar value. \code{TRAE} returns either vector or matrix of values.
+    All the functions return the scalar value.
 }
 \references{
     \itemize{
@@ -78,7 +75,7 @@ MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
 MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),digits=5)
 
 esmodel2 <- es(y[1:90],model="AAN",h=10)
-GMRAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
+RelMAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
 
 }
 \keyword{ error measures }

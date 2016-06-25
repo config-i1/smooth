@@ -15,7 +15,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    FI=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
    bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-   xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
+   xreg=NULL, go.wild=FALSE, intermittent=c("none","simple","croston","tsb"), ...)
 
 }
 %- maybe also 'usage' for other objects documented here.
@@ -76,7 +76,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  \item{intermittent}{ Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as a slow-moving; 2. \code{simple}, taking into account Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
   }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }
@@ -143,6 +143,8 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
         \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
         \item{Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.}
         \item{Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike weights. International Journal of Forecasting, 27, pp 238 - 251.}
+        \item{Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research 214, 606-615.}
+        \item{Croston, J. (1972) Forecasting and stock control for intermittent demands. Operational Research Quarterly, 23(3), 289-303.}
     }
 }
 \author{

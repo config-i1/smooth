@@ -4,7 +4,7 @@
     State-space output function
 }
 \description{
-    The function prints out all the necessary details of the state-space used. This is mainly for the internal use of es(), ces(), ges(), ssarima() and nus().
+    The function prints out all the necessary details of the state-space model constructed. This is mainly for the internal use of es(), ces(), ges(), ssarima() and nus().
 }
 \usage{
 ssoutput(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,

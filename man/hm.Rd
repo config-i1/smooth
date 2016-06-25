@@ -1,13 +1,16 @@
 \name{hm}
 \alias{hm}
+\alias{cbias}
 \title{
-    Half moment of a distribution.
+    Half moment of a distribution and its derivatives.
 }
 \description{
-    Function estimates half moment from some predefined constant \code{C}.
+    \code{hm} function estimates half moment from some predefined constant \code{C}.
+    \code{cbias} function calculates bias based on \code{hm}.
 }
 \usage{
     hm(x,C=mean(x),digits=5,...)
+    cbias(x,C=mean(x),digits=5,...)
 }
 
 \arguments{
@@ -24,10 +27,10 @@
     \code{NA} values of \code{x} are excluded on the first step of calculation.
 }
 \value{
-    A complex variable is returned.
+    A complex variable is returned for \code{hm} function and real value is returned for \code{cbias}.
 }
 \references{
-    Nothing yet...
+    TBA
 }
 \author{
     Ivan Svetunkov
@@ -35,6 +38,7 @@
 \examples{
 x <- rnorm(100,0,1)
 hm(x)
+cbias(x)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
