@@ -134,7 +134,7 @@ ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=FALSE,xreg=c(1:118))->te
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),go.wild=TRUE)->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),go.wild=TRUE,CF.type="GV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),go.wild=TRUE,CF.type="TFL")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

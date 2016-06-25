@@ -158,9 +158,9 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 library(Mcomp)
 
 # See how holdout and trace parameters influence the forecast
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=FALSE) -> test
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,trace=TRUE) -> test
-es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,trace=TRUE) -> test
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,CFtype="MSE") -> test
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,CFtype="TFL") -> test
+es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,CFtype="MSTFE") -> test
 
 # Model selection example
 es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,bounds="a") -> test
@@ -180,7 +180,7 @@ es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 
 # Exogenous variables in ETS example
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,trace=TRUE)->test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,CFtype="TFL")->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

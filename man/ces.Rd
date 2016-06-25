@@ -119,7 +119,7 @@ N1683_ces_F <- ces(y,h=18,holdout=TRUE,seasonality="F",intervals=TRUE)
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-    intervals=TRUE,xreg=x,CF.type="trace")->test
+    intervals=TRUE,xreg=x,CF.type="MSTFE")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
