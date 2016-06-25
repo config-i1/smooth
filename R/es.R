@@ -943,7 +943,11 @@ checker <- function(inherits=TRUE){
                     if(intermittent!="s"){
                         n.param <- n.param + 2;
                         if(intermittent=="c"){
-                            pt[,] <- 1/(1+intermittent_model$fitted);
+                            zeroes <- c(0,which(y!=0),obs+1);
+                            zeroes <- diff(zeroes) - 1;
+                            zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
+                            zeroes <- zeroes + 1;
+                            pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
                             pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
                         }
                     }
@@ -1257,31 +1261,6 @@ checker <- function(inherits=TRUE){
                         call.=FALSE, immediate.=TRUE);
             }
 
-            n.param <- 0;
-            if(intermittent!="n"){
-                intermittent_model <- iss(y,intermittent=intermittent,h=h);
-# 1 for initial state. And two more for smoothing parameter and variance.
-                n.param <- n.param + 1;
-                if(intermittent!="s"){
-                    n.param <- n.param + 2;
-                    if(intermittent=="c"){
-                        zeroes <- c(0,which(y!=0),obs+1);
-                        zeroes <- diff(zeroes) - 1;
-                        zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
-                        zeroes <- zeroes + 1;
-                        pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
-                        pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
-                    }
-                }
-                else{
-                    pt[,] <- rep(intermittent_model$fitted,obs);
-                    pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
-                }
-            }
-            else{
-                pt.for <- matrix(rep(1,h),h,1);
-            }
-
             CF.objective <- res$objective;
         }
     }
@@ -1291,6 +1270,31 @@ checker <- function(inherits=TRUE){
     }
 ##### If we do not combine, then go #####
     if(model.do!="combine"){
+        n.param <- 0;
+        if(intermittent!="n"){
+            intermittent_model <- iss(y,intermittent=intermittent,h=h);
+# 1 for initial state. And two more for smoothing parameter and variance.
+            n.param <- n.param + 1;
+            if(intermittent!="s"){
+                n.param <- n.param + 2;
+                if(intermittent=="c"){
+                    zeroes <- c(0,which(y!=0),obs+1);
+                    zeroes <- diff(zeroes) - 1;
+                    zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
+                    zeroes <- zeroes + 1;
+                    pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
+                    pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
+                }
+            }
+            else{
+                pt[,] <- rep(intermittent_model$fitted,obs);
+                pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
+            }
+        }
+        else{
+            pt.for <- matrix(rep(1,h),h,1);
+        }
+
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
                                 Ttype, Stype, n.exovars, matat, estimate.persistence,
                                 estimate.phi, estimate.initial, estimate.initial.season,
@@ -1357,7 +1361,7 @@ checker <- function(inherits=TRUE){
         }
         else{
 # 1 stand for the variance
-            n.param <- 1 + n.components*estimate.persistence + estimate.phi +
+            n.param <- n.param + 1 + n.components*estimate.persistence + estimate.phi +
                 (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
                 estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
         }
