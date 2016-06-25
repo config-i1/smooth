@@ -4,5 +4,5 @@ importFrom("numDeriv",hessian)
 importFrom("polynom",as.polylist,as.polynomial,polynomial)
 export(es, ges, nus, ces, ces.auto, ssarima, iss,
        sim.ces, sim.ets,
-       sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, hm, cbias, graphmaker, pintervals)
+       sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, hm, cbias, graphmaker)
 useDynLib(smooth)
