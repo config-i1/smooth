@@ -93,6 +93,6 @@ cbias <- function(x,C=mean(x),digits=5,...)
 # This function calculates half moment
 
     result <- hm(x,C,digits);
-    result <- 1 - Arg(result)/(pi/4)
+    result <- round(1 - Arg(result)/(pi/4),digits);
     return(result);
 }
