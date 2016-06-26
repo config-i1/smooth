@@ -61,7 +61,7 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
         }
 
 # Smoothing parameter, initial, alpha, betta, kappa
-        kappa <- 1E-10;
+        kappa <- 1E-5;
         C <- c(vecg[1],ivt[1],0.1,0.1);
         res <- nloptr(C, CF, lb=c(0,0,0,0), ub=c(1,1,1000,1000),
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
