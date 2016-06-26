@@ -37,7 +37,7 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
     }
     else if(intermittent=="t"){
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
-        iyt <- matrix(abs(y),obs,1);
+        iyt <- matrix(ot,obs,1);
         modellags <- matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0.01,1,1);
         errors <- matrix(NA,obs,1);
