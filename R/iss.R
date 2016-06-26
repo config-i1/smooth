@@ -53,15 +53,15 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
 
             iyt.fit <- fitting$yfit;
             errors <- fitting$errors;
-            CF.res <- -(C[3]-1)*sum(log(iyt.fit*(1+errors)+kappa)) -
-                      (C[4]-1)*sum(1-log(iyt.fit*(1+errors)+kappa)) +
-                      (C[3] + C[4] + 2) * obs * log(1+2*kappa) +
+
+            CF.res <- -(C[3]-1)*sum(log(iyt.fit*(1+errors))) -
+                      (C[4]-1)*sum(1-log(iyt.fit*(1+errors))) +
                       obs * log(beta(C[3],C[4]));
             return(CF.res);
         }
 
 # Smoothing parameter, initial, alpha, betta, kappa
-        kappa <- 1E-20;
+        kappa <- 1E-10;
         C <- c(vecg[1],ivt[1],0.1,0.1);
         res <- nloptr(C, CF, lb=c(0,0,0,0), ub=c(1,1,1000,1000),
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
