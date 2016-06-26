@@ -36,9 +36,49 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
         }
     }
     else if(intermittent=="t"){
-        warning("Sorry, TSB is not implemented yet.",call.=FALSE);
-        return(NULL);
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
         iyt <- matrix(y,obs,1);
+        modellags <- matw <- matF <- matrix(1,1,1);
+        vecg <- matrix(0.01,1,1);
+        errors <- matrix(NA,obs,1);
+        iyt.fit <- matrix(NA,obs,1);
+
+        CF <- function(C){
+            vecg[,] <- C[1];
+            ivt[1,] <- C[2];
+            iy_kappa <- iyt*(1 - 2*kappa) + kappa;
+            fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
+                                  modellags, "M", "N", "N",
+                                  matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
+
+            iyt.fit <- fitting$yfit;
+            errors <- fitting$errors;
+            CF.res <- -(C[3]-1)*sum(log(iyt.fit*(1+errors)+kappa)) -
+                      (C[4]-1)*sum(1-log(iyt.fit*(1+errors)+kappa)) +
+                      (C[3] + C[4] + 2) * obs * log(1+2*kappa) +
+                      obs * log(beta(C[3],C[4]));
+            return(CF.res);
+        }
+
+# Smoothing parameter, initial, alpha, betta, kappa
+        kappa <- 1E-20;
+        C <- c(vecg[1],ivt[1],0.1,0.1);
+        res <- nloptr(C, CF, lb=c(0,0,0,0), ub=c(1,1,1000,1000),
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+        C <- res$solution;
+
+        vecg[,] <- C[1];
+        ivt[1,] <- C[2];
+        iy_kappa <- iyt*(1 - 2*kappa) + kappa;
+        fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
+                              modellags, "M", "N", "N",
+                              matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
+
+        ivt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
+        iyt.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
+        iy.for <- ts(rep(iyt.fit[obs],h),
+                     start=time(data)[obs]+deltat(data),frequency=frequency(data));
+
+        return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for)));
     }
 }

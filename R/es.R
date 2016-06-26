@@ -950,6 +950,10 @@ checker <- function(inherits=TRUE){
                             pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
                             pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
                         }
+                        else if(intermittent=="t"){
+                            pt[,] <- intermittent_model$fitted;
+                            pt.for <- intermittent_model$forecast;
+                        }
                     }
                     else{
                         pt[,] <- rep(intermittent_model$fitted,obs);
@@ -1284,6 +1288,10 @@ checker <- function(inherits=TRUE){
                     zeroes <- zeroes + 1;
                     pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
                     pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
+                }
+                else if(intermittent=="t"){
+                    pt[,] <- intermittent_model$fitted;
+                    pt.for <- intermittent_model$forecast;
                 }
             }
             else{
@@ -1753,7 +1761,7 @@ if(silent==FALSE){
         return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matvt,
                     initial=initial,initial.season=initial.season,fitted=y.fit,
                     forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                    errors=errors.mat,actuals=data,holdout=y.holdout,
+                    errors=errors.mat,actuals=data,holdout=y.holdout, iprob=pt,
                     xreg=xreg,persistenceX=vecgX,transitionX=matFX,
                     ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
     }
