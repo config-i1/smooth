@@ -49,6 +49,10 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     modellags <- matrix(rep(1,times=n.components),ncol=1);
     maxlag <- 1;
 
+    if((n.components==0) & (constant==FALSE)){
+        stop("What do you want me to do? You have not defined any model!",call.=FALSE);
+    }
+
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
     if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
