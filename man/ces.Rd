@@ -8,12 +8,13 @@
   Function estimates CES in state-space form with information potential equal to errors and returns several variables.
 }
 \usage{
-  ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
-      CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-      use.test=FALSE, intervals=FALSE, int.w=0.95,
-      int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-      bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-      xreg=NULL, go.wild=FALSE, intermittent=FALSE)
+ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
+    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+    holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+    intermittent=FALSE,
+    bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+    xreg=NULL, go.wild=FALSE)
 }
 \arguments{
   \item{data}{
@@ -28,8 +29,11 @@
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{use.test}{
-    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
+  \item{holdout}{
+    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
+  }
+  \item{h}{
+    The forecasting horizon.
   }
   \item{intervals}{
     If \code{TRUE}, the prediction intervals are constructed.
@@ -39,13 +43,12 @@
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
   }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{holdout}{
-    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
-  }
-  \item{h}{
-    The forecasting horizon.
+  \item{use.test}{
+    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{silent}{
     If \code{TRUE}, no output is given and no plot is drawn.
@@ -57,8 +60,6 @@
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
-  }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
 }
 \details{

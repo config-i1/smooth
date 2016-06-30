@@ -1,11 +1,11 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
-                    persistenceX=NULL, transitionX=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                    FI=FALSE, intervals=FALSE, int.w=0.95,
+                    holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                    bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-                    xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
+                    intermittent=c("none","simple","croston","tsb"),
+                    bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+                    xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
 #
@@ -18,6 +18,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     start.time <- Sys.time();
 
     bounds <- substring(bounds[1],1,1);
+    intermittent <- substring(intermittent[1],1,1);
 # Check if "bounds" parameter makes any sense
     if(bounds!="n" & bounds!="a"){
         message("The strange bounds are defined. Switching to 'admissible'.");
@@ -136,24 +137,28 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
 # Define the actual values and write down the original ts frequency
     y <- matrix(data[1:obs],obs,1);
+    y_centered <- y;
     datafreq <- frequency(data);
 
-    if(intermittent==TRUE){
+    if(intermittent!="n"){
         ot <- (y!=0)*1;
-        iprob <- mean(ot);
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
+        pt <- matrix(mean(ot),obs,1);
+        pt.for <- matrix(1,h,1);
     }
     else{
         ot <- rep(1,obs);
-        iprob <- 1;
         obs.ot <- obs;
         yot <- y;
+        pt <- matrix(1,obs,1);
+        pt.for <- matrix(1,h,1);
     }
+    iprob <- pt[1,];
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
     if(iprob==1){
-        intermittent <- FALSE;
+        intermittent <- "n";
     }
 
 # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -170,11 +175,19 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     D <- list(NA);
     Q <- list(NA);
 
+    if(n.components > 0){
 # Transition matrix, measurement vector and persistence vector + state vector
-    matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
-    matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
-    vecg <- matrix(0.1,n.components,1);
-    matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+        matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
+        matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
+        vecg <- matrix(0.1,n.components,1);
+        matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+    }
+    else{
+        matw <- matF <- matrix(1,1,1);
+        vecg <- matrix(0,1,1);
+        matvt <- matrix(NA,nrow=(obs+1),ncol=1);
+        modellags <- matrix(1,1,1);
+    }
 
 # Now let's prepare the provided exogenous data for the inclusion in ETS
 # Check the exogenous variable if it is present and
@@ -241,16 +254,16 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # This should be done for general case
-    if(constant==TRUE){
-        n.exovars <- 1;
-        matxt <- matrix(1,obs.xt,1);
-        matat <- matrix(0,obs.xt,1);
-        matFX <- matrix(1,1,1);
-        vecgX <- matrix(0,1,1);
-    }
+#    if(constant==TRUE){
+#        n.exovars <- 1;
+#        matxt <- matrix(1,obs.xt,1);
+#        matat <- matrix(0,obs.xt,1);
+#        matFX <- matrix(1,1,1);
+#        vecgX <- matrix(0,1,1);
+#    }
 
 # 1 stands for the variance
-    n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + intermittent + constant;
+    n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){
@@ -259,7 +272,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
     if(n.param >= obs.ot-1){
-        if(intermittent==TRUE){
+        if(intermittent!="n"){
             stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                         n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);
         }
@@ -275,77 +288,78 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     Stype <- "N";
 
 polyroots <- function(C){
+    polysos.ar <- 0;
+    polysos.ma <- 0;
     n.coef <- 0;
     matF[,1] <- 0;
-    for(i in 1:length(lags)){
-        if((ar.orders*lags)[i]!=0){
-            armat <- matrix(0,lags[i],ar.orders[i]);
-            armat[lags[i],] <- -C[(n.coef+1):(n.coef + ar.orders[i])];
-            P[[i]] <- c(1,c(armat));
+    if(n.components > 0){
+        for(i in 1:length(lags)){
+            if((ar.orders*lags)[i]!=0){
+                armat <- matrix(0,lags[i],ar.orders[i]);
+                armat[lags[i],] <- -C[(n.coef+1):(n.coef + ar.orders[i])];
+                P[[i]] <- c(1,c(armat));
 
-            n.coef <- n.coef + ar.orders[i];
-        }
-        else{
-            P[[i]] <- 1;
-        }
+                n.coef <- n.coef + ar.orders[i];
+            }
+            else{
+                P[[i]] <- 1;
+            }
 
-        if((i.orders*lags)[i]!=0){
-            D[[i]] <- c(1,rep(0,max(lags[i]-1,0)),-1);
-        }
-        else{
-            D[[i]] <- 1;
-        }
+            if((i.orders*lags)[i]!=0){
+                D[[i]] <- c(1,rep(0,max(lags[i]-1,0)),-1);
+            }
+            else{
+                D[[i]] <- 1;
+            }
 
-        if((ma.orders*lags)[i]!=0){
-            armat <- matrix(0,lags[i],ma.orders[i]);
-            armat[lags[i],] <- C[(n.coef+1):(n.coef + ma.orders[i])];
-            Q[[i]] <- c(1,c(armat));
+            if((ma.orders*lags)[i]!=0){
+                armat <- matrix(0,lags[i],ma.orders[i]);
+                armat[lags[i],] <- C[(n.coef+1):(n.coef + ma.orders[i])];
+                Q[[i]] <- c(1,c(armat));
 
-            n.coef <- n.coef + ma.orders[i];
+                n.coef <- n.coef + ma.orders[i];
+            }
+            else{
+                Q[[i]] <- 1;
+            }
         }
-        else{
-            Q[[i]] <- 1;
-        }
-    }
 ##### Polynom multiplication is the slowest part now #####
-    polysos.i <- as.polynomial(1);
-    for(i in 1:length(lags)){
-        polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
-    }
+        polysos.i <- as.polynomial(1);
+        for(i in 1:length(lags)){
+            polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
+        }
 
-    polysos.ar <- 1;
-    polysos.ma <- 1;
-    for(i in 1:length(P)){
-        polysos.ar <- polysos.ar * polynomial(P[[i]]);
-    }
-    polysos.ari <- polysos.ar * polysos.i;
+        polysos.ar <- 1;
+        polysos.ma <- 1;
+        for(i in 1:length(P)){
+            polysos.ar <- polysos.ar * polynomial(P[[i]]);
+        }
+        polysos.ari <- polysos.ar * polysos.i;
 
-    for(i in 1:length(Q)){
-        polysos.ma <- polysos.ma * polynomial(Q[[i]]);
-    }
+        for(i in 1:length(Q)){
+            polysos.ma <- polysos.ma * polynomial(Q[[i]]);
+        }
 
-    if(length((polysos.ari))!=1){
-        matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
-    }
+        if(length((polysos.ari))!=1){
+            matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
+        }
 ### The MA parameters are in the style "1 + b1 * B".
-    vecg[,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
-    vecg[is.na(vecg),] <- 0;
+        vecg[,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
+        vecg[is.na(vecg),] <- 0;
+    }
+    else{
+        matF[1,1] <- 1;
+        vt <- C[1];
+    }
 
     if(is.null(initial)){
-        xt <- C[(n.coef+1):(n.coef+n.components)];
+        vt <- C[(n.coef+1):(n.coef+n.components)];
     }
     else{
-        xt <- initial;
+        vt <- initial;
     }
 
-    if(constant==TRUE){
-        matat <- C[length(C)];
-    }
-    else{
-        matat <- 0;
-    }
-
-    return(list(matF=matF,vecg=vecg,xt=xt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
+    return(list(matF=matF,vecg=vecg,vt=vt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
 
 # Function creates bounds for the estimates
@@ -369,14 +383,14 @@ CF <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1,] <- elements$xt;
+    matvt[1,] <- elements$vt;
     polysos.ar <- elements$polysos.ar;
     polysos.ma <- elements$polysos.ma;
-    matat[1,] <- elements$matat;
+    matat[1,] <- elements$matat[1,];
 #    matFX <- elements$matFX;
 #    vecgX <- elements$vecgX;
 
-    if(bounds=="a"){
+    if(bounds=="a" & (n.components > 0)){
         arroots <- abs(polyroot(polysos.ar));
         if(any(arroots<1)){
             return(max(arroots)*1E+100);
@@ -387,10 +401,14 @@ CF <- function(C){
         }
     }
 
+    if(constant==TRUE){
+        y_centered <- y - C[length(C)];
+    }
+
 #    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
 #                              h, modellags, multisteps, CF.type, normalizer,
 #                              matxt, matat, matFX, vecgX, ot);
-    CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
+    CF.res <- optimizerwrap(matvt, matF, matw, y_centered, vecg,
                             h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
                             matxt, matat, matFX, vecgX, ot);
 
@@ -398,13 +416,24 @@ CF <- function(C){
 }
 
 Likelihood.value <- function(C){
-    if(CF.type=="TFL"){
-        return(obs.ot*log(iprob)*(h^multisteps)
-               -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+    if(intermittent=="n"){
+        if(CF.type=="TFL"){
+            return(obs*(h^multisteps) - obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        }
+        else{
+            return(obs - obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        }
     }
     else{
-        return(obs.ot*log(iprob)
-               -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        if(CF.type=="TFL"){
+            return(sum(log(pt)*ot)*(h^multisteps) +
+                       sum(log(1-pt)*(1-ot))*(h^multisteps) +
+                       -obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+        }
+        else{
+            return(sum(log(pt)*ot) + sum(log(1-pt)*(1-ot)) +
+                       -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+        }
     }
 }
 
@@ -424,15 +453,19 @@ Likelihood.value <- function(C){
 # If there is something to optimise, let's do it.
     if(is.null(initial) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
 
+        C <- NULL;
+        if(n.components > 0){
 # ar terms, ma terms from season to season...
-        C <- c(rep(0.1,sum(ar.orders)),
-               rep(0.1,sum(ma.orders)));
+            C <- c(rep(0.1,sum(ar.orders)),
+                   rep(0.1,sum(ma.orders)));
 
 # initial values of state vector and the constant term
-        slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
-        intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
-        initial.stuff <- c(intercept,slope,diff(yot[1:(n.components-1),]));
-        C <- c(C,initial.stuff[1:n.components]);
+            slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+            intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+            initial.stuff <- c(intercept,slope,diff(yot[1:(n.components-1),]));
+            C <- c(C,initial.stuff[1:n.components]);
+        }
+
         if(constant==TRUE){
             C <- c(C,sum(yot)/obs);
         }
@@ -450,8 +483,8 @@ Likelihood.value <- function(C){
         elements <- polyroots(C);
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matvt[1,] <- elements$xt;
-        matat[1,] <- elements$matat;
+        matvt[1,] <- elements$vt;
+        matat[1,] <- elements$matat[1,];
         polysos.ar <- elements$polysos.ar;
         polysos.ma <- elements$polysos.ma;
         arroots <- abs(polyroot(polysos.ar));
@@ -471,7 +504,7 @@ Likelihood.value <- function(C){
         CF.objective <- res$objective;
     }
     else{
-# matF, vecg, xt
+# matF, vecg, vt
         transition <- matrix(transition,n.components,n.components);
         C <- c(transition[,1]);
         C <- c(c(transition),
@@ -500,8 +533,8 @@ Likelihood.value <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1,] <- elements$xt;
-    matat[1,] <- elements$matat;
+    matvt[1,] <- elements$vt;
+    matat[1,] <- elements$matat[1,];
     polysos.ar <- elements$polysos.ar;
     polysos.ma <- elements$polysos.ma;
     arroots <- abs(polyroot(polysos.ar));
@@ -509,45 +542,39 @@ Likelihood.value <- function(C){
 #    matFX <- elements$matFX;
 #    vecgX <- elements$vecgX;
     if(is.null(initial)){
-        initial <- elements$xt;
+        initial <- elements$vt;
     }
-
-#    fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
-#                            matxt, matat, matFX, vecgX, ot);
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype,
-                          matxt, matat, matFX, vecgX, ot);
-    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
-    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
     if(constant==TRUE){
         const <- C[length(C)];
+        y_centered <- y - const;
     }
     else{
         const <- 0;
     }
 
-#    if(!is.null(xreg)){
+    fitting <- fitterwrap(matvt, matF, matw, y_centered, vecg,
+                          modellags, Etype, Ttype, Stype,
+                          matxt, matat, matFX, vecgX, ot);
+    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
+    y.fit <- ts(fitting$yfit + const,start=start(data),frequency=frequency(data));
+
+    if(!is.null(xreg)){
 # Write down the matat and produce values for the holdout
     matat[1:nrow(fitting$matat),] <- fitting$matat;
-#    }
+    }
 
 # Calculate the tails of matat and matvt
-#    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-#                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
-    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
+    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,max(1,n.components))),h+maxlag-1,max(1,n.components)), matF,
                                  matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                  modellags, Ttype, Stype);
-#    if(!is.null(xreg)){
+    if(!is.null(xreg)){
 # Write down the matat and produce values for the holdout
         matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
-#    }
+    }
 
 # Produce matrix of errors
-#    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y, h, modellags,
-#                                   matxt, matat, matFX, ot),
-#                     start=start(data), frequency=frequency(data));
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
+    errors.mat <- ts(errorerwrap(matvt, matF, matw, y_centered,
                                  h, Etype, Ttype, Stype, modellags,
                                  matxt, matat, matFX, ot),
                      start=start(data),frequency=frequency(data));
@@ -555,12 +582,7 @@ Likelihood.value <- function(C){
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
-#    y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=1),
-#                                         matF, matw, h,
-#                                         modellags, matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-#                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-#                start=time(data)[obs]+deltat(data), frequency=frequency(data));
-    y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+    y.for <- ts(const + iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                matF, matw, h, Ttype, Stype, modellags,
                                matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
@@ -587,7 +609,7 @@ Likelihood.value <- function(C){
             ev <- 0;
         }
 
-        vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
+        vt <- matrix(matvt[cbind(obs-modellags,c(1:max(1,n.components)))],max(1,n.components),1);
 
         quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
@@ -614,14 +636,14 @@ Likelihood.value <- function(C){
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=n.components));
+    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components)));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-        colnames(matvt) <- c(paste0("Component ",c(1:n.components)),colnames(matat));
+        colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components))),colnames(matat));
     }
     else{
-        colnames(matvt) <- paste0("Component ",c(1:n.components));
+        colnames(matvt) <- paste0("Component ",c(1:max(1,n.components)));
     }
 
 # AR terms

@@ -1,9 +1,10 @@
 ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                use.test=FALSE, intervals=FALSE, int.w=0.95,
+                holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE, intermittent=FALSE){
+                intermittent=FALSE,
+                bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+                xreg=NULL, go.wild=FALSE){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of

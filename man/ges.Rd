@@ -10,12 +10,12 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 \usage{
 ges(data, orders=c(2), lags=c(1), initial=NULL,
     persistence=NULL, transition=NULL, measurement=NULL,
-    persistenceX=NULL, transitionX=NULL,
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-    FI=FALSE, intervals=FALSE, int.w=0.95,
+    holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-    bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-    xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...)
+    intermittent=FALSE,
+    bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+    xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -34,13 +34,11 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
   }
-  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
-  }
-  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
-  }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
+  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
+  }
+  \item{h}{ the forecasting horizon.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -48,11 +46,11 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
   }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
-  }
-  \item{h}{ the forecasting horizon.
+  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
   \item{silent}{ if \code{TRUE}, no output or graph is given.
   }
@@ -62,7 +60,9 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }

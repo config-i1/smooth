@@ -1,11 +1,11 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
-               persistenceX=NULL, transitionX=NULL,
                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-               FI=FALSE, intervals=FALSE, int.w=0.95,
+               holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-               bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-               xreg=NULL, go.wild=FALSE, intermittent=c("none","simple","croston","tsb"), ...){
+               intermittent=c("none","simple","croston","tsb"),
+               bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+               xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -189,7 +189,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         ot <- (y!=0)*1;
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
-        pt <- matrix(mean(y),obs,1);
+        pt <- matrix(mean(ot),obs,1);
         pt.for <- matrix(1,h,1);
     }
     else{
@@ -578,7 +578,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
             }
             else{
                 C.lower <- c(C.lower,0.1,0.01);
-                C.upper <- c(C.upper,Inf,3);
+                C.upper <- c(C.upper,Inf,5);
             }
         }
         if(Stype!="N"){

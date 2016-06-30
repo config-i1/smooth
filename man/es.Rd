@@ -10,12 +10,12 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
    initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
-   persistenceX=NULL, transitionX=NULL,
    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-   FI=FALSE, intervals=FALSE, int.w=0.95,
+   holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-   bounds=c("usual","admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-   xreg=NULL, go.wild=FALSE, intermittent=c("none","simple","croston","tsb"), ...)
+   intermittent=c("none","simple","croston","tsb"),
+   bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+   xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 
 }
 %- maybe also 'usage' for other objects documented here.
@@ -38,13 +38,11 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{IC}{ The information criterion to use in the model selection.
   }
-  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
-  }
-  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
-  }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
+  \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
+  }
+  \item{h}{ The length of the forecasting horizon.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -62,11 +60,11 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     \item Finally \code{asymmetric} are based on half moment of distribution.
   }
   }
+  \item{intermittent}{ Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as a slow-moving; 2. \code{simple}, taking into account Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
+  }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
-  }
-  \item{h}{ The length of the forecasting horizon.
+  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
   \item{silent}{ If \code{TRUE}, no output or graphs are printed out.
   }
@@ -76,7 +74,9 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{intermittent}{ Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as a slow-moving; 2. \code{simple}, taking into account Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
+  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{ Other parameters that are passed to DON'T KNOW WHAT YET.
   }

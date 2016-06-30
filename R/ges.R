@@ -1,11 +1,11 @@
 ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
                 persistence=NULL, transition=NULL, measurement=NULL,
-                persistenceX=NULL, transitionX=NULL,
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                FI=FALSE, intervals=FALSE, int.w=0.95,
+                holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=c("admissible","none"), holdout=FALSE, h=10, silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE, intermittent=FALSE, ...){
+                intermittent=FALSE,
+                bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+                xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
