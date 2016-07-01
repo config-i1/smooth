@@ -5,6 +5,13 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
+    obs <- length(data) - holdout*h;
+
+# This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
+    if(obs < 4){
+        stop("Sorry, but you have a too small sample. Come back when you have at least 4 observations...",call.=FALSE);
+    }
+
     IC <- IC[1];
     CF.type <- CF.type[1];
 
@@ -50,6 +57,13 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                     cat(paste0(round((m)/models.number,2)*100,"%"));
                 }
+                n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
+                           sum(ar.best) + sum(ma.best) + 1;
+                if(n.param > obs - 2){
+                    test.ICs[iSelect+1] <- Inf;
+                    test.ICs.all[m] <- Inf;
+                    next
+                }
 # Update the iSelect in i.test preserving the previous values
                 i.test[seasSelect] <- iSelect;
                 test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.test),ma.orders=rev(ma.best),lags=rev(test.lags),
@@ -71,6 +85,13 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                     cat(paste0(round((m)/models.number,2)*100,"%"));
                 }
+                n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
+                           sum(ar.best) + sum(ma.best) + 1;
+                if(n.param > obs - 2){
+                    test.ICs[iSelect+1] <- Inf;
+                    test.ICs.all[m] <- Inf;
+                    next
+                }
 # Update the iSelect in i.test preserving the previous values
                 ar.test[seasSelect] <- arSelect;
                 test.models[[m]] <- ssarima(data,ar.orders=rev(ar.test),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
@@ -91,6 +112,13 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                 if(silent==FALSE){
                     cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                     cat(paste0(round((m)/models.number,2)*100,"%"));
+                }
+                n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
+                           sum(ar.best) + sum(ma.best) + 1;
+                if(n.param > obs - 2){
+                    test.ICs[iSelect+1] <- Inf;
+                    test.ICs.all[m] <- Inf;
+                    next
                 }
 # Update the iSelect in i.test preserving the previous values
                 ma.test[seasSelect] <- maSelect;
