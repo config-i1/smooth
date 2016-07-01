@@ -1,7 +1,7 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                    holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+                    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                     intermittent=c("none","simple","croston","tsb"),
                     bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
@@ -25,9 +25,18 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         bounds <- "a";
     }
 
-    if(any(ar.orders<0) | any(i.orders<0) | any(ma.orders<0)){
-        stop("Wrong order of the model!",call.=FALSE);
+    if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
+        stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
     }
+
+    if(any(c(ar.orders,i.orders,ma.orders)<0)){
+        stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
+    }
+
+    if(any(c(lags)<0)){
+        stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
+    }
+
     if(length(lags)!=length(ar.orders) & length(lags)!=length(i.orders) & length(lags)!=length(ma.orders)){
         stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
     }
@@ -189,7 +198,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     else{
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
-        matvt <- matrix(NA,nrow=(obs+1),ncol=1);
+        matvt <- matrix(0,nrow=(obs+1),ncol=1);
         modellags <- matrix(1,1,1);
     }
 
@@ -350,18 +359,24 @@ polyroots <- function(C){
 ### The MA parameters are in the style "1 + b1 * B".
         vecg[,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
         vecg[is.na(vecg),] <- 0;
+
+        if(is.null(initial)){
+            vt <- C[(n.coef+1):(n.coef+n.components)];
+        }
+        else{
+            vt <- initial;
+        }
     }
     else{
         matF[1,1] <- 1;
-        vt <- C[1];
+        if(is.null(initial)){
+            vt <- 0;
+        }
+        else{
+            vt <- initial;
+        }
     }
 
-    if(is.null(initial)){
-        vt <- C[(n.coef+1):(n.coef+n.components)];
-    }
-    else{
-        vt <- initial;
-    }
 
     return(list(matF=matF,vecg=vecg,vt=vt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
@@ -441,6 +456,10 @@ Likelihood.value <- function(C){
     }
 }
 
+auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc"){
+# A placeholder for the function that potentially could be placed here instead of making it external...
+}
+
 #####Start the calculations#####
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
@@ -466,7 +485,7 @@ Likelihood.value <- function(C){
 # initial values of state vector and the constant term
             slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
             intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
-            initial.stuff <- c(intercept,slope,diff(yot[1:(n.components-1),]));
+            initial.stuff <- c(rep(intercept,n.components));
             C <- c(C,initial.stuff[1:n.components]);
         }
 
@@ -496,8 +515,9 @@ Likelihood.value <- function(C){
 #        matFX <- elements$matFX;
 #        vecgX <- elements$vecgX;
 
+##### Initialisation needs to be done using backcast! #####
 # Optimise model. First run
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;

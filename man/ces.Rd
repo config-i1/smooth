@@ -10,7 +10,7 @@
 \usage{
 ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-    holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=FALSE,
     bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
@@ -29,11 +29,11 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{holdout}{
-    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
-  }
   \item{h}{
     The forecasting horizon.
+  }
+  \item{holdout}{
+    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
   }
   \item{intervals}{
     If \code{TRUE}, the prediction intervals are constructed.
@@ -99,7 +99,7 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
  Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{auto.ces}}
 }
 \examples{
 y <- rnorm(100,10,3)

@@ -2,16 +2,16 @@
 \alias{ssarima}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-General Exponential Smoothing
+State-Space ARIMA
 }
 \description{
-Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
+Function constructs State-Space ARIMA, estimating AR, MA terms and initial states.
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
         CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-        holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+        h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
         intermittent=c("none","simple","croston","tsb"),
         bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
@@ -40,9 +40,9 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
-  }
   \item{h}{ the forecasting horizon.
+  }
+  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
@@ -83,8 +83,6 @@ The function constructs ARIMA in the Single Source of Error State-space form:
 Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
-
-The model always includes constant term.
 }
 \value{
   The list of the following values is returned:

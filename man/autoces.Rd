@@ -1,5 +1,5 @@
-\name{ces.auto}
-\alias{ces.auto}
+\name{auto.ces}
+\alias{auto.ces}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
   Complex Exponential Smoothing Auto
@@ -8,13 +8,14 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
+auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
          IC=c("CIC","AIC","AICc","BIC"),
          CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
-         use.test=FALSE, intervals=FALSE, int.w=0.95,
+         h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-         bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-         xreg=NULL, go.wild=FALSE, intermittent=FALSE)
+         intermittent=FALSE,
+         bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+         xreg=NULL, go.wild=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -33,8 +34,11 @@ ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
   \item{CF.type}{
   Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
   }
-  \item{use.test}{
-    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
+  \item{h}{
+    The forecasting horizon.
+  }
+  \item{holdout}{
+    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
   }
   \item{intervals}{
     If \code{TRUE}, the prediction intervals are constructed.
@@ -44,13 +48,12 @@ ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
   }
   \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
   }
+  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{holdout}{
-    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
-  }
-  \item{h}{
-    The forecasting horizon.
+  \item{use.test}{
+    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{silent}{
     If \code{TRUE}, no output is given and no plot is drawn.
@@ -62,8 +65,6 @@ ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
   }
   \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
-  }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
 }
 \details{
@@ -89,15 +90,15 @@ ces.auto(data, C=c(1.1, 1), models=c("N","S","P","F"),
 \examples{
 y <- rnorm(100,10,3)
 y <- ts(y,frequency=12)
-y_ces_holdout <- ces.auto(y,h=20,holdout=TRUE)
-y_ces_no_holdout <- ces.auto(y,h=20,holdout=FALSE)
+y_ces_holdout <- auto.ces(y,h=20,holdout=TRUE)
+y_ces_no_holdout <- auto.ces(y,h=20,holdout=FALSE)
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-N0740_ces <- ces.auto(y,h=8,holdout=TRUE,models=c("N","P"),intervals=TRUE,int.w=0.8,IC="AIC")
+N0740_ces <- auto.ces(y,h=8,holdout=TRUE,models=c("N","P"),intervals=TRUE,int.w=0.8,IC="AIC")
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-N1683_ces_S <- ces.auto(y,h=18,holdout=TRUE,intervals=TRUE)
+N1683_ces_S <- auto.ces(y,h=18,holdout=TRUE,intervals=TRUE)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

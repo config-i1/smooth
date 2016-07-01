@@ -1,6 +1,6 @@
 ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
                 bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,

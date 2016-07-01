@@ -1,0 +1,70 @@
+\name{auto.ssarima}
+\alias{auto.ssarima}
+%- Also NEED an '\alias' for EACH other topic documented here.
+\title{
+State-Space ARIMA
+}
+\description{
+Function selects the best State-Space ARIMA based on information criteria, using fancy branch and bound mechanism. The resulting model can be not optimal in IC meaning, but it is usually reasonable.
+}
+\usage{
+auto.ssarima(data, ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
+             IC=c("AICc","AIC","BIC"),
+             CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+             h=10, holdout=FALSE, silent=FALSE)
+}
+%- maybe also 'usage' for other objects documented here.
+\arguments{
+
+  \item{data}{ the data that needs to be forecasted.
+  }
+  \item{ar.max}{ Maximum order of AR term. Can be vector, defining max orders of AR, SAR etc.
+  }
+  \item{i.max}{ Maximum order of I. Can be vector, defining max orders of I, SI etc.
+  }
+  \item{ma.max}{ Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
+  }
+  \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
+  }
+  \item{IC}{ The information criterion to use in the model selection.
+  }
+  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
+  }
+  \item{h}{ the forecasting horizon.
+  }
+  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
+  }
+  \item{silent}{ if \code{TRUE}, no output or graph is given.
+  }
+}
+\details{
+The function constructs ARIMA in the Single Source of Error State-space form (see \link[smooth]{ssarima} documentation).
+
+Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
+}
+\value{
+  The list of the values from \link[smooth]{ssarima} is return.
+}
+\references{
+    \enumerate{
+        \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
+    }
+}
+\author{
+    Ivan Svetunkov
+}
+
+\seealso{
+\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.ets}, \link[smooth]{ges}, \link[smooth]{ssarima}}
+}
+
+\examples{
+# The best non-seasonal ARIMA
+auto.ssarima(rnorm(118,100,3),ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+             h=18,holdout=TRUE)->test
+
+}
+% Add one or more standard keywords, see file 'KEYWORDS' in the
+% R documentation directory.
+\keyword{ SARIMA }
+\keyword{ ARIMA }% __ONLY ONE__ keyword per line

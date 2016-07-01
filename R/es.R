@@ -1,7 +1,7 @@
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-               holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+               h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                intermittent=c("none","simple","croston","tsb"),
                bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,

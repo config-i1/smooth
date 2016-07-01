@@ -1,10 +1,11 @@
-ces.auto <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
+auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 IC=c("CIC","AIC","AICc","BIC"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
-                use.test=FALSE, intervals=FALSE, int.w=0.95,
+                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                bounds=c("none","admissible"), holdout=FALSE, h=1, silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE, intermittent=FALSE){
+                intermittent=FALSE,
+                bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+                xreg=NULL, go.wild=FALSE){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components

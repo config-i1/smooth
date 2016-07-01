@@ -1,7 +1,7 @@
 ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
                 persistence=NULL, transition=NULL, measurement=NULL,
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
                 bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,

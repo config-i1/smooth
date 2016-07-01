@@ -11,7 +11,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
    initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-   holdout=FALSE, h=10, intervals=FALSE, int.w=0.95,
+   h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
    intermittent=c("none","simple","croston","tsb"),
    bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
@@ -40,9 +40,9 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
-  }
   \item{h}{ The length of the forecasting horizon.
+  }
+  \item{holdout}{ If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
   }
