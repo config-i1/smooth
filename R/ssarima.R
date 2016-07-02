@@ -41,6 +41,13 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
     }
 
+    if(any(lags==0)){
+        ar.orders <- ar.orders[lags!=0];
+        i.orders <- i.orders[lags!=0];
+        ma.orders <- ma.orders[lags!=0];
+        lags <- lags[lags!=0];
+    }
+
 # Define maxorder and make all the values look similar (for the polynomials)
     maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders))
     if(length(ar.orders)!=maxorder){
