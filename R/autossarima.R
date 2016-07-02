@@ -28,10 +28,10 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
     }
 
 # Order things, so we would deal with highest level of seasonality first
-    lags <- sort(lags,decreasing=TRUE);
-    ar.max <- ar.max[order(lags,decreasing=TRUE)];
-    i.max <- i.max[order(lags,decreasing=TRUE)];
-    ma.max <- ma.max[order(lags,decreasing=TRUE)];
+    lags <- sort(lags,decreasing=FALSE);
+    ar.max <- ar.max[order(lags,decreasing=FALSE)];
+    i.max <- i.max[order(lags,decreasing=FALSE)];
+    ma.max <- ma.max[order(lags,decreasing=FALSE)];
 # 2 stands for constant + d=0
     models.number <- sum(ar.max,i.max,ma.max) + 2;
     test.models <- list(NA);
@@ -68,7 +68,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     next
                 }
 
-                test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.test),ma.orders=rev(ma.best),lags=rev(test.lags),
+                test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
                                             h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
                 test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
                 test.ICs.all[m] <- test.models[[m]]$ICs[IC];
@@ -98,7 +98,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     next
                 }
 
-                test.models[[m]] <- ssarima(data,ar.orders=rev(ar.test),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
+                test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                             h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
                 test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
                 test.ICs.all[m] <- test.models[[m]]$ICs[IC];
@@ -128,7 +128,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     next
                 }
 
-                test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.best),ma.orders=rev(ma.test),lags=rev(test.lags),
+                test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
                                             h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
                 test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
                 test.ICs.all[m] <- test.models[[m]]$ICs[IC];
@@ -147,7 +147,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 
 # Test the constant
     if(any(c(ar.best,i.best,ma.best)!=0)){
-        test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
+        test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                     h=h,holdout=holdout,constant=FALSE,silent=TRUE,CF.type=CF.type);
     test.ICs[2] <- test.models[[m]]$ICs[IC];
     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
