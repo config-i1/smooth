@@ -54,8 +54,11 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Number of components to use
-    n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+    n.components <- 0 + max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
     modellags <- matrix(rep(1,times=n.components),ncol=1);
+    if(constant==TRUE){
+        modellags <- rbind(modellags,1);
+    }
     maxlag <- 1;
 
     if((n.components==0) & (constant==FALSE)){
@@ -150,7 +153,6 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
 # Define the actual values and write down the original ts frequency
     y <- matrix(data[1:obs],obs,1);
-    y_centered <- y;
     datafreq <- frequency(data);
 
     if(intermittent!="n"){
@@ -194,11 +196,17 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
         matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+        if(constant==TRUE){
+            matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
+            matw <- cbind(matw,0);
+            vecg <- rbind(vecg,0);
+            matvt <- cbind(matvt,rep(1,obs+1));
+        }
     }
     else{
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
-        matvt <- matrix(0,nrow=(obs+1),ncol=1);
+        matvt <- matrix(1,nrow=(obs+1),ncol=1);
         modellags <- matrix(1,1,1);
     }
 
@@ -265,15 +273,6 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matFX <- matrix(1,1,1);
         vecgX <- matrix(0,1,1);
     }
-
-# This should be done for general case
-#    if(constant==TRUE){
-#        n.exovars <- 1;
-#        matxt <- matrix(1,obs.xt,1);
-#        matat <- matrix(0,obs.xt,1);
-#        matFX <- matrix(1,1,1);
-#        vecgX <- matrix(0,1,1);
-#    }
 
 # 1 stands for the variance
     n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
@@ -356,12 +355,14 @@ polyroots <- function(C){
         if(length((polysos.ari))!=1){
             matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
         }
+
 ### The MA parameters are in the style "1 + b1 * B".
-        vecg[,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
+        vecg[1:n.components,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
         vecg[is.na(vecg),] <- 0;
 
         if(is.null(initial)){
-            vt <- C[(n.coef+1):(n.coef+n.components)];
+            vt <- C[(n.coef + 1):(n.coef + n.components + constant)];
+            n.coef <- n.coef + n.components + constant;
         }
         else{
             vt <- initial;
@@ -370,7 +371,7 @@ polyroots <- function(C){
     else{
         matF[1,1] <- 1;
         if(is.null(initial)){
-            vt <- 0;
+            vt <- C;
         }
         else{
             vt <- initial;
@@ -379,22 +380,6 @@ polyroots <- function(C){
 
 
     return(list(matF=matF,vecg=vecg,vt=vt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
-}
-
-# Function creates bounds for the estimates
-hin.constrains <- function(C){
-### The other way to do it is check abs(polyroot(polysos.ma)) > 1
-    elements <- polyroots(C);
-    matF <- elements$matF;
-    vecg <- elements$vecg;
-
-    if(any(is.nan(matF - vecg %*% matw))){
-        D <- -0.1;
-    }
-    else{
-        D <- 1 - abs(eigen(matF - vecg %*% matw)$values);
-    }
-    return(D);
 }
 
 # Cost function for GES
@@ -420,14 +405,10 @@ CF <- function(C){
         }
     }
 
-    if(constant==TRUE){
-        y_centered <- y - C[length(C)];
-    }
-
 #    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
 #                              h, modellags, multisteps, CF.type, normalizer,
 #                              matxt, matat, matFX, vecgX, ot);
-    CF.res <- optimizerwrap(matvt, matF, matw, y_centered, vecg,
+    CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
                             h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
                             matxt, matat, matFX, vecgX, ot);
 
@@ -490,7 +471,12 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
         }
 
         if(constant==TRUE){
-            C <- c(C,sum(yot)/obs);
+            if(all(i.orders==0)){
+                C <- c(C,sum(yot)/obs);
+            }
+            else{
+                C <- c(C,sum(diff(yot))/obs);
+            }
         }
 
 # matat
@@ -569,27 +555,26 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
         initial <- elements$vt;
     }
 
-    if(constant==TRUE){
-        const <- C[length(C)];
-        y_centered <- y - const;
-    }
-    else{
-        const <- 0;
-    }
+#    if(constant==TRUE){
+#        const <- C[length(C)];
+#    }
+#    else{
+#        const <- 0;
+#    }
 
-    fitting <- fitterwrap(matvt, matF, matw, y_centered, vecg,
+    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                           modellags, Etype, Ttype, Stype,
                           matxt, matat, matFX, vecgX, ot);
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
-    y.fit <- ts(fitting$yfit + const,start=start(data),frequency=frequency(data));
+    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
     if(!is.null(xreg)){
 # Write down the matat and produce values for the holdout
-    matat[1:nrow(fitting$matat),] <- fitting$matat;
+        matat[1:nrow(fitting$matat),] <- fitting$matat;
     }
 
 # Calculate the tails of matat and matvt
-    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,max(1,n.components))),h+maxlag-1,max(1,n.components)), matF,
+    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,max(1,n.components+constant))),h+maxlag-1,max(1,n.components+constant)), matF,
                                  matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
                                  modellags, Ttype, Stype);
     if(!is.null(xreg)){
@@ -598,7 +583,7 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     }
 
 # Produce matrix of errors
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y_centered,
+    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                  h, Etype, Ttype, Stype, modellags,
                                  matxt, matat, matFX, ot),
                      start=start(data),frequency=frequency(data));
@@ -606,7 +591,7 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
 # Produce forecast
-    y.for <- ts(const + iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+    y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                matF, matw, h, Ttype, Stype, modellags,
                                matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
@@ -660,14 +645,17 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components)));
+    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components+constant)));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-        colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components))),colnames(matat));
+        colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components+constant))),colnames(matat));
     }
     else{
-        colnames(matvt) <- paste0("Component ",c(1:max(1,n.components)));
+        colnames(matvt) <- paste0("Component ",c(1:max(1,n.components+constant)));
+    }
+    if(constant==TRUE){
+        colnames(matvt)[n.components+constant] <- "Constant";
     }
 
 # AR terms
