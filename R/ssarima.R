@@ -41,6 +41,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
     }
 
+# If there are zero lags, drop them
     if(any(lags==0)){
         ar.orders <- ar.orders[lags!=0];
         i.orders <- i.orders[lags!=0];
@@ -49,15 +50,27 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Define maxorder and make all the values look similar (for the polynomials)
-    maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders))
+    maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders));
     if(length(ar.orders)!=maxorder){
-        ar.orders <- c(ar.orders,rep(0,maxorder-length(ar.orders)))
+        ar.orders <- c(ar.orders,rep(0,maxorder-length(ar.orders)));
     }
     if(length(i.orders)!=maxorder){
-        i.orders <- c(i.orders,rep(0,maxorder-length(i.orders)))
+        i.orders <- c(i.orders,rep(0,maxorder-length(i.orders)));
     }
     if(length(ma.orders)!=maxorder){
-        ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)))
+        ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
+    }
+
+# If zeroes are defined for some lags, drop them.
+    if(any((ar.orders + i.orders + ma.orders)==0)){
+        orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
+        if(all(orders2leave)==FALSE){
+            orders2leave <- lags==min(lags);
+        }
+        ar.orders <- ar.orders[orders2leave];
+        i.orders <- i.orders[orders2leave];
+        ma.orders <- ma.orders[orders2leave];
+        lags <- lags[orders2leave];
     }
 
 # Number of components to use
