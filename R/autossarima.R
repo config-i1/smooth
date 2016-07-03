@@ -46,99 +46,135 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
         cat("Estimation progress:     ");
     }
 
-    for(seasSelect in 1:length(lags)){
-# Start from highest lag and include one more each iteration
-        test.lags[seasSelect] <- lags[seasSelect];
 ##### Loop for differences
-        if(i.max[seasSelect]!=0){
-            for(iSelect in (seasSelect-1):i.max[seasSelect]){
-                m <- m + 1;
-                if(silent==FALSE){
-                    cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
-                    cat(paste0(round((m)/models.number,2)*100,"%"));
-                }
+    if(any(i.max!=0)){
+        for(seasSelect in 1:length(lags)){
+            test.lags[seasSelect] <- lags[seasSelect];
+            if(i.max[seasSelect]!=0){
+                for(iSelect in (seasSelect-1):i.max[seasSelect]){
+                    m <- m + 1;
+                    if(silent==FALSE){
+                        cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
+                        cat(paste0(round((m)/models.number,2)*100,"%"));
+                    }
 # Update the iSelect in i.test preserving the previous values
-                i.test[seasSelect] <- iSelect;
-                n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
-                           sum(ar.best) + sum(ma.best) + 1;
-                if(n.param > obs - 2){
-                    test.models[[m]] <- NA;
-                    test.ICs[iSelect+1] <- Inf;
-                    test.ICs.all[m] <- Inf;
-                    next
-                }
+                    i.test[seasSelect] <- iSelect;
+                    n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
+                            sum(ar.best) + sum(ma.best) + 1;
+                    if(n.param > obs - 2){
+                        test.models[[m]] <- NA;
+                        test.ICs[iSelect+1] <- Inf;
+                        test.ICs.all[m] <- Inf;
+                        next
+                    }
 
-                test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                            h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
-                test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
-                test.ICs.all[m] <- test.models[[m]]$ICs[IC];
-            }
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                    test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
+                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                }
 # Save the best differences
-            i.best[seasSelect] <- i.test[seasSelect] <- c(0:i.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))];
+                i.best[seasSelect] <- i.test[seasSelect] <- c(0:i.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-            test.ICs <- sort(test.ICs,decreasing=FALSE)
-        }
-
-##### Loop for AR
-        if(ar.max[seasSelect]!=0){
-            for(arSelect in 1:ar.max[seasSelect]){
-                m <- m + 1;
-                if(silent==FALSE){
-                    cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
-                    cat(paste0(round((m)/models.number,2)*100,"%"));
-                }
-# Update the iSelect in ar.test preserving the previous values
-                ar.test[seasSelect] <- arSelect;
-                n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) +
-                           sum(ar.test) + sum(ma.best) + 1;
-                if(n.param > obs - 2){
-                    test.models[[m]] <- NA;
-                    test.ICs[iSelect+1] <- Inf;
-                    test.ICs.all[m] <- Inf;
-                    next
-                }
-
-                test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                            h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
-                test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
-                test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                test.ICs <- sort(test.ICs,decreasing=FALSE)
             }
-# Save the best AR
-            ar.best[seasSelect] <- ar.test[seasSelect] <- c(0:ar.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))];
-# Sort in order to put the best one on the first place
-            test.ICs <- sort(test.ICs,decreasing=FALSE)
-        }
-
-##### Loop for MA
-        if(ma.max[seasSelect]!=0){
-            for(maSelect in 1:ma.max[seasSelect]){
-                m <- m + 1;
-                if(silent==FALSE){
-                    cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
-                    cat(paste0(round((m)/models.number,2)*100,"%"));
-                }
-# Update the iSelect in i.test preserving the previous values
-                ma.test[seasSelect] <- maSelect;
-                n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
-                           sum(ar.best) + sum(ma.test) + 1;
-                if(n.param > obs - 2){
-                    test.models[[m]] <- NA;
-                    test.ICs[iSelect+1] <- Inf;
-                    test.ICs.all[m] <- Inf;
-                    next
-                }
-
-                test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
-                                            h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
-                test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
-                test.ICs.all[m] <- test.models[[m]]$ICs[IC];
-            }
-# Save the best MA
-            ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))];
-# Sort in order to put the best one on the first place
-            test.ICs <- sort(test.ICs,decreasing=FALSE)
         }
     }
+
+
+##### Loop for AR
+    if(any(ar.max!=0)){
+        for(seasSelect in 1:length(lags)){
+            test.lags[seasSelect] <- lags[seasSelect];
+            if(ar.max[seasSelect]!=0){
+                for(arSelect in 1:ar.max[seasSelect]){
+                    m <- m + 1;
+                    if(silent==FALSE){
+                        cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
+                        cat(paste0(round((m)/models.number,2)*100,"%"));
+                    }
+# Update the iSelect in ar.test preserving the previous values
+                    ar.test[seasSelect] <- arSelect;
+                    n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) +
+                            sum(ar.test) + sum(ma.best) + 1;
+                    if(n.param > obs - 2){
+                        test.models[[m]] <- NA;
+                        test.ICs[iSelect+1] <- Inf;
+                        test.ICs.all[m] <- Inf;
+                        next
+                    }
+
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                    test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
+                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                }
+# Save the best AR
+                ar.best[seasSelect] <- ar.test[seasSelect] <- c(0:ar.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+# Sort in order to put the best one on the first place
+                test.ICs <- sort(test.ICs,decreasing=FALSE)
+            }
+        }
+    }
+
+##### Loop for MA
+    if(any(ma.max!=0)){
+        for(seasSelect in 1:length(lags)){
+            test.lags[seasSelect] <- lags[seasSelect];
+            if(ma.max[seasSelect]!=0){
+                for(maSelect in 1:ma.max[seasSelect]){
+                    m <- m + 1;
+                    if(silent==FALSE){
+                        cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
+                        cat(paste0(round((m)/models.number,2)*100,"%"));
+                    }
+# Update the iSelect in i.test preserving the previous values
+                    ma.test[seasSelect] <- maSelect;
+                    n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
+                            sum(ar.best) + sum(ma.test) + 1;
+                    if(n.param > obs - 2){
+                        test.models[[m]] <- NA;
+                        test.ICs[iSelect+1] <- Inf;
+                        test.ICs.all[m] <- Inf;
+                        next
+                    }
+
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                    test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
+                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                }
+# Save the best MA
+                ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+# Sort in order to put the best one on the first place
+                test.ICs <- sort(test.ICs,decreasing=FALSE)
+            }
+        }
+    }
+
+    if(any(test.models[[which(test.ICs.all==test.ICs[1])[1]]]$AR>=0.99)){
+        ar.parameters <- test.models[[which(test.ICs.all==test.ICs[1])[1]]]$AR;
+        if(any(ar.parameters[,1]>=0.99)){
+            ar.test <- ar.best;
+            ar.test[ar.parameters[,1]>=0.99] <- 0;
+            i.test <- i.best;
+            i.test[ar.parameters[,1]>=0.99] <- 1;
+
+            test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
+                                        h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+            test.ICs[2] <- test.models[[m+1]]$ICs[IC];
+            test.ICs.all[m+1] <- test.models[[m+1]]$ICs[IC];
+
+            if(test.ICs[1]>test.ICs[2]){
+                ar.best <- ar.test;
+                i.best <- i.test;
+                test.ICs[1] <- test.ICs[2];
+                test.models[[m]] <- test.models[[m+1]];
+                test.ICs.all[m] <- test.ICs.all[m+1];
+            }
+        }
+    }
+
     m <- m + 1;
     if(silent==FALSE){
         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
