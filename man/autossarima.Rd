@@ -11,7 +11,9 @@ Function selects the best State-Space ARIMA based on information criteria, using
 auto.ssarima(data, ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
              IC=c("AICc","AIC","BIC"),
              CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-             h=10, holdout=FALSE, silent=FALSE)
+             h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
+             int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+             silent=FALSE, legend=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -34,7 +36,15 @@ auto.ssarima(data, ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
   }
   \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
+  \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
+  }
+  \item{int.w}{ Defines the width of the prediction interval.
+  }
+  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
+  }
   \item{silent}{ if \code{TRUE}, no output or graph is given.
+  }
+  \item{legend}{ if \code{TRUE}, the legend is drawn on the output plot.
   }
 }
 \details{
