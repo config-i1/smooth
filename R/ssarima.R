@@ -64,7 +64,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 # If zeroes are defined for some lags, drop them.
     if(any((ar.orders + i.orders + ma.orders)==0)){
         orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
-        if(all(orders2leave)==FALSE){
+        if(all(orders2leave==FALSE)){
             orders2leave <- lags==min(lags);
         }
         ar.orders <- ar.orders[orders2leave];
@@ -735,7 +735,7 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     }
 
 # Give model the name
-    if(length(ar.orders)==1){
+    if((length(ar.orders)==1) && all(lags==1)){
         modelname <- paste0("ARIMA(",ar.orders,",",i.orders,",",ma.orders,")");
     }
     else{
