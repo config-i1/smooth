@@ -294,10 +294,6 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                                h, seasonality, maxlag, multisteps, CF.type, normalizer,
                                matxt, matat, matFX, vecgX, ot);
 
-#    CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
-#                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
-#                            matxt, matat, matFX, vecgX, ot);
-
     if(is.nan(CF.res) | is.na(CF.res)){
         CF.res <- 1e100;
     }
@@ -408,8 +404,6 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   fitting <- cesfitterwrap(matvt, matF, matrix(matw[1,],nrow=1), y, vecg,
                            seasonality, maxlag,
                            matxt, matat, ot)
-#  fitting <- ssfitterwrap(matvt, matF, matrix(matw[1,],obs.all,n.components,byrow=TRUE), y,
-#                          as.matrix(vecg), modellags, matxt, matat, matFX, vecgX);
   matvt[,] <- fitting$matvt;
   y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
   matat[,] <- fitting$matat;
