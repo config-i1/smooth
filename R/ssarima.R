@@ -638,7 +638,7 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
             ev <- 0;
         }
 
-        vt <- matrix(matvt[cbind(obs-modellags,c(1:max(1,n.components)))],max(1,n.components),1);
+        vt <- matrix(matvt[cbind(obs-modellags,c(1:max(1,n.components+constant)))],max(1,n.components+constant),1);
 
         quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,

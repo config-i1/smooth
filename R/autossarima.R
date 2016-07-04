@@ -1,10 +1,16 @@
 auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                          IC=c("AICc","AIC","BIC"),
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                         h=10, holdout=FALSE, silent=FALSE){
+                         h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
+                         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+                         silent=FALSE, legend=TRUE){
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
+# Define obs.all, the overal number of observations (in-sample + holdout)
+    obs.all <- length(data) + (1 - holdout)*h;
+
+# Define obs, the number of observations of in-sample
     obs <- length(data) - holdout*h;
 
 # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
@@ -14,6 +20,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 
     IC <- IC[1];
     CF.type <- CF.type[1];
+    int.type <- int.type[1];
 
     if(any(is.complex(c(ar.max,i.max,ma.max,lags)))){
         stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
@@ -69,7 +76,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
+                                                int.type=int.type,int.w=int.w);
                     test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -105,7 +113,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
+                                                int.type=int.type,int.w=int.w);
                     test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -140,7 +149,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
+                                                int.type=int.type,int.w=int.w);
                     test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -161,7 +171,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
             i.test[ar.parameters[,1]>=0.99] <- 1;
 
             test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                        h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type);
+                                        h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
+                                        int.type=int.type,int.w=int.w);
             test.ICs[2] <- test.models[[m+1]]$ICs[IC];
             test.ICs.all[m+1] <- test.models[[m+1]]$ICs[IC];
 
@@ -184,7 +195,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 # Test the constant
     if(any(c(ar.best,i.best,ma.best)!=0)){
         test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                    h=h,holdout=holdout,constant=FALSE,silent=TRUE,CF.type=CF.type);
+                                    h=h,holdout=holdout,constant=FALSE,silent=TRUE,CF.type=CF.type,intervals=intervals,
+                                    int.type=int.type,int.w=int.w);
     test.ICs[2] <- test.models[[m]]$ICs[IC];
     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
     }
@@ -204,12 +216,27 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
         xreg <- NULL;
         go.wild <- FALSE;
         CF.objective <- best.model$CF;
-        intervals <- FALSE;
-        int.type <- "p";
-        int.w <- 0.95;
         ICs <- best.model$ICs;
-        insideintervals <- NULL;
         errormeasures <- best.model$accuracy;
+
+# Make plot
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=best.model$forecast,fitted=best.model$fitted,lower=best.model$lower,upper=best.model$upper,
+                       int.w=int.w,legend=legend,main=best.model$model);
+        }
+        else{
+            graphmaker(actuals=data,forecast=best.model$forecast,fitted=best.model$fitted,
+                       int.w=int.w,legend=legend,main=best.model$model);
+        }
+
+# Calculate the number os observations in the interval
+        if(all(holdout==TRUE,intervals==TRUE)){
+            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=best.model$upper &
+                                   as.vector(data)[(obs+1):obs.all]>=best.model$lower)/h*100;
+        }
+        else{
+            insideintervals <- NULL;
+        }
 
         ssoutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
             phi=NULL, ARterms=best.model$AR, MAterms=best.model$MA, const=best.model$constant, A=NULL, B=NULL,
@@ -217,9 +244,6 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
             int.type=int.type, int.w=int.w, ICs=ICs,
             holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
-
-        graphmaker(actuals=data,forecast=best.model$forecast,fitted=best.model$fitted,
-                   int.w=0.95,legend=TRUE,main=best.model$model);
     }
 
     return(best.model);
