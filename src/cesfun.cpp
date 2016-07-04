@@ -13,13 +13,13 @@ List cesfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma
     int obsall = matrixVt.n_rows;
     int ncomponents = vecG.n_rows;
 
-    arma::vec matyfit(obs, arma::fill::zeros);
+    arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec materrors(obs, arma::fill::zeros);
 
     arma::rowvec vtnew(ncomponents);
 
 /* # The first 3 runs of backcast */
-    for(int j=0; j<2; j=j+1){
+    for(int j=0; j<3; j=j+1){
       for (int i=freq; i<obs+freq; i=i+1) {
 /* # Fill in the series with actuals (obs) */
         if((S=='N') || (S=='S')){
@@ -33,9 +33,9 @@ List cesfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma
           vtnew.cols(0,1) = matrixVt.submat(i-1,0,i-1,1);
           vtnew.cols(2,3) = matrixVt.submat(i-freq,2,i-freq,3);
         }
-        matyfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
-        materrors(i-freq) = vecYt(i-freq) - matyfit(i-freq);
-        matrixVt.row(i) = vtnew * trans(matrixF) + trans(vecG * materrors.row(i-freq));
+        vecYfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
+        materrors(i-freq) = vecYt(i-freq) - vecYfit(i-freq);
+        matrixVt.row(i) = trans(matrixF * trans(vtnew) + vecG * materrors(i-freq));
         matrixAt.row(i) = matrixAt.row(i-freq);
       }
       for(int i=obs+freq; i<obsall; i=i+1){
@@ -66,9 +66,9 @@ List cesfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma
           vtnew.cols(0,1) = matrixVt.submat(i+1,0,i+1,1);
           vtnew.cols(2,3) = matrixVt.submat(i+freq,2,i+freq,3);
         }
-        matyfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
-        materrors(i-freq) = vecYt(i-freq) - matyfit(i-freq);
-        matrixVt.row(i) = vtnew * trans(matrixF) + trans(vecG * materrors.row(i-freq));
+        vecYfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
+        materrors(i-freq) = vecYt(i-freq) - vecYfit(i-freq);
+        matrixVt.row(i) = trans(matrixF * trans(vtnew) + vecG * materrors(i-freq));
       }
       for (int i=freq-1; i>=0; i=i-1) {
         if((S=='N') || (S=='S')){
@@ -99,9 +99,9 @@ List cesfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma
           vtnew.cols(0,1) = matrixVt.submat(i-1,0,i-1,1);
           vtnew.cols(2,3) = matrixVt.submat(i-freq,2,i-freq,3);
         }
-        matyfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
-        materrors(i-freq) = vecYt(i-freq) - matyfit(i-freq);
-        matrixVt.row(i) = vtnew * trans(matrixF) + trans(vecG * materrors.row(i-freq));
+        vecYfit.row(i-freq) = vecOt(i-freq) * (rowvecW * trans(vtnew) + matrixXt.row(i-freq) * trans(matrixAt.row(i-freq)));
+        materrors(i-freq) = vecYt(i-freq) - vecYfit(i-freq);
+        matrixVt.row(i) = trans(matrixF * trans(vtnew) + vecG * materrors(i-freq));
       }
       for(int i=obs+freq; i<obsall; i=i+1){
         if((S=='N') || (S=='S')){
@@ -119,7 +119,7 @@ List cesfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma
         matrixAt.row(i) = matrixAt.row(i-freq);
       }
 
-    return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
+    return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit,
                         Named("errors") = materrors, Named("matat") = matrixAt);
 }
 
@@ -169,7 +169,7 @@ arma::vec cesforecaster(arma::mat matrixVt,arma::mat matrixF,arma::rowvec rowvec
     arma::vec matyfor(hor, arma::fill::zeros);
 /* # Preparation of all the matrices for the mean */
     if(S=='N'){
-      matvtnew.submat(0,0,0,1) = matrixVt.submat(matrixVt.n_rows-1,0,matrixVt.n_rows-1,1);
+      matvtnew.row(0) = matrixVt.row(matrixVt.n_rows-1);
         if(hor > freq){
             for(int i = 1; i < hor; i=i+1){
                 matvtnew.row(i) = matvtnew.row(i-1) * arma::trans(matrixF);
