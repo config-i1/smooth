@@ -15,7 +15,7 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=FALSE,
     bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
-    xreg=NULL, go.wild=FALSE)
+    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL)
 }
 \arguments{
   \item{data}{
@@ -58,9 +58,19 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     If \code{FALSE}, the legend in the graph is skiped.
   }
   \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
+  \item{initialX}{
+    The vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
+  }
+  \item{go.wild}{
+    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{persistenceX}{
+    Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
 }
 \details{
@@ -71,17 +81,22 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   The list of the following values is returned:
 
   \itemize{
+    \item \code{model} - type of constructed model.
+    \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{A} - complex smoothing parameter in the form a0 + ia1
     \item \code{B} - smoothing parameter for the seasonal component. Can either be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"}) in a form b0 + ib1.
-    \item \code{residuals} - the residuals of the estimated model.
-    \item \code{errors} - The matrix of 1 to h steps ahead errors.
-    \item \code{actuals} - The data provided in the call of the function.
-    \item \code{holdout} - the holdout part of the original data.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
+    \item \code{residuals} - the residuals of the estimated model.
+    \item \code{errors} - The matrix of 1 to h steps ahead errors.
+    \item \code{actuals} - The data provided in the call of the function.
+    \item \code{holdout} - the holdout part of the original data.
+    \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{initialX} - initial values for parameters of exogenous variables.
+    \item \code{persistenceX} - persistence vector g for exogenous variables.
+    \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex IC).
     \item \code{CF} - Cost function value.
     \item \code{CF.type} - Type of cost function used in the estimation.

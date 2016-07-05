@@ -3,7 +3,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                         silent=FALSE, legend=TRUE){
+                         silent=FALSE, legend=TRUE,
+                         xreg=NULL, go.wild=FALSE){
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
@@ -97,7 +98,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE);
+                                                int.type=int.type,silent=TRUE,
+                                                xreg=xreg,go.wild=go.wild);
                     test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -135,7 +137,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE);
+                                                int.type=int.type,silent=TRUE,
+                                                xreg=xreg,go.wild=go.wild);
                     test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -172,7 +175,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE);
+                                                int.type=int.type,silent=TRUE,
+                                                xreg=xreg,go.wild=go.wild);
                     test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -195,7 +199,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
             test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
                                           constant=TRUE,initial=fittertype,CF.type=CF.type,
                                           h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                          int.type=int.type,silent=TRUE);
+                                          int.type=int.type,silent=TRUE,
+                                          xreg=xreg,go.wild=go.wild);
             test.ICs[2] <- test.models[[m+1]]$ICs[IC];
             test.ICs.all[m+1] <- test.models[[m+1]]$ICs[IC];
 
@@ -220,7 +225,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
         test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                     constant=FALSE,initial=fittertype,CF.type=CF.type,
                                     h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                    int.type=int.type,silent=TRUE);
+                                    int.type=int.type,silent=TRUE,
+                                    xreg=xreg,go.wild=go.wild);
     test.ICs[2] <- test.models[[m]]$ICs[IC];
     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
     }

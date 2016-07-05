@@ -110,4 +110,5 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                   paste0("MAE/mean: ",errormeasures["MAE/mean"]*100,"%"),
                   paste0("RelMAE: ",errormeasures["RelMAE"],"\n"),sep="; "));
     }
+#    message("Don't forget to include the info about the initialisation method used!");
 }

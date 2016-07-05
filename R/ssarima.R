@@ -1,18 +1,15 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-                    constant=FALSE, initial=c("backcasting","optimal"), persistence=NULL, transition=NULL,
+                    constant=FALSE, initial=c("backcasting","optimal"), AR=NULL, MA=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                     intermittent=c("none","simple","croston","tsb"),
                     bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-                    xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL,...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
 #
 #    Copyright (C) 2016  Ivan Svetunkov
-
-##### Testing period. Switch off several things
-    xreg <- NULL;
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
@@ -130,39 +127,82 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
             initial <- "o";
         }
         fittertype <- initial;
-        initial <- NULL;
+        estimate.initial <- TRUE;
+        if(constant==TRUE){
+            estimate.constant <- TRUE;
+        }
+        else{
+            estimate.constant <- FALSE;
+        }
     }
     else if(is.null(initial)){
         message("Initial value is not selected. Switching to optimal.");
         fittertype <- "o";
+        estimate.initial <- TRUE;
+        estimate.constant <- TRUE;
     }
     else if(!is.null(initial)){
         if(!is.numeric(initial) | !is.vector(initial)){
             stop("The initial vector is not numeric!",call.=FALSE);
         }
-        if(length(initial) != n.components){
-            stop(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
+        if(constant==TRUE){
+            if(length(initial)==(n.components+constant)){
+                estimate.constant <- FALSE;
+            }
+            else if(length(initial)<(n.components+constant)){
+                estimate.constant <- TRUE
+            }
+            else if(length(initial)>(n.components+constant)){
+                stop(paste0("Wrong length of initial vector. Should be ",n.components+constant," instead of ",length(initial),"."),call.=FALSE);
+            }
+        }
+        else{
+            estimate.constant <- FALSE;
+            if(length(initial)!=(n.components)){
+                stop(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
+            }
         }
         fittertype <- "o";
+        estimate.initial <- FALSE;
     }
 
-# Check the provided vector of initials: length and provided values.
-    if(!is.null(persistence)){
-        if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
-            stop("The persistence vector is not numeric!",call.=FALSE);
+# Check the provided AR matrix / vector
+    if(!is.null(AR)){
+        if((!is.numeric(AR) | !is.vector(AR)) & !is.matrix(AR)){
+            stop("AR should be either vector or matrix. You have provided something strange...",call.=FALSE);
         }
-        if(length(persistence) != n.components){
-            stop(paste0("Wrong length of persistence vector. Should be ",n.components," instead of ",length(persistence),"."),call.=FALSE);
+        if(sum(ar.orders)!=length(AR[AR!=0])){
+            stop(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders)," instead of ",length(AR[AR!=0]),"."),call.=FALSE);
+        }
+        AR <- as.vector(AR[AR!=0]);
+        estimate.AR <- FALSE;
+    }
+    else{
+        if(all(ar.orders==0)){
+            estimate.AR <- FALSE;
+        }
+        else{
+            estimate.AR <- TRUE;
         }
     }
 
-# Check the provided vector of initials: length and provided values.
-    if(!is.null(transition)){
-        if((!is.numeric(transition) | !is.vector(transition)) & !is.matrix(transition)){
-            stop("The transition matrix is not numeric!",call.=FALSE);
+# Check the provided MA matrix / vector
+    if(!is.null(MA)){
+        if((!is.numeric(MA) | !is.vector(MA)) & !is.matrix(MA)){
+            stop("MA should be either vector or matrix. You have provided something strange...",call.=FALSE);
         }
-        if(length(transition) != n.components^2){
-            stop(paste0("Wrong length of transition matrix. Should be ",n.components^2," instead of ",length(transition),"."),call.=FALSE);
+        if(sum(ma.orders)!=length(MA[MA!=0])){
+            stop(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders)," instead of ",length(MA[MA!=0]),"."),call.=FALSE);
+        }
+        MA <- as.vector(MA[MA!=0]);
+        estimate.MA <- FALSE;
+    }
+    else{
+        if(all(ma.orders==0)){
+            estimate.MA <- FALSE;
+        }
+        else{
+            estimate.MA <- TRUE;
         }
     }
 
@@ -178,7 +218,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Define the number of rows that should be in the matvt
-    obs.xt <- obs.all + maxlag;
+    obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
 
 # Check if the data is vector
     if(!is.numeric(data) & !is.ts(data)){
@@ -229,90 +269,38 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
-#        matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
-        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.components);
+        matvt <- matrix(NA,obs.xt,n.components);
         if(constant==TRUE){
             matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
             matw <- cbind(matw,0);
             vecg <- rbind(vecg,0);
-            matvt <- cbind(matvt,rep(1,max(obs.all+maxlag,obs+2*maxlag)));
+            matvt <- cbind(matvt,rep(1,obs.xt));
         }
     }
     else{
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
-#        matvt <- matrix(1,nrow=(obs+1),ncol=1);
-        matvt <- matrix(1,max(obs.all+maxlag,obs+2*maxlag),1);
+        matvt <- matrix(1,obs.xt,1);
         modellags <- matrix(1,1,1);
     }
 
-# Now let's prepare the provided exogenous data for the inclusion in ETS
-# Check the exogenous variable if it is present and
-# fill in the values of xreg if it is absent in the holdout sample.
-    if(!is.null(xreg)){
-        if(any(is.na(xreg))){
-            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
-        }
-##### The case with vectors and ts objects, but not matrices #####
-        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# If xreg is vector or simple ts
-        if(length(xreg)!=obs & length(xreg)!=obs.all){
-            stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=FALSE);
-        }
-        if(length(xreg)==obs){
-            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-            xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-        }
-# Number of exogenous variables
-        n.exovars <- 1;
-# Define matrix w for exogenous variables
-        matxt <- matrix(xreg,ncol=1);
-# Define the second matat to fill in the coefs of the exogenous vars
-        matat <- matrix(NA,obs.xt,1);
-        colnames(matat) <- "exogenous";
-# Fill in the initial values for exogenous coefs using OLS
-        matat[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
-# Redefine the number of components of ETS.
-        }
-##### The case with matrices and data frames #####
-        else if(is.matrix(xreg) | is.data.frame(xreg)){
-    # If xreg is matrix or data frame
-            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=FALSE)
-            }
-            if(nrow(xreg)==obs){
-                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                for(j in 1:h){
-                xreg <- rbind(xreg,xreg[obs,]);
-                }
-            }
-# matx is needed for the initial values of coefs estimation using OLS
-            n.exovars <- ncol(xreg);
-            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
-# Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,obs.xt,n.exovars);
-            colnames(matat) <- paste0("x",c(1:n.exovars));
-# Define matrix w for exogenous variables
-            matxt <- as.matrix(xreg);
-# Fill in the initial values for exogenous coefs using OLS
-            matat[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
-            colnames(matat) <- colnames(xreg);
-        }
-        else{
-            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
-        }
-    }
-    else{
-        n.exovars <- 1;
-        matxt <- matrix(1,obs.xt,1);
-        matat <- matrix(0,obs.xt,1);
-        matFX <- matrix(1,1,1);
-        vecgX <- matrix(0,1,1);
-    }
+##### Prepare exogenous variables #####
+    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+    n.exovars <- xregdata$n.exovars;
+    matxt <- xregdata$matxt;
+    matat <- xregdata$matat;
+    matFX <- xregdata$matFX;
+    vecgX <- xregdata$vecgX;
+    estimate.xreg <- xregdata$estimate.xreg;
+    estimate.FX <- xregdata$estimate.FX;
+    estimate.gX <- xregdata$estimate.gX;
+    estimate.initialX <- xregdata$estimate.initialX;
 
 # 1 stands for the variance
     if(fittertype=="o"){
-        n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
+        n.param <- 1 + n.components*estimate.initial + sum(ar.orders)*estimate.AR + sum(ma.orders)*estimate.MA + (intermittent!="n") + constant;
     }
     else{
 # Number of components that really need to be estimated (droping zeroes): (p+d+1)(P+D+1)-1 or (q+1)(Q+1)-1
@@ -320,11 +308,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         n.param <- 1 + n.components.corrected + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
     }
 
-    if(!is.null(xreg)){
-        n.param <- n.param + n.exovars;
-        if(go.wild==TRUE){
-            n.param <- n.exovars^2 + n.exovars;
-        }
+    if(estimate.xreg==TRUE){
+        n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
     }
 
     if(n.param >= obs.ot-1){
@@ -349,13 +334,20 @@ polyroots <- function(C){
     n.coef <- 0;
     matF[,1] <- 0;
     if(n.components > 0){
+        inner.coef <- 0;
         for(i in 1:length(lags)){
             if((ar.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ar.orders[i]);
-                armat[lags[i],] <- -C[(n.coef+1):(n.coef + ar.orders[i])];
+                if(estimate.AR==TRUE){
+                    armat[lags[i],] <- -C[(inner.coef+1):(inner.coef + ar.orders[i])];
+                    inner.coef <- n.coef <- n.coef + ar.orders[i];
+                }
+                else{
+                    armat[lags[i],] <- -AR[(inner.coef+1):(inner.coef + ar.orders[i])];
+                    inner.coef <- inner.coef + ma.orders[i];
+                }
                 P[[i]] <- c(1,c(armat));
 
-                n.coef <- n.coef + ar.orders[i];
             }
             else{
                 P[[i]] <- 1;
@@ -370,10 +362,16 @@ polyroots <- function(C){
 
             if((ma.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ma.orders[i]);
-                armat[lags[i],] <- C[(n.coef+1):(n.coef + ma.orders[i])];
+                if(estimate.MA==TRUE){
+                    armat[lags[i],] <- C[(inner.coef+1):(inner.coef + ma.orders[i])];
+                    inner.coef <- n.coef <- n.coef + ma.orders[i];
+                }
+                else{
+                    armat[lags[i],] <- MA[(inner.coef+1):(inner.coef + ma.orders[i])];
+                    inner.coef <- inner.coef + ma.orders[i];
+                }
                 Q[[i]] <- c(1,c(armat));
 
-                n.coef <- n.coef + ma.orders[i];
             }
             else{
                 Q[[i]] <- 1;
@@ -404,34 +402,63 @@ polyroots <- function(C){
         vecg[1:n.components,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
         vecg[is.na(vecg),] <- 0;
 
-        if(is.null(initial)){
+        if(estimate.initial==TRUE){
             if(fittertype=="o"){
                 vt <- C[(n.coef + 1):(n.coef + n.components + constant)];
                 n.coef <- n.coef + n.components + constant;
             }
             else{
                 vt <- matvt[1,];
-                if(constant==TRUE){
+                if(estimate.constant==TRUE){
                     vt[n.components+constant] <- C[(n.coef + 1)];
+                    n.coef <- n.coef + 1;
                 }
             }
         }
         else{
             vt <- initial;
+            if(estimate.constant==TRUE){
+                vt[n.components+constant] <- C[(n.coef + 1)];
+                n.coef <- n.coef + 1;
+            }
         }
     }
     else{
         matF[1,1] <- 1;
-        if(is.null(initial)){
+        if(estimate.initial==TRUE){
             vt <- C;
+            n.coef <- n.coef + 1;
         }
         else{
             vt <- initial;
         }
     }
 
+# If exogenous are included
+    if(estimate.xreg==TRUE){
+        at <- matrix(NA,maxlag,n.exovars);
+        if(estimate.initialX==TRUE){
+            at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
+            n.coef <- n.coef + n.exovars;
+        }
+        else{
+            at <- matat[1:maxlag,];
+        }
+        if(estimate.FX==TRUE){
+            matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
+            n.coef <- n.coef + n.exovars^2;
+        }
 
-    return(list(matF=matF,vecg=vecg,vt=vt,matat=matat,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
+        if(estimate.gX==TRUE){
+            vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
+            n.coef <- n.coef + n.exovars;
+        }
+    }
+    else{
+        at <- matrix(0,maxlag,n.exovars);
+    }
+
+    return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
 
 # Cost function for GES
@@ -439,12 +466,12 @@ CF <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1,] <- elements$vt;
+    matvt[1:maxlag,] <- elements$vt;
+    matat[1:maxlag,] <- elements$at;
+    matFX <- elements$matFX;
+    vecgX <- elements$vecgX;
     polysos.ar <- elements$polysos.ar;
     polysos.ma <- elements$polysos.ma;
-    matat[1,] <- elements$matat[1,];
-#    matFX <- elements$matFX;
-#    vecgX <- elements$vecgX;
 
     if(bounds=="a" & (n.components > 0)){
         arroots <- abs(polyroot(polysos.ar));
@@ -487,10 +514,6 @@ Likelihood.value <- function(C){
     }
 }
 
-auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc"){
-# A placeholder for the function that potentially could be placed here instead of making it external...
-}
-
 #####Start the calculations#####
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
@@ -505,24 +528,31 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 ############################################## To be fixed ##############################################
 # Needs to be done properly... does not take into account the provided data...
 # If there is something to optimise, let's do it.
-    if(is.null(initial) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
+    if(((estimate.initial==TRUE) & fittertype=="o") | (estimate.AR==TRUE) | (estimate.MA==TRUE) |
+       (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE) | (estimate.constant==TRUE) ){
 
         C <- NULL;
         if(n.components > 0){
 # ar terms, ma terms from season to season...
-            C <- c(rep(0.1,sum(ar.orders)),
-                   rep(0.1,sum(ma.orders)));
+            if(estimate.AR==TRUE){
+                C <- c(C,rep(0.1,sum(ar.orders)));
+            }
+            if(estimate.MA==TRUE){
+                C <- c(C,rep(0.1,sum(ma.orders)));
+            }
 
 # initial values of state vector and the constant term
-            slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
-            intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
-            if(fittertype=="o"){
-                initial.stuff <- c(rep(intercept,n.components));
-                C <- c(C,initial.stuff[1:n.components]);
-            }
-            else{
-                initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
-                matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
+            if(estimate.initial==TRUE){
+                slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+                intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+                if(fittertype=="o"){
+                    initial.stuff <- c(rep(intercept,n.components));
+                    C <- c(C,initial.stuff[1:n.components]);
+                }
+                else{
+                    initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
+                    matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
+                }
             }
         }
 
@@ -535,27 +565,32 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
             }
         }
 
-# matat
 # initials, transition matrix and persistence vector
-        if(!is.null(xreg)){
-            C <- c(C,matat[maxlag,]);
+        if(estimate.xreg==TRUE){
+            if(estimate.initialX==TRUE){
+                C <- c(C,matat[maxlag,]);
+            }
             if(go.wild==TRUE){
-                C <- c(C,c(diag(n.exovars)));
-                C <- c(C,rep(0,n.exovars));
+                if(estimate.FX==TRUE){
+                    C <- c(C,c(diag(n.exovars)));
+                }
+                if(estimate.gX==TRUE){
+                    C <- c(C,rep(0,n.exovars));
+                }
             }
         }
 
         elements <- polyroots(C);
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matvt[1,] <- elements$vt;
-        matat[1,] <- elements$matat[1,];
+        matvt[1:maxlag,] <- elements$vt;
+        matat[1:maxlag,] <- elements$at;
+        matFX <- elements$matFX;
+        vecgX <- elements$vecgX;
         polysos.ar <- elements$polysos.ar;
         polysos.ma <- elements$polysos.ma;
         arroots <- abs(polyroot(polysos.ar));
         maroots <- abs(polyroot(polysos.ma));
-#        matFX <- elements$matFX;
-#        vecgX <- elements$vecgX;
 
 ##### Initialisation needs to be done using backcast! #####
 # Optimise model. First run
@@ -575,12 +610,12 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 #        CF.objective <- res$objective;
     }
     else{
-# matF, vecg, vt
-        transition <- matrix(transition,n.components,n.components);
-        C <- c(transition[,1]);
-        C <- c(c(transition),
-               c(persistence),
-               c(initial));
+        C <- NULL;
+# initial values of state vector and the constant term
+        slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+        intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+        initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
+        matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
 
         CF.objective <- CF(C);
     }
@@ -604,14 +639,15 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     elements <- polyroots(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1,] <- elements$vt;
-    matat[1,] <- elements$matat[1,];
+    matvt[1:maxlag,] <- elements$vt;
+    matat[1:maxlag,] <- elements$at;
+    matFX <- elements$matFX;
+    vecgX <- elements$vecgX;
     polysos.ar <- elements$polysos.ar;
     polysos.ma <- elements$polysos.ma;
     arroots <- abs(polyroot(polysos.ar));
     maroots <- abs(polyroot(polysos.ma));
-#    matFX <- elements$matFX;
-#    vecgX <- elements$vecgX;
+
     if(!is.null(initial)){
         initial <- elements$vt;
     }
@@ -690,8 +726,15 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 # Revert to the provided cost function
     CF.type <- CF.type.original
 
+# Write down initials of states vector and exogenous
+    if(estimate.initial==TRUE){
+        initial <- matvt[1,];
+    }
+    if(estimate.initialX==TRUE){
+        initialX <- matat[1,];
+    }
+
 # Fill in the rest of matvt
-#    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components+constant)));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
@@ -706,17 +749,17 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 
 # AR terms
     if(any(ar.orders!=0)){
-        ARterms <- matrix(0,length(ar.orders),max(ar.orders),
-                          dimnames=list(paste0("Lag ",lags),
-                                        paste0("AR(",c(1:max(ar.orders)),")")));
+        ARterms <- matrix(0,max(ar.orders),length(ar.orders),
+                          dimnames=list(paste0("AR(",c(1:max(ar.orders)),")"),
+                                        paste0("Lag ",lags)));
     }
     else{
         ARterms <- 0;
     }
 # Differences
     if(any(i.orders!=0)){
-        Iterms <- matrix(0,length(i.orders),1,
-                          dimnames=list(paste0("Lag ",lags),"I(...)"));
+        Iterms <- matrix(0,1,length(i.orders),
+                          dimnames=list("I(...)",paste0("Lag ",lags)));
         Iterms[,] <- i.orders;
     }
     else{
@@ -724,9 +767,9 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     }
 # MA terms
     if(any(ma.orders!=0)){
-        MAterms <- matrix(0,length(ma.orders),max(ma.orders),
-                          dimnames=list(paste0("Lag ",lags),
-                                        paste0("MA(",c(1:max(ma.orders)),")")));
+        MAterms <- matrix(0,max(ma.orders),length(ma.orders),
+                          dimnames=list(paste0("MA(",c(1:max(ma.orders)),")"),
+                                        paste0("Lag ",lags)));
     }
     else{
         MAterms <- 0;
@@ -735,11 +778,21 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     n.coef <- 0;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
-            ARterms[i,1:ar.orders[i]] <- C[(n.coef+1):(n.coef + ar.orders[i])];
+            if(estimate.AR==TRUE){
+                ARterms[1:ar.orders[i],i] <- C[(n.coef+1):(n.coef + ar.orders[i])];
+            }
+            else{
+                ARterms[1:ar.orders[i],i] <- AR[(n.coef+1):(n.coef + ar.orders[i])];
+            }
             n.coef <- n.coef + ar.orders[i];
         }
         if(ma.orders[i]!=0){
-            MAterms[i,1:ma.orders[i]] <- C[(n.coef+1):(n.coef + ma.orders[i])];
+            if(estimate.MA==TRUE){
+                MAterms[1:ma.orders[i],i] <- C[(n.coef+1):(n.coef + ma.orders[i])];
+            }
+            else{
+                MAterms[1:ma.orders[i],i] <- MA[(n.coef+1):(n.coef + ma.orders[i])];
+            }
             n.coef <- n.coef + ma.orders[i];
         }
     }
@@ -827,6 +880,7 @@ if(silent==FALSE){
 return(list(model=modelname,states=matvt,initial=initial,transition=matF,persistence=vecg,
             AR=ARterms,I=Iterms,MA=MAterms,constant=const,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,xreg=xreg,persistenceX=vecgX,transitionX=matFX,
+            actuals=data,holdout=y.holdout,
+            xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }

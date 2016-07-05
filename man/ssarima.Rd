@@ -9,13 +9,13 @@ Function constructs State-Space ARIMA, estimating AR, MA terms and initial state
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
- constant=FALSE, initial=c("backcasting","optimal"), persistence=NULL, transition=NULL,
- CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
- h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
- int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
- intermittent=c("none","simple","croston","tsb"),
- bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
- xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+  constant=FALSE, initial=c("backcasting","optimal"), AR=NULL, MA=NULL,
+  CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+  h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
+  int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+  intermittent=c("none","simple","croston","tsb"),
+  bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+  xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL,...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,15 +28,17 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{ma.orders}{ The vector of moving average orders, corresponding to seasonal lags. For example \code{i.orders=c(1,2)} with \code{lags=c(1,12)} will lead to model with MA(1), SMA(2).
   }
-  \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
+  \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector. It is recommended to order \code{lags} ascending.
   }
   \item{constant}{ If \code{TRUE}, the constant term is included in the model.
   }
   \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
-  \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. Can be used if the model has been already estimated on te data before. If \code{NULL}, then estimated.
+  \item{AR}{
+    Vector or matrix of AR parameters. The order of parameters should be lag-wise. This means that first all the AR parameters of the firs lag should be passed, then for the second etc. AR of another ssarima can be passed here.
   }
-  \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. Can be used if the model has been already estimated on te data before. If \code{NULL}, then estimated.
+  \item{MA}{
+    Vector or matrix of MA parameters. The order of parameters should be lag-wise. This means that first all the MA parameters of the firs lag should be passed, then for the second etc. MA of another ssarima can be passed here.
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
@@ -60,13 +62,20 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{legend}{ if \code{TRUE}, the legend is drawn on the output plot.
   }
-  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  \item{xreg}{
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+  \item{initialX}{
+    The vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
-  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{go.wild}{
+    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{persistenceX}{
+    Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
   }
@@ -106,6 +115,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.

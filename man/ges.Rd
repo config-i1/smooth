@@ -15,68 +15,94 @@ ges(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=FALSE,
     bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-    xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
 
-  \item{data}{ the data that needs to be forecasted.
+  \item{data}{
+    The data that needs to be forecasted.
   }
-  \item{orders}{ Order of the model. Specified as vector of number of states with different lags. For example, \code{orders=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
+  \item{orders}{
+    Order of the model. Specified as vector of number of states with different lags. For example, \code{orders=c(1,1)} means that there are two states: one of the first lag type, the second of the second type.
   }
-  \item{lags}{ Defines lags for the corresponding orders. If, for example, \code{orders=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{orders}.
+  \item{lags}{
+    Defines lags for the corresponding orders. If, for example, \code{orders=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{orders}.
   }
-  \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
+  \item{initial}{
+    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
-  \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
+  \item{persistence}{
+    Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
   }
-  \item{transition}{ Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated.
+  \item{transition}{
+    Transition matrix \eqn{F}. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated.
   }
-  \item{measurement}{ Measurement vector \eqn{w}. If \code{NULL}, then estimated.
+  \item{measurement}{
+    Measurement vector \eqn{w}. If \code{NULL}, then estimated.
   }
-  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
+  \item{CF.type}{
+    Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
-  \item{h}{ the forecasting horizon.
+  \item{h}{
+    The forecasting horizon.
   }
-  \item{holdout}{ if \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
+  \item{holdout}{
+    If \code{TRUE}, the holdout of the size \code{h} is taken from the end of the data.
   }
-  \item{intervals}{ If \code{TRUE}, the prediction interval is constructed.
+  \item{intervals}{
+    If \code{TRUE}, the prediction interval is constructed.
   }
-  \item{int.w}{ Defines the width of the prediction interval.
+  \item{int.w}{
+    Defines the width of the prediction interval.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
+  \item{int.type}{
+    The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} use the state-space structure of ETS, \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} use the quantiles of the errors in that matrix, \code{asymmetric} are based on half moment of distribution.
   }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  \item{intermittent}{
+    If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
-  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
+  \item{bounds}{
+    What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{FI}{ If \code{TRUE}, Fisher Information is calculated and produced in the output.
+  \item{FI}{
+    If \code{TRUE}, Fisher Information is calculated and produced in the output.
   }
-  \item{silent}{ if \code{TRUE}, no output or graph is given.
+  \item{silent}{
+    If \code{TRUE}, no output or graph is given.
   }
-  \item{legend}{ if \code{TRUE}, the legend is drawn on the output plot.
+  \item{legend}{
+    If \code{TRUE}, the legend is drawn on the output plot.
   }
-  \item{xreg}{ The vector / matrix / dataframe of exogenous variables.
+  \item{xreg}{
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+  \item{initialX}{
+    The vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
-  \item{persistenceX}{ Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{go.wild}{
+    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{transitionX}{ Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  \item{persistenceX}{
+    Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
-  \item{...}{ All sorts of additional parameters. NOT IMPLEMENTED YET!
+  \item{transitionX}{
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{...}{
+    All sorts of additional parameters. NOT IMPLEMENTED YET!
   }
 }
 \details{
-The function estimates the Single Source of Error State-space model of the following type:
+    The function estimates the Single Source of Error State-space model of the following type:
 
-\eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
+    \eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
 
-\eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
+    \eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
 
-\eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
+    \eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
 
-Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
+    Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters.
 }
 \value{
   The list of the following values is returned:
@@ -97,6 +123,7 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.

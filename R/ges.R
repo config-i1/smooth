@@ -5,7 +5,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
                 bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
@@ -76,11 +76,12 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
             initial <- "o";
         }
         fittertype <- initial;
-        initial <- NULL;
+        estimate.initial <- TRUE;
     }
     else if(is.null(initial)){
         message("Initial value is not selected. Switching to optimal.");
         fittertype <- "o";
+        estimate.initial <- TRUE;
     }
     else if(!is.null(initial)){
         if(!is.numeric(initial) | !is.vector(initial)){
@@ -90,6 +91,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
             stop(paste0("Wrong length of initial vector. Should be ",orders %*% lags," instead of ",length(initial),"."),call.=FALSE);
         }
         fittertype <- "o";
+        estimate.initial <- FALSE;
     }
 
 # Check the provided vector of initials: length and provided values.
@@ -100,6 +102,10 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
         if(length(persistence) != n.components){
             stop(paste0("Wrong length of persistence vector. Should be ",n.components," instead of ",length(persistence),"."),call.=FALSE);
         }
+        estimate.persistence <- FALSE;
+    }
+    else{
+        estimate.persistence <- TRUE;
     }
 
 # Check the provided vector of initials: length and provided values.
@@ -110,6 +116,10 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
         if(length(transition) != n.components^2){
             stop(paste0("Wrong length of transition matrix. Should be ",n.components^2," instead of ",length(transition),"."),call.=FALSE);
         }
+        estimate.transition <- FALSE;
+    }
+    else{
+        estimate.transition <- TRUE;
     }
 
 # Check the provided vector of initials: length and provided values.
@@ -120,6 +130,10 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
         if(length(measurement) != n.components){
             stop(paste0("Wrong length of measurement vector. Should be ",n.components," instead of ",length(measurement),"."),call.=FALSE);
         }
+        estimate.measurement <- FALSE;
+    }
+    else{
+        estimate.measurement <- TRUE;
     }
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
@@ -167,85 +181,25 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
         message(paste0("Number of observations is really low for a multisteps cost function! We will try but cannot guarantee anything..."));
     }
 
-
-#### Now let's prepare the provided exogenous data for the inclusion in ETS
-# Check the exogenous variable if it is present and
-# fill in the values of xreg if it is absent in the holdout sample.
-    if(!is.null(xreg)){
-        if(any(is.na(xreg))){
-            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
-        }
-## The case with vectors and ts objects, but not matrices #####
-        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# If xreg is vector or simple ts
-        if(length(xreg)!=obs & length(xreg)!=obs.all){
-            stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=FALSE);
-        }
-        if(length(xreg)==obs){
-            message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-            xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-        }
-# Number of exogenous variables
-        n.exovars <- 1;
-# Define matrix w for exogenous variables
-        matxt <- matrix(xreg,ncol=1);
-# Define the second matat to fill in the coefs of the exogenous vars
-        matat <- matrix(NA,obs.xt,1);
-        colnames(matat) <- "exogenous";
-# Fill in the initial values for exogenous coefs using OLS
-        matat[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
-# Redefine the number of components of ETS.
-        }
-## The case with matrices and data frames #####
-        else if(is.matrix(xreg) | is.data.frame(xreg)){
-    # If xreg is matrix or data frame
-            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=FALSE)
-            }
-            if(nrow(xreg)==obs){
-                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                for(j in 1:h){
-                    xreg <- rbind(xreg,xreg[obs,]);
-                }
-            }
-# matx is needed for the initial values of coefs estimation using OLS
-            n.exovars <- ncol(xreg);
-            matx <- as.matrix(cbind(rep(1,obs.all),xreg));
-# Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,obs.xt,n.exovars);
-# Define matrix w for exogenous variables
-            matxt <- as.matrix(xreg);
-# Fill in the initial values for exogenous coefs using OLS
-            matat[1:maxlag,] <- rep(t(solve(t(matx[1:obs,]) %*% matx[1:obs,],tol=1e-50) %*% t(matx[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],each=maxlag);
-            if(is.null(colnames(matat))){
-                colnames(matat) <- paste0("x",c(1:n.exovars));
-            }
-            else{
-                colnames(matat) <- colnames(xreg);
-            }
-        }
-        else{
-            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
-        }
-    }
-    else{
-        n.exovars <- 1;
-        matxt <- matrix(0,obs.xt,1);
-        matat <- matrix(0,obs.xt,1);
-    }
-    matFX <- diag(n.exovars);
-    vecgX <- matrix(0,n.exovars,1);
+##### Prepare exogenous variables #####
+    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+    n.exovars <- xregdata$n.exovars;
+    matxt <- xregdata$matxt;
+    matat <- xregdata$matat;
+    matFX <- xregdata$matFX;
+    vecgX <- xregdata$vecgX;
+    estimate.xreg <- xregdata$estimate.xreg;
+    estimate.FX <- xregdata$estimate.FX;
+    estimate.gX <- xregdata$estimate.gX;
+    estimate.initialX <- xregdata$estimate.initialX;
 
 # 1 stands for the variance
     n.param <- 1 + 2*n.components + n.components^2 + orders %*% lags + intermittent;
 
-    if(!is.null(xreg)){
-# Number of initial states
-        n.param <- n.param + n.exovars;
-        if(go.wild==TRUE){
-# Number of parameters in the transition matrix + persistence vector
-            n.param <- n.param + n.exovars^2 + n.exovars;
-        }
+    if(estimate.xreg==TRUE){
+        n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
     }
 
     if(n.param >= obs.ot-1){
@@ -265,31 +219,36 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     Stype <- "N";
 
 elements.ges <- function(C){
-
-    if(is.null(measurement)){
-        matw <- matrix(C[1:n.components],1,n.components);
+    n.coef <- 0;
+    if(estimate.measurement==TRUE){
+        matw <- matrix(C[n.coef+(1:n.components)],1,n.components);
+        n.coef <- n.coef + n.components;
     }
     else{
         matw <- matrix(measurement,1,n.components);
     }
 
-    if(is.null(transition)){
-        matF <- matrix(C[n.components+(1:(n.components^2))],n.components,n.components);
+    if(estimate.transition==TRUE){
+        matF <- matrix(C[n.coef+(1:(n.components^2))],n.components,n.components);
+        n.coef <- n.coef + n.components^2;
     }
     else{
         matF <- matrix(transition,n.components,n.components);
     }
 
-    if(is.null(persistence)){
-        vecg <- matrix(C[n.components+n.components^2+(1:n.components)],n.components,1);
+    if(estimate.persistence==TRUE){
+        vecg <- matrix(C[n.coef+(1:n.components)],n.components,1);
+        n.coef <- n.coef + n.components;
     }
     else{
         vecg <- matrix(persistence,n.components,1);
     }
 
     if(fittertype=="o"){
-        if(is.null(initial)){
-            vtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+        if(estimate.initial==TRUE){
+            vtvalues <- C[n.coef+(1:(orders %*% lags))];
+            n.coef <- n.coef + orders %*% lags;
+
         }
         else{
             vtvalues <- initial;
@@ -305,27 +264,32 @@ elements.ges <- function(C){
     else{
         vt <- matvt[1:maxlag,n.components];
     }
+
 # If exogenous are included
-# vecgX - persistence for exogenous variables
-# matFX - transition matrix for exogenous variables
-    if(!is.null(xreg) & (go.wild==TRUE)){
-        matat[1:maxlag,] <- rep(C[(length(C)-2*n.exovars-n.exovars^2+1):(length(C)-n.exovars-n.exovars^2)],each=maxlag);
-        if(is.null(transitionX)){
-            matFX <- matrix(C[(length(C)-n.exovars^2-n.exovars+1):(length(C)-n.exovars)],n.exovars,n.exovars)
+    if(estimate.xreg==TRUE){
+        at <- matrix(NA,maxlag,n.exovars);
+        if(estimate.initialX==TRUE){
+            at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
+            n.coef <- n.coef + n.exovars;
         }
         else{
-            matFX <- matrix(transitionX,n.exovars,n.exovars);
+            at <- matat[1:maxlag,];
+        }
+        if(estimate.FX==TRUE){
+            matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
+            n.coef <- n.coef + n.exovars^2;
         }
 
-        if(is.null(persistenceX)){
-            vecgX <- matrix(C[(length(C)-n.exovars+1):length(C)],n.exovars,1);
-        }
-        else{
-            vecgX <- matrix(persistenceX,n.exovars,1);
+        if(estimate.gX==TRUE){
+            vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
+            n.coef <- n.coef + n.exovars;
         }
     }
+    else{
+        at <- matrix(0,maxlag,n.exovars);
+    }
 
-    return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,matat=matat,matFX=matFX,vecgX=vecgX));
+    return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
 }
 
 # Cost function for GES
@@ -334,16 +298,16 @@ CF <- function(C){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matat[1:maxlag,] <- elements$matat[1:maxlag,];
+    matvt[1:maxlag,] <- elements$vt;
+    matat[1:maxlag,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
-    matvt[1:maxlag,] <- elements$vt;
 
     CF.res <- costfunc(matvt, matF, matw, y, vecg,
-                   h, modellags, Etype, Ttype, Stype,
-                   multisteps, CF.type, normalizer, fittertype,
-                   matxt, matat, matFX, vecgX, ot,
-                   bounds);
+                       h, modellags, Etype, Ttype, Stype,
+                       multisteps, CF.type, normalizer, fittertype,
+                       matxt, matat, matFX, vecgX, ot,
+                       bounds);
 
     return(CF.res);
 }
@@ -374,61 +338,64 @@ Likelihood.value <- function(C){
     }
 
 # If there is something to optimise, let's do it.
-    if(is.null(initial) | is.null(measurement) | is.null(transition) | is.null(persistence) | !is.null(xreg)){
+    if((estimate.initial==TRUE) | (estimate.measurement==TRUE) | (estimate.transition==TRUE) | (estimate.persistence==TRUE) |
+       (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE)){
 # Initial values of matvt
         slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
         intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
 
+        C <- NULL;
 # matw, matF, vecg, vt
-        C <- c(rep(1,n.components),
-               rep(1,n.components^2),
-               rep(0.1,n.components));
-
-        if(fittertype=="o"){
-            C <- c(C,intercept);
-            if((orders %*% lags)>1){
-                C <- c(C,slope);
+        if(estimate.measurement==TRUE){
+            C <- c(C,rep(1,n.components));
+        }
+        if(estimate.transition==TRUE){
+            C <- c(C,rep(1,n.components^2));
+        }
+        if(estimate.persistence==TRUE){
+            C <- c(C,rep(0.1,n.components));
+        }
+        if(estimate.initial==TRUE){
+            if(fittertype=="o"){
+                C <- c(C,intercept);
+                if((orders %*% lags)>1){
+                    C <- c(C,slope);
+                }
+                if((orders %*% lags)>2){
+                    C <- c(C,yot[1:(orders %*% lags-2),]);
+                }
             }
-            if((orders %*% lags)>2){
-                C <- c(C,yot[1:(orders %*% lags-2),]);
+            else{
+                vtvalues <- intercept;
+                if((orders %*% lags)>1){
+                    vtvalues <- c(vtvalues,slope);
+                }
+                if((orders %*% lags)>2){
+                    vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+                }
+
+                vt <- matrix(NA,maxlag,n.components);
+                for(i in 1:n.components){
+                    vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+                    vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                                ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+                }
+                matvt[1:maxlag,] <- vt;
             }
         }
-        else{
-            vtvalues <- intercept;
-            if((orders %*% lags)>1){
-                vtvalues <- c(vtvalues,slope);
-            }
-            if((orders %*% lags)>2){
-                vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
-            }
 
-            vt <- matrix(NA,maxlag,n.components);
-            for(i in 1:n.components){
-                vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-                vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                               ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
-            }
-            matvt[1:maxlag,] <- vt;
-        }
-
-#        if((orders %*% lags)>1){
-#            if(length(lags>1)){
-#                for(i in lags[-1]){
-#                    C <- c(C,decompose(ts(c(y),frequency=i),type="additive")$seasonal[1:i]);
-#                }
-#            }
-#            else{
-#                C <- c(C,slope);
-#                C <- c(C,yot[1:(orders %*% lags-2),]);
-#            }
-#        }
-# matat
 # initials, transition matrix and persistence vector
-        if(!is.null(xreg)){
-            C <- c(C,matat[maxlag,]);
+        if(estimate.xreg==TRUE){
+            if(estimate.initialX==TRUE){
+                C <- c(C,matat[maxlag,]);
+            }
             if(go.wild==TRUE){
-                C <- c(C,c(diag(n.exovars)));
-                C <- c(C,rep(0,n.exovars));
+                if(estimate.FX==TRUE){
+                    C <- c(C,c(diag(n.exovars)));
+                }
+                if(estimate.gX==TRUE){
+                    C <- c(C,rep(0,n.exovars));
+                }
             }
         }
 
@@ -436,15 +403,13 @@ Likelihood.value <- function(C){
         matw <- elements$matw;
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matat[1:maxlag,] <- elements$matat[1:maxlag,];
         matvt[1:maxlag,] <- elements$vt;
+        matat[1:maxlag,] <- elements$at;
         matFX <- elements$matFX;
         vecgX <- elements$vecgX;
 
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
-#                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
-#                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
 
 # Optimise model. Second run
@@ -458,6 +423,10 @@ Likelihood.value <- function(C){
                c(transition),
                c(persistence),
                c(initial));
+
+        C <- c(C,matat[maxlag,],
+               c(transitionX),
+               c(persistenceX));
 
         CF.objective <- CF(C);
     }
@@ -483,12 +452,9 @@ Likelihood.value <- function(C){
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[1:maxlag,] <- elements$vt;
-    matat[1:maxlag,] <- elements$matat[1:maxlag,];
+    matat[1:maxlag,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
-    if(is.null(initial)){
-        initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
-    }
 
     fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                           modellags, Etype, Ttype, Stype, fittertype,
@@ -557,10 +523,18 @@ Likelihood.value <- function(C){
 # Revert to the provided cost function
     CF.type <- CF.type.original
 
+# Write down initials of states vector and exogenous
+    if(estimate.initial==TRUE){
+        initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+    }
+    if(estimate.initialX==TRUE){
+        initialX <- matat[1,];
+    }
+
 # Fill in the rest of matvt
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
-        matvt <- cbind(matvt,matat[1:nrow(matvt),]);
+        matvt <- cbind(matvt,matat);
         colnames(matvt) <- c(paste0("Component ",c(1:n.components)),colnames(matat));
     }
     else{
@@ -622,6 +596,7 @@ if(silent==FALSE){
 
 return(list(model=modelname,states=matvt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,xreg=xreg,persistenceX=vecgX,transitionX=matFX,
+            actuals=data,holdout=y.holdout,
+            xreg=xreg,persistenceX=vecgX,transitionX=matFX,initialX=initialX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }

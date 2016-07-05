@@ -5,7 +5,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                intermittent=c("none","simple","croston","tsb"),
                bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-               xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+               xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -326,12 +326,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") +
         (intermittent!="n") + 1;
 
-# Stop if number of observations is less than number of parameters
-    if(obs.ot < n.param.test){
-        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
-        stop("Not enough observations for the fit of the ETS(",model,")! Try a different model.",call.=FALSE);
-    }
-
 # Stop if number of observations is less than horizon and multisteps is chosen.
     if((multisteps==TRUE) & (obs.ot < h+1)){
         message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
@@ -398,10 +392,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ##### All the function should be transfered into optimizerwrap #####
 # Cost function for ETS
 CF <- function(C){
-    init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                            Ttype, Stype, n.exovars, matat, estimate.persistence,
-                            estimate.phi, estimate.initial, estimate.initial.season,
-                            estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
+    init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
+                            modellags, Ttype, Stype, n.exovars, matat,
+                            estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
+                            matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
 
     CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                        h, modellags, Etype, Ttype, Stype,
@@ -410,7 +404,7 @@ CF <- function(C){
                        bounds);
 
     if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
-        CF.res <- 1e100;
+        CF.res <- 1e+100;
     }
 
     return(CF.res);
@@ -452,7 +446,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
                     C.upper <- c(C.upper,rep(Inf,maxlag));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(0,maxlag));
+                    C.lower <- c(C.lower,rep(1e-5,maxlag));
                     C.upper <- c(C.upper,rep(10,maxlag));
                 }
             }
@@ -532,16 +526,18 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
     }
 
     if(estimate.xreg==TRUE){
-        C <- c(C,matat[maxlag,]);
-        C.lower <- c(C.lower,rep(-Inf,n.exovars));
-        C.upper <- c(C.upper,rep(Inf,n.exovars));
+        if(estimate.initialX==TRUE){
+            C <- c(C,matat[maxlag,]);
+            C.lower <- c(C.lower,rep(-Inf,n.exovars));
+            C.upper <- c(C.upper,rep(Inf,n.exovars));
+        }
         if(go.wild==TRUE){
-            if(estimate.Fx==TRUE){
+            if(estimate.FX==TRUE){
                 C <- c(C,as.vector(matFX));
                 C.lower <- c(C.lower,rep(-Inf,n.exovars^2));
                 C.upper <- c(C.upper,rep(Inf,n.exovars^2));
             }
-            if(estimate.gx==TRUE){
+            if(estimate.gX==TRUE){
                 C <- c(C,as.vector(vecgX));
                 C.lower <- c(C.lower,rep(-Inf,n.exovars));
                 C.upper <- c(C.upper,rep(Inf,n.exovars));
@@ -739,159 +735,34 @@ checker <- function(inherits=TRUE){
 # Define the number of rows that should be in the matvt
     obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
 
-##### All of this should be moved to an external function #####
-# Now let's prepare the provided exogenous data for the inclusion in ETS
-# Check the exogenous variable if it is present and
-# fill in the values of xreg if it is absent in the holdout sample.
-    if(!is.null(xreg)){
-        if(any(is.na(xreg)) & silent==FALSE){
-            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
-        }
-##### The case with vectors and ts objects, but not matrices
-        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# Check if xreg contains something meaningful
-            if(all(xreg[1:obs]==xreg[1])){
-                warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
-                        call.=FALSE, immediate.=TRUE);
-                xreg <- NULL;
-            }
-            else{
-                if(length(xreg)!=obs & length(xreg)!=obs.all){
-                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!", call.=F);
-                }
-                if(length(xreg)==obs){
-                    if(silent==FALSE){
-                        message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                    }
-                    xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-                }
-# Number of exogenous variables
-                n.exovars <- 1;
-# Define matrix w for exogenous variables
-                matxt <- matrix(xreg,ncol=1);
-# Define the second matat to fill in the coefs of the exogenous vars
-                matat <- matrix(NA,obs.xt,1);
-                exocomponent.names <- "exogenous";
-# Fill in the initial values for exogenous coefs using OLS
-                matat[1:datafreq,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
-            }
-        }
-##### The case with matrices and data frames
-        else if(is.matrix(xreg) | is.data.frame(xreg)){
-            checkvariability <- apply(xreg[1:obs,]==rep(xreg[1,],each=obs),2,all);
-            if(any(checkvariability)){
-                if(all(checkvariability)){
-                    warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
-                            call.=FALSE, immediate.=TRUE);
-                    xreg <- NULL;
-                }
-                else{
-                    warning("Some exogenous variables do not have any variability. Dropping them out.",
-                            call.=FALSE, immediate.=TRUE);
-                    xreg <- as.matrix(xreg[,!checkvariability]);
-                }
-            }
+##### Prepare exogenous variables #####
+    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+    n.exovars <- xregdata$n.exovars;
+    matxt <- xregdata$matxt;
+    matat <- xregdata$matat;
+    matFX <- xregdata$matFX;
+    vecgX <- xregdata$vecgX;
+    estimate.xreg <- xregdata$estimate.xreg;
+    estimate.FX <- xregdata$estimate.FX;
+    estimate.gX <- xregdata$estimate.gX;
+    estimate.initialX <- xregdata$estimate.initialX;
 
-            if(!is.null(xreg)){
-                if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
-                }
-                if(nrow(xreg)==obs){
-                    if(silent==FALSE){
-	                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                    }
-                    for(j in 1:h){
-                    xreg <- rbind(xreg,xreg[obs,]);
-                    }
-                }
-# mat.x is needed for the initial values of coefs estimation using OLS
-                mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
-                n.exovars <- ncol(xreg);
-# Define the second matat to fill in the coefs of the exogenous vars
-                matat <- matrix(NA,obs.xt,n.exovars);
-                exocomponent.names <- paste0("x",c(1:n.exovars));
-# Define matrix w for exogenous variables
-                matxt <- as.matrix(xreg);
-# Fill in the initial values for exogenous coefs using OLS
-                matat[1:datafreq,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
-                                                  t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                          each=datafreq);
-                colnames(matat) <- colnames(xreg);
-            }
-        }
-        else{
-            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
-        }
-        estimate.xreg <- TRUE;
-    }
+    n.param.test <- n.param.test + estimate.FX*ncol(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
-##### In case we changed xreg to null...
-    if(is.null(xreg)){
-# "1" is needed for the final forecast simplification
-        n.exovars <- 1;
-        matxt <- matrix(1,obs.xt,1);
-        matat <- matrix(0,obs.xt,1);
-        matFX <- matrix(1,1,1);
-        vecgX <- matrix(0,1,1);
-        estimate.xreg <- FALSE;
-        estimate.Fx <- FALSE;
-        estimate.gx <- FALSE;
-    }
-
-# Now check transition and persistence of exogenous variables
-    if(estimate.xreg==TRUE & go.wild==TRUE){
-# First - transition matrix
-        if(!is.null(transitionX)){
-            if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
-                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
-            }
-            else{
-                if(length(transitionX) != n.exovars^2){
-                    stop("The size of transition matrix for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
-                }
-                else{
-                    matFX <- matrix(transitionX,n.exovars,n.exovars);
-                    estimate.Fx <- FALSE;
-                }
-            }
-        }
-        else{
-            matFX <- diag(n.exovars);
-            estimate.Fx <- TRUE;
-        }
-# Now - persistence vector
-        if(!is.null(persistenceX)){
-            if(!is.numeric(persistenceX) & !is.vector(persistenceX) & !is.matrix(persistenceX)){
-                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
-            }
-            else{
-                if(length(persistenceX) != n.exovars){
-                    stop("The size of persistence vector for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
-                }
-                else{
-                    vecgX <- matrix(persistenceX,n.exovars,1);
-                    estimate.gx <- FALSE;
-                }
-            }
-        }
-        else{
-            vecgX <- matrix(0,n.exovars,1);
-            estimate.gx <- TRUE;
-        }
-    }
-    else if(estimate.xreg==TRUE & go.wild==FALSE){
-        matFX <- diag(n.exovars);
-        estimate.Fx <- FALSE;
-
-        vecgX <- matrix(0,n.exovars,1);
-        estimate.gx <- FALSE;
+# Stop if number of observations is less than approximate number of parameters to estimate
+    if(obs.ot < n.param.test){
+        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
+        stop("Not enough observations for the fit of the ETS(",model,")! Try a different model.",call.=FALSE);
     }
 
 ############ Start the estimation depending on the model ############
 # Fill in the vector of initial values and vector of constrains used in estimation
 # This also should include in theory  "| estimate.phi==TRUE",
 #    but it doesn't make much sense and makes things more complicated
-    if(any(estimate.persistence,estimate.initial,estimate.initial.season)){
+    if(any(estimate.persistence,estimate.initial,estimate.initial.season,
+           estimate.xreg,estimate.FX,estimate.gX,estimate.initialX)){
 
 # Number of observations in the error matrix excluding NAs.
         errors.mat.obs <- obs - h + 1;
@@ -945,7 +816,7 @@ checker <- function(inherits=TRUE){
                 }
 
                 n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") +
-                           estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
+                           estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
 
                 if(intermittent!="n"){
                     intermittent_model <- iss(y,intermittent=intermittent,h=h);
@@ -1259,8 +1130,8 @@ checker <- function(inherits=TRUE){
             C <- res$solution;
 
             if(any(C==Cs$C)){
-                C[C==Cs$C & Cs$C < 1] <- 0;
-                res <- nloptr(C, CF,
+                C[C==Cs$C & Cs$C < 0.5] <- 0;
+                res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
             }
@@ -1314,14 +1185,14 @@ checker <- function(inherits=TRUE){
             pt.for <- matrix(rep(1,h),h,1);
         }
 
-        init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                                Ttype, Stype, n.exovars, matat, estimate.persistence,
-                                estimate.phi, estimate.initial, estimate.initial.season,
-                                estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
+        init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
+                                modellags, Ttype, Stype, n.exovars, matat,
+                                estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
+                                matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
         vecg <- init.ets$vecg;
         phi <- init.ets$phi;
-        matvt <- init.ets$matvt;
-        matat <- init.ets$matat;
+        matvt[,] <- init.ets$matvt;
+        matat[,] <- init.ets$matat;
         matF <- init.ets$matF;
         matw <- init.ets$matw;
         matFX <- init.ets$matFX;
@@ -1362,9 +1233,15 @@ checker <- function(inherits=TRUE){
             y.for[y.for<0] <- 1;
         }
 
-        if(estimate.persistence==FALSE & estimate.phi==FALSE & estimate.initial==FALSE & estimate.initial.season==FALSE &
-           estimate.xreg==FALSE & estimate.Fx==FALSE & estimate.gx==FALSE){
+        if(!any(estimate.persistence,estimate.phi,estimate.initial,estimate.initial.season,
+                estimate.FX,estimate.gX,estimate.initialX)){
             C <- c(vecg,phi,initial,initial.season);
+            if(estimate.xreg==TRUE){
+                C <- c(C,initialX);
+                if(go.wild==TRUE){
+                    C <- c(C,transitionX,persistenceX);
+                }
+            }
             errors.mat.obs <- obs - h + 1;
             CF.objective <- CF(C);
             n.param <- 0;
@@ -1373,7 +1250,7 @@ checker <- function(inherits=TRUE){
 # 1 stand for the variance
             n.param <- n.param + 1 + n.components*estimate.persistence + estimate.phi +
                 (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
-                estimate.xreg * n.exovars + estimate.Fx * n.exovars^2 + estimate.gx * n.exovars;
+                estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
         }
 
 # If error additive, estimate as normal. Otherwise - lognormal
@@ -1490,17 +1367,24 @@ checker <- function(inherits=TRUE){
 
         if(!is.null(xreg)){
             matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-            colnames(matvt) <- c(component.names,exocomponent.names);
+            colnames(matvt) <- c(component.names,colnames(matat));
         }
         else{
             colnames(matvt) <- c(component.names);
         }
 
 # Write down the initials. Done especially for Nikos and issue #10
-        initial <- matvt[maxlag,1:(n.components - (Stype!="N"))]
+        if(estimate.initial==TRUE){
+            initial <- matvt[maxlag,1:(n.components - (Stype!="N"))]
+        }
+        if(estimate.initialX==TRUE){
+            initialX <- matat[1,];
+        }
 
-        if(Stype!="N"){
-            initial.season <- matvt[1:maxlag,n.components]
+        if(estimate.initial.season==TRUE){
+            if(Stype!="N"){
+                initial.season <- matvt[1:maxlag,n.components]
+            }
         }
     }
 ##### If we do combine, then combine #####
@@ -1535,14 +1419,14 @@ checker <- function(inherits=TRUE){
             phi <- basicparams$phi;
             modellags <- basicparams$modellags;
 
-            init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components, modellags,
-                                    Ttype, Stype, n.exovars, matat, estimate.persistence,
-                                    estimate.phi, estimate.initial, estimate.initial.season,
-                                    estimate.xreg, matFX, vecgX, go.wild, estimate.Fx, estimate.gx);
+            init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
+                                    modellags, Ttype, Stype, n.exovars, matat,
+                                    estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
+                                    matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
             vecg <- init.ets$vecg;
             phi <- init.ets$phi;
             matvt <- init.ets$matvt;
-            matat <- init.ets$matat;
+            matat[,] <- init.ets$matat;
             matF <- init.ets$matF;
             matw <- init.ets$matw;
             matFX <- init.ets$matFX;
@@ -1751,11 +1635,11 @@ if(silent==FALSE){
 }
 
     if(all(unlist(strsplit(model,""))!="C")){
-        return(list(model=model,persistence=as.vector(vecg),phi=phi,states=matvt,
-                    initial=initial,initial.season=initial.season,fitted=y.fit,
-                    forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                    errors=errors.mat,actuals=data,holdout=y.holdout, iprob=pt,
-                    xreg=xreg,persistenceX=vecgX,transitionX=matFX,
+        return(list(model=model,states=matvt,persistence=as.vector(vecg),phi=phi,
+                    initial=initial,initial.season=initial.season,
+                    fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
+                    actuals=data,holdout=y.holdout,iprob=pt,
+                    xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                     ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
     }
     else{

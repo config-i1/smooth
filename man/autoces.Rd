@@ -49,11 +49,14 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
   \item{int.w}{
     The width of prediction intervals. Default is 95\%.
   }
-  \item{int.type}{ The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution. PARTLY IMPLEMENTED - PARAMETRIC INTERVALS FOR MULTIPLICATIVE TREND / SEASONALITY ARE NOT THERE YET!
+  \item{int.type}{
+    The type of intervals to construct. The first letter can be used instead of the whole word. \code{parametric} uses the state-space structure of ETS, \code{semiparametric} is based on the covariance matrix of 1 to h steps ahead errors and normal distribution, \code{nonparametric} uses the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999), \code{asymmetric} are based on half moment of distribution.
   }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  \item{intermittent}{
+    If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
-  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
+  \item{bounds}{
+    What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{silent}{
     If \code{TRUE}, no output is given and no plot is drawn.
@@ -62,9 +65,10 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
     If \code{FALSE}, the legend in the graph is skiped.
   }
   \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in CES. If matrix included than columns should contain variables and rows - observations. xreg should have the number of observations equal either to in-sample or to the whole series. If the number of observations in xreg is equal to in-sample, xreg in the holdout sample is taken to be equal to zero. If data is ts object then xreg also must be ts.
+    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
   }
-  \item{go.wild}{ if \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}. NOT IMPLEMENTED YET.
+  \item{go.wild}{
+    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
   }
 }
 \details{
@@ -85,7 +89,7 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
   Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \seealso{
-\code{\link[smooth]{ces}, \link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}}
+    \code{\link[smooth]{ces}, \link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}}
 }
 \examples{
 y <- rnorm(100,10,3)

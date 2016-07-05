@@ -5,15 +5,13 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
                 bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE){
+                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
 #  information criteria.
 #
 #    Copyright (C) 2015 - 2016i  Ivan Svetunkov
-
-    go.wild <- FALSE;
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
@@ -135,8 +133,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # No seasonality
         maxlag <- 1;
         modellags <- c(1,1);
+        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
         matw <- matrix(c(1,0,0,1),2,2);
-        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
+        matvt <- matrix(NA,obs.xt,2);
         colnames(matvt) <- c("level","potential");
         matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
@@ -151,8 +150,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Simple seasonality, lagged CES
         maxlag <- datafreq;
         modellags <- c(maxlag,maxlag);
+        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
         matw <- matrix(c(1,0,0,1),2,2);
-        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),2);
+        matvt <- matrix(NA,obs.xt,2);
         colnames(matvt) <- c("level.s","potential.s");
         matvt[1:maxlag,1] <- y[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -167,10 +167,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Partial seasonality with a real part only
         maxlag <- datafreq;
         modellags <- c(1,1,maxlag);
+        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
         C <- c(C,0.5);
         matw <- matrix(c(1,0,0,1,1,0),2,3);
         lags <- c(1,1,maxlag);
-        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),3);
+        matvt <- matrix(NA,obs.xt,3);
         colnames(matvt) <- c("level","potential","seasonal");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -187,10 +188,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Full seasonality with both real and imaginary parts
         maxlag <- datafreq;
         modellags <- c(1,1,maxlag,maxlag);
+        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
         C <- c(C,C);
         matw <- matrix(c(1,0,0,1,1,0,0,1),2,4);
         lags <- c(1,1,maxlag,maxlag);
-        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),4);
+        matvt <- matrix(NA,obs.xt,4);
         colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -205,86 +207,25 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         n.components <- 4;
     }
 
-# 1 stands for the variance
-    n.param <- n.param + intermittent + 1;
-
     # Stop if number of observations is less than number of parameters
     if(obs.ot <= n.param){
         message(paste0("Number of non-zero observations is ",obs.ot,", while the number of parameters to estimate is ", n.param,"."));
         stop(paste0("Not enough observations for the fit of CES(",seasonality,") model!"),call.=FALSE);
     }
 
-# Check the exogenous variable if it is present and
-# fill in the values of xreg if it is absent in the holdout sample.
-    if(!is.null(xreg)){
-        if(any(is.na(xreg))){
-            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
-        }
-        if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# If xreg is vector or simple ts
-            if(length(xreg)!=obs & length(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
-            }
-            if(length(xreg)==obs){
-                if(silent==FALSE){
-	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                }
-                xreg <- c(as.vector(xreg),rep(xreg[obs],h));
-            }
-# Number of exogenous variables
-            n.exovars <- 1;
-# Define matrix w for exogenous variables
-            matxt <- matrix(xreg,ncol=1);
-# Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),1);
-            colnames(matat) <- "exogenous";
-# Fill in the initial values for exogenous coefs using OLS
-            matat[1:maxlag,] <- cov(data[1:obs],xreg[1:obs])/var(xreg[1:obs]);
-# Redefine the number of components of CES.
-            n.components <- n.components + 1;
-        }
-        else if(is.matrix(xreg) | is.data.frame(xreg)){
-    # If xreg is matrix or data frame
-            if(nrow(xreg)!=obs & nrow(xreg)!=obs.all){
-                stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F)
-            }
-            if(nrow(xreg)==obs){
-                if(silent==FALSE){
-	                message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
-                }
-                for(j in 1:h){
-                    xreg <- rbind(xreg,xreg[obs,]);
-                }
-            }
-# mat.x is needed for the initial values of coefs estimation using OLS
-            mat.x <- as.matrix(cbind(rep(1,obs.all),xreg));
-            n.exovars <- ncol(xreg);
-# Define the second matat to fill in the coefs of the exogenous vars
-            matat <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.exovars)
-            colnames(matat) <- paste0("x",c(1:n.exovars));
-# Define matrix w for exogenous variables
-            matxt <- as.matrix(xreg);
-# Fill in the initial values for exogenous coefs using OLS
-            matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obs,]) %*% mat.x[1:obs,],tol=1e-50) %*%
-                                             t(mat.x[1:obs,]) %*% data[1:obs])[2:(n.exovars+1)],
-                                       each=maxlag);
-# Redefine the number of components of CES.
-#            n.components <- n.components + n.exovars;
-        }
-        else{
-            stop("Unknown format of xreg. Aborting!",call.=F);
-        }
-# Redefine the number of all the parameters. Used in AIC mainly!
-        n.param <- n.param + n.exovars;
-    }
-    else{
-        n.exovars <- 1;
-        matxt <- matrix(0,obs.all,1);
-        matat <- matrix(0,max(obs.all+maxlag,obs+2*maxlag),1);
-    }
-##### Let's not go wild with xreg for now! #####
-    matFX <- diag(n.exovars);
-    vecgX <- matrix(1,n.exovars,1);
+##### Prepare exogenous variables #####
+    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+    n.exovars <- xregdata$n.exovars;
+    matxt <- xregdata$matxt;
+    matat <- xregdata$matat;
+    matFX <- xregdata$matFX;
+    vecgX <- xregdata$vecgX;
+    estimate.xreg <- xregdata$estimate.xreg;
+    estimate.FX <- xregdata$estimate.FX;
+    estimate.gX <- xregdata$estimate.gX;
+    estimate.initialX <- xregdata$estimate.initialX;
 
 # Define the vector of fitted, forecasted values and overall
     y.fit <- rep(NA,obs);
@@ -292,6 +233,13 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Define vector of all the errors
     errors <- rep(NA,obs);
+
+# 1 stands for the variance
+    n.param <- n.param + intermittent + 1;
+
+    if(estimate.xreg==TRUE){
+        n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
+    }
 
 # Define "F" and "g" matrices for the state-space CES
 state.space.elements <- function(seasonality, C){
@@ -306,6 +254,7 @@ state.space.elements <- function(seasonality, C){
         n.coef <- 2;
         if(fittertype=="o"){
             vt[1:maxlag,] <- C[n.coef+(1:2)*maxlag];
+            n.coef <- n.coef + maxlag*2;
         }
     }
     else if(seasonality=="P"){
@@ -317,6 +266,7 @@ state.space.elements <- function(seasonality, C){
             vt[,1:2] <- C[n.coef+(1:2)];
             n.coef <- n.coef + 2;
             vt[,3] <- C[n.coef+(1:maxlag)];
+            n.coef <- n.coef + maxlag;
         }
     }
     else if(seasonality=="F"){
@@ -328,22 +278,48 @@ state.space.elements <- function(seasonality, C){
             vt[,1:2] <- C[n.coef+(1:2)];
             n.coef <- n.coef + 2;
             vt[,3:4] <- C[n.coef+(1:(maxlag*2))];
+            n.coef <- n.coef + maxlag*2;
         }
     }
-    return(list(matF=matF,vecg=vecg,vt=vt));
+
+# If exogenous are included
+    if(estimate.xreg==TRUE){
+        at <- matrix(NA,maxlag,n.exovars);
+        if(estimate.initialX==TRUE){
+            at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
+            n.coef <- n.coef + n.exovars;
+        }
+        else{
+            at <- matat[1:maxlag,];
+        }
+        if(estimate.FX==TRUE){
+            matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
+            n.coef <- n.coef + n.exovars^2;
+        }
+
+        if(estimate.gX==TRUE){
+            vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
+            n.coef <- n.coef + n.exovars;
+        }
+    }
+    else{
+        at <- matrix(0,maxlag,n.exovars);
+    }
+
+    return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
 }
 
 # Cost function for CES
 CF <- function(C){
 # Obtain the elements of CES
-    if(!is.null(xreg)){
-        matat[1:maxlag,] <- rep(C[(n.components+1):(n.components+n.exovars)],each=maxlag);
-    }
 
-    ces.elements <- state.space.elements(seasonality, C);
-    matF <- ces.elements$matF;
-    vecg <- ces.elements$vecg;
-    matvt[1:maxlag,] <- ces.elements$vt;
+    elements <- state.space.elements(seasonality, C);
+    matF <- elements$matF;
+    vecg <- elements$vecg;
+    matvt[1:maxlag,] <- elements$vt;
+    matat[1:maxlag,] <- elements$at;
+    matFX <- elements$matFX;
+    vecgX <- elements$vecgX;
 
     CF.res <- costfunc(matvt, matF, matrix(matw[1,],nrow=1), y, vecg,
                        h, modellags, "A", "N", "N",
@@ -359,9 +335,9 @@ CF <- function(C){
 
 # Create a function for constrains for CES based on eigenvalues of discount matrix of partial state-space CES
 constrains <- function(C){
-    ces.elements <- state.space.elements(seasonality, C);
-    matF <- ces.elements$matF;
-    vecg <- ces.elements$vecg;
+    elements <- state.space.elements(seasonality, C);
+    matF <- elements$matF;
+    vecg <- elements$vecg;
 # Stability region can not be estimated when exogenous variables are included,
 #   that is why we do not include mat.q in the constrains and take the original matw
     if(any(is.nan(matF - vecg %*% matw[1,]))){
@@ -385,16 +361,21 @@ Likelihood.value <- function(C){
     }
 }
 
-##### Start optimisation #####
-    if(!is.null(xreg)){
-        lowerb <- c(rep(0,length(C)),rep(-Inf,n.exovars));
-        upperb <- c(rep(2,length(C)),rep(Inf,n.exovars));
-        C <- c(C,matat[1,]);
-    }
-    else{
-        lowerb <- rep(0,n.components);
-        upperb <- rep(2,n.components);
-    }
+##### Prepare for the optimisation #####
+# initials, transition matrix and persistence vector
+        if(estimate.xreg==TRUE){
+            if(estimate.initialX==TRUE){
+                C <- c(C,matat[maxlag,]);
+            }
+            if(go.wild==TRUE){
+                if(estimate.FX==TRUE){
+                    C <- c(C,c(diag(n.exovars)));
+                }
+                if(estimate.gX==TRUE){
+                    C <- c(C,rep(0,n.exovars));
+                }
+            }
+        }
 
     if(CF.type=="TFL"){
         normalizer <- mean(abs(diff(y)));
@@ -426,21 +407,24 @@ Likelihood.value <- function(C){
     }
 
 # Information criteria are calculated here with the constant part "log(2*pi*exp(1)/obs)*obs".
-  AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-  AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs.ot - n.param - 1);
-  BIC.coef <- log(obs.ot)*n.param*h^multisteps - 2 * llikelihood;
+    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * n.param * (n.param + 1) / (obs.ot - n.param - 1);
+    BIC.coef <- log(obs.ot)*n.param*h^multisteps - 2 * llikelihood;
 # Information criterion derived and used especially for CES
 #   k here is equal to number of coefficients/2 (number of numbers) + number of complex initial states of CES.
-  CIC.coef <- 2 * (ceiling(length(C)/2) + maxlag) * h ^ multisteps - 2 * llikelihood;
+    CIC.coef <- 2 * (ceiling(length(C)/2) + maxlag) * h ^ multisteps - 2 * llikelihood;
 
-  ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
-  names(ICs) <- c("AIC", "AICc", "BIC","CIC");
+    ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
+    names(ICs) <- c("AIC", "AICc", "BIC","CIC");
 
 # Obtain the elements of CES
-    ces.elements <- state.space.elements(seasonality, C);
-    matF <- ces.elements$matF;
-    vecg <- ces.elements$vecg;
-    matvt[1:maxlag,] <- ces.elements$vt;
+    elements <- state.space.elements(seasonality, C);
+    matF <- elements$matF;
+    vecg <- elements$vecg;
+    matvt[1:maxlag,] <- elements$vt;
+    matat[1:maxlag,] <- elements$at;
+    matFX <- elements$matFX;
+    vecgX <- elements$vecgX;
 
 # Change F and g matrices if exogenous variables are presented
     if(!is.null(xreg)){
@@ -497,16 +481,24 @@ Likelihood.value <- function(C){
         y.high <- NA;
     }
 
-  if(any(is.na(y.fit),is.na(y.for))){
-    message("Something went wrong during the optimisation and NAs were produced!");
-    message("Please check the input and report this error if it persists to the maintainer.");
-  }
+    if(any(is.na(y.fit),is.na(y.for))){
+        message("Something went wrong during the optimisation and NAs were produced!");
+        message("Please check the input and report this error if it persists to the maintainer.");
+    }
 
-  y.for <- ts(y.for,start=time(data)[obs]+deltat(data),frequency=datafreq);
-  matvt <- ts(matvt,start=start(data),frequency=datafreq);
-  if(!is.null(xreg)){
-    matvt <- cbind(matvt,matat);
-  }
+    y.for <- ts(y.for,start=time(data)[obs]+deltat(data),frequency=datafreq);
+    matvt <- ts(matvt,start=start(data),frequency=datafreq);
+    if(!is.null(xreg)){
+        statenames <- c(colnames(matvt),colnames(matat));
+        matvt <- cbind(matvt,matat);
+        colnames(matvt) <- statenames;
+    }
+
+# Write down initials of states vector and exogenous
+    initial <- matvt[1,];
+    if(estimate.initialX==TRUE){
+        initialX <- matat[1,];
+    }
 
 # Right down the smoothing parameters
     A <- complex(real=C[1],imaginary=C[2]);
@@ -574,12 +566,11 @@ Likelihood.value <- function(C){
              CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
              int.type=int.type, int.w=int.w, ICs=ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
-
-#    cat("ABS Eigenvalues for stability condition:\n");
-#    cat(1-constrains(C));
   }
 
-return(list(model=modelname,A=A,B=B,residuals=errors,errors=errors.mat,holdout=y.holdout,
-            actuals=data,fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,
-            states=matvt,ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,xreg=matxt,accuracy=errormeasures));
+return(list(model=modelname,states=matvt,A=A,B=B,
+            fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
+            actuals=data,holdout=y.holdout,
+            xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+            ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }

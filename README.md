@@ -6,7 +6,7 @@ Here is the list of functions:
 1. es - the ETS function that uses different estimation methods than ets from "forecast" package. It can also handle exogenous variables and has a handy "holdout" parameter. There are several cost function implemented, including trace forecast based ones. Finally, all the possible ETS functions are implemented in the function. Currently model selection in "es" is approximately 12 times slower than in "ets" function from "forecast" package. But "es" is more precise in parameters estimation and includes all the 30 ETS models.
 2. ces - Complex Exponential Smoothing. Function estimates CES and makes forecast.
 3. ges - Generalised Exponential Smoothing. Next step from CES. The paper on this is in the process.
-4. ssarima - SARIMA estimated in state-space framework (WORK IN PROGRESS).
+4. ssarima - SARIMA estimated in state-space framework.
 5. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
 6. auto.ces - selection between seasonal and non-seasonal CES models.
 7. auto.ssarima - selection between different ARIMA models.

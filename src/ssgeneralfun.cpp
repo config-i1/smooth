@@ -409,7 +409,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP ncomponentsR,
                             SEXP modellags, SEXP Ttype, SEXP Stype, SEXP nexovars, SEXP matat,
                             SEXP estimpersistence, SEXP estimphi, SEXP estiminit, SEXP estiminitseason, SEXP estimxreg,
-                            SEXP matFX, SEXP vecgX, SEXP gowild, SEXP estimFX, SEXP estimgX){
+                            SEXP matFX, SEXP vecgX, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX){
 
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -451,6 +451,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     bool wild = as<bool>(gowild);
     bool estimateFX = as<bool>(estimFX);
     bool estimategX = as<bool>(estimgX);
+    bool estimateinitialX = as<bool>(estiminitX);
 
     arma::mat matrixF(1,1,arma::fill::ones);
     arma::mat rowvecW(1,1,arma::fill::ones);
@@ -493,8 +494,11 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
     }
 
     if(estimatexreg==TRUE){
-        matrixAt.each_row() = C.cols(currentelement,currentelement + nexo - 1);
-        currentelement = currentelement + nexo;
+        if(estimateinitialX==TRUE){
+            matrixAt.each_row() = C.cols(currentelement,currentelement + nexo - 1);
+            currentelement = currentelement + nexo;
+        }
+
         if(wild==TRUE){
             if(estimateFX==TRUE){
                 for(int i=0; i < nexo; i = i+1){
@@ -606,7 +610,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         if(!matrixVt.row(i).is_finite()){
             matrixVt.row(i) = trans(matrixVt(lagrows));
         }
-        if(((T=='M') | (S=='M')) & (any(matrixVt.row(i) < 0))){
+        if(((T=='M') | (S=='M')) & (any(matrixVt.row(i) <= 0))){
             matrixVt.row(i) = trans(matrixVt(lagrows));
         }
 
@@ -1028,9 +1032,10 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
             CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1))
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
+// no exp is the temporary fix for very strange behaviour of MAM type models
         case 3:
-            CFres = arma::as_scalar(exp(log(sum(sum(pow(materrors.submat(0,0,obs-1,hor-1),2)) / double(matobs), 1))
-                        + (2 / double(obs)) * double(hor) * yactsum));
+            CFres = arma::as_scalar(log(sum(sum(pow(materrors,2)) / double(matobs), 1))
+                        + (2 / double(obs)) * double(hor) * yactsum);
         break;
         case 4:
             CFres = arma::as_scalar(exp(log(sum(pow(materrors.col(hor-1),2)) / double(matobs))
