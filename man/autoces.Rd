@@ -9,12 +9,12 @@
 }
 \usage{
 auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
-         IC=c("CIC","AIC","AICc","BIC"),
+         initial=c("backcasting","optimal"), IC=c("CIC","AIC","AICc","BIC"),
          CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
          intermittent=FALSE,
-         bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+         bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
          xreg=NULL, go.wild=FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -27,6 +27,9 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
   }
   \item{models}{
     The vector containing several types of seasonality that should be used in CES selection. See \link[smooth]{ces} for more details about the possible types of seasonal models.
+  }
+  \item{initial}{
+    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{IC}{
     The information criterion used in the model selection procedure. CIC - "Complex IC" is prefered due to the features of complex components etimation.
@@ -51,9 +54,6 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
   \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
-  }
-  \item{use.test}{
-    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{silent}{
     If \code{TRUE}, no output is given and no plot is drawn.

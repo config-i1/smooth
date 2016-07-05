@@ -1,5 +1,5 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-                    constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
+                    constant=FALSE, initial=c("backcasting","optimal"), persistence=NULL, transition=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -123,13 +123,27 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Check the provided vector of initials: length and provided values.
-    if(!is.null(initial)){
+    if(is.character(initial)){
+        initial <- substring(initial[1],1,1);
+        if(initial!="o" & initial!="b"){
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            initial <- "o";
+        }
+        fittertype <- initial;
+        initial <- NULL;
+    }
+    else if(is.null(initial)){
+        message("Initial value is not selected. Switching to optimal.");
+        fittertype <- "o";
+    }
+    else if(!is.null(initial)){
         if(!is.numeric(initial) | !is.vector(initial)){
             stop("The initial vector is not numeric!",call.=FALSE);
         }
         if(length(initial) != n.components){
             stop(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
         }
+        fittertype <- "o";
     }
 
 # Check the provided vector of initials: length and provided values.
@@ -215,18 +229,20 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
-        matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+#        matvt <- matrix(NA,nrow=(obs+1),ncol=n.components);
+        matvt <- matrix(NA,max(obs.all+maxlag,obs+2*maxlag),n.components);
         if(constant==TRUE){
             matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
             matw <- cbind(matw,0);
             vecg <- rbind(vecg,0);
-            matvt <- cbind(matvt,rep(1,obs+1));
+            matvt <- cbind(matvt,rep(1,max(obs.all+maxlag,obs+2*maxlag)));
         }
     }
     else{
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
-        matvt <- matrix(1,nrow=(obs+1),ncol=1);
+#        matvt <- matrix(1,nrow=(obs+1),ncol=1);
+        matvt <- matrix(1,max(obs.all+maxlag,obs+2*maxlag),1);
         modellags <- matrix(1,1,1);
     }
 
@@ -295,7 +311,15 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # 1 stands for the variance
-    n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
+    if(fittertype=="o"){
+        n.param <- 1 + n.components + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
+    }
+    else{
+# Number of components that really need to be estimated (droping zeroes): (p+d+1)(P+D+1)-1 or (q+1)(Q+1)-1
+        n.components.corrected <- max(prod(ar.orders + i.orders + 1) - 1, prod(ma.orders + 1) - 1);
+        n.param <- 1 + n.components.corrected + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
+    }
+
     if(!is.null(xreg)){
         n.param <- n.param + n.exovars;
         if(go.wild==TRUE){
@@ -381,8 +405,16 @@ polyroots <- function(C){
         vecg[is.na(vecg),] <- 0;
 
         if(is.null(initial)){
-            vt <- C[(n.coef + 1):(n.coef + n.components + constant)];
-            n.coef <- n.coef + n.components + constant;
+            if(fittertype=="o"){
+                vt <- C[(n.coef + 1):(n.coef + n.components + constant)];
+                n.coef <- n.coef + n.components + constant;
+            }
+            else{
+                vt <- matvt[1,];
+                if(constant==TRUE){
+                    vt[n.components+constant] <- C[(n.coef + 1)];
+                }
+            }
         }
         else{
             vt <- initial;
@@ -425,11 +457,9 @@ CF <- function(C){
         }
     }
 
-#    CF.res <- ssoptimizerwrap(matvt, matF, matw, y, vecg,
-#                              h, modellags, multisteps, CF.type, normalizer,
-#                              matxt, matat, matFX, vecgX, ot);
     CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
-                            h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                            h, modellags, "A", "N", "N",
+                            multisteps, CF.type, normalizer, fittertype,
                             matxt, matat, matFX, vecgX, ot);
 
     return(CF.res);
@@ -486,8 +516,14 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 # initial values of state vector and the constant term
             slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
             intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
-            initial.stuff <- c(rep(intercept,n.components));
-            C <- c(C,initial.stuff[1:n.components]);
+            if(fittertype=="o"){
+                initial.stuff <- c(rep(intercept,n.components));
+                C <- c(C,initial.stuff[1:n.components]);
+            }
+            else{
+                initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
+                matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
+            }
         }
 
         if(constant==TRUE){
@@ -527,11 +563,16 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
 #                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
 #                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
-
+        if(fittertype=="o"){
 # Optimise model. Second run
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
-        C <- res$solution;
+            res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+            C <- res$solution;
+        }
         CF.objective <- res$objective;
+#
+#        res <- nlminb(C, CF);
+#        C <- res$par;
+#        CF.objective <- res$objective;
     }
     else{
 # matF, vecg, vt
@@ -571,20 +612,14 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     maroots <- abs(polyroot(polysos.ma));
 #    matFX <- elements$matFX;
 #    vecgX <- elements$vecgX;
-    if(is.null(initial)){
+    if(!is.null(initial)){
         initial <- elements$vt;
     }
 
-#    if(constant==TRUE){
-#        const <- C[length(C)];
-#    }
-#    else{
-#        const <- 0;
-#    }
-
     fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype,
+                          modellags, Etype, Ttype, Stype, fittertype,
                           matxt, matat, matFX, vecgX, ot);
+
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
 
@@ -593,26 +628,17 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
         matat[1:nrow(fitting$matat),] <- fitting$matat;
     }
 
-# Calculate the tails of matat and matvt
-    statestails <- statetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,max(1,n.components+constant))),h+maxlag-1,max(1,n.components+constant)), matF,
-                                 matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
-                                 modellags, Ttype, Stype);
-    if(!is.null(xreg)){
-# Write down the matat and produce values for the holdout
-        matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
-    }
-
 # Produce matrix of errors
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
-                                 h, Etype, Ttype, Stype, modellags,
+    errors.mat <- ts(errorerwrap(matvt, matF, matrix(matw[1,],nrow=1), y,
+                                 h, "A", "N", "N", modellags,
                                  matxt, matat, matFX, ot),
-                     start=start(data),frequency=frequency(data));
+                     start=start(data),frequency=datafreq);
     colnames(errors.mat) <- paste0("Error",c(1:h));
-    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
+    errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
 
 # Produce forecast
     y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                               matF, matw, h, Ttype, Stype, modellags,
+                               matF, matrix(matw[1,],nrow=1), h, "N", "N", modellags,
                                matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                 start=time(data)[obs]+deltat(data),frequency=datafreq);
@@ -665,7 +691,7 @@ auto.ssarima <- function(data,maxar=c(3),maxi=c(2),maxma=c(3),lags=c(1),IC="AICc
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components+constant)));
+#    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=max(1,n.components+constant)));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);

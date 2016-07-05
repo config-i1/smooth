@@ -1,4 +1,4 @@
-ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
+ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
                 persistence=NULL, transition=NULL, measurement=NULL,
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
@@ -69,13 +69,27 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     }
 
 # Check the provided vector of initials: length and provided values.
-    if(!is.null(initial)){
+    if(is.character(initial)){
+        initial <- substring(initial[1],1,1);
+        if(initial!="o" & initial!="b"){
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            initial <- "o";
+        }
+        fittertype <- initial;
+        initial <- NULL;
+    }
+    else if(is.null(initial)){
+        message("Initial value is not selected. Switching to optimal.");
+        fittertype <- "o";
+    }
+    else if(!is.null(initial)){
         if(!is.numeric(initial) | !is.vector(initial)){
             stop("The initial vector is not numeric!",call.=FALSE);
         }
         if(length(initial) != orders %*% lags){
             stop(paste0("Wrong length of initial vector. Should be ",orders %*% lags," instead of ",length(initial),"."),call.=FALSE);
         }
+        fittertype <- "o";
     }
 
 # Check the provided vector of initials: length and provided values.
@@ -120,7 +134,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     }
 
 # Define the number of rows that should be in the matvt
-    obs.xt <- obs.all + maxlag;
+    obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
 
 # Define the actual values
     y <- matrix(data[1:obs],obs,1);
@@ -216,7 +230,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=NULL,
     }
     else{
         n.exovars <- 1;
-        matxt <- matrix(0,max(obs+maxlag,obs.all),1);
+        matxt <- matrix(0,obs.xt,1);
         matat <- matrix(0,obs.xt,1);
     }
     matFX <- diag(n.exovars);
@@ -273,20 +287,24 @@ elements.ges <- function(C){
         vecg <- matrix(persistence,n.components,1);
     }
 
-    if(is.null(initial)){
-        vtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+    if(fittertype=="o"){
+        if(is.null(initial)){
+            vtvalues <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+        }
+        else{
+            vtvalues <- initial;
+        }
+
+        vt <- matrix(NA,maxlag,n.components);
+        for(i in 1:n.components){
+            vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+            vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                               ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+        }
     }
     else{
-        vtvalues <- initial;
+        vt <- matvt[1:maxlag,n.components];
     }
-
-    vt <- matrix(NA,maxlag,n.components);
-    for(i in 1:n.components){
-        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
-    }
-
 # If exogenous are included
 # vecgX - persistence for exogenous variables
 # matFX - transition matrix for exogenous variables
@@ -322,7 +340,8 @@ CF <- function(C){
     matvt[1:maxlag,] <- elements$vt;
 
     CF.res <- costfunc(matvt, matF, matw, y, vecg,
-                   h, modellags, Etype, Ttype, Stype, multisteps, CF.type, normalizer,
+                   h, modellags, Etype, Ttype, Stype,
+                   multisteps, CF.type, normalizer, fittertype,
                    matxt, matat, matFX, vecgX, ot,
                    bounds);
 
@@ -343,7 +362,7 @@ Likelihood.value <- function(C){
 
 #####Start the calculations#####
 
-    matvt <- matrix(NA,nrow=(obs+maxlag),ncol=n.components);
+    matvt <- matrix(NA,nrow=obs.xt,ncol=n.components);
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
 
@@ -363,15 +382,35 @@ Likelihood.value <- function(C){
 # matw, matF, vecg, vt
         C <- c(rep(1,n.components),
                rep(1,n.components^2),
-               rep(0.1,n.components),
-               intercept);
+               rep(0.1,n.components));
 
-        if((orders %*% lags)>1){
-            C <- c(C,slope);
+        if(fittertype=="o"){
+            C <- c(C,intercept);
+            if((orders %*% lags)>1){
+                C <- c(C,slope);
+            }
+            if((orders %*% lags)>2){
+                C <- c(C,yot[1:(orders %*% lags-2),]);
+            }
         }
-        if((orders %*% lags)>2){
-            C <- c(C,yot[1:(orders %*% lags-2),]);
+        else{
+            vtvalues <- intercept;
+            if((orders %*% lags)>1){
+                vtvalues <- c(vtvalues,slope);
+            }
+            if((orders %*% lags)>2){
+                vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+            }
+
+            vt <- matrix(NA,maxlag,n.components);
+            for(i in 1:n.components){
+                vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+                vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                               ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+            }
+            matvt[1:maxlag,] <- vt;
         }
+
 #        if((orders %*% lags)>1){
 #            if(length(lags>1)){
 #                for(i in lags[-1]){
@@ -451,31 +490,13 @@ Likelihood.value <- function(C){
         initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
     }
 
-#    fitting <- ssfitterwrap(matvt, matF, matw, y, vecg, modellags,
-#                            matxt, matat, matFX, vecgX, ot);
     fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype,
+                          modellags, Etype, Ttype, Stype, fittertype,
                           matxt, matat, matFX, vecgX, ot);
     matvt <- fitting$matvt;
     y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
     matat[1:nrow(fitting$matat),] <- fitting$matat;
 
-# Calculate the tails of matat and matvt
-#    statestails <- ssstatetailwrap(matrix(rbind(matvt[(obs+1):(obs+maxlag),],matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-#                                   matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX, modellags);
-    statestails <- statetailwrap(matrix(rbind(matrix(matvt[(obs+1):(obs+maxlag),],ncol=n.components),matrix(NA,h-1,n.components)),h+maxlag-1,n.components), matF,
-                                 matrix(matat[(obs.xt-h):(obs.xt),],h+1,n.exovars), matFX,
-                                 modellags, Ttype, Stype);
-    if(!is.null(xreg)){
-# Write down the matat and produce values for the holdout
-        matat[(obs.xt-h):(obs.xt),] <- statestails$matat;
-    }
-
-# Produce matrix of errors
-#    errors.mat <- ts(sserrorerwrap(matvt, matF, matw, y,
-#                                   h, modellags,
-#                                   matxt, matat, matFX, ot),
-#                     start=start(data), frequency=frequency(data));
     errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                  h, Etype, Ttype, Stype, modellags,
                                  matxt, matat, matFX, ot),
@@ -483,12 +504,6 @@ Likelihood.value <- function(C){
     colnames(errors.mat) <- paste0("Error",c(1:h));
     errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
 
-# Produce forecast
-#    y.for <- ts(iprob * ssforecasterwrap(matrix(matvt[(obs+1):nrow(matvt),],nrow=maxlag),
-#                                         matF, matw, h,
-#                                         modellags, matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-#                                         matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-#                start=time(data)[obs]+deltat(data), frequency=frequency(data));
     y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                matF, matw, h, Ttype, Stype, modellags,
                                matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
@@ -543,7 +558,6 @@ Likelihood.value <- function(C){
     CF.type <- CF.type.original
 
 # Fill in the rest of matvt
-    matvt <- rbind(matvt,matrix(statestails$matvt[-c(1:maxlag),],ncol=n.components));
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
@@ -600,7 +614,7 @@ if(silent==FALSE){
 # Print output
     ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=matF, measurement=matw,
              phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-             n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+             n.components=orders %*% lags, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
              CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
              int.type=int.type, int.w=int.w, ICs=ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);

@@ -9,11 +9,12 @@
 }
 \usage{
 ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
+    initial=c("backcasting","optimal"),
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=FALSE,
-    bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+    bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
     xreg=NULL, go.wild=FALSE)
 }
 \arguments{
@@ -26,6 +27,9 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   \item{seasonality}{
     The type of seasonality used in CES. Can be: "N" - No seasonality; "S" - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); "P" - Partial seasonality with real seasonal components (equivalent to additive seasonality); "F" - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data).
     Any seasonal CES can only be constructed for time series vectors.
+  }
+  \item{initial}{
+    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
   }
@@ -46,9 +50,6 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
   \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
-  }
-  \item{use.test}{
-    If \code{TRUE} the statistical test is used on the imaginary part of the complex smoothing parameter to define if it is significantly different from 1.
   }
   \item{silent}{
     If \code{TRUE}, no output is given and no plot is drawn.

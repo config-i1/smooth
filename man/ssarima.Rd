@@ -9,13 +9,13 @@ Function constructs State-Space ARIMA, estimating AR, MA terms and initial state
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-        constant=FALSE, initial=NULL, persistence=NULL, transition=NULL,
-        CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-        h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-        int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-        intermittent=c("none","simple","croston","tsb"),
-        bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-        xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+ constant=FALSE, initial=c("backcasting","optimal"), persistence=NULL, transition=NULL,
+ CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+ h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
+ int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+ intermittent=c("none","simple","croston","tsb"),
+ bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+ xreg=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -32,7 +32,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{constant}{ If \code{TRUE}, the constant term is included in the model.
   }
-  \item{initial}{ Vector of initial states \eqn{v_[t]} for ARIMA. Can be useful if the model has been already estimated on te data before. If \code{NULL}, then estimated.
+  \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. Can be used if the model has been already estimated on te data before. If \code{NULL}, then estimated.
   }
@@ -138,6 +138,8 @@ ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)->test
 # SARIMA(1,1,1)(0,0,1)[4]
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         lags=c(1,4),h=18,holdout=TRUE,bounds="n")->test
+ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
+        lags=c(1,4),h=18,holdout=TRUE,bounds="n",initial="o")->test
 
 # ARIMA(1,0,0) with trace forecast estimation
 ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="trace")->test

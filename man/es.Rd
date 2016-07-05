@@ -9,7 +9,7 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 }
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
-   initial=NULL, initial.season=NULL, IC=c("AICc","AIC","BIC"),
+   initial=c("optimal","backcasting"), initial.season=NULL, IC=c("AICc","AIC","BIC"),
    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -32,7 +32,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{phi}{ The value of damping parameter. If \code{NULL} then the parameter is estimated.
   }
-  \item{initial}{ The vector of initial values for level and trend. If \code{NULL}, it is estimated in the optimization.
+  \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{initial.season}{ The vector of initial values for seasonal components. If \code{NULL}, they are estimated in the optimization.
   }

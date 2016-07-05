@@ -1,5 +1,5 @@
 auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
-                         IC=c("AICc","AIC","BIC"),
+                         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -15,7 +15,26 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 
 # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
     if(obs < 4){
-        stop("Sorry, but you have a too small sample. Come back when you have at least 4 observations...",call.=FALSE);
+        stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(is.character(initial)){
+        initial <- substring(initial[1],1,1);
+        if(initial!="o" & initial!="b"){
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            initial <- "o";
+        }
+        fittertype <- initial;
+        initial <- NULL;
+    }
+    else if(is.null(initial)){
+        message("Initial value is not selected. Switching to optimal.");
+        fittertype <- "o";
+    }
+    else{
+        message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
+        fittertype <- "o";
     }
 
     IC <- IC[1];
@@ -76,8 +95,9 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
-                                                int.type=int.type,int.w=int.w);
+                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
+                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                                int.type=int.type,silent=TRUE);
                     test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -113,8 +133,9 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
-                                                int.type=int.type,int.w=int.w);
+                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
+                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                                int.type=int.type,silent=TRUE);
                     test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -149,8 +170,9 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
-                                                h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
-                                                int.type=int.type,int.w=int.w);
+                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
+                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                                int.type=int.type,silent=TRUE);
                     test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                 }
@@ -171,8 +193,9 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
             i.test[ar.parameters[,1]>=0.99] <- 1;
 
             test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                        h=h,holdout=holdout,constant=TRUE,silent=TRUE,CF.type=CF.type,intervals=intervals,
-                                        int.type=int.type,int.w=int.w);
+                                          constant=TRUE,initial=fittertype,CF.type=CF.type,
+                                          h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                          int.type=int.type,silent=TRUE);
             test.ICs[2] <- test.models[[m+1]]$ICs[IC];
             test.ICs.all[m+1] <- test.models[[m+1]]$ICs[IC];
 
@@ -195,8 +218,9 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
 # Test the constant
     if(any(c(ar.best,i.best,ma.best)!=0)){
         test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                    h=h,holdout=holdout,constant=FALSE,silent=TRUE,CF.type=CF.type,intervals=intervals,
-                                    int.type=int.type,int.w=int.w);
+                                    constant=FALSE,initial=fittertype,CF.type=CF.type,
+                                    h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                    int.type=int.type,silent=TRUE);
     test.ICs[2] <- test.models[[m]]$ICs[IC];
     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
     }

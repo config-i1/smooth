@@ -9,7 +9,7 @@ Function selects the best State-Space ARIMA based on information criteria, using
 }
 \usage{
 auto.ssarima(data, ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
-             IC=c("AICc","AIC","BIC"),
+             initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
              CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
              h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
              int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -27,6 +27,8 @@ auto.ssarima(data, ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
   \item{ma.max}{ Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
   }
   \item{lags}{ Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
+  }
+  \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{IC}{ The information criterion to use in the model selection.
   }
@@ -69,9 +71,15 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 }
 
 \examples{
-# The best non-seasonal ARIMA
-auto.ssarima(rnorm(118,100,3),ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+x <- rnorm(118,100,3)
+
+# The best ARIMA for the data
+auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
              h=18,holdout=TRUE)->test
+
+# The other one using optimised states
+auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+             initial="o",h=18,holdout=TRUE)->test
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

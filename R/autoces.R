@@ -1,10 +1,10 @@
 auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
-                IC=c("CIC","AIC","AICc","BIC"),
+                initial=c("backcasting","optimal"), IC=c("CIC","AIC","AICc","BIC"),
                 CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
-                bounds=c("none","admissible"), use.test=FALSE, silent=FALSE, legend=TRUE,
+                bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
                 xreg=NULL, go.wild=FALSE){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
@@ -23,6 +23,25 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
     if(bounds!="n" & bounds!="a"){
         message("The strange bounds are defined. Switching to 'admissible'.");
         bounds <- "a";
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(is.character(initial)){
+        initial <- substring(initial[1],1,1);
+        if(initial!="o" & initial!="b"){
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            initial <- "o";
+        }
+        fittertype <- initial;
+        initial <- NULL;
+    }
+    else if(is.null(initial)){
+        message("Initial value is not selected. Switching to optimal.");
+        fittertype <- "o";
+    }
+    else{
+        message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
+        fittertype <- "o";
     }
 
     CF.type <- CF.type[1];
@@ -69,11 +88,13 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
         }
 
         ces.model <- ces(data, C=C, seasonality="N",
+                         initial=fittertype,
                          CF.type=CF.type,
-                         use.test=use.test, intervals=intervals, int.w=int.w,
+                         h=h, holdout=holdout, intervals=intervals, int.w=int.w,
                          int.type=int.type,
-                         bounds=bounds, holdout=holdout, h=h, silent=silent, legend=legend,
-                         xreg=xreg, go.wild=go.wild, intermittent=intermittent);
+                         intermittent=intermittent,
+                         bounds=bounds, silent=silent, legend=legend,
+                         xreg=xreg, go.wild=go.wild);
         return(ces.model);
     }
 
@@ -91,11 +112,13 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
             cat(paste0('"',i,'" '));
         }
         ces.model[[j]] <- ces(data, C=C, seasonality=i,
+                              initial=fittertype,
                               CF.type=CF.type,
-                              use.test=use.test, intervals=intervals, int.w=int.w,
+                              h=h, holdout=holdout, intervals=intervals, int.w=int.w,
                               int.type=int.type,
-                              bounds=bounds, holdout=holdout, h=h, silent=TRUE, legend=legend,
-                              xreg=xreg, go.wild=go.wild, intermittent=intermittent);
+                              intermittent=intermittent,
+                              bounds=bounds, silent=TRUE, legend=legend,
+                              xreg=xreg, go.wild=go.wild);
         IC.vector[j] <- ces.model[[j]]$ICs[IC];
         j <- j+1;
     }
@@ -103,8 +126,9 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
     best.model <- ces.model[[which(IC.vector==min(IC.vector))]];
 
     if(silent==FALSE){
+        best.seasonality <- models[which(IC.vector==min(IC.vector))];
         cat(" \n");
-        cat(paste0('The best model is with seasonality = "',models[which(IC.vector==min(IC.vector))],'"\n'));
+        cat(paste0('The best model is with seasonality = "',best.seasonality,'"\n'));
 
 # Define obs.all, the overal number of observations (in-sample + holdout)
         obs.all <- length(data) + (1 - holdout)*h;
@@ -117,19 +141,26 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
         y.low <- best.model$lower;
         errormeasures <- best.model$accuracy;
         n.components <- 2;
-        if(!is.null(best.model$B)){
-            n.components <- n.components + 1 + 1*is.complex(best.model$B);
+        if(best.seasonality=="S"){
+            n.components <- frequency(data)*2;
         }
+        else if(best.seasonality=="P"){
+            n.components <- n.components + frequency(data);
+        }
+        else if(best.seasonality=="F"){
+            n.components <- n.components + frequency(data) * 2;
+        }
+
 # Not the same as in the function, but should be fine...
         s2 <- as.vector(sum(best.model$residuals^2)/obs);
 
 # Make plot
         if(intervals==TRUE){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                       lower=y.low,upper=y.high,int.w=int.w,legend=legend);
+                       lower=y.low,upper=y.high,int.w=int.w,legend=legend,main=best.model$model);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend);
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend,main=best.model$model);
         }
 
 # Calculate the number os observations in the interval

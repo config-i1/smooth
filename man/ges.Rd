@@ -8,7 +8,7 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, orders=c(2), lags=c(1), initial=NULL,
+ges(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
     persistence=NULL, transition=NULL, measurement=NULL,
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
@@ -26,7 +26,7 @@ ges(data, orders=c(2), lags=c(1), initial=NULL,
   }
   \item{lags}{ Defines lags for the corresponding orders. If, for example, \code{orders=c(1,1)} and lags defined as \code{lags=c(1,12)}, then the model will have two states, the first of wich has lag 1 and the second has lag 12. The length of  \code{lags} must correspond to the length of \code{orders}.
   }
-  \item{initial}{ Vector of initial states \eqn{v_[t]} for GES. Should contain \code{orders \%*\% lags} elements. If \code{NULL}, then estimated.
+  \item{initial}{ Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{persistence}{ Persistence vector \eqn{g}, containing smoothing parameters. If \code{NULL}, then estimated.
   }
