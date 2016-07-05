@@ -18,6 +18,8 @@ Future works:
 
 11. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
+## Installation
+
 For a quick and easy installation of the package firstly install "devtools" in R:
 > if (!require("devtools")){install.packages("devtools")}
 
@@ -25,6 +27,10 @@ And after that run:
 
 > devtools::install_github("config-i1/smooth")
 
-The package now depends on Rcpp and RcppArmadillo, which will be installed automatically.
+## Notes
+
+The package depends on Rcpp and RcppArmadillo, which will be installed automatically.
 
 However Mac OS users may need to install gfortran libraries in order to use Rcpp. Follow the link for the instructions: http://www.thecoatlessprofessor.com/programming/rcpp-rcpparmadillo-and-os-x-mavericks-lgfortran-and-lquadmath-error/
+
+Sometimes after upgrade of smooth from previous versions some functions stop working. This is because C++ functions are occasionally stored in depper unknown coners of R's mind. Restarting R usually solves the problem.
