@@ -4,8 +4,8 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
-                bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
-                xreg=NULL, go.wild=FALSE){
+                bounds=c("none","admissible"), silent=c("none","all","graph","legend","output"),
+                xreg=NULL, go.wild=FALSE, ...){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -13,10 +13,53 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
 
 #    Copyright (C) 2015  Ivan Svetunkov
 
-    go.wild <- FALSE;
-
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# See if a user asked for Fisher Information
+    if(!is.null(list(...)[['FI']])){
+        FI <- list(...)[['FI']];
+    }
+    else{
+        FI <- FALSE;
+    }
+
+# Make sense out of silent
+    silent <- silent[1];
+# Fix for cases with TRUE/FALSE.
+    if(!is.logical(silent)){
+        if(all(silent!=c("none","all","graph","legend","output"))){
+            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            silent <- "none";
+        }
+        silent <- substring(silent,1,1);
+    }
+
+    if(silent==FALSE | silent=="n"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+    else if(silent==TRUE | silent=="a"){
+        silent.text <- TRUE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="g"){
+        silent.text <- FALSE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="l"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- FALSE;
+    }
+    else if(silent=="o"){
+        silent.text <- TRUE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
 
     bounds <- substring(bounds[1],1,1);
 # Check if "bounds" parameter makes any sense
@@ -72,18 +115,18 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
     }
 
     if(any(is.na(data))){
-        if(silent==FALSE){
-        message("Data contains NAs. These observations will be excluded.")
+        if(silent.text==FALSE){
+            message("Data contains NAs. These observations will be excluded.")
         }
         datanew <- data[!is.na(data)]
         if(is.ts(data)){
-        datanew <- ts(datanew,start=start(data),frequency=frequency(data))
+            datanew <- ts(datanew,start=start(data),frequency=frequency(data))
         }
         data <- datanew
     }
 
     if(frequency(data)==1){
-        if(silent==FALSE){
+        if(silent.text==FALSE){
         message("The data is not seasonal. Simple CES was the only solution here.");
         }
 
@@ -93,8 +136,8 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                          h=h, holdout=holdout, intervals=intervals, int.w=int.w,
                          int.type=int.type,
                          intermittent=intermittent,
-                         bounds=bounds, silent=silent, legend=legend,
-                         xreg=xreg, go.wild=go.wild);
+                         bounds=bounds, silent=silent,
+                         xreg=xreg, go.wild=go.wild, FI=FI);
         return(ces.model);
     }
 
@@ -104,11 +147,11 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
     IC.vector <- c(1:length(models));
 
     j <- 1;
-    if(silent==FALSE){
+    if(silent.text==FALSE){
         cat("Estimating CES with seasonality: ")
     }
     for(i in models){
-        if(silent==FALSE){
+        if(silent.text==FALSE){
             cat(paste0('"',i,'" '));
         }
         ces.model[[j]] <- ces(data, C=C, seasonality=i,
@@ -117,15 +160,21 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                               h=h, holdout=holdout, intervals=intervals, int.w=int.w,
                               int.type=int.type,
                               intermittent=intermittent,
-                              bounds=bounds, silent=TRUE, legend=legend,
-                              xreg=xreg, go.wild=go.wild);
+                              bounds=bounds, silent=TRUE,
+                              xreg=xreg, go.wild=go.wild, FI=FI);
         IC.vector[j] <- ces.model[[j]]$ICs[IC];
         j <- j+1;
     }
 
     best.model <- ces.model[[which(IC.vector==min(IC.vector))]];
 
-    if(silent==FALSE){
+    y.fit <- best.model$fitted;
+    y.for <- best.model$forecast;
+    y.high <- best.model$upper;
+    y.low <- best.model$lower;
+    modelname <- best.model$model;
+
+    if(silent.text==FALSE){
         best.seasonality <- models[which(IC.vector==min(IC.vector))];
         cat(" \n");
         cat(paste0('The best model is with seasonality = "',best.seasonality,'"\n'));
@@ -135,11 +184,8 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
 # Define obs, the number of observations of in-sample
         obs <- length(data) - holdout*h;
 
-        y.fit <- best.model$fitted;
-        y.for <- best.model$forecast;
-        y.high <- best.model$upper;
-        y.low <- best.model$lower;
         errormeasures <- best.model$accuracy;
+
         n.components <- 2;
         if(best.seasonality=="S"){
             n.components <- frequency(data)*2;
@@ -153,15 +199,6 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
 
 # Not the same as in the function, but should be fine...
         s2 <- as.vector(sum(best.model$residuals^2)/obs);
-
-# Make plot
-        if(intervals==TRUE){
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                       lower=y.low,upper=y.high,int.w=int.w,legend=legend,main=best.model$model);
-        }
-        else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,legend=legend,main=best.model$model);
-        }
 
 # Calculate the number os observations in the interval
         if(all(holdout==TRUE,intervals==TRUE)){
@@ -178,6 +215,18 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                  CF.type=CF.type, CF.objective=best.model$CF, intervals=intervals,
                  int.type=int.type, int.w=int.w, ICs=best.model$ICs,
                  holdout=holdout, insideintervals=insideintervals, errormeasures=best.model$accuracy);
+    }
+
+# Make plot
+    if(silent.graph==FALSE){
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                       int.w=int.w,legend=legend,main=modelname);
+        }
+        else{
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                    int.w=int.w,legend=legend,main=modelname);
+        }
     }
 
     return(best.model);

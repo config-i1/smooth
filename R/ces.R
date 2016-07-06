@@ -4,8 +4,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
-                bounds=c("none","admissible"), silent=FALSE, legend=TRUE,
-                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL){
+                bounds=c("none","admissible"), silent=c("none","all","graph","legend","output"),
+                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -15,6 +15,51 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# See if a user asked for Fisher Information
+    if(!is.null(list(...)[['FI']])){
+        FI <- list(...)[['FI']];
+    }
+    else{
+        FI <- FALSE;
+    }
+
+# Make sense out of silent
+    silent <- silent[1];
+# Fix for cases with TRUE/FALSE.
+    if(!is.logical(silent)){
+        if(all(silent!=c("none","all","graph","legend","output"))){
+            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            silent <- "none";
+        }
+        silent <- substring(silent,1,1);
+    }
+
+    if(silent==FALSE | silent=="n"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+    else if(silent==TRUE | silent=="a"){
+        silent.text <- TRUE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="g"){
+        silent.text <- FALSE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="l"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- FALSE;
+    }
+    else if(silent=="o"){
+        silent.text <- TRUE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
 
     bounds <- substring(bounds[1],1,1);
 # Check if "bounds" parameter makes any sense
@@ -53,8 +98,8 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     }
 
     if(any(is.na(data))){
-        if(silent==FALSE){
-        message("Data contains NAs. These observations will be excluded.")
+        if(silent.text==FALSE){
+            message("Data contains NAs. These observations will be excluded.")
         }
         datanew <- data[!is.na(data)]
         if(is.ts(data)){
@@ -216,7 +261,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -400,10 +445,12 @@ Likelihood.value <- function(C){
     CF.objective <- res$objective;
 
     llikelihood <- Likelihood.value(C);
-    FI <- hessian(Likelihood.value,C);
 
-    if(!is.null(xreg)){
-        FI <- FI[1:n.components,1:n.components];
+    if(FI==TRUE){
+        FI <- hessian(Likelihood.value,C);
+    }
+    else{
+        FI <- NULL;
     }
 
 # Information criteria are calculated here with the constant part "log(2*pi*exp(1)/obs)*obs".
@@ -521,7 +568,7 @@ Likelihood.value <- function(C){
         }
     }
 
-  if(holdout==TRUE){
+    if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=datafreq);
         errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
                            MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
@@ -531,42 +578,45 @@ Likelihood.value <- function(C){
                            SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
                            cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
         names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
-  }
-  else{
+    }
+    else{
         y.holdout <- NA;
         errormeasures <- NA;
-  }
+    }
 
-  if(silent==FALSE){
-    if(bounds!="a" & sum(1-constrains(C)>1)>=1){
-        message("Non-stable model was estimated! Use with care! To avoid that reestimate ces using admissible bounds.");
-    }
-# Make plot
-    if(intervals==TRUE){
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
-    else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
+    if(silent.text==FALSE){
+        if(bounds!="a" & sum(1-constrains(C)>1)>=1){
+            message("Non-stable model was estimated! Use with care! To avoid that reestimate ces using admissible bounds.");
+        }
 
 # Calculate the number os observations in the interval
-    if(all(holdout==TRUE,intervals==TRUE)){
-        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                               as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-    }
-    else{
-        insideintervals <- NULL;
-    }
+        if(all(holdout==TRUE,intervals==TRUE)){
+            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
+                                as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
+        }
+        else{
+            insideintervals <- NULL;
+        }
 # Print output
-    ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-             phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=A, B=B,
-             n.components=sum(modellags), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-             int.type=int.type, int.w=int.w, ICs=ICs,
-             holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
-  }
+        ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+                 phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=A, B=B,
+                 n.components=sum(modellags), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+                 CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+                 int.type=int.type, int.w=int.w, ICs=ICs,
+                 holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+    }
+
+# Make plot
+    if(silent.graph==FALSE){
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                       int.w=int.w,legend=legend,main=modelname);
+        }
+        else{
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                    int.w=int.w,legend=legend,main=modelname);
+        }
+    }
 
 return(list(model=modelname,states=matvt,A=A,B=B,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,

@@ -4,8 +4,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                     intermittent=c("none","simple","croston","tsb"),
-                    bounds=c("admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
-                    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL,...){
+                    bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
+                    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
 #
@@ -13,6 +13,51 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# See if a user asked for Fisher Information
+    if(!is.null(list(...)[['FI']])){
+        FI <- list(...)[['FI']];
+    }
+    else{
+        FI <- FALSE;
+    }
+
+# Make sense out of silent
+    silent <- silent[1];
+# Fix for cases with TRUE/FALSE.
+    if(!is.logical(silent)){
+        if(all(silent!=c("none","all","graph","legend","output"))){
+            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            silent <- "none";
+        }
+        silent <- substring(silent,1,1);
+    }
+
+    if(silent==FALSE | silent=="n"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+    else if(silent==TRUE | silent=="a"){
+        silent.text <- TRUE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="g"){
+        silent.text <- FALSE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="l"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- FALSE;
+    }
+    else if(silent=="o"){
+        silent.text <- TRUE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
 
     bounds <- substring(bounds[1],1,1);
     intermittent <- substring(intermittent[1],1,1);
@@ -287,7 +332,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -426,7 +471,7 @@ polyroots <- function(C){
     else{
         matF[1,1] <- 1;
         if(estimate.initial==TRUE){
-            vt <- C;
+            vt <- C[n.coef+1];
             n.coef <- n.coef + 1;
         }
         else{
@@ -834,48 +879,51 @@ Likelihood.value <- function(C){
         const <- NULL;
     }
 
-if(silent==FALSE){
-    if(any(maroots<1)){
-        if(bounds!="a"){
-            message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+    if(silent.text==FALSE){
+        if(any(maroots<1)){
+            if(bounds!="a"){
+                message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+            }
+            else{
+                message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+            }
         }
-        else{
-            message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+        if(any(arroots<1)){
+            if(bounds!="a"){
+                message("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!");
+            }
+            else{
+                message("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer.");
+            }
         }
-    }
-    if(any(arroots<1)){
-        if(bounds!="a"){
-            message("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!");
-        }
-        else{
-            message("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer.");
-        }
-    }
-# Make plot
-    if(intervals==TRUE){
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
-    else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
 # Calculate the number os observations in the interval
-    if(all(holdout==TRUE,intervals==TRUE)){
-        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                               as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-    }
-    else{
-        insideintervals <- NULL;
-    }
+        if(all(holdout==TRUE,intervals==TRUE)){
+            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
+                                as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
+        }
+        else{
+            insideintervals <- NULL;
+        }
 # Print output
-    ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-         phi=NULL, ARterms=ARterms, MAterms=MAterms, const=const, A=NULL, B=NULL,
-         n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-         CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-         int.type=int.type, int.w=int.w, ICs=ICs,
-         holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
-}
+        ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+            phi=NULL, ARterms=ARterms, MAterms=MAterms, const=const, A=NULL, B=NULL,
+            n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+            CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+            int.type=int.type, int.w=int.w, ICs=ICs,
+            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+    }
+
+# Make plot
+    if(silent.graph==FALSE){
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                       int.w=int.w,legend=legend,main=modelname);
+        }
+        else{
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                    int.w=int.w,legend=legend,main=modelname);
+        }
+    }
 
 return(list(model=modelname,states=matvt,initial=initial,transition=matF,persistence=vecg,
             AR=ARterms,I=Iterms,MA=MAterms,constant=const,

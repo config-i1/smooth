@@ -14,7 +14,8 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
    intermittent=c("none","simple","croston","tsb"),
-   bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+   bounds=c("usual","admissible","none"),
+   silent=c("none","all","graph","legend","output"),
    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -78,14 +79,8 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{bounds}{
     What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
-  \item{FI}{
-    If \code{TRUE}, Fisher Information is calculated and produced in the output.
-  }
   \item{silent}{
-    If \code{TRUE}, no output or graphs are printed out.
-  }
-  \item{legend}{
-    If \code{TRUE}, the legend is drawn in the outplot.
+    If \code{silen="none"}, then nothing is silent, everything is printed out and drawn. \code{silen="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silen="legend"}, then the legend of the graph is skipped. And finally \code{silent="outpu"} means that nothing is printed out in the console, but the graph is produced. the variable also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The variable also accepts first letter of words ("n", "a", "g", "l", "o").
   }
   \item{xreg}{
     The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
@@ -103,7 +98,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
-    Other parameters that are passed to DON'T KNOW WHAT YET.
+    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
 \details{
@@ -143,8 +138,8 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
     \item \code{CF} - Cost function value.
     \item \code{CF.type} - Type of cost function used in the estimation.
-    \item \code{FI} - Fisher Information estimated in the optimal point.
-    \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE and MASALE. Available only when \code{holdout=T}.
+    \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
+    \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
   }
 
   If the combination of forecasts is produced (using \code{model="CCC"}), then the shorter list of the values is returned:

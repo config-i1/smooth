@@ -4,12 +4,58 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                intermittent=c("none","simple","croston","tsb"),
-               bounds=c("usual","admissible","none"), FI=FALSE, silent=FALSE, legend=TRUE,
+               bounds=c("usual","admissible","none"),
+               silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # How could I forget about the Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# See if a user asked for Fisher Information
+    if(!is.null(list(...)[['FI']])){
+        FI <- list(...)[['FI']];
+    }
+    else{
+        FI <- FALSE;
+    }
+
+# Make sense out of silent
+    silent <- silent[1];
+# Fix for cases with TRUE/FALSE.
+    if(!is.logical(silent)){
+        if(all(silent!=c("none","all","graph","legend","output"))){
+            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            silent <- "none";
+        }
+        silent <- substring(silent,1,1);
+    }
+
+    if(silent==FALSE | silent=="n"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+    else if(silent==TRUE | silent=="a"){
+        silent.text <- TRUE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="g"){
+        silent.text <- FALSE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="l"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- FALSE;
+    }
+    else if(silent=="o"){
+        silent.text <- TRUE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
 
     bounds <- substring(bounds[1],1,1);
 # Check if "bounds" parameter makes any sense
@@ -155,7 +201,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Check the data for NAs
     if(any(is.na(data))){
-        if(silent==FALSE){
+        if(silent.text==FALSE){
             message("Data contains NAs. These observations will be excluded.");
         }
         datanew <- data[!is.na(data)];
@@ -353,20 +399,20 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     if(all(Stype!=c("Z","N","A","M"))){
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.");
         if(datafreq==1){
-            if(silent==FALSE){
+            if(silent.text==FALSE){
                 message("Data is non-seasonal. Changing seasonal component to 'N'");
             }
             Stype <- "N";
         }
         else{
-            if(silent==FALSE){
+            if(silent.text==FALSE){
                 message("Changing to 'Z'");
             }
             Stype <- "Z";
         }
     }
     if(all(Stype!="N",datafreq==1)){
-        if(silent==FALSE){
+        if(silent.text==FALSE){
             message("Cannot build the seasonal model on data with frequency 1.");
             message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
         }
@@ -738,7 +784,7 @@ checker <- function(inherits=TRUE){
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent);
+                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -875,7 +921,7 @@ checker <- function(inherits=TRUE){
             else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
                 if((any(y<=0) & intermittent=="n") | (intermittent!="n" & any(y<0))){
-                    if(silent==FALSE){
+                    if(silent.text==FALSE){
                         message("Only additive models are allowed with non-positive data.");
                     }
                     errors.pool <- c("A");
@@ -897,7 +943,7 @@ checker <- function(inherits=TRUE){
 
 ### Use brains in order to define models to estimate ###
                 if(model.do=="select" & any(c(Ttype,Stype)=="Z")){
-                    if(silent==FALSE){
+                    if(silent.text==FALSE){
                         cat("Forming the pool of models based on... ");
                     }
 
@@ -952,7 +998,7 @@ checker <- function(inherits=TRUE){
                     while(check==TRUE){
                         i <- i + 1;
                         current.model <- small.pool[j];
-                        if(silent==FALSE){
+                        if(silent.text==FALSE){
                             cat(paste0(current.model,", "));
                         }
                         Etype_n <- substring(current.model,1,1);
@@ -1047,13 +1093,13 @@ checker <- function(inherits=TRUE){
                 }
             }
 
-            if(silent==FALSE){
+            if(silent.text==FALSE){
                 cat("Estimation progress:    ");
             }
 # Start cycle of models
             while(j < models.number){
                 j <- j + 1;
-                if(silent==FALSE){
+                if(silent.text==FALSE){
                     if(j==1){
                         cat("\b");
                     }
@@ -1079,7 +1125,7 @@ checker <- function(inherits=TRUE){
                 results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C);
             }
 
-            if(silent==FALSE){
+            if(silent.text==FALSE){
                 cat("... Done! \n");
             }
             IC.selection <- rep(NA,models.number);
@@ -1564,8 +1610,8 @@ checker <- function(inherits=TRUE){
     }
 
     if(any(is.na(y.fit),is.na(y.for))){
-        message("Something went wrong during the optimisation and NAs were produced!");
-        message("Please check the input and report this error if it persists to the maintainer.");
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error if it persists to the maintainer.",call.=FALSE,immediate.=TRUE);
     }
 
     if(holdout==TRUE){
@@ -1586,53 +1632,56 @@ checker <- function(inherits=TRUE){
 
     modelname <- paste0("ETS(",model,")");
 
-if(silent==FALSE){
-    if(model.do!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>1.0001)){
-        message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
-    }
-# Make plot
-    if(intervals==TRUE){
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
-    else{
-        graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                   int.w=int.w,legend=legend,main=modelname);
-    }
+    if(silent.text==FALSE){
+        if(model.do!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>1.0001)){
+            message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
+        }
 # Calculate the number os observations in the interval
-    if(all(holdout==TRUE,intervals==TRUE)){
-        insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                               as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-    }
-    else{
-        insideintervals <- NULL;
-    }
-
-# Print output
-    if(model.do!="combine"){
-        if(damped==TRUE){
-            phivalue <- phi;
+        if(all(holdout==TRUE,intervals==TRUE)){
+            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
+                                   as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
         }
         else{
-            phivalue <- NULL;
+            insideintervals <- NULL;
         }
-        ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=NULL, measurement=NULL,
-                 phi=phivalue, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-                 n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-                 CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-                 int.type=int.type, int.w=int.w, ICs=ICs,
-                 holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+
+# Print output
+        if(model.do!="combine"){
+            if(damped==TRUE){
+                phivalue <- phi;
+            }
+            else{
+                phivalue <- NULL;
+            }
+            ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=NULL, measurement=NULL,
+                     phi=phivalue, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
+                    n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+                    CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
+                    int.type=int.type, int.w=int.w, ICs=ICs,
+                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+        }
+        else{
+            cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
+            ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+                    phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
+                    n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
+                    CF.type=CF.type, CF.objective=NULL, intervals=intervals,
+                    int.type=int.type, int.w=int.w, ICs=ICs,
+                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+        }
     }
-    else{
-        cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
-        ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                 phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-                 n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
-                 CF.type=CF.type, CF.objective=NULL, intervals=intervals,
-                 int.type=int.type, int.w=int.w, ICs=ICs,
-                 holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+
+# Make plot
+    if(silent.graph==FALSE){
+        if(intervals==TRUE){
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
+                       int.w=int.w,legend=legend,main=modelname);
+        }
+        else{
+            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
+                    int.w=int.w,legend=legend,main=modelname);
+        }
     }
-}
 
     if(all(unlist(strsplit(model,""))!="C")){
         return(list(model=model,states=matvt,persistence=as.vector(vecg),phi=phi,
