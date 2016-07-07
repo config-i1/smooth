@@ -273,8 +273,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             pt <- matrix(1,obs,1);
             pt.for <- matrix(1,h,1);
         }
+        iprob <- pt[1];
     }
-
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
     if(pt[1,]==1 & all(intermittent!=c("n","p"))){
@@ -632,10 +632,10 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 Likelihood.value <- function(C){
     if(any(intermittent==c("n","p"))){
         if(CF.type=="TFL"){
-            return(obs*(h^multisteps) - obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(- obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
         else{
-            return(obs - obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            return(- obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
     }
     else{
@@ -1590,6 +1590,7 @@ checker <- function(inherits=TRUE){
                 }
                 else{
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
+
                     quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                               y.for=y.for, iprob=iprob);
