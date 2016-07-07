@@ -70,12 +70,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         IC <- "AICc";
     }
 
-    if(all(intermittent!=c("n","s","c","t","none","simple","croston","tsb"))){
-        message(paste0("Strange type of intermittency defined: ",intermittent,". Switching to 'simple'."));
-        intermittent <- "s";
-    }
-    intermittent <- substring(intermittent[1],1,1);
-
 # Check if the data is vector
     if(!is.numeric(data) & !is.ts(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
@@ -231,23 +225,59 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
     datafreq <- frequency(data);
 
-    if(intermittent!="n"){
+# See what we have been provided in intermittent parameter
+    if(is.numeric(intermittent)){
+# If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
+        if(all(length(c(intermittent))!=c(h,obs.all))){
+            message(paste0("The length of the provided future occurrences is ",length(c(intermittent)),
+                           " while the length of forecasting horizon is ",h,"."));
+            message(paste0("Where should we plug in the future occurences data?"));
+            message(paste0("Switching to intermittent='simple'."));
+            intermittent <- "s";
+            ot <- (y!=0)*1;
+            obs.ot <- sum(ot);
+            yot <- matrix(y[y!=0],obs.ot,1);
+            pt <- matrix(mean(ot),obs,1);
+            pt.for <- matrix(1,h,1);
+        }
+        else if(length(intermittent)==obs.all){
+            intermittent <- intermittent[(obs+1):(obs+h)];
+        }
         ot <- (y!=0)*1;
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
-        pt <- matrix(mean(ot),obs,1);
-        pt.for <- matrix(1,h,1);
+        pt <- matrix(ot,obs,1);
+        pt.for <- matrix(intermittent,h,1);
+        iprob <- 1;
+# "p" stand for "provided", meaning that we have been provided the future data
+        intermittent <- "p";
     }
     else{
-        ot <- rep(1,obs);
-        obs.ot <- obs;
-        yot <- y;
-        pt <- matrix(1,obs,1);
-        pt.for <- matrix(1,h,1);
+        if(all(intermittent!=c("n","s","c","t","none","simple","croston","tsb"))){
+            message(paste0("Strange type of intermittency defined: ",intermittent,". Switching to 'simple'."));
+            intermittent <- "s";
+        }
+        intermittent <- substring(intermittent[1],1,1);
+
+        if(intermittent!="n"){
+            ot <- (y!=0)*1;
+            obs.ot <- sum(ot);
+            yot <- matrix(y[y!=0],obs.ot,1);
+            pt <- matrix(mean(ot),obs,1);
+            pt.for <- matrix(1,h,1);
+        }
+        else{
+            ot <- rep(1,obs);
+            obs.ot <- obs;
+            yot <- y;
+            pt <- matrix(1,obs,1);
+            pt.for <- matrix(1,h,1);
+        }
     }
 
+
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(pt[1,]==1){
+    if(pt[1,]==1 & all(intermittent!=c("n","p"))){
         intermittent <- "n";
     }
 
@@ -600,7 +630,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 }
 
 Likelihood.value <- function(C){
-    if(intermittent=="n"){
+    if(any(intermittent==c("n","p"))){
         if(CF.type=="TFL"){
             return(obs*(h^multisteps) - obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
@@ -864,7 +894,7 @@ checker <- function(inherits=TRUE){
                 n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") +
                            estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
 
-                if(intermittent!="n"){
+                if(all(intermittent!=c("n","p"))){
                     intermittent_model <- iss(y,intermittent=intermittent,h=h);
 # 1 for initial state. And two more for smoothing parameter and variance.
                     n.param <- n.param + 1;
@@ -887,9 +917,7 @@ checker <- function(inherits=TRUE){
                         pt[,] <- rep(intermittent_model$fitted,obs);
                         pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
                     }
-                }
-                else{
-                    pt.for <- matrix(rep(1,h),h,1);
+                    iprob <- pt.for[1];
                 }
 
 # Change CF.type for the more appropriate model selection
@@ -1203,7 +1231,7 @@ checker <- function(inherits=TRUE){
 ##### If we do not combine, then go #####
     if(model.do!="combine"){
         n.param <- 0;
-        if(intermittent!="n"){
+        if(all(intermittent!=c("n","p"))){
             intermittent_model <- iss(y,intermittent=intermittent,h=h);
 # 1 for initial state. And two more for smoothing parameter and variance.
             n.param <- n.param + 1;
@@ -1226,9 +1254,7 @@ checker <- function(inherits=TRUE){
                 pt[,] <- rep(intermittent_model$fitted,obs);
                 pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
             }
-        }
-        else{
-            pt.for <- matrix(rep(1,h),h,1);
+            iprob <- pt.for[1];
         }
 
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
@@ -1337,8 +1363,8 @@ checker <- function(inherits=TRUE){
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
-                if(intermittent!="n"){
-                    matot <- matrix(rbinom(n.samples,1,pt.for[1]),h,n.samples);
+                if(all(intermittent!=c("n","p"))){
+                    matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
                 }
                 else{
                     matot <- matrix(1,h,n.samples);
@@ -1361,10 +1387,10 @@ checker <- function(inherits=TRUE){
 
                 quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                          y.for=y.for, iprob=pt.for[1]);
+                                          y.for=y.for, iprob=iprob);
                 if(Etype=="A"){
-                    y.low <- ts(c(y.for) + pt.for[1]*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + pt.for[1]*quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                    y.low <- ts(c(y.for) + pt.for*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + pt.for*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                 }
                 else{
                     y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1544,7 +1570,7 @@ checker <- function(inherits=TRUE){
                         materrors <- exp(materrors) - 1;
                     }
                     if(pt.for[1]!=1){
-                        matot <- matrix(rbinom(n.samples,1,pt.for[1]),h,n.samples);
+                        matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
                     }
                     else{
                         matot <- matrix(1,h,n.samples);
@@ -1566,7 +1592,7 @@ checker <- function(inherits=TRUE){
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
                     quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                              y.for=y.for, iprob=pt.for[1]);
+                                              y.for=y.for, iprob=iprob);
                     if(Etype=="A"){
                         y.low <- ts(c(y.for) + pt.for[1]*quantvalues$lower,start=start(y.for),frequency=frequency(data));
                         y.high <- ts(c(y.for) + pt.for[1]*quantvalues$upper,start=start(y.for),frequency=frequency(data));

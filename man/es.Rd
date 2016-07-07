@@ -68,7 +68,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 
         \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
 
-        \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999).
+        \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
