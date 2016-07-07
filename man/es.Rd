@@ -130,7 +130,7 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
-    \item \code{iprob} - the fitted value of the probability of demand occurance.
+    \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.

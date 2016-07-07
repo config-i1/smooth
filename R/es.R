@@ -1427,6 +1427,9 @@ checker <- function(inherits=TRUE){
             initialX <- matat[1,];
         }
 
+# Write down the probabilities from intermittent models
+        pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+
         if(estimate.initial.season==TRUE){
             if(Stype!="N"){
                 initial.season <- matvt[1:maxlag,n.components]

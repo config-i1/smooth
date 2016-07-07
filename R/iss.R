@@ -48,7 +48,7 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
             ivt[1,] <- C[2];
             iy_kappa <- iyt*(1 - 2*kappa) + kappa;
             fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
-                                  modellags, "M", "N", "N",
+                                  modellags, "M", "N", "N", "o",
                                   matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
 
             iyt.fit <- fitting$yfit;
@@ -71,7 +71,7 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
         ivt[1,] <- C[2];
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
         fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
-                              modellags, "M", "N", "N",
+                              modellags, "M", "N", "N", "o",
                               matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
 
         ivt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
