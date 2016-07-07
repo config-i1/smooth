@@ -203,6 +203,15 @@ es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,CF.type="TFL")->test
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)->test
+
+# Intermittent data example
+x <- rpois(100,0.2)
+# Croston's method with the best ETS for demand sizes
+es(x,"ZZN",intermittent="croston")->test
+# TSB based on iETS(M,N,N)
+es(x,"MNN",intermittent="tsb")->test
+# Constant probability based on iETS(M,N,N)
+es(x,"MNN",intermittent="simple")->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }
