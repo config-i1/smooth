@@ -640,12 +640,12 @@ Likelihood.value <- function(C){
     }
     else{
         if(CF.type=="TFL"){
-            return(sum(log(pt)*ot)*(h^multisteps) +
-                       sum(log(1-pt)*(1-ot))*(h^multisteps) +
+            return(sum(log(pt))*(h^multisteps) +
+                       sum(log(1-pt))*(h^multisteps) +
                        -obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
         else{
-            return(sum(log(pt)*ot) + sum(log(1-pt)*(1-ot)) +
+            return(sum(log(pt)) + sum(log(1-pt)) +
                        -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
     }
