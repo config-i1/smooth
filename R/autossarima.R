@@ -160,6 +160,43 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
         }
     }
 
+##### Loop for MA
+    if(any(ma.max!=0)){
+        for(seasSelect in 1:length(lags)){
+            test.lags[seasSelect] <- lags[seasSelect];
+            if(ma.max[seasSelect]!=0){
+                for(maSelect in 1:ma.max[seasSelect]){
+                    m <- m + 1;
+                    if(silent.text==FALSE){
+                        cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
+                        cat(paste0(round((m)/models.number,2)*100,"%"));
+                    }
+# Update the iSelect in i.test preserving the previous values
+                    ma.test[seasSelect] <- maSelect;
+                    n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
+                            sum(ar.best) + sum(ma.test) + 1;
+                    if(n.param > obs - 2){
+                        test.models[[m]] <- NA;
+                        test.ICs[iSelect+1] <- Inf;
+                        test.ICs.all[m] <- Inf;
+                        next
+                    }
+
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
+                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
+                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                                                int.type=int.type,silent=TRUE,
+                                                xreg=xreg,go.wild=go.wild,FI=FI);
+                    test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
+                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                }
+# Save the best MA
+                ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+# Sort in order to put the best one on the first place
+                test.ICs <- sort(test.ICs,decreasing=FALSE)
+            }
+        }
+    }
 
 ##### Loop for AR
     if(any(ar.max!=0)){
@@ -193,44 +230,6 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                 }
 # Save the best AR
                 ar.best[seasSelect] <- ar.test[seasSelect] <- c(0:ar.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
-# Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE)
-            }
-        }
-    }
-
-##### Loop for MA
-    if(any(ma.max!=0)){
-        for(seasSelect in 1:length(lags)){
-            test.lags[seasSelect] <- lags[seasSelect];
-            if(ma.max[seasSelect]!=0){
-                for(maSelect in 1:ma.max[seasSelect]){
-                    m <- m + 1;
-                    if(silent.text==FALSE){
-                        cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
-                        cat(paste0(round((m)/models.number,2)*100,"%"));
-                    }
-# Update the iSelect in i.test preserving the previous values
-                    ma.test[seasSelect] <- maSelect;
-                    n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
-                            sum(ar.best) + sum(ma.test) + 1;
-                    if(n.param > obs - 2){
-                        test.models[[m]] <- NA;
-                        test.ICs[iSelect+1] <- Inf;
-                        test.ICs.all[m] <- Inf;
-                        next
-                    }
-
-                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
-                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
-                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE,
-                                                xreg=xreg,go.wild=go.wild,FI=FI);
-                    test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
-                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
-                }
-# Save the best MA
-                ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
                 test.ICs <- sort(test.ICs,decreasing=FALSE)
             }
