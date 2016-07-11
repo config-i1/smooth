@@ -1,5 +1,5 @@
-auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
-                         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
+auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
+                         initial=c("optimal","backcasting"), IC=c("AICc","AIC","BIC"),
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -108,8 +108,8 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
     i.max <- i.max[order(lags,decreasing=TRUE)];
     ma.max <- ma.max[order(lags,decreasing=TRUE)];
     lags <- sort(lags,decreasing=TRUE);
-# 1 stands for constant
-    models.number <- sum(ar.max,i.max,ma.max) + 1;
+# 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
+    models.number <- sum(ar.max,i.max,ma.max) + 1 + 1;
     test.models <- list(NA);
     test.ICs <- rep(NA,max(ar.max,i.max,ma.max)+1);
     test.ICs.all <- rep(NA,models.number);
@@ -127,7 +127,10 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
         for(seasSelect in 1:length(lags)){
             test.lags[seasSelect] <- lags[seasSelect];
             if(i.max[seasSelect]!=0){
-                for(iSelect in (seasSelect-1):i.max[seasSelect]){
+                for(iSelect in 0:i.max[seasSelect]){
+                    if(m!=0 & iSelect==0){
+                        next;
+                    }
                     m <- m + 1;
                     if(silent.text==FALSE){
                         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
@@ -141,7 +144,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                         test.models[[m]] <- NA;
                         test.ICs[iSelect+1] <- Inf;
                         test.ICs.all[m] <- Inf;
-                        next
+                        next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.test),ma.orders=rev(ma.best),lags=rev(test.lags),
@@ -179,7 +182,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                         test.models[[m]] <- NA;
                         test.ICs[iSelect+1] <- Inf;
                         test.ICs.all[m] <- Inf;
-                        next
+                        next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.best),ma.orders=rev(ma.test),lags=rev(test.lags),
@@ -217,7 +220,7 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
                         test.models[[m]] <- NA;
                         test.ICs[iSelect+1] <- Inf;
                         test.ICs.all[m] <- Inf;
-                        next
+                        next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=rev(ar.test),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
