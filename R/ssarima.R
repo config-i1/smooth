@@ -454,6 +454,7 @@ polyroots <- function(C){
             }
             else{
                 vt <- matvt[1,];
+                vt[-1] <- vt[1] * matF[-1,1];
                 if(estimate.constant==TRUE){
                     vt[n.components+constant] <- C[(n.coef + 1)];
                     n.coef <- n.coef + 1;
