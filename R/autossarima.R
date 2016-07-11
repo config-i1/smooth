@@ -104,12 +104,12 @@ auto.ssarima <- function(data,ar.max=c(3), i.max=c(2), ma.max=c(3), lags=c(1),
     }
 
 # Order things, so we would deal with highest level of seasonality first
-    lags <- sort(lags,decreasing=TRUE);
     ar.max <- ar.max[order(lags,decreasing=TRUE)];
     i.max <- i.max[order(lags,decreasing=TRUE)];
     ma.max <- ma.max[order(lags,decreasing=TRUE)];
-# 2 stands for constant + d=0
-    models.number <- sum(ar.max,i.max,ma.max) + 2;
+    lags <- sort(lags,decreasing=TRUE);
+# 1 stands for constant
+    models.number <- sum(ar.max,i.max,ma.max) + 1;
     test.models <- list(NA);
     test.ICs <- rep(NA,max(ar.max,i.max,ma.max)+1);
     test.ICs.all <- rep(NA,models.number);
