@@ -1,5 +1,5 @@
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-                    constant=FALSE, initial=c("optimal","backcasting"), AR=NULL, MA=NULL,
+                    constant=FALSE, initial=c("backcasting","optimal"), AR=NULL, MA=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -349,7 +349,9 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
     else{
 # Number of components that really need to be estimated (droping zeroes): (p+d+1)(P+D+1)-1 or (q+1)(Q+1)-1
-        n.components.corrected <- max(prod(ar.orders + i.orders + 1) - 1, prod(ma.orders + 1) - 1);
+#        n.components.corrected <- max(prod(ar.orders + i.orders + 1) - 1, prod(ma.orders + 1) - 1);
+# Initials are not optimised, so they should not be included in number of parameters calculation
+        n.components.corrected <- 0;
         n.param <- 1 + n.components.corrected + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
     }
 

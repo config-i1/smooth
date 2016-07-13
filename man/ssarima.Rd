@@ -9,7 +9,7 @@ Function constructs State-Space ARIMA, estimating AR, MA terms and initial state
 }
 \usage{
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
-  constant=FALSE, initial=c("optimal","backcasting"), AR=NULL, MA=NULL,
+  constant=FALSE, initial=c("backcasting","optimal"), AR=NULL, MA=NULL,
   CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
   h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
   int.type=c("parametric","semiparametric","nonparametric","asymmetric"),

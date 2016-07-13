@@ -1,5 +1,5 @@
 auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
-                         initial=c("optimal","backcasting"), IC=c("AICc","AIC","BIC"),
+                         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -104,10 +104,10 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
     }
 
 # Order things, so we would deal with highest level of seasonality first
-    ar.max <- ar.max[order(lags,decreasing=TRUE)];
-    i.max <- i.max[order(lags,decreasing=TRUE)];
-    ma.max <- ma.max[order(lags,decreasing=TRUE)];
-    lags <- sort(lags,decreasing=TRUE);
+    ar.max <- ar.max[order(lags,decreasing=FALSE)];
+    i.max <- i.max[order(lags,decreasing=FALSE)];
+    ma.max <- ma.max[order(lags,decreasing=FALSE)];
+    lags <- sort(lags,decreasing=FALSE);
 # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
     models.number <- sum(ar.max,i.max,ma.max) + 1 + 1;
     test.models <- list(NA);
@@ -147,7 +147,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         next;
                     }
 
-                    test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.test),ma.orders=rev(ma.best),lags=rev(test.lags),
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
                                                 int.type=int.type,silent=TRUE,
@@ -185,7 +185,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         next;
                     }
 
-                    test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.best),ma.orders=rev(ma.test),lags=rev(test.lags),
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
                                                 int.type=int.type,silent=TRUE,
@@ -223,7 +223,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         next;
                     }
 
-                    test.models[[m]] <- ssarima(data,ar.orders=rev(ar.test),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
+                    test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
                                                 int.type=int.type,silent=TRUE,
@@ -246,7 +246,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 #        i.test <- i.best;
 #        i.test[ar.parameters[,1]>=0.99] <- 1;
 #
-#        test.models[[m+1]] <- ssarima(data,ar.orders=rev(ar.test),i.orders=rev(i.test),ma.orders=rev(ma.best),lags=rev(test.lags),
+#        test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
 #                                      constant=TRUE,initial=fittertype,CF.type=CF.type,
 #                                      h=h,holdout=holdout,intervals=intervals,int.w=int.w,
 #                                      int.type=int.type,silent=TRUE,
@@ -271,7 +271,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 
 # Test the constant
     if(any(c(ar.best,i.best,ma.best)!=0)){
-        test.models[[m]] <- ssarima(data,ar.orders=rev(ar.best),i.orders=rev(i.best),ma.orders=rev(ma.best),lags=rev(test.lags),
+        test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                     constant=FALSE,initial=fittertype,CF.type=CF.type,
                                     h=h,holdout=holdout,intervals=intervals,int.w=int.w,
                                     int.type=int.type,silent=TRUE,

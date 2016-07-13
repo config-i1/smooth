@@ -9,7 +9,7 @@ Function selects the best State-Space ARIMA based on information criteria, using
 }
 \usage{
 auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
-             initial=c("optimal","backcasting"), IC=c("AICc","AIC","BIC"),
+             initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
              CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
              h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
              int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
