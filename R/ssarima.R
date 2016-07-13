@@ -877,6 +877,7 @@ Likelihood.value <- function(C){
 
     if(constant==TRUE){
         const <- C[length(C)];
+        modelname <- paste0(modelname," with constant");
     }
     else{
         const <- NULL;
