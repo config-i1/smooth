@@ -1234,7 +1234,7 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
     }
     else if(boundtype=='a'){
         if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
-            if(max(abs(eigval))>1){
+            if(max(abs(eigval))> (1 + 1E-10)){
                 return wrap(max(abs(eigval))*1E+100);
             }
         }
