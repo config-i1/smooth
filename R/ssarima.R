@@ -124,7 +124,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     maxlag <- 1;
 
     if((n.components==0) & (constant==FALSE)){
-        stop("What do you want me to do? You have not defined any model!",call.=FALSE);
+        warning("You have not defined any model! Forcing constant=TRUE.",call.=FALSE,immediate.=TRUE);
+        constant <- TRUE;
     }
 
     CF.type <- CF.type[1];
