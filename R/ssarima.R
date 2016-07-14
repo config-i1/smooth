@@ -878,7 +878,12 @@ Likelihood.value <- function(C){
 
     if(constant==TRUE){
         const <- C[length(C)];
-        modelname <- paste0(modelname," with constant");
+        if(all(i.orders==0)){
+            modelname <- paste0(modelname," with constant");
+        }
+        else{
+            modelname <- paste0(modelname," with drift");
+        }
     }
     else{
         const <- NULL;
