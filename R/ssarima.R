@@ -800,9 +800,9 @@ Likelihood.value <- function(C){
 
 # AR terms
     if(any(ar.orders!=0)){
-        ARterms <- matrix(0,max(ar.orders),length(ar.orders),
+        ARterms <- matrix(0,max(ar.orders),sum(ar.orders!=0),
                           dimnames=list(paste0("AR(",c(1:max(ar.orders)),")"),
-                                        paste0("Lag ",lags)));
+                                        paste0("Lag ",lags[ar.orders!=0])));
     }
     else{
         ARterms <- 0;
@@ -818,34 +818,37 @@ Likelihood.value <- function(C){
     }
 # MA terms
     if(any(ma.orders!=0)){
-        MAterms <- matrix(0,max(ma.orders),length(ma.orders),
+        MAterms <- matrix(0,max(ma.orders),sum(ma.orders!=0),
                           dimnames=list(paste0("MA(",c(1:max(ma.orders)),")"),
-                                        paste0("Lag ",lags)));
+                                        paste0("Lag ",lags[ma.orders!=0])));
     }
     else{
         MAterms <- 0;
     }
 
-    n.coef <- ar.inner.coef <- ma.inner.coef <- 0;
+    n.coef <- ar.coef <- ma.coef <- 0;
+    ar.i <- ma.i <- 1;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
             if(estimate.AR==TRUE){
-                ARterms[1:ar.orders[i],i] <- C[n.coef+(1:ar.orders[i])];
+                ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
             }
             else{
-                ARterms[1:ar.orders[i],i] <- AR[ar.inner.coef+(1:ar.orders[i])];
-                ar.inner.coef <- ar.inner.coef + ar.orders[i];
+                ARterms[1:ar.orders[i],ar.i] <- AR[ar.coef+(1:ar.orders[i])];
+                ar.coef <- ar.coef + ar.orders[i];
             }
+            ar.i <- ar.i + 1;
             n.coef <- n.coef + ar.orders[i];
         }
         if(ma.orders[i]!=0){
             if(estimate.MA==TRUE){
-                MAterms[1:ma.orders[i],i] <- C[n.coef+(1:ma.orders[i])];
+                MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
             }
             else{
-                MAterms[1:ma.orders[i],i] <- MA[ma.inner.coef+(1:ma.orders[i])];
-                ma.inner.coef <- ma.inner.coef + ar.orders[i];
+                MAterms[1:ma.orders[i],ma.i] <- MA[ma.coef+(1:ma.orders[i])];
+                ma.coef <- ma.coef + ma.orders[i];
             }
+            ma.i <- ma.i + 1;
             n.coef <- n.coef + ma.orders[i];
         }
     }
