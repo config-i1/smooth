@@ -382,17 +382,18 @@ polyroots <- function(C){
     n.coef <- 0;
     matF[,1] <- 0;
     if(n.components > 0){
-        inner.coef <- 0;
+        ar.inner.coef <- ma.inner.coef <- 0;
         for(i in 1:length(lags)){
             if((ar.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ar.orders[i]);
                 if(estimate.AR==TRUE){
-                    armat[lags[i],] <- -C[(inner.coef+1):(inner.coef + ar.orders[i])];
-                    inner.coef <- n.coef <- n.coef + ar.orders[i];
+                    armat[lags[i],] <- -C[n.coef+(1:ar.orders[i])];
+                    n.coef <- n.coef + ar.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- -AR[(inner.coef+1):(inner.coef + ar.orders[i])];
-                    inner.coef <- inner.coef + ma.orders[i];
+                    armat[lags[i],] <- -AR[ar.inner.coef+(1:ar.orders[i])];
+                    ar.inner.coef <- ar.inner.coef + ar.orders[i];
+                    n.coef <- n.coef + ar.orders[i];
                 }
                 P[[i]] <- c(1,c(armat));
 
@@ -411,20 +412,21 @@ polyroots <- function(C){
             if((ma.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ma.orders[i]);
                 if(estimate.MA==TRUE){
-                    armat[lags[i],] <- C[(inner.coef+1):(inner.coef + ma.orders[i])];
-                    inner.coef <- n.coef <- n.coef + ma.orders[i];
+                    armat[lags[i],] <- C[n.coef+(1:ma.orders[i])];
+                    n.coef <- n.coef + ma.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- MA[(inner.coef+1):(inner.coef + ma.orders[i])];
-                    inner.coef <- inner.coef + ma.orders[i];
+                    armat[lags[i],] <- MA[ma.inner.coef+(1:ma.orders[i])];
+                    ma.inner.coef <- ma.inner.coef + ma.orders[i];
+                    n.coef <- n.coef + ma.orders[i];
                 }
                 Q[[i]] <- c(1,c(armat));
-
             }
             else{
                 Q[[i]] <- 1;
             }
         }
+
 ##### Polynom multiplication is the slowest part now #####
         polysos.i <- as.polynomial(1);
         for(i in 1:length(lags)){
@@ -824,23 +826,25 @@ Likelihood.value <- function(C){
         MAterms <- 0;
     }
 
-    n.coef <- 0;
+    n.coef <- ar.inner.coef <- ma.inner.coef <- 0;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
             if(estimate.AR==TRUE){
-                ARterms[1:ar.orders[i],i] <- C[(n.coef+1):(n.coef + ar.orders[i])];
+                ARterms[1:ar.orders[i],i] <- C[n.coef+(1:ar.orders[i])];
             }
             else{
-                ARterms[1:ar.orders[i],i] <- AR[(n.coef+1):(n.coef + ar.orders[i])];
+                ARterms[1:ar.orders[i],i] <- AR[ar.inner.coef+(1:ar.orders[i])];
+                ar.inner.coef <- ar.inner.coef + ar.orders[i];
             }
             n.coef <- n.coef + ar.orders[i];
         }
         if(ma.orders[i]!=0){
             if(estimate.MA==TRUE){
-                MAterms[1:ma.orders[i],i] <- C[(n.coef+1):(n.coef + ma.orders[i])];
+                MAterms[1:ma.orders[i],i] <- C[n.coef+(1:ma.orders[i])];
             }
             else{
-                MAterms[1:ma.orders[i],i] <- MA[(n.coef+1):(n.coef + ma.orders[i])];
+                MAterms[1:ma.orders[i],i] <- MA[ma.inner.coef+(1:ma.orders[i])];
+                ma.inner.coef <- ma.inner.coef + ar.orders[i];
             }
             n.coef <- n.coef + ma.orders[i];
         }
