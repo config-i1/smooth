@@ -163,6 +163,10 @@ ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
 # ARIMA(1,0,0) with trace forecast estimation
 ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="trace")->test
 ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="GV")->test
+
+# SARIMA of a percuiar order on AirPassengers data
+ssarima(AirPassengers,ar.orders=c(1,0,3),i.orders=c(1,0,1),ma.orders=c(0,1,2),lags=c(1,6,12),
+        h=10,holdout=TRUE)->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
