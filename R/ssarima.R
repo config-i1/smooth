@@ -373,7 +373,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
-    Ttype <- "A";
+    Ttype <- "N";
     Stype <- "N";
 
 polyroots <- function(C){
@@ -536,9 +536,12 @@ CF <- function(C){
     }
 
     CF.res <- optimizerwrap(matvt, matF, matw, y, vecg,
-                            h, modellags, "A", "N", "N",
+                            h, modellags, Etype, Ttype, Stype,
                             multisteps, CF.type, normalizer, fittertype,
                             matxt, matat, matFX, vecgX, ot);
+    if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
+        CF.res <- 1e+100;
+    }
 
     return(CF.res);
 }
@@ -717,7 +720,7 @@ Likelihood.value <- function(C){
 
 # Produce matrix of errors
     errors.mat <- ts(errorerwrap(matvt, matF, matrix(matw[1,],nrow=1), y,
-                                 h, "A", "N", "N", modellags,
+                                 h, Etype, Ttype, Stype, modellags,
                                  matxt, matat, matFX, ot),
                      start=start(data),frequency=datafreq);
     colnames(errors.mat) <- paste0("Error",c(1:h));
@@ -725,7 +728,7 @@ Likelihood.value <- function(C){
 
 # Produce forecast
     y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                               matF, matrix(matw[1,],nrow=1), h, "N", "N", modellags,
+                               matF, matrix(matw[1,],nrow=1), h, Ttype, Stype, modellags,
                                matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
                 start=time(data)[obs]+deltat(data),frequency=datafreq);

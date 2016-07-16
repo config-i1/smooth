@@ -469,7 +469,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Cost function for ETS
 CF <- function(C){
     init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                            modellags, Ttype, Stype, n.exovars, matat,
+                            modellags, fittertype, Ttype, Stype, n.exovars, matat,
                             estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
                             matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
 
@@ -503,27 +503,29 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
             C.lower <- c(C.lower,0);
             C.upper <- c(C.upper,1);
         }
-        if(estimate.initial==TRUE){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                C.lower <- c(C.lower,0.1,0.01);
-                C.upper <- c(C.upper,Inf,5);
-            }
-        }
-        if(Stype!="N"){
-            if(estimate.initial.season==TRUE){
-                C <- c(C,matvt[1:maxlag,n.components]);
-                if(Stype=="A"){
-                    C.lower <- c(C.lower,rep(-Inf,maxlag));
-                    C.upper <- c(C.upper,rep(Inf,maxlag));
+        if(fittertype=="o"){
+            if(estimate.initial==TRUE){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
+                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(1e-5,maxlag));
-                    C.upper <- c(C.upper,rep(10,maxlag));
+                    C.lower <- c(C.lower,0.1,0.01);
+                    C.upper <- c(C.upper,Inf,5);
+                }
+            }
+            if(Stype!="N"){
+                if(estimate.initial.season==TRUE){
+                    C <- c(C,matvt[1:maxlag,n.components]);
+                    if(Stype=="A"){
+                        C.lower <- c(C.lower,rep(-Inf,maxlag));
+                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                    }
+                    else{
+                        C.lower <- c(C.lower,rep(1e-5,maxlag));
+                        C.upper <- c(C.upper,rep(10,maxlag));
+                    }
                 }
             }
         }
@@ -539,27 +541,29 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
             C.lower <- c(C.lower,0);
             C.upper <- c(C.upper,1);
         }
-        if(estimate.initial==TRUE){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                C.lower <- c(C.lower,0.1,0.01);
-                C.upper <- c(C.upper,Inf,3);
-            }
-        }
-        if(Stype!="N"){
-            if(estimate.initial.season==TRUE){
-                C <- c(C,matvt[1:maxlag,n.components]);
-                if(Stype=="A"){
-                    C.lower <- c(C.lower,rep(-Inf,maxlag));
-                    C.upper <- c(C.upper,rep(Inf,maxlag));
+        if(fittertype=="o"){
+            if(estimate.initial==TRUE){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
+                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(-0.0001,maxlag));
-                    C.upper <- c(C.upper,rep(20,maxlag));
+                    C.lower <- c(C.lower,0.1,0.01);
+                    C.upper <- c(C.upper,Inf,3);
+                }
+            }
+            if(Stype!="N"){
+                if(estimate.initial.season==TRUE){
+                    C <- c(C,matvt[1:maxlag,n.components]);
+                    if(Stype=="A"){
+                        C.lower <- c(C.lower,rep(-Inf,maxlag));
+                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                    }
+                    else{
+                        C.lower <- c(C.lower,rep(-0.0001,maxlag));
+                        C.upper <- c(C.upper,rep(20,maxlag));
+                    }
                 }
             }
         }
@@ -575,27 +579,29 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
             C.lower <- c(C.lower,-Inf);
             C.upper <- c(C.upper,Inf);
         }
-        if(estimate.initial==TRUE){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                C.lower <- c(C.lower,-Inf,-Inf);
-                C.upper <- c(C.upper,Inf,Inf);
-            }
-        }
-        if(Stype!="N"){
-            if(estimate.initial.season==TRUE){
-                C <- c(C,matvt[1:maxlag,n.components]);
-                if(Stype=="A"){
-                    C.lower <- c(C.lower,rep(-Inf,maxlag));
-                    C.upper <- c(C.upper,rep(Inf,maxlag));
+        if(fittertype=="o"){
+            if(estimate.initial==TRUE){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
+                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
                 }
                 else{
-                    C.lower <- c(C.lower,rep(-Inf,maxlag));
-                    C.upper <- c(C.upper,rep(Inf,maxlag));
+                    C.lower <- c(C.lower,-Inf,-Inf);
+                    C.upper <- c(C.upper,Inf,Inf);
+                }
+            }
+            if(Stype!="N"){
+                if(estimate.initial.season==TRUE){
+                    C <- c(C,matvt[1:maxlag,n.components]);
+                    if(Stype=="A"){
+                        C.lower <- c(C.lower,rep(-Inf,maxlag));
+                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                    }
+                    else{
+                        C.lower <- c(C.lower,rep(-Inf,maxlag));
+                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                    }
                 }
             }
         }
@@ -618,7 +624,6 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
                 C.lower <- c(C.lower,rep(-Inf,n.exovars));
                 C.upper <- c(C.upper,rep(Inf,n.exovars));
             }
-
         }
     }
 
@@ -874,7 +879,7 @@ checker <- function(inherits=TRUE){
                 C <- res$solution;
 
                 if(any(C==Cs$C)){
-                    C[C==Cs$C & Cs$C < 1] <- 0;
+                    C[C==Cs$C & Cs$C < 0.5] <- 0;
                     res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                     C <- res$solution;
@@ -1020,7 +1025,7 @@ checker <- function(inherits=TRUE){
                     j <- 1;
                     i <- 0;
                     check <- TRUE;
-                    bestj <- 1;
+                    besti <- bestj <- 1;
 
 ### Form the pool of models using brain
                     while(check==TRUE){
@@ -1049,10 +1054,10 @@ checker <- function(inherits=TRUE){
 
                         if(j>1){
 # If the first is better than the second, then choose first
-                            if(results[[bestj]][IC] <= results[[i]][IC]){
+                            if(as.numeric(results[[besti]][IC]) <= as.numeric(results[[i]][IC])){
 # If Ttype is the same, then we checked seasonality
                                 if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
-                                    season.pool <- results[[bestj]][6];
+                                    season.pool <- results[[besti]][6];
                                     check.S <- FALSE;
                                     j <- which(small.pool!=small.pool[bestj] &
                                                    substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool);
@@ -1064,21 +1069,26 @@ checker <- function(inherits=TRUE){
                                 }
                             }
                             else{
-                                if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
-                                    season.pool <- season.pool[season.pool!=results[[bestj]][6]];
+                                if(substring(current.model,2,2) == substring(small.pool[besti],2,2)){
+                                    season.pool <- season.pool[season.pool!=results[[besti]][6]];
                                     if(length(season.pool)>1){
 # Select another seasonal model, that is not from the previous iteration and not the current one
                                         bestj <- j;
+                                        besti <- i;
                                         j <- 3;
                                     }
                                     else{
                                         bestj <- j;
+                                        besti <- i;
                                         j <- which(substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool &
                                                   substring(small.pool,2,2)!=substring(current.model,2,2));
                                         check.S <- FALSE;
                                     }
                                 }
                                 else{
+                                    trends.pool <- trends.pool[trends.pool!=results[[besti]][5]];
+                                    besti <- i;
+                                    bestj <- j;
                                     check.T <- FALSE;
                                 }
                             }
@@ -1086,7 +1096,6 @@ checker <- function(inherits=TRUE){
                             if(all(c(check.T,check.S)==FALSE)){
                                 check <- FALSE;
                             }
-
                         }
                         else{
                             j <- 2;
@@ -1258,7 +1267,7 @@ checker <- function(inherits=TRUE){
         }
 
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                                modellags, Ttype, Stype, n.exovars, matat,
+                                modellags, fittertype, Ttype, Stype, n.exovars, matat,
                                 estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
                                 matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
         vecg <- init.ets$vecg;
@@ -1495,7 +1504,7 @@ checker <- function(inherits=TRUE){
             modellags <- basicparams$modellags;
 
             init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                                    modellags, Ttype, Stype, n.exovars, matat,
+                                    modellags, fittertype, Ttype, Stype, n.exovars, matat,
                                     estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
                                     matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
             vecg <- init.ets$vecg;

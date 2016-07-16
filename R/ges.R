@@ -260,7 +260,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
-    Ttype <- "A";
+    Ttype <- "N";
     Stype <- "N";
 
 elements.ges <- function(C){
