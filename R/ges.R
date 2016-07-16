@@ -247,7 +247,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
         n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
     }
 
-    if(n.param >= obs.ot-1){
+    if(obs.ot <= n.param){
         if(intermittent==TRUE){
             stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                         n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);

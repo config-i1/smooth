@@ -116,7 +116,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Number of components to use
-    n.components <- 0 + max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+    n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
     modellags <- matrix(rep(1,times=n.components),ncol=1);
     if(constant==TRUE){
         modellags <- rbind(modellags,1);
@@ -360,7 +360,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
     }
 
-    if(n.param >= obs.ot-1){
+    if(obs.ot <= n.param){
         if(intermittent!="n"){
             stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                         n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);

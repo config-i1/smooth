@@ -185,10 +185,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
 # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
+        n.param <- length(C) + 2;
         if(fittertype=="o"){
             C <- c(C,matvt[1:maxlag,]);
         }
-        n.param <- length(C) + 2;
         n.components <- 2;
     }
     else if(seasonality=="S"){
@@ -202,10 +202,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,1] <- y[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
         ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
+        n.param <- length(C) + 2*maxlag;
         if(fittertype=="o"){
             C <- c(C,matvt[1:maxlag,]);
         }
-        n.param <- length(C) + 2*maxlag;
         n.components <- 2;
     }
     else if(seasonality=="P"){
@@ -222,11 +222,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
         matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
         ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
+        n.param <- length(C) + 2 + maxlag;
         if(fittertype=="o"){
             C <- c(C,matvt[1,1:2]);
             C <- c(C,matvt[1:maxlag,3]);
         }
-        n.param <- length(C) + 2 + maxlag;
         n.components <- 3;
     }
     else if(seasonality=="F"){
@@ -244,13 +244,16 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
         matvt[1:maxlag,4] <- matvt[1:maxlag,3]/C[3];
         ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
+        n.param <- length(C) + 2 + 2*maxlag;
         if(fittertype=="o"){
             C <- c(C,matvt[1,1:2]);
             C <- c(C,matvt[1:maxlag,3:4]);
         }
-        n.param <- length(C) + 2 + 2*maxlag;
         n.components <- 4;
     }
+
+# 1 stands for variance
+    n.param <- n.param + 1;
 
     # Stop if number of observations is less than number of parameters
     if(obs.ot <= n.param){

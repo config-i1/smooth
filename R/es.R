@@ -833,9 +833,28 @@ checker <- function(inherits=TRUE){
     n.param.test <- n.param.test + estimate.FX*ncol(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
 # Stop if number of observations is less than approximate number of parameters to estimate
-    if(obs.ot < n.param.test){
-        message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
-        stop("Not enough observations for the fit of the ETS(",model,")! Try a different model.",call.=FALSE);
+    if(obs.ot <= n.param.test){
+        if(silent.text==FALSE){
+            message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
+        }
+        if(obs.ot > 3){
+            models.pool <- c("ANN","MNN");
+            if(obs.ot > 5){
+                models.pool <- c(models.pool,"AAN","MAN","AMN","MMN");
+            }
+            if(obs.ot > 6){
+                models.pool <- c(models.pool,"AAdN","MAdN","AMdN","MMdN");
+            }
+            if(obs.ot > 2*datafreq & datafreq!=1){
+                models.pool <- c(models.pool,"ANA","MNA","ANM","MNM");
+            }
+
+            model <- "ZZZ";
+            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
+        }
+        else{
+            stop("Not enough observations... Even for fitting of ETS('ANN')!",call.=FALSE);
+        }
     }
 
 ############ Start the estimation depending on the model ############

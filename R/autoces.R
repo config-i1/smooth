@@ -114,18 +114,19 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
         models <- c("N","S","P","F");
     }
 
+    datafreq <- frequency(data);
     if(any(is.na(data))){
         if(silent.text==FALSE){
             message("Data contains NAs. These observations will be excluded.")
         }
-        datanew <- data[!is.na(data)]
+        datanew <- data[!is.na(data)];
         if(is.ts(data)){
-            datanew <- ts(datanew,start=start(data),frequency=frequency(data))
+            datanew <- ts(datanew,start=start(data),frequency=datafreq);
         }
-        data <- datanew
+        data <- datanew;
     }
 
-    if(frequency(data)==1){
+    if(datafreq==1){
         if(silent.text==FALSE){
         message("The data is not seasonal. Simple CES was the only solution here.");
         }
@@ -142,6 +143,23 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
     }
 
     IC <- IC[1]
+
+# Define obs, the number of observations of in-sample
+    obs <- length(data) - holdout*h;
+
+# Check the number of observations and number of parameters.
+    if(any(models=="F") & (obs <= datafreq*2 + 2 + 4 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(F).",call.=FALSE);
+        models <- models[models!="F"];
+    }
+    if(any(models=="P") & (obs <= datafreq + 2 + 3 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(P).",call.=FALSE);
+        models <- models[models!="P"];
+    }
+    if(any(models=="S") & (obs <= datafreq*2 + 2 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(S).",call.=FALSE);
+        models <- models[models!="S"];
+    }
 
     ces.model <- as.list(models);
     IC.vector <- c(1:length(models));

@@ -108,6 +108,16 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
     i.max <- i.max[order(lags,decreasing=FALSE)];
     ma.max <- ma.max[order(lags,decreasing=FALSE)];
     lags <- sort(lags,decreasing=FALSE);
+
+# 1 stands for constant, the other one stands for variance
+    n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+
+    if(obs <= n.param.max){
+        message(paste0("Not enough observations for the reasonable fit. Number of possible parameters is ",
+                        n.param.max," while the number of observations is ",obs,"!"));
+        stop("Redefine maximum orders and try again.",call.=FALSE)
+    }
+
 # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
     models.number <- sum(ar.max,i.max,ma.max) + 1 + 1;
     test.models <- list(NA);
