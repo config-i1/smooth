@@ -878,8 +878,28 @@ checker <- function(inherits=TRUE){
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
 
+# If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
                 if(any(C==Cs$C)){
-                    C[C==Cs$C & Cs$C < 0.5] <- 0;
+                    if(C[1]==Cs$C[1]){
+                        C[1] <- 0;
+                    }
+                    if(Ttype!="N"){
+                        if(C[2]==Cs$C[2]){
+                            C[2] <- 0;
+                        }
+                        if(Stype!="N"){
+                            if(C[3]==Cs$C[3]){
+                                C[3] <- 0;
+                            }
+                        }
+                    }
+                    else{
+                        if(Stype!="N"){
+                            if(C[2]==Cs$C[2]){
+                                C[2] <- 0;
+                            }
+                        }
+                    }
                     res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                     C <- res$solution;
@@ -1212,8 +1232,28 @@ checker <- function(inherits=TRUE){
                           opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
             C <- res$solution;
 
+# If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
             if(any(C==Cs$C)){
-                C[C==Cs$C & Cs$C < 0.5] <- 0;
+                if(C[1]==Cs$C[1]){
+                    C[1] <- 0;
+                }
+                if(Ttype!="N"){
+                    if(C[2]==Cs$C[2]){
+                        C[2] <- 0;
+                    }
+                    if(Stype!="N"){
+                        if(C[3]==Cs$C[3]){
+                            C[3] <- 0;
+                        }
+                    }
+                }
+                else{
+                    if(Stype!="N"){
+                        if(C[2]==Cs$C[2]){
+                            C[2] <- 0;
+                        }
+                    }
+                }
                 res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
                               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
                 C <- res$solution;
