@@ -241,7 +241,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     estimate.initialX <- xregdata$estimate.initialX;
 
 # 1 stands for the variance
-    n.param <- 1 + 2*n.components + n.components^2 + orders %*% lags + intermittent;
+    n.param <- 1 + n.components + n.components*(fittertype=="o") + n.components^2 + orders %*% lags + intermittent;
 
     if(estimate.xreg==TRUE){
         n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
@@ -605,7 +605,7 @@ Likelihood.value <- function(C){
     modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
 
     if(silent.text==FALSE){
-        if(any(abs(eigen(matF - vecg %*% matw)$values)>1)){
+        if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
                 message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
             }

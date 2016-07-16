@@ -657,20 +657,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    arma::mat matrixFinv = matrixF;
-    arma::rowvec rowvecWinv = rowvecW;
-
     int nloops = 5;
-    if(T!='N'){
-        if(arma::det(matrixF)==0){
-            matrixFinv = pinv(matrixF);
-        }
-        else{
-            matrixFinv = inv(matrixF);
-        }
-        rowvecWinv(1) = -rowvecW(1);
-//        nloops = 15;
-    }
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_rows;
@@ -748,13 +735,13 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             lagrows = backlags + i + 1;
 
 /* # Measurement equation and the error term */
-            matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecWinv, T, S) +
+            matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
                                            matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i+maxlag)));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
-            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFinv, T, S) +
-                                          gvalue(matrixVt(lagrows), matrixFinv, rowvecWinv, E, T, S) % vecG * materrors(i-maxlag));
+            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S) +
+                                          gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.row(i).is_finite()){
@@ -779,7 +766,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 /* # Fill in the head of the matrices */
         for (int i=maxlag-1; i>=0; i=i-1) {
             lagrows = backlags + i + 1;
-            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFinv, T, S));
+            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S));
             matrixAt.row(i) = matrixAt.row(i+1) * matrixFX;
         }
     }

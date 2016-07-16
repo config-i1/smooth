@@ -393,7 +393,7 @@ polyroots <- function(C){
                 else{
                     armat[lags[i],] <- -AR[ar.inner.coef+(1:ar.orders[i])];
                     ar.inner.coef <- ar.inner.coef + ar.orders[i];
-                    n.coef <- n.coef + ar.orders[i];
+#                    n.coef <- n.coef + ar.orders[i];
                 }
                 P[[i]] <- c(1,c(armat));
 
@@ -418,7 +418,7 @@ polyroots <- function(C){
                 else{
                     armat[lags[i],] <- MA[ma.inner.coef+(1:ma.orders[i])];
                     ma.inner.coef <- ma.inner.coef + ma.orders[i];
-                    n.coef <- n.coef + ma.orders[i];
+#                    n.coef <- n.coef + ma.orders[i];
                 }
                 Q[[i]] <- c(1,c(armat));
             }
@@ -549,10 +549,10 @@ CF <- function(C){
 Likelihood.value <- function(C){
     if(intermittent=="n"){
         if(CF.type=="TFL"){
-            return(obs*(h^multisteps) - obs/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(- obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
         else{
-            return(obs - obs/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            return(- obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
     }
     else{
@@ -835,24 +835,24 @@ Likelihood.value <- function(C){
         if(ar.orders[i]!=0){
             if(estimate.AR==TRUE){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
+                n.coef <- n.coef + ar.orders[i];
             }
             else{
                 ARterms[1:ar.orders[i],ar.i] <- AR[ar.coef+(1:ar.orders[i])];
                 ar.coef <- ar.coef + ar.orders[i];
             }
             ar.i <- ar.i + 1;
-            n.coef <- n.coef + ar.orders[i];
         }
         if(ma.orders[i]!=0){
             if(estimate.MA==TRUE){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
+                n.coef <- n.coef + ma.orders[i];
             }
             else{
                 MAterms[1:ma.orders[i],ma.i] <- MA[ma.coef+(1:ma.orders[i])];
                 ma.coef <- ma.coef + ma.orders[i];
             }
             ma.i <- ma.i + 1;
-            n.coef <- n.coef + ma.orders[i];
         }
     }
 

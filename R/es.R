@@ -861,7 +861,7 @@ checker <- function(inherits=TRUE){
 # Fill in the vector of initial values and vector of constrains used in estimation
 # This also should include in theory  "| estimate.phi==TRUE",
 #    but it doesn't make much sense and makes things more complicated
-    if(any(estimate.persistence,estimate.initial,estimate.initial.season,
+    if(any(estimate.persistence,estimate.initial*(fittertype=="o"),estimate.initial.season*(fittertype=="o"),
            estimate.xreg,estimate.FX,estimate.gX,estimate.initialX)){
 
 # Number of observations in the error matrix excluding NAs.
@@ -935,7 +935,7 @@ checker <- function(inherits=TRUE){
                             call.=FALSE, immediate.=TRUE);
                 }
 
-                n.param <- n.components + damped + (n.components - (Stype!="N")) + maxlag*(Stype!="N") +
+                n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(Stype!="N") +
                            estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
 
                 if(all(intermittent!=c("n","p"))){
@@ -1373,7 +1373,7 @@ checker <- function(inherits=TRUE){
             y.for[y.for<0] <- 1;
         }
 
-        if(!any(estimate.persistence,estimate.phi,estimate.initial,estimate.initial.season,
+        if(!any(estimate.persistence,estimate.phi,estimate.initial*(fittertype=="o"),estimate.initial.season*(fittertype=="o"),
                 estimate.FX,estimate.gX,estimate.initialX)){
             C <- c(vecg,phi,initial,initial.season);
             if(estimate.xreg==TRUE){
@@ -1389,7 +1389,7 @@ checker <- function(inherits=TRUE){
         else{
 # 1 stand for the variance
             n.param <- n.param + 1 + n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial + maxlag*estimate.initial.season +
+                (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") + maxlag*estimate.initial.season +
                 estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
         }
 
@@ -1731,7 +1731,7 @@ checker <- function(inherits=TRUE){
     modelname <- paste0("ETS(",model,")");
 
     if(silent.text==FALSE){
-        if(model.do!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>1.0001)){
+        if(model.do!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
         }
 # Calculate the number os observations in the interval
