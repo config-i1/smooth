@@ -14,7 +14,7 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=FALSE,
-    bounds=c("none","admissible"),
+    bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
     xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }

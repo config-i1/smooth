@@ -4,7 +4,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
-                bounds=c("none","admissible"), silent=c("none","all","graph","legend","output"),
+                bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
@@ -185,8 +185,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
 # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
-        n.param <- length(C) + 2;
+        n.param <- length(C);
         if(fittertype=="o"){
+            n.param <- n.param + 2;
             C <- c(C,matvt[1:maxlag,]);
         }
         n.components <- 2;
@@ -202,8 +203,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,1] <- y[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
         ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
-        n.param <- length(C) + 2*maxlag;
+        n.param <- length(C);
         if(fittertype=="o"){
+            n.param <- n.param + 2*maxlag;
             C <- c(C,matvt[1:maxlag,]);
         }
         n.components <- 2;
@@ -222,8 +224,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
         matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
         ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
-        n.param <- length(C) + 2 + maxlag;
+        n.param <- length(C);
         if(fittertype=="o"){
+            n.param <- n.param + 2 + maxlag
             C <- c(C,matvt[1,1:2]);
             C <- c(C,matvt[1:maxlag,3]);
         }
@@ -244,8 +247,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         matvt[1:maxlag,3] <- decompose(data,type="a")$figure;
         matvt[1:maxlag,4] <- matvt[1:maxlag,3]/C[3];
         ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
-        n.param <- length(C) + 2 + 2*maxlag;
+        n.param <- length(C);
         if(fittertype=="o"){
+            n.param <- n.param + 2 + 2*maxlag
             C <- c(C,matvt[1,1:2]);
             C <- c(C,matvt[1:maxlag,3:4]);
         }

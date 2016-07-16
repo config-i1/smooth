@@ -4,7 +4,7 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=FALSE,
-                bounds=c("none","admissible"), silent=c("none","all","graph","legend","output"),
+                bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, go.wild=FALSE, ...){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest IC value and returns complex smoothing parameter
