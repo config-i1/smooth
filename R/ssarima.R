@@ -115,6 +115,24 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         lags <- lags[orders2leave];
     }
 
+# Get rid of duplicates in lags
+    if(length(unique(lags))!=length(lags)){
+        if(frequency(data)!=1){
+            warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
+        }
+        lags.new <- unique(lags);
+        ar.orders.new <- i.orders.new <- ma.orders.new <- lags.new;
+        for(i in 1:length(lags.new)){
+            ar.orders.new[i] <- max(ar.orders[which(lags==lags.new[i])]);
+            i.orders.new[i] <- max(i.orders[which(lags==lags.new[i])]);
+            ma.orders.new[i] <- max(ma.orders[which(lags==lags.new[i])]);
+        }
+        ar.orders <- ar.orders.new;
+        i.orders <- i.orders.new;
+        ma.orders <- ma.orders.new;
+        lags <- lags.new;
+    }
+
 # Number of components to use
     n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
     modellags <- matrix(rep(1,times=n.components),ncol=1);
