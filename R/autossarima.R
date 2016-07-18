@@ -103,11 +103,49 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
     }
 
+# If there are zero lags, drop them
+    if(any(lags==0)){
+        ar.max <- ar.max[lags!=0];
+        i.max <- i.max[lags!=0];
+        ma.max <- ma.max[lags!=0];
+        lags <- lags[lags!=0];
+    }
+
+# If zeroes are defined for some lags, drop them.
+    if(any((ar.max + i.max + ma.max)==0)){
+        orders2leave <- (ar.max + i.max + ma.max)!=0;
+        if(all(orders2leave==FALSE)){
+            orders2leave <- lags==min(lags);
+        }
+        ar.max <- ar.max[orders2leave];
+        i.max <- i.max[orders2leave];
+        ma.max <- ma.max[orders2leave];
+        lags <- lags[orders2leave];
+    }
+
 # Order things, so we would deal with highest level of seasonality first
     ar.max <- ar.max[order(lags,decreasing=FALSE)];
     i.max <- i.max[order(lags,decreasing=FALSE)];
     ma.max <- ma.max[order(lags,decreasing=FALSE)];
     lags <- sort(lags,decreasing=FALSE);
+
+# Get rid of duplicates of lags
+    if(length(unique(lags))!=length(lags)){
+        if(frequency(data)!=1){
+            warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
+        }
+        lags.new <- unique(lags);
+        ar.max.new <- i.max.new <- ma.max.new <- lags.new;
+        for(i in 1:length(lags.new)){
+            ar.max.new[i] <- ar.max[which(lags==lags.new[i])][1];
+            i.max.new[i] <- i.max[which(lags==lags.new[i])][1];
+            ma.max.new[i] <- ma.max[which(lags==lags.new[i])][1];
+        }
+        ar.max <- ar.max.new;
+        i.max <- i.max.new;
+        ma.max <- ma.max.new;
+        lags <- lags.new;
+    }
 
 # 1 stands for constant, the other one stands for variance
     n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
