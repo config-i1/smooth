@@ -79,11 +79,15 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         initial <- NULL;
     }
     else if(is.null(initial)){
-        message("Initial value is not selected. Switching to optimal.");
+        if(silent.text==FALSE){
+            message("Initial value is not selected. Switching to optimal.");
+        }
         fittertype <- "o";
     }
     else{
-        message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
+        if(silent.text==FALSE){
+            message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
+        }
         fittertype <- "o";
     }
 
@@ -111,7 +115,19 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         lags <- lags[lags!=0];
     }
 
-# If zeroes are defined for some lags, drop them.
+# Define maxorder and make all the values look similar (for the polynomials)
+    maxorder <- max(length(ar.max),length(i.max),length(ma.max));
+    if(length(ar.max)!=maxorder){
+        ar.max <- c(ar.max,rep(0,maxorder-length(ar.max)));
+    }
+    if(length(i.max)!=maxorder){
+        i.max <- c(i.max,rep(0,maxorder-length(i.max)));
+    }
+    if(length(ma.max)!=maxorder){
+        ma.max <- c(ma.max,rep(0,maxorder-length(ma.max)));
+    }
+
+# If zeroes are defined as orders for some lags, drop them.
     if(any((ar.max + i.max + ma.max)==0)){
         orders2leave <- (ar.max + i.max + ma.max)!=0;
         if(all(orders2leave==FALSE)){
@@ -123,13 +139,13 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         lags <- lags[orders2leave];
     }
 
-# Order things, so we would deal with highest level of seasonality first
+# Order things, so we would deal with the lowest level of seasonality first
     ar.max <- ar.max[order(lags,decreasing=FALSE)];
     i.max <- i.max[order(lags,decreasing=FALSE)];
     ma.max <- ma.max[order(lags,decreasing=FALSE)];
     lags <- sort(lags,decreasing=FALSE);
 
-# Get rid of duplicates of lags
+# Get rid of duplicates in lags
     if(length(unique(lags))!=length(lags)){
         if(frequency(data)!=1){
             warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
@@ -137,9 +153,9 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         lags.new <- unique(lags);
         ar.max.new <- i.max.new <- ma.max.new <- lags.new;
         for(i in 1:length(lags.new)){
-            ar.max.new[i] <- ar.max[which(lags==lags.new[i])][1];
-            i.max.new[i] <- i.max[which(lags==lags.new[i])][1];
-            ma.max.new[i] <- ma.max[which(lags==lags.new[i])][1];
+            ar.max.new[i] <- max(ar.max[which(lags==lags.new[i])]);
+            i.max.new[i] <- max(i.max[which(lags==lags.new[i])]);
+            ma.max.new[i] <- max(ma.max[which(lags==lags.new[i])]);
         }
         ar.max <- ar.max.new;
         i.max <- i.max.new;
@@ -149,6 +165,54 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 
 # 1 stands for constant, the other one stands for variance
     n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+
+# Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
+# Don't try to fix anything if the number of seasonalities is greater than 2
+    if(length(lags)<=2){
+        if(obs <= n.param.max){
+            arma.length <- length(ar.max)
+            while(obs <= n.param.max){
+                if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
+                    ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
+                    n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    if(obs <= n.param.max){
+                        ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
+                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    }
+                }
+                else{
+                    if(arma.length==2){
+                        ar.max[1] <- ar.max[1] - 1;
+                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        if(obs <= n.param.max){
+                            ma.max[1] <- ma.max[1] - 1;
+                            n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        }
+                    }
+                    else{
+                        break;
+                    }
+                }
+                if(all(c(ar.max,ma.max)==0)){
+                    if(i.max[arma.length]>0){
+                        i.max[arma.length] <- max(0,i.max[arma.length] - 1);
+                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    }
+                    else if(i.max[1]>0){
+                        if(obs <= n.param.max){
+                            i.max[1] <- max(0,i.max[1] - 1);
+                            n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        }
+                    }
+                    else{
+                        break;
+                    }
+                }
+
+            }
+                n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+        }
+    }
 
     if(obs <= n.param.max){
         message(paste0("Not enough observations for the reasonable fit. Number of possible parameters is ",
@@ -168,6 +232,17 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 
     if(silent.text==FALSE){
         cat("Estimation progress:     ");
+    }
+
+### If for some reason we have model with zeroes for orders, return it.
+    if(all(c(ar.max,i.max,ma.max)==0)){
+        cat("\b\b\b\bDone!\n");
+        test.models <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
+                               constant=TRUE,initial=fittertype,CF.type=CF.type,
+                               h=h,holdout=holdout,intervals=intervals,int.w=int.w,
+                               int.type=int.type,silent=FALSE,
+                               xreg=xreg,go.wild=go.wild,FI=FI);
+        return(test.models);
     }
 
 ##### Loop for differences
@@ -287,30 +362,6 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         }
     }
 
-#    ar.parameters <- test.models[[which(test.ICs.all==test.ICs[1])[1]]]$AR;
-#    if(any(ar.parameters[,1]>=0.99)){
-#        ar.test <- ar.best;
-#        ar.test[ar.parameters[,1]>=0.99] <- 0;
-#        i.test <- i.best;
-#        i.test[ar.parameters[,1]>=0.99] <- 1;
-#
-#        test.models[[m+1]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-#                                      constant=TRUE,initial=fittertype,CF.type=CF.type,
-#                                      h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-#                                      int.type=int.type,silent=TRUE,
-#                                      xreg=xreg,go.wild=go.wild,FI=FI);
-#        test.ICs[2] <- test.models[[m+1]]$ICs[IC];
-#        test.ICs.all[m+1] <- test.models[[m+1]]$ICs[IC];
-#
-#        if(test.ICs[1]>test.ICs[2]){
-#            ar.best <- ar.test;
-#            i.best <- i.test;
-#            test.ICs[1] <- test.ICs[2];
-#            test.models[[m]] <- test.models[[m+1]];
-#            test.ICs.all[m] <- test.ICs.all[m+1];
-#        }
-#    }
-#
     m <- m + 1;
     if(silent.text==FALSE){
         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
