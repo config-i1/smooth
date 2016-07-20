@@ -169,7 +169,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
+    if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
 
@@ -628,7 +628,7 @@ Likelihood.value <- function(C){
             }
         }
 
-        if(constant==TRUE){
+        if(estimate.constant==TRUE){
             if(all(i.orders==0)){
                 C <- c(C,sum(yot)/obs);
             }

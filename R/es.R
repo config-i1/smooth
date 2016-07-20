@@ -71,7 +71,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
+    if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
 

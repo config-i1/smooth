@@ -96,7 +96,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     }
 
 # Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
+    if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
 
