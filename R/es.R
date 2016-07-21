@@ -845,8 +845,11 @@ checker <- function(inherits=TRUE){
             if(obs.ot > 6){
                 models.pool <- c(models.pool,"AAdN","MAdN","AMdN","MMdN");
             }
-            if(obs.ot > 2*datafreq & datafreq!=1){
+            if((obs.ot > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"ANA","MNA","ANM","MNM");
+            }
+            if((obs.ot > (6 + datafreq)) & (obs.ot > 2*datafreq) & datafreq!=1){
+                models.pool <- c(models.pool,"AAA","MAA","AAM","MAM","AMA","MMA","AMM","MMM");
             }
 
             model <- "ZZZ";
