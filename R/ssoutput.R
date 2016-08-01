@@ -107,8 +107,9 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                   paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
                   paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
         cat(paste(paste0("MASE: ",errormeasures["MASE"]),
-                  paste0("MAE/mean: ",errormeasures["MAE/mean"]*100,"%"),
-                  paste0("RelMAE: ",errormeasures["RelMAE"],"\n"),sep="; "));
+                  paste0("sMAE: ",errormeasures["sMAE"]*100,"%"),
+                  paste0("RelMAE: ",errormeasures["RelMAE"]),
+                  paste0("sMSE: ",errormeasures["sMSE"]*100,"%\n"),sep="; "));
     }
 #    message("Don't forget to include the info about the initialisation method used!");
 }

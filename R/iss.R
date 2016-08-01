@@ -1,3 +1,8 @@
+ssintermittent <- function(data, intermittent=c("simple","croston","tsb")){
+# Function checks the provided parameters and data for intermittency
+
+}
+
 iss <- function(data, intermittent=c("simple","croston","tsb"),
                 h=10, imodel=NULL, ipersistence=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method

@@ -243,6 +243,13 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         else if(length(intermittent)==obs.all){
             intermittent <- intermittent[(obs+1):(obs+h)];
         }
+
+        if(any(intermittent!=0 & intermittent!=1)){
+            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
+                    call.=FALSE, immediate.=TRUE);
+            message(paste0("Converting to appropriate vector."));
+            intermittent <- intermittent[intermittent!=0]*1;
+        }
         ot <- (y!=0)*1;
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
@@ -251,6 +258,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         iprob <- 1;
 # "p" stand for "provided", meaning that we have been provided the future data
         intermittent <- "p";
+        n.param.intermittent <- 0;
     }
     else{
         if(all(intermittent!=c("n","s","c","t","none","simple","croston","tsb"))){
@@ -262,6 +270,28 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(intermittent!="n"){
             ot <- (y!=0)*1;
             obs.ot <- sum(ot);
+            # 1 parameter for estimating initial probability
+            n.param.intermittent <- 1;
+            if(intermittent=="c"){
+                # In Croston we need to estimate smoothing parameter and variance
+                n.param.intermittent <- n.param.intermittent + 2;
+            }
+            else if(intermittent=="t"){
+                # In TSB we need to estimate smoothing parameter and two parameters of distribution
+                n.param.intermittent <- n.param.intermittent + 3;
+            }
+
+            if(obs.ot <= n.param.intermittent){
+                warning("Not enough observations for estimation of intermittency probability.",
+                        call.=FALSE, immediate.=FALSE);
+                if(silent.text==FALSE){
+                    message("Switching to simpler model.");
+                }
+                if(obs.ot > 1){
+                    intermittent <- "s";
+                    n.param.intermittent <- 1;
+                }
+            }
             yot <- matrix(y[y!=0],obs.ot,1);
             pt <- matrix(mean(ot),obs,1);
             pt.for <- matrix(1,h,1);
@@ -272,6 +302,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             yot <- y;
             pt <- matrix(1,obs,1);
             pt.for <- matrix(1,h,1);
+            n.param.intermittent <- 0;
         }
         iprob <- pt[1];
     }
@@ -399,8 +430,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # 1 + datafreq: datafreq initials and 1 smoothing for seasonal component;
 # 1: estimation of iprob;
 # 1: estimation of variance;
-    n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") +
-        (intermittent!="n") + 1;
+    n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") + 1;
 
 # Stop if number of observations is less than horizon and multisteps is chosen.
     if((multisteps==TRUE) & (obs.ot < h+1)){
@@ -645,13 +675,13 @@ Likelihood.value <- function(C){
     }
     else{
         if(CF.type=="TFL"){
-            return(sum(log(pt))*(h^multisteps) +
-                       sum(log(1-pt))*(h^multisteps) +
-                       -obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(sum(log(pt))*(h^multisteps)
+                       + sum(log(1-pt))*(h^multisteps)
+                       - obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
         else{
-            return(sum(log(pt)) + sum(log(1-pt)) +
-                       -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            return(sum(log(pt)) + sum(log(1-pt))
+                       - obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
     }
 }
@@ -837,18 +867,18 @@ checker <- function(inherits=TRUE){
         if(silent.text==FALSE){
             message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
         }
-        if(obs.ot > 3){
+        if(obs.ot > 3 + n.param.intermittent){
             models.pool <- c("ANN","MNN");
-            if(obs.ot > 5){
+            if(obs.ot > 5 + n.param.intermittent){
                 models.pool <- c(models.pool,"AAN","MAN","AMN","MMN");
             }
-            if(obs.ot > 6){
+            if(obs.ot > 6 + n.param.intermittent){
                 models.pool <- c(models.pool,"AAdN","MAdN","AMdN","MMdN");
             }
-            if((obs.ot > 2*datafreq) & datafreq!=1){
+            if((obs.ot > 2*datafreq + n.param.intermittent) & datafreq!=1){
                 models.pool <- c(models.pool,"ANA","MNA","ANM","MNM");
             }
-            if((obs.ot > (6 + datafreq)) & (obs.ot > 2*datafreq) & datafreq!=1){
+            if((obs.ot > (6 + datafreq + n.param.intermittent)) & (obs.ot > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"AAA","MAA","AAM","MAM","AMA","MMA","AMM","MMM");
             }
 
@@ -1456,7 +1486,7 @@ checker <- function(inherits=TRUE){
             else{
                 vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-                quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
+                quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                           y.for=y.for, iprob=iprob);
                 if(Etype=="A"){
@@ -1662,7 +1692,7 @@ checker <- function(inherits=TRUE){
                 else{
                     vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-                    quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
+                    quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                               y.for=y.for, iprob=iprob);
                     if(Etype=="A"){
@@ -1717,14 +1747,15 @@ checker <- function(inherits=TRUE){
 
     if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
-        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
-                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
-        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
+        errormeasures <- errorMeasurer(y.holdout,y.for,y);
+#        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+#                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
+#                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
+#                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+#                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
+#                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
+#                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
+#        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
     }
     else{
         y.holdout <- NA;

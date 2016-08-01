@@ -1,4 +1,4 @@
-pintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
+ssintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
                       measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
                       y.for=rep(0,ncol(errors)), iprob=1){
 # Function constructs intervals based on the provided random variable.

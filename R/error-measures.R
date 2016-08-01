@@ -79,10 +79,26 @@ RelMAE <-function(actual,forecast,benchmark,digits=3){
     }
 }
 
+sMSE <- function(actual,forecast,scale,digits=3){
+# This function calculates scaled Mean Squared Error.
+# Attention! Scale factor should be provided as squares of something!
+# actual - actual values,
+# forecast - forecasted values.
+# scale - the measure to scale errors with. Usually - MAE of in-sample.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        message("Can't procede further on.");
+    }
+    else{
+        return(round(mean((actual-forecast)^2,na.rm=TRUE)/scale,digits=digits));
+    }
+}
+
 hm <- function(x,C=mean(x),digits=5,...)
 {
 # This function calculates half moment
-
     x <- x[!is.na(x)];
     result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
     return(result);
@@ -91,8 +107,24 @@ hm <- function(x,C=mean(x),digits=5,...)
 cbias <- function(x,C=mean(x),digits=5,...)
 {
 # This function calculates half moment
-
     result <- hm(x,C,digits);
     result <- round(1 - Arg(result)/(pi/4),digits);
     return(result);
+}
+
+errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
+    holdout <- as.vector(holdout);
+    forecast <- as.vector(forecast);
+    actuals <- as.vector(actuals);
+    errormeasures <- c(MPE(holdout,forecast,digits=digits),
+                       cbias(holdout-forecast,0,digits=digits),
+                       MAPE(holdout,forecast,digits=digits),
+                       SMAPE(holdout,forecast,digits=digits),
+                       MASE(holdout,forecast,mean(abs(diff(actuals))),digits=digits),
+                       MASE(holdout,forecast,mean(abs(actuals)),digits=digits),
+                       RelMAE(holdout,forecast,rep(actuals[length(actuals)],length(holdout)),digits=digits),
+                       sMSE(holdout,forecast,mean(abs(actuals[actuals!=0]))^2,digits=digits));
+    names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE");
+
+    return(errormeasures);
 }

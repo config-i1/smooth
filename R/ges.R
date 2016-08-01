@@ -544,7 +544,7 @@ Likelihood.value <- function(C){
 
         vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-        quantvalues <- pintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
+        quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                  y.for=y.for, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
@@ -588,14 +588,7 @@ Likelihood.value <- function(C){
 
     if(holdout==T){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
-        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
-                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
-                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
-                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
-        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
+        errormeasures <- errorMeasurer(y.holdout,y.for,y);
     }
     else{
         y.holdout <- NA;
