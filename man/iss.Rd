@@ -8,7 +8,7 @@
   Functin calculates the probability for intermittent state space model. This is needed in order to forecast intermittent demand using other functions.
 }
 \usage{
-  iss(data, intermittent=c("simple","croston","tsb"),
+  iss(data, intermittent=c("fixed","croston","tsb"),
       h=10, imodel=NULL, ipersistence=NULL)
 }
 \arguments{
@@ -16,7 +16,7 @@
     Either numeric vector or time series vector.
   }
   \item{intermittent}{
-    The type of method used in probability estimation. Can be \code{"simple"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
+    The type of method used in probability estimation. Can be \code{"fixed"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
   }
   \item{h}{
     Forecast horizon.
@@ -32,7 +32,14 @@
   The function estimates probability of demand occurance, using one of the ETS state-space models.
 }
 \value{
-  An object of es() type is returned.
+    The list of the following values is returned:
+
+  \itemize{
+    \item \code{fitted} - fitted values of the constructed model;
+    \item \code{forecast} - forecast for \code{h} observations ahead;
+    \item \code{variance} - conditional variance of the forecast;
+    \item \code{likelihood} - likelihood value for the model.
+  }
 }
 \references{
     \itemize{

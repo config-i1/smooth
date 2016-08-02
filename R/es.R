@@ -3,7 +3,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-               intermittent=c("none","simple","croston","tsb"),
+               intermittent=c("none","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -92,7 +92,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     int.type <- substring(int.type[1],1,1);
 # Check the provided type of interval
-    if(all(int.type!=c("a","p","s","n"))){
+    if(all(int.type!=c("a","p","f","n"))){
         message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
         int.type <- "p";
     }
@@ -232,8 +232,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             message(paste0("The length of the provided future occurrences is ",length(c(intermittent)),
                            " while the length of forecasting horizon is ",h,"."));
             message(paste0("Where should we plug in the future occurences data?"));
-            message(paste0("Switching to intermittent='simple'."));
-            intermittent <- "s";
+            message(paste0("Switching to intermittent='fixed'."));
+            intermittent <- "f";
             ot <- (y!=0)*1;
             obs.ot <- sum(ot);
             yot <- matrix(y[y!=0],obs.ot,1);
@@ -246,8 +246,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
         if(any(intermittent!=0 & intermittent!=1)){
             warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
-                    call.=FALSE, immediate.=TRUE);
-            message(paste0("Converting to appropriate vector."));
+                    call.=FALSE, immediate.=FALSE);
+            if(silent.text==FALSE){
+                message(paste0("Converting to appropriate vector."));
+            }
             intermittent <- intermittent[intermittent!=0]*1;
         }
         ot <- (y!=0)*1;
@@ -261,9 +263,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         n.param.intermittent <- 0;
     }
     else{
-        if(all(intermittent!=c("n","s","c","t","none","simple","croston","tsb"))){
-            message(paste0("Strange type of intermittency defined: ",intermittent,". Switching to 'simple'."));
-            intermittent <- "s";
+        if(all(intermittent!=c("n","f","c","t","none","fixed","croston","tsb"))){
+            warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
+                    call.=FALSE, immediate.=FALSE);
+            intermittent <- "f";
         }
         intermittent <- substring(intermittent[1],1,1);
 
@@ -288,7 +291,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                     message("Switching to simpler model.");
                 }
                 if(obs.ot > 1){
-                    intermittent <- "s";
+                    intermittent <- "f";
                     n.param.intermittent <- 1;
                 }
             }
@@ -319,7 +322,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     if(is.character(initial)){
         initial <- substring(initial[1],1,1);
         if(initial!="o" & initial!="b"){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",
+                    call.=FALSE,immediate.=FALSE);
             initial <- "o";
         }
         fittertype <- initial;
@@ -675,13 +679,16 @@ Likelihood.value <- function(C){
     }
     else{
         if(CF.type=="TFL"){
-            return(sum(log(pt))*(h^multisteps)
-                       + sum(log(1-pt))*(h^multisteps)
-                       - obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(sum(log(pt[ot==1]))*(h^multisteps)
+                   + sum(log(1-pt[ot==0]))*(h^multisteps)
+                   - obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+#                   + intermittent_model$likelihood);
         }
         else{
-            return(sum(log(pt)) + sum(log(1-pt))
-                       - obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0]))
+                   - obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
+# Two stage likelihood... probabilities are already taken into account...
+#                   + intermittent_model$likelihood);
         }
     }
 }
@@ -694,7 +701,8 @@ IC.calc <- function(n.param=n.param,C,Etype=Etype){
     llikelihood <- Likelihood.value(C);
 
     AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs.ot - n.param - 1);
+# max here is needed in order to take into account cases with higher number of parameters than observations
+    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / max(obs.ot - n.param - 1,0);
     BIC.coef <- log(obs)*n.param*h^multisteps - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
@@ -968,32 +976,16 @@ checker <- function(inherits=TRUE){
                             call.=FALSE, immediate.=TRUE);
                 }
 
-                n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(Stype!="N") +
-                           estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
+                n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(Stype!="N")
+                           + estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
 
                 if(all(intermittent!=c("n","p"))){
                     intermittent_model <- iss(y,intermittent=intermittent,h=h);
 # 1 for initial state. And two more for smoothing parameter and variance.
-                    n.param <- n.param + 1;
-                    if(intermittent!="s"){
-                        n.param <- n.param + 2;
-                        if(intermittent=="c"){
-                            zeroes <- c(0,which(y!=0),obs+1);
-                            zeroes <- diff(zeroes) - 1;
-                            zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
-                            zeroes <- zeroes + 1;
-                            pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
-                            pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
-                        }
-                        else if(intermittent=="t"){
-                            pt[,] <- intermittent_model$fitted;
-                            pt.for <- intermittent_model$forecast;
-                        }
-                    }
-                    else{
-                        pt[,] <- rep(intermittent_model$fitted,obs);
-                        pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
-                    }
+#                    n.param <- n.param + 1;
+#                        n.param <- n.param + 2;
+                    pt[,] <- intermittent_model$fitted;
+                    pt.for <- intermittent_model$forecast;
                     iprob <- pt.for[1];
                 }
 
@@ -1005,7 +997,7 @@ checker <- function(inherits=TRUE){
                     CF.type <- "MSE";
                 }
 
-                IC.values <- IC.calc(n.param=n.param,C=res$solution,Etype=Etype);
+                IC.values <- IC.calc(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
                 ICs <- IC.values$ICs;
 #Change back
                 CF.type <- CF.type.original;
@@ -1335,26 +1327,8 @@ checker <- function(inherits=TRUE){
         if(all(intermittent!=c("n","p"))){
             intermittent_model <- iss(y,intermittent=intermittent,h=h);
 # 1 for initial state. And two more for smoothing parameter and variance.
-            n.param <- n.param + 1;
-            if(intermittent!="s"){
-                n.param <- n.param + 2;
-                if(intermittent=="c"){
-                    zeroes <- c(0,which(y!=0),obs+1);
-                    zeroes <- diff(zeroes) - 1;
-                    zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
-                    zeroes <- zeroes + 1;
-                    pt[,] <- rep(1/(1+intermittent_model$fitted),zeroes);
-                    pt.for <- matrix(1/(1+intermittent_model$forecast),h,1);
-                }
-                else if(intermittent=="t"){
-                    pt[,] <- intermittent_model$fitted;
-                    pt.for <- intermittent_model$forecast;
-                }
-            }
-            else{
-                pt[,] <- rep(intermittent_model$fitted,obs);
-                pt.for <- matrix(rep(intermittent_model$forecast,h),h,1);
-            }
+            pt[,] <- intermittent_model$fitted;
+            pt.for <- intermittent_model$forecast;
             iprob <- pt.for[1];
         }
 
@@ -1406,8 +1380,8 @@ checker <- function(inherits=TRUE){
             y.for[y.for<0] <- 1;
         }
 
-        if(!any(estimate.persistence,estimate.phi,estimate.initial*(fittertype=="o"),estimate.initial.season*(fittertype=="o"),
-                estimate.FX,estimate.gX,estimate.initialX)){
+        if(!any(estimate.persistence, estimate.phi, estimate.initial*(fittertype=="o"),
+                estimate.initial.season*(fittertype=="o"), estimate.FX, estimate.gX, estimate.initialX)){
             C <- c(vecg,phi,initial,initial.season);
             if(estimate.xreg==TRUE){
                 C <- c(C,initialX);
@@ -1421,17 +1395,17 @@ checker <- function(inherits=TRUE){
         }
         else{
 # 1 stand for the variance
-            n.param <- n.param + 1 + n.components*estimate.persistence + estimate.phi +
-                (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") + maxlag*estimate.initial.season +
-                estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
+            n.param <- n.param + 1 + n.components*estimate.persistence + estimate.phi
+                + (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") + maxlag*estimate.initial.season
+                + estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
         }
 
 # If error additive, estimate as normal. Otherwise - lognormal
         if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot - n.param));
         }
         else{
-            s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot-n.param));
+            s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot - n.param));
         }
 
 # Write down the forecasting intervals
@@ -1519,7 +1493,7 @@ checker <- function(inherits=TRUE){
             FI <- NULL;
         }
 # Calculate IC values
-        IC.values <- IC.calc(n.param=n.param,C=C,Etype=Etype);
+        IC.values <- IC.calc(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
         llikelihood <- IC.values$llikelihood;
         ICs <- IC.values$ICs;
 # Change back
@@ -1630,7 +1604,7 @@ checker <- function(inherits=TRUE){
                                               matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                               matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
 
-            n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag + (intermittent!="n");
+            n.param <- n.components + estimate.phi + (n.components - (Stype!="N")) + maxlag;
 
 # If error additive, estimate as normal. Otherwise - lognormal
             if(Etype=="A"){

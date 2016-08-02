@@ -1,9 +1,9 @@
-ssintermittent <- function(data, intermittent=c("simple","croston","tsb")){
+ssintermittent <- function(data, intermittent=c("fixed","croston","tsb")){
 # Function checks the provided parameters and data for intermittency
 
 }
 
-iss <- function(data, intermittent=c("simple","croston","tsb"),
+iss <- function(data, intermittent=c("fixed","croston","tsb"),
                 h=10, imodel=NULL, ipersistence=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
@@ -16,29 +16,36 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
 # Sizes of demand
     yot <- matrix(y[y!=0],obs.ones,1);
 
-    if(intermittent=="s"){
-        return(list(fitted=iprob,forecast=iprob,variance=iprob*(1-iprob)));
+    if(intermittent=="f"){
+        pt <- ts(matrix(rep(iprob,obs),obs,1), start=start(data), frequency=frequency(data));
+        pt.for <- ts(rep(iprob,h), start=time(data)[obs]+deltat(data), frequency=frequency(data));
+        return(list(fitted=pt,forecast=pt.for,variance=pt.for*(1-pt.for),likelihood=0));
     }
     else if(intermittent=="c"){
 # Define the matrix of states
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
 # Define the matrix of actuals as intervals between demands
         zeroes <- c(0,which(y!=0),obs+1);
-        zeroes <- diff(zeroes)-1;
+### With this thing we fit model of the type 1/(1+qt)
+#        zeroes <- diff(zeroes)-1;
+        zeroes <- diff(zeroes);
 # Number of intervals in Croston
         obs.int <- length(zeroes);
         iyt <- matrix(zeroes,obs.int,1);
         if(is.null(imodel)){
-            if(any(iyt==0)){
-                return(es(iyt,"ANN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence));
-            }
-            else{
-                return(es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence));
-            }
+            crostonModel <- es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);
         }
         else{
-            return(es(iyt,model=imodel,intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence));
+            crostonModel <- es(iyt,model=imodel,intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);
         }
+
+        zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
+        zeroes <- zeroes;
+        pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(data),frequency=frequency(data));
+        pt.for <- ts(1/(crostonModel$forecast), start=time(data)[obs]+deltat(data),frequency=frequency(data));
+        likelihood <- - (crostonModel$ICs["AIC"]/2 - 3);
+
+        return(list(fitted=pt,forecast=pt.for,states=crostonModel$states,variance=pt.for*(1-pt.for),likelihood=likelihood));
     }
     else if(intermittent=="t"){
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
@@ -48,10 +55,37 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
         errors <- matrix(NA,obs,1);
         iyt.fit <- matrix(NA,obs,1);
 
+        if(!is.null(imodel)){
+# If chosen model is "AAdN" or anything like that, we are taking the appropriate values
+            if(nchar(model)==4){
+                Etype <- substring(model,1,1);
+                Ttype <- substring(model,2,2);
+                Stype <- substring(model,4,4);
+                damped <- TRUE;
+                if(substring(model,3,3)!="d"){
+                    message(paste0("You have defined a strange model: ",model));
+                    sowhat(model);
+                    model <- paste0(Etype,Ttype,"d",Stype);
+                }
+            }
+            else if(nchar(model)==3){
+                Etype <- substring(model,1,1);
+                Ttype <- substring(model,2,2);
+                Stype <- substring(model,3,3);
+                damped <- FALSE;
+            }
+        }
+        else{
+            Etype <- "M";
+            Ttype <- "N";
+            Stype <- "N";
+        }
+
         CF <- function(C){
             vecg[,] <- C[1];
             ivt[1,] <- C[2];
             iy_kappa <- iyt*(1 - 2*kappa) + kappa;
+
             fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
                                   modellags, "M", "N", "N", "o",
                                   matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
@@ -84,6 +118,6 @@ iss <- function(data, intermittent=c("simple","croston","tsb"),
         iy.for <- ts(rep(iyt.fit[obs],h),
                      start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
-        return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for)));
+        return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),likelihood=-res$objective));
     }
 }
