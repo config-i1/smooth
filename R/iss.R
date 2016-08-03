@@ -21,6 +21,7 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
         pt.for <- ts(rep(iprob,h), start=time(data)[obs]+deltat(data), frequency=frequency(data));
         return(list(fitted=pt,forecast=pt.for,variance=pt.for*(1-pt.for),likelihood=0));
     }
+### Croston's method
     else if(intermittent=="c"){
 # Define the matrix of states
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
@@ -47,6 +48,7 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
 
         return(list(fitted=pt,forecast=pt.for,states=crostonModel$states,variance=pt.for*(1-pt.for),likelihood=likelihood));
     }
+### TSB method
     else if(intermittent=="t"){
         ivt <- matrix(rep(iprob,obs+1),obs+1,1);
         iyt <- matrix(ot,obs,1);
@@ -57,21 +59,21 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
 
         if(!is.null(imodel)){
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
-            if(nchar(model)==4){
-                Etype <- substring(model,1,1);
-                Ttype <- substring(model,2,2);
-                Stype <- substring(model,4,4);
+            if(nchar(imodel)==4){
+                Etype <- substring(imodel,1,1);
+                Ttype <- substring(imodel,2,2);
+                Stype <- substring(imodel,4,4);
                 damped <- TRUE;
-                if(substring(model,3,3)!="d"){
-                    message(paste0("You have defined a strange model: ",model));
-                    sowhat(model);
-                    model <- paste0(Etype,Ttype,"d",Stype);
+                if(substring(imodel,3,3)!="d"){
+                    message(paste0("You have defined a strange imodel: ",imodel));
+                    sowhat(imodel);
+                    imodel <- paste0(Etype,Ttype,"d",Stype);
                 }
             }
-            else if(nchar(model)==3){
-                Etype <- substring(model,1,1);
-                Ttype <- substring(model,2,2);
-                Stype <- substring(model,3,3);
+            else if(nchar(imodel)==3){
+                Etype <- substring(imodel,1,1);
+                Ttype <- substring(imodel,2,2);
+                Stype <- substring(imodel,3,3);
                 damped <- FALSE;
             }
         }
