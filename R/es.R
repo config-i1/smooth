@@ -77,7 +77,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     CF.type <- CF.type[1];
 # Check if the appropriate CF.type is defined
-    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
+    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh","aMLSTFE","aMSTFE","aTFL","aMSEh"))){
         multisteps <- TRUE;
     }
     else if(any(CF.type==c("MSE","MAE","HAM"))){
@@ -670,7 +670,7 @@ C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat
 
 Likelihood.value <- function(C){
     if(any(intermittent==c("n","p"))){
-        if(CF.type=="TFL"){
+        if(CF.type=="TFL" | CF.type=="aTFL"){
             return(- obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
         }
         else{
@@ -678,7 +678,7 @@ Likelihood.value <- function(C){
         }
     }
     else{
-        if(CF.type=="TFL"){
+        if(CF.type=="TFL" | CF.type=="aTFL"){
             return(sum(log(pt[ot==1]))*(h^multisteps)
                    + sum(log(1-pt[ot==0]))*(h^multisteps)
                    - obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
@@ -991,7 +991,12 @@ checker <- function(inherits=TRUE){
 
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
-                    CF.type <- "TFL";
+                    if(substring(CF.type,1,1)=="a"){
+                        CF.type <- "aTFL";
+                    }
+                    else{
+                        CF.type <- "TFL";
+                    }
                 }
                 else{
                     CF.type <- "MSE";
@@ -1480,7 +1485,12 @@ checker <- function(inherits=TRUE){
 
 # Change CF.type for the more appropriate model selection
         if(multisteps==TRUE){
-            CF.type <- "TFL";
+            if(substring(CF.type,1,1)=="a"){
+                CF.type <- "aTFL";
+            }
+            else{
+                CF.type <- "TFL";
+            }
         }
         else{
             CF.type <- "MSE";

@@ -47,6 +47,8 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   }
   \item{CF.type}{
     Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
+
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful on small samples.
   }
   \item{h}{
     The length of the forecasting horizon.

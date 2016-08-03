@@ -5,6 +5,18 @@
 
 using namespace Rcpp;
 
+/* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
+arma::mat matrixPower(arma::mat A, int power){
+    arma::mat B(A.n_rows, A.n_rows, arma::fill::eye);
+
+    if(power!=0){
+        for(int i=0; i<power; i++){
+            B = B * A;
+        }
+    }
+    return B;
+}
+
 /* # Function returns multiplicative or additive error for scalar */
 double errorf(double yact, double yfit, char Etype){
     if(Etype=='A'){
@@ -970,6 +982,10 @@ int CFtypeswitch (std::string const& CFtype) {
     if (CFtype == "MAE") return 5;
     if (CFtype == "HAM") return 6;
     if (CFtype == "MSE") return 7;
+    if (CFtype == "aTFL") return 8;
+    if (CFtype == "aMLSTFE") return 9;
+    if (CFtype == "aMSTFE") return 10;
+    if (CFtype == "aMSEh") return 11;
     else return 7;
 }
 
@@ -1010,7 +1026,11 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
 
     arma::mat materrors;
 
-    if(multi==true){
+    arma::vec veccij(hor, arma::fill::ones);
+    arma::mat matrixSigma(hor, hor, arma::fill::eye);
+//    arma::mat matrixMu(hor, hor, arma::fill::eye);
+
+    if((multi==true) & (CFtypeswitch(CFtype)<=7)){
         materrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
         if(E=='M'){
             materrors = log(1 + materrors);
@@ -1033,6 +1053,42 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         if(E=='M'){
             materrors = log(1 + materrors);
         }
+    }
+
+    if(CFtypeswitch(CFtype)>7){
+//        arma::vec vecMuc(hor, arma::fill::ones);
+
+// Form vector for basic values and matrix Mu
+        for(int i=1; i<hor; i++){
+            veccij(i) = as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
+//            vecMuc(i) = vecMuc(i) + sum(veccij.rows(1,i));
+        }
+//        matrixMu = vecMuc * vecMuc.t();
+
+// Fill in the diagonal of Sigma matrix
+        for(int i=1; i<hor; i++){
+            matrixSigma(i,i) = matrixSigma(i-1,i-1) + pow(veccij(i),2);
+        }
+
+        if(CFtype=="aTFL"){
+            for(int i=0; i<hor; i++){
+                for(int j=0; j<hor; j++){
+                    if(i>=j){
+                        continue;
+                    }
+                    if(i==0){
+                        matrixSigma(i,j) = veccij(j);
+                    }
+                    else{
+                        matrixSigma(i,j) = veccij(j-i) + sum(veccij.rows(j-i+1,j) % veccij.rows(1,i));
+                    }
+                }
+            }
+        matrixSigma = symmatu(matrixSigma);
+        }
+//        else{
+//            matrixMu = diagmat(matrixMu);
+//        }
     }
 
     switch(E){
@@ -1068,6 +1124,32 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         break;
         case 7:
             CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
+        break;
+        case 8:
+        case 9:
+            try{
+                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors / normalize)) * matrixMu
+                                                          ))) + hor*log(pow(normalize,2)));
+            }
+            catch(const std::runtime_error){
+                CFres = log(arma::det(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors / normalize)) * matrixMu
+                                          )) + hor*log(pow(normalize,2));
+            }
+            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+        break;
+        case 10:
+            CFres = arma::trace(as_scalar(mean(pow(materrors,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors)) * matrixMu
+                                    );
+            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+        break;
+        case 11:
+            CFres = (as_scalar(mean(pow(materrors,2))) * matrixSigma(hor-1,hor-1)
+//                                        + as_scalar(mean(materrors)) * matrixMu(hor-1,hor-1)
+                                        );
+            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         }
     break;
     case 'A':
@@ -1097,6 +1179,29 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         break;
         case 7:
             CFres = arma::as_scalar(mean(pow(materrors,2)));
+        break;
+        case 8:
+        case 9:
+            try{
+                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors / normalize)) * matrixMu
+                                                          ))) + hor*log(pow(normalize,2)));
+            }
+            catch(const std::runtime_error){
+                CFres = log(arma::det(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors / normalize)) * matrixMu
+                                          )) + hor*log(pow(normalize,2));
+            }
+        break;
+        case 10:
+            CFres = arma::trace(as_scalar(mean(pow(materrors,2))) * matrixSigma
+//                                        + as_scalar(mean(materrors)) * matrixMu
+                                    );
+        break;
+        case 11:
+            CFres = (as_scalar(mean(pow(materrors,2))) * matrixSigma(hor-1,hor-1)
+//                                        + as_scalar(mean(materrors)) * matrixMu(hor-1,hor-1)
+                                        );
         }
     }
     return CFres;
