@@ -7,7 +7,7 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 # Function forms the generic output for State-space models.
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
-    if(intermittent!="n"){
+    if(all(intermittent!=c("n","p"))){
         if(intermittent=="f"){
             intermittent <- "Fixed probability";
         }
@@ -18,6 +18,9 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             intermittent <- "TSB";
         }
         cat(paste0("Intermittent model type: ",intermittent,"\n"));
+    }
+    else if(intermittent=="p"){
+        cat(paste0("Intermittent data provided for holdout.\n"));
     }
 
 ### Stuff for ETS and GES
