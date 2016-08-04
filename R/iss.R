@@ -39,7 +39,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         obs.int <- length(zeroes);
         iyt <- matrix(zeroes,obs.int,1);
         if(is.null(imodel)){
-            crostonModel <- es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);
+            crostonModel <- es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence,intermittent="n");
         }
         else{
             crostonModel <- es(iyt,model=imodel,intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);

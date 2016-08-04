@@ -1745,8 +1745,10 @@ checker <- function(inherits=TRUE){
 
 # The first bit is for model estimated on data without intermittency
         if(model.do!="combine"){
-            substring(modelForIntermittent,1,1) <- "M";
-            esCall$model <- modelForIntermittent;
+            if(substring(esCall$model,1,1)!="A"){
+                substring(modelForIntermittent,1,1) <- "M";
+                esCall$model <- modelForIntermittent;
+            }
             intermittentICs[1] <- ICs[IC];
         }
         else{
@@ -1769,9 +1771,13 @@ checker <- function(inherits=TRUE){
             cat("Done!\n");
         }
         if(bestIC!=1){
+            if(silent.text==FALSE){
+                cat(paste0("Time elapsed so far: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
+            }
             intermittent <- intermittentModelsPool[bestIC];
-            intermittentModel <- intermittentModelsList[[bestIC]]
+            intermittentModel <- intermittentModelsList[[bestIC]];
 ### This part will probably not be needed, when we introduce forecast class...
+            esCall$model <- model;
             esCall$intermittent <- intermittent;
             esCall$silent <- silent;
             esCall$initial <- intermittentModel$initial;
