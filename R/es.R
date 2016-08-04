@@ -312,9 +312,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             yot <- y;
             pt <- matrix(1,obs,1);
             pt.for <- matrix(1,h,1);
-            if(intermittent=="n"){
-                n.param.intermittent <- 0;
-            }
+            n.param.intermittent <- 0;
         }
         iprob <- pt[1];
     }
@@ -1733,10 +1731,6 @@ checker <- function(inherits=TRUE){
         }
         modelForIntermittent <- model;
 
-        nParamEstimate <- 1 + n.components*estimate.persistence + estimate.phi
-                   + (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") + maxlag*estimate.initial.season
-                   + estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
-
         intermittentModelsPool <- c("n","f","c","t");
         nParamIntermittentModelsPool <- c(0,1,3,4);
         intermittentICs <- rep(NA,length(intermittentModelsPool));
@@ -1766,6 +1760,7 @@ checker <- function(inherits=TRUE){
                 intermittentICs[i] <- intermittentModelsList[[i]]$ICs;
             }
         }
+
         bestIC <- which(intermittentICs==min(intermittentICs));
         if(silent.text==FALSE){
             cat("Done!\n");
@@ -1782,6 +1777,7 @@ checker <- function(inherits=TRUE){
             esCall$silent <- silent;
             esCall$initial <- intermittentModel$initial;
             esCall$persistence <- intermittentModel$persistence;
+            esCall$phi <- intermittentModel$phi;
 
             return(suppressWarnings(eval(esCall)));
         }
