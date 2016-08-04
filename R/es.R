@@ -877,24 +877,43 @@ checker <- function(inherits=TRUE){
 
     n.param.test <- n.param.test + estimate.FX*ncol(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
+# Define if multiplicative models are allowed with the provided data
+    allowMultiplicative <- !((any(y<=0) & any(intermittent==c("n","a"))) | (all(intermittent!=c("n","a")) & any(y<0)));
+
 # Stop if number of observations is less than approximate number of parameters to estimate
     if(obs.ot <= n.param.test){
         if(silent.text==FALSE){
             message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
         }
+
         if(obs.ot > 3){
-            models.pool <- c("ANN","MNN");
+            models.pool <- c("ANN");
+            if(allowMultiplicative==TRUE){
+                models.pool <- c(models.pool,"MNN");
+            }
             if(obs.ot > 5){
-                models.pool <- c(models.pool,"AAN","MAN","AMN","MMN");
+                models.pool <- c(models.pool,"AAN");
+                if(allowMultiplicative==TRUE){
+                    models.pool <- c(models.pool,"AMN","MAN","MMN");
+                }
             }
             if(obs.ot > 6){
-                models.pool <- c(models.pool,"AAdN","MAdN","AMdN","MMdN");
+                models.pool <- c(models.pool,"AAdN");
+                if(allowMultiplicative==TRUE){
+                    models.pool <- c(models.pool,"AMdN","MAdN","MMdN");
+                }
             }
             if((obs.ot > 2*datafreq) & datafreq!=1){
-                models.pool <- c(models.pool,"ANA","MNA","ANM","MNM");
+                models.pool <- c(models.pool,"ANA");
+                if(allowMultiplicative==TRUE){
+                    models.pool <- c(models.pool,"ANM","MNA","MNM");
+                }
             }
             if((obs.ot > (6 + datafreq)) & (obs.ot > 2*datafreq) & datafreq!=1){
-                models.pool <- c(models.pool,"AAA","MAA","AAM","MAM","AMA","MMA","AMM","MMM");
+                models.pool <- c(models.pool,"AAA");
+                if(allowMultiplicative==TRUE){
+                    models.pool <- c(models.pool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
+                }
             }
 
             warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
@@ -1030,7 +1049,7 @@ checker <- function(inherits=TRUE){
             }
             else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
-                if((any(y<=0) & intermittent=="n") | (intermittent!="n" & any(y<0))){
+                if(allowMultiplicative==FALSE){
                     if(silent.text==FALSE){
                         message("Only additive models are allowed with non-positive data.");
                     }
@@ -1740,7 +1759,7 @@ checker <- function(inherits=TRUE){
         if(silent.text==FALSE){
             cat("Selecting appropriate type of intermittency... ");
         }
-        modelForIntermittent <- model;
+#        modelForIntermittent <- model;
 
         intermittentModelsPool <- c("n","f","c","t");
         nParamIntermittentModelsPool <- c(0,1,3,4);
