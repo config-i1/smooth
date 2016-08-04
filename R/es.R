@@ -1819,7 +1819,7 @@ checker <- function(inherits=TRUE){
                     n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                     CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
                     int.type=int.type, int.w=int.w, ICs=ICs,
-                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
         }
         else{
             cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
@@ -1828,7 +1828,7 @@ checker <- function(inherits=TRUE){
                     n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
                     CF.type=CF.type, CF.objective=NULL, intervals=intervals,
                     int.type=int.type, int.w=int.w, ICs=ICs,
-                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
         }
     }
 

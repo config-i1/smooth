@@ -3,10 +3,23 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      n.components=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      CF.type="MSE", CF.objective=NULL, intervals=FALSE,
                      int.type=c("p","s","n","a"), int.w=0.95, ICs,
-                     holdout=FALSE, insideintervals=NULL, errormeasures=NULL){
+                     holdout=FALSE, insideintervals=NULL, errormeasures=NULL, intermittent="n"){
 # Function forms the generic output for State-space models.
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
+    if(intermittent!="n"){
+        if(intermittent=="f"){
+            intermittent <- "Fixed probability";
+        }
+        else if(intermittent=="c"){
+            intermittent <- "Croston";
+        }
+        else if(intermittent=="t"){
+            intermittent <- "TSB";
+        }
+        cat(paste0("Intermittent model type: ",intermittent,"\n"));
+    }
+
 ### Stuff for ETS and GES
     if(!is.null(persistence)){
         cat(paste0("Persistence vector g: ", paste(round(persistence,3),collapse=", "),"\n"));
