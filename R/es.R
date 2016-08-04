@@ -3,7 +3,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-               intermittent=c("none","fixed","croston","tsb"),
+               intermittent=c("none","fixed","croston","tsb","auto"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -11,6 +11,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# Write down the call of function (used for intermittent=="a")
+    esCall <- match.call();
 
 # See if a user asked for Fisher Information
     if(!is.null(list(...)[['FI']])){
@@ -24,7 +27,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     silent <- silent[1];
 # Fix for cases with TRUE/FALSE.
     if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output"))){
+        if(all(silent!=c("none","all","graph","legend","output","n","a","g","l","o"))){
             message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
             silent <- "none";
         }
@@ -263,7 +266,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         n.param.intermittent <- 0;
     }
     else{
-        if(all(intermittent!=c("n","f","c","t","none","fixed","croston","tsb"))){
+        if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE, immediate.=FALSE);
             intermittent <- "f";
@@ -279,7 +282,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                 # In Croston we need to estimate smoothing parameter and variance
                 n.param.intermittent <- n.param.intermittent + 2;
             }
-            else if(intermittent=="t"){
+            else if(any(intermittent==c("t","a"))){
                 # In TSB we need to estimate smoothing parameter and two parameters of distribution
                 n.param.intermittent <- n.param.intermittent + 3;
             }
@@ -294,24 +297,30 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                     intermittent <- "f";
                     n.param.intermittent <- 1;
                 }
+                else{
+                    intermittent <- "n";
+                }
             }
             yot <- matrix(y[y!=0],obs.ot,1);
             pt <- matrix(mean(ot),obs,1);
             pt.for <- matrix(1,h,1);
         }
-        else{
+
+        if(any(intermittent==c("n","a"))){
             ot <- rep(1,obs);
             obs.ot <- obs;
             yot <- y;
             pt <- matrix(1,obs,1);
             pt.for <- matrix(1,h,1);
-            n.param.intermittent <- 0;
+            if(intermittent=="n"){
+                n.param.intermittent <- 0;
+            }
         }
         iprob <- pt[1];
     }
 
 # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(pt[1,]==1 & all(intermittent!=c("n","p"))){
+    if(pt[1,]==1 & all(intermittent!=c("n","p","a"))){
         intermittent <- "n";
     }
 
@@ -486,7 +495,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # If the non-positive values are present, check if it is intermittent, if negatives are here, switch to additive models
     if((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0))){
         if(Etype=="M"){
-            warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
+            warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE,immediate.=TRUE);
             Etype <- "A";
         }
         if(Ttype=="M"){
@@ -979,16 +988,6 @@ checker <- function(inherits=TRUE){
                 n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(Stype!="N")
                            + estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
 
-                if(all(intermittent!=c("n","p"))){
-                    intermittent_model <- iss(y,intermittent=intermittent,h=h);
-# 1 for initial state. And two more for smoothing parameter and variance.
-#                    n.param <- n.param + 1;
-#                        n.param <- n.param + 2;
-                    pt[,] <- intermittent_model$fitted;
-                    pt.for <- intermittent_model$forecast;
-                    iprob <- pt.for[1];
-                }
-
 # Change CF.type for the more appropriate model selection
                 if(multisteps==TRUE){
                     if(substring(CF.type,1,1)=="a"){
@@ -1326,16 +1325,20 @@ checker <- function(inherits=TRUE){
             Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
             C <- Cs$C;
     }
-##### If we do not combine, then go #####
-    if(model.do!="combine"){
-        n.param <- 0;
-        if(all(intermittent!=c("n","p"))){
+
+##### If intermittent is not auto, then work normally #####
+    if(all(intermittent!=c("n","p"))){
+        if(intermittent!="a"){
             intermittent_model <- iss(y,intermittent=intermittent,h=h);
-# 1 for initial state. And two more for smoothing parameter and variance.
             pt[,] <- intermittent_model$fitted;
             pt.for <- intermittent_model$forecast;
             iprob <- pt.for[1];
         }
+    }
+
+##### If we do not combine, then go #####
+    if(model.do!="combine"){
+        n.param <- 0;
 
         init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
                                 modellags, fittertype, Ttype, Stype, n.exovars, matat,
@@ -1396,7 +1399,6 @@ checker <- function(inherits=TRUE){
             }
             errors.mat.obs <- obs - h + 1;
             CF.objective <- CF(C);
-            n.param <- 0;
         }
         else{
 # 1 stand for the variance
@@ -1507,12 +1509,7 @@ checker <- function(inherits=TRUE){
         llikelihood <- IC.values$llikelihood;
         ICs <- IC.values$ICs;
 # Change back
-        if(multisteps==TRUE){
-            CF.type <- CF.type.original;
-        }
-        else{
-            CF.type <- CF.type.original;
-        }
+        CF.type <- CF.type.original;
 
         component.names <- "level";
         if(Ttype!="N"){
@@ -1609,7 +1606,7 @@ checker <- function(inherits=TRUE){
             colnames(errors.mat) <- paste0("Error",c(1:h));
             errors <- fitting$errors;
 # Produce point and interval forecasts
-            y.for <- pt.for[1]*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
+            y.for <- pt.for*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
                                               matF, matw, h, Ttype, Stype, modellags,
                                               matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
                                               matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX);
@@ -1680,8 +1677,8 @@ checker <- function(inherits=TRUE){
                                               measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                               y.for=y.for, iprob=iprob);
                     if(Etype=="A"){
-                        y.low <- ts(c(y.for) + pt.for[1]*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                        y.high <- ts(c(y.for) + pt.for[1]*quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                        y.low <- ts(c(y.for) + pt.for*quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                        y.high <- ts(c(y.for) + pt.for*quantvalues$upper,start=start(y.for),frequency=frequency(data));
                     }
                     else{
                         y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1729,17 +1726,65 @@ checker <- function(inherits=TRUE){
         warning("Please check the input and report this error if it persists to the maintainer.",call.=FALSE,immediate.=TRUE);
     }
 
+##### Do stuff for intermittent=="a" #####
+    if(intermittent=="a"){
+        if(silent.text==FALSE){
+            cat("Selecting appropriate type of intermittency... ");
+        }
+        modelForIntermittent <- model;
+
+        nParamEstimate <- 1 + n.components*estimate.persistence + estimate.phi
+                   + (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") + maxlag*estimate.initial.season
+                   + estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars;
+
+        intermittentModelsPool <- c("n","f","c","t");
+        nParamIntermittentModelsPool <- c(0,1,3,4);
+        intermittentICs <- rep(NA,length(intermittentModelsPool));
+        intermittentModelsList <- list(NA);
+        intermittent <- intermittentModelsPool[1];
+
+# The first bit is for model estimated on data without intermittency
+        if(model.do!="combine"){
+            substring(modelForIntermittent,1,1) <- "M";
+            esCall$model <- modelForIntermittent;
+            intermittentICs[1] <- ICs[IC];
+        }
+        else{
+            intermittentICs[1] <- ICs;
+        }
+
+        for(i in 2:length(intermittentModelsPool)){
+            esCall$intermittent <- intermittentModelsPool[i];
+            esCall$silent <- TRUE;
+            intermittentModelsList[[i]] <- suppressWarnings(eval(esCall));
+            if(model.do!="combine"){
+                intermittentICs[i] <- intermittentModelsList[[i]]$ICs[IC];
+            }
+            else{
+                intermittentICs[i] <- intermittentModelsList[[i]]$ICs;
+            }
+        }
+        bestIC <- which(intermittentICs==min(intermittentICs));
+        if(silent.text==FALSE){
+            cat("Done!\n");
+        }
+        if(bestIC!=1){
+            intermittent <- intermittentModelsPool[bestIC];
+            intermittentModel <- intermittentModelsList[[bestIC]]
+### This part will probably not be needed, when we introduce forecast class...
+            esCall$intermittent <- intermittent;
+            esCall$silent <- silent;
+            esCall$initial <- intermittentModel$initial;
+            esCall$persistence <- intermittentModel$persistence;
+
+            return(suppressWarnings(eval(esCall)));
+        }
+    }
+
+##### Now let's deal with holdout #####
     if(holdout==TRUE){
         y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
-#        errormeasures <- c(MAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-#                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(diff(as.vector(data)[1:obs])))),
-#                           MASE(as.vector(y.holdout),as.vector(y.for),mean(abs(as.vector(data)[1:obs]))),
-#                           MPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-#                           RelMAE(as.vector(y.holdout),as.vector(y.for),rep(y[obs],h),digits=3),
-#                           SMAPE(as.vector(y.holdout),as.vector(y.for),digits=5),
-#                           cbias(as.vector(y.holdout)-as.vector(y.for),0,digits=5));
-#        names(errormeasures) <- c("MAPE","MASE","MAE/mean","MPE","RelMAE","SMAPE","cbias");
     }
     else{
         y.holdout <- NA;
@@ -1799,7 +1844,7 @@ checker <- function(inherits=TRUE){
         }
     }
 
-    if(all(unlist(strsplit(model,""))!="C")){
+    if(model.do!="combine"){
         return(list(model=model,states=matvt,persistence=as.vector(vecg),phi=phi,
                     initial=initial,initial.season=initial.season,
                     fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
@@ -1810,7 +1855,7 @@ checker <- function(inherits=TRUE){
     else{
         return(list(model=model,fitted=y.fit,forecast=y.for,
                     lower=y.low,upper=y.high,residuals=errors,
-                    actuals=data,holdout=y.holdout,ICs=IC.weights,
+                    actuals=data,holdout=y.holdout,ICs=ICs,ICw=IC.weights,
                     CF.type=CF.type,xreg=xreg,accuracy=errormeasures));
     }
 }

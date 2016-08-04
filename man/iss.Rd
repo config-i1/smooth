@@ -8,7 +8,7 @@
   Functin calculates the probability for intermittent state space model. This is needed in order to forecast intermittent demand using other functions.
 }
 \usage{
-  iss(data, intermittent=c("fixed","croston","tsb"),
+  iss(data, intermittent=c("none","fixed","croston","tsb"),
       h=10, imodel=NULL, ipersistence=NULL)
 }
 \arguments{
@@ -16,7 +16,7 @@
     Either numeric vector or time series vector.
   }
   \item{intermittent}{
-    The type of method used in probability estimation. Can be \code{"fixed"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
+    The type of method used in probability estimation. Can be \code{"none"} - none, \code{"fixed"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
   }
   \item{h}{
     Forecast horizon.

@@ -11,8 +11,8 @@ Package contains several exponential (and not) smoothing functions used in time 
 \tabular{ll}{
 Package: \tab smooth\cr
 Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2016-01-27 - 2016-07-06\cr
+Version: \tab 1.10\cr
+Date: \tab 2016-01-27 - 2016-08-04\cr
 License: \tab GPL-2 \cr
 }
 The following functions are included in the package:

@@ -13,7 +13,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-   intermittent=c("none","fixed","croston","tsb"),
+   intermittent=c("none","fixed","croston","tsb","auto"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
@@ -76,7 +76,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
   }
   \item{intermittent}{
-    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
   }
   \item{bounds}{
     What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
@@ -155,7 +155,8 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{residuals},
     \item \code{actuals},
     \item \code{holdout},
-    \item \code{ICs} - the IC weights used in the combination.
+    \item \code{ICs} - combined IC,
+    \item \code{ICw} - IC weights used in the combination,
     \item \code{CF.type},
     \item \code{xreg},
     \item \code{accuracy}.
@@ -214,6 +215,8 @@ es(x,"ZZN",intermittent="croston")->test
 es(x,"MNN",intermittent="tsb")->test
 # Constant probability based on iETS(M,N,N)
 es(x,"MNN",intermittent="fixed")->test
+# Best type of intermittent model based on iETS(Z,Z,N)
+es(x,"ZZN",intermittent="auto")->test
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

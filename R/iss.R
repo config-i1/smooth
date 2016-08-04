@@ -3,11 +3,11 @@ ssintermittent <- function(data, intermittent=c("fixed","croston","tsb")){
 
 }
 
-iss <- function(data, intermittent=c("fixed","croston","tsb"),
+iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
                 h=10, imodel=NULL, ipersistence=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
-    if(all(intermittent!=c("f","c","t"))){
+    if(all(intermittent!=c("n","f","c","t"))){
         intermittent <- "f";
     }
     y <- data;
@@ -134,5 +134,9 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
 
         return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),
                     likelihood=likelihood,residuals=errors,C=C));
+    }
+    else{
+        return(list(fitted=rep(1,obs),states=NULL,forecast=rep(1,h),variance=rep(0,h),
+                    likelihood=NULL,residuals=rep(0,obs),C=NULL));
     }
 }
