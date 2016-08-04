@@ -444,11 +444,11 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + 1 * (damped + (Ttype=="Z")) + (1 + datafreq)*(Stype!="N") + 1;
 
 # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obs.ot < h+1)){
+    if((multisteps==TRUE) & (obs.ot < h+1) & all(CF.type!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
         message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
-    else if((multisteps==TRUE) & (obs.ot < 2*h)){
+    else if((multisteps==TRUE) & (obs.ot < 2*h) & all(CF.type!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
         message(paste0("Number of observations is really low for a multisteps cost function! We will, try but cannot guarantee anything..."));
     }
 
@@ -1800,6 +1800,7 @@ checker <- function(inherits=TRUE){
         if(bestIC!=1){
             if(silent.text==FALSE){
                 cat(paste0("Time elapsed so far: ",round(as.numeric(Sys.time() - start.time,units="secs"),2)," seconds\n"));
+                cat("Reestimating model.\n");
             }
             intermittent <- intermittentModelsPool[bestIC];
             intermittentModel <- intermittentModelsList[[bestIC]];
