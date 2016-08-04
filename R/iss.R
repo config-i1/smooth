@@ -93,10 +93,10 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
         }
 
         CF <- function(C){
-            betaParameters <- function(A){
-                CF.res <- -sum(log(dbeta(iyt.fit*(1+errors),shape1=A[1],shape2=A[2])))
-                return(CF.res);
-            }
+#            betaParameters <- function(A){
+#                CF.res <- -sum(log(dbeta(iyt.fit*(1+errors),shape1=A[1],shape2=A[2])))
+#                return(CF.res);
+#            }
 
             vecg[,] <- C[1];
             ivt[1,] <- C[2];
@@ -109,33 +109,37 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
             iyt.fit <- fitting$yfit;
             errors <- fitting$errors;
 
-            A <- c(0.1,0.1);
+            CF.res <- -sum(log(dbeta(iyt.fit*(1+errors),shape1=C[3],shape2=C[4])))
+
+#            A <- c(0.1,0.1);
 #            res <- optim(A, betaParameters, lower=c(1e-10,1e-10), upper=c(1,1),method="L-BFGS-B");
-            res <- nloptr(A, betaParameters,
-                          lb=c(1e-10,1e-10), ub=c(1,1),
-                          opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
+#            res <- nloptr(A, betaParameters,
+#                          lb=c(1e-10,1e-10), ub=c(1,1),
+#                          opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
 #                          opts=list("algorithm"="NLOPT_LN_AUGLAG", "xtol_rel"=1e-6, "maxeval"=100,
 #                                    "local_opts"=list("algorithm"="NLOPT_GN_DIRECT", "xtol_rel"=1e-4)));
 #            A <- res$par;
-            A <- res$solution;
-            A <<- A;
-
-            CF.res <- - (A[1]-1)*sum(log(iyt.fit*(1+errors)))
-                      - (A[2]-1)*sum(1-log(iyt.fit*(1+errors)))
-                      + obs * log(beta(A[1],A[2]));
+#            A <- res$solution;
+#            A <<- A;
+#
+#            CF.res <- - (A[1]-1)*sum(log(iyt.fit*(1+errors)))
+#                      - (A[2]-1)*sum(1-log(iyt.fit*(1+errors)))
+#                      + obs * log(beta(A[1],A[2]));
             return(CF.res);
         }
 
-        A <- rep(0.5,2);
+#        A <- rep(0.5,2);
 
 # Smoothing parameter, initial
         kappa <- 1E-5;
-        C <- c(vecg[1],ivt[1]);
-        res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(1,1),
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=500));
+#        C <- c(vecg[1],ivt[1]);
+#        res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(1,1),
+        C <- c(vecg[1],ivt[1],0.5,0.5);
+        res <- nloptr(C, CF, lb=c(1e-10,1e-10,1e-10,1e-10), ub=c(1,1,10,10),
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
         likelihood <- -res$objective;
         C <- res$solution;
-        C <- c(C,A)
+#        C <- c(C,A)
         names(C) <- c("persistence","initial","shape1","shape2")
 
         vecg[,] <- C[1];
