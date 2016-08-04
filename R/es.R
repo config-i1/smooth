@@ -882,23 +882,34 @@ checker <- function(inherits=TRUE){
         if(silent.text==FALSE){
             message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
         }
-        if(obs.ot > 3 + n.param.intermittent){
+        if(obs.ot > 3){
             models.pool <- c("ANN","MNN");
-            if(obs.ot > 5 + n.param.intermittent){
+            if(obs.ot > 5){
                 models.pool <- c(models.pool,"AAN","MAN","AMN","MMN");
             }
-            if(obs.ot > 6 + n.param.intermittent){
+            if(obs.ot > 6){
                 models.pool <- c(models.pool,"AAdN","MAdN","AMdN","MMdN");
             }
-            if((obs.ot > 2*datafreq + n.param.intermittent) & datafreq!=1){
+            if((obs.ot > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"ANA","MNA","ANM","MNM");
             }
-            if((obs.ot > (6 + datafreq + n.param.intermittent)) & (obs.ot > 2*datafreq) & datafreq!=1){
+            if((obs.ot > (6 + datafreq)) & (obs.ot > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"AAA","MAA","AAM","MAM","AMA","MMA","AMM","MMM");
             }
 
-            model <- "ZZZ";
-            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
+            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
+            if(model.do=="combine"){
+                model <- "CNN";
+                if(length(models.pool)>2){
+                    model <- "CCN";
+                }
+                if(length(models.pool)>10){
+                    model <- "CCC";
+                }
+            }
+            else{
+                model <- "ZZZ";
+            }
         }
         else{
             stop("Not enough observations... Even for fitting of ETS('ANN')!",call.=FALSE);
@@ -1739,10 +1750,10 @@ checker <- function(inherits=TRUE){
 
 # The first bit is for model estimated on data without intermittency
         if(model.do!="combine"){
-            if(substring(esCall$model,1,1)!="A"){
-                substring(modelForIntermittent,1,1) <- "M";
-                esCall$model <- modelForIntermittent;
-            }
+#            if(substring(esCall$model,1,1)!="A"){
+#                substring(modelForIntermittent,1,1) <- "M";
+#                esCall$model <- modelForIntermittent;
+#            }
             intermittentICs[1] <- ICs[IC];
         }
         else{
@@ -1761,6 +1772,8 @@ checker <- function(inherits=TRUE){
             }
         }
 
+        intermittentICs[is.nan(intermittentICs)] <- 1e+100;
+        intermittentICs[is.na(intermittentICs)] <- 1e+100;
         bestIC <- which(intermittentICs==min(intermittentICs));
         if(silent.text==FALSE){
             cat("Done!\n");
@@ -1772,12 +1785,12 @@ checker <- function(inherits=TRUE){
             intermittent <- intermittentModelsPool[bestIC];
             intermittentModel <- intermittentModelsList[[bestIC]];
 ### This part will probably not be needed, when we introduce forecast class...
-            esCall$model <- model;
+#            esCall$model <- model;
             esCall$intermittent <- intermittent;
             esCall$silent <- silent;
-            esCall$initial <- intermittentModel$initial;
-            esCall$persistence <- intermittentModel$persistence;
-            esCall$phi <- intermittentModel$phi;
+#            esCall$initial <- intermittentModel$initial;
+#            esCall$persistence <- intermittentModel$persistence;
+#            esCall$phi <- intermittentModel$phi;
 
             return(suppressWarnings(eval(esCall)));
         }
