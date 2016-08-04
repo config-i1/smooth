@@ -76,7 +76,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
   }
   \item{intermittent}{
-    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as a slow-moving; 2. \code{simple}, taking into account Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
   }
   \item{bounds}{
     What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
