@@ -38,7 +38,9 @@
     \item \code{fitted} - fitted values of the constructed model;
     \item \code{forecast} - forecast for \code{h} observations ahead;
     \item \code{variance} - conditional variance of the forecast;
-    \item \code{likelihood} - likelihood value for the model.
+    \item \code{likelihood} - likelihood value for the model;
+    \item \code{residuals} - residuals of the model;
+    \item \code{C} - vector of all the parameters.
   }
 }
 \references{

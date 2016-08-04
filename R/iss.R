@@ -7,6 +7,9 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
                 h=10, imodel=NULL, ipersistence=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
+    if(all(intermittent!=c("f","c","t"))){
+        intermittent <- "f";
+    }
     y <- data;
     obs <- length(y);
     ot <- abs((y!=0)*1);
@@ -19,7 +22,9 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
     if(intermittent=="f"){
         pt <- ts(matrix(rep(iprob,obs),obs,1), start=start(data), frequency=frequency(data));
         pt.for <- ts(rep(iprob,h), start=time(data)[obs]+deltat(data), frequency=frequency(data));
-        return(list(fitted=pt,forecast=pt.for,variance=pt.for*(1-pt.for),likelihood=0));
+        errors <- ts(ot-iprob, start=start(data), frequency=frequency(data));
+        return(list(fitted=pt,forecast=pt.for,variance=pt.for*(1-pt.for),
+                    likelihood=0,residuals=errors,C=iprob));
     }
 ### Croston's method
     else if(intermittent=="c"){
@@ -45,8 +50,12 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
         pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(data),frequency=frequency(data));
         pt.for <- ts(1/(crostonModel$forecast), start=time(data)[obs]+deltat(data),frequency=frequency(data));
         likelihood <- - (crostonModel$ICs["AIC"]/2 - 3);
+        C <- c(crostonModel$persistence,crostonModel$states[1,]);
+        names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
+                      paste0("state ",c(1:length(crostonModel$states[1,]))))
 
-        return(list(fitted=pt,forecast=pt.for,states=crostonModel$states,variance=pt.for*(1-pt.for),likelihood=likelihood));
+        return(list(fitted=pt,forecast=pt.for,states=crostonModel$states,variance=pt.for*(1-pt.for),
+                    likelihood=likelihood,residuals=crostonModel$residuals,C=C));
     }
 ### TSB method
     else if(intermittent=="t"){
@@ -84,6 +93,11 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
         }
 
         CF <- function(C){
+            betaParameters <- function(A){
+                CF.res <- -sum(log(dbeta(iyt.fit*(1+errors),shape1=A[1],shape2=A[2])))
+                return(CF.res);
+            }
+
             vecg[,] <- C[1];
             ivt[1,] <- C[2];
             iy_kappa <- iyt*(1 - 2*kappa) + kappa;
@@ -95,18 +109,34 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
             iyt.fit <- fitting$yfit;
             errors <- fitting$errors;
 
-            CF.res <- -(C[3]-1)*sum(log(iyt.fit*(1+errors))) -
-                      (C[4]-1)*sum(1-log(iyt.fit*(1+errors))) +
-                      obs * log(beta(C[3],C[4]));
+            A <- c(0.1,0.1);
+#            res <- optim(A, betaParameters, lower=c(1e-10,1e-10), upper=c(1,1),method="L-BFGS-B");
+            res <- nloptr(A, betaParameters,
+                          lb=c(1e-10,1e-10), ub=c(1,1),
+                          opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=100));
+#                          opts=list("algorithm"="NLOPT_LN_AUGLAG", "xtol_rel"=1e-6, "maxeval"=100,
+#                                    "local_opts"=list("algorithm"="NLOPT_GN_DIRECT", "xtol_rel"=1e-4)));
+#            A <- res$par;
+            A <- res$solution;
+            A <<- A;
+
+            CF.res <- - (A[1]-1)*sum(log(iyt.fit*(1+errors)))
+                      - (A[2]-1)*sum(1-log(iyt.fit*(1+errors)))
+                      + obs * log(beta(A[1],A[2]));
             return(CF.res);
         }
 
-# Smoothing parameter, initial, alpha, betta, kappa
+        A <- rep(0.5,2);
+
+# Smoothing parameter, initial
         kappa <- 1E-5;
-        C <- c(vecg[1],ivt[1],0.1,0.1);
-        res <- nloptr(C, CF, lb=c(0,0,0,0), ub=c(1,1,1000,1000),
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+        C <- c(vecg[1],ivt[1]);
+        res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(1,1),
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-4, "maxeval"=500));
+        likelihood <- -res$objective;
         C <- res$solution;
+        C <- c(C,A)
+        names(C) <- c("persistence","initial","shape1","shape2")
 
         vecg[,] <- C[1];
         ivt[1,] <- C[2];
@@ -117,9 +147,11 @@ iss <- function(data, intermittent=c("fixed","croston","tsb"),
 
         ivt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
         iyt.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
+        errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
         iy.for <- ts(rep(iyt.fit[obs],h),
                      start=time(data)[obs]+deltat(data),frequency=frequency(data));
 
-        return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),likelihood=-res$objective));
+        return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),
+                    likelihood=likelihood,residuals=errors,C=C));
     }
 }
