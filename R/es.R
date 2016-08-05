@@ -471,7 +471,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.");
         if(datafreq==1){
             if(silent.text==FALSE){
-                message("Data is non-seasonal. Changing seasonal component to 'N'");
+                message("Data is non-seasonal. Setting seasonal component to 'N'");
             }
             Stype <- "N";
         }
@@ -942,8 +942,6 @@ checker <- function(inherits=TRUE){
     if(any(estimate.persistence,estimate.initial*(fittertype=="o"),estimate.initial.season*(fittertype=="o"),
            estimate.xreg,estimate.FX,estimate.gX,estimate.initialX)){
 
-# Number of observations in the error matrix excluding NAs.
-        errors.mat.obs <- obs - h + 1;
 ##### If auto selection is used (for model="ZZZ" or model="CCC"), then let's start misbehaving...
         if(any(model.do==c("combine","select"))){
 
@@ -1036,10 +1034,8 @@ checker <- function(inherits=TRUE){
 
                 return(list(ICs=ICs,objective=res$objective,C=C));
             }
-##### End of estimation script #####
-# Number of observations in the error matrix excluding NAs.
-            errors.mat.obs <- obs - h + 1;
 
+##### End of estimation script #####
             if(!is.null(models.pool)){
                 models.number <- length(models.pool);
 
@@ -1425,7 +1421,6 @@ checker <- function(inherits=TRUE){
                     C <- c(C,transitionX,persistenceX);
                 }
             }
-            errors.mat.obs <- obs - h + 1;
             CF.objective <- CF(C);
         }
         else{
