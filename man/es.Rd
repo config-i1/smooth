@@ -13,7 +13,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-   intermittent=c("none","fixed","croston","tsb","auto"),
+   intermittent=c("auto","none","fixed","croston","tsb"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
