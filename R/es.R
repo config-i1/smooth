@@ -2,7 +2,7 @@ utils::globalVariables(c("vecg","n.components","modellags","fittertype","estimat
                          "obs","obs.all","yot","maxlag","silent.text","allowMultiplicative","current.model",
                          "n.param.intermittent","CF.type.original","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","silent.graph","FI","intermittent",
-                         "estimate.persistence","estimate.initial","obs.xt"));
+                         "estimate.persistence","estimate.initial","obs.vt","multisteps","ot","obs.ot"));
 
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initial.season=NULL, IC=c("AICc","AIC","BIC"),
@@ -17,6 +17,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
+
+# Add all the variables in ellipsis to current environment
+    list2env(list(...),environment());
 
 ##### Set environment for ssinput and make all the checks #####
     environment(ssinput) <- environment();
@@ -286,7 +289,7 @@ esBasicInitialiser <- function(...){
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
+                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -380,72 +383,73 @@ esEstimator <- function(...){
     C.upper <- Cs$C.upper;
     C.lower <- Cs$C.lower;
 
-# Parameters are chosen to speed up the optimisation process and have decent accuracy
-        res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
-        C <- res$solution;
+    # Parameters are chosen to speed up the optimisation process and have decent accuracy
+    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+    C <- res$solution;
 
-# If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
-        if(any(C==Cs$C)){
-            if(C[1]==Cs$C[1]){
-                C[1] <- 0;
-            }
-            if(Ttype!="N"){
-                if(C[2]==Cs$C[2]){
-                    C[2] <- 0;
-                }
-                if(Stype!="N"){
-                    if(C[3]==Cs$C[3]){
-                        C[3] <- 0;
-                    }
-                }
-            }
-            else{
-                if(Stype!="N"){
-                    if(C[2]==Cs$C[2]){
-                        C[2] <- 0;
-                        }
-                    }
-                }
-            res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                          opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
-            C <- res$solution;
+    # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
+    if(any(C==Cs$C)){
+        if(C[1]==Cs$C[1]){
+            C[1] <- 0;
         }
-
-        res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
-                      opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
-        C <- res$solution;
-
-        if(all(C==Cs$C)){
-            warning(paste0("Failed to optimise the model ETS(",current.model,
-                           "). Try different parameters maybe?\nAnd check all the messages and warnings...",
-                           "\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
-                    call.=FALSE, immediate.=TRUE);
-        }
-
-        n.param <- n.components*estimate.persistence + estimate.phi +
-            (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") +
-            maxlag*estimate.initial.season*(fittertype=="o") +
-            estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars + 1;
-
-# Change CF.type for model selection
-        if(multisteps==TRUE){
-            if(substring(CF.type,1,1)=="a"){
-                CF.type <- "aTFL";
+        if(Ttype!="N"){
+            if(C[2]==Cs$C[2]){
+                C[2] <- 0;
             }
-            else{
-                CF.type <- "TFL";
+            if(Stype!="N"){
+                if(C[3]==Cs$C[3]){
+                    C[3] <- 0;
+                }
             }
         }
         else{
-            CF.type <- "MSE";
+            if(Stype!="N"){
+                if(C[2]==Cs$C[2]){
+                    C[2] <- 0;
+                }
+            }
         }
+        res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+        C <- res$solution;
+    }
 
-        IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
-        ICs <- IC.values$ICs;
-# Change back
-        CF.type <- CF.type.original;
-    return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param));
+    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
+    C <- res$solution;
+
+    if(all(C==Cs$C)){
+        warning(paste0("Failed to optimise the model ETS(",current.model,
+                       "). Try different parameters maybe?\nAnd check all the messages and warnings...",
+                       "\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                call.=FALSE, immediate.=TRUE);
+    }
+
+    n.param <- n.components*estimate.persistence + estimate.phi +
+        (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") +
+        maxlag*estimate.initial.season*(fittertype=="o") +
+        estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars + 1;
+
+    # Change CF.type for model selection
+    if(multisteps==TRUE){
+        if(substring(CF.type,1,1)=="a"){
+            CF.type <- "aTFL";
+        }
+        else{
+            CF.type <- "TFL";
+        }
+    }
+    else{
+        CF.type <- "MSE";
+    }
+
+    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
+    ICs <- IC.values$ICs;
+
+    # Change back
+    CF.type <- CF.type.original;
+    return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param,FI=FI));
 }
 
 ##### This function prepares pool of models to use #####
@@ -733,8 +737,9 @@ esCreator <- function(silent.text=FALSE,...){
         }
         CF.objective <- as.numeric(results[8]);
         C <- as.numeric(results[-c(1:8)]);
+
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=as.numeric(results[length(results)])));
+                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=as.numeric(results[length(results)]),FI=FI));
     }
     else if(modelDo=="combine"){
         environment(esPoolEstimator) <- environment();
@@ -754,7 +759,7 @@ esCreator <- function(silent.text=FALSE,...){
         bestIC <- res$ICs[IC];
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=res$objective,C=res$C,ICs=res$ICs,bestIC=bestIC,n.param=res$n.param));
+                    CF.objective=res$objective,C=res$C,ICs=res$ICs,bestIC=bestIC,n.param=res$n.param,FI=FI));
     }
     else{
         C <- c(vecg,phi,initial,initial.season);
@@ -784,149 +789,21 @@ esCreator <- function(silent.text=FALSE,...){
 
         IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
         ICs <- IC.values$ICs;
-# Change back
-        CF.type <- CF.type.original;
         bestIC <- ICs[IC];
+        # Change back
+        CF.type <- CF.type.original;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param,FI=FI));
     }
 }
-
-##### Fitter of es() #####
-esFitter <- function(...){
-    ellipsis <- list(...);
-    ParentEnvironment <- ellipsis[['ParentEnvironment']];
-
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype, fittertype,
-                          matxt, matat, matFX, vecgX, ot);
-    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
-    y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
-
-    if(!is.null(xreg)){
-        # Write down the matat and copy values for the holdout
-        matat[1:nrow(fitting$matat),] <- fitting$matat;
-    }
-
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
-                                 h, Etype, Ttype, Stype, modellags,
-                                 matxt, matat, matFX, ot),
-                     start=start(data),frequency=frequency(data));
-    colnames(errors.mat) <- paste0("Error",c(1:h));
-    errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
-
-    assign("matvt",matvt,ParentEnvironment);
-    assign("y.fit",y.fit,ParentEnvironment);
-    assign("matat",matat,ParentEnvironment);
-    assign("errors.mat",errors.mat,ParentEnvironment);
-    assign("errors",errors,ParentEnvironment);
-}
-
-##### Forecaster of es() #####
-esForecaster <- function(...){
-    ellipsis <- list(...);
-    ParentEnvironment <- ellipsis[['ParentEnvironment']];
-
-    y.for <- ts(pt.for*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                                      matF, matw, h, Ttype, Stype, modellags,
-                                      matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                                      matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-                start=time(data)[obs]+deltat(data),frequency=datafreq);
-
-    if(Etype=="M" & any(y.for<0)){
-        y.for[y.for<0] <- 1;
-    }
-
-# If error additive, estimate as normal. Otherwise - lognormal
-        if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/(obs.ot - n.param));
-        }
-        else{
-            s2 <- as.vector(sum((log(1+errors*ot))^2)/(obs.ot - n.param));
-        }
-
-# Write down the forecasting intervals
-        if(intervals==TRUE){
-            if(h==1){
-                errors.x <- as.vector(errors);
-                ev <- median(errors);
-            }
-            else{
-                errors.x <- errors.mat;
-                ev <- apply(errors.mat,2,median,na.rm=TRUE);
-            }
-            if(int.type!="a"){
-                ev <- 0;
-            }
-
-            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 1)){
-                simulateint <- FALSE;
-            }
-            else{
-                simulateint <- TRUE;
-            }
-
-            if(int.type=="p" & simulateint==TRUE){
-                n.samples <- 10000
-                matg <- matrix(vecg,n.components,n.samples);
-                arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
-                arrvt[1:maxlag,,] <- rep(matvt[(obs-maxlag+1):obs,],n.samples);
-                materrors <- matrix(rnorm(n.samples,0,sqrt(s2)),h,n.samples);
-                if(Etype=="M"){
-                    materrors <- exp(materrors) - 1;
-                }
-                if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
-                }
-                else{
-                    matot <- matrix(1,h,n.samples);
-                }
-
-                y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
-                if(!is.null(xreg)){
-                    y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                                                  matF, matw, h, Ttype, Stype, modellags,
-                                                  matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
-                }
-                else{
-                    y.exo.for <- rep(0,h);
-                }
-                y.low <- ts(apply(y.simulated,1,quantile,(1-int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-                y.high <- ts(apply(y.simulated,1,quantile,(1+int.w)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-            }
-            else{
-                vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
-
-                quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
-                                          measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                          y.for=y.for, iprob=iprob);
-                if(Etype=="A"){
-                    y.low <- ts(c(y.for) + pt.for*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + pt.for*quantvalues$upper,start=start(y.for),frequency=frequency(data));
-                }
-                else{
-                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
-                }
-            }
-        }
-        else{
-            y.low <- NA;
-            y.high <- NA;
-        }
-
-    assign("s2",s2,ParentEnvironment);
-    assign("y.for",y.for,ParentEnvironment);
-    assign("y.low",y.low,ParentEnvironment);
-    assign("y.high",y.high,ParentEnvironment);
-}
-
 
 ##### Now do estimation and model selection #####
     environment(intermittentParametersSetter) <- environment();
     environment(intermittentMaker) <- environment();
     environment(esBasicInitialiser) <- environment();
+    environment(ssFitter) <- environment();
+    environment(ssForecaster) <- environment();
 
 # If auto intermittent, then estimate model with intermittent="n" first.
     if(any(intermittent==c("a","n"))){
@@ -936,7 +813,7 @@ esForecaster <- function(...){
         intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
-    esSelectorValues <- esCreator();
+    esValues <- esCreator();
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
@@ -947,7 +824,7 @@ esForecaster <- function(...){
         intermittentModelsPool <- c("n","f","c","t");
         intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs <- esSelectorValues$bestIC;
+        intermittentICs <- esValues$bestIC;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
@@ -965,7 +842,7 @@ esForecaster <- function(...){
         if(iBest!=1){
             intermittent <- intermittentModelsPool[iBest];
             intermittentModel <- intermittentModelsList[[iBest]];
-            esSelectorValues <- intermittentModelsList[[iBest]];
+            esValues <- intermittentModelsList[[iBest]];
         }
         else{
             intermittent <- "n"
@@ -977,7 +854,7 @@ esForecaster <- function(...){
 
 ##### Fit simple model and produce forecast #####
     if(modelDo!="combine"){
-        list2env(esSelectorValues,environment());
+        list2env(esValues,environment());
         esBasicMaker(ParentEnvironment=environment());
         esBasicInitialiser(ParentEnvironment=environment());
 
@@ -988,8 +865,14 @@ esForecaster <- function(...){
             model <- paste0(Etype,Ttype,Stype);
         }
 
-        esFitter(ParentEnvironment=environment());
-        esForecaster(ParentEnvironment=environment());
+        # Write down Fisher Information if needed
+        if(FI==TRUE){
+            environment(likelihoodFunction) <- environment();
+            FI <- numDeriv::hessian(likelihoodFunction,C);
+        }
+
+        ssFitter(ParentEnvironment=environment());
+        ssForecaster(ParentEnvironment=environment());
 
         component.names <- "level";
         if(Ttype!="N"){
@@ -1026,7 +909,7 @@ esForecaster <- function(...){
     }
 ##### Produce fit and forecasts of combined model #####
     else{
-        list2env(esSelectorValues,environment());
+        list2env(esValues,environment());
 
         # Produce the forecasts using AIC weights
         models.number <- length(IC.weights);
@@ -1051,8 +934,8 @@ esForecaster <- function(...){
             esBasicMaker(ParentEnvironment=environment());
             esBasicInitialiser(ParentEnvironment=environment());
 
-            esFitter(ParentEnvironment=environment());
-            esForecaster(ParentEnvironment=environment());
+            ssFitter(ParentEnvironment=environment());
+            ssForecaster(ParentEnvironment=environment());
 
             fitted.list[,i] <- y.fit;
             forecasts.list[,i] <- y.for;
@@ -1086,7 +969,7 @@ esForecaster <- function(...){
 ##### Do final check #####
     if(any(is.na(y.fit),is.na(y.for))){
         warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
-        warning("Please check the input and report this error if it persists to the maintainer.",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
     }
 
 ##### Now let's deal with holdout #####
@@ -1105,7 +988,7 @@ esForecaster <- function(...){
         if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
         }
-# Calculate the number os observations in the interval
+# Calculate the number of observations in the interval
         if(all(holdout==TRUE,intervals==TRUE)){
             insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
                                    as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
