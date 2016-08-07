@@ -1,6 +1,63 @@
-ssintermittent <- function(data, intermittent=c("fixed","croston","tsb")){
-# Function checks the provided parameters and data for intermittency
+utils::globalVariables(c("y","obs"))
 
+intermittentParametersSetter <- function(intermittent="n",...){
+# Function returns basic parameters based on intermittent type
+    ellipsis <- list(...);
+    ParentEnvironment <- ellipsis[['ParentEnvironment']];
+
+    if(all(intermittent!=c("n","p"))){
+        ot <- (y!=0)*1;
+        obs.ot <- sum(ot);
+        # 1 parameter for estimating initial probability
+        n.param.intermittent <- 1;
+        if(intermittent=="c"){
+            # In Croston we need to estimate smoothing parameter and variance
+            n.param.intermittent <- n.param.intermittent + 2;
+        }
+        else if(any(intermittent==c("t","a"))){
+            # In TSB we need to estimate smoothing parameter and two parameters of distribution
+            n.param.intermittent <- n.param.intermittent + 3;
+        }
+        yot <- matrix(y[y!=0],obs.ot,1);
+        pt <- matrix(mean(ot),obs,1);
+        pt.for <- matrix(1,h,1);
+    }
+
+    if(intermittent=="n"){
+        ot <- rep(1,obs);
+        obs.ot <- obs;
+        yot <- y;
+        pt <- matrix(1,obs,1);
+        pt.for <- matrix(1,h,1);
+        n.param.intermittent <- 0;
+    }
+    iprob <- pt[1];
+
+    assign("ot",ot,ParentEnvironment);
+    assign("obs.ot",obs.ot,ParentEnvironment);
+    assign("yot",yot,ParentEnvironment);
+    assign("pt",pt,ParentEnvironment);
+    assign("pt.for",pt.for,ParentEnvironment);
+    assign("n.param.intermittent",n.param.intermittent,ParentEnvironment);
+    assign("iprob",iprob,ParentEnvironment);
+}
+
+intermittentMaker <- function(intermittent="n",...){
+# Function returns all the necessary stuff from intermittent models
+    ellipsis <- list(...);
+    ParentEnvironment <- ellipsis[['ParentEnvironment']];
+
+##### If intermittent is not auto, then work normally #####
+    if(all(intermittent!=c("n","p","a"))){
+        intermittent_model <- iss(y,intermittent=intermittent,h=h);
+        pt[,] <- intermittent_model$fitted;
+        pt.for <- intermittent_model$forecast;
+        iprob <- pt.for[1];
+    }
+
+    assign("pt",pt,ParentEnvironment);
+    assign("pt.for",pt.for,ParentEnvironment);
+    assign("iprob",iprob,ParentEnvironment);
 }
 
 iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
