@@ -1,9 +1,12 @@
+utils::globalVariables(c("estimate.initial","estimate.measurement","estimate.initial","estimate.transition",
+                         "estimate.persistence","obs.xt"));
+
 ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
                 persistence=NULL, transition=NULL, measurement=NULL,
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                intermittent=FALSE,
+                intermittent=c("auto","none","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
@@ -13,217 +16,13 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-# See if a user asked for Fisher Information
-    if(!is.null(list(...)[['FI']])){
-        FI <- list(...)[['FI']];
-    }
-    else{
-        FI <- FALSE;
-    }
+##### Set environment for ssinput and make all the checks #####
+    environment(ssinput) <- environment();
+    ssinput(modelType="ges",ParentEnvironment=environment());
 
-# Make sense out of silent
-    silent <- silent[1];
-# Fix for cases with TRUE/FALSE.
-    if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output"))){
-            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
-            silent <- "none";
-        }
-        silent <- substring(silent,1,1);
-    }
-
-    if(silent==FALSE | silent=="n"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-    else if(silent==TRUE | silent=="a"){
-        silent.text <- TRUE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="g"){
-        silent.text <- FALSE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="l"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- FALSE;
-    }
-    else if(silent=="o"){
-        silent.text <- TRUE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-
-    bounds <- substring(bounds[1],1,1);
-# Check if "bounds" parameter makes any sense
-    if(bounds!="n" & bounds!="a"){
-        message("The strange bounds are defined. Switching to 'admissible'.");
-        bounds <- "a";
-    }
-
-    if(length(orders) != length(lags)){
-        stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
-    }
-
-    modellags <- matrix(rep(lags,times=orders),ncol=1);
-    maxlag <- max(modellags);
-    n.components <- sum(orders);
-
-    CF.type <- CF.type[1];
-# Check if the appropriate CF.type is defined
-    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
-        multisteps <- TRUE;
-    }
-    else if(any(CF.type==c("MSE","MAE","HAM"))){
-        multisteps <- FALSE;
-    }
-    else{
-        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
-        CF.type <- "MSE";
-        multisteps <- FALSE;
-    }
-    CF.type.original <- CF.type;
-
-    int.type <- substring(int.type[1],1,1);
-# Check the provided type of interval
-    if(all(int.type!=c("a","p","s","n"))){
-        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
-        int.type <- "p";
-    }
-
-# Check if the data is vector
-    if(!is.numeric(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-
-# Check if the data contains NAs
-    if(any(is.na(data))){
-        message("Data contains NAs. These observations will be excluded.");
-        datanew <- data[!is.na(data)];
-        if(is.ts(data)){
-            datanew <- ts(datanew,start=start(data),frequency=frequency(data));
-        }
-        data <- datanew;
-    }
-    else{
-        data <- ts(data,start=start(data),frequency=frequency(data));
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(is.character(initial)){
-        initial <- substring(initial[1],1,1);
-        if(initial!="o" & initial!="b"){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
-            initial <- "o";
-        }
-        fittertype <- initial;
-        estimate.initial <- TRUE;
-    }
-    else if(is.null(initial)){
-        message("Initial value is not selected. Switching to optimal.");
-        fittertype <- "o";
-        estimate.initial <- TRUE;
-    }
-    else if(!is.null(initial)){
-        if(!is.numeric(initial) | !is.vector(initial)){
-            stop("The initial vector is not numeric!",call.=FALSE);
-        }
-        if(length(initial) != orders %*% lags){
-            stop(paste0("Wrong length of initial vector. Should be ",orders %*% lags," instead of ",length(initial),"."),call.=FALSE);
-        }
-        fittertype <- "o";
-        estimate.initial <- FALSE;
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(!is.null(persistence)){
-        if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
-            stop("The persistence vector is not numeric!",call.=FALSE);
-        }
-        if(length(persistence) != n.components){
-            stop(paste0("Wrong length of persistence vector. Should be ",n.components," instead of ",length(persistence),"."),call.=FALSE);
-        }
-        estimate.persistence <- FALSE;
-    }
-    else{
-        estimate.persistence <- TRUE;
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(!is.null(transition)){
-        if((!is.numeric(transition) | !is.vector(transition)) & !is.matrix(transition)){
-            stop("The transition matrix is not numeric!",call.=FALSE);
-        }
-        if(length(transition) != n.components^2){
-            stop(paste0("Wrong length of transition matrix. Should be ",n.components^2," instead of ",length(transition),"."),call.=FALSE);
-        }
-        estimate.transition <- FALSE;
-    }
-    else{
-        estimate.transition <- TRUE;
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(!is.null(measurement)){
-        if((!is.numeric(measurement) | !is.vector(measurement)) & !is.matrix(measurement)){
-            stop("The measurement vector is not numeric!",call.=FALSE);
-        }
-        if(length(measurement) != n.components){
-            stop(paste0("Wrong length of measurement vector. Should be ",n.components," instead of ",length(measurement),"."),call.=FALSE);
-        }
-        estimate.measurement <- FALSE;
-    }
-    else{
-        estimate.measurement <- TRUE;
-    }
-
-# Define obs.all, the overal number of observations (in-sample + holdout)
-    obs.all <- length(data) + (1 - holdout)*h;
-
-# Define obs, the number of observations of in-sample
-    obs <- length(data) - holdout*h;
-
-# If obs is negative, this means that we can't do anything...
-    if(obs<=0){
-        stop("Not enough observations in sample.",call.=FALSE);
-    }
-
-# Define the number of rows that should be in the matvt
-    obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
-
-# Define the actual values
-    y <- matrix(data[1:obs],obs,1);
-    datafreq <- frequency(data);
-
-    if(intermittent==TRUE){
-        ot <- (y!=0)*1;
-        iprob <- mean(ot);
-        obs.ot <- sum(ot);
-        yot <- matrix(y[y!=0],obs.ot,1);
-    }
-    else{
-        ot <- rep(1,obs);
-        iprob <- 1;
-        obs.ot <- obs;
-        yot <- y;
-    }
-
-# If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(iprob==1){
-        intermittent <- FALSE;
-    }
-
-# Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obs.ot < h+1)){
-        message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
-        stop("Not enough observations for multisteps cost function.",call.=FALSE);
-    }
-    else if((multisteps==TRUE) & (obs.ot < 2*h)){
-        message(paste0("Number of observations is really low for a multisteps cost function! We will try but cannot guarantee anything..."));
+##### !!!Temporary override for intermitency!!! #####
+    if(intermittent=="a"){
+        intermittent <- "n"
     }
 
 ##### Prepare exogenous variables #####
@@ -241,22 +40,9 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     estimate.initialX <- xregdata$estimate.initialX;
 
 # 1 stands for the variance
-    n.param <- 1 + n.components + n.components*(fittertype=="o") + n.components^2 + orders %*% lags + intermittent;
-
-    if(estimate.xreg==TRUE){
-        n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
-    }
-
-    if(obs.ot <= n.param){
-        if(intermittent==TRUE){
-            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                        n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);
-        }
-        else{
-            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                        n.param," while the number of observations is ",obs.ot,"!"),call.=FALSE);
-        }
-    }
+    n.param <- 1 + n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
+        n.components^2*estimate.transition + orders %*% lags * estimate.persistence +
+        estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -369,8 +155,7 @@ Likelihood.value <- function(C){
     }
 }
 
-#####Start the calculations#####
-
+##### Start the calculations #####
     matvt <- matrix(NA,nrow=obs.xt,ncol=n.components);
     y.fit <- rep(NA,obs);
     errors <- rep(NA,obs);
@@ -555,15 +340,11 @@ Likelihood.value <- function(C){
         y.high <- NA;
     }
 
-# Information criteria
-    llikelihood <- Likelihood.value(C);
+    environment(likelihoodFunction) <- environment();
+    environment(ICFunction) <- environment();
 
-    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs.ot - n.param - 1);
-    BIC.coef <- log(obs.ot)*n.param - 2*llikelihood;
-
-    ICs <- c(AIC.coef, AICc.coef, BIC.coef);
-    names(ICs) <- c("AIC", "AICc", "BIC");
+    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICs <- IC.values$ICs;
 
 # Revert to the provided cost function
     CF.type <- CF.type.original

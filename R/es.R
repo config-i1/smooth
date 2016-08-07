@@ -1,14 +1,15 @@
 utils::globalVariables(c("vecg","n.components","modellags","fittertype","estimate.phi","y","datafreq",
                          "obs","obs.all","yot","maxlag","silent.text","allowMultiplicative","current.model",
                          "n.param.intermittent","CF.type.original","matF","matw","pt.for","errors.mat",
-                         "iprob","results","s2","silent.graph","FI","intermittent"));
+                         "iprob","results","s2","silent.graph","FI","intermittent",
+                         "estimate.persistence","estimate.initial","obs.xt"));
 
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initial.season=NULL, IC=c("AICc","AIC","BIC"),
                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-               intermittent=c("none","fixed","croston","tsb","auto"),
+               intermittent=c("auto","none","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -19,7 +20,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ##### Set environment for ssinput and make all the checks #####
     environment(ssinput) <- environment();
-    ssinput(ParentEnvironment=environment());
+    ssinput(modelType="es",ParentEnvironment=environment());
 
 ##### Cost Function for ES #####
 CF <- function(C){
@@ -218,7 +219,6 @@ esBasicInitialiser <- function(...){
 # First two columns are needed for additive seasonality, the 3rd and 4th - for the multiplicative
     if(Ttype!="N"){
         if(is.null(initial)){
-            estimate.initial <- TRUE;
             initialstates <- matrix(NA,1,4);
 # "-1" is needed, so the level would correspond to the values before the in-sample
             initialstates[1,2] <- cov(yot[1:min(12,obs.ot)],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
@@ -227,17 +227,14 @@ esBasicInitialiser <- function(...){
             initialstates[1,4] <- 1;
         }
         else{
-            estimate.initial <- FALSE;
             initialstates <- matrix(rep(initial,2),nrow=1);
         }
     }
     else{
         if(is.null(initial)){
-            estimate.initial <- TRUE;
             initialstates <- matrix(rep(mean(yot[1:min(12,obs.ot)]),4),nrow=1);
         }
         else{
-            estimate.initial <- FALSE;
             initialstates <- matrix(rep(initial,4),nrow=1);
         }
     }
@@ -264,11 +261,9 @@ esBasicInitialiser <- function(...){
 # If the persistence vector is provided, use it
     if(!is.null(persistence)){
         smoothingparameters <- cbind(persistence,persistence);
-        estimate.persistence <- FALSE;
     }
     else{
         smoothingparameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
-        estimate.persistence <- TRUE;
     }
 
     if(!is.null(phi)){
@@ -287,10 +282,6 @@ esBasicInitialiser <- function(...){
     normalizer <- mean(abs(diff(c(y))));
 
     esBasicMaker(ParentEnvironment=environment());
-
-# Define the number of rows that should be in matvt
-##### !!!!Change obs.xt to obs.vt!!!! #####
-    obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
@@ -721,7 +712,7 @@ esPoolEstimator <- function(silent.text=FALSE,...){
 }
 
 ##### Function selects the best es() based on IC #####
-esSelector <- function(silent.text=FALSE,...){
+esCreator <- function(silent.text=FALSE,...){
     if(modelDo=="select"){
         environment(esPoolEstimator) <- environment();
         esPoolResults <- esPoolEstimator(silent.text=silent.text);
@@ -945,7 +936,7 @@ esForecaster <- function(...){
         intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
-    esSelectorValues <- esSelector();
+    esSelectorValues <- esCreator();
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
@@ -961,7 +952,7 @@ esForecaster <- function(...){
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentModelsList[[i]] <- esSelector(silent.text=TRUE);
+            intermittentModelsList[[i]] <- esCreator(silent.text=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
         }
         intermittentICs[is.nan(intermittentICs)] <- 1e+100;
