@@ -1,5 +1,6 @@
 utils::globalVariables(c("estimate.initial","estimate.measurement","estimate.initial","estimate.transition",
-                         "estimate.persistence","obs.xt"));
+                         "estimate.persistence","obs.vt","multisteps","ot","obs.ot","ICs","CF.objective",
+                         "y.for","y.low","y.high"));
 
 ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
                 persistence=NULL, transition=NULL, measurement=NULL,
@@ -16,6 +17,9 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
+# Add all the variables in ellipsis to current environment
+    list2env(list(...),environment());
+
 ##### Set environment for ssinput and make all the checks #####
     environment(ssinput) <- environment();
     ssinput(modelType="ges",ParentEnvironment=environment());
@@ -28,7 +32,7 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
+                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -39,16 +43,12 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     estimate.gX <- xregdata$estimate.gX;
     estimate.initialX <- xregdata$estimate.initialX;
 
-# 1 stands for the variance
-    n.param <- 1 + n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
-        n.components^2*estimate.transition + orders %*% lags * estimate.persistence +
-        estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
-
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
     Ttype <- "N";
     Stype <- "N";
 
+##### Initialise ges #####
 elements.ges <- function(C){
     n.coef <- 0;
     if(estimate.measurement==TRUE){
@@ -123,7 +123,7 @@ elements.ges <- function(C){
     return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
 }
 
-# Cost function for GES
+##### Cost Function for GES #####
 CF <- function(C){
     elements <- elements.ges(C);
     matw <- elements$matw;
@@ -143,29 +143,15 @@ CF <- function(C){
     return(CF.res);
 }
 
-# Likelihood function
-Likelihood.value <- function(C){
-    if(CF.type=="TFL"){
-        return(obs.ot*log(iprob)*(h^multisteps)
-               -obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
-    }
-    else{
-        return(obs.ot*log(iprob)
-               -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
-    }
-}
+##### Estimate ges or just use the provided values #####
+gesCreator <- function(silent.text=FALSE,...){
+    environment(likelihoodFunction) <- environment();
+    environment(ICFunction) <- environment();
 
-##### Start the calculations #####
-    matvt <- matrix(NA,nrow=obs.xt,ncol=n.components);
-    y.fit <- rep(NA,obs);
-    errors <- rep(NA,obs);
-
-    if(multisteps==TRUE){
-        normalizer <- sum(abs(diff(c(y))))/(obs-1);
-    }
-    else{
-        normalizer <- 0;
-    }
+# 1 stands for the variance
+    n.param <- 1 + n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
+        n.components^2*estimate.transition + orders %*% lags * estimate.persistence +
+        estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
 
 # If there is something to optimise, let's do it.
     if((estimate.initial==TRUE) | (estimate.measurement==TRUE) | (estimate.transition==TRUE) | (estimate.persistence==TRUE) |
@@ -229,15 +215,6 @@ Likelihood.value <- function(C){
             }
         }
 
-        elements <- elements.ges(C);
-        matw <- elements$matw;
-        matF <- elements$matF;
-        vecg <- elements$vecg;
-        matvt[1:maxlag,] <- elements$vt;
-        matat[1:maxlag,] <- elements$at;
-        matFX <- elements$matFX;
-        vecgX <- elements$vecgX;
-
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
         C <- res$solution;
@@ -261,20 +238,46 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-# Change the CF.type in orders to calculate likelihood correctly.
+# Change CF.type for model selection
     if(multisteps==TRUE){
-        CF.type <- "TFL";
+        if(substring(CF.type,1,1)=="a"){
+            CF.type <- "aTFL";
+        }
+        else{
+            CF.type <- "TFL";
+        }
     }
     else{
         CF.type <- "MSE";
     }
 
-    if(FI==TRUE){
-        FI <- hessian(Likelihood.value,C);
+    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICs <- IC.values$ICs;
+    bestIC <- ICs["AICc"];
+
+# Revert to the provided cost function
+    CF.type <- CF.type.original
+
+    return(list(CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+}
+
+##### Start the calculations #####
+    environment(ssForecaster) <- environment();
+    environment(ssFitter) <- environment();
+
+    matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
+    y.fit <- rep(NA,obs);
+    errors <- rep(NA,obs);
+
+    if(multisteps==TRUE){
+        normalizer <- sum(abs(diff(c(y))))/(obs-1);
     }
     else{
-        FI <- NA;
+        normalizer <- 0;
     }
+
+    gesValues <- gesCreator();
+    list2env(gesValues,environment());
 
 # Prepare for fitting
     elements <- elements.ges(C);
@@ -286,68 +289,19 @@ Likelihood.value <- function(C){
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype, fittertype,
-                          matxt, matat, matFX, vecgX, ot);
-    matvt <- fitting$matvt;
-    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
-    matat[1:nrow(fitting$matat),] <- fitting$matat;
+    # Write down Fisher Information if needed
+    if(FI==TRUE){
+        environment(likelihoodFunction) <- environment();
+        FI <- numDeriv::hessian(likelihoodFunction,C);
+    }
 
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
-                                 h, Etype, Ttype, Stype, modellags,
-                                 matxt, matat, matFX, ot),
-                     start=start(data),frequency=frequency(data));
-    colnames(errors.mat) <- paste0("Error",c(1:h));
-    errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
-
-    y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                               matF, matw, h, Ttype, Stype, modellags,
-                               matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                               matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-                start=time(data)[obs]+deltat(data),frequency=datafreq);
-
-#    s2 <- mean(errors^2);
-    s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
+    ssFitter(ParentEnvironment=environment());
+    ssForecaster(ParentEnvironment=environment());
 
     if(any(is.na(y.fit),is.na(y.for))){
         message("Something went wrong during the optimisation and NAs were produced!");
-        message("Please check the input and report this error if it persists to the maintainer.");
+        message("Please check the input and report this error to the maintainer if it persists.");
     }
-
-    if(intervals==TRUE){
-        if(h==1){
-            errors.x <- as.vector(errors);
-            ev <- median(errors);
-        }
-        else{
-            errors.x <- errors.mat;
-            ev <- apply(errors.mat,2,median,na.rm=TRUE);
-        }
-        if(int.type!="a"){
-            ev <- 0;
-        }
-
-        vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
-
-        quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
-                                 measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                 y.for=y.for, iprob=iprob);
-        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
-    }
-    else{
-        y.low <- NA;
-        y.high <- NA;
-    }
-
-    environment(likelihoodFunction) <- environment();
-    environment(ICFunction) <- environment();
-
-    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
-    ICs <- IC.values$ICs;
-
-# Revert to the provided cost function
-    CF.type <- CF.type.original
 
 # Write down initials of states vector and exogenous
     if(estimate.initial==TRUE){
