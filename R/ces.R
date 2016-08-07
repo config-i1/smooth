@@ -178,9 +178,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # No seasonality
         maxlag <- 1;
         modellags <- c(1,1);
-        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
+        obs.vt <- max(obs.all+maxlag,obs+2*maxlag);
         matw <- matrix(c(1,0,0,1),2,2);
-        matvt <- matrix(NA,obs.xt,2);
+        matvt <- matrix(NA,obs.vt,2);
         colnames(matvt) <- c("level","potential");
         matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
         ces.name <- "Complex Exponential Smoothing";
@@ -196,9 +196,9 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Simple seasonality, lagged CES
         maxlag <- datafreq;
         modellags <- c(maxlag,maxlag);
-        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
+        obs.vt <- max(obs.all+maxlag,obs+2*maxlag);
         matw <- matrix(c(1,0,0,1),2,2);
-        matvt <- matrix(NA,obs.xt,2);
+        matvt <- matrix(NA,obs.vt,2);
         colnames(matvt) <- c("level.s","potential.s");
         matvt[1:maxlag,1] <- y[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -214,11 +214,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Partial seasonality with a real part only
         maxlag <- datafreq;
         modellags <- c(1,1,maxlag);
-        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
+        obs.vt <- max(obs.all+maxlag,obs+2*maxlag);
         C <- c(C,0.5);
         matw <- matrix(c(1,0,0,1,1,0),2,3);
         lags <- c(1,1,maxlag);
-        matvt <- matrix(NA,obs.xt,3);
+        matvt <- matrix(NA,obs.vt,3);
         colnames(matvt) <- c("level","potential","seasonal");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -236,11 +236,11 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 # Full seasonality with both real and imaginary parts
         maxlag <- datafreq;
         modellags <- c(1,1,maxlag,maxlag);
-        obs.xt <- max(obs.all+maxlag,obs+2*maxlag);
+        obs.vt <- max(obs.all+maxlag,obs+2*maxlag);
         C <- c(C,C);
         matw <- matrix(c(1,0,0,1,1,0,0,1),2,4);
         lags <- c(1,1,maxlag,maxlag);
-        matvt <- matrix(NA,obs.xt,4);
+        matvt <- matrix(NA,obs.vt,4);
         colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/C[1];
@@ -268,7 +268,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
+                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;

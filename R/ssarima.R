@@ -282,7 +282,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     }
 
 # Define the number of rows that should be in the matvt
-    obs.xt <- max(obs.all + maxlag, obs + 2*maxlag);
+    obs.vt <- max(obs.all + maxlag, obs + 2*maxlag);
 
 # Check if the data is vector
     if(!is.numeric(data) & !is.ts(data)){
@@ -333,25 +333,25 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matF <- rbind(cbind(rep(0,n.components-1),diag(n.components-1)),rep(0,n.components));
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
-        matvt <- matrix(NA,obs.xt,n.components);
+        matvt <- matrix(NA,obs.vt,n.components);
         if(constant==TRUE){
             matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
             matw <- cbind(matw,0);
             vecg <- rbind(vecg,0);
-            matvt <- cbind(matvt,rep(1,obs.xt));
+            matvt <- cbind(matvt,rep(1,obs.vt));
         }
     }
     else{
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
-        matvt <- matrix(1,obs.xt,1);
+        matvt <- matrix(1,obs.vt,1);
         modellags <- matrix(1,1,1);
     }
 
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.xt=obs.xt, maxlag=maxlag, h=h, silent=silent.text);
+                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
