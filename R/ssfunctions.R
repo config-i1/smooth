@@ -10,9 +10,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    # Variable is needed in order to check if model can be estimated on data
-    n.param.test <- 0;
-
     ##### silent #####
     silent <- silent[1];
     # Fix for cases with TRUE/FALSE.
@@ -302,9 +299,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             pt <- matrix(mean(ot),obs,1);
             pt.for <- matrix(1,h,1);
         }
-        else if(length(intermittent)==obs.all){
-            intermittent <- intermittent[(obs+1):(obs+h)];
-        }
 
         if(any(intermittent!=0 & intermittent!=1)){
             warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
@@ -314,17 +308,26 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             }
             intermittent <- (intermittent!=0)*1;
         }
+
         ot <- (y!=0)*1;
         obs.ot <- sum(ot);
         yot <- matrix(y[y!=0],obs.ot,1);
-        pt <- matrix(ot,obs,1);
-        pt.for <- matrix(intermittent,h,1);
-        iprob <- 1;
+        if(length(intermittent)==obs.all){
+            pt <- intermittent[1:obs];
+            pt.for <- intermittent[(obs+1):(obs+h)];
+        }
+        else{
+            pt <- matrix(ot,obs,1);
+            pt.for <- matrix(intermittent,h,1);
+        }
+
+        iprob <- pt.for[1];
         # "p" stand for "provided", meaning that we have been provided the future data
         intermittent <- "p";
         n.param.intermittent <- 0;
     }
     else{
+        intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE, immediate.=FALSE);
@@ -415,10 +418,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         else{
             estimate.persistence <- TRUE;
         }
-        # If persistence is null or has been changed in the previous check, write down the number of parameters
-        if(is.null(persistence)){
-            n.param.test <- n.param.test - length(persistence);
-        }
     }
 
     ##### initials ####
@@ -470,10 +469,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         }
         fittertype <- "o";
     }
-    # If initial is null or has been changed in the previous check, write down the number of parameters
-    if(is.null(initial)){
-        n.param.test <- n.param.test - length(initial);
-    }
 
     if(any(modelType==c("es"))){
         # If model selection is chosen, forget about the initial values and persistence
@@ -494,18 +489,22 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
                 message("The initial.season vector is not numeric!");
                 message("Values of initial.season vector will be estimated.");
                 initial.season <- NULL;
+                estimate.initial.season <- TRUE;
             }
             else{
                 if(length(initial.season)!=datafreq){
                     message("The length of initial.season vector is wrong! It should correspond to the frequency of the data.");
                     message("Values of initial.season vector will be estimated.");
                     initial.season <- NULL;
+                    estimate.initial.season <- TRUE
+                }
+                else{
+                    estimate.initial.season <- FALSE;
                 }
             }
         }
-        # If the initial.season has been changed to estimation, do things...
-        if(Stype!="N" & is.null(initial.season)){
-            n.param.test <- n.param.test - length(initial.season);
+        else{
+            estimate.initial.season <- TRUE;
         }
 
         # Check the length of the provided data. Say bad words if:
@@ -516,6 +515,7 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             if(is.null(initial.season)){
                 message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
                 Stype <- "N";
+                estimate.initial.season <- FALSE;
             }
         }
 
@@ -525,19 +525,15 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
                 message("The provided value of phi is meaningless.");
                 message("phi will be estimated.");
                 phi <- NULL;
+                estimate.phi <- TRUE;
             }
             else{
-                n.param.test <- n.param.test - 1;
+                estimate.phi <- FALSE
             }
         }
-
-        ##### Calculate n.param.test for ES #####
-        # 2: 1 initial and 1 smoothing for level component;
-        # 2: 1 initial and 1 smoothing for trend component;
-        # 1: 1 phi value.
-        # 1 + datafreq: datafreq initials and 1 smoothing for seasonal component;
-        # 1: estimation of variance;
-        n.param.test <- n.param.test + 2 + 2*(Ttype!="N") + damped + (1 + datafreq)*(Stype!="N") + 1;
+        else{
+            estimate.phi <- TRUE;
+        }
     }
 
     if(modelType=="ges"){
@@ -563,8 +559,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         }
 
         ##### measurement for GES #####
-
-        # Check the provided vector of initials: length and provided values.
         if(!is.null(measurement)){
             if((!is.numeric(measurement) | !is.vector(measurement)) & !is.matrix(measurement)){
                 message("The measurement vector is not numeric!",call.=FALSE);
@@ -583,6 +577,22 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         else{
             estimate.measurement <- TRUE;
         }
+    }
+
+    ##### Calculate n.param.max for checks #####
+    if(modelType=="es"){
+        # 1 - 3: persitence vector;
+        # 1 - 2: initials;
+        # 1 - 1 phi value;
+        # datafreq: datafreq initials for seasonal component;
+        # 1: estimation of variance;
+        n.param.max <- (1 + (Ttype!="N") + (Stype!="N"))*estimate.persistence +
+            (1 + (Ttype!="N"))*estimate.initial*(fittertype=="o") +
+            estimate.phi*damped + datafreq*(Stype!="N")*estimate.initial.season*(fittertype=="o") + 1;
+    }
+    else{
+        n.param.max <- n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
+            estimate.transition*n.components^2 + (orders %*% lags)*estimate.persistence + 1;
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -622,6 +632,7 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     assign("fittertype",fittertype,ParentEnvironment);
 
     assign("estimate.initial",estimate.initial,ParentEnvironment);
+    assign("n.param.max",n.param.max,ParentEnvironment);
 
     if(modelType=="es"){
         assign("model",model,ParentEnvironment);
@@ -634,7 +645,6 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         assign("initial.season",initial.season,ParentEnvironment);
         assign("phi",phi,ParentEnvironment);
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
-        assign("n.param.test",n.param.test,ParentEnvironment);
     }
 
     if(any(modelType==c("es","auto.ces","auto.ssarima"))){
@@ -1089,6 +1099,9 @@ ssxreg <- function(data, xreg=NULL, go.wild=FALSE,
         else{
             estimate.initialX <- TRUE;
         }
+    }
+    else{
+        go.wild <- FALSE;
     }
 
 ##### In case we changed xreg to null or if it was like that...

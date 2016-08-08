@@ -2,7 +2,7 @@ utils::globalVariables(c("estimate.initial","estimate.measurement","estimate.ini
                          "estimate.persistence","obs.vt","multisteps","ot","obs.ot","ICs","CF.objective",
                          "y.for","y.low","y.high"));
 
-ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
+ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optimal","backcasting"),
                 persistence=NULL, transition=NULL, measurement=NULL,
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
@@ -19,6 +19,23 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
+
+    # If a previous model provided as a model, write down the variables
+    if(exists("model")){
+        if(gregexpr("GES",model$model)!=1){
+            stop("The provided model is not GES.",call.=FALSE);
+        }
+        initial <- model$initial;
+        persistence <- model$persistence;
+        transition <- model$transition;
+        measurement <- model$measurement;
+        initialX <- model$initialX;
+        persistenceX <- model$persistenceX;
+        transitionX <- model$transitionX;
+        model <- model$model;
+        orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
+        lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+    }
 
 ##### Set environment for ssinput and make all the checks #####
     environment(ssinput) <- environment();
@@ -47,6 +64,17 @@ ges <- function(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting")
     Etype <- "A";
     Ttype <- "N";
     Stype <- "N";
+
+# Check number of parameters vs data
+    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
+
+##### Check number of observations vs number of max parameters #####
+    if(obs.ot <= n.param.max){
+        if(silent.text==FALSE){
+            message(paste0("Number of non-zero observations is ",obs.ot,", while the number of parameters to estimate is ", n.param.max,"."));
+        }
+        stop("Can't fit the model you ask.",call.=FALSE);
+    }
 
 ##### Initialise ges #####
 elements.ges <- function(C){
@@ -149,9 +177,8 @@ gesCreator <- function(silent.text=FALSE,...){
     environment(ICFunction) <- environment();
 
 # 1 stands for the variance
-    n.param <- 1 + n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
-        n.components^2*estimate.transition + orders %*% lags * estimate.persistence +
-        estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
+    n.param <- n.components + n.components*(fittertype=="o") + n.components^2 + orders %*% lags +
+        !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
 
 # If there is something to optimise, let's do it.
     if((estimate.initial==TRUE) | (estimate.measurement==TRUE) | (estimate.transition==TRUE) | (estimate.persistence==TRUE) |

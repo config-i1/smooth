@@ -28,7 +28,9 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     The parameter \code{model} can also be a vector of names of models for a finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will estimate only two models and select the best of them.
 
-    Keep in mind that when model selection or combination is selected, the optimiser may return not as accurate estimates of parameters as when individual model is selected. This may happen because of the decreased precision of optimiser, which is done intentionally to speed up the optimisation process. Furthermore, model selection uses Branch and Bound method and may skip some models that could have slightly smaller information criteria.
+    The parameter \code{model} can accept a previously estimated ES model and use all its parameters.
+
+    Keep in mind that model selection uses Branch and Bound algorithm and may skip some models that could have slightly smaller information criteria.
   }
   \item{persistence}{
     The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
@@ -198,6 +200,9 @@ es(M3$N1245$x,model="CCC",h=8,holdout=TRUE) -> test
 
 # Model selection using a specified pool of models
 es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18) -> test
+
+# Redo previous model and produce prediction intervals
+es(M3$N1587$x,model=test,h=18,intervals=TRUE) -> test
 
 # Semiparametric intervals example
 es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test

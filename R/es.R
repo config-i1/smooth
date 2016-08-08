@@ -18,6 +18,21 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
+# If a previous model provided as a model, write down the variables
+    if(is.list(model)){
+        if(gregexpr("ETS",model$model)!=1){
+            stop("The provided model is not ETS.",call.=FALSE);
+        }
+        persistence <- model$persistence;
+        initial <- model$initial;
+        initial.season <- model$initial.season;
+        initialX <- model$initialX;
+        persistenceX <- model$persistenceX;
+        transitionX <- model$transitionX;
+        model <- model$model;
+        model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+    }
+
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
@@ -301,12 +316,12 @@ esBasicInitialiser <- function(...){
     estimate.initialX <- xregdata$estimate.initialX;
     xreg.names <- colnames(matat);
 
-    n.param.test <- n.param.test + estimate.FX*ncol(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
+    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
 ##### Check number of observations vs number of max parameters #####
-    if(obs.ot <= n.param.test){
+    if(obs.ot <= n.param.max){
         if(silent.text==FALSE){
-            message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.test,"."));
+            message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.max,"."));
         }
 
         if(obs.ot > 3){
@@ -426,10 +441,13 @@ esEstimator <- function(...){
                 call.=FALSE, immediate.=TRUE);
     }
 
-    n.param <- n.components*estimate.persistence + estimate.phi +
-        (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") +
-        maxlag*estimate.initial.season*(fittertype=="o") +
-        estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars + 1;
+    n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(fittertype=="o") +
+        !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
+
+#    n.param <- n.components*estimate.persistence + estimate.phi +
+#        (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") +
+#        maxlag*estimate.initial.season*(fittertype=="o") +
+#        estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars + 1;
 
     # Change CF.type for model selection
     if(multisteps==TRUE){
@@ -762,17 +780,26 @@ esCreator <- function(silent.text=FALSE,...){
                     CF.objective=res$objective,C=res$C,ICs=res$ICs,bestIC=bestIC,n.param=res$n.param,FI=FI));
     }
     else{
-        C <- c(vecg,phi,initial,initial.season);
+        environment(ICFunction) <- environment();
+        environment(likelihoodFunction) <- environment();
+
+        C <- c(vecg);
+        if(damped==TRUE){
+            C <- c(C,phi);
+        }
+        C <- c(C,initial,initial.season);
         if(estimate.xreg==TRUE){
             C <- c(C,initialX);
             if(go.wild==TRUE){
                 C <- c(C,transitionX,persistenceX);
             }
         }
+
         CF.objective <- CF(C);
 
-        # This is for variance
-        n.param <- 1;
+        # Number of parameters
+        n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(fittertype=="o") +
+            !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
 
 # Change CF.type for model selection
         if(multisteps==TRUE){
@@ -787,7 +814,7 @@ esCreator <- function(silent.text=FALSE,...){
             CF.type <- "MSE";
         }
 
-        IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
+        IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
         ICs <- IC.values$ICs;
         bestIC <- ICs[IC];
         # Change back
@@ -1037,7 +1064,7 @@ esCreator <- function(silent.text=FALSE,...){
 
 ##### Return values #####
     if(modelDo!="combine"){
-        return(list(model=model,states=matvt,persistence=as.vector(vecg),phi=phi,
+        return(list(model=modelname,states=matvt,persistence=as.vector(vecg),phi=phi,
                     initial=initial,initial.season=initial.season,
                     fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
                     actuals=data,holdout=y.holdout,iprob=pt,
@@ -1045,7 +1072,7 @@ esCreator <- function(silent.text=FALSE,...){
                     ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
     }
     else{
-        return(list(model=model,fitted=y.fit,forecast=y.for,
+        return(list(model=modelname,fitted=y.fit,forecast=y.for,
                     lower=y.low,upper=y.high,residuals=errors,
                     actuals=data,holdout=y.holdout,ICs=ICs,ICw=IC.weights,
                     CF.type=CF.type,xreg=xreg,accuracy=errormeasures));

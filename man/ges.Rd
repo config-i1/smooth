@@ -8,7 +8,7 @@ General Exponential Smoothing
 Function constructs General Exponential Smoothing, estimating matrices F, w, vector g and initial parameters.
 }
 \usage{
-ges(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
+ges(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optimal","backcasting"),
     persistence=NULL, transition=NULL, measurement=NULL,
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
@@ -94,7 +94,9 @@ ges(data, orders=c(2), lags=c(1), initial=c("optimal","backcasting"),
     Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
-    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
+    Other non-documented parameters.
+    For example parameter \code{model} can accept a previously estimated GES model and use all its parameters.
+    \code{FI=TRUE} will make the function produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
 \details{
@@ -153,11 +155,14 @@ ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval
 
 ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds="a")->test
 
+# Redo previous model on a new data and produce prediction intervals
+ges(rnorm(118,100,3),model=test,h=18,intervals=TRUE) -> test
+
 ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds="a")->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="trace")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="TFL")->test
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="GV")->test
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="aTFL")->test
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))->test
 
