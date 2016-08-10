@@ -13,6 +13,7 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
              CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
              h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
              int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+             intermittent=c("auto","none","fixed","croston","tsb"),
              silent=c("none","all","graph","legend","output"),
              xreg=NULL, go.wild=FALSE, ...)
 }
@@ -67,6 +68,9 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
 
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
+  }
+  \item{intermittent}{
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
   }
   \item{silent}{
     If \code{silen="none"}, then nothing is silent, everything is printed out and drawn. \code{silen="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silen="legend"}, then the legend of the graph is skipped. And finally \code{silent="outpu"} means that nothing is printed out in the console, but the graph is produced. the variable also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The variable also accepts first letter of words ("n", "a", "g", "l", "o").

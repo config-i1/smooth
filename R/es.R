@@ -1,7 +1,7 @@
 utils::globalVariables(c("vecg","n.components","modellags","fittertype","estimate.phi","y","datafreq",
                          "obs","obs.all","yot","maxlag","silent.text","allowMultiplicative","current.model",
                          "n.param.intermittent","CF.type.original","matF","matw","pt.for","errors.mat",
-                         "iprob","results","s2","silent.graph","FI","intermittent",
+                         "iprob","results","s2","silent.graph","FI","intermittent","normalizer",
                          "estimate.persistence","estimate.initial","obs.vt","multisteps","ot","obs.ot"));
 
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
@@ -23,12 +23,21 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(gregexpr("ETS",model$model)!=1){
             stop("The provided model is not ETS.",call.=FALSE);
         }
+        intermittent <- model$intermittent;
+        if(any(intermittent==c("p","provided"))){
+            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
+            warning("Switching to intermittent='auto'.",call.=FALSE);
+            intermittent <- "a";
+        }
         persistence <- model$persistence;
         initial <- model$initial;
         initial.season <- model$initial.season;
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
+        if(any(persistenceX!=0)){
+            go.wild <- TRUE;
+        }
         model <- model$model;
         model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
     }
@@ -297,8 +306,6 @@ esBasicInitialiser <- function(...){
     y.for <- rep(NA,h);
     errors <- rep(NA,obs);
 
-    normalizer <- mean(abs(diff(c(y))));
-
     esBasicMaker(ParentEnvironment=environment());
 
 ##### Prepare exogenous variables #####
@@ -375,7 +382,7 @@ esBasicInitialiser <- function(...){
 
 ##### Define modelDo #####
     if(any(estimate.persistence, estimate.initial*(fittertype=="o"), estimate.initial.season*(fittertype=="o"),
-           estimate.xreg, estimate.FX, estimate.gX, estimate.initialX)){
+           estimate.FX, estimate.gX, estimate.initialX)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
         }
@@ -437,7 +444,7 @@ esEstimator <- function(...){
     if(all(C==Cs$C)){
         warning(paste0("Failed to optimise the model ETS(",current.model,
                        "). Try different parameters maybe?\nAnd check all the messages and warnings...",
-                       "\nIf you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                       "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
                 call.=FALSE, immediate.=TRUE);
     }
 
@@ -858,6 +865,9 @@ esCreator <- function(silent.text=FALSE,...){
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- esCreator(silent.text=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
+            if(intermittentICs[i]>intermittentICs[i-1]){
+                break;
+            }
         }
         intermittentICs[is.nan(intermittentICs)] <- 1e+100;
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
@@ -925,9 +935,6 @@ esCreator <- function(silent.text=FALSE,...){
             initialX <- matat[1,];
         }
 
-        # Write down the probabilities from intermittent models
-        pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
-
         if(estimate.initial.season==TRUE){
             if(Stype!="N"){
                 initial.season <- matvt[1:maxlag,n.components]
@@ -993,10 +1000,28 @@ esCreator <- function(silent.text=FALSE,...){
         names(ICs) <- paste0("Combined ",IC);
     }
 
-##### Do final check #####
+##### Do final check and make some preparations for output #####
     if(any(is.na(y.fit),is.na(y.for))){
         warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
         warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
+    }
+
+    # Write down the probabilities from intermittent models
+    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    if(intermittent=="f"){
+        intermittent <- "fixed";
+    }
+    else if(intermittent=="c"){
+        intermittent <- "croston";
+    }
+    else if(intermittent=="t"){
+        intermittent <- "tsb";
+    }
+    else if(intermittent=="n"){
+        intermittent <- "none";
+    }
+    else if(intermittent=="p"){
+        intermittent <- "provided";
     }
 
 ##### Now let's deal with holdout #####
@@ -1011,6 +1036,7 @@ esCreator <- function(silent.text=FALSE,...){
 
     modelname <- paste0("ETS(",model,")");
 
+##### Print output #####
     if(silent.text==FALSE){
         if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
@@ -1024,7 +1050,6 @@ esCreator <- function(silent.text=FALSE,...){
             insideintervals <- NULL;
         }
 
-# Print output
         if(modelDo!="combine"){
             if(damped==TRUE){
                 phivalue <- phi;
@@ -1067,14 +1092,15 @@ esCreator <- function(silent.text=FALSE,...){
         return(list(model=modelname,states=matvt,persistence=as.vector(vecg),phi=phi,
                     initial=initial,initial.season=initial.season,
                     fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-                    actuals=data,holdout=y.holdout,iprob=pt,
+                    actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                     xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                     ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
     }
     else{
         return(list(model=modelname,fitted=y.fit,forecast=y.for,
                     lower=y.low,upper=y.high,residuals=errors,
-                    actuals=data,holdout=y.holdout,ICs=ICs,ICw=IC.weights,
+                    actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                    ICs=ICs,ICw=IC.weights,
                     CF.type=CF.type,xreg=xreg,accuracy=errormeasures));
     }
 }

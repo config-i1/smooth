@@ -128,6 +128,8 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optimal","backcas
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
+    \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.

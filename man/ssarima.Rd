@@ -13,7 +13,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
   h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
   int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-  intermittent=c("none","simple","croston","tsb"),
+  intermittent=c("auto","none","fixed","croston","tsb"),
   bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
   xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL,...)
 }
@@ -63,7 +63,8 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
-  \item{intermittent}{ Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as a slow-moving; 2. \code{simple}, taking into account Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. The first letter can be used instead of the full words.
+  \item{intermittent}{
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
@@ -86,7 +87,9 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
     Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
-    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
+    Other non-documented parameters.
+    For example parameter \code{model} can accept a previously estimated SSARIMA model and use all its parameters.
+    \code{FI=TRUE} will make the function produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
 \details{
@@ -123,6 +126,8 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
+    \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
@@ -156,17 +161,23 @@ ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)->test
 
 # SARIMA(1,1,1)(0,0,1)[4]
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
-        lags=c(1,4),h=18,holdout=TRUE,bounds="n")->test
+        lags=c(1,4),h=18,holdout=TRUE)->test
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
-        lags=c(1,4),h=18,holdout=TRUE,bounds="n",initial="o")->test
+        lags=c(1,4),h=18,holdout=TRUE,initial="o")->test
 
-# ARIMA(1,0,0) with trace forecast estimation
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="trace")->test
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,bounds="n",CF.type="GV")->test
+# ARIMA(1,1,1) with trace forecast estimation
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,CF.type="TFL")->test
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,CF.type="aTFL")->test
 
 # SARIMA of a percuiar order on AirPassengers data
 ssarima(AirPassengers,ar.orders=c(1,0,3),i.orders=c(1,0,1),ma.orders=c(0,1,2),lags=c(1,6,12),
         h=10,holdout=TRUE)->test
+
+# SARIMA(0,1,1) with exogenous variables
+ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118))->test
+
+# SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
+ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118),go.wild=TRUE)->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

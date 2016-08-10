@@ -135,6 +135,7 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
+    \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
@@ -157,6 +158,8 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     \item \code{residuals},
     \item \code{actuals},
     \item \code{holdout},
+    \item \code{iprob},
+    \item \code{intermittent},
     \item \code{ICs} - combined IC,
     \item \code{ICw} - IC weights used in the combination,
     \item \code{CF.type},
@@ -211,6 +214,8 @@ es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,CF.type="TFL")->test
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)->test
+# This will be the same model as in previous line but estimated on new portion of data
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)->test
 
 # Intermittent data example
 x <- rpois(100,0.2)
