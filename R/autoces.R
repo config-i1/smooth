@@ -227,7 +227,7 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("N","S","P","F"),
             insideintervals <- NULL;
         }
 # Print output
-        ssoutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
+        ssOutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
                  phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=best.model$A, B=best.model$B,
                  n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                  CF.type=CF.type, CF.objective=best.model$CF, intervals=intervals,

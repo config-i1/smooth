@@ -266,7 +266,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     }
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
@@ -524,7 +524,7 @@ Likelihood.value <- function(C){
 
         vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-        quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
+        quantvalues <- ssIntervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                  measurement=matrix(matw[1,],nrow=1), transition=matF, persistence=vecg,
                                  s2=s2, modellags=modellags, y.for=y.for, iprob=iprob);
         y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=datafreq);
@@ -598,7 +598,7 @@ Likelihood.value <- function(C){
             insideintervals <- NULL;
         }
 # Print output
-        ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+        ssOutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                  phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=A, B=B,
                  n.components=sum(modellags), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                  CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,

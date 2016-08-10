@@ -13,7 +13,7 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-    intermittent=FALSE,
+    intermittent=c("auto","none","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
     xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
@@ -59,7 +59,8 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
-  \item{intermittent}{ If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+  \item{intermittent}{
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
   }
   \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }

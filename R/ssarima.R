@@ -63,9 +63,9 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         }
     }
 
-##### Set environment for ssinput and make all the checks #####
-    environment(ssinput) <- environment();
-    ssinput(modelType="ssarima",ParentEnvironment=environment());
+##### Set environment for ssInput and make all the checks #####
+    environment(ssInput) <- environment();
+    ssInput(modelType="ssarima",ParentEnvironment=environment());
 
 # Prepare lists for the polynomials
     P <- list(NA);
@@ -98,7 +98,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     errors <- rep(NA,obs);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
@@ -674,7 +674,7 @@ ssarimaCreator <- function(silent.text=FALSE,...){
             insideintervals <- NULL;
         }
 # Print output
-        ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+        ssOutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
             phi=NULL, ARterms=ARterms, MAterms=MAterms, const=constant$value, A=NULL, B=NULL,
             n.components=(n.components-constant$required), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,

@@ -45,9 +45,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
-##### Set environment for ssinput and make all the checks #####
-    environment(ssinput) <- environment();
-    ssinput(modelType="es",ParentEnvironment=environment());
+##### Set environment for ssInput and make all the checks #####
+    environment(ssInput) <- environment();
+    ssInput(modelType="es",ParentEnvironment=environment());
 
 ##### Cost Function for ES #####
 CF <- function(C){
@@ -309,7 +309,7 @@ esBasicInitialiser <- function(...){
     esBasicMaker(ParentEnvironment=environment());
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
@@ -1060,7 +1060,7 @@ esCreator <- function(silent.text=FALSE,...){
             else{
                 phivalue <- NULL;
             }
-            ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=NULL, measurement=NULL,
+            ssOutput(Sys.time() - start.time, modelname, persistence=vecg, transition=NULL, measurement=NULL,
                      phi=phivalue, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                     n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                     CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
@@ -1069,7 +1069,7 @@ esCreator <- function(silent.text=FALSE,...){
         }
         else{
             cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
-            ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+            ssOutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                     phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                     n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
                     CF.type=CF.type, CF.objective=NULL, intervals=intervals,

@@ -2,7 +2,8 @@ utils::globalVariables(c("h","holdout","orders","lags","transition","measurement
                          "CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg","matvt","n.exovars","matat","errors",
                          "n.param","intervals","int.type","int.w"));
 
-ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssarima"),...){
+##### *Checker of input of basic functions* #####
+ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     # This is universal function needed in order to check the passed arguments to es(), ges(), ces() and ssarima()
 
     modelType <- modelType[1];
@@ -886,6 +887,12 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     }
 }
 
+##### *Checker for auto. functions* #####
+ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
+    # This is universal function needed in order to check the passed arguments to auto.ces(), auto.ges() and auto.ssarima()
+
+}
+
 ##### *ssFitter function* #####
 ssFitter <- function(...){
     ellipsis <- list(...);
@@ -917,7 +924,7 @@ ssFitter <- function(...){
 }
 
 ##### *State-space intervals* #####
-ssintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
+ssIntervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
                       measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
                       y.for=rep(0,ncol(errors)), iprob=1){
 # Function constructs intervals based on the provided random variable.
@@ -1188,7 +1195,7 @@ ssForecaster <- function(...){
             else{
                 vt <- matrix(matvt[cbind(obs-modellags,c(1:n.components))],n.components,1);
 
-                quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
+                quantvalues <- ssIntervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
                                           measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
                                           y.for=y.for, iprob=iprob);
                 if(Etype=="A"){
@@ -1213,7 +1220,7 @@ ssForecaster <- function(...){
 }
 
 ##### *Check and initialisation of xreg* #####
-ssxreg <- function(data, xreg=NULL, go.wild=FALSE,
+ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obs, obs.all, obs.vt, maxlag=1, h=1, silent=FALSE){
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
@@ -1435,7 +1442,7 @@ ICFunction <- function(n.param=n.param,C,Etype=Etype){
 }
 
 ##### *Ouptut printer* #####
-ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
+ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                      phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                      n.components=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      CF.type="MSE", CF.objective=NULL, intervals=FALSE,

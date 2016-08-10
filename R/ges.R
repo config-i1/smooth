@@ -49,9 +49,9 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
         lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
     }
 
-##### Set environment for ssinput and make all the checks #####
-    environment(ssinput) <- environment();
-    ssinput(modelType="ges",ParentEnvironment=environment());
+##### Set environment for ssInput and make all the checks #####
+    environment(ssInput) <- environment();
+    ssInput(modelType="ges",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
     matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
@@ -60,7 +60,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
     errors <- rep(NA,obs);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
     n.exovars <- xregdata$n.exovars;
@@ -456,7 +456,7 @@ gesCreator <- function(silent.text=FALSE,...){
             insideintervals <- NULL;
         }
 # Print output
-        ssoutput(Sys.time() - start.time, modelname, persistence=vecg, transition=matF, measurement=matw,
+        ssOutput(Sys.time() - start.time, modelname, persistence=vecg, transition=matF, measurement=matw,
                 phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                 n.components=orders %*% lags, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                 CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
