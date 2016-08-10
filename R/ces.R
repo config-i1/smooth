@@ -3,7 +3,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
                 CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                 int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                intermittent=FALSE,
+                intermittent=c("auto","none","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error

@@ -625,6 +625,9 @@ ssarimaCreator <- function(silent.text=FALSE,...){
         }
         modelname <- paste0("SARIMA",modelname);
     }
+    if(all(intermittent!=c("n","none"))){
+        modelname <- paste0("i",modelname);
+    }
 
     if(constant$required==TRUE){
         if(constant$estimate==TRUE){

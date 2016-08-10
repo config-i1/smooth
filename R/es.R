@@ -20,7 +20,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # If a previous model provided as a model, write down the variables
     if(is.list(model)){
-        if(gregexpr("ETS",model$model)!=1){
+        if(gregexpr("ETS",model$model)==-1){
             stop("The provided model is not ETS.",call.=FALSE);
         }
         intermittent <- model$intermittent;
@@ -1035,6 +1035,9 @@ esCreator <- function(silent.text=FALSE,...){
     }
 
     modelname <- paste0("ETS(",model,")");
+    if(all(intermittent!=c("n","none"))){
+        modelname <- paste0("i",modelname);
+    }
 
 ##### Print output #####
     if(silent.text==FALSE){

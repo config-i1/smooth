@@ -22,7 +22,10 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
 
     # If a previous model provided as a model, write down the variables
     if(exists("model")){
-        if(gregexpr("GES",model$model)!=1){
+        if(is.null(model$model)){
+            stop("The provided model is not GES.",call.=FALSE);
+        }
+        else if(gregexpr("GES",model$model)==-1){
             stop("The provided model is not GES.",call.=FALSE);
         }
         intermittent <- model$intermittent;
@@ -430,6 +433,9 @@ gesCreator <- function(silent.text=FALSE,...){
     }
 
     modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
+    if(all(intermittent!=c("n","none"))){
+        modelname <- paste0("i",modelname);
+    }
 
 ##### Print output #####
     if(silent.text==FALSE){
