@@ -159,6 +159,164 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             Ttype <- "Z";
         }
     }
+    else if(modelType=="ssarima"){
+        ##### Orders and lags for ssarima #####
+        if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
+            stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
+        }
+
+        if(any(c(ar.orders,i.orders,ma.orders)<0)){
+            stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
+        }
+
+        if(any(c(lags)<0)){
+            stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
+        }
+
+        if(length(lags)!=length(ar.orders) & length(lags)!=length(i.orders) & length(lags)!=length(ma.orders)){
+            stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
+        }
+
+        # If there are zero lags, drop them
+        if(any(lags==0)){
+            ar.orders <- ar.orders[lags!=0];
+            i.orders <- i.orders[lags!=0];
+            ma.orders <- ma.orders[lags!=0];
+            lags <- lags[lags!=0];
+        }
+
+        # Define maxorder and make all the values look similar (for the polynomials)
+        maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders));
+        if(length(ar.orders)!=maxorder){
+            ar.orders <- c(ar.orders,rep(0,maxorder-length(ar.orders)));
+        }
+        if(length(i.orders)!=maxorder){
+            i.orders <- c(i.orders,rep(0,maxorder-length(i.orders)));
+        }
+        if(length(ma.orders)!=maxorder){
+            ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
+        }
+
+        # If zeroes are defined for some lags, drop them.
+        if(any((ar.orders + i.orders + ma.orders)==0)){
+            orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
+            if(all(orders2leave==FALSE)){
+                orders2leave <- lags==min(lags);
+            }
+            ar.orders <- ar.orders[orders2leave];
+            i.orders <- i.orders[orders2leave];
+            ma.orders <- ma.orders[orders2leave];
+            lags <- lags[orders2leave];
+        }
+
+        # Get rid of duplicates in lags
+        if(length(unique(lags))!=length(lags)){
+            if(frequency(data)!=1){
+                warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
+            }
+            lags.new <- unique(lags);
+            ar.orders.new <- i.orders.new <- ma.orders.new <- lags.new;
+            for(i in 1:length(lags.new)){
+                ar.orders.new[i] <- max(ar.orders[which(lags==lags.new[i])]);
+                i.orders.new[i] <- max(i.orders[which(lags==lags.new[i])]);
+                ma.orders.new[i] <- max(ma.orders[which(lags==lags.new[i])]);
+            }
+            ar.orders <- ar.orders.new;
+            i.orders <- i.orders.new;
+            ma.orders <- ma.orders.new;
+            lags <- lags.new;
+        }
+
+        AR <- list(value=AR);
+        # Check the provided AR matrix / vector
+        if(!is.null(AR$value)){
+            if((!is.numeric(AR$value) | !is.vector(AR$value)) & !is.matrix(AR$value)){
+                message("AR should be either vector or matrix. You have provided something strange...",call.=FALSE);
+                message("AR will be estimated.");
+                AR$required <- AR$estimate <- TRUE;
+                AR$value <- NULL;
+            }
+            else{
+                if(sum(ar.orders)!=length(AR$value[AR$value!=0])){
+                    message(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
+                                   " instead of ",length(AR$value[AR$value!=0]),"."),call.=FALSE);
+                    message("AR will be estimated.");
+                    AR$required <- AR$estimate <- TRUE;
+                    AR$value <- NULL;
+                }
+                else{
+                    AR$value <- as.vector(AR$value[AR$value!=0]);
+                    AR$estimate <- FALSE;
+                    AR$required <- TRUE;
+                }
+            }
+        }
+        else{
+            if(all(ar.orders==0)){
+                AR$required <- AR$estimate <- FALSE;
+            }
+            else{
+                AR$required <- AR$estimate <- TRUE;
+            }
+        }
+
+        MA <- list(value=MA);
+        # Check the provided MA matrix / vector
+        if(!is.null(MA$value)){
+            if((!is.numeric(MA$value) | !is.vector(MA$value)) & !is.matrix(MA$value)){
+                message("MA should be either vector or matrix. You have provided something strange...",call.=FALSE);
+                message("MA will be estimated.");
+                MA$required <- MA$estimate <- TRUE;
+                MA$value <- NULL;
+            }
+            else{
+                if(sum(ma.orders)!=length(MA$value[MA$value!=0])){
+                    message(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
+                                   " instead of ",length(MA$value[MA$value!=0]),"."),call.=FALSE);
+                    message("MA will be estimated.");
+                    MA$required <- MA$estimate <- TRUE;
+                    MA$value <- NULL;
+                }
+                else{
+                    MA$value <- as.vector(MA$value[MA$value!=0]);
+                    MA$estimate <- FALSE;
+                    MA$required <- TRUE;
+                }
+            }
+        }
+        else{
+            if(all(ma.orders==0)){
+                MA$required <- MA$estimate <- FALSE;
+            }
+            else{
+                MA$required <- MA$estimate <- TRUE;
+            }
+        }
+
+        constant <- list(value=constant);
+        # Check the provided constant
+        if(is.numeric(constant$value)){
+            constant$estimate <- FALSE;
+            constant$required <- TRUE;
+        }
+        else if(is.logical(constant$value)){
+            constant$required <- constant$estimate <- constant$value;
+            constant$value <- NULL;
+        }
+
+        # Number of components to use
+        n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+        modellags <- matrix(rep(1,times=n.components),ncol=1);
+        if(constant$required==TRUE){
+            modellags <- rbind(modellags,1);
+        }
+        maxlag <- 1;
+
+        if((n.components==0) & (constant$required==FALSE)){
+            warning("You have not defined any model! Forcing constant=TRUE.",call.=FALSE,immediate.=TRUE);
+            constant$required <- constant$estimate <- TRUE;
+        }
+    }
 
     ##### data #####
     if(!is.numeric(data)){
@@ -466,6 +624,16 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
                     estimate.initial <- FALSE;
                 }
             }
+            else if(modelType=="ssarima"){
+                if(length(initial) != n.components){
+                    message(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
+                    message("Values of initial vector will be estimated.");
+                    estimate.initial <- TRUE;
+                }
+                else{
+                    estimate.initial <- FALSE;
+                }
+            }
         }
         fittertype <- "o";
     }
@@ -590,9 +758,13 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             (1 + (Ttype!="N"))*estimate.initial*(fittertype=="o") +
             estimate.phi*damped + datafreq*(Stype!="N")*estimate.initial.season*(fittertype=="o") + 1;
     }
-    else{
+    else if(modelType=="ges"){
         n.param.max <- n.components*estimate.measurement + n.components*(fittertype=="o")*estimate.initial +
             estimate.transition*n.components^2 + (orders %*% lags)*estimate.persistence + 1;
+    }
+    else if(modelType=="ssarima"){
+        n.param.max <- 1 + n.components*estimate.initial*(fittertype=="o") + sum(ar.orders)*AR$required +
+            sum(ma.orders)*MA$required + constant$required;
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -604,6 +776,9 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         message(paste0("Number of observations is really low for a multisteps cost function! We will, try but cannot guarantee anything..."));
     }
 
+    normalizer <- mean(abs(diff(c(y))));
+
+    ##### Return values to previous environment #####
     assign("silent",silent,ParentEnvironment);
     assign("silent.text",silent.text,ParentEnvironment);
     assign("silent.graph",silent.graph,ParentEnvironment);
@@ -630,6 +805,7 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     assign("iprob",iprob,ParentEnvironment);
     assign("initial",initial,ParentEnvironment);
     assign("fittertype",fittertype,ParentEnvironment);
+    assign("normalizer",normalizer,ParentEnvironment);
 
     assign("estimate.initial",estimate.initial,ParentEnvironment);
     assign("n.param.max",n.param.max,ParentEnvironment);
@@ -660,6 +836,15 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
         assign("estimate.transition",estimate.transition,ParentEnvironment);
         assign("estimate.measurement",estimate.measurement,ParentEnvironment);
     }
+    else if(modelType=="ssarima"){
+        assign("ar.orders",ar.orders,ParentEnvironment);
+        assign("i.orders",i.orders,ParentEnvironment);
+        assign("ma.orders",ma.orders,ParentEnvironment);
+        assign("lags",lags,ParentEnvironment);
+        assign("AR",AR,ParentEnvironment);
+        assign("MA",MA,ParentEnvironment);
+        assign("constant",constant,ParentEnvironment);
+    }
 
     if(any(modelType==c("ges","ssarima","auto.ssarima","ces","auto.ces"))){
         assign("n.components",n.components,ParentEnvironment);
@@ -668,6 +853,7 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     }
 }
 
+##### *ssFitter function* #####
 ssFitter <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -697,7 +883,7 @@ ssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
-##### State-space intervals #####
+##### *State-space intervals* #####
 ssintervals <- function(errors, ev=median(errors), int.w=0.95, int.type=c("a","p","s","n"), df=NULL,
                       measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
                       y.for=rep(0,ncol(errors)), iprob=1){
@@ -894,7 +1080,7 @@ quantfunc <- function(A){
     return(list(upper=upper,lower=lower));
 }
 
-##### Forecaster of es() #####
+##### *Forecaster of state-space functions* #####
 ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -993,7 +1179,7 @@ ssForecaster <- function(...){
     assign("y.high",y.high,ParentEnvironment);
 }
 
-##### Check and initialisation of xreg #####
+##### *Check and initialisation of xreg* #####
 ssxreg <- function(data, xreg=NULL, go.wild=FALSE,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obs, obs.all, obs.vt, maxlag=1, h=1, silent=FALSE){
@@ -1172,7 +1358,7 @@ ssxreg <- function(data, xreg=NULL, go.wild=FALSE,
                 estimate.gX=estimate.gX, estimate.initialX=estimate.initialX))
 }
 
-##### Likelihood function #####
+##### *Likelihood function* #####
 likelihoodFunction <- function(C){
 # This block is needed in order to make R CMD to shut up about "no visible binding..."
     if(any(intermittent==c("n","p"))){
@@ -1196,7 +1382,7 @@ likelihoodFunction <- function(C){
     }
 }
 
-##### Function calculates ICs #####
+##### *Function calculates ICs* #####
 ICFunction <- function(n.param=n.param,C,Etype=Etype){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
@@ -1215,7 +1401,7 @@ ICFunction <- function(n.param=n.param,C,Etype=Etype){
     return(list(llikelihood=llikelihood,ICs=ICs));
 }
 
-##### Ouptut printer #####
+##### *Ouptut printer* #####
 ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                      phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
                      n.components=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
@@ -1225,19 +1411,19 @@ ssoutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 # Function forms the generic output for State-space models.
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
-    if(all(intermittent!=c("n","p"))){
-        if(intermittent=="f"){
+    if(all(intermittent!=c("n","p","none","provided"))){
+        if(any(intermittent==c("f","fixed"))){
             intermittent <- "Fixed probability";
         }
-        else if(intermittent=="c"){
+        else if(any(intermittent==c("c","croston"))){
             intermittent <- "Croston";
         }
-        else if(intermittent=="t"){
+        else if(any(intermittent==c("t","tsb"))){
             intermittent <- "TSB";
         }
         cat(paste0("Intermittent model type: ",intermittent,"\n"));
     }
-    else if(intermittent=="p"){
+    else if(any(intermittent==c("p","provided"))){
         cat(paste0("Intermittent data provided for holdout.\n"));
     }
 
