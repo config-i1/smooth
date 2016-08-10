@@ -197,7 +197,7 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
             ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
         }
 
-        # If zeroes are defined for some lags, drop them.
+        # If zeroes are defined for some orders, drop them.
         if(any((ar.orders + i.orders + ma.orders)==0)){
             orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
             if(all(orders2leave==FALSE)){
@@ -382,8 +382,39 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
 
     ##### Lags and components for GES #####
     if(modelType=="ges"){
+        if(any(is.complex(c(orders,lags)))){
+            stop("Complex values? Right! Come on! Be real!",call.=FALSE);
+        }
+        if(any(c(orders)<0)){
+            stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
+        }
+        if(any(c(lags)<0)){
+            stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
+        }
         if(length(orders) != length(lags)){
             stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
+        }
+
+        # If there are zero lags, drop them
+        if(any(lags==0)){
+            orders <- orders[lags!=0];
+            lags <- lags[lags!=0];
+        }
+        # If zeroes are defined for some orders, drop them.
+        if(any(orders==0)){
+            lags <- lags[orders!=0];
+            orders <- orders[orders!=0];
+        }
+
+        # Get rid of duplicates in lags
+        if(length(unique(lags))!=length(lags)){
+            lags.new <- unique(lags);
+            orders.new <- lags.new;
+            for(i in 1:length(lags.new)){
+                orders.new[i] <- max(orders[which(lags==lags.new[i])]);
+            }
+            orders <- orders.new;
+            lags <- lags.new;
         }
 
         modellags <- matrix(rep(lags,times=orders),ncol=1);
@@ -835,6 +866,8 @@ ssinput <- function(modelType=c("es","ges","ces","ssarima","auto.ces","auto.ssar
     if(modelType=="ges"){
         assign("estimate.transition",estimate.transition,ParentEnvironment);
         assign("estimate.measurement",estimate.measurement,ParentEnvironment);
+        assign("orders",orders,ParentEnvironment);
+        assign("lags",lags,ParentEnvironment);
     }
     else if(modelType=="ssarima"){
         assign("ar.orders",ar.orders,ParentEnvironment);
