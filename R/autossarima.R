@@ -3,6 +3,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                          CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+                         intermittent=c("auto","none","fixed","croston","tsb"),
                          silent=c("none","all","graph","legend","output"),
                          xreg=NULL, go.wild=FALSE, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
@@ -240,12 +241,12 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         test.models <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
                                constant=TRUE,initial=fittertype,CF.type=CF.type,
                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                               int.type=int.type,silent=FALSE,
+                               int.type=int.type,intermittent=intermittent,silent=TRUE,
                                xreg=xreg,go.wild=go.wild,FI=FI);
         return(test.models);
     }
 
-##### Loop for differences
+##### Loop for differences #####
     if(any(i.max!=0)){
         for(seasSelect in 1:length(lags)){
             test.lags[seasSelect] <- lags[seasSelect];
@@ -273,7 +274,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE,
+                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
                     test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
@@ -286,7 +287,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         }
     }
 
-##### Loop for MA
+##### Loop for MA #####
     if(any(ma.max!=0)){
         for(seasSelect in 1:length(lags)){
             test.lags[seasSelect] <- lags[seasSelect];
@@ -298,7 +299,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         cat(paste0(round((m)/models.number,2)*100,"%"));
                     }
 # Update the iSelect in i.test preserving the previous values
-                    ma.test[seasSelect] <- maSelect;
+                    ma.test[seasSelect] <- ma.max[seasSelect] - maSelect + 1;
                     n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
                             sum(ar.best) + sum(ma.test) + 1;
                     if(n.param > obs - 2){
@@ -311,20 +312,25 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE,
+                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
                     test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                    # If high order MA is not good, break the loop
+                    if(test.ICs[maSelect+1] > test.ICs[maSelect]){
+                        m <- m + ma.max[seasSelect] - maSelect;
+                        break;
+                    }
                 }
 # Save the best MA
                 ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE)
+                test.ICs <- sort(test.ICs,decreasing=FALSE);
             }
         }
     }
 
-##### Loop for AR
+##### Loop for AR #####
     if(any(ar.max!=0)){
         for(seasSelect in 1:length(lags)){
             test.lags[seasSelect] <- lags[seasSelect];
@@ -336,7 +342,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         cat(paste0(round((m)/models.number,2)*100,"%"));
                     }
 # Update the iSelect in ar.test preserving the previous values
-                    ar.test[seasSelect] <- arSelect;
+                    ar.test[seasSelect] <- ar.max[seasSelect] - arSelect + 1;
                     n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) +
                             sum(ar.test) + sum(ma.best) + 1;
                     if(n.param > obs - 2){
@@ -349,10 +355,15 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                                 constant=TRUE,initial=fittertype,CF.type=CF.type,
                                                 h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,silent=TRUE,
+                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
                     test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                    # If high order AR is not good, break the loop
+                    if(test.ICs[arSelect+1] > test.ICs[arSelect]){
+                        m <- m + ar.max[seasSelect] - arSelect;
+                        break;
+                    }
                 }
 # Save the best AR
                 ar.best[seasSelect] <- ar.test[seasSelect] <- c(0:ar.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
@@ -373,7 +384,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
                                     constant=FALSE,initial=fittertype,CF.type=CF.type,
                                     h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                    int.type=int.type,silent=TRUE,
+                                    int.type=int.type,intermittent=intermittent,silent=TRUE,
                                     xreg=xreg,go.wild=go.wild,FI=FI);
     test.ICs[2] <- test.models[[m]]$ICs[IC];
     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
@@ -417,7 +428,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
             n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
             int.type=int.type, int.w=int.w, ICs=ICs,
-            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures,intermittent=best.model$intermittent);
     }
 
 # Make plot
