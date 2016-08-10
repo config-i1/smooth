@@ -1,327 +1,71 @@
+utils::globalVariables(c("normalizer"));
+
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, initial=c("backcasting","optimal"), AR=NULL, MA=NULL,
                     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                     int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-                    intermittent=c("none","simple","croston","tsb"),
+                    intermittent=c("auto","none","fixed","croston","tsb"),
                     bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                     xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
-# ar.orders contains vector of seasonal ars. ar.orders=c(2,1,3) will mean AR(2)+SAR(1)+SAR(3) - model with double seasonality.
+# ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
 #    Copyright (C) 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-# See if a user asked for Fisher Information
-    if(!is.null(list(...)[['FI']])){
-        FI <- list(...)[['FI']];
-    }
-    else{
-        FI <- FALSE;
-    }
+# Add all the variables in ellipsis to current environment
+    list2env(list(...),environment());
 
-# Make sense out of silent
-    silent <- silent[1];
-# Fix for cases with TRUE/FALSE.
-    if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output"))){
-            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
-            silent <- "none";
+    # If a previous model provided as a model, write down the variables
+    if(exists("model")){
+        if(is.null(model$model)){
+            stop("The provided model is not ARIMA.",call.=FALSE);
         }
-        silent <- substring(silent,1,1);
-    }
-
-    if(silent==FALSE | silent=="n"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-    else if(silent==TRUE | silent=="a"){
-        silent.text <- TRUE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="g"){
-        silent.text <- FALSE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="l"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- FALSE;
-    }
-    else if(silent=="o"){
-        silent.text <- TRUE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-
-    bounds <- substring(bounds[1],1,1);
-    intermittent <- substring(intermittent[1],1,1);
-# Check if "bounds" parameter makes any sense
-    if(bounds!="n" & bounds!="a"){
-        message("The strange bounds are defined. Switching to 'admissible'.");
-        bounds <- "a";
-    }
-
-    if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
-        stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
-    }
-
-    if(any(c(ar.orders,i.orders,ma.orders)<0)){
-        stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
-    }
-
-    if(any(c(lags)<0)){
-        stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
-    }
-
-    if(length(lags)!=length(ar.orders) & length(lags)!=length(i.orders) & length(lags)!=length(ma.orders)){
-        stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
-    }
-
-# If there are zero lags, drop them
-    if(any(lags==0)){
-        ar.orders <- ar.orders[lags!=0];
-        i.orders <- i.orders[lags!=0];
-        ma.orders <- ma.orders[lags!=0];
-        lags <- lags[lags!=0];
-    }
-
-# Define maxorder and make all the values look similar (for the polynomials)
-    maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders));
-    if(length(ar.orders)!=maxorder){
-        ar.orders <- c(ar.orders,rep(0,maxorder-length(ar.orders)));
-    }
-    if(length(i.orders)!=maxorder){
-        i.orders <- c(i.orders,rep(0,maxorder-length(i.orders)));
-    }
-    if(length(ma.orders)!=maxorder){
-        ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
-    }
-
-# If zeroes are defined for some lags, drop them.
-    if(any((ar.orders + i.orders + ma.orders)==0)){
-        orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
-        if(all(orders2leave==FALSE)){
-            orders2leave <- lags==min(lags);
+        else if(gregexpr("ARIMA",model$model)==-1){
+            stop("The provided model is not ARIMA.",call.=FALSE);
         }
-        ar.orders <- ar.orders[orders2leave];
-        i.orders <- i.orders[orders2leave];
-        ma.orders <- ma.orders[orders2leave];
-        lags <- lags[orders2leave];
-    }
-
-# Get rid of duplicates in lags
-    if(length(unique(lags))!=length(lags)){
-        if(frequency(data)!=1){
-            warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
+        intermittent <- model$intermittent;
+        if(any(intermittent==c("p","provided"))){
+            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
+            warning("Switching to intermittent='auto'.",call.=FALSE);
+            intermittent <- "a";
         }
-        lags.new <- unique(lags);
-        ar.orders.new <- i.orders.new <- ma.orders.new <- lags.new;
-        for(i in 1:length(lags.new)){
-            ar.orders.new[i] <- max(ar.orders[which(lags==lags.new[i])]);
-            i.orders.new[i] <- max(i.orders[which(lags==lags.new[i])]);
-            ma.orders.new[i] <- max(ma.orders[which(lags==lags.new[i])]);
+        if(!is.null(model$initial)){
+            initial <- model$initial;
         }
-        ar.orders <- ar.orders.new;
-        i.orders <- i.orders.new;
-        ma.orders <- ma.orders.new;
-        lags <- lags.new;
-    }
-
-# Number of components to use
-    n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-    modellags <- matrix(rep(1,times=n.components),ncol=1);
-    if(constant==TRUE){
-        modellags <- rbind(modellags,1);
-    }
-    maxlag <- 1;
-
-    if((n.components==0) & (constant==FALSE)){
-        warning("You have not defined any model! Forcing constant=TRUE.",call.=FALSE,immediate.=TRUE);
-        constant <- TRUE;
-    }
-
-    CF.type <- CF.type[1];
-# Check if the appropriate CF.type is defined
-    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh"))){
-        multisteps <- TRUE;
-    }
-    else if(any(CF.type==c("MSE","MAE","HAM"))){
-        multisteps <- FALSE;
-    }
-    else{
-        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
-        CF.type <- "MSE";
-        multisteps <- FALSE;
-    }
-    CF.type.original <- CF.type;
-
-    int.type <- substring(int.type[1],1,1);
-# Check the provided type of interval
-    if(all(int.type!=c("a","p","s","n"))){
-        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
-        int.type <- "p";
-    }
-
-# Check if the data is vector
-    if(!is.numeric(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-
-# Check if the data contains NAs
-    if(any(is.na(data))){
-        message("Data contains NAs. These observations will be excluded.");
-        datanew <- data[!is.na(data)];
-        if(is.ts(data)){
-            datanew <- ts(datanew,start=start(data),frequency=frequency(data));
+        persistence <- model$persistence;
+        transition <- model$transition;
+        initialX <- model$initialX;
+        persistenceX <- model$persistenceX;
+        transitionX <- model$transitionX;
+        if(any(persistenceX!=0)){
+            go.wild <- TRUE;
         }
-        data <- datanew;
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(is.character(initial)){
-        initial <- substring(initial[1],1,1);
-        if(initial!="o" & initial!="b"){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
-            initial <- "o";
-        }
-        fittertype <- initial;
-        estimate.initial <- TRUE;
-        if(constant==TRUE){
-            estimate.constant <- TRUE;
+        AR <- model$AR;
+        MA <- model$MA;
+        constant <- model$constant;
+        model <- model$model;
+        arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+                               ,collapse=";");
+        comas <- unlist(gregexpr("\\,",arima.orders));
+        semicolons <- unlist(gregexpr("\\;",arima.orders));
+        ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+        i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+        ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+        if(any(unlist(gregexpr("\\[",model))!=-1)){
+            lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
         }
         else{
-            estimate.constant <- FALSE;
-        }
-    }
-    else if(is.null(initial)){
-        message("Initial value is not selected. Switching to optimal.");
-        fittertype <- "o";
-        estimate.initial <- TRUE;
-        estimate.constant <- TRUE;
-    }
-    else if(!is.null(initial)){
-        if(!is.numeric(initial) | !is.vector(initial)){
-            stop("The initial vector is not numeric!",call.=FALSE);
-        }
-        if(constant==TRUE){
-            if(length(initial)==(n.components+constant)){
-                estimate.constant <- FALSE;
-            }
-            else if(length(initial)<(n.components+constant)){
-                estimate.constant <- TRUE
-            }
-            else if(length(initial)>(n.components+constant)){
-                stop(paste0("Wrong length of initial vector. Should be ",n.components+constant," instead of ",length(initial),"."),call.=FALSE);
-            }
-        }
-        else{
-            estimate.constant <- FALSE;
-            if(length(initial)!=(n.components)){
-                stop(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
-            }
-        }
-        fittertype <- "o";
-        estimate.initial <- FALSE;
-    }
-
-# Check the provided AR matrix / vector
-    if(!is.null(AR)){
-        if((!is.numeric(AR) | !is.vector(AR)) & !is.matrix(AR)){
-            stop("AR should be either vector or matrix. You have provided something strange...",call.=FALSE);
-        }
-        if(sum(ar.orders)!=length(AR[AR!=0])){
-            stop(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders)," instead of ",length(AR[AR!=0]),"."),call.=FALSE);
-        }
-        AR <- as.vector(AR[AR!=0]);
-        estimate.AR <- FALSE;
-    }
-    else{
-        if(all(ar.orders==0)){
-            estimate.AR <- FALSE;
-        }
-        else{
-            estimate.AR <- TRUE;
+            lags <- 1;
         }
     }
 
-# Check the provided MA matrix / vector
-    if(!is.null(MA)){
-        if((!is.numeric(MA) | !is.vector(MA)) & !is.matrix(MA)){
-            stop("MA should be either vector or matrix. You have provided something strange...",call.=FALSE);
-        }
-        if(sum(ma.orders)!=length(MA[MA!=0])){
-            stop(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders)," instead of ",length(MA[MA!=0]),"."),call.=FALSE);
-        }
-        MA <- as.vector(MA[MA!=0]);
-        estimate.MA <- FALSE;
-    }
-    else{
-        if(all(ma.orders==0)){
-            estimate.MA <- FALSE;
-        }
-        else{
-            estimate.MA <- TRUE;
-        }
-    }
-
-# Define obs.all, the overal number of observations (in-sample + holdout)
-    obs.all <- length(data) + (1 - holdout)*h;
-
-# Define obs, the number of observations of in-sample
-    obs <- length(data) - holdout*h;
-
-# If obs is negative, this means that we can't do anything...
-    if(obs<=0){
-        stop("Not enough observations in sample.",call.=FALSE);
-    }
-
-# Define the number of rows that should be in the matvt
-    obs.vt <- max(obs.all + maxlag, obs + 2*maxlag);
-
-# Check if the data is vector
-    if(!is.numeric(data) & !is.ts(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-
-# Define the actual values and write down the original ts frequency
-    y <- matrix(data[1:obs],obs,1);
-    datafreq <- frequency(data);
-
-    if(intermittent!="n"){
-        ot <- (y!=0)*1;
-        obs.ot <- sum(ot);
-        yot <- matrix(y[y!=0],obs.ot,1);
-        pt <- matrix(mean(ot),obs,1);
-        pt.for <- matrix(1,h,1);
-    }
-    else{
-        ot <- rep(1,obs);
-        obs.ot <- obs;
-        yot <- y;
-        pt <- matrix(1,obs,1);
-        pt.for <- matrix(1,h,1);
-    }
-    iprob <- pt[1,];
-
-# If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(iprob==1){
-        intermittent <- "n";
-    }
-
-# Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obs.ot < h+1)){
-        message(paste0("Do you seriously think that you can use ",CF.type," with h=",h," on ",obs.ot," non-zero observations?!"));
-        stop("Not enough observations for multisteps cost function.",call.=FALSE);
-    }
-    else if((multisteps==TRUE) & (obs.ot < 2*h)){
-        message(paste0("Number of observations is really low for a multisteps cost function! We will try but cannot guarantee anything..."));
-    }
+##### Set environment for ssinput and make all the checks #####
+    environment(ssinput) <- environment();
+    ssinput(modelType="ssarima",ParentEnvironment=environment());
 
 # Prepare lists for the polynomials
     P <- list(NA);
@@ -334,7 +78,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
         matvt <- matrix(NA,obs.vt,n.components);
-        if(constant==TRUE){
+        if(constant$required==TRUE){
             matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
             matw <- cbind(matw,0);
             vecg <- rbind(vecg,0);
@@ -347,6 +91,11 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matvt <- matrix(1,obs.vt,1);
         modellags <- matrix(1,1,1);
     }
+
+##### Preset y.fit, y.for, errors and basic parameters #####
+    y.fit <- rep(NA,obs);
+    y.for <- rep(NA,h);
+    errors <- rep(NA,obs);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
@@ -362,31 +111,12 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     estimate.gX <- xregdata$estimate.gX;
     estimate.initialX <- xregdata$estimate.initialX;
 
-# 1 stands for the variance
-    if(fittertype=="o"){
-        n.param <- 1 + n.components*estimate.initial + sum(ar.orders)*estimate.AR + sum(ma.orders)*estimate.MA + (intermittent!="n") + constant;
-    }
-    else{
-# Number of components that really need to be estimated (droping zeroes): (p+d+1)(P+D+1)-1 or (q+1)(Q+1)-1
-#        n.components.corrected <- max(prod(ar.orders + i.orders + 1) - 1, prod(ma.orders + 1) - 1);
-# Initials are not optimised, so they should not be included in number of parameters calculation
-        n.components.corrected <- 0;
-        n.param <- 1 + n.components.corrected + sum(ar.orders) + sum(ma.orders) + (intermittent!="n") + constant;
-    }
+    # Check number of parameters vs data
+    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
-    if(estimate.xreg==TRUE){
-        n.param <- n.param + estimate.initialX*n.exovars + estimate.FX*(n.exovars^2) + estimate.gX*(n.exovars);
-    }
-
-    if(obs.ot <= n.param){
-        if(intermittent!="n"){
-            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                        n.param," while the number of non-zero observations is ",obs.ot,"!"),call.=FALSE);
-        }
-        else{
-            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                        n.param," while the number of observations is ",obs.ot,"!"),call.=FALSE);
-        }
+    if(obs.ot <= n.param.max){
+        stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                        n.param.max," while the number of observations is ",obs.ot,"!"),call.=FALSE);
     }
 
 # These three are needed in order to use ssgeneralfun.cpp functions
@@ -404,14 +134,13 @@ polyroots <- function(C){
         for(i in 1:length(lags)){
             if((ar.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ar.orders[i]);
-                if(estimate.AR==TRUE){
+                if(AR$estimate==TRUE){
                     armat[lags[i],] <- -C[n.coef+(1:ar.orders[i])];
                     n.coef <- n.coef + ar.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- -AR[ar.inner.coef+(1:ar.orders[i])];
+                    armat[lags[i],] <- -AR$value[ar.inner.coef+(1:ar.orders[i])];
                     ar.inner.coef <- ar.inner.coef + ar.orders[i];
-#                    n.coef <- n.coef + ar.orders[i];
                 }
                 P[[i]] <- c(1,c(armat));
 
@@ -429,14 +158,13 @@ polyroots <- function(C){
 
             if((ma.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ma.orders[i]);
-                if(estimate.MA==TRUE){
+                if(MA$estimate==TRUE){
                     armat[lags[i],] <- C[n.coef+(1:ma.orders[i])];
                     n.coef <- n.coef + ma.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- MA[ma.inner.coef+(1:ma.orders[i])];
+                    armat[lags[i],] <- MA$value[ma.inner.coef+(1:ma.orders[i])];
                     ma.inner.coef <- ma.inner.coef + ma.orders[i];
-#                    n.coef <- n.coef + ma.orders[i];
                 }
                 Q[[i]] <- c(1,c(armat));
             }
@@ -471,35 +199,42 @@ polyroots <- function(C){
         vecg[is.na(vecg),] <- 0;
 
         if(estimate.initial==TRUE){
+            vt <- rep(NA,n.components+constant$required);
             if(fittertype=="o"){
-                vt <- C[(n.coef + 1):(n.coef + n.components + constant)];
-                n.coef <- n.coef + n.components + constant;
+                vt <- C[(n.coef + 1):(n.coef + n.components)];
+                n.coef <- n.coef + n.components;
             }
             else{
-                vt <- matvt[1,];
+                slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+                intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+                initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
+                vt[1:n.components] <- initial.stuff[1:n.components];
                 vt[-1] <- vt[1] * matF[-1,1];
-                if(estimate.constant==TRUE){
-                    vt[n.components+constant] <- C[(n.coef + 1)];
-                    n.coef <- n.coef + 1;
-                }
+
             }
         }
         else{
             vt <- initial;
-            if(estimate.constant==TRUE){
-                vt[n.components+constant] <- C[(n.coef + 1)];
+        }
+
+        if(constant$required==TRUE){
+            if(constant$estimate==TRUE){
+                vt[n.components+constant$required] <- C[(n.coef + 1)];
                 n.coef <- n.coef + 1;
+            }
+            else{
+                vt[n.components+constant$required] <- constant$value;
             }
         }
     }
     else{
         matF[1,1] <- 1;
-        if(estimate.initial==TRUE){
+        if(constant$estimate==TRUE){
             vt <- C[n.coef+1];
             n.coef <- n.coef + 1;
         }
         else{
-            vt <- initial;
+            vt <- constant$value;
         }
     }
 
@@ -564,52 +299,28 @@ CF <- function(C){
     return(CF.res);
 }
 
-Likelihood.value <- function(C){
-    if(intermittent=="n"){
-        if(CF.type=="TFL"){
-            return(- obs.ot/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
-        }
-        else{
-            return(- obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
-        }
-    }
-    else{
-        if(CF.type=="TFL"){
-            return(sum(log(pt)*ot)*(h^multisteps) +
-                       sum(log(1-pt)*(1-ot))*(h^multisteps) +
-                       -obs.ot/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
-        }
-        else{
-            return(sum(log(pt)*ot) + sum(log(1-pt)*(1-ot)) +
-                       -obs.ot/2 *(log(2*pi*exp(1)) + log(CF(C))));
-        }
-    }
-}
+##### Estimate ssarima or just use the provided values #####
+ssarimaCreator <- function(silent.text=FALSE,...){
+    environment(likelihoodFunction) <- environment();
+    environment(ICFunction) <- environment();
+    environment(CF) <- environment();
+    environment(polyroots) <- environment();
 
-#####Start the calculations#####
-    y.fit <- rep(NA,obs);
-    errors <- rep(NA,obs);
+    n.param <- 1 + n.components*estimate.initial*(fittertype=="o") + sum(ar.orders)*AR$required +
+        sum(ma.orders)*MA$required + constant$required + estimate.FX*length(matFX) +
+        estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
 
-    if(multisteps==TRUE){
-        normalizer <- sum(abs(diff(y)))/(obs-1);
-    }
-    else{
-        normalizer <- 0;
-    }
-
-############################################## To be fixed ##############################################
-# Needs to be done properly... does not take into account the provided data...
-# If there is something to optimise, let's do it.
-    if(((estimate.initial==TRUE) & fittertype=="o") | (estimate.AR==TRUE) | (estimate.MA==TRUE) |
-       (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE) | (estimate.constant==TRUE) ){
+    # If there is something to optimise, let's do it.
+    if(((estimate.initial==TRUE) & fittertype=="o") | (AR$estimate==TRUE) | (MA$estimate==TRUE) |
+       (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE) | (constant$estimate==TRUE) ){
 
         C <- NULL;
         if(n.components > 0){
 # ar terms, ma terms from season to season...
-            if(estimate.AR==TRUE){
+            if(AR$estimate==TRUE){
                 C <- c(C,rep(0.1,sum(ar.orders)));
             }
-            if(estimate.MA==TRUE){
+            if(MA$estimate==TRUE){
                 C <- c(C,rep(0.1,sum(ma.orders)));
             }
 
@@ -621,14 +332,10 @@ Likelihood.value <- function(C){
                     initial.stuff <- c(rep(intercept,n.components));
                     C <- c(C,initial.stuff[1:n.components]);
                 }
-                else{
-                    initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
-                    matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
-                }
             }
         }
 
-        if(estimate.constant==TRUE){
+        if(constant$estimate==TRUE){
             if(all(i.orders==0)){
                 C <- c(C,sum(yot)/obs);
             }
@@ -664,11 +371,8 @@ Likelihood.value <- function(C){
         arroots <- abs(polyroot(polysos.ar));
         maroots <- abs(polyroot(polysos.ma));
 
-##### Initialisation needs to be done using backcast! #####
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-#                              lb=c(rep(-2,2*n.components+n.components^2),rep(-max(abs(y[1:obs]),intercept),orders %*% lags)),
-#                              ub=c(rep(2,2*n.components+n.components^2),rep(max(abs(y[1:obs]),intercept),orders %*% lags)));
         C <- res$solution;
         if(fittertype=="o"){
 # Optimise model. Second run
@@ -676,10 +380,6 @@ Likelihood.value <- function(C){
             C <- res$solution;
         }
         CF.objective <- res$objective;
-#
-#        res <- nlminb(C, CF);
-#        C <- res$par;
-#        CF.objective <- res$objective;
     }
     else{
         C <- NULL;
@@ -692,20 +392,87 @@ Likelihood.value <- function(C){
         CF.objective <- CF(C);
     }
 
-# Change the CF.type in orders to calculate likelihood correctly.
+# Change CF.type for model selection
     if(multisteps==TRUE){
-        CF.type <- "TFL";
+        if(substring(CF.type,1,1)=="a"){
+            CF.type <- "aTFL";
+        }
+        else{
+            CF.type <- "TFL";
+        }
     }
     else{
         CF.type <- "MSE";
     }
 
-    if(FI==TRUE){
-        FI <- hessian(Likelihood.value,C);
+    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICs <- IC.values$ICs;
+    bestIC <- ICs["AICc"];
+
+# Revert to the provided cost function
+    CF.type <- CF.type.original
+
+    return(list(CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+}
+
+#####Start the calculations#####
+    environment(intermittentParametersSetter) <- environment();
+    environment(intermittentMaker) <- environment();
+    environment(ssForecaster) <- environment();
+    environment(ssFitter) <- environment();
+
+    # If auto intermittent, then estimate model with intermittent="n" first.
+    if(any(intermittent==c("a","n"))){
+        intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
     }
     else{
-        FI <- NA;
+        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
+        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
+
+    ssarimaValues <- ssarimaCreator();
+
+##### If intermittent=="a", run a loop and select the best one #####
+    if(intermittent=="a"){
+        if(silent.text==FALSE){
+            cat("Selecting appropriate type of intermittency... ");
+        }
+# Prepare stuff for intermittency selection
+        intermittentModelsPool <- c("n","f","c","t");
+        intermittentICs <- rep(1e+10,length(intermittentModelsPool));
+        intermittentModelsList <- list(NA);
+        intermittentICs <- ssarimaValues$bestIC;
+
+        for(i in 2:length(intermittentModelsPool)){
+            intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
+            intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
+            intermittentModelsList[[i]] <- ssarimaCreator(silent.text=TRUE);
+            intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
+            if(intermittentICs[i]>intermittentICs[i-1]){
+                break;
+            }
+        }
+        intermittentICs[is.nan(intermittentICs)] <- 1e+100;
+        intermittentICs[is.na(intermittentICs)] <- 1e+100;
+        iBest <- which(intermittentICs==min(intermittentICs));
+
+        if(silent.text==FALSE){
+            cat("Done!\n");
+        }
+        if(iBest!=1){
+            intermittent <- intermittentModelsPool[iBest];
+            intermittentModel <- intermittentModelsList[[iBest]];
+            ssarimaValues <- intermittentModelsList[[iBest]];
+        }
+        else{
+            intermittent <- "n"
+        }
+
+        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
+        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
+    }
+
+    list2env(ssarimaValues,environment());
 
 # Prepare for fitting
     elements <- polyroots(C);
@@ -719,104 +486,66 @@ Likelihood.value <- function(C){
     polysos.ma <- elements$polysos.ma;
     arroots <- abs(polyroot(polysos.ar));
     maroots <- abs(polyroot(polysos.ma));
+    n.components <- n.components + constant$required;
 
-    if(!is.null(initial)){
-        initial <- elements$vt;
+    # Write down Fisher Information if needed
+    if(FI==TRUE){
+        environment(likelihoodFunction) <- environment();
+        FI <- numDeriv::hessian(likelihoodFunction,C);
     }
 
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype, fittertype,
-                          matxt, matat, matFX, vecgX, ot);
+##### Fit simple model and produce forecast #####
+    ssFitter(ParentEnvironment=environment());
+    ssForecaster(ParentEnvironment=environment());
 
-    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
-    y.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
-
-    if(!is.null(xreg)){
-# Write down the matat and produce values for the holdout
-        matat[1:nrow(fitting$matat),] <- fitting$matat;
-    }
-
-# Produce matrix of errors
-    errors.mat <- ts(errorerwrap(matvt, matF, matrix(matw[1,],nrow=1), y,
-                                 h, Etype, Ttype, Stype, modellags,
-                                 matxt, matat, matFX, ot),
-                     start=start(data),frequency=datafreq);
-    colnames(errors.mat) <- paste0("Error",c(1:h));
-    errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
-
-# Produce forecast
-    y.for <- ts(iprob*forecasterwrap(matrix(matvt[(obs+1):(obs+maxlag),],nrow=maxlag),
-                               matF, matrix(matw[1,],nrow=1), h, Ttype, Stype, modellags,
-                               matrix(matxt[(obs.all-h+1):(obs.all),],ncol=n.exovars),
-                               matrix(matat[(obs.all-h+1):(obs.all),],ncol=n.exovars), matFX),
-                start=time(data)[obs]+deltat(data),frequency=datafreq);
-
-#    s2 <- mean(errors^2);
-    s2 <- as.vector(sum((errors*ot)^2)/(obs.ot-n.param));
-
+##### Do final check and make some preparations for output #####
     if(any(is.na(y.fit),is.na(y.for))){
-        message("Something went wrong during the optimisation and NAs were produced!");
-        message("Please check the input and report this error if it persists to the maintainer.");
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
     }
-
-    if(intervals==TRUE){
-        if(h==1){
-            errors.x <- as.vector(errors);
-            ev <- median(errors);
-        }
-        else{
-            errors.x <- errors.mat;
-            ev <- apply(errors.mat,2,median,na.rm=TRUE);
-        }
-        if(int.type!="a"){
-            ev <- 0;
-        }
-
-        vt <- matrix(matvt[cbind(obs-modellags,c(1:max(1,n.components+constant)))],max(1,n.components+constant),1);
-
-        quantvalues <- ssintervals(errors.x, ev=ev, int.w=int.w, int.type=int.type, df=(obs.ot - n.param),
-                                 measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                 y.for=y.for, iprob=iprob);
-        y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-        y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
-    }
-    else{
-        y.low <- NA;
-        y.high <- NA;
-    }
-
-# Information criteria
-    llikelihood <- Likelihood.value(C);
-
-    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / (obs.ot - n.param - 1);
-    BIC.coef <- log(obs.ot)*n.param - 2*llikelihood;
-
-    ICs <- c(AIC.coef, AICc.coef, BIC.coef);
-    names(ICs) <- c("AIC", "AICc", "BIC");
-
-# Revert to the provided cost function
-    CF.type <- CF.type.original
 
 # Write down initials of states vector and exogenous
     if(estimate.initial==TRUE){
-        initial <- matvt[1,];
+        if((n.components-constant$required)>0){
+            initial <- matvt[1,1:(n.components-constant$required)];
+        }
+        else{
+            initial <- NULL;
+        }
     }
     if(estimate.initialX==TRUE){
         initialX <- matat[1,];
+    }
+
+    # Write down the probabilities from intermittent models
+    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    if(intermittent=="f"){
+        intermittent <- "fixed";
+    }
+    else if(intermittent=="c"){
+        intermittent <- "croston";
+    }
+    else if(intermittent=="t"){
+        intermittent <- "tsb";
+    }
+    else if(intermittent=="n"){
+        intermittent <- "none";
+    }
+    else if(intermittent=="p"){
+        intermittent <- "provided";
     }
 
 # Fill in the rest of matvt
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-        colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components+constant))),colnames(matat));
+        colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components))),colnames(matat));
     }
     else{
-        colnames(matvt) <- paste0("Component ",c(1:max(1,n.components+constant)));
+        colnames(matvt) <- paste0("Component ",c(1:max(1,n.components)));
     }
-    if(constant==TRUE){
-        colnames(matvt)[n.components+constant] <- "Constant";
+    if(constant$required==TRUE){
+        colnames(matvt)[n.components] <- "Constant";
     }
 
 # AR terms
@@ -851,23 +580,23 @@ Likelihood.value <- function(C){
     ar.i <- ma.i <- 1;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
-            if(estimate.AR==TRUE){
+            if(AR$estimate==TRUE){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
                 n.coef <- n.coef + ar.orders[i];
             }
             else{
-                ARterms[1:ar.orders[i],ar.i] <- AR[ar.coef+(1:ar.orders[i])];
+                ARterms[1:ar.orders[i],ar.i] <- AR$value[ar.coef+(1:ar.orders[i])];
                 ar.coef <- ar.coef + ar.orders[i];
             }
             ar.i <- ar.i + 1;
         }
         if(ma.orders[i]!=0){
-            if(estimate.MA==TRUE){
+            if(MA$estimate==TRUE){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
                 n.coef <- n.coef + ma.orders[i];
             }
             else{
-                MAterms[1:ma.orders[i],ma.i] <- MA[ma.coef+(1:ma.orders[i])];
+                MAterms[1:ma.orders[i],ma.i] <- MA$value[ma.coef+(1:ma.orders[i])];
                 ma.coef <- ma.coef + ma.orders[i];
             }
             ma.i <- ma.i + 1;
@@ -897,8 +626,12 @@ Likelihood.value <- function(C){
         modelname <- paste0("SARIMA",modelname);
     }
 
-    if(constant==TRUE){
-        const <- C[length(C)];
+    if(constant$required==TRUE){
+        if(constant$estimate==TRUE){
+            constant$value <- C[length(C)];
+        }
+        const <- constant$value;
+
         if(all(i.orders==0)){
             modelname <- paste0(modelname," with constant");
         }
@@ -907,9 +640,11 @@ Likelihood.value <- function(C){
         }
     }
     else{
-        const <- NULL;
+        const <- FALSE;
+        constant$value <- NULL;
     }
 
+##### Print output #####
     if(silent.text==FALSE){
         if(any(maroots<1)){
             if(bounds!="a"){
@@ -937,14 +672,14 @@ Likelihood.value <- function(C){
         }
 # Print output
         ssoutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-            phi=NULL, ARterms=ARterms, MAterms=MAterms, const=const, A=NULL, B=NULL,
-            n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
+            phi=NULL, ARterms=ARterms, MAterms=MAterms, const=constant$value, A=NULL, B=NULL,
+            n.components=(n.components-constant$required), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
             int.type=int.type, int.w=int.w, ICs=ICs,
-            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures,intermittent=intermittent);
     }
 
-# Make plot
+##### Make a plot #####
     if(silent.graph==FALSE){
         if(intervals==TRUE){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
@@ -955,11 +690,11 @@ Likelihood.value <- function(C){
                     int.w=int.w,legend=legend,main=modelname);
         }
     }
-
+##### Return values #####
 return(list(model=modelname,states=matvt,initial=initial,transition=matF,persistence=vecg,
             AR=ARterms,I=Iterms,MA=MAterms,constant=const,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,
+            actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
             xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }

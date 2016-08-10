@@ -1,6 +1,6 @@
 utils::globalVariables(c("estimate.initial","estimate.measurement","estimate.initial","estimate.transition",
                          "estimate.persistence","obs.vt","multisteps","ot","obs.ot","ICs","CF.objective",
-                         "y.for","y.low","y.high"));
+                         "y.for","y.low","y.high","normalizer"));
 
 ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optimal","backcasting"),
                 persistence=NULL, transition=NULL, measurement=NULL,
@@ -25,6 +25,12 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
         if(gregexpr("GES",model$model)!=1){
             stop("The provided model is not GES.",call.=FALSE);
         }
+        intermittent <- model$intermittent;
+        if(any(intermittent==c("p","provided"))){
+            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
+            warning("Switching to intermittent='auto'.",call.=FALSE);
+            intermittent <- "a";
+        }
         initial <- model$initial;
         persistence <- model$persistence;
         transition <- model$transition;
@@ -32,6 +38,9 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
+        if(any(persistenceX!=0)){
+            go.wild <- TRUE;
+        }
         model <- model$model;
         orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
         lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
@@ -41,10 +50,11 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
     environment(ssinput) <- environment();
     ssinput(modelType="ges",ParentEnvironment=environment());
 
-##### !!!Temporary override for intermitency!!! #####
-    if(intermittent=="a"){
-        intermittent <- "n"
-    }
+##### Preset y.fit, y.for, errors and basic parameters #####
+    matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
+    y.fit <- rep(NA,obs);
+    y.for <- rep(NA,h);
+    errors <- rep(NA,obs);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssxreg(data=data, xreg=xreg, go.wild=go.wild,
@@ -71,7 +81,8 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
 ##### Check number of observations vs number of max parameters #####
     if(obs.ot <= n.param.max){
         if(silent.text==FALSE){
-            message(paste0("Number of non-zero observations is ",obs.ot,", while the number of parameters to estimate is ", n.param.max,"."));
+            message(paste0("Number of non-zero observations is ",obs.ot,
+                           ", while the number of parameters to estimate is ", n.param.max,"."));
         }
         stop("Can't fit the model you ask.",call.=FALSE);
     }
@@ -289,21 +300,62 @@ gesCreator <- function(silent.text=FALSE,...){
 }
 
 ##### Start the calculations #####
+    environment(intermittentParametersSetter) <- environment();
+    environment(intermittentMaker) <- environment();
     environment(ssForecaster) <- environment();
     environment(ssFitter) <- environment();
 
-    matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
-    y.fit <- rep(NA,obs);
-    errors <- rep(NA,obs);
-
-    if(multisteps==TRUE){
-        normalizer <- sum(abs(diff(c(y))))/(obs-1);
+    # If auto intermittent, then estimate model with intermittent="n" first.
+    if(any(intermittent==c("a","n"))){
+        intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
     }
     else{
-        normalizer <- 0;
+        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
+        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
 
     gesValues <- gesCreator();
+
+##### If intermittent=="a", run a loop and select the best one #####
+    if(intermittent=="a"){
+        if(silent.text==FALSE){
+            cat("Selecting appropriate type of intermittency... ");
+        }
+# Prepare stuff for intermittency selection
+        intermittentModelsPool <- c("n","f","c","t");
+        intermittentICs <- rep(1e+10,length(intermittentModelsPool));
+        intermittentModelsList <- list(NA);
+        intermittentICs <- gesValues$bestIC;
+
+        for(i in 2:length(intermittentModelsPool)){
+            intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
+            intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
+            intermittentModelsList[[i]] <- gesCreator(silent.text=TRUE);
+            intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
+            if(intermittentICs[i]>intermittentICs[i-1]){
+                break;
+            }
+        }
+        intermittentICs[is.nan(intermittentICs)] <- 1e+100;
+        intermittentICs[is.na(intermittentICs)] <- 1e+100;
+        iBest <- which(intermittentICs==min(intermittentICs));
+
+        if(silent.text==FALSE){
+            cat("Done!\n");
+        }
+        if(iBest!=1){
+            intermittent <- intermittentModelsPool[iBest];
+            intermittentModel <- intermittentModelsList[[iBest]];
+            gesValues <- intermittentModelsList[[iBest]];
+        }
+        else{
+            intermittent <- "n"
+        }
+
+        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
+        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
+    }
+
     list2env(gesValues,environment());
 
 # Prepare for fitting
@@ -322,12 +374,14 @@ gesCreator <- function(silent.text=FALSE,...){
         FI <- numDeriv::hessian(likelihoodFunction,C);
     }
 
+##### Fit simple model and produce forecast #####
     ssFitter(ParentEnvironment=environment());
     ssForecaster(ParentEnvironment=environment());
 
+##### Do final check and make some preparations for output #####
     if(any(is.na(y.fit),is.na(y.for))){
-        message("Something went wrong during the optimisation and NAs were produced!");
-        message("Please check the input and report this error to the maintainer if it persists.");
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
     }
 
 # Write down initials of states vector and exogenous
@@ -338,7 +392,25 @@ gesCreator <- function(silent.text=FALSE,...){
         initialX <- matat[1,];
     }
 
-# Fill in the rest of matvt
+    # Write down the probabilities from intermittent models
+    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    if(intermittent=="f"){
+        intermittent <- "fixed";
+    }
+    else if(intermittent=="c"){
+        intermittent <- "croston";
+    }
+    else if(intermittent=="t"){
+        intermittent <- "tsb";
+    }
+    else if(intermittent=="n"){
+        intermittent <- "none";
+    }
+    else if(intermittent=="p"){
+        intermittent <- "provided";
+    }
+
+# Make some preparations
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat);
@@ -359,6 +431,7 @@ gesCreator <- function(silent.text=FALSE,...){
 
     modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
 
+##### Print output #####
     if(silent.text==FALSE){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
@@ -382,9 +455,9 @@ gesCreator <- function(silent.text=FALSE,...){
                 n.components=orders %*% lags, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
                 CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
                 int.type=int.type, int.w=int.w, ICs=ICs,
-                holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures);
+                holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
     }
-# Make plot
+##### Make a plot #####
     if(silent.graph==FALSE){
         if(intervals==TRUE){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
@@ -395,10 +468,10 @@ gesCreator <- function(silent.text=FALSE,...){
                     int.w=int.w,legend=legend,main=modelname);
         }
     }
-
+##### Return values #####
 return(list(model=modelname,states=matvt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,
+            actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
             xreg=xreg,persistenceX=vecgX,transitionX=matFX,initialX=initialX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }
