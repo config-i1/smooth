@@ -290,7 +290,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 ##### Loop for MA #####
     if(any(ma.max!=0)){
         for(seasSelect in 1:length(lags)){
-            test.lags[seasSelect] <- lags[seasSelect];
+#            test.lags[seasSelect] <- lags[seasSelect];
             if(ma.max[seasSelect]!=0){
                 for(maSelect in 1:ma.max[seasSelect]){
                     m <- m + 1;
@@ -318,14 +318,20 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                     # If high order MA is not good, break the loop
                     if(test.ICs[maSelect+1] > test.ICs[maSelect]){
-                        m <- m + ma.max[seasSelect] - maSelect;
-                        break;
+                        if(maSelect!=ma.max[seasSelect]){
+                            m <- m + ma.max[seasSelect] - maSelect;
+                            break;
+                        }
+                    }
+                    else{
+                        ma.best[seasSelect] <- ma.test[seasSelect];
                     }
                 }
 # Save the best MA
-                ma.best[seasSelect] <- ma.test[seasSelect] <- c(0:ma.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+#                ma.best[seasSelect] <- ma.test[seasSelect] <- c(ma.max[seasSelect]:0)[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
                 test.ICs <- sort(test.ICs,decreasing=FALSE);
+                ma.test[seasSelect] <- ma.best[seasSelect];
             }
         }
     }
@@ -361,14 +367,20 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     test.ICs.all[m] <- test.models[[m]]$ICs[IC];
                     # If high order AR is not good, break the loop
                     if(test.ICs[arSelect+1] > test.ICs[arSelect]){
-                        m <- m + ar.max[seasSelect] - arSelect;
-                        break;
+                        if(arSelect!=ar.max[seasSelect]){
+                            m <- m + ar.max[seasSelect] - arSelect;
+                            break;
+                        }
+                    }
+                    else{
+                        ar.best[seasSelect] <- ar.test[seasSelect];
                     }
                 }
 # Save the best AR
-                ar.best[seasSelect] <- ar.test[seasSelect] <- c(0:ar.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+#                ar.best[seasSelect] <- ar.test[seasSelect] <- c(ar.max[seasSelect]:0)[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE)
+                test.ICs <- sort(test.ICs,decreasing=FALSE);
+                ar.test[seasSelect] <- ar.best[seasSelect];
             }
         }
     }
@@ -413,6 +425,12 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         CF.objective <- best.model$CF;
         ICs <- best.model$ICs;
         errormeasures <- best.model$accuracy;
+        if(is.numeric(best.model$constant)){
+            constant <- best.model$constant;
+        }
+        else{
+            constant <- NULL;
+        }
 
 # Calculate the number os observations in the interval
         if(all(holdout==TRUE,intervals==TRUE)){
@@ -424,7 +442,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         }
 
         ssOutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
-            phi=NULL, ARterms=best.model$AR, MAterms=best.model$MA, const=best.model$constant, A=NULL, B=NULL,
+            phi=NULL, ARterms=best.model$AR, MAterms=best.model$MA, const=constant, A=NULL, B=NULL,
             n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
             CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
             int.type=int.type, int.w=int.w, ICs=ICs,
