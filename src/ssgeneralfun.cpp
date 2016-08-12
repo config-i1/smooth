@@ -684,6 +684,9 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
         lags(i) = lags(i) + obsall * i;
         backlags(i) = backlags(i) + obsall * i;
     }
+    if(maxlag == minlag){
+        backlags = backlags + maxlag - 1;
+    }
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
 
