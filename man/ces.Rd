@@ -8,7 +8,7 @@
   Function estimates CES in state-space form with information potential equal to errors and returns several variables.
 }
 \usage{
-ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
+ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     initial=c("backcasting","optimal"),
     CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
@@ -26,7 +26,7 @@ ces(data, C=c(1.1, 1), seasonality=c("N","S","P","F"),
     The initial value of complex smoothing parameter, where C[1] = a0, C[2] = a1.
   }
   \item{seasonality}{
-    The type of seasonality used in CES. Can be: "N" - No seasonality; "S" - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); "P" - Partial seasonality with real seasonal components (equivalent to additive seasonality); "F" - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data).
+    The type of seasonality used in CES. Can be: \code{none} - No seasonality; \code{simple} - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); \code{partial} - Partial seasonality with real seasonal components (equivalent to additive seasonality); \code{full} - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data). First letter can be used instead of full words.
     Any seasonal CES can only be constructed for time series vectors.
   }
   \item{initial}{
@@ -150,6 +150,18 @@ N1683_ces_F <- ces(y,h=18,holdout=TRUE,seasonality="F",intervals=TRUE)
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
     intervals=TRUE,xreg=x,CF.type="MSTFE")->test
+
+# Exogenous variables in CES
+x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)->test
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)->test
+# This will be the same model as in previous line but estimated on new portion of data
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)->test
+
+# Intermittent data example
+x <- rpois(100,0.2)
+# Best type of intermittent model based on iETS(Z,Z,N)
+ces(x,intermittent="auto")->test
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

@@ -4,7 +4,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
                          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
                          intermittent=c("auto","none","fixed","croston","tsb"),
-                         silent=c("none","all","graph","legend","output"),
+                         bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                          xreg=NULL, go.wild=FALSE, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #
@@ -13,88 +13,12 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 # Start measuring the time of calculations
     start.time <- Sys.time();
 
-# See if a user asked for Fisher Information
-    if(!is.null(list(...)[['FI']])){
-        FI <- list(...)[['FI']];
-    }
-    else{
-        FI <- FALSE;
-    }
+# Add all the variables in ellipsis to current environment
+    list2env(list(...),environment());
 
-# Make sense out of silent
-    silent <- silent[1];
-# Fix for cases with TRUE/FALSE.
-    if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output"))){
-            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
-            silent <- "none";
-        }
-        silent <- substring(silent,1,1);
-    }
-
-    if(silent==FALSE | silent=="n"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-    else if(silent==TRUE | silent=="a"){
-        silent.text <- TRUE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="g"){
-        silent.text <- FALSE;
-        silent.graph <- TRUE;
-        legend <- FALSE;
-    }
-    else if(silent=="l"){
-        silent.text <- FALSE;
-        silent.graph <- FALSE;
-        legend <- FALSE;
-    }
-    else if(silent=="o"){
-        silent.text <- TRUE;
-        silent.graph <- FALSE;
-        legend <- TRUE;
-    }
-
-# Define obs.all, the overal number of observations (in-sample + holdout)
-    obs.all <- length(data) + (1 - holdout)*h;
-
-# Define obs, the number of observations of in-sample
-    obs <- length(data) - holdout*h;
-
-# This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
-    if(obs < 4){
-        stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
-    }
-
-# Check the provided vector of initials: length and provided values.
-    if(is.character(initial)){
-        initial <- substring(initial[1],1,1);
-        if(initial!="o" & initial!="b"){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
-            initial <- "o";
-        }
-        fittertype <- initial;
-        initial <- NULL;
-    }
-    else if(is.null(initial)){
-        if(silent.text==FALSE){
-            message("Initial value is not selected. Switching to optimal.");
-        }
-        fittertype <- "o";
-    }
-    else{
-        if(silent.text==FALSE){
-            message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
-        }
-        fittertype <- "o";
-    }
-
-    IC <- IC[1];
-    CF.type <- CF.type[1];
-    int.type <- int.type[1];
+##### Set environment for ssInput and make all the checks #####
+    environment(ssAutoInput) <- environment();
+    ssAutoInput(modelType="ssarima",ParentEnvironment=environment());
 
     if(any(is.complex(c(ar.max,i.max,ma.max,lags)))){
         stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);

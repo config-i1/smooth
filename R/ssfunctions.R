@@ -318,6 +318,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             constant$required <- constant$estimate <- TRUE;
         }
     }
+    else if(modelType=="ces"){
+        # If the user typed wrong seasonality, use the "Full" instead
+        if(all(seasonality!=c("n","s","p","f","none","simple","partial","full"))){
+            message(paste0("Wrong seasonality type: '",seasonality, "'. Changing it to 'full'"));
+            seasonality <- "f";
+        }
+        seasonality <- substring(seasonality[1],1,1);
+    }
 
     ##### data #####
     if(!is.numeric(data)){
@@ -425,6 +433,65 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     else if(modelType=="es"){
         maxlag <- datafreq * (Stype!="N") + 1 * (Stype=="N");
     }
+    else if(modelType=="ces"){
+        A <- list(value=A);
+        B <- list(value=B);
+
+        if(is.null(A$value)){
+            A$estimate <- TRUE;
+        }
+        else{
+            A$estimate <- FALSE;
+        }
+        if(is.null(B$value)){
+            B$estimate <- TRUE;
+        }
+        else{
+            B$estimate <- FALSE;
+        }
+
+        # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
+        #   matvt - the matrix with the components, lags is the lags used in pt matrix.
+        if(seasonality=="n"){
+            # No seasonality
+            maxlag <- 1;
+            modellags <- c(1,1);
+            ces.name <- "Complex Exponential Smoothing";
+            # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
+            n.components <- 2;
+            A$number <- 2;
+            B$number <- 0;
+        }
+        else if(seasonality=="s"){
+            # Simple seasonality, lagged CES
+            maxlag <- datafreq;
+            modellags <- c(maxlag,maxlag);
+            ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
+            n.components <- 2;
+            A$number <- 2;
+            B$number <- 0;
+        }
+        else if(seasonality=="p"){
+            # Partial seasonality with a real part only
+            maxlag <- datafreq;
+            modellags <- c(1,1,maxlag);
+            C <- c(C,0.5);
+            ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
+            n.components <- 3;
+            A$number <- 2;
+            B$number <- 1;
+        }
+        else if(seasonality=="f"){
+            # Full seasonality with both real and imaginary parts
+            maxlag <- datafreq;
+            modellags <- c(1,1,maxlag,maxlag);
+            C <- c(C,C);
+            ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
+            n.components <- 4;
+            A$number <- 2;
+            B$number <- 2;
+        }
+    }
 
     ##### obs.vt #####
     # Define the number of rows that should be in the matvt
@@ -442,7 +509,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         bounds <- "u";
     }
 
-    if(any(modelType==c("es","auto.ces","auto.ssarima"))){
+    if(modelType=="es"){
         ##### Information Criteria #####
         IC <- IC[1];
         if(all(IC!=c("AICc","AIC","BIC"))){
@@ -666,6 +733,16 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     estimate.initial <- FALSE;
                 }
             }
+            else if(modelType=="ces"){
+                if(length(initial) != n.components){
+                    message(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
+                    message("Values of initial vector will be estimated.");
+                    estimate.initial <- TRUE;
+                }
+                else{
+                    estimate.initial <- FALSE;
+                }
+            }
         }
         fittertype <- "o";
     }
@@ -795,8 +872,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             estimate.transition*n.components^2 + (orders %*% lags)*estimate.persistence + 1;
     }
     else if(modelType=="ssarima"){
-        n.param.max <- 1 + n.components*estimate.initial*(fittertype=="o") + sum(ar.orders)*AR$required +
-            sum(ma.orders)*MA$required + constant$required;
+        n.param.max <- n.components*estimate.initial*(fittertype=="o") + sum(ar.orders)*AR$required +
+            sum(ma.orders)*MA$required + constant$required + 1;
+    }
+    else if(modelType=="ces"){
+        n.param.max <- sum(modellags)*estimate.initial*(fittertype=="o") + A$number + B$number + 1;
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -853,18 +933,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("initial.season",initial.season,ParentEnvironment);
         assign("phi",phi,ParentEnvironment);
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
-    }
-
-    if(any(modelType==c("es","auto.ces","auto.ssarima"))){
         assign("IC",IC,ParentEnvironment);
     }
-
-    if(any(modelType==c("es","ges"))){
-        assign("persistence",persistence,ParentEnvironment);
-        assign("estimate.persistence",estimate.persistence,ParentEnvironment);
-    }
-
-    if(modelType=="ges"){
+    else if(modelType=="ges"){
         assign("estimate.transition",estimate.transition,ParentEnvironment);
         assign("estimate.measurement",estimate.measurement,ParentEnvironment);
         assign("orders",orders,ParentEnvironment);
@@ -879,8 +950,19 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("MA",MA,ParentEnvironment);
         assign("constant",constant,ParentEnvironment);
     }
+    else if(modelType=="ces"){
+        assign("seasonality",seasonality,ParentEnvironment);
+        assign("ces.name",ces.name,ParentEnvironment);
+        assign("A",A,ParentEnvironment);
+        assign("B",B,ParentEnvironment);
+    }
 
-    if(any(modelType==c("ges","ssarima","auto.ssarima","ces","auto.ces"))){
+    if(any(modelType==c("es","ges"))){
+        assign("persistence",persistence,ParentEnvironment);
+        assign("estimate.persistence",estimate.persistence,ParentEnvironment);
+    }
+
+    if(any(modelType==c("ges","ssarima","ces"))){
         assign("n.components",n.components,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
@@ -891,6 +973,189 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     # This is universal function needed in order to check the passed arguments to auto.ces(), auto.ges() and auto.ssarima()
 
+    ellipsis <- list(...);
+    ParentEnvironment <- ellipsis[['ParentEnvironment']];
+
+    ##### silent #####
+    silent <- silent[1];
+    # Fix for cases with TRUE/FALSE.
+    if(!is.logical(silent)){
+        if(all(silent!=c("none","all","graph","legend","output","n","a","g","l","o"))){
+            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            silent <- "none";
+        }
+        silent <- substring(silent,1,1);
+    }
+
+    if(silent==FALSE | silent=="n"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+    else if(silent==TRUE | silent=="a"){
+        silent.text <- TRUE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="g"){
+        silent.text <- FALSE;
+        silent.graph <- TRUE;
+        legend <- FALSE;
+    }
+    else if(silent=="l"){
+        silent.text <- FALSE;
+        silent.graph <- FALSE;
+        legend <- FALSE;
+    }
+    else if(silent=="o"){
+        silent.text <- TRUE;
+        silent.graph <- FALSE;
+        legend <- TRUE;
+    }
+
+    ##### Fisher Information #####
+    if(!exists("FI")){
+        FI <- FALSE;
+    }
+
+    ##### Observations #####
+# Define obs.all, the overal number of observations (in-sample + holdout)
+    obs.all <- length(data) + (1 - holdout)*h;
+
+# Define obs, the number of observations of in-sample
+    obs <- length(data) - holdout*h;
+
+# This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
+    if(obs < 4){
+        stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
+    }
+
+# Check the provided vector of initials: length and provided values.
+    if(is.character(initial)){
+        initial <- substring(initial[1],1,1);
+        if(initial!="o" & initial!="b"){
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            initial <- "o";
+        }
+        fittertype <- initial;
+        initial <- NULL;
+    }
+    else if(is.null(initial)){
+        if(silent.text==FALSE){
+            message("Initial value is not selected. Switching to optimal.");
+        }
+        fittertype <- "o";
+    }
+    else{
+        if(silent.text==FALSE){
+            message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
+        }
+        fittertype <- "o";
+    }
+
+    ##### bounds #####
+    bounds <- substring(bounds[1],1,1);
+    # Check if "bounds" parameter makes any sense
+    if(bounds!="n" & bounds!="a"){
+        message("The strange bounds are defined. Switching to 'admissible'.");
+        bounds <- "a";
+    }
+
+    ##### Information Criteria #####
+    IC <- IC[1];
+    if(all(IC!=c("AICc","AIC","BIC"))){
+        message(paste0("Strange type of information criteria defined: ",IC,". Switching to 'AICc'."));
+        IC <- "AICc";
+    }
+
+    ##### Cost function type #####
+    CF.type <- CF.type[1];
+    if(any(CF.type==c("MLSTFE","MSTFE","TFL","MSEh","aMLSTFE","aMSTFE","aTFL","aMSEh"))){
+        multisteps <- TRUE;
+    }
+    else if(any(CF.type==c("MSE","MAE","HAM"))){
+        multisteps <- FALSE;
+    }
+    else{
+        message(paste0("Strange cost function specified: ",CF.type,". Switching to 'MSE'."));
+        CF.type <- "MSE";
+        multisteps <- FALSE;
+    }
+
+    ##### intervals, int.type, int.w #####
+    int.type <- substring(int.type[1],1,1);
+    # Check the provided type of interval
+    if(all(int.type!=c("a","p","f","n"))){
+        message(paste0("The wrong type of interval chosen: '",int.type, "'. Switching to 'parametric'."));
+        int.type <- "p";
+    }
+
+    ##### intermittent #####
+    if(is.numeric(intermittent)){
+        # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
+        if(all(length(c(intermittent))!=c(h,obs.all))){
+            message(paste0("The length of the provided future occurrences is ",length(c(intermittent)),
+                           " while the length of forecasting horizon is ",h,"."));
+            message(paste0("Where should we plug in the future occurences data?"));
+            message(paste0("Switching to intermittent='fixed'."));
+            intermittent <- "f";
+        }
+
+        if(any(intermittent!=0 & intermittent!=1)){
+            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
+                    call.=FALSE, immediate.=FALSE);
+            if(silent.text==FALSE){
+                message(paste0("Converting to appropriate vector."));
+            }
+            intermittent <- (intermittent!=0)*1;
+        }
+    }
+    else{
+        y <- data[1:obs];
+        obs.ot <- sum((y!=0)*1);
+        intermittent <- intermittent[1];
+        if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
+            warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
+                    call.=FALSE, immediate.=FALSE);
+            intermittent <- "f";
+        }
+        intermittent <- substring(intermittent[1],1,1);
+        environment(intermittentParametersSetter) <- environment();
+        intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+
+        if(obs.ot <= n.param.intermittent){
+            warning("Not enough observations for estimation of intermittency probability.",
+                    call.=FALSE, immediate.=FALSE);
+            if(silent.text==FALSE){
+                message("Switching to simpler model.");
+            }
+            if(obs.ot > 1){
+                intermittent <- "f";
+                n.param.intermittent <- 1;
+                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+            }
+            else{
+                intermittent <- "n";
+                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+            }
+        }
+    }
+
+    assign("silent",silent,ParentEnvironment);
+    assign("silent.text",silent.text,ParentEnvironment);
+    assign("silent.graph",silent.graph,ParentEnvironment);
+    assign("legend",legend,ParentEnvironment);
+    assign("bounds",bounds,ParentEnvironment);
+    assign("FI",FI,ParentEnvironment);
+    assign("obs.all",obs.all,ParentEnvironment);
+    assign("obs",obs,ParentEnvironment);
+    assign("fittertype",fittertype,ParentEnvironment);
+    assign("initial",initial,ParentEnvironment);
+    assign("IC",IC,ParentEnvironment);
+    assign("CF.type",CF.type,ParentEnvironment);
+    assign("multisteps",multisteps,ParentEnvironment);
+    assign("int.type",int.type,ParentEnvironment);
+    assign("intermittent",intermittent,ParentEnvironment);
 }
 
 ##### *ssFitter function* #####

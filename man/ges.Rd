@@ -160,7 +160,7 @@ ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds="a")->te
 # Redo previous model on a new data and produce prediction intervals
 ges(rnorm(118,100,3),model=test,h=18,intervals=TRUE) -> test
 
-ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,bounds="a")->test
+ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="b")->test
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",CF.type="TFL")->test
 

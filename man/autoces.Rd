@@ -8,12 +8,12 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
-         initial=c("backcasting","optimal"), IC=c("CIC","AIC","AICc","BIC"),
+auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
+         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
          CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
          h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
          int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
-         intermittent=FALSE,
+         intermittent=c("auto","none","fixed","croston","tsb"),
          bounds=c("admissible","none"),
          silent=c("none","all","graph","legend","output"),
          xreg=NULL, go.wild=FALSE, ...)
@@ -33,7 +33,7 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
     Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
   \item{IC}{
-    The information criterion used in the model selection procedure. CIC - "Complex IC" is prefered due to the features of complex components etimation.
+    The information criterion used in the model selection procedure.
   }
   \item{CF.type}{
   Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
@@ -64,7 +64,7 @@ auto.ces(data, C=c(1.1, 1), models=c("N","S","P","F"),
     }
   }
   \item{intermittent}{
-    If \code{TRUE}, then the data is considered as intermittent, taking into account Bernoulli distribution of demand occurancies.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
   }
   \item{bounds}{
     What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
