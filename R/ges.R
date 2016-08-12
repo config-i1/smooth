@@ -41,7 +41,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(persistenceX!=0)){
+        if(any(c(persistenceX,transitionX)!=0)){
             go.wild <- TRUE;
         }
         model <- model$model;
@@ -90,6 +90,26 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
         stop("Can't fit the model you ask.",call.=FALSE);
     }
 
+##### Preset values of matvt ######
+    slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
+    intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+
+    vtvalues <- intercept;
+    if((orders %*% lags)>1){
+        vtvalues <- c(vtvalues,slope);
+    }
+    if((orders %*% lags)>2){
+        vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+    }
+
+    vt <- matrix(NA,maxlag,n.components);
+    for(i in 1:n.components){
+        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+    }
+    matvt[1:maxlag,] <- vt;
+
 ##### Initialise ges #####
 elements.ges <- function(C){
     n.coef <- 0;
@@ -117,6 +137,7 @@ elements.ges <- function(C){
         vecg <- matrix(persistence,n.components,1);
     }
 
+    vt <- matrix(NA,maxlag,n.components);
     if(fittertype=="o"){
         if(estimate.initial==TRUE){
             vtvalues <- C[n.coef+(1:(orders %*% lags))];
@@ -127,7 +148,6 @@ elements.ges <- function(C){
             vtvalues <- initial;
         }
 
-        vt <- matrix(NA,maxlag,n.components);
         for(i in 1:n.components){
             vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
             vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
@@ -135,7 +155,7 @@ elements.ges <- function(C){
         }
     }
     else{
-        vt <- matvt[1:maxlag,n.components];
+        vt[,] <- matvt[1:maxlag,n.components];
     }
 
 # If exogenous are included
@@ -197,9 +217,6 @@ gesCreator <- function(silent.text=FALSE,...){
 # If there is something to optimise, let's do it.
     if((estimate.initial==TRUE) | (estimate.measurement==TRUE) | (estimate.transition==TRUE) | (estimate.persistence==TRUE) |
        (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE)){
-# Initial values of matvt
-        slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
-        intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
 
         C <- NULL;
 # matw, matF, vecg, vt
@@ -221,23 +238,6 @@ gesCreator <- function(silent.text=FALSE,...){
                 if((orders %*% lags)>2){
                     C <- c(C,yot[1:(orders %*% lags-2),]);
                 }
-            }
-            else{
-                vtvalues <- intercept;
-                if((orders %*% lags)>1){
-                    vtvalues <- c(vtvalues,slope);
-                }
-                if((orders %*% lags)>2){
-                    vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
-                }
-
-                vt <- matrix(NA,maxlag,n.components);
-                for(i in 1:n.components){
-                    vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-                    vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                                ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
-                }
-                matvt[1:maxlag,] <- vt;
             }
         }
 
@@ -478,6 +478,6 @@ gesCreator <- function(silent.text=FALSE,...){
 return(list(model=modelname,states=matvt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
             fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
             actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-            xreg=xreg,persistenceX=vecgX,transitionX=matFX,initialX=initialX,
+            xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
             ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
 }
