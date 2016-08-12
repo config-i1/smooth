@@ -41,7 +41,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(persistenceX!=0)){
+        if(any(c(persistenceX,transitionX)!=0)){
             go.wild <- TRUE;
         }
         AR <- model$AR;
@@ -210,7 +210,6 @@ polyroots <- function(C){
                 initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
                 vt[1:n.components] <- initial.stuff[1:n.components];
                 vt[-1] <- vt[1] * matF[-1,1];
-
             }
         }
         else{
@@ -303,8 +302,6 @@ CF <- function(C){
 ssarimaCreator <- function(silent.text=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
-    environment(CF) <- environment();
-    environment(polyroots) <- environment();
 
     n.param <- 1 + n.components*estimate.initial*(fittertype=="o") + sum(ar.orders)*AR$required +
         sum(ma.orders)*MA$required + constant$required + estimate.FX*length(matFX) +

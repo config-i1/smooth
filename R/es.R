@@ -35,7 +35,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(persistenceX!=0)){
+        if(any(c(persistenceX,transitionX)!=0)){
             go.wild <- TRUE;
         }
         model <- model$model;
