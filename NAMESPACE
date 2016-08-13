@@ -9,3 +9,5 @@ export(es, ges, nus, ces, ssarima, iss, auto.ces, auto.ssarima,
        sim.ces, sim.ets,
        sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias, graphmaker)
 useDynLib(smooth)
+
+S3method(coef,es)
