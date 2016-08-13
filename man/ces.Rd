@@ -83,7 +83,9 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
-    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
+    Other non-documented parameters.
+    For example parameter \code{model} can accept a previously estimated GES model and use all its parameters.
+    \code{FI=TRUE} will make the function produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
 \details{
