@@ -1,4 +1,4 @@
-utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obs.ot","CF.type",
+utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obs.ot","pt","CF.type",
                          "CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg","matvt","n.exovars","matat","errors",
                          "n.param","intervals","int.type","int.w"));
 
@@ -443,7 +443,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         else{
             A$estimate <- FALSE;
         }
-        if(is.null(B$value)){
+        if(all(is.null(B$value),any(seasonality==c("p","f")))){
             B$estimate <- TRUE;
         }
         else{
@@ -695,7 +695,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         estimate.initial <- TRUE;
     }
     else if(!is.null(initial)){
-        if(!is.numeric(initial) | !is.vector(initial)){
+        if(!is.numeric(initial)){
             message("The initial vector is not numeric!",call.=FALSE);
             message("Values of initial vector will be estimated.");
             initial <- NULL;
@@ -734,7 +734,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
             }
             else if(modelType=="ces"){
-                if(length(initial) != n.components){
+                if(length(initial) != maxlag*n.components){
                     message(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
                     message("Values of initial vector will be estimated.");
                     estimate.initial <- TRUE;

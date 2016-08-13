@@ -836,6 +836,7 @@ RcppExport SEXP fitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
     switch(fitterType){
         case 'o':
+        default:
             return wrap(fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                                matrixXt, matrixAt, matrixFX, vecGX, vecOt));
         break;
