@@ -10,5 +10,8 @@ export(sim.ces, sim.ets)
 export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias, graphmaker)
 
 S3method(coef,es)
+S3method(summary,es)
+S3method(fitted,es)
+S3method(plot,es)
 
 useDynLib(smooth)

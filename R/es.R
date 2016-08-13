@@ -928,16 +928,23 @@ esCreator <- function(silent.text=FALSE,...){
         }
 
         # Write down the initials. Done especially for Nikos and issue #10
-        if(estimate.initial==TRUE){
-            initial <- matvt[maxlag,1:(n.components - (Stype!="N"))]
+        if(estimate.persistence){
+            persistence <- as.vector(vecg);
         }
+        names(persistence) <- c("alpha","beta","gamma")[1:n.components];
+
+        if(estimate.initial==TRUE){
+            initial <- matvt[maxlag,1:(n.components - (Stype!="N"))];
+        }
+
         if(estimate.initialX==TRUE){
             initialX <- matat[1,];
         }
 
         if(estimate.initial.season==TRUE){
             if(Stype!="N"){
-                initial.season <- matvt[1:maxlag,n.components]
+                initial.season <- matvt[1:maxlag,n.components];
+                names(initial.season) <- paste0("s",1:maxlag);
             }
         }
     }
@@ -1092,18 +1099,20 @@ esCreator <- function(silent.text=FALSE,...){
 
 ##### Return values #####
     if(modelDo!="combine"){
-        return(list(model=modelname,states=matvt,persistence=as.vector(vecg),phi=phi,
+        return <- list(model=modelname,states=matvt,persistence=persistence,phi=phi,
                     initial=initial,initial.season=initial.season,
                     fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
                     actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                     xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-                    ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
+                    ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures);
+        return(structure(return,class="es"));
     }
     else{
-        return(list(model=modelname,fitted=y.fit,forecast=y.for,
-                    lower=y.low,upper=y.high,residuals=errors,
-                    actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                    ICs=ICs,ICw=IC.weights,
-                    CF.type=CF.type,xreg=xreg,accuracy=errormeasures));
+        return <- list(model=modelname,fitted=y.fit,forecast=y.for,
+                       lower=y.low,upper=y.high,residuals=errors,
+                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                       ICs=ICs,ICw=IC.weights,
+                       CF.type=CF.type,xreg=xreg,accuracy=errormeasures);
+        return(structure(return,class="es"))
     }
 }
