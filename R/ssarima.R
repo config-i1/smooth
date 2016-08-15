@@ -294,6 +294,7 @@ CF <- function(C){
                            h, modellags, Etype, Ttype, Stype,
                            multisteps, cfType, normalizer, initialType,
                            matxt, matat, matFX, vecgX, ot);
+
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
     }

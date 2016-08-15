@@ -313,11 +313,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             modellags <- rbind(modellags,1);
         }
         maxlag <- 1;
-
-        if((n.components==0) & (constant$required==FALSE)){
-            warning("You have not defined any model! Forcing constant=TRUE.",call.=FALSE,immediate.=TRUE);
-            constant$required <- constant$estimate <- TRUE;
-        }
     }
     else if(modelType=="ces"){
         # If the user typed wrong seasonality, use the "Full" instead
@@ -863,6 +858,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
         else{
             measurementEstimate <- TRUE;
+        }
+    }
+
+    if(modelType=="ssarima"){
+        if((n.components==0) & (constant$required==FALSE)){
+            warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE,immediate.=TRUE);
+            constant$required <- TRUE;
+            constant$value <- 0;
+            initialType <- "p";
         }
     }
 
