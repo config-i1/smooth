@@ -130,8 +130,8 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
 ##### Preset values of matvt ######
     slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
     intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-    initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
-    matvt[1,1:n.components] <- initial.stuff[1:n.components];
+    initialStuff <- c(intercept,-intercept,rep(slope,n.components));
+    matvt[1,1:n.components] <- initialStuff[1:n.components];
 
 polyroots <- function(C){
     polysos.ar <- 0;
@@ -216,7 +216,7 @@ polyroots <- function(C){
             vt[-1] <- vt[1] * matF[-1,1];
         }
         else{
-            vt <- initial;
+            vt <- initialValue;
         }
 
         if(constant$required){
@@ -329,8 +329,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             if(initialType=="o"){
                 slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
                 intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-                initial.stuff <- c(rep(intercept,n.components));
-                C <- c(C,initial.stuff[1:n.components]);
+                initialStuff <- c(rep(intercept,n.components));
+                C <- c(C,initialStuff[1:n.components]);
             }
         }
 
@@ -373,8 +373,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # initial values of state vector and the constant term
         slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
         intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-        initial.stuff <- c(intercept,-intercept,rep(slope,n.components));
-        matvt[1,1:n.components] <- initial.stuff[1:(n.components)];
+        initialStuff <- c(intercept,-intercept,rep(slope,n.components));
+        matvt[1,1:n.components] <- initialStuff[1:(n.components)];
 
         cfObjective <- CF(C);
     }
@@ -493,11 +493,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        if((n.components - constant$required) > 0){
-            initialValue <- matvt[1,];
+        if(constant$required==TRUE){
+            initialValue <- matvt[1,-ncol(matvt)];
         }
         else{
-            initialValue <- NULL;
+            initialValue <- matvt[1,];
         }
     }
     if(initialXEstimate){
