@@ -493,7 +493,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        initialValue <- matvt[1,];
+        if((n.components - constant$required) > 0){
+            initialValue <- matvt[1,];
+        }
+        else{
+            initialValue <- NULL;
+        }
     }
     if(initialXEstimate){
         initialX <- matat[1,];
@@ -664,7 +669,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
-                  initial=initial,nParam=n.param,
+                  initial=initialValue,nParam=n.param,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
