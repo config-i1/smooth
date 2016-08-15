@@ -1,8 +1,10 @@
+utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
+
 ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"),
-                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+                cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=c("auto","none","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -14,7 +16,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
 #    Copyright (C) 2015 - 2016i  Ivan Svetunkov
 
 # Start measuring the time of calculations
-    start.time <- Sys.time();
+    startTime <- Sys.time();
 
 # Set A and B as null for estimation of C
     A <- B <- NULL;
@@ -54,10 +56,10 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
     ssInput(modelType="ces",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
-    matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
-    y.fit <- rep(NA,obs);
+    matvt <- matrix(NA,nrow=obsStates,ncol=n.components);
+    y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
-    errors <- rep(NA,obs);
+    errors <- rep(NA,obsInsample);
 
 ##### Define parameters for different seasonality types #####
 # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
@@ -67,16 +69,16 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         matF <- matrix(1,2,2);
         vecg <- matrix(0,2);
         matw <- matrix(c(1,0),1,2);
-        matvt <- matrix(NA,obs.vt,2);
+        matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level","potential");
-        matvt[1,] <- c(mean(yot[1:min(10,obs.ot)]),mean(yot[1:min(10,obs.ot)])/C[1]);
+        matvt[1,] <- c(mean(yot[1:min(10,obsNonzero)]),mean(yot[1:min(10,obsNonzero)])/C[1]);
     }
     else if(seasonality=="s"){
 # Simple seasonality, lagged CES
         matF <- matrix(1,2,2);
         vecg <- matrix(0,2);
         matw <- matrix(c(1,0),1,2);
-        matvt <- matrix(NA,obs.vt,2);
+        matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level.s","potential.s");
         matvt[1:maxlag,1] <- y[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
@@ -87,7 +89,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         matF[2,1] <- 1;
         vecg <- matrix(0,3);
         matw <- matrix(c(1,0,1),1,3);
-        matvt <- matrix(NA,obs.vt,3);
+        matvt <- matrix(NA,obsStates,3);
         colnames(matvt) <- c("level","potential","seasonal");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
@@ -100,7 +102,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         matF[4,3] <- 1;
         vecg <- matrix(0,4);
         matw <- matrix(c(1,0,1,0),1,4);
-        matvt <- matrix(NA,obs.vt,4);
+        matvt <- matrix(NA,obsStates,4);
         colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
         matvt[1:maxlag,1] <- mean(y[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
@@ -111,16 +113,16 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
-    estimate.xreg <- xregdata$estimate.xreg;
-    estimate.FX <- xregdata$estimate.FX;
-    estimate.gX <- xregdata$estimate.gX;
-    estimate.initialX <- xregdata$estimate.initialX;
+    xregEstimate <- xregdata$xregEstimate;
+    FXEstimate <- xregdata$FXEstimate;
+    gXEstimate <- xregdata$gXEstimate;
+    initialXEstimate <- xregdata$initialXEstimate;
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -128,19 +130,19 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
     Stype <- "N";
 
 # Check number of parameters vs data
-    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
+    n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
 ##### Check number of observations vs number of max parameters #####
-    if(obs.ot <= n.param.max){
-        if(!silent.text){
-            message(paste0("Number of non-zero observations is ",obs.ot,
+    if(obsNonzero <= n.param.max){
+        if(!silentText){
+            message(paste0("Number of non-zero observations is ",obsNonzero,
                            ", while the number of parameters to estimate is ", n.param.max,"."));
         }
         stop("Can't fit the model you ask.",call.=FALSE);
     }
 
 ##### Elements of CES #####
-cesElements <- function(C){
+ElementsCES <- function(C){
     vt <- matrix(matvt[1:maxlag,],maxlag);
     n.coef <- 0;
     # No seasonality or Simple seasonality, lagged CES
@@ -181,39 +183,35 @@ cesElements <- function(C){
         }
     }
 
-    if(fittertype=="o"){
-        if(estimate.initial){
-            if(any(seasonality==c("n","s"))){
-                vt[1:maxlag,] <- C[n.coef+(1:(2*maxlag))];
-                n.coef <- n.coef + maxlag*2;
-            }
-            else if(seasonality=="p"){
-                vt[,1:2] <- C[n.coef+(1:2)];
-                n.coef <- n.coef + 2;
-                vt[1:maxlag,3] <- C[n.coef+(1:maxlag)];
-                n.coef <- n.coef + maxlag;
-            }
-            else if(seasonality=="f"){
-                vt[,1:2] <- C[n.coef+(1:2)];
-                n.coef <- n.coef + 2;
-                vt[1:maxlag,3:4] <- C[n.coef+(1:(maxlag*2))];
-                n.coef <- n.coef + maxlag*2;
-            }
+    if(initialType=="o"){
+        if(any(seasonality==c("n","s"))){
+            vt[1:maxlag,] <- C[n.coef+(1:(2*maxlag))];
+            n.coef <- n.coef + maxlag*2;
         }
-        else{
-            vt[1:maxlag,] <- initial;
+        else if(seasonality=="p"){
+            vt[,1:2] <- C[n.coef+(1:2)];
+            n.coef <- n.coef + 2;
+            vt[1:maxlag,3] <- C[n.coef+(1:maxlag)];
+            n.coef <- n.coef + maxlag;
+        }
+        else if(seasonality=="f"){
+            vt[,1:2] <- C[n.coef+(1:2)];
+            n.coef <- n.coef + 2;
+            vt[1:maxlag,3:4] <- C[n.coef+(1:(maxlag*2))];
+            n.coef <- n.coef + maxlag*2;
         }
     }
+    else if(initialType=="b"){
+        vt[1:maxlag,] <- matvt[1:maxlag,];
+    }
     else{
-        if(!estimate.initial){
-            vt[1:maxlag,] <- initial;
-        }
+        vt[1:maxlag,] <- initialValue;
     }
 
 # If exogenous are included
     if(!is.null(xreg)){
         at <- matrix(NA,maxlag,n.exovars);
-        if(estimate.initialX){
+        if(initialXEstimate){
             at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
             n.coef <- n.coef + n.exovars;
         }
@@ -221,12 +219,12 @@ cesElements <- function(C){
             at <- matat[1:maxlag,];
         }
         if(go.wild){
-            if(estimate.FX){
+            if(FXEstimate){
                 matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
                 n.coef <- n.coef + n.exovars^2;
             }
 
-            if(estimate.gX){
+            if(gXEstimate){
                 vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
                 n.coef <- n.coef + n.exovars;
             }
@@ -242,7 +240,7 @@ cesElements <- function(C){
 ##### Cost function for CES #####
 CF <- function(C){
 # Obtain the elements of CES
-    elements <- cesElements(C);
+    elements <- ElementsCES(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[1:maxlag,] <- elements$vt;
@@ -250,34 +248,34 @@ CF <- function(C){
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
-    CF.res <- costfunc(matvt, matF, matw, y, vecg,
+    cfRes <- costfunc(matvt, matF, matw, y, vecg,
                        h, modellags, Etype, Ttype, Stype,
-                       multisteps, CF.type, normalizer, fittertype,
+                       multisteps, cfType, normalizer, initialType,
                        matxt, matat, matFX, vecgX, ot,
                        bounds);
 
-    if(is.nan(CF.res) | is.na(CF.res)){
-        CF.res <- 1e100;
+    if(is.nan(cfRes) | is.na(cfRes)){
+        cfRes <- 1e100;
     }
-    return(CF.res);
+    return(cfRes);
 }
 
 ##### Estimate ces or just use the provided values #####
-cesCreator <- function(silent.text=FALSE,...){
+CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    n.param <- sum(modellags)*(fittertype=="o") + A$number + B$number +
+    n.param <- sum(modellags)*(initialType=="o") + A$number + B$number +
          (!is.null(xreg))*(ncol(matat) + go.wild*(length(matFX) + nrow(vecgX))) + 1;
 
-    if(any(estimate.initial,A$estimate,B$estimate,estimate.initialX,estimate.FX,estimate.gX)){
+    if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         # If we don't need to estimate A
         if(!A$estimate){
             C <- NULL;
         }
 
         if(any(seasonality==c("n","s"))){
-            if(fittertype=="o"){
+            if(initialType=="o"){
                 C <- c(C,c(matvt[1:maxlag,]));
             }
         }
@@ -285,7 +283,7 @@ cesCreator <- function(silent.text=FALSE,...){
             if(B$estimate){
                 C <- c(C,0.1);
             }
-            if(fittertype=="o"){
+            if(initialType=="o"){
                 C <- c(C,c(matvt[1,1:2]));
                 C <- c(C,c(matvt[1:maxlag,3]));
             }
@@ -294,21 +292,21 @@ cesCreator <- function(silent.text=FALSE,...){
             if(B$estimate){
                 C <- c(C,C);
             }
-            if(fittertype=="o"){
+            if(initialType=="o"){
                 C <- c(C,c(matvt[1,1:2]));
                 C <- c(C,c(matvt[1:maxlag,3:4]));
             }
         }
 
-        if(estimate.xreg){
-            if(estimate.initialX){
+        if(xregEstimate){
+            if(initialXEstimate){
                 C <- c(C,matat[maxlag,]);
             }
             if(go.wild){
-                if(estimate.FX){
+                if(FXEstimate){
                     C <- c(C,c(diag(n.exovars)));
                 }
-                if(estimate.gX){
+                if(gXEstimate){
                     C <- c(C,rep(0,n.exovars));
                 }
             }
@@ -316,17 +314,17 @@ cesCreator <- function(silent.text=FALSE,...){
 
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
-        CF.objective <- res$objective;
+        cfObjective <- res$objective;
     }
     else{
-        C <- c(A$value,B$value,initial,initialX,transitionX,persistenceX);
-        CF.objective <- CF(C);
+        C <- c(A$value,B$value,initialValue,initialX,transitionX,persistenceX);
+        cfObjective <- CF(C);
     }
     IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
     ICs <- IC.values$ICs;
     bestIC <- ICs["AICc"];
 
-    return(list(CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
 }
 
 # Information criterion derived and used especially for CES
@@ -350,11 +348,11 @@ cesCreator <- function(silent.text=FALSE,...){
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
 
-    cesValues <- cesCreator();
+    cesValues <- CreatorCES(silentText=silentText);
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
-        if(!silent.text){
+        if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
@@ -366,7 +364,7 @@ cesCreator <- function(silent.text=FALSE,...){
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentModelsList[[i]] <- cesCreator(silent.text=TRUE);
+            intermittentModelsList[[i]] <- CreatorCES(silentText=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
             if(intermittentICs[i]>intermittentICs[i-1]){
                 break;
@@ -376,7 +374,7 @@ cesCreator <- function(silent.text=FALSE,...){
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
         iBest <- which(intermittentICs==min(intermittentICs));
 
-        if(!silent.text){
+        if(!silentText){
             cat("Done!\n");
         }
         if(iBest!=1){
@@ -395,7 +393,7 @@ cesCreator <- function(silent.text=FALSE,...){
     list2env(cesValues,environment());
 
 # Prepare for fitting
-    elements <- cesElements(C);
+    elements <- ElementsCES(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[1:maxlag,] <- elements$vt;
@@ -420,13 +418,10 @@ cesCreator <- function(silent.text=FALSE,...){
     }
 
 # Write down initials of states vector and exogenous
-    if(estimate.initial){
-        initial <- matvt[1:maxlag,];
+    if(initialType!="p"){
+        initialValue <- matvt[1:maxlag,];
     }
-    else{
-        initial <- NULL;
-    }
-    if(estimate.initialX){
+    if(initialXEstimate){
         initialX <- matat[1,];
     }
 
@@ -459,12 +454,22 @@ cesCreator <- function(silent.text=FALSE,...){
         A$value <- complex(real=C[1],imaginary=C[2]);
     }
 
+    names(A$value) <- "a0+ia1";
+
     if(B$estimate){
         if(seasonality=="p"){
             B$value <- C[3];
         }
         else if(seasonality=="f"){
             B$value <- complex(real=C[3],imaginary=C[4]);
+        }
+    }
+    if(B$number!=0){
+        if(is.complex(B$value)){
+            names(B$value) <- "b0+ib1";
+        }
+        else{
+            names(B$value) <- "b";
         }
     }
 
@@ -475,7 +480,7 @@ cesCreator <- function(silent.text=FALSE,...){
     }
 
     if(holdout){
-        y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=datafreq);
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
     }
     else{
@@ -484,7 +489,7 @@ cesCreator <- function(silent.text=FALSE,...){
     }
 
 ##### Print output #####
-    if(!silent.text){
+    if(!silentText){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
                 message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
@@ -493,39 +498,27 @@ cesCreator <- function(silent.text=FALSE,...){
                 message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
             }
         }
-
-# Calculate the number os observations in the interval
-        if(all(holdout,intervals)){
-            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                                as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-        }
-        else{
-            insideintervals <- NULL;
-        }
-# Print output
-        ssOutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                 phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=A$value, B=B$value,
-                 n.components=sum(modellags), s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-                 CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-                 int.type=int.type, int.w=int.w, ICs=ICs,
-                 holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
     }
 
 # Make plot
-    if(!silent.graph){
+    if(!silentGraph){
         if(intervals){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       int.w=int.w,legend=legend,main=modelname);
+                       level=level,legend=!silentLegend,main=modelname);
         }
         else{
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    int.w=int.w,legend=legend,main=modelname);
+                    level=level,legend=!silentLegend,main=modelname);
         }
     }
 
-return(list(model=modelname,states=matvt,A=A$value,B=B$value,initial=initial,
-            fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-            xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-            ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
+    model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                  states=matvt,A=A$value,B=B$value,
+                  initial=initialValue,nParam=n.param,
+                  fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                  errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                  actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                  xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+    return(structure(model,class="smooth"));
 }

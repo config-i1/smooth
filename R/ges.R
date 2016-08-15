@@ -1,21 +1,23 @@
-utils::globalVariables(c("estimate.initial","estimate.measurement","estimate.initial","estimate.transition",
-                         "estimate.persistence","obs.vt","multisteps","ot","obs.ot","ICs","CF.objective",
+utils::globalVariables(c("measurementEstimate","transitionEstimate",
+                         "persistenceEstimate","obsAll","obsInsample","multisteps","ot","obsNonzero","ICs","cfObjective",
                          "y.for","y.low","y.high","normalizer"));
 
-ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optimal","backcasting"),
+ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 persistence=NULL, transition=NULL, measurement=NULL,
-                CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-                int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+                initial=c("optimal","backcasting"),
+                cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=c("auto","none","fixed","croston","tsb"),
-                bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
+                bounds=c("admissible","none"),
+                silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
-    start.time <- Sys.time();
+    startTime <- Sys.time();
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -54,24 +56,24 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
     ssInput(modelType="ges",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
-    matvt <- matrix(NA,nrow=obs.vt,ncol=n.components);
-    y.fit <- rep(NA,obs);
+    matvt <- matrix(NA,nrow=obsStates,ncol=n.components);
+    y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
-    errors <- rep(NA,obs);
+    errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
-    estimate.xreg <- xregdata$estimate.xreg;
-    estimate.FX <- xregdata$estimate.FX;
-    estimate.gX <- xregdata$estimate.gX;
-    estimate.initialX <- xregdata$estimate.initialX;
+    xregEstimate <- xregdata$xregEstimate;
+    FXEstimate <- xregdata$FXEstimate;
+    gXEstimate <- xregdata$gXEstimate;
+    initialXEstimate <- xregdata$initialXEstimate;
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -79,20 +81,20 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
     Stype <- "N";
 
 # Check number of parameters vs data
-    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
+    n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
 ##### Check number of observations vs number of max parameters #####
-    if(obs.ot <= n.param.max){
-        if(silent.text==FALSE){
-            message(paste0("Number of non-zero observations is ",obs.ot,
+    if(obsNonzero <= n.param.max){
+        if(!silentText){
+            message(paste0("Number of non-zero observations is ",obsNonzero,
                            ", while the number of parameters to estimate is ", n.param.max,"."));
         }
         stop("Can't fit the model you ask.",call.=FALSE);
     }
 
 ##### Preset values of matvt ######
-    slope <- cov(yot[1:min(12,obs.ot),],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
-    intercept <- sum(yot[1:min(12,obs.ot),])/min(12,obs.ot) - slope * (sum(c(1:min(12,obs.ot)))/min(12,obs.ot) - 1);
+    slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
+    intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
 
     vtvalues <- intercept;
     if((orders %*% lags)>1){
@@ -111,9 +113,9 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), initial=c("optim
     matvt[1:maxlag,] <- vt;
 
 ##### Initialise ges #####
-elements.ges <- function(C){
+ElementsGES <- function(C){
     n.coef <- 0;
-    if(estimate.measurement==TRUE){
+    if(measurementEstimate){
         matw <- matrix(C[n.coef+(1:n.components)],1,n.components);
         n.coef <- n.coef + n.components;
     }
@@ -121,7 +123,7 @@ elements.ges <- function(C){
         matw <- matrix(measurement,1,n.components);
     }
 
-    if(estimate.transition==TRUE){
+    if(transitionEstimate){
         matF <- matrix(C[n.coef+(1:(n.components^2))],n.components,n.components);
         n.coef <- n.coef + n.components^2;
     }
@@ -129,7 +131,7 @@ elements.ges <- function(C){
         matF <- matrix(transition,n.components,n.components);
     }
 
-    if(estimate.persistence==TRUE){
+    if(persistenceEstimate){
         vecg <- matrix(C[n.coef+(1:n.components)],n.components,1);
         n.coef <- n.coef + n.components;
     }
@@ -138,20 +140,19 @@ elements.ges <- function(C){
     }
 
     vt <- matrix(NA,maxlag,n.components);
-    if(fittertype=="o"){
-        if(estimate.initial==TRUE){
+    if(initialType!="b"){
+        if(initialType=="o"){
             vtvalues <- C[n.coef+(1:(orders %*% lags))];
             n.coef <- n.coef + orders %*% lags;
 
+            for(i in 1:n.components){
+                vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+                vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                                   ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+            }
         }
-        else{
-            vtvalues <- initial;
-        }
-
-        for(i in 1:n.components){
-            vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-            vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                               ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+        else if(initialType=="p"){
+            vt[,] <- initialValue;
         }
     }
     else{
@@ -159,21 +160,21 @@ elements.ges <- function(C){
     }
 
 # If exogenous are included
-    if(estimate.xreg==TRUE){
+    if(xregEstimate){
         at <- matrix(NA,maxlag,n.exovars);
-        if(estimate.initialX==TRUE){
+        if(initialXEstimate){
             at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
             n.coef <- n.coef + n.exovars;
         }
         else{
             at <- matat[1:maxlag,];
         }
-        if(estimate.FX==TRUE){
+        if(FXEstimate){
             matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
             n.coef <- n.coef + n.exovars^2;
         }
 
-        if(estimate.gX==TRUE){
+        if(gXEstimate){
             vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
             n.coef <- n.coef + n.exovars;
         }
@@ -187,7 +188,7 @@ elements.ges <- function(C){
 
 ##### Cost Function for GES #####
 CF <- function(C){
-    elements <- elements.ges(C);
+    elements <- ElementsGES(C);
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
@@ -196,61 +197,62 @@ CF <- function(C){
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
-    CF.res <- costfunc(matvt, matF, matw, y, vecg,
+    cfRes <- costfunc(matvt, matF, matw, y, vecg,
                        h, modellags, Etype, Ttype, Stype,
-                       multisteps, CF.type, normalizer, fittertype,
+                       multisteps, cfType, normalizer, initialType,
                        matxt, matat, matFX, vecgX, ot,
                        bounds);
 
-    return(CF.res);
+    if(is.nan(cfRes) | is.na(cfRes)){
+        cfRes <- 1e100;
+    }
+    return(cfRes);
 }
 
 ##### Estimate ges or just use the provided values #####
-gesCreator <- function(silent.text=FALSE,...){
+CreatorGES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
 # 1 stands for the variance
-    n.param <- n.components + n.components*(fittertype=="o") + n.components^2 + orders %*% lags +
-        !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
+    n.param <- n.components + n.components*(initialType=="o") + n.components^2 + orders %*% lags +
+        !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
 
 # If there is something to optimise, let's do it.
-    if((estimate.initial==TRUE) | (estimate.measurement==TRUE) | (estimate.transition==TRUE) | (estimate.persistence==TRUE) |
-       (estimate.xreg==TRUE) | (estimate.FX==TRUE) | (estimate.gX==TRUE)){
+    if(any((initialType=="o"),(measurementEstimate),(transitionEstimate),(persistenceEstimate),
+       (xregEstimate),(FXEstimate),(gXEstimate))){
 
         C <- NULL;
 # matw, matF, vecg, vt
-        if(estimate.measurement==TRUE){
+        if(measurementEstimate){
             C <- c(C,rep(1,n.components));
         }
-        if(estimate.transition==TRUE){
+        if(transitionEstimate){
             C <- c(C,rep(1,n.components^2));
         }
-        if(estimate.persistence==TRUE){
+        if(persistenceEstimate){
             C <- c(C,rep(0.1,n.components));
         }
-        if(estimate.initial==TRUE){
-            if(fittertype=="o"){
-                C <- c(C,intercept);
-                if((orders %*% lags)>1){
-                    C <- c(C,slope);
-                }
-                if((orders %*% lags)>2){
-                    C <- c(C,yot[1:(orders %*% lags-2),]);
-                }
+        if(initialType=="o"){
+            C <- c(C,intercept);
+            if((orders %*% lags)>1){
+                C <- c(C,slope);
+            }
+            if((orders %*% lags)>2){
+                C <- c(C,yot[1:(orders %*% lags-2),]);
             }
         }
 
 # initials, transition matrix and persistence vector
-        if(estimate.xreg==TRUE){
-            if(estimate.initialX==TRUE){
+        if(xregEstimate){
+            if(initialXEstimate){
                 C <- c(C,matat[maxlag,]);
             }
-            if(go.wild==TRUE){
-                if(estimate.FX==TRUE){
+            if(go.wild){
+                if(FXEstimate){
                     C <- c(C,c(diag(n.exovars)));
                 }
-                if(estimate.gX==TRUE){
+                if(gXEstimate){
                     C <- c(C,rep(0,n.exovars));
                 }
             }
@@ -263,43 +265,43 @@ gesCreator <- function(silent.text=FALSE,...){
 # Optimise model. Second run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
         C <- res$solution;
-        CF.objective <- res$objective;
+        cfObjective <- res$objective;
     }
     else{
 # matw, matF, vecg, vt
         C <- c(measurement,
                c(transition),
                c(persistence),
-               c(initial));
+               c(initialValue));
 
         C <- c(C,matat[maxlag,],
                c(transitionX),
                c(persistenceX));
 
-        CF.objective <- CF(C);
+        cfObjective <- CF(C);
     }
 
-# Change CF.type for model selection
-    if(multisteps==TRUE){
-        if(substring(CF.type,1,1)=="a"){
-            CF.type <- "aTFL";
+# Change cfType for model selection
+    if(multisteps){
+        if(substring(cfType,1,1)=="a"){
+            cfType <- "aTFL";
         }
         else{
-            CF.type <- "TFL";
+            cfType <- "TFL";
         }
     }
     else{
-        CF.type <- "MSE";
+        cfType <- "MSE";
     }
 
     IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
     ICs <- IC.values$ICs;
-    bestIC <- ICs["AICc"];
+    icBest <- ICs["AICc"];
 
 # Revert to the provided cost function
-    CF.type <- CF.type.original
+    cfType <- cfTypeOriginal
 
-    return(list(CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param));
 }
 
 ##### Start the calculations #####
@@ -317,24 +319,24 @@ gesCreator <- function(silent.text=FALSE,...){
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
 
-    gesValues <- gesCreator();
+    gesValues <- CreatorGES(silentText=silentText);
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
-        if(silent.text==FALSE){
+        if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
         intermittentModelsPool <- c("n","f","c","t");
         intermittentICs <- rep(1e+10,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs <- gesValues$bestIC;
+        intermittentICs <- gesValues$icBest;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentModelsList[[i]] <- gesCreator(silent.text=TRUE);
-            intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
+            intermittentModelsList[[i]] <- CreatorGES(silentText=TRUE);
+            intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
             if(intermittentICs[i]>intermittentICs[i-1]){
                 break;
             }
@@ -343,7 +345,7 @@ gesCreator <- function(silent.text=FALSE,...){
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
         iBest <- which(intermittentICs==min(intermittentICs));
 
-        if(silent.text==FALSE){
+        if(!silentText){
             cat("Done!\n");
         }
         if(iBest!=1){
@@ -362,7 +364,7 @@ gesCreator <- function(silent.text=FALSE,...){
     list2env(gesValues,environment());
 
 # Prepare for fitting
-    elements <- elements.ges(C);
+    elements <- ElementsGES(C);
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
@@ -372,7 +374,7 @@ gesCreator <- function(silent.text=FALSE,...){
     vecgX <- elements$vecgX;
 
     # Write down Fisher Information if needed
-    if(FI==TRUE){
+    if(FI){
         environment(likelihoodFunction) <- environment();
         FI <- numDeriv::hessian(likelihoodFunction,C);
     }
@@ -388,10 +390,10 @@ gesCreator <- function(silent.text=FALSE,...){
     }
 
 # Write down initials of states vector and exogenous
-    if(estimate.initial==TRUE){
-        initial <- C[2*n.components+n.components^2+(1:(orders %*% lags))];
+    if(initialType!="p"){
+        initialValue <- matvt[1:maxlag,];
     }
-    if(estimate.initialX==TRUE){
+    if(initialXEstimate){
         initialX <- matat[1,];
     }
 
@@ -424,7 +426,7 @@ gesCreator <- function(silent.text=FALSE,...){
     }
 
     if(holdout==T){
-        y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
     }
     else{
@@ -438,7 +440,7 @@ gesCreator <- function(silent.text=FALSE,...){
     }
 
 ##### Print output #####
-    if(silent.text==FALSE){
+    if(!silentText){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
                 message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
@@ -447,37 +449,27 @@ gesCreator <- function(silent.text=FALSE,...){
                 message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
             }
         }
-# Calculate the number os observations in the interval
-        if(all(holdout==TRUE,intervals==TRUE)){
-            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                                as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-        }
-        else{
-            insideintervals <- NULL;
-        }
-# Print output
-        ssOutput(Sys.time() - start.time, modelname, persistence=vecg, transition=matF, measurement=matw,
-                phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-                n.components=orders %*% lags, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-                CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-                int.type=int.type, int.w=int.w, ICs=ICs,
-                holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
     }
+
 ##### Make a plot #####
-    if(silent.graph==FALSE){
-        if(intervals==TRUE){
+    if(!silentGraph){
+        if(intervals){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       int.w=int.w,legend=legend,main=modelname);
+                       level=level,legend=!silentLegend,main=modelname);
         }
         else{
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    int.w=int.w,legend=legend,main=modelname);
+                    level=level,legend=!silentLegend,main=modelname);
         }
     }
 ##### Return values #####
-return(list(model=modelname,states=matvt,initial=initial,measurement=matw,transition=matF,persistence=vecg,
-            fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-            actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-            xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-            ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures));
+    model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                  states=matvt,measurement=matw,transition=matF,persistence=vecg,
+                  initial=initialValue,nParam=n.param,
+                  fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                  errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                  actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                  xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+    return(structure(model,class="smooth"));
 }

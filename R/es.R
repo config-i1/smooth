@@ -1,14 +1,15 @@
-utils::globalVariables(c("vecg","n.components","modellags","fittertype","estimate.phi","y","datafreq",
-                         "obs","obs.all","yot","maxlag","silent.text","allowMultiplicative","current.model",
-                         "n.param.intermittent","CF.type.original","matF","matw","pt.for","errors.mat",
-                         "iprob","results","s2","silent.graph","FI","intermittent","normalizer",
-                         "estimate.persistence","estimate.initial","obs.vt","multisteps","ot","obs.ot"));
+utils::globalVariables(c("vecg","n.components","modellags","phiEstimate","y","datafreq","initialType",
+                         "yot","maxlag","silent","allowMultiplicative","current.model",
+                         "n.param.intermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
+                         "iprob","results","s2","FI","intermittent","normalizer",
+                         "persistenceEstimate","initial","multisteps","ot",
+                         "silentText","silentGraph","silentLegend"));
 
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
-               initial=c("optimal","backcasting"), initial.season=NULL, IC=c("AICc","AIC","BIC"),
-               CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-               h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-               int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+               initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
+               cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+               h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+               intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
                intermittent=c("auto","none","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
@@ -16,7 +17,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
-    start.time <- Sys.time();
+    startTime <- Sys.time();
 
 # If a previous model provided as a model, write down the variables
     if(is.list(model)){
@@ -31,7 +32,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
         persistence <- model$persistence;
         initial <- model$initial;
-        initial.season <- model$initial.season;
+        initialSeason <- model$initialSeason;
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
@@ -40,6 +41,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
         model <- model$model;
         model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        if(any(unlist(gregexpr("C",model))!=-1)){
+            initial <- "o";
+        }
     }
 
 # Add all the variables in ellipsis to current environment
@@ -52,191 +56,185 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 ##### Cost Function for ES #####
 CF <- function(C){
     init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                            modellags, fittertype, Ttype, Stype, n.exovars, matat,
-                            estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
-                            matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
+                            modellags, initialType, Ttype, Stype, n.exovars, matat,
+                            persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
+                            matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
 
-    CF.res <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+    cfRes <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
                        h, modellags, Etype, Ttype, Stype,
-                       multisteps, CF.type, normalizer, fittertype,
+                       multisteps, cfType, normalizer, initialType,
                        matxt, init.ets$matat, init.ets$matFX, init.ets$vecgX, ot,
                        bounds);
 
-    if(is.nan(CF.res) | is.na(CF.res) | is.infinite(CF.res)){
-        CF.res <- 1e+100;
+    if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
+        cfRes <- 1e+100;
     }
 
-    return(CF.res);
+    return(cfRes);
 }
 
 ##### C values for estimation #####
 # Function constructs default bounds where C values should lie
-C.values <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat){
+CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat){
     C <- NA;
-    C.lower <- NA;
-    C.upper <- NA;
+    CLower <- NA;
+    CUpper <- NA;
 
     if(bounds=="u"){
-        if(estimate.persistence==TRUE){
+        if(persistenceEstimate){
             C <- c(C,vecg);
-            C.lower <- c(C.lower,rep(0,length(vecg)));
-            C.upper <- c(C.upper,rep(1,length(vecg)));
+            CLower <- c(CLower,rep(0,length(vecg)));
+            CUpper <- c(CUpper,rep(1,length(vecg)));
         }
-        if(estimate.phi==TRUE){
+        if(phiEstimate){
             C <- c(C,phi);
-            C.lower <- c(C.lower,0);
-            C.upper <- c(C.upper,1);
+            CLower <- c(CLower,0);
+            CUpper <- c(CUpper,1);
         }
-        if(fittertype=="o"){
-            if(estimate.initial==TRUE){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-                }
-                else{
-                    C.lower <- c(C.lower,0.1,0.01);
-                    C.upper <- c(C.upper,Inf,5);
-                }
+        if(initialType=="o"){
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+            if(Ttype!="M"){
+                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+            }
+            else{
+                CLower <- c(CLower,0.1,0.01);
+                CUpper <- c(CUpper,Inf,5);
             }
             if(Stype!="N"){
-                if(estimate.initial.season==TRUE){
+                if(initialSeasonEstimate){
                     C <- c(C,matvt[1:maxlag,n.components]);
                     if(Stype=="A"){
-                        C.lower <- c(C.lower,rep(-Inf,maxlag));
-                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,maxlag));
+                        CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        C.lower <- c(C.lower,rep(1e-5,maxlag));
-                        C.upper <- c(C.upper,rep(10,maxlag));
+                        CLower <- c(CLower,rep(1e-5,maxlag));
+                        CUpper <- c(CUpper,rep(10,maxlag));
                     }
                 }
             }
         }
     }
     else if(bounds=="a"){
-        if(estimate.persistence==TRUE){
+        if(persistenceEstimate){
             C <- c(C,vecg);
-            C.lower <- c(C.lower,rep(-5,length(vecg)));
-            C.upper <- c(C.upper,rep(5,length(vecg)));
+            CLower <- c(CLower,rep(-5,length(vecg)));
+            CUpper <- c(CUpper,rep(5,length(vecg)));
         }
-        if(estimate.phi==TRUE){
+        if(phiEstimate){
             C <- c(C,phi);
-            C.lower <- c(C.lower,0);
-            C.upper <- c(C.upper,1);
+            CLower <- c(CLower,0);
+            CUpper <- c(CUpper,1);
         }
-        if(fittertype=="o"){
-            if(estimate.initial==TRUE){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-                }
-                else{
-                    C.lower <- c(C.lower,0.1,0.01);
-                    C.upper <- c(C.upper,Inf,3);
-                }
+        if(initialType=="o"){
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+            if(Ttype!="M"){
+                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+            }
+            else{
+                CLower <- c(CLower,0.1,0.01);
+                CUpper <- c(CUpper,Inf,3);
             }
             if(Stype!="N"){
-                if(estimate.initial.season==TRUE){
+                if(initialSeasonEstimate){
                     C <- c(C,matvt[1:maxlag,n.components]);
                     if(Stype=="A"){
-                        C.lower <- c(C.lower,rep(-Inf,maxlag));
-                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,maxlag));
+                        CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        C.lower <- c(C.lower,rep(-0.0001,maxlag));
-                        C.upper <- c(C.upper,rep(20,maxlag));
+                        CLower <- c(CLower,rep(-0.0001,maxlag));
+                        CUpper <- c(CUpper,rep(20,maxlag));
                     }
                 }
             }
         }
     }
     else{
-        if(estimate.persistence==TRUE){
+        if(persistenceEstimate){
             C <- c(C,vecg);
-            C.lower <- c(C.lower,rep(-Inf,length(vecg)));
-            C.upper <- c(C.upper,rep(Inf,length(vecg)));
+            CLower <- c(CLower,rep(-Inf,length(vecg)));
+            CUpper <- c(CUpper,rep(Inf,length(vecg)));
         }
-        if(estimate.phi==TRUE){
+        if(phiEstimate){
             C <- c(C,phi);
-            C.lower <- c(C.lower,-Inf);
-            C.upper <- c(C.upper,Inf);
+            CLower <- c(CLower,-Inf);
+            CUpper <- c(CUpper,Inf);
         }
-        if(fittertype=="o"){
-            if(estimate.initial==TRUE){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    C.lower <- c(C.lower,rep(-Inf,(n.components - (Stype!="N"))));
-                    C.upper <- c(C.upper,rep(Inf,(n.components - (Stype!="N"))));
-                }
-                else{
-                    C.lower <- c(C.lower,-Inf,-Inf);
-                    C.upper <- c(C.upper,Inf,Inf);
-                }
+        if(initialType=="o"){
+            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+            if(Ttype!="M"){
+                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+            }
+            else{
+                CLower <- c(CLower,-Inf,-Inf);
+                CUpper <- c(CUpper,Inf,Inf);
             }
             if(Stype!="N"){
-                if(estimate.initial.season==TRUE){
+                if(initialSeasonEstimate){
                     C <- c(C,matvt[1:maxlag,n.components]);
                     if(Stype=="A"){
-                        C.lower <- c(C.lower,rep(-Inf,maxlag));
-                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,maxlag));
+                        CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        C.lower <- c(C.lower,rep(-Inf,maxlag));
-                        C.upper <- c(C.upper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,maxlag));
+                        CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                 }
             }
         }
     }
 
-    if(estimate.xreg==TRUE){
-        if(estimate.initialX==TRUE){
+    if(xregEstimate){
+        if(initialXEstimate){
             C <- c(C,matat[maxlag,]);
-            C.lower <- c(C.lower,rep(-Inf,n.exovars));
-            C.upper <- c(C.upper,rep(Inf,n.exovars));
+            CLower <- c(CLower,rep(-Inf,n.exovars));
+            CUpper <- c(CUpper,rep(Inf,n.exovars));
         }
-        if(go.wild==TRUE){
-            if(estimate.FX==TRUE){
+        if(go.wild){
+            if(FXEstimate){
                 C <- c(C,as.vector(matFX));
-                C.lower <- c(C.lower,rep(-Inf,n.exovars^2));
-                C.upper <- c(C.upper,rep(Inf,n.exovars^2));
+                CLower <- c(CLower,rep(-Inf,n.exovars^2));
+                CUpper <- c(CUpper,rep(Inf,n.exovars^2));
             }
-            if(estimate.gX==TRUE){
+            if(gXEstimate){
                 C <- c(C,as.vector(vecgX));
-                C.lower <- c(C.lower,rep(-Inf,n.exovars));
-                C.upper <- c(C.upper,rep(Inf,n.exovars));
+                CLower <- c(CLower,rep(-Inf,n.exovars));
+                CUpper <- c(CUpper,rep(Inf,n.exovars));
             }
         }
     }
 
     C <- C[!is.na(C)];
-    C.lower <- C.lower[!is.na(C.lower)];
-    C.upper <- C.upper[!is.na(C.upper)];
+    CLower <- CLower[!is.na(CLower)];
+    CUpper <- CUpper[!is.na(CUpper)];
 
-    return(list(C=C,C.lower=C.lower,C.upper=C.upper));
+    return(list(C=C,CLower=CLower,CUpper=CUpper));
 }
 
 ##### Basic parameter propagator #####
-esBasicMaker <- function(...){
+BasicMakerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    basicparams <- initparams(Ttype, Stype, datafreq, obs, obs.all, y,
+    basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
                               damped, phi, smoothingparameters, initialstates, seasonalcoefs);
     list2env(basicparams,ParentEnvironment);
 }
 
 ##### Basic parameter propagator #####
-esBasicInitialiser <- function(...){
+BasicInitialiserES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                            modellags, fittertype, Ttype, Stype, n.exovars, matat,
-                            estimate.persistence, estimate.phi, estimate.initial, estimate.initial.season, estimate.xreg,
-                            matFX, vecgX, go.wild, estimate.FX, estimate.gX, estimate.initialX);
+                            modellags, initialType, Ttype, Stype, n.exovars, matat,
+                            persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
+                            matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
 
     list2env(init.ets,ParentEnvironment);
 }
@@ -245,43 +243,43 @@ esBasicInitialiser <- function(...){
 # If initial values are provided, write them. If not, estimate them.
 # First two columns are needed for additive seasonality, the 3rd and 4th - for the multiplicative
     if(Ttype!="N"){
-        if(is.null(initial)){
+        if(initialType!="p"){
             initialstates <- matrix(NA,1,4);
 # "-1" is needed, so the level would correspond to the values before the in-sample
-            initialstates[1,2] <- cov(yot[1:min(12,obs.ot)],c(1:min(12,obs.ot)))/var(c(1:min(12,obs.ot)));
-            initialstates[1,1] <- mean(yot[1:min(12,obs.ot)]) - initialstates[1,2] * (mean(c(1:min(12,obs.ot))) - 1);
-            initialstates[1,3] <- mean(yot[1:min(12,obs.ot)]);
+            initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
+            initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * (mean(c(1:min(12,obsNonzero))) - 1);
+            initialstates[1,3] <- mean(yot[1:min(12,obsNonzero)]);
             initialstates[1,4] <- 1;
         }
         else{
-            initialstates <- matrix(rep(initial,2),nrow=1);
+            initialstates <- matrix(rep(initialValue,2),nrow=1);
         }
     }
     else{
-        if(is.null(initial)){
-            initialstates <- matrix(rep(mean(yot[1:min(12,obs.ot)]),4),nrow=1);
+        if(initialType!="p"){
+            initialstates <- matrix(rep(mean(yot[1:min(12,obsNonzero)]),4),nrow=1);
         }
         else{
-            initialstates <- matrix(rep(initial,4),nrow=1);
+            initialstates <- matrix(rep(initialValue,4),nrow=1);
         }
     }
 
 # Define matrix of seasonal coefficients. The first column consists of additive, the second - multiplicative elements
 # If the seasonal model is chosen and initials are provided, fill in the first "maxlag" values of seasonal component.
     if(Stype!="N"){
-        if(is.null(initial.season)){
-            estimate.initial.season <- TRUE;
+        if(is.null(initialSeason)){
+            initialSeasonEstimate <- TRUE;
             seasonalcoefs <- decompose(ts(c(y),frequency=datafreq),type="additive")$seasonal[1:datafreq];
             seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(c(y),frequency=datafreq),
                                                            type="multiplicative")$seasonal[1:datafreq]);
         }
         else{
-            estimate.initial.season <- FALSE;
-            seasonalcoefs <- cbind(initial.season,initial.season);
+            initialSeasonEstimate <- FALSE;
+            seasonalcoefs <- cbind(initialSeason,initialSeason);
         }
     }
     else{
-        estimate.initial.season <- FALSE;
+        initialSeasonEstimate <- FALSE;
         seasonalcoefs <- matrix(1,1,1);
     }
 
@@ -302,61 +300,61 @@ esBasicInitialiser <- function(...){
     }
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
-    y.fit <- rep(NA,obs);
+    y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
-    errors <- rep(NA,obs);
+    errors <- rep(NA,obsInsample);
 
-    esBasicMaker(ParentEnvironment=environment());
+    BasicMakerES(ParentEnvironment=environment());
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obs=obs, obs.all=obs.all, obs.vt=obs.vt, maxlag=maxlag, h=h, silent=silent.text);
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
-    estimate.xreg <- xregdata$estimate.xreg;
-    estimate.FX <- xregdata$estimate.FX;
-    estimate.gX <- xregdata$estimate.gX;
-    estimate.initialX <- xregdata$estimate.initialX;
+    xregEstimate <- xregdata$xregEstimate;
+    FXEstimate <- xregdata$FXEstimate;
+    gXEstimate <- xregdata$gXEstimate;
+    initialXEstimate <- xregdata$initialXEstimate;
     xreg.names <- colnames(matat);
 
-    n.param.max <- n.param.max + estimate.FX*length(matFX) + estimate.gX*nrow(vecgX) + estimate.initialX*ncol(matat);
+    n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
 ##### Check number of observations vs number of max parameters #####
-    if(obs.ot <= n.param.max){
-        if(silent.text==FALSE){
-            message(paste0("Number of non-zero observations is ",obs.ot,", while the maximum number of parameters to estimate is ", n.param.max,"."));
+    if(obsNonzero <= n.param.max){
+        if(!silentText){
+            message(paste0("Number of non-zero observations is ",obsNonzero,", while the maximum number of parameters to estimate is ", n.param.max,"."));
         }
 
-        if(obs.ot > 3){
+        if(obsNonzero > 3){
             models.pool <- c("ANN");
-            if(allowMultiplicative==TRUE){
+            if(allowMultiplicative){
                 models.pool <- c(models.pool,"MNN");
             }
-            if(obs.ot > 5){
+            if(obsNonzero > 5){
                 models.pool <- c(models.pool,"AAN");
-                if(allowMultiplicative==TRUE){
+                if(allowMultiplicative){
                     models.pool <- c(models.pool,"AMN","MAN","MMN");
                 }
             }
-            if(obs.ot > 6){
+            if(obsNonzero > 6){
                 models.pool <- c(models.pool,"AAdN");
-                if(allowMultiplicative==TRUE){
+                if(allowMultiplicative){
                     models.pool <- c(models.pool,"AMdN","MAdN","MMdN");
                 }
             }
-            if((obs.ot > 2*datafreq) & datafreq!=1){
+            if((obsNonzero > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"ANA");
-                if(allowMultiplicative==TRUE){
+                if(allowMultiplicative){
                     models.pool <- c(models.pool,"ANM","MNA","MNM");
                 }
             }
-            if((obs.ot > (6 + datafreq)) & (obs.ot > 2*datafreq) & datafreq!=1){
+            if((obsNonzero > (6 + datafreq)) & (obsNonzero > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"AAA");
-                if(allowMultiplicative==TRUE){
+                if(allowMultiplicative){
                     models.pool <- c(models.pool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
                 }
             }
@@ -381,8 +379,8 @@ esBasicInitialiser <- function(...){
     }
 
 ##### Define modelDo #####
-    if(any(estimate.persistence, estimate.initial*(fittertype=="o"), estimate.initial.season*(fittertype=="o"),
-           estimate.FX, estimate.gX, estimate.initialX)){
+    if(any(persistenceEstimate, (initialType=="o"), initialSeasonEstimate*(initialType=="o"),
+           FXEstimate, gXEstimate, initialXEstimate)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
         }
@@ -392,21 +390,21 @@ esBasicInitialiser <- function(...){
     }
 
 ##### Basic estimation function for es() #####
-esEstimator <- function(...){
-    environment(esBasicMaker) <- environment();
-    environment(C.values) <- environment();
+EstimatorES <- function(...){
+    environment(BasicMakerES) <- environment();
+    environment(CValues) <- environment();
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
     environment(CF) <- environment();
-    esBasicMaker(ParentEnvironment=environment());
+    BasicMakerES(ParentEnvironment=environment());
 
-    Cs <- C.values(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
+    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
     C <- Cs$C;
-    C.upper <- Cs$C.upper;
-    C.lower <- Cs$C.lower;
+    CUpper <- Cs$CUpper;
+    CLower <- Cs$CLower;
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
-    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+    res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
     C <- res$solution;
 
@@ -432,12 +430,12 @@ esEstimator <- function(...){
                 }
             }
         }
-        res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+        res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
         C <- res$solution;
     }
 
-    res <- nloptr(C, CF, lb=C.lower, ub=C.upper,
+    res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
     C <- res$solution;
 
@@ -448,40 +446,40 @@ esEstimator <- function(...){
                 call.=FALSE, immediate.=TRUE);
     }
 
-    n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(fittertype=="o") +
-        !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
+    n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
+        !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
 
-#    n.param <- n.components*estimate.persistence + estimate.phi +
-#        (n.components - (Stype!="N"))*estimate.initial*(fittertype=="o") +
-#        maxlag*estimate.initial.season*(fittertype=="o") +
-#        estimate.initialX * n.exovars + estimate.FX * n.exovars^2 + estimate.gX * n.exovars + 1;
+#    n.param <- n.components*persistenceEstimate + phiEstimate +
+#        (n.components - (Stype!="N"))*estimate.initial*(initialType=="o") +
+#        maxlag*initialSeasonEstimate*(initialType=="o") +
+#        initialXEstimate * n.exovars + FXEstimate * n.exovars^2 + gXEstimate * n.exovars + 1;
 
-    # Change CF.type for model selection
-    if(multisteps==TRUE){
-        if(substring(CF.type,1,1)=="a"){
-            CF.type <- "aTFL";
+    # Change cfType for model selection
+    if(multisteps){
+        if(substring(cfType,1,1)=="a"){
+            cfType <- "aTFL";
         }
         else{
-            CF.type <- "TFL";
+            cfType <- "TFL";
         }
     }
     else{
-        CF.type <- "MSE";
+        cfType <- "MSE";
     }
 
-    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
-    ICs <- IC.values$ICs;
+    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
+    ICs <- ICValues$ICs;
 
     # Change back
-    CF.type <- CF.type.original;
+    cfType <- cfTypeOriginal;
     return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param,FI=FI));
 }
 
 ##### This function prepares pool of models to use #####
-esPoolPreparer <- function(...){
+PoolPreparerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
-    environment(esEstimator) <- environment();
+    environment(EstimatorES) <- environment();
 
     if(!is.null(models.pool)){
         models.number <- length(models.pool);
@@ -492,8 +490,8 @@ esPoolPreparer <- function(...){
     }
     else{
 # Define the pool of models in case of "ZZZ" or "CCC" to select from
-        if(allowMultiplicative==FALSE){
-            if(silent.text==FALSE){
+        if(!allowMultiplicative){
+            if(!silent){
                 message("Only additive models are allowed with non-positive data.");
             }
             errors.pool <- c("A");
@@ -515,7 +513,7 @@ esPoolPreparer <- function(...){
 
 ### Use brains in order to define models to estimate ###
         if(modelDo=="select" & any(c(Ttype,Stype)=="Z")){
-            if(silent.text==FALSE){
+            if(!silent){
                 cat("Forming the pool of models based on... ");
             }
 
@@ -529,7 +527,7 @@ esPoolPreparer <- function(...){
             }
 
             if(Ttype!="Z"){
-                if(damped==TRUE){
+                if(damped){
                     small.pool.trend <- paste0(Ttype,"d");
                     trends.pool <- small.pool.trend;
                 }
@@ -567,10 +565,10 @@ esPoolPreparer <- function(...){
             besti <- bestj <- 1;
 
 #### Branch and bound is here ####
-            while(check==TRUE){
+            while(check){
                 i <- i + 1;
                 current.model <- small.pool[j];
-                if(silent.text==FALSE){
+                if(!silent){
                     cat(paste0(current.model,", "));
                 }
                 Etype <- substring(current.model,1,1);
@@ -586,20 +584,20 @@ esPoolPreparer <- function(...){
                     Stype <- substring(current.model,3,3);
                 }
                 if(Stype!="N"){
-                    estimate.initial.season <- TRUE;
+                    initialSeasonEstimate <- TRUE;
                 }
                 else{
-                    estimate.initial.season <- FALSE;
+                    initialSeasonEstimate <- FALSE;
                 }
 
-                res <- esEstimator(ParentEnvironment=environment());
+                res <- EstimatorES(ParentEnvironment=environment());
                 results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param);
 
                 tested.model <- c(tested.model,current.model);
 
                 if(j>1){
 # If the first is better than the second, then choose first
-                    if(as.numeric(results[[besti]][IC]) <= as.numeric(results[[i]][IC])){
+                    if(as.numeric(results[[besti]][ic]) <= as.numeric(results[[i]][ic])){
 # If Ttype is the same, then we checked seasonality
                         if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
                             season.pool <- results[[besti]][6];
@@ -638,7 +636,7 @@ esPoolPreparer <- function(...){
                         }
                     }
 
-                    if(all(c(check.T,check.S)==FALSE)){
+                    if(all(!c(check.T,check.S))){
                         check <- FALSE;
                     }
                 }
@@ -681,18 +679,18 @@ esPoolPreparer <- function(...){
 }
 
 ##### Function for estimation of pool of models #####
-esPoolEstimator <- function(silent.text=FALSE,...){
-    environment(esEstimator) <- environment();
-    environment(esPoolPreparer) <- environment();
-    esPoolValues <- esPoolPreparer(ParentEnvironment=environment());
+PoolEstimatorES <- function(silent=FALSE,...){
+    environment(EstimatorES) <- environment();
+    environment(PoolPreparerES) <- environment();
+    esPoolValues <- PoolPreparerES(ParentEnvironment=environment());
 
-    if(silent.text==FALSE){
+    if(!silent){
         cat("Estimation progress:    ");
     }
 # Start loop of models
     while(j < models.number){
         j <- j + 1;
-        if(silent.text==FALSE){
+        if(!silent){
             if(j==1){
                 cat("\b");
             }
@@ -714,128 +712,128 @@ esPoolEstimator <- function(silent.text=FALSE,...){
             Stype <- substring(current.model,3,3);
         }
         if(Stype!="N"){
-            estimate.initial.season <- TRUE;
+            initialSeasonEstimate <- TRUE;
         }
         else{
-            estimate.initial.season <- FALSE;
+            initialSeasonEstimate <- FALSE;
         }
 
-        res <- esEstimator(ParentEnvironment=environment());
+        res <- EstimatorES(ParentEnvironment=environment());
         results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param);
     }
 
-    if(silent.text==FALSE){
+    if(!silent){
         cat("... Done! \n");
     }
-    IC.selection <- matrix(NA,models.number,3);
-#    IC.selection <- rep(NA,models.number);
+    icSelection <- matrix(NA,models.number,3);
+#    icSelection <- rep(NA,models.number);
     for(i in 1:models.number){
-#        IC.selection[i,] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",IC,"']"))));
-        IC.selection[i,] <- as.numeric(results[[i]][1:3]);
+#        icSelection[i,] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",ic,"']"))));
+        icSelection[i,] <- as.numeric(results[[i]][1:3]);
     }
-    colnames(IC.selection) <- names(results[[1]])[1:3]
+    colnames(icSelection) <- names(results[[1]])[1:3]
 
-    IC.selection[is.nan(IC.selection)] <- 1E100;
+    icSelection[is.nan(icSelection)] <- 1E100;
 
-    return(list(results=results,IC.selection=IC.selection));
+    return(list(results=results,icSelection=icSelection));
 }
 
 ##### Function selects the best es() based on IC #####
-esCreator <- function(silent.text=FALSE,...){
+CreatorES <- function(silent=FALSE,...){
     if(modelDo=="select"){
-        environment(esPoolEstimator) <- environment();
-        esPoolResults <- esPoolEstimator(silent.text=silent.text);
+        environment(PoolEstimatorES) <- environment();
+        esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
-        IC.selection <- esPoolResults$IC.selection;
+        icSelection <- esPoolResults$icSelection;
 
-        bestIC <- min(IC.selection[,IC]);
-        i <- which(IC.selection[,IC]==bestIC)[1];
-        ICs <- IC.selection[i,];
+        icBest <- min(icSelection[,ic]);
+        i <- which(icSelection[,ic]==icBest)[1];
+        ICs <- icSelection[i,];
         results <- results[[i]];
 
         Etype <- results[4];
         Ttype <- results[5];
         Stype <- results[6];
         damped <- as.logical(results[7]);
-        if(damped==TRUE){
+        if(damped){
             phi <- NULL;
         }
-        CF.objective <- as.numeric(results[8]);
+        cfObjective <- as.numeric(results[8]);
         C <- as.numeric(results[-c(1:8)]);
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=as.numeric(results[length(results)]),FI=FI));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=as.numeric(results[length(results)]),FI=FI));
     }
     else if(modelDo=="combine"){
-        environment(esPoolEstimator) <- environment();
-        esPoolResults <- esPoolEstimator(silent.text=silent.text);
+        environment(PoolEstimatorES) <- environment();
+        esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
-        IC.selection <- esPoolResults$IC.selection;
-        IC.selection <- IC.selection[,IC];
-        bestIC <- min(IC.selection);
-        IC.selection <- IC.selection/(h^multisteps);
-        IC.weights <- exp(-0.5*(IC.selection-bestIC))/sum(exp(-0.5*(IC.selection-bestIC)));
-        ICs <- sum(IC.selection * IC.weights);
-        return(list(IC.weights=IC.weights,ICs=ICs,bestIC=bestIC,results=results));
+        icSelection <- esPoolResults$icSelection;
+        icSelection <- icSelection[,ic];
+        icBest <- min(icSelection);
+        icSelection <- icSelection/(h^multisteps);
+        icWeights <- exp(-0.5*(icSelection-icBest))/sum(exp(-0.5*(icSelection-icBest)));
+        ICs <- sum(icSelection * icWeights);
+        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results));
     }
     else if(modelDo=="estimate"){
-        environment(esEstimator) <- environment();
-        res <- esEstimator(ParentEnvironment=environment());
-        bestIC <- res$ICs[IC];
+        environment(EstimatorES) <- environment();
+        res <- EstimatorES(ParentEnvironment=environment());
+        icBest <- res$ICs[ic];
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=res$objective,C=res$C,ICs=res$ICs,bestIC=bestIC,n.param=res$n.param,FI=FI));
+                    cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,n.param=res$n.param,FI=FI));
     }
     else{
         environment(ICFunction) <- environment();
         environment(likelihoodFunction) <- environment();
 
         C <- c(vecg);
-        if(damped==TRUE){
+        if(damped){
             C <- c(C,phi);
         }
-        C <- c(C,initial,initial.season);
-        if(estimate.xreg==TRUE){
+        C <- c(C,initialValue,initialSeason);
+        if(xregEstimate){
             C <- c(C,initialX);
-            if(go.wild==TRUE){
+            if(go.wild){
                 C <- c(C,transitionX,persistenceX);
             }
         }
 
-        CF.objective <- CF(C);
+        cfObjective <- CF(C);
 
         # Number of parameters
-        n.param <- n.components + damped + (n.components - (Stype!="N"))*(fittertype=="o") + maxlag*(fittertype=="o") +
-            !is.null(xreg) * n.exovars + (go.wild==TRUE)*(n.exovars^2 + n.exovars) + 1;
+        n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
+            !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
 
-# Change CF.type for model selection
-        if(multisteps==TRUE){
-            if(substring(CF.type,1,1)=="a"){
-                CF.type <- "aTFL";
+# Change cfType for model selection
+        if(multisteps){
+            if(substring(cfType,1,1)=="a"){
+                cfType <- "aTFL";
             }
             else{
-                CF.type <- "TFL";
+                cfType <- "TFL";
             }
         }
         else{
-            CF.type <- "MSE";
+            cfType <- "MSE";
         }
 
-        IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
-        ICs <- IC.values$ICs;
-        bestIC <- ICs[IC];
+        ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+        ICs <- ICValues$ICs;
+        icBest <- ICs[ic];
         # Change back
-        CF.type <- CF.type.original;
+        cfType <- cfTypeOriginal;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    CF.objective=CF.objective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param,FI=FI));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,FI=FI));
     }
 }
 
 ##### Now do estimation and model selection #####
     environment(intermittentParametersSetter) <- environment();
     environment(intermittentMaker) <- environment();
-    environment(esBasicInitialiser) <- environment();
+    environment(BasicInitialiserES) <- environment();
     environment(ssFitter) <- environment();
     environment(ssForecaster) <- environment();
 
@@ -847,24 +845,24 @@ esCreator <- function(silent.text=FALSE,...){
         intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
     }
-    esValues <- esCreator();
+    esValues <- CreatorES(silent=silentText);
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
-        if(silent.text==FALSE){
+        if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
         intermittentModelsPool <- c("n","f","c","t");
         intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs <- esValues$bestIC;
+        intermittentICs <- esValues$icBest;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentModelsList[[i]] <- esCreator(silent.text=TRUE);
-            intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
+            intermittentModelsList[[i]] <- CreatorES(silent=TRUE);
+            intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
             if(intermittentICs[i]>intermittentICs[i-1]){
                 break;
             }
@@ -873,7 +871,7 @@ esCreator <- function(silent.text=FALSE,...){
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
         iBest <- which(intermittentICs==min(intermittentICs));
 
-        if(silent.text==FALSE){
+        if(!silentText){
             cat("Done!\n");
         }
         if(iBest!=1){
@@ -892,10 +890,10 @@ esCreator <- function(silent.text=FALSE,...){
 ##### Fit simple model and produce forecast #####
     if(modelDo!="combine"){
         list2env(esValues,environment());
-        esBasicMaker(ParentEnvironment=environment());
-        esBasicInitialiser(ParentEnvironment=environment());
+        BasicMakerES(ParentEnvironment=environment());
+        BasicInitialiserES(ParentEnvironment=environment());
 
-        if(damped==TRUE){
+        if(damped){
             model <- paste0(Etype,Ttype,"d",Stype);
         }
         else{
@@ -903,7 +901,7 @@ esCreator <- function(silent.text=FALSE,...){
         }
 
         # Write down Fisher Information if needed
-        if(FI==TRUE){
+        if(FI){
             environment(likelihoodFunction) <- environment();
             FI <- numDeriv::hessian(likelihoodFunction,C);
         }
@@ -928,23 +926,23 @@ esCreator <- function(silent.text=FALSE,...){
         }
 
         # Write down the initials. Done especially for Nikos and issue #10
-        if(estimate.persistence){
+        if(persistenceEstimate){
             persistence <- as.vector(vecg);
         }
         names(persistence) <- c("alpha","beta","gamma")[1:n.components];
 
-        if(estimate.initial==TRUE){
-            initial <- matvt[maxlag,1:(n.components - (Stype!="N"))];
+        if(initialType!="p"){
+            initialValue <- matvt[maxlag,1:(n.components - (Stype!="N"))];
         }
 
-        if(estimate.initialX==TRUE){
+        if(initialXEstimate){
             initialX <- matat[1,];
         }
 
-        if(estimate.initial.season==TRUE){
+        if(initialSeasonEstimate){
             if(Stype!="N"){
-                initial.season <- matvt[1:maxlag,n.components];
-                names(initial.season) <- paste0("s",1:maxlag);
+                initialSeason <- matvt[1:maxlag,n.components];
+                names(initialSeason) <- paste0("s",1:maxlag);
             }
         }
     }
@@ -953,58 +951,58 @@ esCreator <- function(silent.text=FALSE,...){
         list2env(esValues,environment());
 
         # Produce the forecasts using AIC weights
-        models.number <- length(IC.weights);
+        models.number <- length(icWeights);
         model.current <- rep(NA,models.number);
-        fitted.list <- matrix(NA,obs,models.number);
-        errors.list <- matrix(NA,obs,models.number);
+        fitted.list <- matrix(NA,obsInsample,models.number);
+        errors.list <- matrix(NA,obsInsample,models.number);
         forecasts.list <- matrix(NA,h,models.number);
-        if(intervals==TRUE){
+        if(intervals){
              lower.list <- matrix(NA,h,models.number);
              upper.list <- matrix(NA,h,models.number);
         }
 
-        for(i in 1:length(IC.weights)){
+        for(i in 1:length(icWeights)){
             # Get all the parameters from the model
             Etype <- results[[i]][4];
             Ttype <- results[[i]][5];
             Stype <- results[[i]][6];
             damped <- as.logical(results[[i]][7]);
-            CF.objective <- as.numeric(results[[i]][8]);
+            cfObjective <- as.numeric(results[[i]][8]);
             C <- as.numeric(results[[i]][-c(1:8)]);
             n.param <- as.numeric(results[[i]][length(results[[i]])]);
-            esBasicMaker(ParentEnvironment=environment());
-            esBasicInitialiser(ParentEnvironment=environment());
+            BasicMakerES(ParentEnvironment=environment());
+            BasicInitialiserES(ParentEnvironment=environment());
 
             ssFitter(ParentEnvironment=environment());
             ssForecaster(ParentEnvironment=environment());
 
             fitted.list[,i] <- y.fit;
             forecasts.list[,i] <- y.for;
-            if(intervals==TRUE){
+            if(intervals){
                 lower.list[,i] <- y.low;
                 upper.list[,i] <- y.high;
             }
             phi <- NULL;
-            if(damped==TRUE){
+            if(damped){
                 model.current[i] <- paste0(Etype,Ttype,"d",Stype);
             }
             else{
                 model.current[i] <- paste0(Etype,Ttype,Stype);
             }
         }
-        y.fit <- ts(fitted.list %*% IC.weights,start=start(data),frequency=frequency(data));
-        y.for <- ts(forecasts.list %*% IC.weights,start=time(data)[obs]+deltat(data),frequency=frequency(data));
+        y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=frequency(data));
+        y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
         errors <- ts(c(y) - y.fit,start=start(data),frequency=frequency(data));
-        names(IC.weights) <- model.current;
-        if(intervals==TRUE){
-            y.low <- ts(lower.list %*% IC.weights,start=start(y.for),frequency=frequency(data));
-            y.high <- ts(upper.list %*% IC.weights,start=start(y.for),frequency=frequency(data));
+        names(icWeights) <- model.current;
+        if(intervals){
+            y.low <- ts(lower.list %*% icWeights,start=start(y.for),frequency=frequency(data));
+            y.high <- ts(upper.list %*% icWeights,start=start(y.for),frequency=frequency(data));
         }
         else{
             y.low <- NA;
             y.high <- NA;
         }
-        names(ICs) <- paste0("Combined ",IC);
+        names(ICs) <- paste0("Combined ",ic);
     }
 
 ##### Do final check and make some preparations for output #####
@@ -1032,8 +1030,8 @@ esCreator <- function(silent.text=FALSE,...){
     }
 
 ##### Now let's deal with holdout #####
-    if(holdout==TRUE){
-        y.holdout <- ts(data[(obs+1):obs.all],start=start(y.for),frequency=frequency(data));
+    if(holdout){
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
     }
     else{
@@ -1047,72 +1045,43 @@ esCreator <- function(silent.text=FALSE,...){
     }
 
 ##### Print output #####
-    if(silent.text==FALSE){
+    if(!silentText){
         if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
-        }
-# Calculate the number of observations in the interval
-        if(all(holdout==TRUE,intervals==TRUE)){
-            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=y.high &
-                                   as.vector(data)[(obs+1):obs.all]>=y.low)/h*100;
-        }
-        else{
-            insideintervals <- NULL;
-        }
-
-        if(modelDo!="combine"){
-            if(damped==TRUE){
-                phivalue <- phi;
-            }
-            else{
-                phivalue <- NULL;
-            }
-            ssOutput(Sys.time() - start.time, modelname, persistence=vecg, transition=NULL, measurement=NULL,
-                     phi=phivalue, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-                    n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-                    CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-                    int.type=int.type, int.w=int.w, ICs=ICs,
-                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
-        }
-        else{
-            cat(paste0(IC," weights were used to produce the combination of forecasts\n"));
-            ssOutput(Sys.time() - start.time, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                    phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
-                    n.components=NULL, s2=NULL, hadxreg=!is.null(xreg), wentwild=go.wild,
-                    CF.type=CF.type, CF.objective=NULL, intervals=intervals,
-                    int.type=int.type, int.w=int.w, ICs=ICs,
-                    holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures, intermittent=intermittent);
         }
     }
 
 ##### Make a plot #####
-    if(silent.graph==FALSE){
-        if(intervals==TRUE){
+    if(!silentGraph){
+        if(intervals){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       int.w=int.w,legend=legend,main=modelname);
+                       level=level,legend=!silentLegend,main=modelname);
         }
         else{
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    int.w=int.w,legend=legend,main=modelname);
+                    level=level,legend=!silentLegend,main=modelname);
         }
     }
 
-##### Return values #####
+    ##### Return values #####
     if(modelDo!="combine"){
-        return <- list(model=modelname,states=matvt,persistence=persistence,phi=phi,
-                    initial=initial,initial.season=initial.season,
-                    fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,errors=errors.mat,
-                    actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                    xreg=xreg,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-                    ICs=ICs,CF=CF.objective,CF.type=CF.type,FI=FI,accuracy=errormeasures);
-        return(structure(return,class="es"));
+        model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                      states=matvt,persistence=persistence,phi=phi,
+                      initial=initialValue,initialSeason=initialSeason,nParam=n.param,
+                      fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                      errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                      actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                      xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                      ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+        return(structure(model,class="smooth"));
     }
     else{
-        return <- list(model=modelname,fitted=y.fit,forecast=y.for,
-                       lower=y.low,upper=y.high,residuals=errors,
-                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                       ICs=ICs,ICw=IC.weights,
-                       CF.type=CF.type,xreg=xreg,accuracy=errormeasures);
-        return(structure(return,class="es"))
+        model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                      fitted=y.fit,forecast=y.for,
+                      lower=y.low,upper=y.high,residuals=errors,s2=s2,intervalsType=intervalsType,level=level,
+                      actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                      xreg=xreg,go.wild=go.wild,
+                      ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
+        return(structure(model,class="smooth"));
     }
 }

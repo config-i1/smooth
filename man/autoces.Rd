@@ -9,10 +9,10 @@
 }
 \usage{
 auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
-         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
-         CF.type=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
-         h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+         cfType=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+         h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+         intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
          intermittent=c("auto","none","fixed","croston","tsb"),
          bounds=c("admissible","none"),
          silent=c("none","all","graph","legend","output"),
@@ -32,11 +32,13 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
   \item{initial}{
     Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
   }
-  \item{IC}{
+  \item{ic}{
     The information criterion used in the model selection procedure.
   }
-  \item{CF.type}{
-  Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{GV} - Generalized Variance, \code{trace} - Total Logarithmic Variation, \code{TV} - Total Variation and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="GV"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{GV} respectively.
+  \item{cfType}{
+    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.
+
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful in cases of small samples.
   }
   \item{h}{
     The forecasting horizon.
@@ -47,18 +49,18 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
   \item{intervals}{
     If \code{TRUE}, the prediction intervals are constructed.
   }
-  \item{int.w}{
-    The width of prediction intervals. Default is 95\%.
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
-  \item{int.type}{
-    The type of intervals to construct. The first letter can be used instead of the whole word.
+  \item{intervalsType}{
+    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
 
     \itemize{
-        \item \code{parametric} use the state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
+        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
 
-        \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
@@ -70,23 +72,23 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
     What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
   }
   \item{silent}{
-    If \code{silen="none"}, then nothing is silent, everything is printed out and drawn. \code{silen="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silen="legend"}, then the legend of the graph is skipped. And finally \code{silent="outpu"} means that nothing is printed out in the console, but the graph is produced. the variable also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The variable also accepts first letter of words ("n", "a", "g", "l", "o").
+    If \code{silent="none"}, then nothing is silent, everything is printed out and drawn. \code{silent="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silent="legend"}, then legend of the graph is skipped. And finally \code{silent="output"} means that nothing is printed out in the console, but the graph is produced. \code{silent} also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The parameter also accepts first letter of words ("n", "a", "g", "l", "o").
   }
   \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
+    Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
   }
   \item{go.wild}{
-    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+    If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
     Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
 \details{
-  The function estimates several Complex Exponential Smoothing in the state-space 2 described in Svetunkov, Kourentzes (2015) with the information potential equal to the approximation error using different types of seasonality and chooses the one with the lowest value of information criterion.
+    The function estimates several Complex Exponential Smoothing in the state-space 2 described in Svetunkov, Kourentzes (2015) with the information potential equal to the approximation error using different types of seasonality and chooses the one with the lowest value of information criterion.
 }
 \value{
-  The list of the returned values is the same as in \link[smooth]{ces} function.
+    Object of class "smooth" is returned. See \link[smooth]{ces} for details.
 }
 \references{
     \itemize{
@@ -103,17 +105,22 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
     \code{\link[smooth]{ces}, \link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}}
 }
 \examples{
-y <- rnorm(100,10,3)
-y <- ts(y,frequency=12)
-y_ces_holdout <- auto.ces(y,h=20,holdout=TRUE)
-y_ces_no_holdout <- auto.ces(y,h=20,holdout=FALSE)
+y <- ts(rnorm(100,10,3),frequency=12)
+# CES with and without holdout
+auto.ces(y,h=20,holdout=TRUE)
+auto.ces(y,h=20,holdout=FALSE)
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-N0740_ces <- auto.ces(y,h=8,holdout=TRUE,models=c("N","P"),intervals=TRUE,int.w=0.8,IC="AIC")
+# Selection between "none" and "full" seasonalities
+auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals=TRUE,level=0.8,ic="AIC")
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-N1683_ces_S <- auto.ces(y,h=18,holdout=TRUE,intervals=TRUE)
+test <- auto.ces(y,h=18,holdout=TRUE,intervals=TRUE)
+
+summary(test)
+forecast(test)
+plot(forecast(test))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

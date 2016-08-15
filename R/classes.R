@@ -1,35 +1,217 @@
-coef.es <- function(object,...)
-{
-    if(any(unlist(gregexpr("C",object$model))==-1)){
-    # If this was normal ETS, return values
-        return(c(object$persistence,object$initial,object$initial.season));
+forecast <- function(object,...) UseMethod("forecast")
+AICc <- function(object,...) UseMethod("AICc")
+
+##### Functions of "es" #####
+#logLik.smooth <- function(object,...)
+#{
+#  structure(object$logLik,df=length(coef(object)),class="logLik");
+#}
+
+AIC.smooth <- function(object, ...){
+    if(gregexpr("ETS",object$model)!=-1){
+        if(any(unlist(gregexpr("C",object$model))==-1)){
+            return(object$ICs["AIC"]);
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AIC"){
+                return(object$ICs);
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                return(NULL);
+            }
+        }
     }
     else{
-    # If we did combinations, we cannot return anything
-        message("Combination of models was done, so there are no coefficients to return");
-        return(NULL);
+        return(object$ICs["AIC"]);
     }
 }
 
-is.es <- function(x){
-    inherits(x, "es");
+AICc.smooth <- function(object, ...){
+    if(gregexpr("ETS",object$model)!=-1){
+        if(any(unlist(gregexpr("C",object$model))==-1)){
+            return(object$ICs["AICc"]);
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
+                return(object$ICs);
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                return(NULL);
+            }
+        }
+    }
+    else{
+        return(object$ICs["AICc"]);
+    }
 }
 
-summary.es <- function(object,...){
-    return("Not yet implemented");
+BIC.smooth <- function(object, ...){
+    if(gregexpr("ETS",object$model)!=-1){
+        if(any(unlist(gregexpr("C",object$model))==-1)){
+            return(object$ICs["BIC"]);
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="BIC"){
+                return(object$ICs);
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                return(NULL);
+            }
+        }
+    }
+    else{
+        return(object$ICs["BIC"]);
+    }
 }
 
-fitted.es <- function(object,...){
+coef.smooth <- function(object, ...)
+{
+    if(gregexpr("CES",object$model)!=-1){
+        return(c(object$A,object$B));
+    }
+    else if(gregexpr("ETS",object$model)!=-1){
+        if(any(unlist(gregexpr("C",object$model))==-1)){
+            # If this was normal ETS, return values
+            return(c(object$persistence,object$initial,object$initial.season));
+        }
+        else{
+            # If we did combinations, we cannot return anything
+            message("Combination of models was done, so there are no coefficients to return");
+            return(NULL);
+        }
+    }
+    else if(gregexpr("GES",object$model)!=-1){
+        parameters <- c(object$measurement,object$transition,object$persistence,object$initial);
+        names(parameters) <- c(paste0("Measurement ",c(1:length(object$measurement))),
+                               paste0("Transition ",c(1:length(object$transition))),
+                               paste0("Persistence ",c(1:length(object$persistence))),
+                               paste0("Initial ",c(1:length(object$initial))));
+        return(parameters);
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
+        if(any(object$AR!=0)){
+            parameters <- c(parameters,object$AR);
+            NamesAR <- paste(rownames(object$AR),rep(colnames(object$AR),each=ncol(object$AR)),sep=", ");
+        }
+        if(any(object$MA!=0)){
+            parameters <- c(parameters,object$MA);
+            NamesMA <- paste(rownames(object$MA),rep(colnames(object$MA),each=ncol(object$MA)),sep=", ")
+        }
+        if(object$constant!=0){
+            parameters <- c(parameters,object$constant);
+            namesConstant <- "Constant";
+        }
+        names(parameters) <- c(NamesAR,NamesMA,namesConstant);
+        parameters <- parameters[parameters!=0];
+
+        return(parameters);
+    }
+}
+
+fitted.smooth <- function(object, ...){
     return(object$fitted);
 }
 
-plot.es <- function(x,...){
-    if(any(unlist(gregexpr("C",x$model))==-1)){
-        # If this was normal ETS, return values
-        plot(x$states,main="ES states");
+forecast.smooth <- function(object, h=10, intervals=TRUE,
+                        intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                        level=0.95, ...){
+    if(gregexpr("ETS",object$model)!=-1){
+        newModel <- es(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+    }
+    else if(gregexpr("CES",object$model)!=-1){
+        newModel <- ces(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+    }
+    else if(gregexpr("GES",object$model)!=-1){
+        newModel <- ges(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
     }
     else{
-        # If we did combinations, we cannot return anything
-        message("Combination of models was done. Sorry, but there is nothing to plot.");
+        stop("Wrong object provided. This needs to be an object of class 'smooth'.",call.=FALSE);
     }
+
+    output <- list(model=newModel$model,fitted=newModel$fitted,actuals=newModel$actuals,
+                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
+                   intervals=intervals,mean=newModel$forecast);
+    return(structure(output,class="forecastSmooth"));
+}
+
+plot.smooth <- function(x, ...){
+    parDefault <- par(no.readonly = TRUE);
+    if(gregexpr("ETS",x$model)!=-1){
+        if(any(unlist(gregexpr("C",x$model))==-1)){
+            # If this was normal ETS, return values
+            plot(x$states,main=paste0("States of ",x$model));
+        }
+        else{
+            # If we did combinations, we cannot return anything
+            message("Combination of models was done. Sorry, but there is nothing to plot.");
+        }
+    }
+    else{
+        if(ncol(x$states)>10){
+            message("Too many states. Plotting them one by one on several graphs.");
+            nPlots <- ceiling(ncol(x$states)/10);
+            for(i in 1:nPlots){
+                plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i));
+            }
+        }
+        else{
+            plot(x$states,main=paste0("States of ",x$model));
+        }
+    }
+    par(parDefault)
+}
+
+plot.forecastSmooth <- function(x, ...){
+    if(x$intervals){
+        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$model);
+    }
+    else{
+        graphmaker(x$actuals,x$forecast,x$fitted,main=x$model);
+    }
+}
+
+print.smooth <- function(x, ...){
+    holdout <- any(!is.na(x$holdout));
+    intervals <- any(!is.na(x$lower));
+    h <- length(forecast);
+    if(all(holdout==TRUE,intervals==TRUE)){
+        insideintervals <- sum(as.vector(x$holdout)<=x$upper &
+                                   as.vector(x$holdout)>=x$lower)/h*100;
+    }
+    else{
+        insideintervals <- NULL;
+    }
+
+    ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
+             phi=x$phi, ARterms=x$AR, MAterms=x$MA, const=x$constant, A=x$A, B=x$B,
+             nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$go.wild,
+             cfType=x$cfType, cfObjective=x$cf, intervals=intervals,
+             intervalsType=x$intervalsType, level=x$level, ICs=x$ICs,
+             holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy, intermittent=x$intermittent);
+}
+
+print.forecastSmooth <- function(x, ...){
+    if(x$intervals){
+        level <- x$level;
+        if(level>1){
+            level <- level/100;
+        }
+        output <- cbind(x$forecast,x$lower,x$upper);
+        colnames(output) <- c("Point forecast",paste0("Lower bound (",(1-level)/2*100,"%)"),paste0("Upper bound (",(1+level)/2*100,"%)"));
+    }
+    else{
+        output <- x$forecast;
+    }
+    print(output);
+}
+
+summary.smooth <- function(object, ...){
+    print(object);
 }

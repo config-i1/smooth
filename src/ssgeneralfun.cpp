@@ -408,7 +408,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
     }
 
     return wrap(List::create(Named("n.components") = ncomponents, Named("maxlag") = maxlag, Named("modellags") = modellags,
-                             Named("matvt") = matrixVt, Named("vecg") = vecG, Named("estimate.phi") = estimphi,
+                             Named("matvt") = matrixVt, Named("vecg") = vecG, Named("phiEstimate") = estimphi,
                              Named("phi") = phivalue));
 }
 
@@ -482,7 +482,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         currentelement = currentelement + 1;
     }
 
-    if(fitterType=='o'){
+    if(fitterType=='o' | fitterType=='p'){
         if(estimateinitial==TRUE){
             matrixVt.col(0).fill(as_scalar(C.col(currentelement).t()));
             currentelement = currentelement + 1;
@@ -1013,13 +1013,14 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     List fitting;
 
     switch(fitterType){
-    case 'o':
-    fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
-                     matrixXt, matrixAt, matrixFX, vecGX, vecOt);
-    break;
-    case 'b':
-    fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+        case 'o':
+        default:
+        fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                          matrixXt, matrixAt, matrixFX, vecGX, vecOt);
+        break;
+        case 'b':
+        fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+                             matrixXt, matrixAt, matrixFX, vecGX, vecOt);
     }
 
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matvt"]);

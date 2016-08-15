@@ -1,12 +1,12 @@
 graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
-                       int.w=NULL,legend=TRUE,main=NULL){
+                       level=NULL,legend=TRUE,main=NULL){
 # Function constructs the universal linear graph for any model
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
         intervals <- TRUE;
-        if(is.null(int.w)){
+        if(is.null(level)){
             message("The width of prediction intervals is not provided to graphmaker! Assuming 95%.");
-            int.w <- 0.95;
+            level <- 0.95;
         }
     }
     else{
@@ -20,7 +20,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
     h <- length(forecast)
 
 # Write down the default values of par
-    def.par <- par(no.readonly = TRUE);
+    parDefault <- par(no.readonly = TRUE);
 
 # Estimate plot range
     plot.range <- range(min(actuals[!is.na(actuals)],fitted[!is.na(fitted)],
@@ -68,7 +68,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast",paste0(int.w*100,"% prediction interval"),"Forecast origin"),
+                       legend=c("Series","Fitted values","Point forecast",paste0(level*100,"% prediction interval"),"Forecast origin"),
                        col=c("black","purple","blue","darkgrey","red"),
                        lwd=c(1,2,2,3,2),
                        lty=c(1,2,1,2,1),ncol=3);
@@ -83,7 +83,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast",paste0(int.w*100,"% prediction interval"),"Forecast origin"),
+                       legend=c("Series","Fitted values","Point forecast",paste0(level*100,"% prediction interval"),"Forecast origin"),
                        col=c("black","purple","blue","darkgrey","red"),
                        lwd=c(1,2,2,3,2),
                        lty=c(1,2,NA,NA,1),
@@ -120,5 +120,5 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
-    par(def.par)
+    par(parDefault)
 }

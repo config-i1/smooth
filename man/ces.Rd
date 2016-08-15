@@ -10,9 +10,9 @@
 \usage{
 ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     initial=c("backcasting","optimal"),
-    CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-    h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-    int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+    cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+    h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+    intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
     intermittent=c("auto","none","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
@@ -30,61 +30,65 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     Any seasonal CES can only be constructed for time series vectors.
   }
   \item{initial}{
-    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
+    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure (advised for data with high frequency).
   }
-  \item{CF.type}{ Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
+  \item{cfType}{
+    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.
+
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful in cases of small samples.
   }
   \item{h}{
     The forecasting horizon.
   }
   \item{holdout}{
-    If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
+    If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{
-    If \code{TRUE}, the prediction intervals are constructed.
+    If \code{TRUE}, prediction intervals are constructed.
   }
-  \item{int.w}{
-    The width of prediction intervals. Default is 95\%.
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
-  \item{int.type}{
-    The type of intervals to construct. The first letter can be used instead of the whole word.
+  \item{intervalsType}{
+    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
 
     \itemize{
-        \item \code{parametric} use the state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
+        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
 
-        \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
   \item{intermittent}{
-    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead.
   }
-  \item{bounds}{ What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
+  \item{bounds}{
+    What type of bounds to use for smoothing parameters ("admissible" or "usual"). The first letter can be used instead of the whole word.
   }
   \item{silent}{
-    If \code{silen="none"}, then nothing is silent, everything is printed out and drawn. \code{silen="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silen="legend"}, then the legend of the graph is skipped. And finally \code{silent="outpu"} means that nothing is printed out in the console, but the graph is produced. the variable also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The variable also accepts first letter of words ("n", "a", "g", "l", "o").
+    If \code{silent="none"}, then nothing is silent, everything is printed out and drawn. \code{silent="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silent="legend"}, then legend of the graph is skipped. And finally \code{silent="output"} means that nothing is printed out in the console, but the graph is produced. \code{silent} also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The parameter also accepts first letter of words ("n", "a", "g", "l", "o").
   }
   \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
+    Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
   }
   \item{initialX}{
-    The vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
+    Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
   \item{go.wild}{
-    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+    If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{persistenceX}{
     Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{transitionX}{
-    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
     Other non-documented parameters.
-    For example parameter \code{model} can accept a previously estimated GES model and use all its parameters.
+    For example parameter \code{model} can accept a previously estimated CES model and use all its parameters.
     \code{FI=TRUE} will make the function produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
@@ -93,28 +97,36 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
   The estimation of initial states of xt is done using backcast.
 }
 \value{
-  The list of the following values is returned:
-
+  Object of class "smooth" is returned. It contains the list of the following values:
   \itemize{
     \item \code{model} - type of constructed model.
+    \item \code{timeElapsed} - time elapsed for the construction of the model.
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{A} - complex smoothing parameter in the form a0 + ia1
     \item \code{B} - smoothing parameter for the seasonal component. Can either be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"}) in a form b0 + ib1.
+    \item \code{initial} - the intial values of the state vector (non-seasonal).
+    \item \code{nParam} - number of estimated parameters.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
     \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
+    \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
+    \item \code{intervalsType} - type of intervals asked by user.
+    \item \code{level} - confidence level for intervals.
     \item \code{actuals} - The data provided in the call of the function.
     \item \code{holdout} - the holdout part of the original data.
+    \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
+    \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{go.wild} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex IC).
-    \item \code{CF} - Cost function value.
-    \item \code{CF.type} - Type of cost function used in the estimation.
+    \item \code{cf} - Cost function value.
+    \item \code{cfType} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
     \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
   }
@@ -134,36 +146,40 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
 }
 \examples{
 y <- rnorm(100,10,3)
-y_ces_holdout <- ces(y,h=20,holdout=TRUE)
-y_ces_no_holdout <- ces(y,h=20,holdout=FALSE)
+ces(y,h=20,holdout=TRUE)
+ces(y,h=20,holdout=FALSE)
 
 y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-y_ces <- ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds="a")
+ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds="a")
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-N0740_ces <- ces(y,h=8,holdout=TRUE,seasonality="S",intervals=TRUE,int.w=0.8)
+ces(y,h=8,holdout=TRUE,seasonality="S",intervals=TRUE,level=0.8)
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-N1683_ces_S <- ces(y,h=18,holdout=TRUE,seasonality="S",intervals=TRUE)
-N1683_ces_P <- ces(y,h=18,holdout=TRUE,seasonality="P",intervals=TRUE)
-N1683_ces_F <- ces(y,h=18,holdout=TRUE,seasonality="F",intervals=TRUE)
+ces(y,h=18,holdout=TRUE,seasonality="S",intervals=TRUE)
+ces(y,h=18,holdout=TRUE,seasonality="P",intervals=TRUE)
+ces(y,h=18,holdout=TRUE,seasonality="F",intervals=TRUE)
 
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-    intervals=TRUE,xreg=x,CF.type="MSTFE")->test
+    intervals=TRUE,xreg=x,cfType="MSTFE")
 
 # Exogenous variables in CES
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)->test
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)->test
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
+test <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)->test
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
 
 # Intermittent data example
 x <- rpois(100,0.2)
 # Best type of intermittent model based on iETS(Z,Z,N)
-ces(x,intermittent="auto")->test
+test <- ces(x,intermittent="auto")
+
+summary(test)
+forecast(test)
+plot(forecast(test))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

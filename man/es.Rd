@@ -9,10 +9,10 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 }
 \usage{
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
-   initial=c("optimal","backcasting"), initial.season=NULL, IC=c("AICc","AIC","BIC"),
-   CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-   h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-   int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+   initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
+   cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+   h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+   intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
    intermittent=c("auto","none","fixed","croston","tsb"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
@@ -21,92 +21,92 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{data}{
-    The vector or ts object, containing the data needed to be forecasted.
+    Vector or ts object, containing data needed to be forecasted.
   }
   \item{model}{
-    The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen IC type. If \code{model="CCC"}, then all the models are estimated and the combination of their forecasts using AIC weights if produced (Kolassa, 2011). This can also be regulated. For example, \code{model="CCN"} will combine forecasts of all the non-seasonal models.
+    The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen information criteria type. If \code{model="CCC"}, then all the models are estimated and combination of their forecasts using AIC weights is produced (Kolassa, 2011). This can also be regulated. For example, \code{model="CCN"} will combine forecasts of all non-seasonal models.
 
     The parameter \code{model} can also be a vector of names of models for a finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will estimate only two models and select the best of them.
 
-    The parameter \code{model} can accept a previously estimated ES model and use all its parameters.
+    Also \code{model} can accept a previously estimated ES model and use all its parameters.
 
     Keep in mind that model selection uses Branch and Bound algorithm and may skip some models that could have slightly smaller information criteria.
   }
   \item{persistence}{
-    The vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
+    Vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
   }
   \item{phi}{
-    The value of damping parameter. If \code{NULL} then the parameter is estimated.
+    Value of damping parameter. If \code{NULL} then it is estimated.
   }
   \item{initial}{
-    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure. \code{initial.season} will always be estimated in the way defined by \code{initial.season}.
+    Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure (advised for data with high frequency). If character, then \code{initialSeason} will be estimated in the way defined by \code{initial}.
   }
-  \item{initial.season}{
-    The vector of initial values for seasonal components. If \code{NULL}, they are estimated in the optimization.
+  \item{initialSeason}{
+    Vector of initial values for seasonal components. If \code{NULL}, they are estimated during optimisation.
   }
-  \item{IC}{
-    The information criterion to use in the model selection.
+  \item{ic}{
+    Information criterion to use in model selection.
   }
-  \item{CF.type}{
-    Type of Cost Function used in optimization. \code{CF.type} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{CF.type!="MSE"} or \code{CF.type!="TFL"}, then the likelihood and model selection is done based the equivalent \code{MSE} or \code{TFL} respectively.
+  \item{cfType}{
+    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.
 
-    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful on small samples.
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful in cases of small samples.
   }
   \item{h}{
-    The length of the forecasting horizon.
+    Length of forecasting horizon.
   }
   \item{holdout}{
-    If \code{TRUE}, the holdout sample of size \code{h} is taken from the end of the data.
+    If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{
-    If \code{TRUE}, the prediction interval is constructed.
+    If \code{TRUE}, prediction intervals are constructed.
   }
-  \item{int.w}{
-    Defines the width of the prediction interval.
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
-  \item{int.type}{
-    The type of intervals to construct. The first letter can be used instead of the whole word.
+  \item{intervalsType}{
+    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
 
     \itemize{
-        \item \code{parametric} use the state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{semiparametric} are based on the covariance matrix of 1 to h steps ahead errors and normal distribution.
+        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
 
-        \item \code{nonparametric} intervals use the values from a quantile regression on the error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         \item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
   \item{intermittent}{
-    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead.
   }
   \item{bounds}{
-    What type of bounds to use for the smoothing parameters. The first letter can be used instead of the whole word.
+    What type of bounds to use for smoothing parameters ("admissible" or "usual"). The first letter can be used instead of the whole word.
   }
   \item{silent}{
-    If \code{silen="none"}, then nothing is silent, everything is printed out and drawn. \code{silen="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silen="legend"}, then the legend of the graph is skipped. And finally \code{silent="outpu"} means that nothing is printed out in the console, but the graph is produced. the variable also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The variable also accepts first letter of words ("n", "a", "g", "l", "o").
+    If \code{silent="none"}, then nothing is silent, everything is printed out and drawn. \code{silent="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silent="legend"}, then legend of the graph is skipped. And finally \code{silent="output"} means that nothing is printed out in the console, but the graph is produced. \code{silent} also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The parameter also accepts first letter of words ("n", "a", "g", "l", "o").
   }
   \item{xreg}{
-    The vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have the number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then the values in the holdout sample are forecasted using Naive.
+    Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
   }
   \item{initialX}{
-    The vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
+    Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
   \item{go.wild}{
-    If \code{TRUE}, the transition matrix for exogenous variables is estimated, introducing non-linear interractions between the parameters. Prerequisite - non-NULL \code{xreg}.
+    If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{persistenceX}{
     Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{transitionX}{
-    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is the number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
-    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
+    Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of smoothing parameters and initial states of the model.
   }
 }
 \details{
-The function estimates ETS in a form of the Single Source of Error State-space model of the following type:
+Function estimates ETS in a form of the Single Source of Error State-space model of the following type:
 
 \eqn{y_[t] = o_[t] (w(v_[t-l]) + x_t a_[t-1] + r(v_[t-l]) \epsilon_[t])}
 
@@ -114,55 +114,68 @@ The function estimates ETS in a form of the Single Source of Error State-space m
 
 \eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
 
-Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equal to 1), \eqn{v_[t]} is a state vector (defined using \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of exogenous parameters. w(.) is the measurement function, r(.) is an error function, f(.) is transition function and g(.) is persistence function.
+Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data it equals to 1 for all observations), \eqn{v_[t]} is a state vector and \eqn{l} is a vector of lags, \eqn{x_t} vector of exogenous parameters. w(.) is measurement function, r(.) is an error function, f(.) is transition function and g(.) is persistence function.
+
+For the details see Hyndman et al.(2008).
+
 }
 \value{
-  The list of the following values is returned for the simpler models:
+    Object of class "smooth" is returned. It contains the list of the following values for clasical ETS models:
 
   \itemize{
     \item \code{model} - type of constructed model.
-    \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
-    \item \code{persistence} - the persistence vector.
-    \item \code{phi} - the value of damping parameter.
-    \item \code{initial} - the intial values of the state vector (non-seasonal).
-    \item \code{initial.season} - the intial values of the seasonal part of state vector.
-    \item \code{fitted} - the fitted values of ETS.
-    \item \code{forecast} - the point forecast of ETS.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{upper} - the higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{residuals} - the residuals of the estimated model.
+    \item \code{timeElapsed} - time elapsed for the construction of the model.
+    \item \code{states} - matrix of the components of ETS.
+    \item \code{persistence} - persistence vector.
+    \item \code{phi} - value of damping parameter.
+    \item \code{initial} - intial values of the state vector (non-seasonal).
+    \item \code{initialSeason} - intial values of the seasonal part of state vector.
+    \item \code{nParam} - number of estimated parameters.
+    \item \code{fitted} - fitted values of ETS.
+    \item \code{forecast} - point forecast of ETS.
+    \item \code{lower} - lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{upper} - higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{residuals} - residuals of the estimated model.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
-    \item \code{actuals} - the original data.
-    \item \code{holdout} - the holdout part of the original data.
-    \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
+    \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
+    \item \code{intervalsType} - type of intervals asked by user.
+    \item \code{level} - confidence level for intervals.
+    \item \code{actuals} - original data.
+    \item \code{holdout} - holdout part of the original data.
+    \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
     \item \code{intermittent} - type of intermittent model fitted to the data.
-    \item \code{xreg} - the provided vector or matrix of exogenous variables.
+    \item \code{xreg} - provided vector or matrix of exogenous variables.
+    \item \code{go.wild} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
-    \item \code{CF} - Cost function value.
-    \item \code{CF.type} - Type of cost function used in the estimation.
+    \item \code{cf} - Cost function value.
+    \item \code{cfType} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
-    \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
+    \item \code{accuracy} - vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
   }
 
-  If the combination of forecasts is produced (using \code{model="CCC"}), then the shorter list of the values is returned:
+  If combination of forecasts is produced (using \code{model="CCC"}), then a shorter list of values is returned:
 
   \itemize{
     \item \code{model},
+    \item \code{timeElapsed},
     \item \code{fitted},
     \item \code{forecast},
     \item \code{lower},
     \item \code{upper},
     \item \code{residuals},
+    \item \code{s2},
+    \item \code{intervalsType},
+    \item \code{level},
     \item \code{actuals},
     \item \code{holdout},
     \item \code{iprob},
     \item \code{intermittent},
-    \item \code{ICs} - combined IC,
-    \item \code{ICw} - IC weights used in the combination,
-    \item \code{CF.type},
+    \item \code{ICs} - combined ic,
+    \item \code{ICw} - ic weights used in the combination,
+    \item \code{cfType},
     \item \code{xreg},
     \item \code{accuracy}.
   }
@@ -177,7 +190,7 @@ Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal da
     }
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+    Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 
 \seealso{
@@ -187,46 +200,50 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 library(Mcomp)
 
 # See how holdout and trace parameters influence the forecast
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,CF.type="MSE") -> test
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,CF.type="TFL") -> test
-es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,CF.type="MSTFE") -> test
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="MSE")
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="TFL")
+es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="MSTFE")
 
 # Model selection example
-es(M3$N1245$x,model="ZZN",IC="AIC",h=8,holdout=FALSE,bounds="a") -> test
+es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
 
 # Model selection. Compare AICc of these two models:
-es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)->test
-es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)->test
+es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
+es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)
 
 # Combination example
-es(M3$N1245$x,model="CCC",h=8,holdout=TRUE) -> test
+es(M3$N1245$x,model="CCC",h=8,holdout=TRUE)
 
 # Model selection using a specified pool of models
-es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18) -> test
+test <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
 # Redo previous model and produce prediction intervals
-es(M3$N1587$x,model=test,h=18,intervals=TRUE) -> test
+es(M3$N1587$x,model=test,h=18,intervals=TRUE)
 
 # Semiparametric intervals example
-es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,int.type="s") -> test
+es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,intervalsType="s")
 
 # Exogenous variables in ETS example
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,CF.type="TFL")->test
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)->test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,cfType="TFL")
+test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)->test
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
 
 # Intermittent data example
 x <- rpois(100,0.2)
 # Croston's method with the best ETS for demand sizes
-es(x,"ZZN",intermittent="croston")->test
+es(x,"ZZN",intermittent="croston")
 # TSB based on iETS(M,N,N)
-es(x,"MNN",intermittent="tsb")->test
+es(x,"MNN",intermittent="tsb")
 # Constant probability based on iETS(M,N,N)
-es(x,"MNN",intermittent="fixed")->test
+es(x,"MNN",intermittent="fixed")
 # Best type of intermittent model based on iETS(Z,Z,N)
-es(x,"ZZN",intermittent="auto")->test
+test <- es(x,"ZZN",intermittent="auto")
+
+summary(test)
+forecast(test)
+plot(forecast(test))
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

@@ -7,7 +7,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
 
     if(all(intermittent!=c("n","p"))){
         ot <- (y!=0)*1;
-        obs.ot <- sum(ot);
+        obsNonzero <- sum(ot);
         # 1 parameter for estimating initial probability
         n.param.intermittent <- 1;
         if(intermittent=="c"){
@@ -18,23 +18,23 @@ intermittentParametersSetter <- function(intermittent="n",...){
             # In TSB we need to estimate smoothing parameter and two parameters of distribution
             n.param.intermittent <- n.param.intermittent + 3;
         }
-        yot <- matrix(y[y!=0],obs.ot,1);
-        pt <- matrix(mean(ot),obs,1);
+        yot <- matrix(y[y!=0],obsNonzero,1);
+        pt <- matrix(mean(ot),obsInsample,1);
         pt.for <- matrix(1,h,1);
     }
 
     if(intermittent=="n"){
-        ot <- rep(1,obs);
-        obs.ot <- obs;
+        ot <- rep(1,obsInsample);
+        obsNonzero <- obsInsample;
         yot <- y;
-        pt <- matrix(1,obs,1);
+        pt <- matrix(1,obsInsample,1);
         pt.for <- matrix(1,h,1);
         n.param.intermittent <- 0;
     }
     iprob <- pt[1];
 
     assign("ot",ot,ParentEnvironment);
-    assign("obs.ot",obs.ot,ParentEnvironment);
+    assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
@@ -68,17 +68,16 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         intermittent <- "f";
     }
     y <- data;
-    obs <- length(y);
+    obsInsample <- length(y);
     ot <- abs((y!=0)*1);
     iprob <- mean(ot);
-    obs.ones <- sum(ot);
-    obs.zeroes <- obs - obs.ones;
+    obsOnes <- sum(ot);
 # Sizes of demand
-    yot <- matrix(y[y!=0],obs.ones,1);
+    yot <- matrix(y[y!=0],obsOnes,1);
 
     if(intermittent=="f"){
-        pt <- ts(matrix(rep(iprob,obs),obs,1), start=start(data), frequency=frequency(data));
-        pt.for <- ts(rep(iprob,h), start=time(data)[obs]+deltat(data), frequency=frequency(data));
+        pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(data), frequency=frequency(data));
+        pt.for <- ts(rep(iprob,h), start=time(data)[obsInsample]+deltat(data), frequency=frequency(data));
         errors <- ts(ot-iprob, start=start(data), frequency=frequency(data));
         return(list(fitted=pt,forecast=pt.for,variance=pt.for*(1-pt.for),
                     likelihood=0,residuals=errors,C=iprob));
@@ -86,15 +85,14 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
 ### Croston's method
     else if(intermittent=="c"){
 # Define the matrix of states
-        ivt <- matrix(rep(iprob,obs+1),obs+1,1);
+        ivt <- matrix(rep(iprob,obsInsample+1),obsInsample+1,1);
 # Define the matrix of actuals as intervals between demands
-        zeroes <- c(0,which(y!=0),obs+1);
+        zeroes <- c(0,which(y!=0),obsInsample+1);
 ### With this thing we fit model of the type 1/(1+qt)
 #        zeroes <- diff(zeroes)-1;
         zeroes <- diff(zeroes);
 # Number of intervals in Croston
-        obs.int <- length(zeroes);
-        iyt <- matrix(zeroes,obs.int,1);
+        iyt <- matrix(zeroes,length(zeroes),1);
         if(is.null(imodel)){
             crostonModel <- es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence,intermittent="n");
         }
@@ -105,7 +103,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
         zeroes <- zeroes;
         pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(data),frequency=frequency(data));
-        pt.for <- ts(1/(crostonModel$forecast), start=time(data)[obs]+deltat(data),frequency=frequency(data));
+        pt.for <- ts(1/(crostonModel$forecast), start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
         likelihood <- - (crostonModel$ICs["AIC"]/2 - 3);
         C <- c(crostonModel$persistence,crostonModel$states[1,]);
         names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
@@ -116,12 +114,12 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
     }
 ### TSB method
     else if(intermittent=="t"){
-        ivt <- matrix(rep(iprob,obs+1),obs+1,1);
-        iyt <- matrix(ot,obs,1);
+        ivt <- matrix(rep(iprob,obsInsample+1),obsInsample+1,1);
+        iyt <- matrix(ot,obsInsample,1);
         modellags <- matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0.01,1,1);
-        errors <- matrix(NA,obs,1);
-        iyt.fit <- matrix(NA,obs,1);
+        errors <- matrix(NA,obsInsample,1);
+        iyt.fit <- matrix(NA,obsInsample,1);
 
         if(!is.null(imodel)){
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
@@ -155,7 +153,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
 
             fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
                                   modellags, "M", "N", "N", "o",
-                                  matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
+                                  matrix(0,obsInsample,1), matrix(0,obsInsample+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
 
             iyt.fit <- fitting$yfit;
             errors <- fitting$errors;
@@ -181,19 +179,19 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
         fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
                               modellags, "M", "N", "N", "o",
-                              matrix(0,obs,1), matrix(0,obs+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obs,1));
+                              matrix(0,obsInsample,1), matrix(0,obsInsample+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
 
         ivt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
         iyt.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
         errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
-        iy.for <- ts(rep(iyt.fit[obs],h),
-                     start=time(data)[obs]+deltat(data),frequency=frequency(data));
+        iy.for <- ts(rep(iyt.fit[obsInsample],h),
+                     start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
 
         return(list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),
                     likelihood=likelihood,residuals=errors,C=C));
     }
     else{
-        return(list(fitted=rep(1,obs),states=NULL,forecast=rep(1,h),variance=rep(0,h),
-                    likelihood=NULL,residuals=rep(0,obs),C=NULL));
+        return(list(fitted=rep(1,obsInsample),states=NULL,forecast=rep(1,h),variance=rep(0,h),
+                    likelihood=NULL,residuals=rep(0,obsInsample),C=NULL));
     }
 }

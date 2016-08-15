@@ -1,17 +1,20 @@
+utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
+
 auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
-                         initial=c("backcasting","optimal"), IC=c("AICc","AIC","BIC"),
-                         CF.type=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
-                         h=10, holdout=FALSE, intervals=FALSE, int.w=0.95,
-                         int.type=c("parametric","semiparametric","nonparametric","asymmetric"),
+                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+                         cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                         h=10, holdout=FALSE, intervals=FALSE, level=0.95,
+                         intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
                          intermittent=c("auto","none","fixed","croston","tsb"),
-                         bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
+                         bounds=c("admissible","none"),
+                         silent=c("none","all","graph","legend","output"),
                          xreg=NULL, go.wild=FALSE, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
-    start.time <- Sys.time();
+    startTime <- Sys.time();
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -94,13 +97,13 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 # Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
 # Don't try to fix anything if the number of seasonalities is greater than 2
     if(length(lags)<=2){
-        if(obs <= n.param.max){
+        if(obsInsample <= n.param.max){
             arma.length <- length(ar.max)
-            while(obs <= n.param.max){
+            while(obsInsample <= n.param.max){
                 if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
                     ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
                     n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                    if(obs <= n.param.max){
+                    if(obsInsample <= n.param.max){
                         ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
                         n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
@@ -109,7 +112,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     if(arma.length==2){
                         ar.max[1] <- ar.max[1] - 1;
                         n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                        if(obs <= n.param.max){
+                        if(obsInsample <= n.param.max){
                             ma.max[1] <- ma.max[1] - 1;
                             n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
@@ -124,7 +127,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
                     else if(i.max[1]>0){
-                        if(obs <= n.param.max){
+                        if(obsInsample <= n.param.max){
                             i.max[1] <- max(0,i.max[1] - 1);
                             n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
@@ -139,23 +142,23 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         }
     }
 
-    if(obs <= n.param.max){
+    if(obsInsample <= n.param.max){
         message(paste0("Not enough observations for the reasonable fit. Number of possible parameters is ",
-                        n.param.max," while the number of observations is ",obs,"!"));
+                        n.param.max," while the number of observations is ",obsInsample,"!"));
         stop("Redefine maximum orders and try again.",call.=FALSE)
     }
 
 # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
     models.number <- sum(ar.max,i.max,ma.max) + 1 + 1;
     test.models <- list(NA);
-    test.ICs <- rep(NA,max(ar.max,i.max,ma.max)+1);
-    test.ICs.all <- rep(NA,models.number);
+    ICsTest <- rep(NA,max(ar.max,i.max,ma.max)+1);
+    ICsTestAll <- rep(NA,models.number);
     m <- 0;
 
     test.lags <- ma.test <- ar.test <- i.test <- rep(0,length(lags));
     ar.best <- ma.best <- i.best <- rep(0,length(lags));
 
-    if(silent.text==FALSE){
+    if(silentText==FALSE){
         cat("Estimation progress:     ");
     }
 
@@ -163,9 +166,9 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
     if(all(c(ar.max,i.max,ma.max)==0)){
         cat("\b\b\b\bDone!\n");
         test.models <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
-                               constant=TRUE,initial=fittertype,CF.type=CF.type,
-                               h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                               int.type=int.type,intermittent=intermittent,silent=TRUE,
+                               constant=TRUE,initial=initialType,cfType=cfType,
+                               h=h,holdout=holdout,intervals=intervals,level=level,
+                               intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                xreg=xreg,go.wild=go.wild,FI=FI);
         return(test.models);
     }
@@ -180,7 +183,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                         next;
                     }
                     m <- m + 1;
-                    if(silent.text==FALSE){
+                    if(silentText==FALSE){
                         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                         cat(paste0(round((m)/models.number,2)*100,"%"));
                     }
@@ -188,25 +191,25 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     i.test[seasSelect] <- iSelect;
                     n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
                             sum(ar.best) + sum(ma.best) + 1;
-                    if(n.param > obs - 2){
+                    if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
-                        test.ICs[iSelect+1] <- Inf;
-                        test.ICs.all[m] <- Inf;
+                        ICsTest[iSelect+1] <- Inf;
+                        ICsTestAll[m] <- Inf;
                         next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.test),ma.orders=(ma.best),lags=(test.lags),
-                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
-                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
+                                                constant=TRUE,initial=initialType,cfType=cfType,
+                                                h=h,holdout=holdout,intervals=intervals,level=level,
+                                                intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
-                    test.ICs[iSelect+1] <- test.models[[m]]$ICs[IC];
-                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                    ICsTest[iSelect+1] <- test.models[[m]]$ICs[ic];
+                    ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                 }
 # Save the best differences
-                i.best[seasSelect] <- i.test[seasSelect] <- c(0:i.max[seasSelect])[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+                i.best[seasSelect] <- i.test[seasSelect] <- c(0:i.max[seasSelect])[which(ICsTest==min(ICsTest,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE)
+                ICsTest <- sort(ICsTest,decreasing=FALSE)
             }
         }
     }
@@ -218,7 +221,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
             if(ma.max[seasSelect]!=0){
                 for(maSelect in 1:ma.max[seasSelect]){
                     m <- m + 1;
-                    if(silent.text==FALSE){
+                    if(silentText==FALSE){
                         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                         cat(paste0(round((m)/models.number,2)*100,"%"));
                     }
@@ -226,22 +229,22 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     ma.test[seasSelect] <- ma.max[seasSelect] - maSelect + 1;
                     n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
                             sum(ar.best) + sum(ma.test) + 1;
-                    if(n.param > obs - 2){
+                    if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
-                        test.ICs[iSelect+1] <- Inf;
-                        test.ICs.all[m] <- Inf;
+                        ICsTest[iSelect+1] <- Inf;
+                        ICsTestAll[m] <- Inf;
                         next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.test),lags=(test.lags),
-                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
-                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
+                                                constant=TRUE,initial=initialType,cfType=cfType,
+                                                h=h,holdout=holdout,intervals=intervals,level=level,
+                                                intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
-                    test.ICs[maSelect+1] <- test.models[[m]]$ICs[IC];
-                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                    ICsTest[maSelect+1] <- test.models[[m]]$ICs[ic];
+                    ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                     # If high order MA is not good, break the loop
-                    if(test.ICs[maSelect+1] > test.ICs[maSelect]){
+                    if(ICsTest[maSelect+1] > ICsTest[maSelect]){
                         if(maSelect!=ma.max[seasSelect]){
                             m <- m + ma.max[seasSelect] - maSelect;
                             break;
@@ -252,9 +255,9 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     }
                 }
 # Save the best MA
-#                ma.best[seasSelect] <- ma.test[seasSelect] <- c(ma.max[seasSelect]:0)[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+#                ma.best[seasSelect] <- ma.test[seasSelect] <- c(ma.max[seasSelect]:0)[which(ICsTest==min(ICsTest,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE);
+                ICsTest <- sort(ICsTest,decreasing=FALSE);
                 ma.test[seasSelect] <- ma.best[seasSelect];
             }
         }
@@ -267,7 +270,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
             if(ar.max[seasSelect]!=0){
                 for(arSelect in 1:ar.max[seasSelect]){
                     m <- m + 1;
-                    if(silent.text==FALSE){
+                    if(silentText==FALSE){
                         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
                         cat(paste0(round((m)/models.number,2)*100,"%"));
                     }
@@ -275,22 +278,22 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     ar.test[seasSelect] <- ar.max[seasSelect] - arSelect + 1;
                     n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) +
                             sum(ar.test) + sum(ma.best) + 1;
-                    if(n.param > obs - 2){
+                    if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
-                        test.ICs[iSelect+1] <- Inf;
-                        test.ICs.all[m] <- Inf;
+                        ICsTest[iSelect+1] <- Inf;
+                        ICsTestAll[m] <- Inf;
                         next;
                     }
 
                     test.models[[m]] <- ssarima(data,ar.orders=(ar.test),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                                constant=TRUE,initial=fittertype,CF.type=CF.type,
-                                                h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                                int.type=int.type,intermittent=intermittent,silent=TRUE,
+                                                constant=TRUE,initial=initialType,cfType=cfType,
+                                                h=h,holdout=holdout,intervals=intervals,level=level,
+                                                intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                                 xreg=xreg,go.wild=go.wild,FI=FI);
-                    test.ICs[arSelect+1] <- test.models[[m]]$ICs[IC];
-                    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+                    ICsTest[arSelect+1] <- test.models[[m]]$ICs[ic];
+                    ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                     # If high order AR is not good, break the loop
-                    if(test.ICs[arSelect+1] > test.ICs[arSelect]){
+                    if(ICsTest[arSelect+1] > ICsTest[arSelect]){
                         if(arSelect!=ar.max[seasSelect]){
                             m <- m + ar.max[seasSelect] - arSelect;
                             break;
@@ -301,16 +304,16 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     }
                 }
 # Save the best AR
-#                ar.best[seasSelect] <- ar.test[seasSelect] <- c(ar.max[seasSelect]:0)[which(test.ICs==min(test.ICs,na.rm=TRUE))[1]];
+#                ar.best[seasSelect] <- ar.test[seasSelect] <- c(ar.max[seasSelect]:0)[which(ICsTest==min(ICsTest,na.rm=TRUE))[1]];
 # Sort in order to put the best one on the first place
-                test.ICs <- sort(test.ICs,decreasing=FALSE);
+                ICsTest <- sort(ICsTest,decreasing=FALSE);
                 ar.test[seasSelect] <- ar.best[seasSelect];
             }
         }
     }
 
     m <- m + 1;
-    if(silent.text==FALSE){
+    if(silentText==FALSE){
         cat(paste0(rep("\b",nchar(round(m/models.number,2)*100)+1),collapse=""));
         cat(paste0(round((m)/models.number,2)*100,"%"));
     }
@@ -318,72 +321,41 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 # Test the constant
     if(any(c(ar.best,i.best,ma.best)!=0)){
         test.models[[m]] <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(test.lags),
-                                    constant=FALSE,initial=fittertype,CF.type=CF.type,
-                                    h=h,holdout=holdout,intervals=intervals,int.w=int.w,
-                                    int.type=int.type,intermittent=intermittent,silent=TRUE,
+                                    constant=FALSE,initial=initialType,cfType=cfType,
+                                    h=h,holdout=holdout,intervals=intervals,level=level,
+                                    intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                     xreg=xreg,go.wild=go.wild,FI=FI);
-    test.ICs[2] <- test.models[[m]]$ICs[IC];
-    test.ICs.all[m] <- test.models[[m]]$ICs[IC];
+    ICsTest[2] <- test.models[[m]]$ICs[ic];
+    ICsTestAll[m] <- test.models[[m]]$ICs[ic];
     }
 
-    constant <- c(TRUE,FALSE)[which(test.ICs[1:2]==min(test.ICs[1:2],na.rm=TRUE))];
-    test.ICs <- sort(test.ICs,decreasing=FALSE)
+    constant <- c(TRUE,FALSE)[which(ICsTest[1:2]==min(ICsTest[1:2],na.rm=TRUE))];
+    ICsTest <- sort(ICsTest,decreasing=FALSE)
 
-    best.model <- test.models[[which(test.ICs.all==test.ICs[1])[1]]];
+    bestModel <- test.models[[which(ICsTestAll==ICsTest[1])[1]]];
 
-    if(silent.text==FALSE){
+    if(silentText==FALSE){
         cat("... Done! \n");
     }
 
-    y.fit <- best.model$fitted;
-    y.for <- best.model$forecast;
-    y.high <- best.model$upper;
-    y.low <- best.model$lower;
-    modelname <- best.model$model;
-
-    if(silent.text==FALSE){
-        n.components <- max(ar.best %*% lags + i.best %*% lags,ma.best %*% lags);
-        s2 <- sum(best.model$residuals^2)/(n.components + constant + 1 + sum(ar.best) + sum(ma.best));
-        xreg <- NULL;
-        go.wild <- FALSE;
-        CF.objective <- best.model$CF;
-        ICs <- best.model$ICs;
-        errormeasures <- best.model$accuracy;
-        if(is.numeric(best.model$constant)){
-            constant <- best.model$constant;
-        }
-        else{
-            constant <- NULL;
-        }
-
-# Calculate the number os observations in the interval
-        if(all(holdout==TRUE,intervals==TRUE)){
-            insideintervals <- sum(as.vector(data)[(obs+1):obs.all]<=best.model$upper &
-                                   as.vector(data)[(obs+1):obs.all]>=best.model$lower)/h*100;
-        }
-        else{
-            insideintervals <- NULL;
-        }
-
-        ssOutput(Sys.time() - start.time, best.model$model, persistence=NULL, transition=NULL, measurement=NULL,
-            phi=NULL, ARterms=best.model$AR, MAterms=best.model$MA, const=constant, A=NULL, B=NULL,
-            n.components=n.components, s2=s2, hadxreg=!is.null(xreg), wentwild=go.wild,
-            CF.type=CF.type, CF.objective=CF.objective, intervals=intervals,
-            int.type=int.type, int.w=int.w, ICs=ICs,
-            holdout=holdout, insideintervals=insideintervals, errormeasures=errormeasures,intermittent=best.model$intermittent);
-    }
+    y.fit <- bestModel$fitted;
+    y.for <- bestModel$forecast;
+    y.high <- bestModel$upper;
+    y.low <- bestModel$lower;
+    modelname <- bestModel$model;
 
 # Make plot
-    if(silent.graph==FALSE){
+    if(silentGraph==FALSE){
         if(intervals==TRUE){
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       int.w=int.w,legend=legend,main=modelname);
+                       level=level,legend=!silentLegend,main=modelname);
         }
         else{
             graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    int.w=int.w,legend=legend,main=modelname);
+                    level=level,legend=!silentLegend,main=modelname);
         }
     }
 
-    return(best.model);
+    bestModel$timeElapsed <- Sys.time()-startTime;
+    return(bestModel);
 }
