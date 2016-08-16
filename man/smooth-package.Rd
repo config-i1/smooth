@@ -25,7 +25,7 @@ The following functions are included in the package:
     \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
     \item \link[smooth]{auto.ssarima} - Automatic selection between different ARIMA models.
     \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
-    \item \link[smooth]{sim.ets} - simulate time series using ETS as a model.
+    \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
     \item \link[smooth]{iss} - intermittent data state-space model. This function models the part with data occurances using one of three methods.
   }
 }

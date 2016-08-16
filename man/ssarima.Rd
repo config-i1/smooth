@@ -170,7 +170,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.ets}, \link[smooth]{ges}}
+\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ges}}
 }
 
 \examples{

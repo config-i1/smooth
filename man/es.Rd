@@ -194,7 +194,7 @@ For the details see Hyndman et al.(2008).
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{sim.ets}}
+\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{sim.es}}
 }
 \examples{
 library(Mcomp)
