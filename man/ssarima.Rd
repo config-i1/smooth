@@ -107,7 +107,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
 }
 \details{
-The function constructs ARIMA in the Single Source of Error State-space form:
+The function constructs ARIMA in the Single Source of Error State-space form (first proposed in Snyder, 1985):
 
 \eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
 
@@ -161,6 +161,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 }
 \references{
     \enumerate{
+        \item{Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models. Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.}
         \item{Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.}
     }
 }
