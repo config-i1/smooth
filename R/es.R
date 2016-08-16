@@ -55,15 +55,15 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ##### Cost Function for ES #####
 CF <- function(C){
-    init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
+    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
                             modellags, initialType, Ttype, Stype, n.exovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
 
-    cfRes <- costfunc(init.ets$matvt, init.ets$matF, init.ets$matw, y, init.ets$vecg,
+    cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
                        h, modellags, Etype, Ttype, Stype,
                        multisteps, cfType, normalizer, initialType,
-                       matxt, init.ets$matat, init.ets$matFX, init.ets$vecgX, ot,
+                       matxt, elements$matat, elements$matFX, elements$vecgX, ot,
                        bounds);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -231,12 +231,12 @@ BasicInitialiserES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    init.ets <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
+    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
                             modellags, initialType, Ttype, Stype, n.exovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
 
-    list2env(init.ets,ParentEnvironment);
+    list2env(elements,ParentEnvironment);
 }
 
 ##### Set initialstates, initialsesons and persistence vector #####
