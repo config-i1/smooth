@@ -1,4 +1,4 @@
-sim.ets <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
+sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
              bounds=c("usual","admissible","restricted"),
              obs=10, nseries=1, silent=FALSE,

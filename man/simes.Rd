@@ -1,5 +1,5 @@
-\name{sim.ets}
-\alias{sim.ets}
+\name{sim.es}
+\alias{sim.es}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
 Simulate Exponential Smoothing
@@ -8,7 +8,7 @@ Simulate Exponential Smoothing
 Function generates data using ETS with Single Source of Error as a data generating process.
 }
 \usage{
-sim.ets(model="ANN",frequency=1, persistence=NULL, phi=1,
+sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
         initial=NULL, initial.season=NULL,
         bounds=c("usual","admissible","restricted"),
         obs=10, nseries=1, silent=FALSE,
@@ -80,36 +80,36 @@ Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \examples{
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution
-sim.ets(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100) -> ETS.AAA
+sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100) -> ETS.AAA
 
 # Create 50 series of quarterly data using AAA model
 # with 40 observations each with errors from normal distribution
-sim.ets(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50) -> ETS.AAA
+sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50) -> ETS.AAA
 
 # Create 50 series of quarterly data using AAdA model
 # with 40 observations each with errors from normal distribution
 # and smoothing parameters lying in the "admissible" range.
-sim.ets(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
+sim.es(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
         randomizer="rnorm",mean=0,sd=100,nseries=50) -> ETS.AAA
 
 # Create 60 observations of monthly data using ANN model
 # with errors from beta distribution
-sim.ets(model="ANN",persistence=c(1.5),frequency=12,obs=60,
+sim.es(model="ANN",persistence=c(1.5),frequency=12,obs=60,
         randomizer="rbeta",sshape1=1.5,sshape2=1.5) -> ETS.ANN
 plot(ETS.ANN$states)
 
 # Create 60 observations of monthly data using MAM model
 # with errors from uniform distribution
-sim.ets(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
+sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
         phi=0.8,frequency=12,obs=60,randomizer="runif",min=-0.5,max=0.5) -> ETS.MAM
 
 # Create 80 observations of quarterly data using MMM model
 # with predefined initial values and errors from the normal distribution
-sim.ets(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),
+sim.es(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),
         initial.seas=c(1.1,1.05,0.9,.95),frequency=4,obs=80,mean=0,sd=0.01) -> ETS.MMM
 
 # Generate intermittent data using AAdN
-sim.ets("AAdN",frequency=1,obs=30,iprob=0.1,initial=c(3,0),phi=0.8) -> iETS.AAdN
+sim.es("AAdN",frequency=1,obs=30,iprob=0.1,initial=c(3,0),phi=0.8) -> iETS.AAdN
 }
 
 \keyword{ exponential smoothing }

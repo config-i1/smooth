@@ -6,7 +6,7 @@ importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
 importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,lm,median,coef,
            nlminb,optim,pnorm,qnorm,qt,quantile,rbinom,rnorm,rt,runif,start,time,ts,var)
 export(es, ges, nus, ces, ssarima, iss, auto.ces, auto.ssarima)
-export(sim.ces, sim.ets)
+export(sim.ces, sim.es)
 export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias)
 export(graphmaker, forecast, forecast.smooth, AICc)
 
