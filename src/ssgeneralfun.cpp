@@ -1161,10 +1161,12 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         switch(CFtypeswitch(CFtype)){
         case 1:
             try{
-                CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) + hor * log(pow(normalize,2)));
+                CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) +
+                    hor * log(pow(normalize,2)));
             }
             catch(const std::runtime_error){
-                CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) + hor * log(pow(normalize,2)));
+                CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) +
+                    hor * log(pow(normalize,2)));
             }
         break;
         case 2:
