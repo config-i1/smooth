@@ -1724,7 +1724,7 @@ ICFunction <- function(n.param=n.param,C,Etype=Etype){
 
 ##### *Ouptut printer* #####
 ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                     phi=NULL, ARterms=NULL, MAterms=NULL, const=NULL, A=NULL, B=NULL,
+                     phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL,
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      cfType="MSE", cfObjective=NULL, intervals=FALSE,
                      intervalsType=c("p","s","n","a"), level=0.95, ICs,
@@ -1794,8 +1794,10 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             cat("Matrix of MA terms:\n");
             print(round(MAterms,3));
         }
-        if(!is.null(const)){
-            cat(paste0("Constant value is: ",round(const,3),"\n"));
+        if(!is.null(constant)){
+            if(constant!=FALSE){
+                cat(paste0("Constant value is: ",round(constant,3),"\n"));
+            }
         }
     }
 ### Stuff for CES
