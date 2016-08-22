@@ -13,7 +13,7 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
         cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
         h=10, holdout=FALSE, intervals=FALSE, level=0.95,
         intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
-        intermittent=c("auto","none","fixed","croston","tsb"),
+        intermittent=c("none","auto","fixed","croston","tsb"),
         bounds=c("admissible","none"),
         silent=c("none","all","graph","legend","output"),
         xreg=NULL, go.wild=FALSE, ...)

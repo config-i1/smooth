@@ -10,7 +10,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
-               intermittent=c("auto","none","fixed","croston","tsb"),
+               intermittent=c("none","auto","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){

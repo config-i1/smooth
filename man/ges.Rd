@@ -14,7 +14,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, level=0.95,
     intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
-    intermittent=c("auto","none","fixed","croston","tsb"),
+    intermittent=c("none","auto","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
     xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)

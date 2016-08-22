@@ -13,7 +13,7 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
          cfType=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
          h=10, holdout=FALSE, intervals=FALSE, level=0.95,
          intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
-         intermittent=c("auto","none","fixed","croston","tsb"),
+         intermittent=c("none","auto","fixed","croston","tsb"),
          bounds=c("admissible","none"),
          silent=c("none","all","graph","legend","output"),
          xreg=NULL, go.wild=FALSE, ...)

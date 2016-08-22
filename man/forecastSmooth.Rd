@@ -45,12 +45,12 @@
     \itemize{
         \item \code{model} - estimated model (ES / CES / GES / SSARIMA).
         \item \code{fitted} - fitted values of the model.
-        \item \code{actuals} - actuals provided in the cal of the model.
+        \item \code{actuals} - actuals provided in the call of the model.
         \item \code{forecast} aka \code{mean} - point forecasts of the model (conditional mean).
         \item \code{lower} - lower bound of prediction intervals.
         \item \code{upper} - upper bound of prediction intervals.
         \item \code{level} - confidence level.
-        \item \code{intervals} - binary variable (whether intervals are needed or not.
+        \item \code{intervals} - binary variable (whether intervals were produced or not).
     }
 }
 \references{
@@ -66,7 +66,8 @@
 test <- ces(rnorm(100,0,1),h=10)
 
 forecast.smooth(test,h=10)
-plot(forecast.smooth(test,h=10))
+forecast(test,h=10,intervals=T)
+plot(forecast(test,h=10,intervals=T))
 
 }
 \keyword{ forecast }
