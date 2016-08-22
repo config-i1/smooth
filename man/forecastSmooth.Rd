@@ -66,8 +66,8 @@
 test <- ces(rnorm(100,0,1),h=10)
 
 forecast.smooth(test,h=10)
-forecast(test,h=10,intervals=T)
-plot(forecast(test,h=10,intervals=T))
+forecast(test,h=10,intervals=TRUE)
+plot(forecast(test,h=10,intervals=TRUE))
 
 }
 \keyword{ forecast }
