@@ -2,7 +2,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
              initial=NULL, initial.season=NULL,
              bounds=c("usual","admissible","restricted"),
              obs=10, nseries=1, silent=FALSE,
-             randomizer=c("rnorm","runif","rbeta","rt"),
+             randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
              iprob=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
 #    Copyright (C) 2015 - 2016 Ivan Svetunkov
@@ -182,7 +182,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     }
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
-    if(randomizer!="rnorm" & randomizer!="rt" & randomizer!="runif" & (any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE)){
+    if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE)){
         if(silent == FALSE){
             warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         }
@@ -302,32 +302,38 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 # Check if any argument was passed in dots
     if(any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE){
 # Create vector of the errors
-        if(randomizer=="rnorm" | randomizer=="runif"){
+        if(any(randomizer==c("rnorm","runif"))){
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,")")));
+        }
+        else if(randomizer=="rlnorm"){
+            materrors[,] <- rlnorm(n=nseries*obs,0,0.01);
+            materrors <- materrors - 1;
         }
         else if(randomizer=="rt"){
 # The degrees of freedom are df = n - k.
             materrors[,] <- rt(nseries*obs,obs-(persistence.length + maxlag));
         }
-# Center errors just in case
-        materrors <- materrors - colMeans(materrors);
 
+        if(randomizer!="rlnorm"){
+# Center errors just in case
+            materrors <- materrors - colMeans(materrors);
 # If the error is multiplicative, scale it!
-        if(Etype=="M"){
+            if(Etype=="M"){
 # Errors will be lognormal, decrease variance, so it behaves better
-            if(iprob!=1){
-                materrors <- materrors * 0.5;
-            }
-            else{
-                materrors <- materrors * 0.01;
-            }
-            materrors <- exp(materrors) - 1;
+                if(iprob!=1){
+                    materrors <- materrors * 0.5;
+                }
+                else{
+                    materrors <- materrors * 0.01;
+                }
+                materrors <- exp(materrors) - 1;
 #            exceedingerrors <- apply(abs(materrors),2,max)>1;
 #            materrors[,exceedingerrors] <- 0.95 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
-        }
-        else{
+            }
+            else if(Etype=="A"){
 # Change variance to make some sense. Errors should not be rediculously high and not too low.
-            materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+                materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+            }
         }
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!

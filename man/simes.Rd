@@ -12,7 +12,7 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
         initial=NULL, initial.season=NULL,
         bounds=c("usual","admissible","restricted"),
         obs=10, nseries=1, silent=FALSE,
-        randomizer=c("rnorm","runif","rbeta","rt"),
+        randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
         iprob=1, ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -48,7 +48,7 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
   if TRUE then no command line output is printed.
   }
   \item{randomizer}{
-  the type of the random number generator function. The defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used.
+  the type of the random number generator function. The defaults are: \code{rnorm}, \code{rlnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used.
 }
   \item{iprob}{
   The probability used for the intermittent data generation.
