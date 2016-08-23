@@ -194,6 +194,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     matg <- matrix(NA,persistence.length,nseries);
     arrvt <- array(NA,c(obs+maxlag,persistence.length,nseries),dimnames=list(NULL,component.names,NULL));
     materrors <- matrix(NA,obs,nseries);
+    matyt <- matrix(NA,obs,nseries);
     matot <- matrix(NA,obs,nseries);
 
 # If the persistence is NULL or was of the wrong length, generate the values
@@ -310,21 +311,30 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
 # Center errors just in case
         materrors <- materrors - colMeans(materrors);
-# Change variance to make some sense. Errors should not be rediculously high and not too low.
-        materrors <- materrors * sqrt(abs(arrvt[1,1,]));
 
 # If the error is multiplicative, scale it!
         if(Etype=="M"){
-            exceedingerrors <- apply(abs(materrors),2,max)>0.1;
-            materrors[,exceedingerrors] <- 0.1 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+# Errors will be lognormal, decrease variance, so it behaves better
+            if(iprob!=1){
+                materrors <- materrors * 0.5;
+            }
+            else{
+                materrors <- materrors * 0.01;
+            }
             materrors <- exp(materrors) - 1;
+#            exceedingerrors <- apply(abs(materrors),2,max)>1;
+#            materrors[,exceedingerrors] <- 0.95 * materrors[,exceedingerrors] / apply(abs(matrix(materrors[,exceedingerrors],obs)),2,max);
+        }
+        else{
+# Change variance to make some sense. Errors should not be rediculously high and not too low.
+            materrors <- materrors * sqrt(abs(arrvt[1,1,]));
         }
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,",", toString(as.character(list(...))),")")));
         if(randomizer=="rbeta"){
-# Center the errors around 0.5
+# Center the errors around 0
             materrors <- materrors - 0.5;
 # Make a meaningful variance of data. Something resembling to var=1.
             materrors <- materrors / rep(sqrt(colMeans(materrors^2)) * sqrt(abs(arrvt[1,1,])),each=obs);
@@ -333,11 +343,6 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 # Make a meaningful variance of data.
             materrors <- materrors * rep(sqrt(abs(arrvt[1,1,])),each=obs);
         }
-
-# Center errors if all of them are positive or negative to get rid of systematic bias.
-#        if(apply(materrors>0,2,all) | apply(materrors<0,2,all)){
-#            materrors <- materrors - colMeans(materrors);
-#        }
     }
 
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
@@ -359,20 +364,19 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         matyt <- simulateddata$matyt;
     }
     arrvt <- simulateddata$arrvt;
+    dimnames(arrvt) <- list(NULL,component.names,NULL);
 
     if(nseries==1){
         matyt <- ts(matyt[,1],frequency=frequency);
         materrors <- ts(materrors[,1],frequency=frequency);
         arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
         matot <- ts(matot[,1],frequency=frequency);
-        return(list(model=model,data=matyt,states=arrvt,persistence=matg,residuals=materrors,
-                    intermittency=matot,likelihood=veclikelihood[1]));
     }
     else{
         matyt <- ts(matyt,frequency=frequency);
         materrors <- ts(materrors,frequency=frequency);
-        materrors <- ts(matot,frequency=frequency);
-        return(list(model=model,data=matyt,states=arrvt,persistence=matg,residuals=materrors,
-                    intermittency=matot,likelihood=veclikelihood));
+        matot <- ts(matot,frequency=frequency);
     }
+    return(list(model=model,data=matyt,states=arrvt,persistence=matg,residuals=materrors,
+                intermittency=matot,likelihood=veclikelihood));
 }
