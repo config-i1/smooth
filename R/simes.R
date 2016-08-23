@@ -306,7 +306,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,")")));
         }
         else if(randomizer=="rlnorm"){
-            materrors[,] <- rlnorm(n=nseries*obs,0,0.01);
+            materrors[,] <- rlnorm(n=nseries*obs,0,0.01+(1-iprob));
             materrors <- materrors - 1;
         }
         else if(randomizer=="rt"){
@@ -348,6 +348,9 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         else if(randomizer=="rt"){
 # Make a meaningful variance of data.
             materrors <- materrors * rep(sqrt(abs(arrvt[1,1,])),each=obs);
+        }
+        else if(randomizer=="rlnorm"){
+            materrors <- materrors - 1;
         }
     }
 
