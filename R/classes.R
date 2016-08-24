@@ -177,6 +177,23 @@ plot.forecastSmooth <- function(x, ...){
     }
 }
 
+plot.iss <- function(x, ...){
+    intermittent <- x$intermittent
+    if(intermittent=="c"){
+        intermittent <- "Croston";
+    }
+    else if(intermittent=="t"){
+        intermittent <- "TSB";
+    }
+    else if(intermittent=="f"){
+        intermittent <- "Fixed probability";
+    }
+    else{
+        intermittent <- "None";
+    }
+    graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent));
+}
+
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
@@ -194,7 +211,8 @@ print.smooth <- function(x, ...){
              nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$go.wild,
              cfType=x$cfType, cfObjective=x$cf, intervals=intervals,
              intervalsType=x$intervalsType, level=x$level, ICs=x$ICs,
-             holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy, intermittent=x$intermittent);
+             holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
+             intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
 }
 
 print.forecastSmooth <- function(x, ...){
@@ -212,6 +230,34 @@ print.forecastSmooth <- function(x, ...){
     print(output);
 }
 
+print.iss <- function(x, ...){
+    intermittent <- x$intermittent
+    if(intermittent=="c"){
+        intermittent <- "Croston";
+    }
+    else if(intermittent=="t"){
+        intermittent <- "TSB";
+    }
+    else if(intermittent=="f"){
+        intermittent <- "Fixed probability";
+    }
+    else{
+        intermittent <- "None";
+    }
+    cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
+    cat(paste0("Smoothing parameter: ",round(x$C[1],3),"\n"));
+    cat(paste0("Initial value: ",round(x$states[1],3),"\n"));
+    cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
+}
+
 summary.smooth <- function(object, ...){
+    print(object);
+}
+
+summary.forecastSmooth <- function(object, ...){
+    print(object);
+}
+
+summary.iss <- function(object, ...){
     print(object);
 }

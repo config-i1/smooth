@@ -16,7 +16,7 @@
     Either numeric vector or time series vector.
   }
   \item{intermittent}{
-    The type of method used in probability estimation. Can be \code{"none"} - none, \code{"fixed"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
+    Type of method used in probability estimation. Can be \code{"none"} - none, \code{"fixed"} - constant probability, \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} - Teunter et al., 2011 method.
   }
   \item{h}{
     Forecast horizon.
@@ -25,22 +25,24 @@
     Type of ETS model used for the estimation. Normally this should be either \code{"ANN"} or \code{"MNN"}.
   }
   \item{ipersistence}{
-    The persistence vector. If \code{NULL}, then it is estimated on the sample.
+    Persistence vector. If \code{NULL}, then it is estimated.
   }
 }
 \details{
   The function estimates probability of demand occurance, using one of the ETS state-space models.
 }
 \value{
-    The list of the following values is returned:
+    The object of class "iss" is returned. It contains following list of values:
 
   \itemize{
     \item \code{fitted} - fitted values of the constructed model;
+    \item \code{states} - values of states (currently level only);
     \item \code{forecast} - forecast for \code{h} observations ahead;
     \item \code{variance} - conditional variance of the forecast;
     \item \code{likelihood} - likelihood value for the model;
     \item \code{residuals} - residuals of the model;
     \item \code{C} - vector of all the parameters.
+    \item \code{actuals} - actual values of probabilities (zeroes and ones).
   }
 }
 \references{
@@ -50,14 +52,14 @@
     }
 }
 \author{
- Ivan Svetunkov, \email{ivan@svetunkov.ru}
+    Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[stats]{ts}, \link[smooth]{es}}
+    \code{\link[forecast]{ets}, \link[forecast]{forecast}, \link[smooth]{es}}
 }
 \examples{
-y <- rpois(100,0.1)
-iss(y)
+    y <- rpois(100,0.1)
+    iss(y)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
