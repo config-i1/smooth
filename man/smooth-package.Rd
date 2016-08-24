@@ -11,19 +11,19 @@ Package contains several exponential (and not) smoothing functions used in time 
 \tabular{ll}{
 Package: \tab smooth\cr
 Type: \tab Package\cr
-Version: \tab 1.10\cr
-Date: \tab 2016-01-27 - 2016-08-04\cr
+Version: \tab 1.33\cr
+Date: \tab 2016-01-27 - 2016-08-24\cr
 License: \tab GPL-2 \cr
 }
 The following functions are included in the package:
   \itemize{
-    \item \link[smooth]{es} - exponential smoothing in Single Source of Errors State Space form.
+    \item \link[smooth]{es} - Exponential Smoothing in Single Source of Errors State Space form.
     \item \link[smooth]{ces} - Complex Exponential Smoothing.
     \item \link[smooth]{ges} - Generalised Exponential Smoothing.
     \item \link[smooth]{ssarima} - SARIMA in state-space framework.
     \item \link[smooth]{nus} - Non-Uniform Smoothing.
     \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
-    \item \link[smooth]{auto.ssarima} - Automatic selection between different ARIMA models.
+    \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
     \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
     \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
     \item \link[smooth]{iss} - intermittent data state-space model. This function models the part with data occurances using one of three methods.
@@ -47,14 +47,23 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
         \item{Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research, 214, 606-615.}
     }
 }
-\keyword{ exponential smoothing, ETS, CES, GES, ARIMA, SARIMA, NUS, forecasting, time series}
+\keyword{exponential smoothing}
+\keyword{ETS}
+\keyword{CES}
+\keyword{GES}
+\keyword{ARIMA}
+\keyword{SARIMA}
+\keyword{NUS}
+\keyword{forecasting}
+\keyword{time series}
 \seealso{
 \code{\link[forecast:forecast]{forecast}}
 }
 \examples{
-y <- rnorm(100,10,3)
-y <- ts(y,frequency=12)
-y_ces_holdout <- auto.ces(y,h=20,holdout=TRUE)
-y_es_holdout <- es(y,h=20,holdout=TRUE)
-y_ges_holdout <- ges(y,h=20,holdout=TRUE)
+y <- ts(rnorm(100,10,3),frequency=12)
+
+es(y,h=20,holdout=TRUE)
+ges(y,h=20,holdout=TRUE)
+auto.ces(y,h=20,holdout=TRUE)
+auto.ssarima(y,h=20,holdout=TRUE)
 }
