@@ -1438,7 +1438,7 @@ ssForecaster <- function(...){
                 ev <- 0;
             }
 
-            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & s2 < 1)){
+            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & (s2 * matw %*% vecg) < 0.1)){
                 simulateint <- FALSE;
             }
             else{
@@ -1450,12 +1450,12 @@ ssForecaster <- function(...){
                 matg <- matrix(vecg,n.components,n.samples);
                 arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
                 arrvt[1:maxlag,,] <- rep(matvt[(obsInsample-maxlag+1):obsInsample,],n.samples);
-                materrors <- matrix(rnorm(n.samples,0,sqrt(s2)),h,n.samples);
+                materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
                 if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(n.samples,1,iprob),h,n.samples);
+                    matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
                 }
                 else{
                     matot <- matrix(1,h,n.samples);
@@ -1487,6 +1487,10 @@ ssForecaster <- function(...){
                     y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
                     y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
                 }
+            }
+
+            if(Etype=="M"){
+                y.low[y.low<0] <- 0;
             }
         }
         else{
@@ -1684,7 +1688,7 @@ likelihoodFunction <- function(C){
 # This block is needed in order to make R CMD to shut up about "no visible binding..."
     if(any(intermittent==c("n","p"))){
         if(cfType=="TFL" | cfType=="aTFL"){
-            return(- obsNonzero/2 *((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
         }
         else{
             return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
@@ -1692,9 +1696,9 @@ likelihoodFunction <- function(C){
     }
     else{
         if(cfType=="TFL" | cfType=="aTFL"){
-            return(sum(log(pt[ot==1]))*(h^multisteps)
-                   + sum(log(1-pt[ot==0]))*(h^multisteps)
-                   - obsNonzero/2 * ((h^multisteps)*log(2*pi*exp(1)) + CF(C)));
+            return(sum(log(pt[ot==1]))*h
+                   + sum(log(1-pt[ot==0]))*h
+                   - obsNonzero/2 * (h*log(2*pi*exp(1)) + CF(C)));
         }
         else{
             return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0]))
@@ -1728,7 +1732,8 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      cfType="MSE", cfObjective=NULL, intervals=FALSE,
                      intervalsType=c("p","s","n","a"), level=0.95, ICs,
-                     holdout=FALSE, insideintervals=NULL, errormeasures=NULL, intermittent="n"){
+                     holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
+                     intermittent="n", iprob=1){
 # Function forms the generic output for State-space models.
     if(gregexpr("ETS",modelname)!=-1){
         model <- "ETS";
@@ -1755,7 +1760,13 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         else if(any(intermittent==c("t","tsb"))){
             intermittent <- "TSB";
         }
-        cat(paste0("Intermittent model type: ",intermittent,"\n"));
+        cat(paste0("Intermittent model type: ",intermittent));
+        if(iprob!=1){
+            cat(paste0(", ",round(iprob,3),"\n"));
+        }
+        else{
+            cat("\n");
+        }
     }
     else if(any(intermittent==c("p","provided"))){
         cat(paste0("Intermittent data provided for holdout.\n"));
