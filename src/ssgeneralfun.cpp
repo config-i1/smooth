@@ -1420,8 +1420,13 @@ List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
             if(!matrixVt.row(j).is_finite()){
                 matrixVt.row(j) = trans(matrixVt(lagrows));
             }
-            if(((E=='M') | (T=='M') | (S=='M')) & (any(matrixVt.row(j) < 0))){
-                matrixVt.row(j) = trans(matrixVt(lagrows));
+            if((S=='M') & (matrixVt(j,matrixVt.n_cols-1) <= 0)){
+                matrixVt(j,matrixVt.n_cols-1) = arma::as_scalar(trans(matrixVt(lagrows.row(matrixVt.n_cols-1))));
+            }
+            if(T=='M'){
+                if(matrixVt(j,1) <= 0){
+                    matrixVt(j,1) = arma::as_scalar(trans(matrixVt(lagrows.row(1))));
+                }
             }
         }
         arrayVt.slice(i) = matrixVt;
