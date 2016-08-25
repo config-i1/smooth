@@ -1316,16 +1316,59 @@ quantfunc <- function(A){
             # Vector of final variances
             vec.var <- rep(NA,h);
 
+#### Pure multiplicative models
             if(Etype=="M" & all(c(Ttype,Stype)!="A")){
+                # Array of variance of states
+                mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
+                mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
+                mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
+
+                # New transition and measurement for the internal use
+                transitionnew <- matrix(0,n.components,n.components);
+                measurementnew <- matrix(0,1,n.components);
+
+                # selectionmat is needed for the correct selection of lagged variables in the array
+                # newelements are needed for the correct fill in of all the previous matrices
+                selectionmat <- transitionnew;
+                newelements <- rep(FALSE,n.components);
+
+                # Define chunks, which correspond to the lags with h being the final one
+                chuncksofhorizon <- c(1,unique(modellags),h);
+                chuncksofhorizon <- sort(chuncksofhorizon);
+                chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
+                chuncksofhorizon <- unique(chuncksofhorizon);
+
+                # Length of the vector, excluding the h at the end
+                chunkslength <- length(chuncksofhorizon) - 1;
+
+                newelements <- modellags<=(chuncksofhorizon[1]);
+                measurementnew[,newelements] <- measurement[,newelements];
                 vec.var[1:min(h,maxlag)] <- s2;
-                for(i in 2:h){
-                    transitionPowered <- matrixpower(transition,i-1);
-                    vec.var[i] <- vec.var[i-1] +
-                        (measurement) %*% transitionPowered %*% s2g %*% t(transitionPowered) %*% t(measurement);
+
+                for(j in 1:chunkslength){
+                    selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
+                    selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
+
+                    newelements <- modellags<=(chuncksofhorizon[j]+1);
+                    transitionnew[newelements,newelements] <- transition[newelements,newelements];
+                    measurementnew[,newelements] <- measurement[,newelements];
+
+                    for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
+                        selectionmat[modellags>chuncksofhorizon[j],] <- i;
+                        selectionmat[,modellags>chuncksofhorizon[j]] <- i;
+
+                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
+                                                                                               rep(c(1:n.components),n.components),
+                                                                                               i - c(selectionmat))];
+
+                        mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + s2g;
+                        vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
+                    }
                 }
                 # Take intermittent data into account
                 vec.var <- vec.var * ivar + log(c(y.for/iprob))^2 * ivar + iprob^2 * vec.var;
             }
+#### Pure additive models
             else{
                 # Array of variance of states
                 mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
@@ -1431,7 +1474,7 @@ ssForecaster <- function(...){
         s2g <- 1;
     }
     else{
-        s2 <- as.vector(sum((log(1+errors*ot))^2)/(obsNonzero - n.param));
+        s2 <- as.vector(sum(log(1 + errors*ot)^2)/(obsNonzero - n.param));
         s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - n.param);
     }
 
@@ -1449,9 +1492,11 @@ ssForecaster <- function(...){
             ev <- 0;
         }
 
+# We don't simulate pure additive models, pure multiplicative and
+# additive models with multiplicative error, because they can be approximated by pure additive
         if(all(c(Etype,Stype,Ttype)!="M") |
-           (any(c(Stype,Ttype)=="M") & (s2 * matw %*% vecg) < 0.1) |
-           all(Etype=="M",c(Ttype,Stype)=="N")){
+           all(Etype=="M",c(Ttype,Stype)!="A") |
+           all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N")))){
             simulateint <- FALSE;
         }
         else{
@@ -1462,8 +1507,9 @@ ssForecaster <- function(...){
             n.samples <- 10000
             matg <- matrix(vecg,n.components,n.samples);
             arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
-            arrvt[1:maxlag,,] <- rep(matvt[(obsInsample-maxlag+1):obsInsample,],n.samples);
+            arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
             materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
+
             if(Etype=="M"){
                 materrors <- exp(materrors) - 1;
             }
