@@ -528,7 +528,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     ##### intervals, intervalsType, level #####
     intervalsType <- substring(intervalsType[1],1,1);
     # Check the provided type of interval
-    if(all(intervalsType!=c("a","p","f","n"))){
+    if(all(intervalsType!=c("p","s","n","a"))){
         message(paste0("The wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."));
         intervalsType <- "p";
     }
@@ -1206,8 +1206,10 @@ ssFitter <- function(...){
 
 ##### *State-space intervals* #####
 ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","s","n"), df=NULL,
-                      measurement=NULL, transition=NULL, persistence=NULL, s2=NULL, modellags=NULL,
-                      y.for=rep(0,ncol(errors)), iprob=1){
+                        measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
+                        modellags=NULL, states=NULL,
+                        y.for=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
+                        iprob=1, ivar=1){
 # Function constructs intervals based on the provided random variable.
 # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
 # based on errors the horison is estimated as ncol(errors)
@@ -1243,7 +1245,6 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
 #Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
 quantfunc <- function(A){
-#    ee <- ye - (A[1] + A[2]*xe + A[3]*xe^2);
     ee <- ye - (A[1]*xe^A[2]);
     return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])));
 }
@@ -1271,7 +1272,7 @@ quantfunc <- function(A){
         upper <- rep(NA,n.var);
         lower <- rep(NA,n.var);
 
-##### Asymmetric intervals using HM
+#### Asymmetric intervals using HM ####
         if(intervalsType=="a"){
             for(i in 1:n.var){
                 upper[i] <- ev[i] + upperquant / hsmN^2 * Re(hm(errors[,i],ev[i]))^2;
@@ -1279,97 +1280,105 @@ quantfunc <- function(A){
             }
         }
 
-##### Semiparametric intervals using the variance of errors
+#### Semiparametric intervals using the variance of errors ####
         else if(intervalsType=="s"){
             errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
             upper <- ev + upperquant * sqrt(colMeans(errors^2,na.rm=T));
             lower <- ev + lowerquant * sqrt(colMeans(errors^2,na.rm=T));
         }
 
-##### Nonparametric intervals using Taylor and Bunn, 1999
+#### Nonparametric intervals using Taylor and Bunn, 1999 ####
         else if(intervalsType=="n"){
             ye <- errors;
             xe <- matrix(c(1:n.var),byrow=TRUE,ncol=n.var,nrow=nrow(errors));
             xe <- xe[!is.na(ye)];
             ye <- ye[!is.na(ye)];
 
-#            A <- rep(1,3);
             A <- rep(1,2);
             quant <- (1+level)/2;
             A <- nlminb(A,quantfunc)$par;
-#            upper <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
             upper <- A[1]*c(1:n.var)^A[2];
 
-#            A <- rep(1,3);
             A <- rep(1,2);
             quant <- (1-level)/2;
             A <- nlminb(A,quantfunc)$par;
-#            lower <- A[1] + A[2]*c(1:n.var) + A[3]*c(1:n.var)^2;
             lower <- A[1]*c(1:n.var)^A[2];
         }
 
-##### Parametric intervals from GES
+#### Parametric intervals ####
         else if(intervalsType=="p"){
-            s2i <- iprob*(1-iprob);
-            s2 <- s2 * iprob;
+            #s2i <- iprob*(1-iprob);
 
             n.components <- nrow(transition);
             maxlag <- max(modellags);
             h <- n.var;
 
-# Array of variance of states
-            mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
-            mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
-            mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
-
-# New transition and measurement for the internal use
-            transitionnew <- matrix(0,n.components,n.components);
-            measurementnew <- matrix(0,1,n.components);
-
-# selectionmat is needed for the correct selection of lagged variables in the array
-# newelements are needed for the correct fill in of all the previous matrices
-            selectionmat <- transitionnew;
-            newelements <- rep(FALSE,n.components);
-
-# Define chunks, which correspond to the lags with h being the final one
-            chuncksofhorizon <- c(1,unique(modellags),h);
-            chuncksofhorizon <- sort(chuncksofhorizon);
-            chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
-            chuncksofhorizon <- unique(chuncksofhorizon);
-
-# Length of the vector, excluding the h at the end
-            chunkslength <- length(chuncksofhorizon) - 1;
-
-# Vector of final variances
+            # Vector of final variances
             vec.var <- rep(NA,h);
-            newelements <- modellags<=(chuncksofhorizon[1]);
-            measurementnew[,newelements] <- measurement[,newelements];
-            vec.var[1:min(h,maxlag)] <- s2 + s2i * (y.for[1])^2;
 
-            for(j in 1:chunkslength){
-                selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
-                selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
-
-                newelements <- modellags<=(chuncksofhorizon[j]+1);
-                transitionnew[newelements,newelements] <- transition[newelements,newelements];
-                measurementnew[,newelements] <- measurement[,newelements];
-
-                for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
-                    selectionmat[modellags>chuncksofhorizon[j],] <- i;
-                    selectionmat[,modellags>chuncksofhorizon[j]] <- i;
-
-                    mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
-                                                              rep(c(1:n.components),n.components),
-                                                              i - c(selectionmat))];
-
-                    mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
-                    vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2 +
-                                  s2i * (y.for[i])^2;
+            if(Etype=="M" & all(c(Ttype,Stype)!="A")){
+                vec.var[1:min(h,maxlag)] <- s2;
+                for(i in 2:h){
+                    transitionPowered <- matrixpower(transition,i-1);
+                    vec.var[i] <- vec.var[i-1] +
+                        (measurement) %*% transitionPowered %*% s2g %*% t(transitionPowered) %*% t(measurement);
                 }
+                # Take intermittent data into account
+                vec.var <- vec.var * ivar + log(c(y.for/iprob))^2 * ivar + iprob^2 * vec.var;
             }
+            else{
+                # Array of variance of states
+                mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
+                mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
+                mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 
-            upper <- ev + upperquant * sqrt(vec.var);
-            lower <- ev + lowerquant * sqrt(vec.var);
+                # New transition and measurement for the internal use
+                transitionnew <- matrix(0,n.components,n.components);
+                measurementnew <- matrix(0,1,n.components);
+
+                # selectionmat is needed for the correct selection of lagged variables in the array
+                # newelements are needed for the correct fill in of all the previous matrices
+                selectionmat <- transitionnew;
+                newelements <- rep(FALSE,n.components);
+
+                # Define chunks, which correspond to the lags with h being the final one
+                chuncksofhorizon <- c(1,unique(modellags),h);
+                chuncksofhorizon <- sort(chuncksofhorizon);
+                chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
+                chuncksofhorizon <- unique(chuncksofhorizon);
+
+                # Length of the vector, excluding the h at the end
+                chunkslength <- length(chuncksofhorizon) - 1;
+
+                newelements <- modellags<=(chuncksofhorizon[1]);
+                measurementnew[,newelements] <- measurement[,newelements];
+                vec.var[1:min(h,maxlag)] <- s2;
+
+                for(j in 1:chunkslength){
+                    selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
+                    selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
+
+                    newelements <- modellags<=(chuncksofhorizon[j]+1);
+                    transitionnew[newelements,newelements] <- transition[newelements,newelements];
+                    measurementnew[,newelements] <- measurement[,newelements];
+
+                    for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
+                        selectionmat[modellags>chuncksofhorizon[j],] <- i;
+                        selectionmat[,modellags>chuncksofhorizon[j]] <- i;
+
+                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
+                                                                                               rep(c(1:n.components),n.components),
+                                                                                               i - c(selectionmat))];
+
+                        mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
+                        vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
+                    }
+                }
+                # Take intermittent data into account
+                vec.var <- vec.var * ivar + c(y.for/iprob)^2 * ivar + iprob^2 * vec.var;
+            }
+            upper <- upperquant * sqrt(vec.var);
+            lower <- lowerquant * sqrt(vec.var);
         }
     }
     else if(is.numeric(errors) & length(errors)>1 & !is.array(errors)){
@@ -1413,90 +1422,96 @@ ssForecaster <- function(...){
                 start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
 
     if(Etype=="M" & any(y.for<0)){
-        y.for[y.for<0] <- 1;
+        y.for[y.for<0] <- 0.001;
     }
 
 # If error additive, estimate as normal. Otherwise - lognormal
-        if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - n.param));
-        }
-        else{
-            s2 <- as.vector(sum((log(1+errors*ot))^2)/(obsNonzero - n.param));
-        }
+    if(Etype=="A"){
+        s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - n.param));
+        s2g <- 1;
+    }
+    else{
+        s2 <- as.vector(sum((log(1+errors*ot))^2)/(obsNonzero - n.param));
+        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - n.param);
+    }
 
 # Write down the forecasting intervals
-        if(intervals==TRUE){
-            if(h==1){
-                errors.x <- as.vector(errors);
-                ev <- median(errors);
-            }
-            else{
-                errors.x <- errors.mat;
-                ev <- apply(errors.mat,2,median,na.rm=TRUE);
-            }
-            if(intervalsType!="a"){
-                ev <- 0;
-            }
-
-            if(all(c(Etype,Stype,Ttype)!="M") | (all(c(Etype,Stype,Ttype)!="A") & (s2 * matw %*% vecg) < 0.1)){
-                simulateint <- FALSE;
-            }
-            else{
-                simulateint <- TRUE;
-            }
-
-            if(intervalsType=="p" & simulateint==TRUE){
-                n.samples <- 10000
-                matg <- matrix(vecg,n.components,n.samples);
-                arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
-                arrvt[1:maxlag,,] <- rep(matvt[(obsInsample-maxlag+1):obsInsample,],n.samples);
-                materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
-                if(Etype=="M"){
-                    materrors <- exp(materrors) - 1;
-                }
-                if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
-                }
-                else{
-                    matot <- matrix(1,h,n.samples);
-                }
-
-                y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
-                if(!is.null(xreg)){
-                    y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                                  matF, matw, h, Ttype, Stype, modellags,
-                                                  matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
-                }
-                else{
-                    y.exo.for <- rep(0,h);
-                }
-                y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-                y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-            }
-            else{
-                vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:n.components))],n.components,1);
-
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - n.param),
-                                          measurement=matw, transition=matF, persistence=vecg, s2=s2, modellags=modellags,
-                                          y.for=y.for, iprob=iprob);
-                if(Etype=="A"){
-                    y.low <- ts(c(y.for) + pt.for*quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) + pt.for*quantvalues$upper,start=start(y.for),frequency=frequency(data));
-                }
-                else{
-                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
-                }
-            }
-
-            if(Etype=="M"){
-                y.low[y.low<0] <- 0;
-            }
+    if(intervals==TRUE){
+        if(h==1){
+            errors.x <- as.vector(errors);
+            ev <- median(errors);
         }
         else{
-            y.low <- NA;
-            y.high <- NA;
+            errors.x <- errors.mat;
+            ev <- apply(errors.mat,2,median,na.rm=TRUE);
         }
+        if(intervalsType!="a"){
+            ev <- 0;
+        }
+
+        if(all(c(Etype,Stype,Ttype)!="M") |
+           (any(c(Stype,Ttype)=="M") & (s2 * matw %*% vecg) < 0.1) |
+           all(Etype=="M",c(Ttype,Stype)=="N")){
+            simulateint <- FALSE;
+        }
+        else{
+            simulateint <- TRUE;
+        }
+
+        if(intervalsType=="p" & simulateint==TRUE){
+            n.samples <- 10000
+            matg <- matrix(vecg,n.components,n.samples);
+            arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
+            arrvt[1:maxlag,,] <- rep(matvt[(obsInsample-maxlag+1):obsInsample,],n.samples);
+            materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
+            if(Etype=="M"){
+                materrors <- exp(materrors) - 1;
+            }
+            if(all(intermittent!=c("n","p"))){
+                matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
+            }
+            else{
+                matot <- matrix(1,h,n.samples);
+            }
+
+            y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
+            if(!is.null(xreg)){
+                y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+                                                       matF, matw, h, Ttype, Stype, modellags,
+                                                       matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+            }
+            else{
+                y.exo.for <- rep(0,h);
+            }
+            y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+            y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+        }
+        else{
+            vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:n.components))],n.components,1);
+
+            quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - n.param),
+                                       measurement=matw, transition=matF, persistence=vecg, s2=s2,
+                                       modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
+                                       y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
+                                       iprob=iprob, ivar=ivar);
+            if(Etype=="A"){
+                y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+            }
+            else if(Etype=="M" & all(c(Ttype,Stype)!="A")){
+                y.low <- ts(c(y.for) * exp(quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for) * exp(quantvalues$upper),start=start(y.for),frequency=frequency(data));
+            }
+            else{
+                y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+            }
+        }
+    }
+    else{
+        y.low <- NA;
+        y.high <- NA;
+    }
 
     assign("s2",s2,ParentEnvironment);
     assign("y.for",y.for,ParentEnvironment);
