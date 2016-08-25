@@ -12,11 +12,11 @@ intermittentParametersSetter <- function(intermittent="n",...){
         n.param.intermittent <- 1;
         if(intermittent=="c"){
             # In Croston we also need to estimate smoothing parameter and variance
-            n.param.intermittent <- n.param.intermittent + 2;
+#            n.param.intermittent <- n.param.intermittent + 2;
         }
         else if(any(intermittent==c("t","a"))){
-            # In TSB we need to estimate smoothing parameter and two parameters of distribution
-            n.param.intermittent <- n.param.intermittent + 3;
+            # In TSB we also need to estimate smoothing parameter and two parameters of distribution...
+#            n.param.intermittent <- n.param.intermittent + 3;
         }
         yot <- matrix(y[y!=0],obsNonzero,1);
         pt <- matrix(mean(ot),obsInsample,1);
@@ -32,6 +32,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         n.param.intermittent <- 0;
     }
     iprob <- pt[1];
+    ivar <- iprob * (1-iprob);
 
     assign("ot",ot,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
@@ -40,6 +41,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
     assign("pt.for",pt.for,ParentEnvironment);
     assign("n.param.intermittent",n.param.intermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
+    assign("ivar",ivar,ParentEnvironment);
 }
 
 intermittentMaker <- function(intermittent="n",...){
@@ -53,11 +55,16 @@ intermittentMaker <- function(intermittent="n",...){
         pt[,] <- intermittent_model$fitted;
         pt.for <- intermittent_model$forecast;
         iprob <- pt.for[1];
+        ivar <- intermittent_model$variance;
+    }
+    else{
+        ivar <- 1;
     }
 
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
+    assign("ivar",ivar,ParentEnvironment);
 }
 
 iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
@@ -96,10 +103,10 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
 # Number of intervals in Croston
         iyt <- matrix(zeroes,length(zeroes),1);
         if(is.null(imodel)){
-            crostonModel <- es(iyt,"MNN",intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence,intermittent="n");
+            crostonModel <- es(iyt,"MNN",intervals=FALSE,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence,intermittent="n");
         }
         else{
-            crostonModel <- es(iyt,model=imodel,intervals=T,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);
+            crostonModel <- es(iyt,model=imodel,intervals=FALSE,int.w=0.95,silent=TRUE,h=h,ipersistence=ipersistence);
         }
 
         zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
@@ -148,9 +155,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
             Stype <- "N";
         }
 
+#### CF for beta distribution ####
         CF <- function(C){
-            vecg[,] <- C[1];
-            ivt[1,] <- C[2];
 
             fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
                                   modellags, "M", "N", "N", "o",
@@ -159,7 +165,24 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
             iyt.fit <- fitting$yfit;
             errors <- fitting$errors;
 
-            CF.res <- -sum(log(dbeta(iyt.fit*(1+errors),shape1=C[3],shape2=C[4])))
+            CF.res <- -(sum(log(dbeta(iyt.fit*(1+errors),shape1=C[1],shape2=C[2]))));
+
+            return(CF.res);
+        }
+
+#### CF for initial and persistence ####
+        CF2 <- function(C){
+            vecg[,] <- C[1];
+            ivt[1,] <- C[2];
+
+            fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
+                                  modellags, "M", "N", "N", "o",
+                                  matrix(0,obsInsample,1), matrix(0,obsInsample+1,1), matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
+
+            iyt.fit <- fitting$yfit;
+
+            # This is part of final likelihood. Otherwise it cannot be optimised...
+            CF.res <- -(sum(log(iyt.fit[ot==1])) + sum(log(1-iyt.fit[ot==0])));
 
             return(CF.res);
         }
@@ -167,12 +190,18 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         kappa <- 1E-5;
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
 
-# Smoothing parameter, initial
-        C <- c(vecg[1],ivt[1],0.5,0.5);
-        res <- nloptr(C, CF, lb=c(1e-10,1e-10,1e-10,1e-10), ub=c(1,1,10,10),
+        # Run in order to set shape1, shape2
+        C <- c(0.5,0.5);
+        res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(10,10),
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
         likelihood <- -res$objective;
         C <- res$solution;
+
+        # Another run, now to define persistence and initial
+        res <- nloptr(c(vecg[1],ivt[1]), CF2, lb=c(1e-10,1e-10), ub=c(1,1),
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
+        C <- c(res$solution,C);
+
         names(C) <- c("persistence","initial","shape1","shape2")
 
         vecg[,] <- C[1];
@@ -188,7 +217,17 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         iy.for <- ts(rep(iyt.fit[obsInsample],h),
                      start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
 
-        model <- list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=iy.for*(1-iy.for),
+        # states^2 is missing here! But it makes intermittent data impossible!
+        s2 <- as.vector(sum((log(1+errors*ot))^2)/(obsOnes - 4));
+        vec.var <- rep(NA,h);
+        vec.var[1] <- s2 * ivt[length(ivt)]^2;
+        if(h!=1){
+            for(i in 2:h){
+                vec.var[i] <- ivt[length(ivt)]^2 * ((1 + vecg^2 * s2)^{i-1} * (1 + s2) - 1);
+            }
+        }
+
+        model <- list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=vec.var,
                       likelihood=likelihood,residuals=errors,C=C,actuals=ot);
     }
 #### None ####
