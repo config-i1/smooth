@@ -1,6 +1,6 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level"));
+                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -1368,7 +1368,13 @@ quantfunc <- function(A){
                 # Take intermittent data into account
                 vec.var <- vec.var * ivar + log(c(y.for/iprob))^2 * ivar + iprob^2 * vec.var;
             }
-#### Pure additive models
+#### Multiplicative error and additive trend / seasonality
+            # else if(Etype=="M" & all(c(Ttype,Stype)!="M") & all(c(Ttype,Stype)!="N")){
+            #     vec.var[1:min(h,maxlag)] <- s2;
+            #     for(i in 1:h){
+            #
+            #     }
+            # }
             else{
                 # Array of variance of states
                 mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
@@ -1496,7 +1502,7 @@ ssForecaster <- function(...){
 # additive models with multiplicative error, because they can be approximated by pure additive
         if(all(c(Etype,Stype,Ttype)!="M") |
            all(Etype=="M",c(Ttype,Stype)!="A") |
-           all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N")))){
+           (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & iprob==1)){
             simulateint <- FALSE;
         }
         else{
