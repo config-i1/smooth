@@ -214,20 +214,10 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         ivt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)),frequency=frequency(data));
         iyt.fit <- ts(fitting$yfit,start=start(data),frequency=frequency(data));
         errors <- ts(fitting$errors,start=start(data),frequency=frequency(data));
-        iy.for <- ts(rep(iyt.fit[obsInsample],h),
+        iyt.for <- ts(rep(iyt.fit[obsInsample],h),
                      start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
 
-        # states^2 is missing here! But it makes intermittent data impossible!
-        s2 <- as.vector(sum((log(1+errors*ot))^2)/(obsOnes - 4));
-        vec.var <- rep(NA,h);
-        vec.var[1] <- s2 * ivt[length(ivt)]^2;
-        if(h!=1){
-            for(i in 2:h){
-                vec.var[i] <- ivt[length(ivt)]^2 * ((1 + vecg^2 * s2)^{i-1} * (1 + s2) - 1);
-            }
-        }
-
-        model <- list(fitted=iyt.fit,states=ivt,forecast=iy.for,variance=vec.var,
+        model <- list(fitted=iyt.fit,states=ivt,forecast=iyt.for,variance=iyt.for*(1-iyt.for),
                       likelihood=likelihood,residuals=errors,C=C,actuals=ot);
     }
 #### None ####
