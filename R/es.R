@@ -863,9 +863,9 @@ CreatorES <- function(silent=FALSE,...){
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorES(silent=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
-            if(intermittentICs[i]>intermittentICs[i-1]){
-                break;
-            }
+#            if(intermittentICs[i]>intermittentICs[i-1]){
+#                break;
+#            }
         }
         intermittentICs[is.nan(intermittentICs)] <- 1e+100;
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
