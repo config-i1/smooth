@@ -1365,8 +1365,22 @@ quantfunc <- function(A){
                         vec.var[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
                     }
                 }
+                # Produce quantiles for log-normal dist with the specified variance
+                upperquant <- qlnorm(0.975,0,sqrt(vec.var));
+                lowerquant <- qlnorm(0.025,0,sqrt(vec.var));
+                # Write down mean for log-normal distribution
+                vec.mean <- exp((vec.var)/2);
+                #vec.mean <- 1;
+                # Calculate variance for log-normal distribution
+                vec.var <- (exp(vec.var) - 1) * exp(vec.var);
+                # Standartise quantiles
+                upperquant <- (upperquant - vec.mean) / sqrt(vec.var);
+                lowerquant <- (lowerquant - vec.mean) / sqrt(vec.var);
                 # Take intermittent data into account
-                vec.var <- vec.var * ivar + log(c(y.for/iprob))^2 * ivar + iprob^2 * vec.var;
+                vec.var <- vec.var * ivar + vec.mean^2 * ivar + iprob^2 * vec.var;
+                # Write down quantiles with new variances
+                upper <- upperquant * sqrt(vec.var);
+                lower <- lowerquant * sqrt(vec.var);
             }
 #### Multiplicative error and additive trend / seasonality
             # else if(Etype=="M" & all(c(Ttype,Stype)!="M") & all(c(Ttype,Stype)!="N")){
@@ -1424,10 +1438,10 @@ quantfunc <- function(A){
                     }
                 }
                 # Take intermittent data into account
-                vec.var <- vec.var * ivar + c(y.for/iprob)^2 * ivar + iprob^2 * vec.var;
+                vec.var <- vec.var * ivar + c(y.for)^2 * ivar + iprob^2 * vec.var;
+                upper <- upperquant * sqrt(vec.var);
+                lower <- lowerquant * sqrt(vec.var);
             }
-            upper <- upperquant * sqrt(vec.var);
-            lower <- lowerquant * sqrt(vec.var);
         }
     }
     else if(is.numeric(errors) & length(errors)>1 & !is.array(errors)){
@@ -1440,12 +1454,8 @@ quantfunc <- function(A){
             lower <- ev + lowerquant / hsmN^2 * Im(hm(errors,ev))^2;
         }
         else if(any(intervalsType==c("s","p"))){
-            s2i <- iprob*(1-iprob);
-            newelements <- modellags<=1;
-            measurement <- measurement[,newelements];
-            s2i <- s2i * (y.for[1])^2;
-            upper <- ev + upperquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
-            lower <- ev + lowerquant * sqrt(mean((errors-ev)^2,na.rm=T) * iprob + s2i);
+            upper <- upperquant * sqrt(s2 * iprob + c(y.for)^2 * ivar);
+            lower <- lowerquant * sqrt(s2 * iprob + c(y.for)^2 * ivar);
         }
         else if(intervalsType=="n"){
             upper <- quantile(errors,(1+level)/2);
@@ -1464,7 +1474,7 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    y.for <- ts(pt.for*forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+    y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                       matF, matw, h, Ttype, Stype, modellags,
                                       matrix(matxt[(obsAll-h+1):(obsAll),],ncol=n.exovars),
                                       matrix(matat[(obsAll-h+1):(obsAll),],ncol=n.exovars), matFX),
@@ -1499,10 +1509,10 @@ ssForecaster <- function(...){
         }
 
 # We don't simulate pure additive models, pure multiplicative and
-# additive models with multiplicative error, because they can be approximated by pure additive
+# additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
         if(all(c(Etype,Stype,Ttype)!="M") |
            all(Etype=="M",c(Ttype,Stype)!="A") |
-           (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & iprob==1)){
+           (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
             simulateint <- FALSE;
         }
         else{
@@ -1510,7 +1520,7 @@ ssForecaster <- function(...){
         }
 
         if(intervalsType=="p" & simulateint==TRUE){
-            n.samples <- 10000
+            n.samples <- 10000;
             matg <- matrix(vecg,n.components,n.samples);
             arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
             arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
@@ -1535,6 +1545,8 @@ ssForecaster <- function(...){
             else{
                 y.exo.for <- rep(0,h);
             }
+
+            y.for <- pt.for*y.for;
             y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
         }
@@ -1546,13 +1558,15 @@ ssForecaster <- function(...){
                                        modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
                                        y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                        iprob=iprob, ivar=ivar);
+
+            y.for <- c(pt.for)*y.for;
             if(Etype=="A"){
                 y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
                 y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
             }
             else if(Etype=="M" & all(c(Ttype,Stype)!="A")){
-                y.low <- ts(c(y.for) * exp(quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for) * exp(quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
             }
             else{
                 y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
@@ -1563,6 +1577,7 @@ ssForecaster <- function(...){
     else{
         y.low <- NA;
         y.high <- NA;
+        y.for <- pt.for*y.for;
     }
 
     assign("s2",s2,ParentEnvironment);
