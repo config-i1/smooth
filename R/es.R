@@ -91,15 +91,17 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
         }
-        if(initialType=="o"){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                CLower <- c(CLower,0.1,0.01);
-                CUpper <- c(CUpper,Inf,5);
+        if(any(initialType==c("o","p"))){
+            if(initialType=="o"){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                }
+                else{
+                        CLower <- c(CLower,0.1,0.01);
+                    CUpper <- c(CUpper,Inf,5);
+                }
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
@@ -127,15 +129,17 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
         }
-        if(initialType=="o"){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                CLower <- c(CLower,0.1,0.01);
-                CUpper <- c(CUpper,Inf,3);
+        if(any(initialType==c("o","p"))){
+            if(initialType=="o"){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                }
+                else{
+                    CLower <- c(CLower,0.1,0.01);
+                    CUpper <- c(CUpper,Inf,3);
+                }
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
@@ -163,15 +167,17 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,-Inf);
             CUpper <- c(CUpper,Inf);
         }
-        if(initialType=="o"){
-            C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
-            if(Ttype!="M"){
-                CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
-            }
-            else{
-                CLower <- c(CLower,-Inf,-Inf);
-                CUpper <- c(CUpper,Inf,Inf);
+        if(any(initialType==c("o","p"))){
+            if(initialType=="o"){
+                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                if(Ttype!="M"){
+                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                }
+                else{
+                    CLower <- c(CLower,-Inf,-Inf);
+                    CUpper <- c(CUpper,Inf,Inf);
+                }
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
@@ -1067,7 +1073,8 @@ CreatorES <- function(silent=FALSE,...){
     if(modelDo!="combine"){
         model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,
-                      initial=initialValue,initialSeason=initialSeason,nParam=n.param,
+                      initialType=initialType,initial=initialValue,initialSeason=initialSeason,
+                      nParam=n.param,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
@@ -1077,6 +1084,7 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                      initialType=initialType,
                       fitted=y.fit,forecast=y.for,
                       lower=y.low,upper=y.high,residuals=errors,s2=s2,intervalsType=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,

@@ -465,7 +465,8 @@ CreatorGES <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,measurement=matw,transition=matF,persistence=vecg,
-                  initial=initialValue,nParam=n.param,
+                  initialType=initialType,initial=initialValue,
+                  nParam=n.param,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
