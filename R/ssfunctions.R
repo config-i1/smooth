@@ -1364,7 +1364,7 @@ quantfunc <- function(A){
                     selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
                     selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
 
-                    newelements <- modellags<=(chuncksofhorizon[j]+1);
+                    newelements <- modellags<(chuncksofhorizon[j]+1);
                     transitionnew[newelements,newelements] <- transition[newelements,newelements];
                     measurementnew[,newelements] <- measurement[,newelements];
 
@@ -1438,7 +1438,7 @@ quantfunc <- function(A){
                     selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
                     selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
 
-                    newelements <- modellags<=(chuncksofhorizon[j]+1);
+                    newelements <- modellags<(chuncksofhorizon[j]+1);
                     transitionnew[newelements,newelements] <- transition[newelements,newelements];
                     measurementnew[,newelements] <- measurement[,newelements];
 
