@@ -1,6 +1,6 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar"));
+                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -16,7 +16,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     # Fix for cases with TRUE/FALSE.
     if(!is.logical(silent)){
         if(all(silent!=c("none","all","graph","legend","output","n","a","g","l","o"))){
-            message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
+            warning(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."),call.=FALSE);
             silent <- "none";
         }
         silent <- substring(silent,1,1);
@@ -149,15 +149,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
         ### Check error type
         if(all(Etype!=c("Z","A","M"))){
-            message("Wrong error type! Should be 'Z', 'A' or 'M'.");
-            message("Changing to 'Z'");
+            warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'A' or 'M'.\n",
+                           "Changing to 'Z'"),call.=FALSE);
             Etype <- "Z";
         }
 
         ### Check trend type
         if(all(Ttype!=c("Z","N","A","M"))){
-            message("Wrong trend type! Should be 'Z', 'N', 'A' or 'M'.");
-            message("Changing to 'Z'");
+            warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'A' or 'M'.\n",
+                           "Changing to 'Z'"),call.=FALSE);
             Ttype <- "Z";
         }
     }
@@ -214,7 +214,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Get rid of duplicates in lags
         if(length(unique(lags))!=length(lags)){
             if(frequency(data)!=1){
-                warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
+                warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),
+                               "). Getting rid of some of them."),call.=FALSE);
             }
             lags.new <- unique(lags);
             ar.orders.new <- i.orders.new <- ma.orders.new <- lags.new;
@@ -233,16 +234,16 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Check the provided AR matrix / vector
         if(!is.null(AR$value)){
             if((!is.numeric(AR$value) | !is.vector(AR$value)) & !is.matrix(AR$value)){
-                message("AR should be either vector or matrix. You have provided something strange...",call.=FALSE);
-                message("AR will be estimated.");
+                warning(paste0("AR should be either vector or matrix. You have provided something strange...\n",
+                               "AR will be estimated."),call.=FALSE);
                 AR$required <- AR$estimate <- TRUE;
                 AR$value <- NULL;
             }
             else{
                 if(sum(ar.orders)!=length(AR$value[AR$value!=0])){
-                    message(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
-                                   " instead of ",length(AR$value[AR$value!=0]),"."),call.=FALSE);
-                    message("AR will be estimated.");
+                    warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
+                                    " instead of ",length(AR$value[AR$value!=0]),".\n",
+                                   "AR will be estimated."),call.=FALSE);
                     AR$required <- AR$estimate <- TRUE;
                     AR$value <- NULL;
                 }
@@ -266,16 +267,16 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Check the provided MA matrix / vector
         if(!is.null(MA$value)){
             if((!is.numeric(MA$value) | !is.vector(MA$value)) & !is.matrix(MA$value)){
-                message("MA should be either vector or matrix. You have provided something strange...",call.=FALSE);
-                message("MA will be estimated.");
+                warning(paste0("MA should be either vector or matrix. You have provided something strange...\n",
+                               "MA will be estimated."),call.=FALSE);
                 MA$required <- MA$estimate <- TRUE;
                 MA$value <- NULL;
             }
             else{
                 if(sum(ma.orders)!=length(MA$value[MA$value!=0])){
-                    message(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
-                                   " instead of ",length(MA$value[MA$value!=0]),"."),call.=FALSE);
-                    message("MA will be estimated.");
+                    warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
+                                    " instead of ",length(MA$value[MA$value!=0]),".\n",
+                                   "MA will be estimated."),call.=FALSE);
                     MA$required <- MA$estimate <- TRUE;
                     MA$value <- NULL;
                 }
@@ -317,7 +318,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     else if(modelType=="ces"){
         # If the user typed wrong seasonality, use the "Full" instead
         if(all(seasonality!=c("n","s","p","f","none","simple","partial","full"))){
-            message(paste0("Wrong seasonality type: '",seasonality, "'. Changing it to 'full'"));
+            warning(paste0("Wrong seasonality type: '",seasonality, "'. Changing to 'full'"), call.=FALSE);
             seasonality <- "f";
         }
         seasonality <- substring(seasonality[1],1,1);
@@ -330,7 +331,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     # Check the data for NAs
     if(any(is.na(data))){
         if(!silentText){
-            message("Data contains NAs. These observations will be substituted by zeroes.");
+            warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
         }
         data[is.na(data)] <- 0;
     }
@@ -352,30 +353,27 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     if(modelType=="es"){
         # Check if the data is ts-object
         if(!is.ts(data) & Stype!="N"){
-            message("The provided data is not ts object. Only non-seasonal models are available.");
+            if(!silentText){
+                message("The provided data is not ts object. Only non-seasonal models are available.");
+            }
             Stype <- "N";
         }
 
         ### Check seasonality type
         if(all(Stype!=c("Z","N","A","M"))){
-            message("Wrong seasonality type! Should be 'Z', 'N', 'A' or 'M'.");
+            warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'N', 'A' or 'M'.",
+                           "Setting to 'Z'."),call.=FALSE);
             if(datafreq==1){
-                if(!silentText){
-                    message("Data is non-seasonal. Setting seasonal component to 'N'");
-                }
                 Stype <- "N";
             }
             else{
-                if(!silentText){
-                    message("Changing to 'Z'");
-                }
                 Stype <- "Z";
             }
         }
         if(all(Stype!="N",datafreq==1)){
-            if(!silentText){
-                message("Cannot build the seasonal model on data with frequency 1.");
-                message(paste0("Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
+            if(Stype!="Z"){
+                warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
+                               "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
             }
             Stype <- "N";
         }
@@ -393,7 +391,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
         }
         if(length(orders) != length(lags)){
-            stop(paste0("The length of 'lags' (",length(lags),") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
+            stop(paste0("The length of 'lags' (",length(lags),
+                        ") differes from the length of 'orders' (",length(orders),")."), call.=FALSE);
         }
 
         # If there are zero lags, drop them
@@ -493,11 +492,20 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     if(!exists("FI")){
         FI <- FALSE;
     }
+    else{
+        if(!is.logical(FI)){
+            FI <- FALSE;
+        }
+        if(!requireNamespace("numDeriv",quietly=TRUE) & FI){
+            warning("Sorry, but you don't have 'numDeriv' package, which is required in order to produce Fisher Information.",call.=FALSE);
+            FI <- FALSE;
+        }
+    }
 
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
     if(bounds!="u" & bounds!="a" & bounds!="n"){
-        message("The strange bounds are defined. Switching to 'usual'.");
+        warning("Strange bounds are defined. Switching to 'usual'.",call.=FALSE);
         bounds <- "u";
     }
 
@@ -505,7 +513,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         ##### Information Criteria #####
         ic <- ic[1];
         if(all(ic!=c("AICc","AIC","BIC"))){
-            message(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."));
+            warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
             ic <- "AICc";
         }
     }
@@ -519,7 +527,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         multisteps <- FALSE;
     }
     else{
-        message(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."));
+        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
         cfType <- "MSE";
         multisteps <- FALSE;
     }
@@ -529,7 +537,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     intervalsType <- substring(intervalsType[1],1,1);
     # Check the provided type of interval
     if(all(intervalsType!=c("p","s","n","a"))){
-        message(paste0("The wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."));
+        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalsType <- "p";
     }
 
@@ -541,10 +549,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     if(is.numeric(intermittent)){
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
         if(all(length(c(intermittent))!=c(h,obsAll))){
-            message(paste0("The length of the provided future occurrences is ",length(c(intermittent)),
-                           " while the length of forecasting horizon is ",h,"."));
-            message(paste0("Where should we plug in the future occurences data?"));
-            message(paste0("Switching to intermittent='fixed'."));
+            warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
+                           " while length of forecasting horizon is ",h,".\n",
+                           "Where should we plug in the future occurences anyway?\n",
+                           "Switching to intermittent='fixed'."),call.=FALSE);
             intermittent <- "f";
             ot <- (y!=0)*1;
             obsNonzero <- sum(ot);
@@ -554,11 +562,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         if(any(intermittent!=0 & intermittent!=1)){
-            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
-                    call.=FALSE, immediate.=FALSE);
-            if(!silentText){
-                message(paste0("Converting to appropriate vector."));
-            }
+            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones.\n",
+                           "Converting to appropriate vector."),call.=FALSE);
             intermittent <- (intermittent!=0)*1;
         }
 
@@ -583,7 +588,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
-                    call.=FALSE, immediate.=FALSE);
+                    call.=FALSE);
             intermittent <- "f";
         }
         intermittent <- substring(intermittent[1],1,1);
@@ -592,11 +597,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
         if(obsNonzero <= n.param.intermittent){
-            warning("Not enough observations for estimation of intermittency probability.",
-                    call.=FALSE, immediate.=FALSE);
-            if(!silentText){
-                message("Switching to simpler model.");
-            }
+            warning(paste0("Not enough observations for estimation of occurence probability.\n",
+                           "Switching to simpler model."),
+                    call.=FALSE);
             if(obsNonzero > 1){
                 intermittent <- "f";
                 n.param.intermittent <- 1;
@@ -620,7 +623,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
         if(!allowMultiplicative){
             if(Etype=="M"){
-                warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE,immediate.=TRUE);
+                warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
                 Etype <- "A";
             }
             if(Ttype=="M"){
@@ -638,16 +641,16 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         ##### persistence for ES & GES #####
         if(!is.null(persistence)){
             if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
-                message("The persistence is not a numeric vector!");
-                message("Changing to the estimation of persistence vector values.");
+                warning(paste0("Persistence is not a numeric vector!\n",
+                               "Changing to estimation of persistence vector values."),call.=FALSE);
                 persistence <- NULL;
                 persistenceEstimate <- TRUE;
             }
             else{
                 if(modelType=="es"){
                     if(length(persistence)>3){
-                        message("The length of persistence vector is wrong! It should not be greater than 3.");
-                        message("Changing to the estimation of persistence vector values.");
+                        warning(paste0("Length of persistence vector is wrong! It should not be greater than 3.\n",
+                                       "Changing to estimation of persistence vector values."),call.=FALSE);
                         persistence <- NULL;
                         persistenceEstimate <- TRUE;
                     }
@@ -657,8 +660,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
                 else if(modelType=="ges"){
                     if(length(persistence) != n.components){
-                        message(paste0("Wrong length of persistence vector. Should be ",n.components," instead of ",length(persistence),"."),call.=FALSE);
-                        message("Changing to the estimation of persistence vector values.");
+                        warning(paste0("Wrong length of persistence vector. Should be ",n.components,
+                                       " instead of ",length(persistence),".\n",
+                                       "Changing to theestimation of persistence vector values."),call.=FALSE);
                         persistence <- NULL;
                         persistenceEstimate <- TRUE;
                     }
@@ -680,7 +684,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         initialValue <- substring(initialValue[1],1,1);
         if(all(initialValue!=c("o","b","p"))){
             warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",
-                    call.=FALSE,immediate.=FALSE);
+                    call.=FALSE);
             initialType <- "o";
         }
         else{
@@ -689,33 +693,45 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         initialValue <- NULL;
     }
     else if(is.null(initialValue)){
-        message("Initial value is not selected. Switching to optimal.");
+        if(silentText){
+            message("Initial value is not selected. Switching to optimal.");
+        }
         initialType <- "o";
     }
     else if(!is.null(initialValue)){
         if(!is.numeric(initialValue)){
-            message("The initial vector is not numeric!",call.=FALSE);
-            message("Values of initial vector will be estimated.");
+            warning(paste0("Initial vector is not numeric!\n",
+                           "Values of initial vector will be estimated."),call.=FALSE);
             initialValue <- NULL;
             initialType <- "o";
         }
         else{
             if(modelType=="es"){
                 if(length(initialValue)>2){
-                    message("The length of initial vector is wrong! It should not be greater than 2.");
-                    message("Values of initial vector will be estimated.");
+                    warning(paste0("Length of initial vector is wrong! It should not be greater than 2.\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
                     initialType <- "o";
                 }
                 else{
-                    initialType <- "p";
-                    initialValue <- initial;
+                    if(length(initialValue) != (1*(Ttype!="N") + 1)){
+                        warning(paste0("Length of initial vector is wrong! It should be ",(1*(Ttype!="N") + 1),
+                                       " instead of ",length(initialValue),".\n",
+                                       "Values of initial vector will be estimated."),call.=FALSE);
+                        initialValue <- NULL;
+                        initialType <- "o";
+                    }
+                    else{
+                        initialType <- "p";
+                        initialValue <- initial;
+                    }
                 }
             }
             else if(modelType=="ges"){
                 if(length(initialValue) != (n.components*max(lags))){
-                    message(paste0("Wrong length of initial vector. Should be ",orders %*% lags," instead of ",length(initial),"."),call.=FALSE);
-                    message("Values of initial vector will be estimated.");
+                    warning(paste0("Wrong length of initial vector. Should be ",orders %*% lags,
+                                   " instead of ",length(initial),".\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
                     initialType <- "o";
                 }
@@ -726,8 +742,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
             else if(modelType=="ssarima"){
                 if(length(initialValue) != n.components){
-                    message(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
-                    message("Values of initial vector will be estimated.");
+                    warning(paste0("Wrong length of initial vector. Should be ",n.components,
+                                   " instead of ",length(initial),".\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
                     initialType <- "o";
                 }
@@ -738,8 +755,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
             else if(modelType=="ces"){
                 if(length(initialValue) != maxlag*n.components){
-                    message(paste0("Wrong length of initial vector. Should be ",n.components," instead of ",length(initial),"."),call.=FALSE);
-                    message("Values of initial vector will be estimated.");
+                    warning(paste0("Wrong length of initial vector. Should be ",n.components,
+                                   " instead of ",length(initial),".\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
                     initialType <- "o";
                 }
@@ -755,8 +773,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # If model selection is chosen, forget about the initial values and persistence
         if(any(Etype=="Z",Ttype=="Z",Stype=="Z")){
             if(any(!is.null(initialValue),!is.null(initialSeason),!is.null(persistence),!is.null(phi))){
-                message("Model selection doesn't go well with the predefined values.");
-                message("Switching to the estimation of all the parameters.");
+                warning(paste0("Model selection doesn't go well with the predefined values.\n",
+                               "Switching to estimation of all the parameters."),call.=FALSE);
                 initialValue <- NULL;
                 initialType <- "o";
                 initialSeason <- NULL;
@@ -768,15 +786,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         ##### initialSeason for ES #####
         if(!is.null(initialSeason)){
             if(!is.numeric(initialSeason)){
-                message("The initialSeason vector is not numeric!");
-                message("Values of initialSeason vector will be estimated.");
+                warning(paste0("InitialSeason vector is not numeric!\n",
+                               "Values of initialSeason vector will be estimated."),call.=FALSE);
                 initialSeason <- NULL;
                 initialSeasonEstimate <- TRUE;
             }
             else{
                 if(length(initialSeason)!=datafreq){
-                    message("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.");
-                    message("Values of initialSeason vector will be estimated.");
+                warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.",
+                               "Values of initialSeason vector will be estimated."),call.=FALSE);
                     initialSeason <- NULL;
                     initialSeasonEstimate <- TRUE
                 }
@@ -795,7 +813,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         if((Stype!="N" & (obsInsample <= 2*datafreq) & is.null(initialSeason)) |
            (Stype!="N" & (obsInsample <= datafreq) & is.null(initialSeason) & is.null(persistence))){
             if(is.null(initialSeason)){
-                message("Are you out of your mind?! We don't have enough observations for the seasonal model! Switching to non-seasonal.");
+                warning(paste0("Are you out of your mind?! We don't have enough observations for the seasonal model!\n",
+                               "Switching to non-seasonal."),call.=FALSE);
                 Stype <- "N";
                 initialSeasonEstimate <- FALSE;
             }
@@ -804,8 +823,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         ##### phi for ES #####
         if(!is.null(phi)){
             if(!is.numeric(phi) & (damped==TRUE)){
-                message("The provided value of phi is meaningless.");
-                message("phi will be estimated.");
+                warning(paste0("Provided value of phi is meaningless. phi will be estimated."),call.=FALSE);
                 phi <- NULL;
                 phiEstimate <- TRUE;
             }
@@ -823,13 +841,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Check the provided vector of initials: length and provided values.
         if(!is.null(transition)){
             if((!is.numeric(transition) | !is.vector(transition)) & !is.matrix(transition)){
-                message("The transition matrix is not numeric!",call.=FALSE);
-                message("The matrix will be estimated!",call.=FALSE);
+                warning(paste0("Transition matrix is not numeric!\n",
+                               "The matrix will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
             else if(length(transition) != n.components^2){
-                message(paste0("Wrong length of transition matrix. Should be ",n.components^2," instead of ",length(transition),"."),call.=FALSE);
-                message("The matrix will be estimated!",call.=FALSE);
+                warning(paste0("Wrong length of transition matrix. Should be ",n.components^2,
+                               " instead of ",length(transition),".\n",
+                               "The matrix will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
             else{
@@ -843,13 +862,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         ##### measurement for GES #####
         if(!is.null(measurement)){
             if((!is.numeric(measurement) | !is.vector(measurement)) & !is.matrix(measurement)){
-                message("The measurement vector is not numeric!",call.=FALSE);
-                message("The vector will be estimated!",call.=FALSE);
+                warning(paste0("Measurement vector is not numeric!\n",
+                               "The vector will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
             else if(length(measurement) != n.components){
-                message(paste0("Wrong length of measurement vector. Should be ",n.components," instead of ",length(measurement),"."),call.=FALSE);
-                message("The vector will be estimated!",call.=FALSE);
+                warning(paste0("Wrong length of measurement vector. Should be ",n.components,
+                               " instead of ",length(measurement),".\n",
+                               "The vector will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
             else{
@@ -863,7 +883,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     if(modelType=="ssarima"){
         if((n.components==0) & (constant$required==FALSE)){
-            warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE,immediate.=TRUE);
+            warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
             constant$required <- TRUE;
             constant$value <- 0;
             initialType <- "p";
@@ -895,11 +915,13 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
     if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
-        message(paste0("Do you seriously think that you can use ",cfType," with h=",h," on ",obsNonzero," non-zero observations?!"));
+        warning(paste0("Do you seriously think that you can use ",cfType,
+                       " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
     else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
-        message(paste0("Number of observations is really low for a multisteps cost function! We will, try but cannot guarantee anything..."));
+        warning(paste0("Number of observations is really low for a multisteps cost function! ",
+                       "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
 
     normalizer <- mean(abs(diff(c(y))));
@@ -1047,7 +1069,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     if(is.character(initialValue)){
         initialValue <- substring(initialValue[1],1,1);
         if(initialValue!="o" & initialValue!="b"){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE,immediate.=TRUE);
+            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",call.=FALSE);
             initialType <- "o";
         }
         else{
@@ -1057,14 +1079,12 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
     else if(is.null(initialValue)){
         if(!silentText){
-            message("Initial value is not selected. Switching to optimal.");
+            warning("Initial value is not selected. Switching to optimal.",call.=FALSE);
         }
         initialType <- "o";
     }
     else{
-        if(!silentText){
-            message("Predefinde initials don't go well with automatic model selection. Switching to optimal.");
-        }
+        warning("Predefinde initials don't go well with automatic model selection. Switching to optimal.",call.=FALSE);
         initialType <- "o";
         initialValue <- NULL;
     }
@@ -1073,14 +1093,14 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     bounds <- substring(bounds[1],1,1);
     # Check if "bounds" parameter makes any sense
     if(bounds!="n" & bounds!="a"){
-        message("The strange bounds are defined. Switching to 'admissible'.");
+        warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
         bounds <- "a";
     }
 
     ##### Information Criteria #####
     ic <- ic[1];
     if(all(ic!=c("AICc","AIC","BIC"))){
-        message(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."));
+        warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
         ic <- "AICc";
     }
 
@@ -1093,7 +1113,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         multisteps <- FALSE;
     }
     else{
-        message(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."));
+        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
         cfType <- "MSE";
         multisteps <- FALSE;
     }
@@ -1102,7 +1122,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     intervalsType <- substring(intervalsType[1],1,1);
     # Check the provided type of interval
     if(all(intervalsType!=c("a","p","f","n"))){
-        message(paste0("The wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."));
+        warning(paste0("Wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalsType <- "p";
     }
 
@@ -1110,19 +1130,16 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     if(is.numeric(intermittent)){
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
         if(all(length(c(intermittent))!=c(h,obsAll))){
-            message(paste0("The length of the provided future occurrences is ",length(c(intermittent)),
-                           " while the length of forecasting horizon is ",h,"."));
-            message(paste0("Where should we plug in the future occurences data?"));
-            message(paste0("Switching to intermittent='fixed'."));
+            warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
+                           " while length of forecasting horizon is ",h,".\n",
+                           "Where should we plug in the future occurences anyway?\n",
+                           "Switching to intermittent='fixed'."),call.=FALSE);
             intermittent <- "f";
         }
 
         if(any(intermittent!=0 & intermittent!=1)){
-            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones."),
-                    call.=FALSE, immediate.=FALSE);
-            if(!silentText){
-                message(paste0("Converting to appropriate vector."));
-            }
+            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones.\n",
+                           "Converting to appropriate vector."),call.=FALSE);
             intermittent <- (intermittent!=0)*1;
         }
     }
@@ -1132,7 +1149,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
-                    call.=FALSE, immediate.=FALSE);
+                    call.=FALSE);
             intermittent <- "f";
         }
         intermittent <- substring(intermittent[1],1,1);
@@ -1140,11 +1157,9 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
         if(obsNonzero <= n.param.intermittent){
-            warning("Not enough observations for estimation of intermittency probability.",
-                    call.=FALSE, immediate.=FALSE);
-            if(!silentText){
-                message("Switching to simpler model.");
-            }
+            warning(paste0("Not enough observations for estimation of occurence probability.\n",
+                           "Switching to simpler model."),
+                    call.=FALSE);
             if(obsNonzero > 1){
                 intermittent <- "f";
                 n.param.intermittent <- 1;
@@ -1483,7 +1498,9 @@ ssForecaster <- function(...){
                 start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
 
     if(Etype=="M" & any(y.for<0)){
-        y.for[y.for<0] <- 0.001;
+        warning(paste0("Negative values appeared in state vector of model ",model,".\n",
+                       "Senseless forecast were produced. It is adviced to use another model."),call.=FALSE);
+#        y.for[y.for<0] <- 0.001;
     }
 
 # If error additive, estimate as normal. Otherwise - lognormal
@@ -1596,23 +1613,25 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
 
     if(!is.null(xreg)){
         if(any(is.na(xreg)) & silent==FALSE){
-            message("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.");
+            warning("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.",
+                    call.=FALSE);
         }
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # Check if xreg contains something meaningful
             if(all(xreg[1:obsInsample]==xreg[1])){
                 warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
-                        call.=FALSE, immediate.=TRUE);
+                        call.=FALSE);
                 xreg <- NULL;
             }
             else{
                 if(length(xreg)!=obsInsample & length(xreg)!=obsAll){
-                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!", call.=F);
+                    stop("Length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",
+                         call.=FALSE);
                 }
                 if(length(xreg)==obsInsample){
                     if(silent==FALSE){
-                        message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+                        warning("No exogenous are provided for the holdout sample. Using Naive as a forecast.",call.=FALSE);
                     }
                     xreg <- c(as.vector(xreg),rep(xreg[obsInsample],h));
                 }
@@ -1633,23 +1652,25 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
             if(any(checkvariability)){
                 if(all(checkvariability)){
                     warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
-                            call.=FALSE, immediate.=TRUE);
+                            call.=FALSE);
                     xreg <- NULL;
                 }
                 else{
                     warning("Some exogenous variables do not have any variability. Dropping them out.",
-                            call.=FALSE, immediate.=TRUE);
+                            call.=FALSE);
                     xreg <- as.matrix(xreg[,!checkvariability]);
                 }
             }
 
             if(!is.null(xreg)){
                 if(nrow(xreg)!=obsInsample & nrow(xreg)!=obsAll){
-                    stop("The length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",call.=F);
+                    stop("Length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",
+                         call.=FALSE);
                 }
                 if(nrow(xreg)==obsInsample){
                     if(silent==FALSE){
-	                    message("No exogenous are provided for the holdout sample. Using Naive as a forecast.");
+	                    warning("No exogenous are provided for the holdout sample. Using Naive as a forecast.",
+	                            call.=FALSE);
                     }
                     for(j in 1:h){
                     xreg <- rbind(xreg,xreg[obsInsample,]);
@@ -1671,7 +1692,7 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
             }
         }
         else{
-            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=F);
+            stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
         }
         xregEstimate <- TRUE;
         colnames(matat) <- exocomponent.names;
@@ -1683,7 +1704,8 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
             }
             else{
                 if(length(initialX) != n.exovars){
-                    stop("The size of initial vector for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
+                    stop(paste0("The size of initial vector for exogenous is wrong!\n",
+                                "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
                 else{
                     matat[1:maxlag,] <- as.vector(rep(initialX,each=maxlag));
@@ -1718,11 +1740,12 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
 # First - transition matrix
         if(!is.null(transitionX)){
             if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
-                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
+                stop("Transition matrix for exogenous is not a numeric vector or a matrix!", call.=FALSE);
             }
             else{
                 if(length(transitionX) != n.exovars^2){
-                    stop("The size of transition matrix for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
+                    stop(paste0("Size of transition matrix for exogenous is wrong!\n",
+                                "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
                 else{
                     matFX <- matrix(transitionX,n.exovars,n.exovars);
@@ -1737,11 +1760,12 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
 # Now - persistence vector
         if(!is.null(persistenceX)){
             if(!is.numeric(persistenceX) & !is.vector(persistenceX) & !is.matrix(persistenceX)){
-                stop("The transition matrix for exogenous is not a numeric vector or matrix!", call.=FALSE);
+                stop("Persistence vector for exogenous is not numeric!", call.=FALSE);
             }
             else{
                 if(length(persistenceX) != n.exovars){
-                    stop("The size of persistence vector for exogenous is wrong! It should correspond to the number of exogenous variables.", call.=FALSE);
+                    stop(paste0("Size of persistence vector for exogenous is wrong!\n",
+                                "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
                 else{
                     vecgX <- matrix(persistenceX,n.exovars,1);
@@ -1812,7 +1836,7 @@ ICFunction <- function(n.param=n.param,C,Etype=Etype){
 
 ##### *Ouptut printer* #####
 ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                     phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL,
+                     phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      cfType="MSE", cfObjective=NULL, intervals=FALSE,
                      intervalsType=c("p","s","n","a"), level=0.95, ICs,
@@ -1908,6 +1932,16 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                 cat(paste0("b: ",round(B,5),"\n"));
             }
         }
+    }
+
+    if(initialType=="o"){
+        cat("Initial values were optimised.\n");
+    }
+    else if(initialType=="b"){
+        cat("Initial values were produced using backcasting.\n");
+    }
+    else if(initialType=="p"){
+        cat("Initial values were provided by user.\n");
     }
 
     if(!is.null(nParam)){

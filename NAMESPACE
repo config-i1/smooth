@@ -1,6 +1,5 @@
 import(zoo, Rcpp)
 importFrom("nloptr", nloptr,cobyla)
-importFrom("numDeriv",hessian)
 importFrom("polynom",as.polylist,as.polynomial,polynomial)
 importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
 importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,lm,median,coef,
