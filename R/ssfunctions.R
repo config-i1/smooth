@@ -1200,6 +1200,12 @@ ssFitter <- function(...){
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
     y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
+    if(Etype=="M" & any(matvt[,1]<0)){
+        matvt[matvt[,1]<0,1] <- 0.001;
+        warning(paste0("Negative values produced in state vector of model ",model,".\n",
+                       "Please, use a different model."),call.=FALSE);
+    }
+
     if(!is.null(xreg)){
         # Write down the matat and copy values for the holdout
         matat[1:nrow(fitting$matat),] <- fitting$matat;
@@ -1498,9 +1504,8 @@ ssForecaster <- function(...){
                 start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
 
     if(Etype=="M" & any(y.for<0)){
-        warning(paste0("Negative values appeared in state vector of model ",model,".\n",
-                       "Senseless forecast were produced. It is adviced to use another model."),call.=FALSE);
-#        y.for[y.for<0] <- 0.001;
+        warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
+                       "Please, use another model."),call.=FALSE);
     }
 
 # If error additive, estimate as normal. Otherwise - lognormal
