@@ -297,14 +297,6 @@ BasicInitialiserES <- function(...){
         smoothingparameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
     }
 
-    if(!is.null(phi)){
-        if(phi<0 | phi>2){
-            message("Damping parameter should lie in (0, 2) region.");
-            message("Changing to the estimation of phi.");
-            phi <- NULL;
-        }
-    }
-
 ##### Preset y.fit, y.for, errors and basic parameters #####
     y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
@@ -332,7 +324,8 @@ BasicInitialiserES <- function(...){
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= n.param.max){
         if(!silentText){
-            message(paste0("Number of non-zero observations is ",obsNonzero,", while the maximum number of parameters to estimate is ", n.param.max,"."));
+            message(paste0("Number of non-zero observations is ",obsNonzero,
+                           ", while the maximum number of parameters to estimate is ", n.param.max,"."));
         }
 
         if(obsNonzero > 3){
@@ -447,18 +440,13 @@ EstimatorES <- function(...){
 
     if(all(C==Cs$C)){
         warning(paste0("Failed to optimise the model ETS(",current.model,
-                       "). Try different parameters maybe?\nAnd check all the messages and warnings...",
+                       "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                        "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
-                call.=FALSE, immediate.=TRUE);
+                call.=FALSE);
     }
 
     n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
         !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
-
-#    n.param <- n.components*persistenceEstimate + phiEstimate +
-#        (n.components - (Stype!="N"))*estimate.initial*(initialType=="o") +
-#        maxlag*initialSeasonEstimate*(initialType=="o") +
-#        initialXEstimate * n.exovars + FXEstimate * n.exovars^2 + gXEstimate * n.exovars + 1;
 
     # Change cfType for model selection
     if(multisteps){
@@ -1053,7 +1041,8 @@ CreatorES <- function(silent=FALSE,...){
 ##### Print output #####
     if(!silentText){
         if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
-            message(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"));
+            warning(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"),
+                    call.=FALSE);
         }
     }
 

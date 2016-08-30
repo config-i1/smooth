@@ -638,18 +638,21 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(!silentText){
         if(any(maroots<1)){
             if(bounds!="a"){
-                message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+                warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
             }
             else{
-                message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+                warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
+                        ,call.=FALSE);
             }
         }
         if(any(arroots<1)){
             if(bounds!="a"){
-                message("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!");
+                warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
+                        ,call.=FALSE);
             }
             else{
-                message("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer.");
+                warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
+                        ,call.=FALSE);
             }
         }
     }

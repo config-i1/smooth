@@ -89,7 +89,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
             message(paste0("Number of non-zero observations is ",obsNonzero,
                            ", while the number of parameters to estimate is ", n.param.max,"."));
         }
-        stop("Can't fit the model you ask.",call.=FALSE);
+        stop("Not enough observations. Can't fit the model you ask.",call.=FALSE);
     }
 
 ##### Preset values of matvt ######
@@ -443,10 +443,12 @@ CreatorGES <- function(silentText=FALSE,...){
     if(!silentText){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
-                message("Unstable model was estimated! Use bounds='admissible' to address this issue!");
+                warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",
+                        call.=FALSE);
             }
             else{
-                message("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.");
+                warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.",
+                        call.=FALSE);
             }
         }
     }
