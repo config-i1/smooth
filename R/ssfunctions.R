@@ -827,8 +827,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 phi <- NULL;
                 phiEstimate <- TRUE;
             }
+            else if(is.numeric(phi) & (phi<0 | phi>2)){
+                warning(paste0("Damping parameter should lie in (0, 2) region. ",
+                        "Changing to the estimation of phi."),call.=FALSE);
+                phi <- NULL;
+                phiEstimate <- TRUE;
+            }
             else{
-                phiEstimate <- FALSE
+                phiEstimate <- FALSE;
             }
         }
         else{
