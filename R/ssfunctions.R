@@ -561,7 +561,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             pt.for <- matrix(1,h,1);
         }
 
-        if(any(intermittent!=0 & intermittent!=1)){
+        if(any(intermittent<0,intermittent>1)){
             warning(paste0("Parameter 'intermittent' should contain only zeroes and ones.\n",
                            "Converting to appropriate vector."),call.=FALSE);
             intermittent <- (intermittent!=0)*1;
