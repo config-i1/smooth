@@ -562,7 +562,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         if(any(intermittent<0,intermittent>1)){
-            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones.\n",
+            warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
                            "Converting to appropriate vector."),call.=FALSE);
             intermittent <- (intermittent!=0)*1;
         }
