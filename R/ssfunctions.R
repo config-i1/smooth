@@ -1576,7 +1576,7 @@ ssForecaster <- function(...){
                 y.exo.for <- rep(0,h);
             }
 
-            y.for <- pt.for*y.for;
+            y.for <- c(pt.for)*y.for;
             y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
         }
@@ -1607,7 +1607,7 @@ ssForecaster <- function(...){
     else{
         y.low <- NA;
         y.high <- NA;
-        y.for <- pt.for*y.for;
+        y.for <- c(pt.for)*y.for;
     }
 
     assign("s2",s2,ParentEnvironment);

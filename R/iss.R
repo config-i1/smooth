@@ -110,8 +110,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         }
 
         zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
-        pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(data),frequency=frequency(data));
-        pt.for <- ts(1/(crostonModel$forecast), start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
+        pt <- ts(rep((1-c(crostonModel$persistence)/2)/(crostonModel$fitted),zeroes),start=start(data),frequency=frequency(data));
+        pt.for <- ts((1-c(crostonModel$persistence)/2)/(crostonModel$forecast), start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
         likelihood <- - (crostonModel$ICs["AIC"]/2 - 3);
         C <- c(crostonModel$persistence,crostonModel$states[1,]);
         names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
