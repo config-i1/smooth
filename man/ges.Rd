@@ -17,7 +17,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     intermittent=c("none","auto","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
-    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -86,7 +86,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
   \item{initialX}{
     Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
-  \item{go.wild}{
+  \item{updateX}{
     If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{persistenceX}{
@@ -138,7 +138,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
     \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - provided vector or matrix of exogenous variables.
-    \item \code{go.wild} - boolean, defining, if the states of exogenous variables were estimated as well.
+    \item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
@@ -176,9 +176,9 @@ ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="
 
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),go.wild=TRUE)
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),go.wild=TRUE,cfType="TFL")
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="TFL")
 
 test <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aTFL")
 

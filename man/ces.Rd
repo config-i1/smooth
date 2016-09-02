@@ -16,7 +16,7 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     intermittent=c("none","auto","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
-    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 \arguments{
   \item{data}{
@@ -77,7 +77,7 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
   \item{initialX}{
     Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
-  \item{go.wild}{
+  \item{updateX}{
     If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{persistenceX}{
@@ -120,7 +120,7 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
     \item \code{iprob} - the fitted and forecasted values of the probability of demand occurrence.
     \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - the provided vector or matrix of exogenous variables.
-    \item \code{go.wild} - boolean, defining, if the states of exogenous variables were estimated as well.
+    \item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
@@ -168,7 +168,7 @@ ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
 # Exogenous variables in CES
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
-test <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)
+test <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
 

@@ -9,7 +9,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                     intermittent=c("none","auto","fixed","croston","tsb"),
                     bounds=c("admissible","none"),
                     silent=c("none","all","graph","legend","output"),
-                    xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -44,7 +44,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
         if(any(c(persistenceX,transitionX)!=0)){
-            go.wild <- TRUE;
+            updateX <- TRUE;
         }
         AR <- model$AR;
         MA <- model$MA;
@@ -100,7 +100,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
@@ -349,7 +349,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             if(initialXEstimate){
                 C <- c(C,matat[maxlag,]);
             }
-            if(go.wild){
+            if(updateX){
                 if(FXEstimate){
                     C <- c(C,c(diag(n.exovars)));
                 }
@@ -681,7 +681,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                  xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                   ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

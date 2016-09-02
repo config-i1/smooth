@@ -13,7 +13,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                intermittent=c("none","auto","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
-               xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+               xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -37,7 +37,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
         if(any(c(persistenceX,transitionX)!=0)){
-            go.wild <- TRUE;
+            updateX <- TRUE;
         }
         model <- model$model;
         model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
@@ -58,7 +58,7 @@ CF <- function(C){
     elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
                             modellags, initialType, Ttype, Stype, n.exovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
-                            matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
+                            matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
     cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
                        h, modellags, Etype, Ttype, Stype,
@@ -201,7 +201,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,rep(-Inf,n.exovars));
             CUpper <- c(CUpper,rep(Inf,n.exovars));
         }
-        if(go.wild){
+        if(updateX){
             if(FXEstimate){
                 C <- c(C,as.vector(matFX));
                 CLower <- c(CLower,rep(-Inf,n.exovars^2));
@@ -240,7 +240,7 @@ BasicInitialiserES <- function(...){
     elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
                             modellags, initialType, Ttype, Stype, n.exovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
-                            matFX, vecgX, go.wild, FXEstimate, gXEstimate, initialXEstimate);
+                            matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
     list2env(elements,ParentEnvironment);
 }
@@ -305,7 +305,7 @@ BasicInitialiserES <- function(...){
     BasicMakerES(ParentEnvironment=environment());
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
@@ -447,7 +447,7 @@ EstimatorES <- function(...){
     }
 
     n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
-        !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
+        !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
     # Change cfType for model selection
     if(multisteps){
@@ -796,7 +796,7 @@ CreatorES <- function(silent=FALSE,...){
         C <- c(C,initialValue,initialSeason);
         if(xregEstimate){
             C <- c(C,initialX);
-            if(go.wild){
+            if(updateX){
                 C <- c(C,transitionX,persistenceX);
             }
         }
@@ -805,7 +805,7 @@ CreatorES <- function(silent=FALSE,...){
 
         # Number of parameters
         n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
-            !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
+            !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
 # Change cfType for model selection
         if(multisteps){
@@ -1077,7 +1077,7 @@ CreatorES <- function(silent=FALSE,...){
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                      xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                      xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                       ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }
@@ -1087,7 +1087,7 @@ CreatorES <- function(silent=FALSE,...){
                       fitted=y.fit,forecast=y.for,
                       lower=y.low,upper=y.high,residuals=errors,s2=s2,intervalsType=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                      xreg=xreg,go.wild=go.wild,
+                      xreg=xreg,updateX=updateX,
                       ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }

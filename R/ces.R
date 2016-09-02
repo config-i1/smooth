@@ -7,7 +7,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
                 intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
-                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -45,7 +45,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
         if(any(c(persistenceX,transitionX)!=0)){
-            go.wild <- TRUE;
+            updateX <- TRUE;
         }
         model <- model$model;
         seasonality <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
@@ -111,7 +111,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
     }
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
@@ -219,7 +219,7 @@ ElementsCES <- function(C){
         else{
             at <- matat[1:maxlag,];
         }
-        if(go.wild){
+        if(updateX){
             if(FXEstimate){
                 matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
                 n.coef <- n.coef + n.exovars^2;
@@ -267,7 +267,7 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(ICFunction) <- environment();
 
     n.param <- sum(modellags)*(initialType=="o") + A$number + B$number +
-         (!is.null(xreg))*(ncol(matat) + go.wild*(length(matFX) + nrow(vecgX))) + 1;
+         (!is.null(xreg))*(ncol(matat) + updateX*(length(matFX) + nrow(vecgX))) + 1;
 
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         # If we don't need to estimate A
@@ -303,7 +303,7 @@ CreatorCES <- function(silentText=FALSE,...){
             if(initialXEstimate){
                 C <- c(C,matat[maxlag,]);
             }
-            if(go.wild){
+            if(updateX){
                 if(FXEstimate){
                     C <- c(C,c(diag(n.exovars)));
                 }
@@ -524,7 +524,7 @@ CreatorCES <- function(silentText=FALSE,...){
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                  xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                   ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

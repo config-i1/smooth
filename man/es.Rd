@@ -16,7 +16,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    intermittent=c("none","auto","fixed","croston","tsb"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
-   xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+   xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -92,7 +92,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
   \item{initialX}{
     Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
   }
-  \item{go.wild}{
+  \item{updateX}{
     If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
   }
   \item{persistenceX}{
@@ -145,7 +145,7 @@ For the details see Hyndman et al.(2008).
     \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
     \item \code{intermittent} - type of intermittent model fitted to the data.
     \item \code{xreg} - provided vector or matrix of exogenous variables.
-    \item \code{go.wild} - boolean, defining, if the states of exogenous variables were estimated as well.
+    \item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
@@ -226,7 +226,7 @@ es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,intervalsType="s")
 # Exogenous variables in ETS example
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,cfType="TFL")
-test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,go.wild=TRUE)
+test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
 es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
 

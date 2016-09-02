@@ -1617,7 +1617,7 @@ ssForecaster <- function(...){
 }
 
 ##### *Check and initialisation of xreg* #####
-ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
+ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obsInsample, obsAll, obsStates, maxlag=1, h=1, silent=FALSE){
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
@@ -1738,7 +1738,7 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
         }
     }
     else{
-        go.wild <- FALSE;
+        updateX <- FALSE;
     }
 
 ##### In case we changed xreg to null or if it was like that...
@@ -1756,7 +1756,7 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
     }
 
 # Now check transition and persistence of exogenous variables
-    if(xregEstimate==TRUE & go.wild==TRUE){
+    if(xregEstimate==TRUE & updateX==TRUE){
 # First - transition matrix
         if(!is.null(transitionX)){
             if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
@@ -1798,7 +1798,7 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
             gXEstimate <- TRUE;
         }
     }
-    else if(xregEstimate==TRUE & go.wild==FALSE){
+    else if(xregEstimate==TRUE & updateX==FALSE){
         matFX <- diag(n.exovars);
         FXEstimate <- FALSE;
 

@@ -8,7 +8,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                          intermittent=c("none","auto","fixed","croston","tsb"),
                          bounds=c("admissible","none"),
                          silent=c("none","all","graph","legend","output"),
-                         xreg=NULL, go.wild=FALSE, ...){
+                         xreg=NULL, updateX=FALSE, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2015 - 2016  Ivan Svetunkov
@@ -169,7 +169,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                constant=TRUE,initial=initialType,cfType=cfType,
                                h=h,holdout=holdout,intervals=intervals,level=level,
                                intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                               xreg=xreg,go.wild=go.wild,FI=FI);
+                               xreg=xreg,updateX=updateX,FI=FI);
         return(test.models);
     }
 
@@ -206,7 +206,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                                 constant=TRUE,initial=initialType,cfType=cfType,
                                                 h=h,holdout=holdout,intervals=intervals,level=level,
                                                 intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                                xreg=xreg,go.wild=go.wild,FI=FI);
+                                                xreg=xreg,updateX=updateX,FI=FI);
                     ICsTest[iSelect+1] <- test.models[[m]]$ICs[ic];
                     ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                 }
@@ -244,7 +244,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                                 constant=TRUE,initial=initialType,cfType=cfType,
                                                 h=h,holdout=holdout,intervals=intervals,level=level,
                                                 intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                                xreg=xreg,go.wild=go.wild,FI=FI);
+                                                xreg=xreg,updateX=updateX,FI=FI);
                     ICsTest[maSelect+1] <- test.models[[m]]$ICs[ic];
                     ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                     # If high order MA is not good, break the loop
@@ -293,7 +293,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                                 constant=TRUE,initial=initialType,cfType=cfType,
                                                 h=h,holdout=holdout,intervals=intervals,level=level,
                                                 intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                                xreg=xreg,go.wild=go.wild,FI=FI);
+                                                xreg=xreg,updateX=updateX,FI=FI);
                     ICsTest[arSelect+1] <- test.models[[m]]$ICs[ic];
                     ICsTestAll[m] <- test.models[[m]]$ICs[ic];
                     # If high order AR is not good, break the loop
@@ -328,7 +328,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                     constant=FALSE,initial=initialType,cfType=cfType,
                                     h=h,holdout=holdout,intervals=intervals,level=level,
                                     intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                    xreg=xreg,go.wild=go.wild,FI=FI);
+                                    xreg=xreg,updateX=updateX,FI=FI);
     ICsTest[2] <- test.models[[m]]$ICs[ic];
     ICsTestAll[m] <- test.models[[m]]$ICs[ic];
     }

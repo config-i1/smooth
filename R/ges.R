@@ -11,7 +11,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
-                xreg=NULL, initialX=NULL, go.wild=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
@@ -44,7 +44,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
         if(any(c(persistenceX,transitionX)!=0)){
-            go.wild <- TRUE;
+            updateX <- TRUE;
         }
         model <- model$model;
         orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
@@ -62,7 +62,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, go.wild=go.wild,
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
@@ -217,7 +217,7 @@ CreatorGES <- function(silentText=FALSE,...){
 
 # 1 stands for the variance
     n.param <- n.components + n.components*(initialType=="o") + n.components^2 + orders %*% lags +
-        !is.null(xreg) * n.exovars + (go.wild)*(n.exovars^2 + n.exovars) + 1;
+        !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
 # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(measurementEstimate),(transitionEstimate),(persistenceEstimate),
@@ -250,7 +250,7 @@ CreatorGES <- function(silentText=FALSE,...){
             if(initialXEstimate){
                 C <- c(C,matat[maxlag,]);
             }
-            if(go.wild){
+            if(updateX){
                 if(FXEstimate){
                     C <- c(C,c(diag(n.exovars)));
                 }
@@ -477,7 +477,7 @@ CreatorGES <- function(silentText=FALSE,...){
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                  xreg=xreg,go.wild=go.wild,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                   ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }
