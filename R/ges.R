@@ -70,6 +70,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
+    xreg <- xregdata$xreg;
     xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;

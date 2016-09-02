@@ -1641,10 +1641,10 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
                          call.=FALSE);
                 }
                 if(length(xreg)==obsInsample){
-                    if(silent==FALSE){
-                        warning("No exogenous are provided for the holdout sample. Using Naive as a forecast.",call.=FALSE);
-                    }
-                    xreg <- c(as.vector(xreg),rep(xreg[obsInsample],h));
+                    warning("No exogenous variable provided for the holdout sample. es() was used in order to forecast it.",call.=FALSE);
+                    xregForecast <- es(xreg,h=h,intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                    xreg <- c(as.vector(xreg),as.vector(xregForecast));
+#                    xreg <- c(as.vector(xreg),rep(xreg[obsInsample],h));
                 }
 # Number of exogenous variables
                 n.exovars <- 1;
@@ -1678,18 +1678,27 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
                     stop("Length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",
                          call.=FALSE);
                 }
+                n.exovars <- ncol(xreg);
                 if(nrow(xreg)==obsInsample){
-                    if(silent==FALSE){
-	                    warning("No exogenous are provided for the holdout sample. Using Naive as a forecast.",
-	                            call.=FALSE);
+                    warning("No exogenous are provided for the holdout sample. es() was used in order to forecast them.",
+                            call.=FALSE);
+                    xregForecast <- matrix(NA,nrow=h,ncol=n.exovars);
+                    if(!silent){
+                        message("Producing forecasts for xreg variable...");
                     }
-                    for(j in 1:h){
-                    xreg <- rbind(xreg,xreg[obsInsample,]);
+                    for(j in 1:n.exovars){
+                        if(!silent){
+                            cat(paste0(rep("\b",nchar(round((j-1)/n.exovars,2)*100)+1),collapse=""));
+                            cat(paste0(round(j/n.exovars,2)*100,"%"));
+                        }
+                        xregForecast[,j] <- es(xreg[,j],h=h,intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                        #xreg <- rbind(xreg,xreg[obsInsample,]);
                     }
+                    xreg <- rbind(xreg,xregForecast);
+                    cat("\b\b\b\bDone!\n");
                 }
 # mat.x is needed for the initial values of coefs estimation using OLS
                 mat.x <- as.matrix(cbind(rep(1,obsAll),xreg));
-                n.exovars <- ncol(xreg);
 # Define the second matat to fill in the coefs of the exogenous vars
                 matat <- matrix(NA,obsStates,n.exovars);
                 exocomponent.names <- paste0("x",c(1:n.exovars));
@@ -1798,7 +1807,7 @@ ssXreg <- function(data, xreg=NULL, go.wild=FALSE,
     }
 
     return(list(n.exovars=n.exovars, matxt=matxt, matat=matat, matFX=matFX, vecgX=vecgX,
-                xregEstimate=xregEstimate, FXEstimate=FXEstimate,
+                xreg=xreg, xregEstimate=xregEstimate, FXEstimate=FXEstimate,
                 gXEstimate=gXEstimate, initialXEstimate=initialXEstimate))
 }
 

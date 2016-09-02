@@ -108,6 +108,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
+    xreg <- xregdata$xreg;
     xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;

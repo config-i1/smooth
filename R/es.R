@@ -313,6 +313,7 @@ BasicInitialiserES <- function(...){
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
+    xreg <- xregdata$xreg;
     xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;

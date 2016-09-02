@@ -119,6 +119,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
+    xreg <- xregdata$xreg;
     xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;

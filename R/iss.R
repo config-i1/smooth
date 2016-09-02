@@ -22,6 +22,14 @@ intermittentParametersSetter <- function(intermittent="n",...){
         pt <- matrix(mean(ot),obsInsample,1);
         pt.for <- matrix(1,h,1);
     }
+    else{
+        obsNonzero <- obsInsample;
+    }
+
+# If number of observations is low, set intermittency to "none"
+    if(obsNonzero < 5){
+        intermittent <- "n";
+    }
 
     if(intermittent=="n"){
         ot <- rep(1,obsInsample);
