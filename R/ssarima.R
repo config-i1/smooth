@@ -421,6 +421,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
+        if(cfType!="MSE"){
+            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
+        }
         if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }

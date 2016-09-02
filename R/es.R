@@ -735,6 +735,9 @@ PoolEstimatorES <- function(silent=FALSE,...){
 ##### Function selects the best es() based on IC #####
 CreatorES <- function(silent=FALSE,...){
     if(modelDo=="select"){
+        if(cfType!="MSE"){
+            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
+        }
         environment(PoolEstimatorES) <- environment();
         esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
@@ -759,6 +762,9 @@ CreatorES <- function(silent=FALSE,...){
                     cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=as.numeric(results[length(results)]),FI=FI));
     }
     else if(modelDo=="combine"){
+        if(cfType!="MSE"){
+            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The produced combinations weights may be wrong."),call.=FALSE);
+        }
         environment(PoolEstimatorES) <- environment();
         esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
@@ -843,6 +849,9 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
+        if(cfType!="MSE"){
+            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
+        }
         if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }

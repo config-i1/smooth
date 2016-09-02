@@ -173,6 +173,10 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
         return(test.models);
     }
 
+    if(cfType!="MSE"){
+        warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
+    }
+
 ##### Loop for differences #####
     if(any(i.max!=0)){
         for(seasSelect in 1:length(lags)){
