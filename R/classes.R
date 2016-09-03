@@ -165,7 +165,7 @@ plot.smooth <- function(x, ...){
             plot(x$states,main=paste0("States of ",x$model));
         }
     }
-    par(parDefault)
+    par(parDefault);
 }
 
 plot.forecastSmooth <- function(x, ...){

@@ -1030,27 +1030,27 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     if(silentValue==FALSE | silentValue=="n"){
         silentText <- FALSE;
         silentGraph <- FALSE;
-        silentLegend <- TRUE;
+        silentLegend <- FALSE;
     }
     else if(silentValue==TRUE | silentValue=="a"){
         silentText <- TRUE;
         silentGraph <- TRUE;
-        silentLegend <- FALSE;
+        silentLegend <- TRUE;
     }
     else if(silentValue=="g"){
         silentText <- FALSE;
         silentGraph <- TRUE;
-        silentLegend <- FALSE;
+        silentLegend <- TRUE;
     }
     else if(silentValue=="l"){
         silentText <- FALSE;
         silentGraph <- FALSE;
-        silentLegend <- FALSE;
+        silentLegend <- TRUE;
     }
     else if(silentValue=="o"){
         silentText <- TRUE;
         silentGraph <- FALSE;
-        silentLegend <- TRUE;
+        silentLegend <- FALSE;
     }
 
     ##### Fisher Information #####
@@ -1203,7 +1203,9 @@ ssFitter <- function(...){
     fitting <- fitterwrap(matvt, matF, matw, y, vecg,
                           modellags, Etype, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
+    statesNames <- colnames(matvt);
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
+    colnames(matvt) <- statesNames;
     y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
 
     if(Etype=="M" & any(matvt[,1]<0)){

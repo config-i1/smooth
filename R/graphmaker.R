@@ -120,5 +120,5 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
-    par(parDefault)
+    par(parDefault);
 }
