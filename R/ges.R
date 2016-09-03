@@ -216,7 +216,7 @@ CreatorGES <- function(silentText=FALSE,...){
     environment(ICFunction) <- environment();
 
 # 1 stands for the variance
-    n.param <- n.components + n.components*(initialType=="o") + n.components^2 + orders %*% lags +
+    n.param <- 2*n.components + n.components^2 + orders %*% lags * (initialType=="o") +
         !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
 # If there is something to optimise, let's do it.
