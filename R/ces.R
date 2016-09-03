@@ -190,13 +190,13 @@ ElementsCES <- function(C){
             n.coef <- n.coef + maxlag*2;
         }
         else if(seasonality=="p"){
-            vt[,1:2] <- C[n.coef+(1:2)];
+            vt[,1:2] <- rep(C[n.coef+(1:2)],each=maxlag);
             n.coef <- n.coef + 2;
             vt[1:maxlag,3] <- C[n.coef+(1:maxlag)];
             n.coef <- n.coef + maxlag;
         }
         else if(seasonality=="f"){
-            vt[,1:2] <- C[n.coef+(1:2)];
+            vt[,1:2] <- rep(C[n.coef+(1:2)],each=maxlag);
             n.coef <- n.coef + 2;
             vt[1:maxlag,3:4] <- C[n.coef+(1:(maxlag*2))];
             n.coef <- n.coef + maxlag*2;
@@ -313,7 +313,10 @@ CreatorCES <- function(silentText=FALSE,...){
             }
         }
 
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_COBYLA", "xtol_rel"=1e-8, "maxeval"=1000));
+        C <- res$solution;
+
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
         cfObjective <- res$objective;
     }
