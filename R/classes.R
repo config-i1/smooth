@@ -197,10 +197,8 @@ plot.iss <- function(x, ...){
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
-    h <- length(forecast);
     if(all(holdout==TRUE,intervals==TRUE)){
-        insideintervals <- sum(as.vector(x$holdout)<=x$upper &
-                                   as.vector(x$holdout)>=x$lower)/h*100;
+        insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
     }
     else{
         insideintervals <- NULL;
