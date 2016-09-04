@@ -9,7 +9,7 @@ Function generates data using ETS with Single Source of Error as a data generati
 }
 \usage{
 sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
-        initial=NULL, initial.season=NULL,
+        initial=NULL, initialSeason=NULL,
         bounds=c("usual","admissible","restricted"),
         obs=10, nseries=1, silent=FALSE,
         randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
@@ -32,7 +32,7 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
   \item{initial}{
   the vector of initial states of level and trend. The maximum length is 2. If \code{NULL}, all the values will be taken at random.
 }
-  \item{initial.season}{
+  \item{initialSeason}{
   the vector of initial states for seasonal coefficients. Should correspond to the \code{frequency} parameter If \code{NULL}, all the values will be taken at random.
 }
   \item{bounds}{
@@ -106,7 +106,7 @@ sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
 # Create 80 observations of quarterly data using MMM model
 # with predefined initial values and errors from the normal distribution
 sim.es(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),
-        initial.seas=c(1.1,1.05,0.9,.95),frequency=4,obs=80,mean=0,sd=0.01) -> ETS.MMM
+        initialSeason=c(1.1,1.05,0.9,.95),frequency=4,obs=80,mean=0,sd=0.01) -> ETS.MMM
 
 # Generate intermittent data using AAdN
 sim.es("AAdN",frequency=1,obs=30,iprob=0.1,initial=c(3,0),phi=0.8) -> iETS.AAdN

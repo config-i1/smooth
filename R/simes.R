@@ -1,5 +1,5 @@
 sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
-             initial=NULL, initial.season=NULL,
+             initial=NULL, initialSeason=NULL,
              bounds=c("usual","admissible","restricted"),
              obs=10, nseries=1, silent=FALSE,
              randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
@@ -171,13 +171,13 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
     }
 
-    if(!is.null(initial.season)){
-        if(maxlag!=length(initial.season)){
+    if(!is.null(initialSeason)){
+        if(maxlag!=length(initialSeason)){
             if(silent == FALSE){
                 message("The length of seasonal initial states does not correspond to the chosen frequency!");
                 message("Falling back to random number generator in... now!");
             }
-            initial.season <- NULL;
+            initialSeason <- NULL;
         }
     }
 
@@ -279,7 +279,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     }
 
 # Generate seasonal states if they were not supplied
-    if(seasonal.component==TRUE & is.null(initial.season)){
+    if(seasonal.component==TRUE & is.null(initialSeason)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
             arrvt[1:maxlag,n.components+1,] <- runif(nseries*maxlag,-500,500);
@@ -295,8 +295,8 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
-    else if(seasonal.component==TRUE & !is.null(initial.season)){
-        arrvt[1:maxlag,n.components+1,] <- rep(initial.season,nseries);
+    else if(seasonal.component==TRUE & !is.null(initialSeason)){
+        arrvt[1:maxlag,n.components+1,] <- rep(initialSeason,nseries);
     }
 
 # Check if any argument was passed in dots

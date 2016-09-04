@@ -248,6 +248,35 @@ print.iss <- function(x, ...){
     cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
 }
 
+simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
+    if(is.null(obs)){
+        obs <- length(object$actuals);
+    }
+    if(!is.null(seed)){
+        set.seed(seed);
+    }
+
+    if(gregexpr("ETS",object$model)!=-1){
+        model <- object$model;
+        model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        if(any(unlist(gregexpr("C",model))==-1)){
+            simulatedData <- sim.es(model=model, frequency=frequency(object$actuals), phi=object$phi,
+                                    persistence=object$persistence, initial=object$initial, initialSeason=object$initialSeason,
+                                    obs=obs,nseries=nsim,silent=TRUE,iprob=object$iprob[length(object$iprob)],...);
+        }
+        else{
+            message("Sorry, but we cannot simulate data out of combined model.");
+            simulatedData <- NA;
+        }
+    }
+    else{
+        model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
+        message(paste0("Sorry, but simulate is not yet available for the model ",model,"."));
+        simulatedData <- NA;
+    }
+    return(simulatedData);
+}
+
 summary.smooth <- function(object, ...){
     print(object);
 }
