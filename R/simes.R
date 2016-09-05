@@ -17,7 +17,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         Stype <- substring(model,4,4);
         if(substring(model,3,3)!="d"){
             if(silent == FALSE){
-                message(paste0("You have defined a strange model: ",model));
+                warning(paste0("You have defined a strange model: ",model),call.=FALSE);
                 sowhat(model);
             }
             model <- paste0(Etype,Ttype,"d",Stype);
@@ -25,7 +25,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         if(Ttype!="N" & phi==1){
             model <- paste0(Etype,Ttype,Stype);
             if(silent == FALSE){
-                message(paste0("Damping parameter is set to 1. Changing model to: ",model));
+                warning(paste0("Damping parameter is set to 1. Changing model to: ",model),call.=FALSE);
             }
         }
     }
@@ -36,13 +36,12 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         if(phi!=1 & Ttype!="N"){
             model <- paste0(Etype,Ttype,"d",Stype);
             if(silent == FALSE){
-                message(paste0("Damping parameter is set to ",phi,". Changing model to: ",model));
+                warning(paste0("Damping parameter is set to ",phi,". Changing model to: ",model),call.=FALSE);
             }
         }
     }
     else{
-        message(paste0("You have defined a strange model: ",model));
-        stop("Cannot proceed.",call.=FALSE);
+        stop(paste0("You have defined a strange model: ",model,". Cannot proceed"),call.=FALSE);
     }
 
 # In the case of wrong nseries, make it natural number. The same is for obs and frequency.
@@ -141,8 +140,8 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     if(!is.null(persistence)){
         if(persistence.length != length(persistence)){
             if(silent == FALSE){
-                message("The length of persistence vector does not correspond to the chosen model!");
-                message("Falling back to random number generator in... now!");
+                warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
+                               "Falling back to random number generator."),call.=FALSE);
             }
             persistence <- NULL;
         }
@@ -155,16 +154,16 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
         if(n.components!=length(initial)){
             if(silent == FALSE){
-                message("The length of initial state vector does not correspond to the chosen model!");
-                message("Falling back to random number generator in... now!");
+                warning(paste0("The length of initial state vector does not correspond to the chosen model!\n",
+                               "Falling back to random number generator."),call.=FALSE);
             }
             initial <- NULL;
         }
         else{
             if(Ttype=="M" & initial[2]<=0){
                 if(silent == FALSE){
-                    message("Wrong initial value for multiplicative trend! It should be greater than zero!");
-                    message("Using random number generator instead!");
+                    warning(paste0("Wrong initial value for multiplicative trend! It should be greater than zero!\n",
+                                   "Falling back to random number generator."),call.=FALSE);
                 }
                 initial <- NULL;
             }
@@ -174,8 +173,8 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     if(!is.null(initialSeason)){
         if(maxlag!=length(initialSeason)){
             if(silent == FALSE){
-                message("The length of seasonal initial states does not correspond to the chosen frequency!");
-                message("Falling back to random number generator in... now!");
+                    warning(paste0("The length of seasonal initial states does not correspond to the chosen frequency!\n",
+                                   "Falling back to random number generator."),call.=FALSE);
             }
             initialSeason <- NULL;
         }
