@@ -386,5 +386,5 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         matot <- ts(matot,frequency=frequency);
     }
     return(list(model=model,data=matyt,states=arrvt,persistence=matg,residuals=materrors,
-                intermittency=matot,likelihood=veclikelihood));
+                occurrences=matot,likelihood=veclikelihood));
 }
