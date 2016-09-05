@@ -3,7 +3,7 @@ Type: Package
 Title: Smoothing functions
 Version: 1.38
 Date: 2016-09-04
-Author: Ivan Svetunkov
+Author: Ivan Svetunkov, Research Associate at Lancaster Centre for Forecasting, UK
 Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 BugReports:	https://github.com/config-i1/smooth/issues
 Description: The set of smoothing functions used for time series analysis and in forecasting.
