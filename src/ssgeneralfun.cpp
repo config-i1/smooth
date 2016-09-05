@@ -630,7 +630,8 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
             matrixVt(i,matrixVt.n_cols-1) = arma::as_scalar(trans(matrixVt(lagrows.row(matrixVt.n_cols-1))));
         }
         if(T=='M'){
-            if(matrixVt(i,1) <= 0){
+            if((matrixVt(i,0) <= 0) | (matrixVt(i,1) <= 0)){
+                matrixVt(i,0) = arma::as_scalar(trans(matrixVt(lagrows.row(0))));
                 matrixVt(i,1) = arma::as_scalar(trans(matrixVt(lagrows.row(1))));
             }
         }
@@ -716,7 +717,8 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
                 matrixVt(i,matrixVt.n_cols-1) = arma::as_scalar(trans(matrixVt(lagrows.row(matrixVt.n_cols-1))));
             }
             if(T=='M'){
-                if(matrixVt(i,1) <= 0){
+                if((matrixVt(i,0) <= 0) | (matrixVt(i,1) <= 0)){
+                    matrixVt(i,0) = arma::as_scalar(trans(matrixVt(lagrows.row(0))));
                     matrixVt(i,1) = arma::as_scalar(trans(matrixVt(lagrows.row(1))));
                 }
             }
@@ -766,7 +768,8 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
                 matrixVt(i,matrixVt.n_cols-1) = arma::as_scalar(trans(matrixVt(lagrows.row(matrixVt.n_cols-1))));
             }
             if(T=='M'){
-                if(matrixVt(i,1) <= 0){
+                if((matrixVt(i,0) <= 0) | (matrixVt(i,1) <= 0)){
+                    matrixVt(i,0) = arma::as_scalar(trans(matrixVt(lagrows.row(0))));
                     matrixVt(i,1) = arma::as_scalar(trans(matrixVt(lagrows.row(1))));
                 }
             }
