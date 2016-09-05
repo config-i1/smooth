@@ -954,6 +954,7 @@ CreatorES <- function(silent=FALSE,...){
     else{
         list2env(esValues,environment());
 
+        modelOriginal <- model;
         # Produce the forecasts using AIC weights
         models.number <- length(icWeights);
         model.current <- rep(NA,models.number);
@@ -976,6 +977,13 @@ CreatorES <- function(silent=FALSE,...){
             n.param <- as.numeric(results[[i]][length(results[[i]])]);
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
+            if(damped){
+                model.current[i] <- paste0(Etype,Ttype,"d",Stype);
+            }
+            else{
+                model.current[i] <- paste0(Etype,Ttype,Stype);
+            }
+            model <- model.current[i];
 
             ssFitter(ParentEnvironment=environment());
             ssForecaster(ParentEnvironment=environment());
@@ -987,12 +995,6 @@ CreatorES <- function(silent=FALSE,...){
                 upper.list[,i] <- y.high;
             }
             phi <- NULL;
-            if(damped){
-                model.current[i] <- paste0(Etype,Ttype,"d",Stype);
-            }
-            else{
-                model.current[i] <- paste0(Etype,Ttype,Stype);
-            }
         }
         y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=frequency(data));
         y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
@@ -1007,6 +1009,7 @@ CreatorES <- function(silent=FALSE,...){
             y.high <- NA;
         }
         names(ICs) <- paste0("Combined ",ic);
+        model <- modelOriginal;
     }
 
 ##### Do final check and make some preparations for output #####
