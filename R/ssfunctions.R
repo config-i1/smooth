@@ -1288,6 +1288,7 @@ quantfunc <- function(A){
         lowerquant <- qt((1-level)/2,df=df);
     }
 
+##### If they want us to produce several steps ahead #####
     if(is.matrix(errors) | is.data.frame(errors)){
         n.var <- ncol(errors);
         obs <- nrow(errors);
@@ -1312,8 +1313,27 @@ quantfunc <- function(A){
 #### Semiparametric intervals using the variance of errors ####
         else if(intervalsType=="s"){
             errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
-            upper <- ev + upperquant * sqrt(colMeans(errors^2,na.rm=T));
-            lower <- ev + lowerquant * sqrt(colMeans(errors^2,na.rm=T));
+            vec.var <- colMeans(errors^2,na.rm=T);
+            if(Etype=="M"){
+                vec.mean <- 1;
+                upperquant <- qlnorm((1+level)/2,rep(0,n.var),sqrt(vec.var));
+                lowerquant <- qlnorm((1-level)/2,rep(0,n.var),sqrt(vec.var));
+                # Return to normal values
+                vec.var <- (exp(vec.var) - 1) * exp(vec.var);
+                # Standartise quantiles
+                upperquant <- (upperquant - vec.mean) / sqrt(vec.var);
+                lowerquant <- (lowerquant - vec.mean) / sqrt(vec.var);
+                # Take intermittent data into account
+                vec.var <- vec.var * ivar + vec.mean^2 * ivar + iprob^2 * vec.var;
+                # Write down quantiles with new variances
+                upper <- upperquant * sqrt(vec.var);
+                lower <- lowerquant * sqrt(vec.var);
+            }
+            else{
+                vec.var <- vec.var * ivar + c(y.for)^2 * ivar + iprob^2 * vec.var;
+                upper <- ev + upperquant * sqrt(vec.var);
+                lower <- ev + lowerquant * sqrt(vec.var);
+            }
         }
 
 #### Nonparametric intervals using Taylor and Bunn, 1999 ####
@@ -1345,7 +1365,7 @@ quantfunc <- function(A){
             # Vector of final variances
             vec.var <- rep(NA,h);
 
-#### Pure multiplicative models
+#### Pure multiplicative models ####
             if(Etype=="M" & all(c(Ttype,Stype)!="A")){
                 # Array of variance of states
                 mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
@@ -1420,6 +1440,7 @@ quantfunc <- function(A){
             #
             #     }
             # }
+#### Pure Additive models ####
             else{
                 # Array of variance of states
                 mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
@@ -1475,6 +1496,7 @@ quantfunc <- function(A){
             }
         }
     }
+##### If we were asked to produce 1 value #####
     else if(is.numeric(errors) & length(errors)>1 & !is.array(errors)){
         if(length(ev)>1){
             stop("Provided expected value doesn't correspond to the dimension of errors.", call.=FALSE);
@@ -1485,8 +1507,25 @@ quantfunc <- function(A){
             lower <- ev + lowerquant / hsmN^2 * Im(hm(errors,ev))^2;
         }
         else if(any(intervalsType==c("s","p"))){
-            upper <- upperquant * sqrt(s2 * iprob + c(y.for)^2 * ivar);
-            lower <- lowerquant * sqrt(s2 * iprob + c(y.for)^2 * ivar);
+            if(Etype=="M"){
+                upperquant <- qlnorm((1+level)/2,0,sqrt(s2));
+                lowerquant <- qlnorm((1-level)/2,0,sqrt(s2));
+                # Return to normal values
+                s2 <- (exp(s2) - 1) * exp(s2);
+                # Standartise quantiles
+                upperquant <- (upperquant - 1) / sqrt(s2);
+                lowerquant <- (lowerquant - 1) / sqrt(s2);
+                # Take intermittent data into account
+                s2 <- s2 * ivar + ivar + iprob^2 * s2;
+                # Write down quantiles with new variances
+                upper <- upperquant * sqrt(s2);
+                lower <- lowerquant * sqrt(s2);
+            }
+            else{
+                s2 <- s2 * ivar + c(y.for)^2 * ivar + iprob^2 * s2;
+                upper <- ev + upperquant * sqrt(s2);
+                lower <- ev + lowerquant * sqrt(s2);
+            }
         }
         else if(intervalsType=="n"){
             upper <- quantile(errors,(1+level)/2);
@@ -1664,7 +1703,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
             checkvariability <- apply(xreg[1:obsInsample,]==rep(xreg[1,],each=obsInsample),2,all);
             if(any(checkvariability)){
                 if(all(checkvariability)){
-                    warning("All exogenous variables have no variability. Cannot do anything with that, so dropping out xreg.",
+                    warning("None of exogenous variables has variability. Cannot do anything with that, so dropping out xreg.",
                             call.=FALSE);
                     xreg <- NULL;
                 }
@@ -1676,6 +1715,16 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
             }
 
             if(!is.null(xreg)){
+                # Check for multicollinearity and drop something if there is a perfect one
+                corMatrix <- cor(xreg);
+                corCheck <- upper.tri(corMatrix) & corMatrix==1;
+                if(any(corCheck)){
+                    removexreg <- unique(which(corCheck,arr.ind=TRUE)[,1]);
+                    xreg <- matrix(xreg[,-removexreg],ncol=ncol(xreg)-length(removexreg));
+                    warning("Some exogenous variables were perfectly correlated. We've dropped them out.",
+                            call.=FALSE);
+                }
+
                 if(nrow(xreg)!=obsInsample & nrow(xreg)!=obsAll){
                     stop("Length of xreg does not correspond to either in-sample or the whole series lengths. Aborting!",
                          call.=FALSE);
