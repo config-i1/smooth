@@ -118,8 +118,8 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
   \itemize{
     \item \code{model} - name of the estimated model.
     \item \code{timeElapsed} - time elapsed for the construction of the model.
-    \item \code{states} - matrix of the fuzzy components of GES, where \code{rows} correspond to time and \code{cols} to states.
-    \item \code{initial} - initial values of the state vector (extracted from \code{states}).
+    \item \code{states} - matrix of fuzzy components of GES, where \code{rows} correspond to time and \code{cols} to states.
+    \item \code{initial} - initial values of state vector (extracted from \code{states}).
     \item \code{nParam} - number of estimated parameters.
     \item \code{measurement} - matrix w.
     \item \code{transition} - matrix F.
