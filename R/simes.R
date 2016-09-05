@@ -239,7 +239,9 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
                         Theta <- 0.1;
                         Theta <- optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par;
 
-                        D <- (phi*(1-matg[1,i])+1)*(1-cos(Theta)) - matg[3,i]*((1+phi)*(1-cos(Theta) - cos(maxlag*Theta)) + cos((maxlag-1)*Theta)+phi*cos((maxlag+1)*Theta))/(2*(1+cos(Theta))*(1-cos(maxlag*Theta)));
+                        D <- (phi*(1-matg[1,i])+1)*(1-cos(Theta)) - matg[3,i]*((1+phi)*(1-cos(Theta) - cos(maxlag*Theta)) +
+                                                                                   cos((maxlag-1)*Theta)+phi*cos((maxlag+1)*Theta))/
+                            (2*(1+cos(Theta))*(1-cos(maxlag*Theta)));
                         matg[2,i] <- runif(1,-(1-phi)*(matg[3,i]/maxlag+matg[1,i]),D+(phi-1)*matg[1,i]);
                     }
                 }
