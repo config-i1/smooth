@@ -99,8 +99,8 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
                     CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
                 }
                 else{
-                        CLower <- c(CLower,0.1,0.01);
-                    CUpper <- c(CUpper,Inf,5);
+                    CLower <- c(CLower,0.1,0.01);
+                    CUpper <- c(CUpper,Inf,3);
                 }
             }
             if(Stype!="N"){
