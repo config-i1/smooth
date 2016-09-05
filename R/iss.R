@@ -225,6 +225,10 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         iyt.for <- ts(rep(iyt.fit[obsInsample],h),
                      start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
 
+        # Correction so we can return from those iy_kappa values
+        iyt.fit <- (iyt.fit - kappa) / (1 - 2*kappa);
+        iyt.for <- (iyt.for - kappa) / (1 - 2*kappa);
+
         model <- list(fitted=iyt.fit,states=ivt,forecast=iyt.for,variance=iyt.for*(1-iyt.for),
                       likelihood=likelihood,residuals=errors,C=C,actuals=ot);
     }
