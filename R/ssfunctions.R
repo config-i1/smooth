@@ -1746,7 +1746,9 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                         #xreg <- rbind(xreg,xreg[obsInsample,]);
                     }
                     xreg <- rbind(xreg,xregForecast);
-                    cat("\b\b\b\bDone!\n");
+                    if(!silent){
+                        cat("\b\b\b\bDone!\n");
+                    }
                 }
 # mat.x is needed for the initial values of coefs estimation using OLS
                 mat.x <- as.matrix(cbind(rep(1,obsAll),xreg));
