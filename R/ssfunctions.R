@@ -1664,7 +1664,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
 
     if(!is.null(xreg)){
-        if(any(is.na(xreg)) & silent==FALSE){
+        if(any(is.na(xreg))){
             warning("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.",
                     call.=FALSE);
         }
@@ -1855,6 +1855,10 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
 
         vecgX <- matrix(0,n.exovars,1);
         gXEstimate <- FALSE;
+    }
+
+    if(all(!FXEstimate,!gXEstimate,!initialXEstimate)){
+        xregEstimate <- FALSE;
     }
 
     return(list(n.exovars=n.exovars, matxt=matxt, matat=matat, matFX=matFX, vecgX=vecgX,
