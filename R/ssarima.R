@@ -371,7 +371,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     else{
         C <- NULL;
 # initial values of state vector and the constant term
-        matvt[1,1:n.components] <- initialValue;
+        matvt[1,1:n.components-constant$required] <- initialValue;
+        if(constant$required){
+            matvt[1,1:n.components] <- constant$value;
+        }
 
         cfObjective <- CF(C);
     }
