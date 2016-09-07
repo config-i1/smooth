@@ -43,7 +43,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(c(persistenceX,transitionX)!=0)){
+        if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
         model <- model$model;

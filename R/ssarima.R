@@ -43,7 +43,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(c(persistenceX,transitionX)!=0) & any(transitionX!=1)){
+        if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
         AR <- model$AR;

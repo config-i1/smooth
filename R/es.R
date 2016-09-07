@@ -36,7 +36,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(c(persistenceX,transitionX)!=0)){
+        if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
         model <- model$model;
@@ -440,13 +440,13 @@ EstimatorES <- function(...){
     C <- res$solution;
 
     if(all(C==Cs$C)){
-        warning(paste0("Failed to optimise the model ETS(",current.model,
+        warning(paste0("Failed to optimise the model ETS(", current.model,
                        "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                        "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
                 call.=FALSE);
     }
 
-    n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
+    n.param <- n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType=="o") +
         !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
     # Change cfType for model selection
@@ -804,7 +804,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        n.param <- n.components + damped + (n.components - (Stype!="N"))*(initialType=="o") + maxlag*(initialType=="o") +
+        n.param <- n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType=="o") +
             !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
 
 # Change cfType for model selection

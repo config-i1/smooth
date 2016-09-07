@@ -44,7 +44,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(c(persistenceX,transitionX)!=0)){
+        if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
         model <- model$model;
