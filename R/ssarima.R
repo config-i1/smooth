@@ -43,7 +43,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        if(any(c(persistenceX,transitionX)!=0)){
+        if(any(c(persistenceX,transitionX)!=0) & any(transitionX!=1)){
             updateX <- TRUE;
         }
         AR <- model$AR;
@@ -242,7 +242,7 @@ polyroots <- function(C){
     }
 
 # If exogenous are included
-    if(xregEstimate){
+    if(!is.null(xreg)){
         at <- matrix(NA,maxlag,n.exovars);
         if(initialXEstimate){
             at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
@@ -372,10 +372,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     else{
         C <- NULL;
 # initial values of state vector and the constant term
-        slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-        intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-        initialStuff <- c(intercept,-intercept,rep(slope,n.components));
-        matvt[1,1:n.components] <- initialStuff[1:(n.components)];
+        matvt[1,1:n.components] <- initialValue;
 
         cfObjective <- CF(C);
     }
@@ -622,7 +619,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     if(constant$required){
         if(constant$estimate){
-            constant$value <- C[length(C)];
+            constant$value <- matvt[1,n.components];
         }
         const <- constant$value;
 
