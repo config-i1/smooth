@@ -615,7 +615,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 
 /* # Measurement equation and the error term */
         matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                       matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag)));
+                                       matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-1)));
         materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -702,7 +702,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
 /* # Measurement equation and the error term */
             matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                           matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-maxlag)));
+                                           matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i-1)));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -753,7 +753,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
 /* # Measurement equation and the error term */
             matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                           matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i+maxlag)));
+                                           matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i+1)));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -838,14 +838,14 @@ RcppExport SEXP fitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
 
     switch(fitterType){
+        case 'b':
+            return wrap(backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+                                   matrixXt, matrixAt, matrixFX, vecGX, vecOt));
+        break;
         case 'o':
         default:
             return wrap(fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                                matrixXt, matrixAt, matrixFX, vecGX, vecOt));
-        break;
-        case 'b':
-            return wrap(backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
-                                   matrixXt, matrixAt, matrixFX, vecGX, vecOt));
     }
 }
 
@@ -1016,14 +1016,14 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     List fitting;
 
     switch(fitterType){
+        case 'b':
+        fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+                             matrixXt, matrixAt, matrixFX, vecGX, vecOt);
+        break;
         case 'o':
         default:
         fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
                          matrixXt, matrixAt, matrixFX, vecGX, vecOt);
-        break;
-        case 'b':
-        fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
-                             matrixXt, matrixAt, matrixFX, vecGX, vecOt);
     }
 
     NumericMatrix mxtfromfit = as<NumericMatrix>(fitting["matvt"]);
