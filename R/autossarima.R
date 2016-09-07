@@ -193,8 +193,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     }
 # Update the iSelect in i.test preserving the previous values
                     i.test[seasSelect] <- iSelect;
-                    n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) +
-                            sum(ar.best) + sum(ma.best) + 1;
+                    n.param <- 1 + max(ar.best %*% lags + i.test %*% lags,ma.best %*% lags) + sum(ar.best) + sum(ma.best) + 1;
                     if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
                         ICsTest[iSelect+1] <- Inf;
@@ -231,8 +230,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     }
 # Update the iSelect in i.test preserving the previous values
                     ma.test[seasSelect] <- ma.max[seasSelect] - maSelect + 1;
-                    n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) +
-                            sum(ar.best) + sum(ma.test) + 1;
+                    n.param <- 1 + max(ar.best %*% lags + i.best %*% lags,ma.test %*% lags) + sum(ar.best) + sum(ma.test) + 1;
                     if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
                         ICsTest[iSelect+1] <- Inf;
@@ -280,8 +278,7 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                     }
 # Update the iSelect in ar.test preserving the previous values
                     ar.test[seasSelect] <- ar.max[seasSelect] - arSelect + 1;
-                    n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) +
-                            sum(ar.test) + sum(ma.best) + 1;
+                    n.param <- 1 + max(ar.test %*% lags + i.best %*% lags,ma.best %*% lags) + sum(ar.test) + sum(ma.best) + 1;
                     if(n.param > obsInsample - 2){
                         test.models[[m]] <- NA;
                         ICsTest[iSelect+1] <- Inf;
