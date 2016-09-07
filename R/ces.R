@@ -41,6 +41,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         initial <- model$initial;
         A <- model$A;
         B <- model$B;
+        xreg <- model$xreg;
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;

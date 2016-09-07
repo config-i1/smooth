@@ -38,8 +38,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         if(!is.null(model$initial)){
             initial <- model$initial;
         }
-        #persistence <- model$persistence;
-        #transition <- model$transition;
+        xreg <- model$xreg;
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
