@@ -123,7 +123,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     \item \code{nParam} - number of estimated parameters.
     \item \code{measurement} - matrix w.
     \item \code{transition} - matrix F.
-    \item \code{persistence} - persistence vector.
+    \item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
     \item \code{fitted} - fitted values of ETS.
     \item \code{forecast} - point forecast of ETS.
     \item \code{lower} - lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.

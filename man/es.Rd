@@ -126,7 +126,7 @@ For the details see Hyndman et al.(2008).
     \item \code{model} - type of constructed model.
     \item \code{timeElapsed} - time elapsed for the construction of the model.
     \item \code{states} - matrix of the components of ETS.
-    \item \code{persistence} - persistence vector.
+    \item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
     \item \code{phi} - value of damping parameter.
     \item \code{initial} - intial values of the state vector (non-seasonal).
     \item \code{initialSeason} - intial values of the seasonal part of state vector.

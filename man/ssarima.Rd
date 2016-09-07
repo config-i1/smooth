@@ -127,7 +127,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
     \item \code{timeElapsed} - time elapsed for the construction of the model.
     \item \code{states} - the matrix of the fuzzy components of ssarima, where \code{rows} correspond to time and \code{cols} to states.
     \item \code{transition} - matrix F.
-    \item \code{persistence} - the persistence vector.
+    \item \code{persistence} - the persistence vector. This is the place, where smoothing parameters live.
     \item \code{AR} - the matrix of coefficients of AR terms.
     \item \code{I} - the matrix of coefficients of I terms.
     \item \code{MA} - the matrix of coefficients of MA terms.

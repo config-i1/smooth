@@ -132,7 +132,7 @@ forecast.smooth <- function(object, h=10, intervals=TRUE,
         newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
     }
     else{
-        stop("Wrong object provided. This needs to be an object of class 'smooth'.",call.=FALSE);
+        stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
     }
 
     output <- list(model=newModel$model,fitted=newModel$fitted,actuals=newModel$actuals,

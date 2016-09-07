@@ -37,7 +37,7 @@
     }
 }
 \details{
-    This is not necessary function. You can use either \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without \code{forecast.smooth}. But if you are really used to \code{forecast} function, then go ahead!
+    This is not a compulsary function. You can simply use \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without \code{forecast.smooth}. But if you are really used to \code{forecast} function, then go ahead!
 }
 \value{
     Returns object of class "forecastSmooth", which contains:
