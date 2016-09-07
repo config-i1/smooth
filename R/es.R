@@ -87,7 +87,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,rep(0,length(vecg)));
             CUpper <- c(CUpper,rep(1,length(vecg)));
         }
-        if(phiEstimate){
+        if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
@@ -125,7 +125,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,rep(-5,length(vecg)));
             CUpper <- c(CUpper,rep(5,length(vecg)));
         }
-        if(phiEstimate){
+        if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
@@ -163,7 +163,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             CLower <- c(CLower,rep(-Inf,length(vecg)));
             CUpper <- c(CUpper,rep(Inf,length(vecg)));
         }
-        if(phiEstimate){
+        if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,-Inf);
             CUpper <- c(CUpper,Inf);
@@ -303,12 +303,13 @@ BasicInitialiserES <- function(...){
     y.for <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
-    BasicMakerES(ParentEnvironment=environment());
+    basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
+                              damped, phi, smoothingparameters, initialstates, seasonalcoefs);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
     n.exovars <- xregdata$n.exovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
@@ -436,6 +437,11 @@ EstimatorES <- function(...){
         C <- res$solution;
     }
 
+    if(any((C>=CUpper),(C<=CLower))){
+        C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
+        C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
+    }
+
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
     C <- res$solution;
@@ -447,8 +453,7 @@ EstimatorES <- function(...){
                 call.=FALSE);
     }
 
-    n.param <- n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType=="o") +
-        !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
+    n.param <- 1 + n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType=="o") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
 
     # Change cfType for model selection
     if(multisteps){
@@ -787,8 +792,11 @@ CreatorES <- function(silent=FALSE,...){
                     cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,n.param=res$n.param,FI=FI));
     }
     else{
+        environment(CF) <- environment();
         environment(ICFunction) <- environment();
         environment(likelihoodFunction) <- environment();
+        environment(BasicMakerES) <- environment();
+        BasicMakerES(ParentEnvironment=environment());
 
         C <- c(vecg);
         if(damped){
@@ -805,8 +813,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        n.param <- n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType=="o") +
-            !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
+        n.param <- 1 + n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType=="o") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
 
 # Change cfType for model selection
         if(multisteps){
