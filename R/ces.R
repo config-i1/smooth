@@ -313,7 +313,7 @@ CreatorCES <- function(silentText=FALSE,...){
             }
         }
 
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_COBYLA", "xtol_rel"=1e-8, "maxeval"=1000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
 
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
