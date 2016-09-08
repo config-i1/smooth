@@ -11,7 +11,7 @@
 sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
         initial=NULL, initialSeason=NULL,
         bounds=c("usual","admissible","restricted"),
-        obs=10, nseries=1, silent=FALSE,
+        obs=10, nsim=1, silent=FALSE,
         randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
         iprob=1, ...)
 }
@@ -41,8 +41,8 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
   \item{obs}{
     Number of observations in each generated time series.
   }
-  \item{nseries}{
-    Number of series to generate.
+  \item{nsim}{
+    Number of series to generate (numeber of simulations to do).
   }
   \item{silent}{
     If TRUE then no output is printed.
@@ -61,10 +61,10 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
 \value{
     List of the following values is returned:
         \item{model}{Name of ETS model.}
-        \item{data}{Time series vector (or matrix if \code{nseries>1}) of the generated series.}
-        \item{states}{Matrix (or array if \code{nseries>1}) of states. States are in columns, time is in rows.}
-        \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nseries}.}
-        \item{persistence}{Vector (or matrix if \code{nseries>1}) of smoothing parameters used in the simulation.}
+        \item{data}{Time series vector (or matrix if \code{nsim>1}) of the generated series.}
+        \item{states}{Matrix (or array if \code{nsim>1}) of states. States are in columns, time is in rows.}
+        \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
+        \item{persistence}{Vector (or matrix if \code{nsim>1}) of smoothing parameters used in the simulation.}
         \item{occurrences}{Values of occurrence variable. Once again, can be either a vector or a matrix...}
         \item{likelihood}{Log-likelihood of the constructed model.}
 }
@@ -84,13 +84,13 @@ sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100) -> ETS.A
 
 # Create 50 series of quarterly data using AAA model
 # with 40 observations each with errors from normal distribution
-sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nseries=50) -> ETS.AAA
+sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nsim=50) -> ETS.AAA
 
 # Create 50 series of quarterly data using AAdA model
 # with 40 observations each with errors from normal distribution
 # and smoothing parameters lying in the "admissible" range.
 sim.es(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
-        randomizer="rnorm",mean=0,sd=100,nseries=50) -> ETS.AAA
+        randomizer="rnorm",mean=0,sd=100,nsim=50) -> ETS.AAA
 
 # Create 60 observations of monthly data using ANN model
 # with errors from beta distribution

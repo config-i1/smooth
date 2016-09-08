@@ -1,7 +1,7 @@
 sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
              initial=NULL, initialSeason=NULL,
              bounds=c("usual","admissible","restricted"),
-             obs=10, nseries=1, silent=FALSE,
+             obs=10, nsim=1, silent=FALSE,
              randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
              iprob=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
@@ -44,8 +44,8 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         stop(paste0("You have defined a strange model: ",model,". Cannot proceed"),call.=FALSE);
     }
 
-# In the case of wrong nseries, make it natural number. The same is for obs and frequency.
-    nseries <- abs(round(nseries,0));
+# In the case of wrong nsim, make it natural number. The same is for obs and frequency.
+    nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
     frequency <- abs(round(frequency,0));
 
@@ -190,36 +190,36 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 
 ##### Let's make sum fun #####
 
-    matg <- matrix(NA,persistence.length,nseries);
-    arrvt <- array(NA,c(obs+maxlag,persistence.length,nseries),dimnames=list(NULL,component.names,NULL));
-    materrors <- matrix(NA,obs,nseries);
-    matyt <- matrix(NA,obs,nseries);
-    matot <- matrix(NA,obs,nseries);
+    matg <- matrix(NA,persistence.length,nsim);
+    arrvt <- array(NA,c(obs+maxlag,persistence.length,nsim),dimnames=list(NULL,component.names,NULL));
+    materrors <- matrix(NA,obs,nsim);
+    matyt <- matrix(NA,obs,nsim);
+    matot <- matrix(NA,obs,nsim);
 
 # If the persistence is NULL or was of the wrong length, generate the values
     if(is.null(persistence)){
 ### For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
         if(bounds=="u"){
-            matg[,] <- runif(persistence.length*nseries,0,1);
+            matg[,] <- runif(persistence.length*nsim,0,1);
         }
 ### These restrictions are even touhger
         else if(bounds=="r"){
-            matg[,] <- runif(persistence.length*nseries,0,0.3);
+            matg[,] <- runif(persistence.length*nsim,0,0.3);
         }
 ### Fill in the other smoothing parameters
         if(bounds!="a"){
             if(Ttype!="N"){
-                matg[2,] <- runif(nseries,0,matg[1,]);
+                matg[2,] <- runif(nsim,0,matg[1,]);
             }
             if(Stype!="N"){
-                matg[persistence.length,] <- runif(nseries,0,max(0,1-matg[1]));
+                matg[persistence.length,] <- runif(nsim,0,max(0,1-matg[1]));
             }
         }
 ### In case of admissible bounds, do some stuff
         else{
-            matg[,] <- runif(persistence.length*nseries,1-1/phi,1+1/phi);
+            matg[,] <- runif(persistence.length*nsim,1-1/phi,1+1/phi);
             if(Ttype!="N"){
-                matg[2,] <- runif(nseries,matg[1,]*(phi-1),(2-matg[1,])*(1+phi));
+                matg[2,] <- runif(nsim,matg[1,]*(phi-1),(2-matg[1,])*(1+phi));
                 if(Stype!="N"){
                     Theta.func <- function(Theta){
                         result <- (phi*matg[1,i]+phi+1)/(matg[3,i]) +
@@ -228,7 +228,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
                         return(abs(result));
                     }
 
-                    for(i in 1:nseries){
+                    for(i in 1:nsim){
                         matg[3,i] <- runif(1,max(1-1/phi-matg[1,i],0),1+1/phi-matg[1,i]);
 
                         B <- phi*(4-3*matg[3,i])+matg[3,i]*(1-phi)/maxlag;
@@ -248,71 +248,71 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
             }
             else{
                 if(Stype!="N"){
-                    matg[1,] <- runif(nseries,-2/(maxlag-1),2);
-                    for(i in 1:nseries){
+                    matg[1,] <- runif(nsim,-2/(maxlag-1),2);
+                    for(i in 1:nsim){
                         matg[2,i] <- runif(1,max(-maxlag*matg[1,i],0),2-matg[1,i]);
                     }
-                    matg[1,] <- runif(nseries,-2/(maxlag-1),2-matg[2,]);
+                    matg[1,] <- runif(nsim,-2/(maxlag-1),2-matg[2,]);
                 }
             }
         }
     }
     else{
-        matg[,] <- rep(persistence,nseries);
+        matg[,] <- rep(persistence,nsim);
     }
 
 # Generate initial states of level and trend if they were not supplied
     if(is.null(initial)){
         if(Ttype=="N"){
-            arrvt[1:maxlag,1,] <- runif(nseries,0,1000);
+            arrvt[1:maxlag,1,] <- runif(nsim,0,1000);
         }
         else if(Ttype=="A"){
-            arrvt[1:maxlag,1,] <- runif(nseries,0,5000);
-            arrvt[1:maxlag,2,] <- runif(nseries,-100,100);
+            arrvt[1:maxlag,1,] <- runif(nsim,0,5000);
+            arrvt[1:maxlag,2,] <- runif(nsim,-100,100);
         }
         else{
-            arrvt[1:maxlag,1,] <- runif(nseries,500,5000);
+            arrvt[1:maxlag,1,] <- runif(nsim,500,5000);
             arrvt[1:maxlag,2,] <- 1;
         }
     }
     else{
-        arrvt[,1:n.components,] <- rep(rep(initial,each=(obs+maxlag)),nseries);
+        arrvt[,1:n.components,] <- rep(rep(initial,each=(obs+maxlag)),nsim);
     }
 
 # Generate seasonal states if they were not supplied
     if(seasonal.component==TRUE & is.null(initialSeason)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
-            arrvt[1:maxlag,n.components+1,] <- runif(nseries*maxlag,-500,500);
-            for(i in 1:nseries){
+            arrvt[1:maxlag,n.components+1,] <- runif(nsim*maxlag,-500,500);
+            for(i in 1:nsim){
                 arrvt[1:maxlag,n.components+1,i] <- arrvt[1:maxlag,n.components+1,i] - mean(arrvt[1:maxlag,n.components+1,i]);
             }
         }
         else{
-            arrvt[1:maxlag,n.components+1,] <- runif(nseries*maxlag,0.3,1.7);
-            for(i in 1:nseries){
+            arrvt[1:maxlag,n.components+1,] <- runif(nsim*maxlag,0.3,1.7);
+            for(i in 1:nsim){
                 arrvt[1:maxlag,n.components+1,i] <- arrvt[1:maxlag,n.components+1,i] / exp(mean(log(arrvt[1:maxlag,n.components+1,i])));
             }
         }
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else if(seasonal.component==TRUE & !is.null(initialSeason)){
-        arrvt[1:maxlag,n.components+1,] <- rep(initialSeason,nseries);
+        arrvt[1:maxlag,n.components+1,] <- rep(initialSeason,nsim);
     }
 
 # Check if any argument was passed in dots
     if(any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE){
 # Create vector of the errors
         if(any(randomizer==c("rnorm","runif"))){
-            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,")")));
+            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
         }
         else if(randomizer=="rlnorm"){
-            materrors[,] <- rlnorm(n=nseries*obs,0,0.01+(1-iprob));
+            materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-iprob));
             materrors <- materrors - 1;
         }
         else if(randomizer=="rt"){
 # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nseries*obs,obs-(persistence.length + maxlag));
+            materrors[,] <- rt(nsim*obs,obs-(persistence.length + maxlag));
         }
 
         if(randomizer!="rlnorm"){
@@ -339,7 +339,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nseries*obs,",", toString(as.character(list(...))),")")));
+        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(list(...))),")")));
         if(randomizer=="rbeta"){
 # Center the errors around 0
             materrors <- materrors - 0.5;
@@ -359,7 +359,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 
 # Generate ones for the possible intermittency
     if((iprob < 1) & (iprob > 0)){
-        matot[,] <- rbinom(obs*nseries,1,iprob);
+        matot[,] <- rbinom(obs*nsim,1,iprob);
     }
     else{
         matot[,] <- 1;
@@ -376,7 +376,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,component.names,NULL);
 
-    if(nseries==1){
+    if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);
         materrors <- ts(materrors[,1],frequency=frequency);
         arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
