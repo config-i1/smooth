@@ -9,7 +9,7 @@
 }
 \usage{
   iss(data, intermittent=c("none","fixed","croston","tsb"),
-      h=10, imodel=NULL, ipersistence=NULL)
+      h=10, holdout=FALSE, model=NULL, persistence=NULL)
 }
 \arguments{
   \item{data}{
@@ -21,10 +21,13 @@
   \item{h}{
     Forecast horizon.
   }
-  \item{imodel}{
+  \item{holdout}{
+    If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
+  }
+  \item{model}{
     Type of ETS model used for the estimation. Normally this should be either \code{"ANN"} or \code{"MNN"}.
   }
-  \item{ipersistence}{
+  \item{persistence}{
     Persistence vector. If \code{NULL}, then it is estimated.
   }
 }
@@ -59,7 +62,9 @@
 }
 \examples{
     y <- rpois(100,0.1)
-    iss(y)
+    iss(y, intermittent="t")
+
+    iss(y, intermittent="c", persistence=0.1)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
