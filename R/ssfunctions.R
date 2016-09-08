@@ -655,14 +655,23 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                         persistenceEstimate <- TRUE;
                     }
                     else{
-                        persistenceEstimate <- FALSE;
+                        if(length(persistence)!=(1 + (Ttype!="N") + (Stype!="N"))){
+                            warning(paste0("Wrong length of persistence vector. Should be ",(1 + (Ttype!="N") + (Stype!="N")),
+                                           " instead of ",length(persistence),".\n",
+                                           "Changing to estimation of persistence vector values."),call.=FALSE);
+                            persistence <- NULL;
+                            persistenceEstimate <- TRUE;
+                        }
+                        else{
+                            persistenceEstimate <- FALSE;
+                        }
                     }
                 }
                 else if(modelType=="ges"){
                     if(length(persistence) != n.components){
                         warning(paste0("Wrong length of persistence vector. Should be ",n.components,
                                        " instead of ",length(persistence),".\n",
-                                       "Changing to theestimation of persistence vector values."),call.=FALSE);
+                                       "Changing to estimation of persistence vector values."),call.=FALSE);
                         persistence <- NULL;
                         persistenceEstimate <- TRUE;
                     }
