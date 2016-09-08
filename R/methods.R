@@ -260,9 +260,16 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         model <- object$model;
         model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
         if(any(unlist(gregexpr("C",model))==-1)){
+            if(substr(model,1,1)=="A"){
+                randomizer <- "rnorm";
+            }
+            else{
+                randomizer <- "rlnorm";
+            }
             simulatedData <- sim.es(model=model, frequency=frequency(object$actuals), phi=object$phi,
                                     persistence=object$persistence, initial=object$initial, initialSeason=object$initialSeason,
-                                    obs=obs,nseries=nsim,silent=TRUE,iprob=object$iprob[length(object$iprob)],...);
+                                    obs=obs,nsim=nsim,silent=TRUE,iprob=object$iprob[length(object$iprob)],
+                                    randomizer=randomizer,mean=0,sd=sqrt(object$s2),...);
         }
         else{
             message("Sorry, but we cannot simulate data out of combined model.");
