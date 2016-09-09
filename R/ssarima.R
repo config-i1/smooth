@@ -1,4 +1,4 @@
-utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate",
+utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate"));
 
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),

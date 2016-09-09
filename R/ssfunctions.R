@@ -1,7 +1,7 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model",
-                         "constant","AR","MA"));
+                         "constant","AR","MA","data"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){

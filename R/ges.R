@@ -1,4 +1,4 @@
-utils::globalVariables(c("measurementEstimate","transitionEstimate",
+utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
                          "persistenceEstimate","obsAll","obsInsample","multisteps","ot","obsNonzero","ICs","cfObjective",
                          "y.for","y.low","y.high","normalizer"));
 
