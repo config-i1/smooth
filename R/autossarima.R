@@ -326,8 +326,8 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                     h=h,holdout=holdout,intervals=intervals,level=level,
                                     intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
                                     xreg=xreg,updateX=updateX,FI=FI);
-    ICsTest[2] <- test.models[[m]]$ICs[ic];
-    ICsTestAll[m] <- test.models[[m]]$ICs[ic];
+        ICsTest[2] <- test.models[[m]]$ICs[ic];
+        ICsTestAll[m] <- test.models[[m]]$ICs[ic];
     }
 
     constant <- c(TRUE,FALSE)[which(ICsTest[1:2]==min(ICsTest[1:2],na.rm=TRUE))];
