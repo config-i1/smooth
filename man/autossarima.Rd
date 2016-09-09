@@ -117,11 +117,11 @@ x <- rnorm(118,100,3)
 
 # The best ARIMA for the data
 auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
-             h=18,holdout=TRUE)->test
+                     h=18,holdout=TRUE)
 
 # The other one using optimised states
-auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
-             initial="o",h=18,holdout=TRUE)->test
+test <- auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+                     initial="o",h=18,holdout=TRUE)
 
 summary(test)
 forecast(test)
