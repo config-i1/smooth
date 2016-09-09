@@ -1,6 +1,7 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model"));
+                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model",
+                         "constant","AR","MA"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -230,87 +231,87 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             lags <- lags.new;
         }
 
-        AR <- list(value=AR);
+        ARValue <- AR;
         # Check the provided AR matrix / vector
-        if(!is.null(AR$value)){
-            if((!is.numeric(AR$value) | !is.vector(AR$value)) & !is.matrix(AR$value)){
+        if(!is.null(ARValue)){
+            if((!is.numeric(ARValue) | !is.vector(ARValue)) & !is.matrix(ARValue)){
                 warning(paste0("AR should be either vector or matrix. You have provided something strange...\n",
                                "AR will be estimated."),call.=FALSE);
-                AR$required <- AR$estimate <- TRUE;
-                AR$value <- NULL;
+                ARRequired <- AREstimate <- TRUE;
+                ARValue <- NULL;
             }
             else{
-                if(sum(ar.orders)!=length(AR$value[AR$value!=0])){
+                if(sum(ar.orders)!=length(ARValue[ARValue!=0])){
                     warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
-                                    " instead of ",length(AR$value[AR$value!=0]),".\n",
+                                    " instead of ",length(ARValue[ARValue!=0]),".\n",
                                    "AR will be estimated."),call.=FALSE);
-                    AR$required <- AR$estimate <- TRUE;
-                    AR$value <- NULL;
+                    ARRequired <- AREstimate <- TRUE;
+                    ARValue <- NULL;
                 }
                 else{
-                    AR$value <- as.vector(AR$value[AR$value!=0]);
-                    AR$estimate <- FALSE;
-                    AR$required <- TRUE;
+                    ARValue <- as.vector(ARValue[ARValue!=0]);
+                    AREstimate <- FALSE;
+                    ARRequired <- TRUE;
                 }
             }
         }
         else{
             if(all(ar.orders==0)){
-                AR$required <- AR$estimate <- FALSE;
+                ARRequired <- AREstimate <- FALSE;
             }
             else{
-                AR$required <- AR$estimate <- TRUE;
+                ARRequired <- AREstimate <- TRUE;
             }
         }
 
-        MA <- list(value=MA);
+        MAValue <- MA;
         # Check the provided MA matrix / vector
-        if(!is.null(MA$value)){
-            if((!is.numeric(MA$value) | !is.vector(MA$value)) & !is.matrix(MA$value)){
+        if(!is.null(MAValue)){
+            if((!is.numeric(MAValue) | !is.vector(MAValue)) & !is.matrix(MAValue)){
                 warning(paste0("MA should be either vector or matrix. You have provided something strange...\n",
                                "MA will be estimated."),call.=FALSE);
-                MA$required <- MA$estimate <- TRUE;
-                MA$value <- NULL;
+                MARequired <- MAEstimate <- TRUE;
+                MAValue <- NULL;
             }
             else{
-                if(sum(ma.orders)!=length(MA$value[MA$value!=0])){
+                if(sum(ma.orders)!=length(MAValue[MAValue!=0])){
                     warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
-                                    " instead of ",length(MA$value[MA$value!=0]),".\n",
+                                    " instead of ",length(MAValue[MAValue!=0]),".\n",
                                    "MA will be estimated."),call.=FALSE);
-                    MA$required <- MA$estimate <- TRUE;
-                    MA$value <- NULL;
+                    MARequired <- MAEstimate <- TRUE;
+                    MAValue <- NULL;
                 }
                 else{
-                    MA$value <- as.vector(MA$value[MA$value!=0]);
-                    MA$estimate <- FALSE;
-                    MA$required <- TRUE;
+                    MAValue <- as.vector(MAValue[MAValue!=0]);
+                    MAEstimate <- FALSE;
+                    MARequired <- TRUE;
                 }
             }
         }
         else{
             if(all(ma.orders==0)){
-                MA$required <- MA$estimate <- FALSE;
+                MARequired <- MAEstimate <- FALSE;
             }
             else{
-                MA$required <- MA$estimate <- TRUE;
+                MARequired <- MAEstimate <- TRUE;
             }
         }
 
-        constant <- list(value=constant);
+        constantValue <- constant;
         # Check the provided constant
-        if(is.numeric(constant$value)){
-            constant$estimate <- FALSE;
-            constant$required <- TRUE;
+        if(is.numeric(constantValue)){
+            constantEstimate <- FALSE;
+            constantRequired <- TRUE;
         }
-        else if(is.logical(constant$value)){
-            constant$required <- constant$estimate <- constant$value;
-            constant$value <- NULL;
+        else if(is.logical(constantValue)){
+            constantRequired <- constantEstimate <- constantValue;
+            constantValue <- NULL;
         }
 
         # Number of components to use
         n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
         modellags <- matrix(rep(1,times=n.components),ncol=1);
-        if(constant$required==TRUE){
+        if(constantRequired==TRUE){
             modellags <- rbind(modellags,1);
         }
         maxlag <- 1;
@@ -897,10 +898,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     if(modelType=="ssarima"){
-        if((n.components==0) & (constant$required==FALSE)){
+        if((n.components==0) & (constantRequired==FALSE)){
             warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
-            constant$required <- TRUE;
-            constant$value <- 0;
+            constantRequired <- TRUE;
+            constantValue <- 0;
             initialType <- "p";
         }
     }
@@ -921,8 +922,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             transitionEstimate*n.components^2 + (orders %*% lags)*persistenceEstimate + 1;
     }
     else if(modelType=="ssarima"){
-        n.param.max <- n.components*(initialType=="o") + sum(ar.orders)*AR$required +
-            sum(ma.orders)*MA$required + constant$required + 1;
+        n.param.max <- n.components*(initialType=="o") + sum(ar.orders)*ARRequired +
+            sum(ma.orders)*MARequired + constantRequired + 1;
     }
     else if(modelType=="ces"){
         n.param.max <- sum(modellags)*(initialType=="o") + A$number + B$number + 1;
@@ -994,9 +995,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("i.orders",i.orders,ParentEnvironment);
         assign("ma.orders",ma.orders,ParentEnvironment);
         assign("lags",lags,ParentEnvironment);
-        assign("AR",AR,ParentEnvironment);
-        assign("MA",MA,ParentEnvironment);
-        assign("constant",constant,ParentEnvironment);
+        assign("ARValue",ARValue,ParentEnvironment);
+        assign("ARRequired",ARRequired,ParentEnvironment);
+        assign("AREstimate",AREstimate,ParentEnvironment);
+        assign("MAValue",MAValue,ParentEnvironment);
+        assign("MARequired",MARequired,ParentEnvironment);
+        assign("MAEstimate",MAEstimate,ParentEnvironment);
+        assign("constantValue",constantValue,ParentEnvironment);
+        assign("constantEstimate",constantEstimate,ParentEnvironment);
+        assign("constantRequired",constantRequired,ParentEnvironment);
     }
     else if(modelType=="ces"){
         assign("seasonality",seasonality,ParentEnvironment);
