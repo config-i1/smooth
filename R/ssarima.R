@@ -311,8 +311,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     n.param <- 1 + n.components*(initialType=="o") + sum(ar.orders)*ARRequired + sum(ma.orders)*MARequired + constantRequired + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
     # If there is something to optimise, let's do it.
-    if((initialType=="o") | (AREstimate) | (MAEstimate) |
-       (xregEstimate) | (FXEstimate) | (gXEstimate) | (constantEstimate) ){
+    if(any((initialType=="o"),(AREstimate),(MAEstimate),
+           (xregEstimate),(FXEstimate),(gXEstimate),(constantEstimate))){
 
         C <- NULL;
         if(n.components > 0){
@@ -371,7 +371,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         C <- NULL;
 
 # initial values of state vector and the constant term
-        if(n.components>0){
+        if(n.components>0 & initialType=="p"){
             matvt[1,1:n.components] <- initialValue;
         }
         if(constantRequired){
