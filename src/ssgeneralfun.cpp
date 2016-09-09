@@ -482,7 +482,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         currentelement = currentelement + 1;
     }
 
-    if(fitterType=='o' | fitterType=='p'){
+    if((fitterType=='o') | (fitterType=='p')){
         if(estimateinitial==TRUE){
             matrixVt.col(0).fill(as_scalar(C.col(currentelement).t()));
             currentelement = currentelement + 1;
@@ -610,7 +610,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
     arma::vec materrors(obs, arma::fill::zeros);
     arma::rowvec bufferforat(vecGX.n_rows);
 
-    for (int i=maxlag; i<obs+maxlag; i=i+1) {
+    for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
         lagrows = lags - maxlag + i;
 
 /* # Measurement equation and the error term */
@@ -697,7 +697,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
     for(int j=0; j<=nloops; j=j+1){
 /* ### Go forward ### */
-        for (int i=maxlag; i<obs+maxlag; i=i+1) {
+        for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
             lagrows = lags - maxlag + i;
 
 /* # Measurement equation and the error term */
@@ -748,7 +748,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
         }
 
 /* ### Now go back ### */
-        for (int i=obs+maxlag-1; i>=maxlag; i=i-1) {
+        for (unsigned int i=obs+maxlag-1; i>=maxlag; i=i-1) {
             lagrows = backlags + i + 1;
 
 /* # Measurement equation and the error term */
@@ -871,7 +871,7 @@ arma::mat forecaster(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW
     matrixAtnew.submat(0,0,maxlag-1,matrixAtnew.n_cols-1) = matrixAtnew.submat(0,0,maxlag-1,matrixAtnew.n_cols-1);
 
 /* # Fill in the new xt matrix using F. Do the forecasts. */
-    for (int i=maxlag; i<(hor+maxlag); i=i+1) {
+    for (unsigned int i=maxlag; i<(hor+maxlag); i=i+1) {
         lagrows = lags - maxlag + i;
         matrixVtnew.row(i) = arma::trans(fvalue(matrixVtnew(lagrows), matrixF, T, S));
         matrixAtnew.row(i) = matrixAtnew.row(i-1) * matrixFX;
@@ -932,7 +932,7 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
     }
 
 // Fix for GV in order to perform better in the sides of the series
-    for(unsigned int i=0; i<(hor-1); i=i+1){
+    for(int i=0; i<(hor-1); i=i+1){
         materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(i+1);
     }
 
@@ -1067,20 +1067,20 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
 //        arma::vec vecMuc(hor, arma::fill::ones);
 
 // Form vector for basic values and matrix Mu
-        for(int i=1; i<hor; i++){
+        for(unsigned int i=1; i<hor; i++){
             veccij(i) = as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
 //            vecMuc(i) = vecMuc(i) + sum(veccij.rows(1,i));
         }
 //        matrixMu = vecMuc * vecMuc.t();
 
 // Fill in the diagonal of Sigma matrix
-        for(int i=1; i<hor; i++){
+        for(unsigned int i=1; i<hor; i++){
             matrixSigma(i,i) = matrixSigma(i-1,i-1) + pow(veccij(i),2);
         }
 
         if(CFtype=="aTFL"){
-            for(int i=0; i<hor; i++){
-                for(int j=0; j<hor; j++){
+            for(unsigned int i=0; i<hor; i++){
+                for(unsigned int j=0; j<hor; j++){
                     if(i>=j){
                         continue;
                     }
