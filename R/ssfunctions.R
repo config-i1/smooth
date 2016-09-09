@@ -467,7 +467,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Partial seasonality with a real part only
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag);
-            C <- c(C,0.5);
             ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
             n.components <- 3;
             A$number <- 2;
@@ -477,7 +476,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Full seasonality with both real and imaginary parts
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag,maxlag);
-            C <- c(C,C);
             ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
             n.components <- 4;
             A$number <- 2;

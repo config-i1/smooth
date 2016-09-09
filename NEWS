@@ -3,8 +3,9 @@ smooth v1.4.1 (Release date: 2016-09-09)
 
 Changes:
 
-* We now suggest testthat package and do more extensive tests in order to make sure that everything works as it should
-
+* We now suggest testthat package and do more extensive tests in order to make sure that everything works as it should.
+* Introduced parameters A and B in ces() function.
+* Got rid of parameter C in ces() function.
 
 
 smooth v1.4.0 (Release date: 2016-09-08)
@@ -13,5 +14,5 @@ smooth v1.4.0 (Release date: 2016-09-08)
 Changes:
 
 * Started this NEWS file.
-* Fixed a bug with ssarima() not accepting previously estimated models in cases with constant=TRUE
+* Fixed a bug with ssarima() not accepting previously estimated models in cases with constant=TRUE.
 * Removed NUS and sim.ces. They will return when they are in a better condition.

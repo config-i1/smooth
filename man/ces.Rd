@@ -8,8 +8,8 @@
   Function estimates CES in state-space form with information potential equal to errors and returns several variables.
 }
 \usage{
-ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
-    initial=c("backcasting","optimal"),
+ces(data, seasonality=c("none","simple","partial","full"),
+    initial=c("backcasting","optimal"), A=NULL, B=NULL,
     cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
     h=10, holdout=FALSE, intervals=FALSE, level=0.95,
     intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -22,15 +22,20 @@ ces(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
   \item{data}{
     Either numeric vector or time series vector.
   }
-  \item{C}{
-    The initial value of complex smoothing parameter, where C[1] = a0, C[2] = a1.
-  }
   \item{seasonality}{
     The type of seasonality used in CES. Can be: \code{none} - No seasonality; \code{simple} - Simple seasonality, using lagged CES (based on \code{t-m} observation, where \code{m} is the seasonality lag); \code{partial} - Partial seasonality with real seasonal components (equivalent to additive seasonality); \code{full} - Full seasonality with complex seasonal components (can do both multiplicative and additive seasonality, depending on the data). First letter can be used instead of full words.
     Any seasonal CES can only be constructed for time series vectors.
   }
   \item{initial}{
     Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure (advised for data with high frequency).
+  }
+  \item{A}{
+    First complex smoothing parameter. Should be a complex number.
+
+    NOTE! CES is very sensitive to A and B values so it is advised either to leave them alone, or to use values from previously estimated model.
+  }
+  \item{B}{
+    Second complex smoothing parameter. Can be real if \code{seasonality="partial"}. In case of \code{seasonality="full"} must be complex number.
   }
   \item{cfType}{
     Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.

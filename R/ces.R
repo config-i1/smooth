@@ -1,7 +1,7 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
-ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full"),
-                initial=c("backcasting","optimal"),
+ces <- function(data, seasonality=c("none","simple","partial","full"),
+                initial=c("backcasting","optimal"), A=NULL, B=NULL,
                 cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, level=0.95,
                 intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
@@ -17,9 +17,6 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
-
-# Set A and B as null for estimation of C
-    A <- B <- NULL;
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -72,7 +69,7 @@ ces <- function(data, C=c(1.1, 1), seasonality=c("none","simple","partial","full
         matw <- matrix(c(1,0),1,2);
         matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level","potential");
-        matvt[1,] <- c(mean(yot[1:min(10,obsNonzero)]),mean(yot[1:min(10,obsNonzero)])/C[1]);
+        matvt[1,] <- c(mean(yot[1:min(10,obsNonzero)]),mean(yot[1:min(10,obsNonzero)])/1.1);
     }
     else if(seasonality=="s"){
 # Simple seasonality, lagged CES
@@ -152,7 +149,7 @@ ElementsCES <- function(C){
         matF[1,2] <- C[2]-1;
         matF[2,2] <- 1-C[1];
         vecg[1:2,] <- c(C[1]-C[2],C[1]+C[2]);
-        n.coef <- 2;
+        n.coef <- n.coef + 2;
     }
     else{
         matF[1,2] <- Im(A$value)-1;
@@ -163,8 +160,8 @@ ElementsCES <- function(C){
     if(seasonality=="p"){
     # Partial seasonality with a real part only
         if(B$estimate){
-            vecg[3,] <- C[3];
-            n.coef <- 3;
+            vecg[3,] <- C[n.coef+1];
+            n.coef <- n.coef + 1;
         }
         else{
             vecg[3,] <- B$value;
@@ -173,10 +170,10 @@ ElementsCES <- function(C){
     else if(seasonality=="f"){
     # Full seasonality with both real and imaginary parts
         if(B$estimate){
-            matF[3,4] <- C[4]-1;
-            matF[4,4] <- 1-C[3];
-            vecg[3:4,] <- c(C[3]-C[4],C[3]+C[4]);
-            n.coef <- 4;
+            matF[3,4] <- C[n.coef+2]-1;
+            matF[4,4] <- 1-C[n.coef+1];
+            vecg[3:4,] <- c(C[n.coef+1]-C[n.coef+2],C[n.coef+1]+C[n.coef+2]);
+            n.coef <- n.coef + 2;
         }
         else{
             matF[3,4] <- Im(B$value)-1;
@@ -270,9 +267,10 @@ CreatorCES <- function(silentText=FALSE,...){
     n.param <- sum(modellags)*(initialType=="o") + A$number + B$number + (!is.null(xreg))*(ncol(matat) + updateX*(length(matFX) + nrow(vecgX))) + 1;
 
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
+        C <- NULL;
         # If we don't need to estimate A
-        if(!A$estimate){
-            C <- NULL;
+        if(A$estimate){
+            C <- c(1.3,1);
         }
 
         if(any(seasonality==c("n","s"))){
@@ -291,7 +289,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
         else{
             if(B$estimate){
-                C <- c(C,C);
+                C <- c(C,1.3,1);
             }
             if(initialType=="o"){
                 C <- c(C,c(matvt[1,1:2]));
@@ -457,18 +455,20 @@ CreatorCES <- function(silentText=FALSE,...){
     }
 
 # Right down the smoothing parameters
+    n.coef <- 0;
     if(A$estimate){
         A$value <- complex(real=C[1],imaginary=C[2]);
+        n.coef <- 2;
     }
 
     names(A$value) <- "a0+ia1";
 
     if(B$estimate){
         if(seasonality=="p"){
-            B$value <- C[3];
+            B$value <- C[n.coef+1];
         }
         else if(seasonality=="f"){
-            B$value <- complex(real=C[3],imaginary=C[4]);
+            B$value <- complex(real=C[n.coef+1],imaginary=C[n.coef+2]);
         }
     }
     if(B$number!=0){
