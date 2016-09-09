@@ -7,7 +7,7 @@ test_that("Test ETS selection on N1234$x", {
 })
 
 test_that("Test damped-trend ETS on N1234$x", {
-    expect_equal(round(es(Mcomp::M3$N1234$x,model="AAdN", silent=TRUE)$phi,3), 0.964);
+    expect_equal(round(es(Mcomp::M3$N1234$x,model="AAdN", silent=TRUE)$phi,2), 0.96);
 })
 
 # Reuse previous ETS
@@ -16,9 +16,9 @@ test_that("Test on N1234$x, predefined ETS", {
 })
 
 # Test combinations of ETS
-testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE);
-test_that("Test ETS(CCC) on N2568$x", {
-    expect_equal(round(testModel$s2,5), 0.00418);
+testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
+test_that("Test ETS(CCC) with BIC on N2568$x", {
+    expect_equal(round(testModel$s2,3), 0.004);
 })
 
 # Test trace cost function for ETS
@@ -40,6 +40,13 @@ x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, intervals=TRUE, intervalsType="n")
 test_that("Check exogenous variables for ETS on N1457", {
-    expect_equal(suppressWarnings(round(es(y, h=18, holdout=TRUE, xreg=x, cfType="aMSTFE", silent=TRUE)$forecast[1],3)), 5776.014);
-    expect_equal(suppressWarnings(round(forecast(testModel, h=18, holdout=FALSE)$forecast[18],3)), 5721.698);
+    expect_equal(suppressWarnings(round(es(y, h=18, holdout=TRUE, xreg=x, cfType="aMSTFE", silent=TRUE)$forecast[1],0)), 5776);
+    expect_equal(suppressWarnings(round(forecast(testModel, h=18, holdout=FALSE)$forecast[18],0)), 5722);
+})
+
+# iETS test
+x <- c(0,1,2,0,0,0,1,0,0,1,0,0,0,2,0,0,0,1,0,0);
+testModel <- es(x, "MNN", intermittent="a", silent=TRUE);
+test_that("Test ETS selection on N1234$x", {
+    expect_match(testModel$model, "iETS");
 })

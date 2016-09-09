@@ -17,13 +17,28 @@ test_that("Test if crazy order SSARIMA was estimated on N1234$x", {
     expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]");
 })
 
-testModel <- auto.ssarima(Mcomp::M3$N2568$x, silent=TRUE);
+# Automatically select SSARIMA
+testModel <- auto.ssarima(Mcomp::M3$N2568$x, silent=TRUE, ic="AIC");
+# Define orders of the model
+SSARIMAModel <- testModel$model;
+arima.orders <- paste0(c("",substring(SSARIMAModel,unlist(gregexpr("\\(",SSARIMAModel))+1,unlist(gregexpr("\\)",SSARIMAModel))-1),"")
+                       ,collapse=";");
+comas <- unlist(gregexpr("\\,",arima.orders));
+semicolons <- unlist(gregexpr("\\;",arima.orders));
+ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+if(any(unlist(gregexpr("\\[",SSARIMAModel))!=-1)){
+    lags <- as.numeric(substring(SSARIMAModel,unlist(gregexpr("\\[",SSARIMAModel))+1,unlist(gregexpr("\\]",SSARIMAModel))-1));
+}else{
+    lags <- 1;
+}
 # Test how different passed values are accepted by SSARIMA
 test_that("Test initials, AR, MA and constant of SSARIMA on N2568$x", {
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=c(2,0), i.orders=c(0,1), ma.orders=c(3,3), lags=c(1,12), constant=TRUE, initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=c(2,0), i.orders=c(0,1), ma.orders=c(3,3), lags=c(1,12), constant=TRUE, AR=testModel$AR, silent=TRUE)$AR, testModel$AR);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=c(2,0), i.orders=c(0,1), ma.orders=c(3,3), lags=c(1,12), constant=TRUE, transition=testModel$MA, silent=TRUE)$MA, testModel$MA);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=c(2,0), i.orders=c(0,1), ma.orders=c(3,3), lags=c(1,12), constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, AR=testModel$AR, silent=TRUE)$AR, testModel$AR);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, transition=testModel$MA, silent=TRUE)$MA, testModel$MA);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
 })
 
 # Test exogenous (normal + updateX) with SSARIMA
@@ -31,6 +46,6 @@ x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
 testModel <- ssarima(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, cfType="aMSTFE", intervals=TRUE)
 test_that("Check exogenous variables for SSARIMA on N1457", {
-    expect_equal(suppressWarnings(round(ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$forecast[1],3)), 5986.654);
-    expect_equal(suppressWarnings(round(forecast(testModel, h=18, holdout=FALSE)$forecast[18],3)), 2855.424);
+    expect_equal(suppressWarnings(round(ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$forecast[1],0)), 5987);
+    expect_equal(suppressWarnings(round(forecast(testModel, h=18, holdout=FALSE)$forecast[18],0)), 2855);
 })
