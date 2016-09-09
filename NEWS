@@ -5,3 +5,4 @@ Changes:
 
 * Started this NEWS file.
 * Fixed a bug with ssarima() not accepting previously estimated models in cases with constant=TRUE
+* Removed NUS and sim.ces. They will return when they are in a better condition.
