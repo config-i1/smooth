@@ -201,18 +201,17 @@ library(Mcomp)
 
 # See how holdout and trace parameters influence the forecast
 es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="MSE")
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="TFL")
-es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="MSTFE")
+\dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="MSTFE")}
 
 # Model selection example
 es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
 
 # Model selection. Compare AICc of these two models:
-es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
-es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)
+\dontrun{es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
+es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 
 # Combination example
-es(M3$N1245$x,model="CCC",h=8,holdout=TRUE)
+\dontrun{es(M3$N1245$x,model="CCC",h=8,holdout=TRUE)}
 
 # Model selection using a specified pool of models
 test <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
@@ -224,11 +223,12 @@ es(M3$N1587$x,model=test,h=18,intervals=TRUE)
 es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,intervalsType="s")
 
 # Exogenous variables in ETS example
-x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,cfType="TFL")
-test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
+\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,cfType="aMSTFE")
+test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
+
 # This will be the same model as in previous line but estimated on new portion of data
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
+\dontrun{es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)}
 
 # Intermittent data example
 x <- rpois(100,0.2)

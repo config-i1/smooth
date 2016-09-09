@@ -11,7 +11,7 @@ Package contains several exponential (and not) smoothing functions used in time 
 \tabular{ll}{
 Package: \tab smooth\cr
 Type: \tab Package\cr
-Version: \tab 1.38\cr
+Version: \tab 1.4.0\cr
 Date: \tab 2016-01-27 - Inf\cr
 License: \tab GPL-2 \cr
 }
@@ -60,10 +60,10 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 \code{\link[forecast:forecast]{forecast}}
 }
 \examples{
-y <- ts(rnorm(100,10,3),frequency=12)
+\dontrun{y <- ts(rnorm(100,10,3),frequency=12)
 
 es(y,h=20,holdout=TRUE)
 ges(y,h=20,holdout=TRUE)
 auto.ces(y,h=20,holdout=TRUE)
-auto.ssarima(y,h=20,holdout=TRUE)
+auto.ssarima(y,h=20,holdout=TRUE)}
 }

@@ -161,30 +161,36 @@ Ivan Svetunkov
 }
 
 \examples{
+# Something simple:
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",intervals=TRUE)
 
-test <- ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE,bounds="a")
+# A more complicated model with seasonality
+\dontrun{test <- ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
 # Redo previous model on a new data and produce prediction intervals
-ges(rnorm(118,100,3),model=test,h=18,intervals=TRUE)
+\dontrun{ges(rnorm(118,100,3),model=test,h=18,intervals=TRUE)}
 
-ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="b")
+# Produce something crazy with optimal initials (not recommended)
+\dontrun{ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="TFL")
+# Simpler model estiamted using trace forecast error cost function and its analytical analogue
+\dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="MSTFE")
+ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="aMSTFE")}
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="aTFL")
+# Introduce exogenous variables
+\dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))
+# Ask for their update
+\dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)}
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
+# Do the same but now let's shrink parameters...
+\dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="MSTFE")
 
-ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="TFL")
-
-test <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aTFL")
+test <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aMSTFE")
 
 summary(test)
 forecast(test)
-plot(forecast(test))
+plot(forecast(test))}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

@@ -174,34 +174,34 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 }
 
 \examples{
-# ARIMA(1,0,0)
-ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,intervals=TRUE)
+# ARIMA(1,1,1)
+test <- ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,intervals=TRUE)
+
+# The same model applied to a different data
+ssarima(rnorm(118,100,3),model=test,h=18,holdout=TRUE)
 
 # SARIMA(1,0,0)(1,0,0)[4]
-ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)
+\dontrun{ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
 # SARIMA(1,1,1)(0,0,1)[4]
-ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
+\dontrun{ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         lags=c(1,4),h=18,holdout=TRUE)
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
-        lags=c(1,4),h=18,holdout=TRUE,initial="o")
+        lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 
 # SARIMA of a perculiar order on AirPassengers data
-ssarima(AirPassengers,ar.orders=c(1,0,3),i.orders=c(1,0,1),ma.orders=c(0,1,2),lags=c(1,6,12),
-        h=10,holdout=TRUE)
+\dontrun{ssarima(AirPassengers,ar.orders=c(1,0,3),i.orders=c(1,0,1),ma.orders=c(0,1,2),lags=c(1,6,12),
+        h=10,holdout=TRUE)}
+
+# ARIMA(1,1,1) with Mean Squared Trace Forecast Error
+\dontrun{ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="TFL")
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="aTFL")}
 
 # SARIMA(0,1,1) with exogenous variables
 ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118))
 
 # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
-
-# ARIMA(1,1,1) with trace forecast estimation
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="TFL")
-test <- ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="aTFL")
-
-# The same model applied to a different data
-ssarima(rnorm(118,100,3),model=test,h=18,holdout=TRUE)
+test <- ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
 
 summary(test)
 forecast(test)

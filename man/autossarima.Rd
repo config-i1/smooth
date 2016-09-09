@@ -116,12 +116,12 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
 x <- rnorm(118,100,3)
 
 # The best ARIMA for the data
-auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+test <- auto.ssarima(x,ar.max=c(2,1),i.max=c(1,1),ma.max=c(2,1),lags=c(1,12),
                      h=18,holdout=TRUE)
 
 # The other one using optimised states
-test <- auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
-                     initial="o",h=18,holdout=TRUE)
+\dontrun{auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+                     initial="o",h=18,holdout=TRUE)}
 
 summary(test)
 forecast(test)
