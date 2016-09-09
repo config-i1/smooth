@@ -1,4 +1,5 @@
-utils::globalVariables(c("normalizer"));
+utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate",
+                         "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate"));
 
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
@@ -79,7 +80,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
         vecg <- matrix(0.1,n.components,1);
         matvt <- matrix(NA,obsStates,n.components);
-        if(constant$required){
+        if(constantRequired){
             matF <- cbind(rbind(matF,rep(0,n.components)),c(1,rep(0,n.components-1),1));
             matw <- cbind(matw,0);
             vecg <- rbind(vecg,0);
@@ -143,12 +144,12 @@ polyroots <- function(C){
         for(i in 1:length(lags)){
             if((ar.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ar.orders[i]);
-                if(AR$estimate){
+                if(AREstimate){
                     armat[lags[i],] <- -C[n.coef+(1:ar.orders[i])];
                     n.coef <- n.coef + ar.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- -AR$value[ar.inner.coef+(1:ar.orders[i])];
+                    armat[lags[i],] <- -ARValue[ar.inner.coef+(1:ar.orders[i])];
                     ar.inner.coef <- ar.inner.coef + ar.orders[i];
                 }
                 P[[i]] <- c(1,c(armat));
@@ -167,12 +168,12 @@ polyroots <- function(C){
 
             if((ma.orders*lags)[i]!=0){
                 armat <- matrix(0,lags[i],ma.orders[i]);
-                if(MA$estimate){
+                if(MAEstimate){
                     armat[lags[i],] <- C[n.coef+(1:ma.orders[i])];
                     n.coef <- n.coef + ma.orders[i];
                 }
                 else{
-                    armat[lags[i],] <- MA$value[ma.inner.coef+(1:ma.orders[i])];
+                    armat[lags[i],] <- MAValue[ma.inner.coef+(1:ma.orders[i])];
                     ma.inner.coef <- ma.inner.coef + ma.orders[i];
                 }
                 Q[[i]] <- c(1,c(armat));
@@ -219,24 +220,24 @@ polyroots <- function(C){
             vt <- initialValue;
         }
 
-        if(constant$required){
-            if(constant$estimate){
-                vt[n.components+constant$required] <- C[(n.coef + 1)];
+        if(constantRequired){
+            if(constantEstimate){
+                vt[n.components+constantRequired] <- C[(n.coef + 1)];
                 n.coef <- n.coef + 1;
             }
             else{
-                vt[n.components+constant$required] <- constant$value;
+                vt[n.components+constantRequired] <- constantValue;
             }
         }
     }
     else{
         matF[1,1] <- 1;
-        if(constant$estimate){
+        if(constantEstimate){
             vt <- C[n.coef+1];
             n.coef <- n.coef + 1;
         }
         else{
-            vt <- constant$value;
+            vt <- constantValue;
         }
     }
 
@@ -307,19 +308,19 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    n.param <- 1 + n.components*(initialType=="o") + sum(ar.orders)*AR$required + sum(ma.orders)*MA$required + constant$required + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param <- 1 + n.components*(initialType=="o") + sum(ar.orders)*ARRequired + sum(ma.orders)*MARequired + constantRequired + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
     # If there is something to optimise, let's do it.
-    if((initialType=="o") | (AR$estimate) | (MA$estimate) |
-       (xregEstimate) | (FXEstimate) | (gXEstimate) | (constant$estimate) ){
+    if((initialType=="o") | (AREstimate) | (MAEstimate) |
+       (xregEstimate) | (FXEstimate) | (gXEstimate) | (constantEstimate) ){
 
         C <- NULL;
         if(n.components > 0){
 # ar terms, ma terms from season to season...
-            if(AR$estimate){
+            if(AREstimate){
                 C <- c(C,rep(0.1,sum(ar.orders)));
             }
-            if(MA$estimate){
+            if(MAEstimate){
                 C <- c(C,rep(0.1,sum(ma.orders)));
             }
 
@@ -332,7 +333,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             }
         }
 
-        if(constant$estimate){
+        if(constantEstimate){
             if(all(i.orders==0)){
                 C <- c(C,sum(yot)/obsInsample);
             }
@@ -368,10 +369,13 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
     else{
         C <- NULL;
+
 # initial values of state vector and the constant term
-        matvt[1,1:n.components] <- initialValue;
-        if(constant$required){
-            matvt[1,1:(n.components+1)] <- constant$value;
+        if(n.components>0){
+            matvt[1,1:n.components] <- initialValue;
+        }
+        if(constantRequired){
+            matvt[1,(n.components+1)] <- constantValue;
         }
 
         cfObjective <- CF(C);
@@ -474,7 +478,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     polysos.ma <- elements$polysos.ma;
     arroots <- abs(polyroot(polysos.ar));
     maroots <- abs(polyroot(polysos.ma));
-    n.components <- n.components + constant$required;
+    n.components <- n.components + constantRequired;
 
     # Write down Fisher Information if needed
     if(FI){
@@ -494,7 +498,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        if(constant$required==TRUE){
+        if(constantRequired==TRUE){
             initialValue <- matvt[1,-ncol(matvt)];
         }
         else{
@@ -532,7 +536,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     else{
         colnames(matvt) <- paste0("Component ",c(1:max(1,n.components)));
     }
-    if(constant$required){
+    if(constantRequired){
         colnames(matvt)[n.components] <- "Constant";
     }
 
@@ -568,23 +572,23 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     ar.i <- ma.i <- 1;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
-            if(AR$estimate){
+            if(AREstimate){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
                 n.coef <- n.coef + ar.orders[i];
             }
             else{
-                ARterms[1:ar.orders[i],ar.i] <- AR$value[ar.coef+(1:ar.orders[i])];
+                ARterms[1:ar.orders[i],ar.i] <- ARValue[ar.coef+(1:ar.orders[i])];
                 ar.coef <- ar.coef + ar.orders[i];
             }
             ar.i <- ar.i + 1;
         }
         if(ma.orders[i]!=0){
-            if(MA$estimate){
+            if(MAEstimate){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
                 n.coef <- n.coef + ma.orders[i];
             }
             else{
-                MAterms[1:ma.orders[i],ma.i] <- MA$value[ma.coef+(1:ma.orders[i])];
+                MAterms[1:ma.orders[i],ma.i] <- MAValue[ma.coef+(1:ma.orders[i])];
                 ma.coef <- ma.coef + ma.orders[i];
             }
             ma.i <- ma.i + 1;
@@ -617,11 +621,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         modelname <- paste0("i",modelname);
     }
 
-    if(constant$required){
-        if(constant$estimate){
-            constant$value <- matvt[1,n.components];
+    if(constantRequired){
+        if(constantEstimate){
+            constantValue <- matvt[1,n.components];
         }
-        const <- constant$value;
+        const <- constantValue;
 
         if(all(i.orders==0)){
             modelname <- paste0(modelname," with constant");
@@ -632,7 +636,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
     else{
         const <- FALSE;
-        constant$value <- NULL;
+        constantValue <- NULL;
     }
 
 ##### Print output #####
