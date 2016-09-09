@@ -1,9 +1,9 @@
 import(zoo, Rcpp)
-importFrom("nloptr", nloptr,cobyla)
-importFrom("polynom",as.polylist,as.polynomial,polynomial)
+importFrom("nloptr", nloptr)
+importFrom("polynom",as.polynomial,polynomial)
 importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
-importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,lm,median,coef,
-           nlminb,optim,pnorm,qnorm,qt,quantile,rbinom,rnorm,rt,runif,start,time,ts,var,simulate)
+importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median,coef,
+           qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate)
 export(es, ges, ces, ssarima, iss, auto.ces, auto.ssarima)
 export(sim.es)
 export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias)
