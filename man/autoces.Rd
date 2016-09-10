@@ -111,9 +111,9 @@ auto.ces(y,h=20,holdout=TRUE)
 auto.ces(y,h=20,holdout=FALSE)
 
 library("Mcomp")
-y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
+\dontrun{y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
 # Selection between "none" and "full" seasonalities
-auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals=TRUE,level=0.8,ic="AIC")
+auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals=TRUE,level=0.8,ic="AIC")}
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
 test <- auto.ces(y,h=18,holdout=TRUE,intervals=TRUE)

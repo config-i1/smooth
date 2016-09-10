@@ -159,23 +159,23 @@ ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds="a")
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-ces(y,h=8,holdout=TRUE,seasonality="S",intervals=TRUE,level=0.8)
+ces(y,h=8,holdout=TRUE,seasonality="s",intervals=TRUE,level=0.8)
 
-y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-ces(y,h=18,holdout=TRUE,seasonality="S",intervals=TRUE)
-ces(y,h=18,holdout=TRUE,seasonality="P",intervals=TRUE)
-ces(y,h=18,holdout=TRUE,seasonality="F",intervals=TRUE)
+\dontrun{y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
+ces(y,h=18,holdout=TRUE,seasonality="s",intervals=TRUE)
+ces(y,h=18,holdout=TRUE,seasonality="p",intervals=TRUE)
+ces(y,h=18,holdout=TRUE,seasonality="f",intervals=TRUE)}
 
-x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-    intervals=TRUE,xreg=x,cfType="MSTFE")
+    intervals=TRUE,xreg=x,cfType="MSTFE")}
 
 # Exogenous variables in CES
-x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
 test <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)}
 
 # Intermittent data example
 x <- rpois(100,0.2)
