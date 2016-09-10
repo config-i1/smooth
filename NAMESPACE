@@ -2,7 +2,7 @@ import(zoo, Rcpp)
 importFrom("nloptr", nloptr)
 importFrom("polynom",as.polynomial,polynomial)
 importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
-importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median,coef,optim,
+importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median,coef,optim,nlminb,
            cor,qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate)
 export(es, ges, ces, ssarima, iss, auto.ces, auto.ssarima)
 export(sim.es)
