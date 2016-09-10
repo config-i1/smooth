@@ -7,6 +7,9 @@ Changes:
 * Introduced parameters A and B in ces() function.
 * Got rid of parameter C in ces() function.
 
+Bugfixes:
+
+* ssarima() could not construct ARIMA(0,1,0) without constant. Fixed that.
 
 smooth v1.4.0 (Release date: 2016-09-08)
 ==============
