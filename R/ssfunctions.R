@@ -1596,7 +1596,7 @@ ssForecaster <- function(...){
 # We don't simulate pure additive models, pure multiplicative and
 # additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
         if(all(c(Etype,Stype,Ttype)!="M") |
-           all(Etype=="M",c(Ttype,Stype)!="A") |
+           all(c(Etype,Stype,Ttype)!="A") |
            (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
             simulateint <- FALSE;
         }
@@ -1707,9 +1707,14 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 matxt <- matrix(xreg,ncol=1);
 # Define the second matat to fill in the coefs of the exogenous vars
                 matat <- matrix(NA,obsStates,1);
-                exocomponent.names <- "exogenous";
 # Fill in the initial values for exogenous coefs using OLS
                 matat[1:maxlag,] <- cov(data[1:obsInsample],xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                if(is.null(names(xreg))){
+                    colnames(matat) <- "x";
+                }
+                else{
+                    colnames(matat) <- names(xreg);
+                }
             }
         }
 ##### The case with matrices and data frames
@@ -1768,21 +1773,24 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 mat.x <- as.matrix(cbind(rep(1,obsAll),xreg));
 # Define the second matat to fill in the coefs of the exogenous vars
                 matat <- matrix(NA,obsStates,n.exovars);
-                exocomponent.names <- paste0("x",c(1:n.exovars));
 # Define matrix w for exogenous variables
                 matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
                 matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
                                                   t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(n.exovars+1)],
                                           each=maxlag);
-                colnames(matat) <- colnames(xreg);
+                if(is.null(colnames(xreg))){
+                    colnames(matat) <- paste0("x",c(1:n.exovars));
+                }
+                else{
+                    colnames(matat) <- colnames(xreg);
+                }
             }
         }
         else{
             stop("Unknown format of xreg. Should be either vector or matrix. Aborting!",call.=FALSE);
         }
         xregEstimate <- TRUE;
-        colnames(matat) <- exocomponent.names;
 
 # Check the provided initialX vector
         if(!is.null(initialX)){
