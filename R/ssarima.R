@@ -113,6 +113,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
+    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -532,6 +533,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
         colnames(matvt) <- c(paste0("Component ",c(1:max(1,n.components))),colnames(matat));
+        if(updateX){
+            rownames(vecgX) <- xregNames;
+            dimnames(matFX) <- list(xregNames,xregNames);
+        }
     }
     else{
         colnames(matvt) <- paste0("Component ",c(1:max(1,n.components)));

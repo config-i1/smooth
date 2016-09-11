@@ -122,6 +122,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
+    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -452,6 +453,10 @@ CreatorCES <- function(silentText=FALSE,...){
         statenames <- c(colnames(matvt),colnames(matat));
         matvt <- cbind(matvt,matat);
         colnames(matvt) <- statenames;
+        if(updateX){
+            rownames(vecgX) <- xregNames;
+            dimnames(matFX) <- list(xregNames,xregNames);
+        }
     }
 
 # Right down the smoothing parameters

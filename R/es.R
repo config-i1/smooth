@@ -320,7 +320,7 @@ BasicInitialiserES <- function(...){
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
-    xreg.names <- colnames(matat);
+    xregNames <- colnames(matat);
 
     n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
@@ -931,7 +931,11 @@ CreatorES <- function(silent=FALSE,...){
 
         if(!is.null(xreg)){
             matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-            colnames(matvt) <- c(component.names,xreg.names);
+            colnames(matvt) <- c(component.names,xregNames);
+            if(updateX){
+                rownames(vecgX) <- xregNames;
+                dimnames(matFX) <- list(xregNames,xregNames);
+            }
         }
         else{
             colnames(matvt) <- c(component.names);

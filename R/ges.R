@@ -76,6 +76,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
+    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -425,6 +426,10 @@ CreatorGES <- function(silentText=FALSE,...){
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat);
         colnames(matvt) <- c(paste0("Component ",c(1:n.components)),colnames(matat));
+        if(updateX){
+            rownames(vecgX) <- xregNames;
+            dimnames(matFX) <- list(xregNames,xregNames);
+        }
     }
     else{
         colnames(matvt) <- paste0("Component ",c(1:n.components));
