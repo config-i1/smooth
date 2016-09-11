@@ -145,8 +145,16 @@ plot.smooth <- function(x, ...){
     parDefault <- par(no.readonly = TRUE);
     if(gregexpr("ETS",x$model)!=-1){
         if(any(unlist(gregexpr("C",x$model))==-1)){
-            # If this was normal ETS, return values
-            plot(x$states,main=paste0("States of ",x$model));
+            if(ncol(x$states)>10){
+                message("Too many states. Plotting them one by one on several graphs.");
+                nPlots <- ceiling(ncol(x$states)/10);
+                for(i in 1:nPlots){
+                    plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i));
+                }
+            }
+            else{
+                plot(x$states,main=paste0("States of ",x$model));
+            }
         }
         else{
             # If we did combinations, we cannot return anything
