@@ -131,6 +131,9 @@ forecast.smooth <- function(object, h=10, intervals=TRUE,
     else if(gregexpr("ARIMA",object$model)!=-1){
         newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
     }
+    else if(gregexpr("SMA",object$model)!=-1){
+        newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+    }
     else{
         stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
     }
@@ -210,6 +213,12 @@ print.smooth <- function(x, ...){
     }
     else{
         insideintervals <- NULL;
+    }
+
+    if(gregexpr("SMA",x$model)!=-1){
+        x$iprob <- 1;
+        x$initialType <- "b";
+        x$intermittent <- "n";
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,

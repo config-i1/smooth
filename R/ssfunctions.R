@@ -379,6 +379,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             Stype <- "N";
         }
     }
+    else if(modelType=="sma"){
+        maxlag <- 1;
+        if(is.null(order)){
+            n.param.max <- obsInsample;
+        }
+        else{
+            n.param.max <- order;
+        }
+    }
 
     ##### Lags and components for GES #####
     if(modelType=="ges"){
@@ -1327,7 +1336,7 @@ quantfunc <- function(A){
 #### Semiparametric intervals using the variance of errors ####
         else if(intervalsType=="s"){
             errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
-            vec.var <- colMeans(errors^2,na.rm=T);
+            vec.var <- colSums(errors^2,na.rm=T)/df;
             if(Etype=="M"){
                 vec.mean <- 1;
                 upperquant <- qlnorm((1+level)/2,rep(0,n.var),sqrt(vec.var));
@@ -1953,6 +1962,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     }
     else if(gregexpr("ARIMA",modelname)!=-1){
         model <- "ARIMA";
+    }
+    else if(gregexpr("SMA",modelname)!=-1){
+        model <- "SMA";
     }
 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
