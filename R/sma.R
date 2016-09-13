@@ -51,6 +51,8 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
         }
     }
 
+# sd of residuals + a parameter... n.components not included.
+    n.param <- 1 + 1;
 
 # Cost function for GES
 CF <- function(C){
@@ -69,8 +71,7 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(CF) <- environment();
 
     n.components <- order;
-# Number of restrictions + sd of residuals
-    n.param <- n.components + 1;
+    #n.param <- n.components + 1;
     if(order>1){
         matF <- rbind(cbind(rep(1/n.components,n.components-1),diag(n.components-1)),c(1/n.components,rep(0,n.components-1)));
         matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
@@ -126,9 +127,10 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(ssFitter) <- environment();
 
     if(is.null(order)){
-        ICs <- rep(NA,obsInsample);
+        maxOrder <- min(36,obsInsample/2);
+        ICs <- rep(NA,maxOrder);
         smaValuesAll <- list(NA);
-        for(i in 1:obsInsample){
+        for(i in 1:maxOrder){
             order <- i;
             smaValuesAll[[i]] <- CreatorSMA(silentText);
             ICs[i] <- smaValuesAll[[i]]$bestIC;
