@@ -109,6 +109,7 @@ ces(data, seasonality=c("none","simple","partial","full"),
     \item \code{states} - the matrix of the components of CES. The included minimum is "level" and "potential". In the case of seasonal model the seasonal component is also included. In the case of exogenous variables the estimated coefficients for the exogenous variables are also included.
     \item \code{A} - complex smoothing parameter in the form a0 + ia1
     \item \code{B} - smoothing parameter for the seasonal component. Can either be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"}) in a form b0 + ib1.
+    \item \code{initialType} - Typetof initial values used.
     \item \code{initial} - the intial values of the state vector (non-seasonal).
     \item \code{nParam} - number of estimated parameters.
     \item \code{fitted} - the fitted values of CES.

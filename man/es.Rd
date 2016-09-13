@@ -128,6 +128,7 @@ For the details see Hyndman et al.(2008).
     \item \code{states} - matrix of the components of ETS.
     \item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
     \item \code{phi} - value of damping parameter.
+    \item \code{initialType} - Typetof initial values used.
     \item \code{initial} - intial values of the state vector (non-seasonal).
     \item \code{initialSeason} - intial values of the seasonal part of state vector.
     \item \code{nParam} - number of estimated parameters.
@@ -161,6 +162,7 @@ For the details see Hyndman et al.(2008).
   \itemize{
     \item \code{model},
     \item \code{timeElapsed},
+    \item \code{initialType},
     \item \code{fitted},
     \item \code{forecast},
     \item \code{lower},
