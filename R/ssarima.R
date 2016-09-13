@@ -269,7 +269,7 @@ polyroots <- function(C){
     return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
 }
 
-# Cost function for GES
+# Cost function for SSARIMA
 CF <- function(C){
     elements <- polyroots(C);
     matF <- elements$matF;
@@ -644,26 +644,24 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         constantValue <- NULL;
     }
 
-##### Print output #####
-    if(!silentText){
-        if(any(maroots<1)){
-            if(bounds!="a"){
-                warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
-            }
-            else{
-                warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
-                        ,call.=FALSE);
-            }
+##### Print warnings #####
+    if(any(maroots<1)){
+        if(bounds!="a"){
+            warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
         }
-        if(any(arroots<1)){
-            if(bounds!="a"){
-                warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
-                        ,call.=FALSE);
-            }
-            else{
-                warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
-                        ,call.=FALSE);
-            }
+        else{
+            warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
+                    ,call.=FALSE);
+        }
+    }
+    if(any(arroots<1)){
+        if(bounds!="a"){
+            warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
+                    ,call.=FALSE);
+        }
+        else{
+            warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
+                    ,call.=FALSE);
         }
     }
 
