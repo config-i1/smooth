@@ -1,0 +1,100 @@
+---
+title: "smooth: forecasting using state-space smoothing models"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{smooth}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](http://forecasting.svetunkov.ru)".
+
+In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
+
+Let's load the necessary packages:
+
+```{r, fig.show='hold', message=FALSE, warning=FALSE}
+require(smooth)
+require(Mcomp)
+```
+
+You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.
+
+## Exponential Smoothing, `es()`
+
+This function allows selecting and estimating exponential smoothing and producing forecasts. The simplest call of this function is:
+
+```{r, fig.show='hold'}
+es(Mcomp::M3$N1234$x, h=8)
+```
+
+In this case function estimates several simple ETS models, then forms pool of models to check and after that constructs a model with the lowest information criterion.
+
+## Complex Exponential Smoothing, `ces()`, `auto.ces()`
+
+`ces()` function allows constructing Complex Exponential Smoothing either with no seasonality, or with simple / partial / full seasonality. A simple call for `ces()` results in estimation of non-seasonal model:
+
+```{r, fig.show='hold'}
+ces(Mcomp::M3$N1234$x, h=8)
+```
+
+This output shows:
+
+1. How much time was elapsed for the model construction;
+2. What type of CES was estimated;
+3. What values of complex smoothing parameters are found;
+4. What type of initialisation was used;
+5. How many parameters were estimated (standard deviation is included);
+6. Standard deviation of residuals.
+7. Cost function type and the value of that cost function with the found parameters;
+8. Information criteria produced for this model with such parameters.
+
+<!-- end of list -->
+
+## SARIMA, `ssarima()`, `auto.ssarima()`
+
+SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both names show what happens in the heart of the function: it constructs ARIMA in a state-space form and allows to model several (actually more than several) seasonalities.
+
+The default call constructs ARIMA(0,1,1):
+
+```{r, fig.show='hold'}
+ssarima(Mcomp::M3$N1234$x, h=8)
+```
+
+Function contains parameters... and returns values...
+
+## Generalised Exponential Smoothing, `ges()`
+
+Generalised Exponential Smoothing is a next step from CES. It is a state-space model in which all the matrices and vectors are estimated. It is very demanding in sample size, but is also insanely flexible.
+
+A simple call by default constructs GES$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with quarterly data N1234, we will have GES$(1^1,1^4)$:
+
+```{r, fig.show='hold'}
+ges(Mcomp::M3$N1234$x, h=8)
+```
+
+## Simple Moving Average, `sma()`
+
+Simple Moving Average is a method of time series smoothing and is actually a very basic forecasting technique. It does not need estimation of parameters, but rather is based on order selection. By default SMA does order selection based on AICc and returns the model with the lowest value:
+```{r, fig.show='hold'}
+sma(Mcomp::M3$N1234$x, h=8)
+```
+
+SMA(1) corresponds to random walk model and just uses the last actual value as a forecast. Obviously SMA(1) is the best model (among the other alternatives) for the trended data. If we try selecting SMA order for data without substantial trend, then we will end up with some other order. For example, let's consider a seasonal time series N2568:
+```{r, fig.show='hold'}
+sma(Mcomp::M3$N2568$x, h=8)
+```
+Here we end up with SMA(12). Note that the order of moving average corresponds to seasonal frequency, which is a first step in classical time series decomposition. We however do not have centred moving average, we deal with simple one, so decomposition should not be done based on this model.
+
+## Simulation of ETS, `sim.es()`
+
+Currently there is only one simulation function, which allows simulating data from any desired exponential smoothing model with any parameters.
+
+There is also `simulate()` function that allows to simulate data from estimated ETS model. So for example:
+
+```{r, fig.show='hold'}
+ourModel <- es(Mcomp::M3$N1234$x, h=8, silent=TRUE)
+ourData <- simulate(ourModel,nsim=100,obs=120)
+```
