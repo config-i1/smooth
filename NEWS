@@ -1,3 +1,18 @@
+smooth v1.4.2 (Release date: 2016-09-15)
+==============
+
+Changes:
+
+* We now use vignettes, explaining how to work with functions and what they return. This is just a start of the work. Vignettes will be updated. There is also a work on documentation for models underlying smooth package. This is currently reviewed and will be available as a working paper soon.
+* New function - sma() - Simple Moving Average. It fits one as a state-space model. So, apparantely there is a model underlying simple moving average method...
+* Named transitionX and persistenceX are now returned, when using exogenous variables are used with updateX=TRUE. This should simplify the analysis of these matrices.
+
+Bugfixes:
+
+* A fix for plot(es(...)) in case of inclusion of exogenous variables leading to states containing more than 10 columns.
+* Warnings are now always printed out for unstable SSARIMA.
+
+
 smooth v1.4.1 (Release date: 2016-09-09)
 ==============
 
@@ -10,6 +25,7 @@ Changes:
 Bugfixes:
 
 * ssarima() could not construct ARIMA(0,1,0) without constant. Fixed that.
+
 
 smooth v1.4.0 (Release date: 2016-09-08)
 ==============

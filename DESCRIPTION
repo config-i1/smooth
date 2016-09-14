@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using Smoothing Functions
-Version: 1.4.1
-Date: 2016-09-09
+Version: 1.4.2
+Date: 2016-09-15
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Research Associate at Lancaster Centre for Forecasting, UK")
 URL: https://github.com/config-i1/
@@ -15,4 +15,7 @@ Depends: R (>= 3.0.2)
 Imports: Rcpp (>= 0.12.3), stats, graphics, zoo, nloptr, polynom
 LinkingTo: Rcpp, RcppArmadillo (>= 0.6.500.0.0)
 Suggests: Mcomp, forecast, numDeriv,
-    testthat
+    testthat,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
