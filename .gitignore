@@ -4,24 +4,19 @@
 
 # Session Data files
 .RData
-
 # RStudio files
 .Rproj.user/
-
 # bak files
 *.bak
-
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
-
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
-
 # stuff precompiled by R
 src/*.o
 src/*.so
 src/*.dll
-
 .directory
 .Rproj.user
+inst/doc
