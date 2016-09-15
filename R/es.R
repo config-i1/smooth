@@ -453,7 +453,7 @@ EstimatorES <- function(...){
                 call.=FALSE);
     }
 
-    n.param <- 1 + n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType=="o") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
+    n.param <- 1 + n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
 
     # Change cfType for model selection
     if(multisteps){
@@ -813,7 +813,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        n.param <- 1 + n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType=="o") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
+        n.param <- 1 + n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
 
 # Change cfType for model selection
         if(multisteps){

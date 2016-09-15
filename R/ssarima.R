@@ -309,7 +309,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    n.param <- 1 + n.components*(initialType=="o") + sum(ar.orders)*ARRequired + sum(ma.orders)*MARequired + constantRequired + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param <- 1 + n.components*(initialType!="b") + sum(ar.orders)*ARRequired + sum(ma.orders)*MARequired + constantRequired + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
 
     # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(AREstimate),(MAEstimate),
