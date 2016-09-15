@@ -11,12 +11,13 @@ Here is the list of functions:
 6. auto.ssarima - selection between different ARIMA models.
 7. sim.ets - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
 8. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods.
+9. sma - Simple Moving Average in state-space form.
 
 Future works:
 
-9. sim.ces, sim.ges, sim.ssarima - simulation functions for CES, GES and SSARIMA respectively.
-10. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
-11. sofa.ts - Survival of the fittest algorithm applied to state-space models.
+10. sim.ces, sim.ges, sim.ssarima - simulation functions for CES, GES and SSARIMA respectively.
+11. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
+12. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
 ## Installation
 
