@@ -7,9 +7,9 @@ utils::globalVariables(c("vecg","n.components","modellags","phiEstimate","y","da
 
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
-               cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+               cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-               intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+               intervalsType=c("parametric","semiparametric","nonparametric"),
                intermittent=c("none","auto","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
@@ -457,12 +457,12 @@ EstimatorES <- function(...){
 
     # Change cfType for model selection
     if(multisteps){
-        if(substring(cfType,1,1)=="a"){
-            cfType <- "aTFL";
-        }
-        else{
-            cfType <- "TFL";
-        }
+        #     if(substring(cfType,1,1)=="a"){
+        cfType <- "aTFL";
+        #     }
+        #     else{
+        #         cfType <- "TFL";
+        #     }
     }
     else{
         cfType <- "MSE";
@@ -817,12 +817,12 @@ CreatorES <- function(silent=FALSE,...){
 
 # Change cfType for model selection
         if(multisteps){
-            if(substring(cfType,1,1)=="a"){
-                cfType <- "aTFL";
-            }
-            else{
-                cfType <- "TFL";
-            }
+            #     if(substring(cfType,1,1)=="a"){
+            cfType <- "aTFL";
+            #     }
+            #     else{
+            #         cfType <- "TFL";
+            #     }
         }
         else{
             cfType <- "MSE";

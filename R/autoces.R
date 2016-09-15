@@ -2,9 +2,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 
 auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
-                cfType=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                intervalsType=c("parametric","semiparametric","nonparametric"),
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),

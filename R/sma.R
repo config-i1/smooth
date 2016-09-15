@@ -1,6 +1,6 @@
 sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
                 h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                intervalsType=c("parametric","semiparametric","nonparametric"),
                 silent=c("none","all","graph","legend","output"), ...){
 # Function constructs simple moving average in state-space model
 
@@ -97,25 +97,9 @@ CreatorSMA <- function(silentText=FALSE,...){
     C <- NULL;
     cfObjective <- CF(C);
 
-# Change cfType for model selection
-    if(multisteps){
-        if(substring(cfType,1,1)=="a"){
-            cfType <- "aTFL";
-        }
-        else{
-            cfType <- "TFL";
-        }
-    }
-    else{
-        cfType <- "MSE";
-    }
-
     IC.values <- ICFunction(n.param=n.param,C=C,Etype=Etype);
     ICs <- IC.values$ICs;
     bestIC <- ICs["AICc"];
-
-# Revert to the provided cost function
-    cfType <- cfTypeOriginal
 
     return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,n.param=n.param,n.components=n.components,
                 matF=matF,vecg=vecg,matvt=matvt,matw=matw,modellags=modellags,

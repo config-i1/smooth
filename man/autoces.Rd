@@ -10,9 +10,9 @@
 \usage{
 auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
-         cfType=c("MSE","MAE","HAM","trace","GV","TV","MSEh"),
+         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
          h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-         intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+         intervalsType=c("parametric","semiparametric","nonparametric"),
          intermittent=c("none","auto","fixed","croston","tsb"),
          bounds=c("admissible","none"),
          silent=c("none","all","graph","legend","output"),
@@ -36,9 +36,9 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
     The information criterion used in the model selection procedure.
   }
   \item{cfType}{
-    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.
+    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"}, then likelihood and model selection is done based on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
-    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful in cases of small samples.
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases of small samples.
   }
   \item{h}{
     The forecasting horizon.
@@ -62,7 +62,7 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
 
         \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
-        \item Finally \code{asymmetric} are based on half moment of distribution.
+        %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
   \item{intermittent}{

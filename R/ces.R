@@ -2,9 +2,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 
 ces <- function(data, seasonality=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), A=NULL, B=NULL,
-                cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                intervalsType=c("parametric","semiparametric","nonparametric"),
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -323,9 +323,17 @@ CreatorCES <- function(silentText=FALSE,...){
         C <- c(A$value,B$value,initialValue,initialX,transitionX,persistenceX);
         cfObjective <- CF(C);
     }
+    if(multisteps){
+        cfType <- "aTFL";
+    }
+    else{
+        cfType <- "MSE";
+    }
     IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
     ICs <- IC.values$ICs;
     bestIC <- ICs["AICc"];
+    # Change back
+    cfType <- cfTypeOriginal;
 
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
 }

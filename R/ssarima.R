@@ -4,9 +4,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"),
-                    cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                    cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                     h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                    intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                    intervalsType=c("parametric","semiparametric","nonparametric"),
                     intermittent=c("none","auto","fixed","croston","tsb"),
                     bounds=c("admissible","none"),
                     silent=c("none","all","graph","legend","output"),
@@ -384,12 +384,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Change cfType for model selection
     if(multisteps){
-        if(substring(cfType,1,1)=="a"){
-            cfType <- "aTFL";
-        }
-        else{
-            cfType <- "TFL";
-        }
+        #     if(substring(cfType,1,1)=="a"){
+        cfType <- "aTFL";
+        #     }
+        #     else{
+        #         cfType <- "TFL";
+        #     }
     }
     else{
         cfType <- "MSE";

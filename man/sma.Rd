@@ -10,7 +10,7 @@ Simple Moving Average
 \usage{
 sma(data, order=NULL, ic=c("AICc","AIC","BIC"),
     h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-    intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+    intervalsType=c("parametric","semiparametric","nonparametric"),
     silent=c("none","all","graph","legend","output"), ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -47,7 +47,7 @@ sma(data, order=NULL, ic=c("AICc","AIC","BIC"),
 
         \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
-        \item Finally \code{asymmetric} are based on half moment of distribution.
+        %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
   \item{silent}{

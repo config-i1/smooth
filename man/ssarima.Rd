@@ -11,9 +11,9 @@ Function constructs State-Space ARIMA, estimating AR, MA terms and initial state
 ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   constant=FALSE, AR=NULL, MA=NULL,
   initial=c("backcasting","optimal"),
-  cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+  cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
   h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-  intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+  intervalsType=c("parametric","semiparametric","nonparametric"),
   intermittent=c("none","auto","fixed","croston","tsb"),
   bounds=c("admissible","none"),
   silent=c("none","all","graph","legend","output"),
@@ -50,9 +50,9 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
     Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure (advised for data with high frequency). If character, then \code{initial.season} will be estimated in the way defined by \code{initial}.
   }
   \item{cfType}{
-    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{TFL} - Trace forecast likelihood, \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"} or \code{cfType!="TFL"}, then likelihood and model selection is done based on equivalent \code{MSE} or \code{TFL} respectively. Model selection in this cases becomes not optimal.
+    Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"}, then likelihood and model selection is done based on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
-    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE}, \code{aMLSTFE} and \code{aTFL}. These can be useful in cases of small samples.
+    There are also available analytical approximations for multistep functions: \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases of small samples.
   }
   \item{h}{ the forecasting horizon.
   }
@@ -73,7 +73,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
 
         \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
-        \item Finally \code{asymmetric} are based on half moment of distribution.
+        %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
   }
   \item{intermittent}{
@@ -195,8 +195,8 @@ ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         h=10,holdout=TRUE)}
 
 # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\dontrun{ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="TFL")
-ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="aTFL")}
+\dontrun{ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="MSTFE")
+ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="aMSTFE")}
 
 # SARIMA(0,1,1) with exogenous variables
 ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118))

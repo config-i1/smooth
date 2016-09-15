@@ -2,9 +2,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 
 auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
-                         cfType=c("MSE","MAE","HAM","MLSTFE","TFL","MSTFE","MSEh"),
+                         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                          h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                         intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+                         intervalsType=c("parametric","semiparametric","nonparametric"),
                          intermittent=c("none","auto","fixed","croston","tsb"),
                          bounds=c("admissible","none"),
                          silent=c("none","all","graph","legend","output"),
