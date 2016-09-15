@@ -1150,7 +1150,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     ##### intervals, intervalsType, level #####
     intervalsType <- substring(intervalsType[1],1,1);
     # Check the provided type of interval
-    if(all(intervalsType!=c("a","p","f","n"))){
+    if(all(intervalsType!=c("a","p","s","n"))){
         warning(paste0("Wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalsType <- "p";
     }
