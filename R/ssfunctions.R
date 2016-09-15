@@ -1081,6 +1081,18 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         FI <- FALSE;
     }
 
+    ##### data #####
+    if(!is.numeric(data)){
+        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+    }
+    # Check the data for NAs
+    if(any(is.na(data))){
+        if(!silentText){
+            warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
+        }
+        data[is.na(data)] <- 0;
+    }
+
     ##### Observations #####
 # Define obs, the number of observations of in-sample
     obsInsample <- length(data) - holdout*h;
