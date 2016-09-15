@@ -1,5 +1,5 @@
 ---
-title: "smooth: forecasting using state-space smoothing models"
+title: "smooth: forecasting using state-space models"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -9,13 +9,18 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](http://forecasting.svetunkov.ru)".
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](https://github.com/config-i1/smooth/smooth.pdf)".
 
 In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
 
 Let's load the necessary packages:
 
-```{r, fig.show='hold', message=FALSE, warning=FALSE}
+```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
 require(Mcomp)
 ```
@@ -26,32 +31,111 @@ You may note that `Mcomp` depends on `forecast` package and if you load both `fo
 
 This function allows selecting and estimating exponential smoothing and producing forecasts. The simplest call of this function is:
 
-```{r, fig.show='hold'}
-es(Mcomp::M3$N1234$x, h=8)
+```{r es_N2457}
+es(M3$N2457$x, h=18, holdout=TRUE)
 ```
 
-In this case function estimates several simple ETS models, then forms pool of models to check and after that constructs a model with the lowest information criterion.
+In this case function uses branch and bound algorithm to form a pool of models to check and after that constructs a model with the lowest information criterion. As we can see, it also produces an output with brief information about the model, which contains:
+
+1. How much time was elapsed for the model construction;
+2. What type of ETS was selected;
+3. Values of persistence vector (smoothing parameters);
+4. What type of initialisation was used;
+5. How many parameters were estimated (standard deviation is included);
+6. Standard deviation of residuals. The model has multiplicative error term, so as a result the standard deviation is small.
+7. Cost function type and the value of that cost function;
+8. Information criteria for this model;
+9. Forecast errors (because we have set `holdout=TRUE`).
+
+The function has also produced a graph with actuals, fitted values and point forecasts.
+
+If we need prediction intervals, then we run:
+```{r es_N2457_with_intervals}
+es(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE)
+```
+
+Due to multiplicative nature of error term in the model, the intervals are asymmetric. This is the expected behaviour. The other thing to note is that the output now also provides the theoretical width of prediction intervals and its actual coverage.
+
+If we save the model (and let's say we want it to work silently):
+```{r es_N2457_save_model}
+ourModel <- es(M3$N2457$x, h=18, holdout=TRUE, silent="all")
+```
+
+we can then reuse it for different purposes:
+```{r es_N2457_reuse_model}
+es(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, intervals=TRUE, intervalsType="n", level=0.93)
+```
+
+Or we can just use persistence or initials from one model to construct the other one:
+```{r es_N2457_reuse_model_parts}
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, initial=ourModel$initial, silent="graph")
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, persistence=ourModel$persistence, silent="graph")
+```
+or provide some arbitrary values:
+```{r es_N2457_set_initial}
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, initial=1500, silent="graph")
+```
+
+Using some other parameters may lead to completely different model and forecasts:
+```{r es_N2457_aMSTFE}
+es(M3$N2457$x, h=18, holdout=TRUE, cfType="aMSTFE", bounds="a", ic="BIC", intervals=TRUE)
+```
+
+You can play around with all the available parameters to see what's their effect on final model.
+
+Model selection from a specified pool and forecasts combination are called using respectively:
+```{r es_N2457_pool}
+es(M3$N2457$x, model=c("ANN","AAN","AAdN","ANA","AAA","AAdA"), h=18, holdout=TRUE, silent="graph")
+es(M3$N2457$x, model="CCN", h=18, holdout=TRUE, silent="graph")
+```
+
+Now let's introduce some artificial exogenous variables:
+```{r es_N2457_xreg_create}
+x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
+```
+
+and fit a model with exogenous without update first:
+```{r es_N2457_xreg}
+es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x)
+```
+
+and then with the update:
+```{r es_N2457_xreg_update}
+es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
+```
+
+Be careful, however, when non additive ETS models are used with exogenous variables. The results may be highly unsatisfactory and unstable.
 
 ## Complex Exponential Smoothing, `ces()`, `auto.ces()`
 
 `ces()` function allows constructing Complex Exponential Smoothing either with no seasonality, or with simple / partial / full seasonality. A simple call for `ces()` results in estimation of non-seasonal model:
 
-```{r, fig.show='hold'}
-ces(Mcomp::M3$N1234$x, h=8)
+For the same series from M3 dataset `ces()` can be constructed using:
+```{r ces_N2457}
+ces(M3$N2457$x, h=18, holdout=TRUE)
 ```
 
-This output shows:
+This output is very similar to ones printed out by `es()` function. The only difference is complex smoothing parameter values which are printed out instead of persistence vector in `es()`.
 
-1. How much time was elapsed for the model construction;
-2. What type of CES was estimated;
-3. What values of complex smoothing parameters are found;
-4. What type of initialisation was used;
-5. How many parameters were estimated (standard deviation is included);
-6. Standard deviation of residuals.
-7. Cost function type and the value of that cost function with the found parameters;
-8. Information criteria produced for this model with such parameters.
+If we want automatic model selection, then we use `auto.ces()` function:
+```{r auto_ces_N2457}
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE)
+```
 
-<!-- end of list -->
+If for some reason we want to optimise initial values then we call:
+```{r auto_ces_N2457_optimal}
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, initial="o", intervals=TRUE, intervalsType="s")
+```
+
+`ces()` allows using exogenous variables and different types of prediction intervals in exactly the same manner as `es()`:
+```{r auto_ces_N2457_xreg_simple}
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, intervals=TRUE)
+```
+
+The same model but with updated parameters of exogenous variables is called:
+```{r auto_ces_N2457_xreg_update}
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE, intervals=TRUE)
+```
 
 ## SARIMA, `ssarima()`, `auto.ssarima()`
 
@@ -59,42 +143,141 @@ SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both na
 
 The default call constructs ARIMA(0,1,1):
 
-```{r, fig.show='hold'}
-ssarima(Mcomp::M3$N1234$x, h=8)
+```{r ssarima_N2457}
+ssarima(M3$N2457$x, h=18)
 ```
 
-Function contains parameters... and returns values...
+We could try selecting orders manually, but this can also be done automatically via `auto.ssarima()` function:
+```{r auto_ssarima_N2457}
+auto.ssarima(M3$N2457$x, h=18)
+```
+
+Automatic order selection in SSARIMA with optimised initials does not work well and in general is not recommended. This is partially because of the possible high number of parameters in some models and partially because of potential overfitting of first observations when non-zero order of AR is selected. This problem can be seen on example of another time series (which has complicated seasonality):
+```{r auto_ssarima_N1683}
+auto.ssarima(M3$N1683$x, h=18, initial="backcasting")
+auto.ssarima(M3$N1683$x, h=18, initial="optimal")
+```
+
+As can be seen from the second graph, ssarima with optimal initial does not select seasonal model and reverts to ARIMA(0,0,3) with constant. In theory this can be due to implemented order selection algorithm, however if we estimate all the model in the pool separately, we will see that this model is optimal for this time series when this type of initials is used.
+
+If we save model:
+```{r auto_ssarima_N2457_xreg}
+ourModel <- auto.ssarima(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE)
+```
+
+we can then reuse it:
+```{r auto_ssarima_N2457_xreg_update}
+ssarima(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, xreg=x, updateX=TRUE, intervals=TRUE)
+```
 
 ## Generalised Exponential Smoothing, `ges()`
 
 Generalised Exponential Smoothing is a next step from CES. It is a state-space model in which all the matrices and vectors are estimated. It is very demanding in sample size, but is also insanely flexible.
 
-A simple call by default constructs GES$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with quarterly data N1234, we will have GES$(1^1,1^4)$:
+A simple call by default constructs GES$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with monthly data N2457, we will have GES$(1^1,1^{12})$:
 
-```{r, fig.show='hold'}
-ges(Mcomp::M3$N1234$x, h=8)
+```{r ges_N2457}
+ges(M3$N2457$x, h=18, holdout=TRUE)
 ```
+
+But some different orders and lags can be specified. For example:
+```{r ges_N2457_2[1]_1[12]}
+ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
+```
+
+Function `auto.ges()` is not yet implemented in `smooth`, but manual selection allows to conclude that GES$(1^1)$ has the lowest AIC amongst other possible GES models:
+```{r ges_N2457_1[1]}
+ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(1), lags=c(1), intervals=TRUE)
+```
+
+In theory inclusion of more orders and lags should lead to decrease of MSE. However this is not the case in our implementation, because currently we use linear programming optimisers, which may leave us with suboptimal values in cases when parameter space is wide.
+
+In addition to standard values that other functions accept, GES accepts predefined values for transition matrix, measurement and persistence vectors. For example, something more common can be passed to the function:
+```{r ges_N2457_predefined}
+	transition <- matrix(c(1,0,0,1,1,0,0,0,1),3,3)
+	measurement <- c(1,1,1)
+	ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12), transition=transition, measurement=measurement)
+```
+
+The resulting model will be equivalent to ETS(A,A,A). However due to different initialisation of optimisers and different method of number of parameters calculation, `ges()` above and `es(y, "AAA", h=h, holdout=TRUE)` will lead to different models.
+
 
 ## Simple Moving Average, `sma()`
 
 Simple Moving Average is a method of time series smoothing and is actually a very basic forecasting technique. It does not need estimation of parameters, but rather is based on order selection. By default SMA does order selection based on AICc and returns the model with the lowest value:
-```{r, fig.show='hold'}
-sma(Mcomp::M3$N1234$x, h=8)
+```{r sma_N2457}
+sma(M3$N2457$x, h=18)
 ```
 
-SMA(1) corresponds to random walk model and just uses the last actual value as a forecast. Obviously SMA(1) is the best model (among the other alternatives) for the trended data. If we try selecting SMA order for data without substantial trend, then we will end up with some other order. For example, let's consider a seasonal time series N2568:
-```{r, fig.show='hold'}
-sma(Mcomp::M3$N2568$x, h=8)
+It appears that SMA(13) is the optimal model for this time series, which is not obvious. Note also that the forecast trajectory of SMA(13) is not just a straight line. This is because the actual values are used in construction of point forecasts up to h=13.
+
+If we try selecting SMA order for data without substantial trend, then we will end up with some other order. For example, let's consider a seasonal time series N2568:
+```{r sma_N2568}
+sma(M3$N2568$x, h=18)
 ```
-Here we end up with SMA(12). Note that the order of moving average corresponds to seasonal frequency, which is a first step in classical time series decomposition. We however do not have centred moving average, we deal with simple one, so decomposition should not be done based on this model.
+
+Here we end up with SMA(12). Note that the order of moving average corresponds to seasonal frequency, which is usually a first step in classical time series decomposition. We however do not have centred moving average, we deal with simple one, so decomposition should not be done based on this model.
 
 ## Simulation of ETS, `sim.es()`
 
 Currently there is only one simulation function, which allows simulating data from any desired exponential smoothing model with any parameters.
 
-There is also `simulate()` function that allows to simulate data from estimated ETS model. So for example:
+Let's start from something simple. For example, monthly data generated from ETS(A,N,N), 120 observations:
+```{r sim_es_ANN}
+ourSimulation <- sim.es("ANN", frequency=12, obs=120)
+```
 
-```{r, fig.show='hold'}
-ourModel <- es(Mcomp::M3$N1234$x, h=8, silent=TRUE)
+The resulting `ourSimulation` object contains: `ourSimulation$model` -- name of ETS model used in simulation; `ourSimulation$data` -- vector of simulated data; `ourSimulation$states` -- matrix of states, where columns contain different states and rows corresponds to time; `ourSimulation$persistence` -- vector of smoothing parameters used in simulation (in our case generated randomly); `ourSimulation$residuals` -- vector of errors generated in the simulation; `ourSimulation$occurrences` -- vector of demand occurrences (zeroes and ones, in our case only ones); `ourSimulation$likelihood` -- true likelihood function for the used generating model.
+
+We can plot produced data, states or residuals in order to see what was generated. This is done using:
+```{r sim_es_ANN_plot}
+plot(ourSimulation$data)
+```
+
+Now let's use more complicated model and be more specific, providing persistence vector:
+```{r sim_es_MAdM}
+ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01))
+plot(ourSimulation$data)
+```
+
+High values of smoothing parameters are not advised for models with multiplicative components, because they may lead to explosive data. As for randomizer the default values seem to work fine in the majority of cases, but if we want, we can intervene and ask for something specific (for example, some values taken from some estimated model):
+```{r sim_es_MAdM_lnorm}
+ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01), randomizer="rlnorm", meanlog=0, sdlog=0.015)
+plot(ourSimulation$data)
+```
+
+It is advised to use lower values for `sdlog` and `sd` for models with multiplicative components. Once again, using higher values may lead to data with explosive behaviour.
+
+If we need intermittent data, we can define probability of occurrences. And it also makes sense to use pure multiplicative models and specify initials in this case:
+```{r sim_es_iMNN}
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1)
+plot(ourSimulation$data)
+```
+
+If we want to have several time series generated using the same parameters then we can use `nsim` parameter:
+```{r sim_es_iMNN_50}
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1, nsim=50)
+```
+
+We will have the same set of returned values, but with one more dimension. So, for example, we will end up with matrix for `ourSimulation$data` and array for `ourSimulation$states`.
+
+There is also `simulate()` function that allows to simulate data from estimated ETS model. For example:
+```{r simulate_smooth_es}
+ourModel <- es(M3$N2457$x, h=18, silent=TRUE)
 ourData <- simulate(ourModel,nsim=100,obs=120)
 ```
+
+## Methods for the class `smooth`
+
+There are several functions that can be used together with `es()`, `ces()`, `ssarima()` and `ges()` functions. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with some explanations:
+
+1. `summary(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
+2. `fitted(ourModel)` -- fitted values;
+3. `forecast(ourModel)` -- point and interval forecasts. This is needed for compatibility with Rob Hyndman's "forecast" package. `forecast(ourModel)` returns object of class `forecastSmooth`;
+4. `residuals(ourModel)` -- residuals of constructed model;
+5. `AIC(ourModel)`, `BIC(ourModel)` and `AICc(ourModel)` -- information criteria of the constructed model. `AICc()` function is not a standard ``stats'' function and is introduced by ``smooth'';
+6. `plot(ourModel)` -- plots states of constructed model. If number of states is higher than 10, then several graphs are produced;
+7. `simulate(ourModel)` -- produces data simulated from provided model. Currently only available for ETS via `simulate(es(...))`;
+8. `summary(forecast(ourModel))` -- prints point and interval forecasts;
+9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and intervals using `graphmaker()` function.
+
