@@ -1,3 +1,19 @@
+smooth v1.4.3 (Release date: 2016-09-16)
+==============
+
+Changes:
+
+* Removed "TFL" as a cost function type and "asymmetric" as intervals type. The functions still accept these parameters, but the parameters are now hidden, because currently they are not ready for wide audience.
+* Changed how number of parameters is calculated when initials are provided. They should be counted in. Only backcasting now excludes initials in calculation of number of parameters.
+* Prepared vignette for es(), ces(), ssarima(), ges(), sma() and sim.es(). This now includes examples with some comments.
+* Uploaded documentation for the package to github (https://github.com/config-i1/smooth/smooth.pdf). This will be published as working paper and will be available via ResearchGate.
+
+Bugfixes:
+
+* Fixed a bug with intervalsType="s" not working for auto functions.
+* data provided to auto functions is now checked.
+
+
 smooth v1.4.2 (Release date: 2016-09-15)
 ==============
 
