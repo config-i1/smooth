@@ -19,4 +19,8 @@ src/*.so
 src/*.dll
 .directory
 .Rproj.user
-#inst/doc
+inst/doc/*.html
+inst/doc/*.R
+inst/doc/*.Rmd
+vignettes/rsconnect
+vignettes/Figs
