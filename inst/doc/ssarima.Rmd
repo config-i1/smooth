@@ -1,0 +1,60 @@
+---
+title: "ssarima() - State-Space ARIMA"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ssarima() - State-Space ARIMA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both names show what happens in the heart of the function: it constructs ARIMA in a state-space form and allows to model several (actually more than several) seasonalities. `ssarima()` is a function included in [smooth package](smooth.html). This vignette covers `ssarima()` and `auto.ssarima()` functions. 
+
+As usual, we will use data from `Mcomp` package, so it is adviced to install it.
+
+Let's load the necessary packages:
+
+```{r load_libraries, message=FALSE, warning=FALSE}
+require(smooth)
+require(Mcomp)
+```
+
+The default call constructs ARIMA(0,1,1):
+
+```{r ssarima_N2457}
+ssarima(M3$N2457$x, h=18)
+```
+
+We could try selecting orders manually, but this can also be done automatically via `auto.ssarima()` function:
+```{r auto_ssarima_N2457}
+auto.ssarima(M3$N2457$x, h=18)
+```
+
+Automatic order selection in SSARIMA with optimised initials does not work well and in general is not recommended. This is partially because of the possible high number of parameters in some models and partially because of potential overfitting of first observations when non-zero order of AR is selected. This problem can be seen on example of another time series (which has complicated seasonality):
+```{r auto_ssarima_N1683}
+auto.ssarima(M3$N1683$x, h=18, initial="backcasting")
+auto.ssarima(M3$N1683$x, h=18, initial="optimal")
+```
+
+As can be seen from the second graph, ssarima with optimal initial does not select seasonal model and reverts to ARIMA(0,0,3) with constant. In theory this can be due to implemented order selection algorithm, however if we estimate all the model in the pool separately, we will see that this model is optimal for this time series when this type of initials is used.
+
+Now let's introduce some artificial exogenous variables:
+```{r es_N2457_xreg_create}
+x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
+```
+
+If we save model:
+```{r auto_ssarima_N2457_xreg}
+ourModel <- auto.ssarima(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE)
+```
+
+we can then reuse it:
+```{r auto_ssarima_N2457_xreg_update}
+ssarima(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, xreg=x, updateX=TRUE, intervals=TRUE)
+```

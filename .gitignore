@@ -19,4 +19,4 @@ src/*.so
 src/*.dll
 .directory
 .Rproj.user
-inst/doc
+#inst/doc

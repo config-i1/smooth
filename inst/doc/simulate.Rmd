@@ -1,0 +1,80 @@
+---
+title: "simulate(), sim.es() - simulate exponential smoothing"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{simulate(), sim.es() - simulate exponential smoothing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+Currently "smooth" function contains simulation function for Exponential Smoothing ([es](es.html)). It is planned to produce other functions for other state-space models. This is part of [smooth package](smooth.html).
+
+Let's load the necessary package:
+```{r load_libraries, message=FALSE, warning=FALSE}
+require(smooth)
+```
+
+Currently there is only one simulation function, which allows simulating data from any desired exponential smoothing model with any parameters.
+
+Let's start from something simple. For example, monthly data generated from ETS(A,N,N), 120 observations:
+```{r sim_es_ANN}
+ourSimulation <- sim.es("ANN", frequency=12, obs=120)
+```
+
+The resulting `ourSimulation` object contains: `ourSimulation$model` -- name of ETS model used in simulation; `ourSimulation$data` -- vector of simulated data; `ourSimulation$states` -- matrix of states, where columns contain different states and rows corresponds to time; `ourSimulation$persistence` -- vector of smoothing parameters used in simulation (in our case generated randomly); `ourSimulation$residuals` -- vector of errors generated in the simulation; `ourSimulation$occurrences` -- vector of demand occurrences (zeroes and ones, in our case only ones); `ourSimulation$likelihood` -- true likelihood function for the used generating model.
+
+We can plot produced data, states or residuals in order to see what was generated. This is done using:
+```{r sim_es_ANN_plot}
+plot(ourSimulation$data)
+```
+
+Now let's use more complicated model and be more specific, providing persistence vector:
+```{r sim_es_MAdM}
+ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01))
+plot(ourSimulation$data)
+```
+
+High values of smoothing parameters are not advised for models with multiplicative components, because they may lead to explosive data. As for randomizer the default values seem to work fine in the majority of cases, but if we want, we can intervene and ask for something specific (for example, some values taken from some estimated model):
+```{r sim_es_MAdM_lnorm}
+ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01), randomizer="rlnorm", meanlog=0, sdlog=0.015)
+plot(ourSimulation$data)
+```
+
+It is advised to use lower values for `sdlog` and `sd` for models with multiplicative components. Once again, using higher values may lead to data with explosive behaviour.
+
+If we need intermittent data, we can define probability of occurrences. And it also makes sense to use pure multiplicative models and specify initials in this case:
+```{r sim_es_iMNN}
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1)
+plot(ourSimulation$data)
+```
+
+If we want to have several time series generated using the same parameters then we can use `nsim` parameter:
+```{r sim_es_iMNN_50}
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1, nsim=50)
+```
+
+We will have the same set of returned values, but with one more dimension. So, for example, we will end up with matrix for `ourSimulation$data` and array for `ourSimulation$states`.
+
+There is also `simulate()` function that allows to simulate data from estimated ETS model. For example:
+```{r simulate_smooth_es}
+x <- ts(rnorm(100,120,15),frequency=12)
+ourModel <- es(x, h=18, silent=TRUE)
+ourData <- simulate(ourModel,nsim=50,obs=100)
+```
+
+Now let's compare the original data and the simulated one:
+```{r simulate_smooth_es_compare}
+par(mfcol=c(1,2))
+plot(x)
+plot(ourData$data[,1])
+par(mfcol=c(1,1))
+```
+
+As we see the level is the same and variance is similar for both series. Achievement unlocked!

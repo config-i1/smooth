@@ -1,0 +1,42 @@
+---
+title: "sma() - Simple Moving Average"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{sma() - Simple Moving Average}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+Simple Moving Average is a method of time series smoothing and is actually a very basic forecasting technique. It does not need estimation of parameters, but rather is based on order selection. It is a part of [smooth package](smooth.html).
+
+In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
+
+Let's load the necessary packages:
+```{r load_libraries, message=FALSE, warning=FALSE}
+require(smooth)
+require(Mcomp)
+```
+
+You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.
+
+
+By default SMA does order selection based on AICc and returns the model with the lowest value:
+```{r sma_N2457}
+sma(M3$N2457$x, h=18)
+```
+
+It appears that SMA(13) is the optimal model for this time series, which is not obvious. Note also that the forecast trajectory of SMA(13) is not just a straight line. This is because the actual values are used in construction of point forecasts up to h=13.
+
+If we try selecting SMA order for data without substantial trend, then we will end up with some other order. For example, let's consider a seasonal time series N2568:
+```{r sma_N2568}
+sma(M3$N2568$x, h=18)
+```
+
+Here we end up with SMA(12). Note that the order of moving average corresponds to seasonal frequency, which is usually a first step in classical time series decomposition. We however do not have centred moving average, we deal with simple one, so decomposition should not be done based on this model.

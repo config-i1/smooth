@@ -1,0 +1,104 @@
+---
+title: "es() - Exponential Smoothing"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{es() - Exponential Smoothing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+`es()` is a part of [smooth package](smooth.html). It allows constructing Exponential Smoothing (also known as ETS), selecting the most appropriate one among 30 possible ones, including exogenous variables and many more.
+
+In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
+
+Let's load the necessary packages:
+```{r load_libraries, message=FALSE, warning=FALSE}
+require(smooth)
+require(Mcomp)
+```
+
+You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.
+
+The simplest call of this function is:
+
+```{r es_N2457}
+es(M3$N2457$x, h=18, holdout=TRUE)
+```
+
+In this case function uses branch and bound algorithm to form a pool of models to check and after that constructs a model with the lowest information criterion. As we can see, it also produces an output with brief information about the model, which contains:
+
+1. How much time was elapsed for the model construction;
+2. What type of ETS was selected;
+3. Values of persistence vector (smoothing parameters);
+4. What type of initialisation was used;
+5. How many parameters were estimated (standard deviation is included);
+6. Standard deviation of residuals. The model has multiplicative error term, so as a result the standard deviation is small.
+7. Cost function type and the value of that cost function;
+8. Information criteria for this model;
+9. Forecast errors (because we have set `holdout=TRUE`).
+
+The function has also produced a graph with actuals, fitted values and point forecasts.
+
+If we need prediction intervals, then we run:
+```{r es_N2457_with_intervals}
+es(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE)
+```
+
+Due to multiplicative nature of error term in the model, the intervals are asymmetric. This is the expected behaviour. The other thing to note is that the output now also provides the theoretical width of prediction intervals and its actual coverage.
+
+If we save the model (and let's say we want it to work silently):
+```{r es_N2457_save_model}
+ourModel <- es(M3$N2457$x, h=18, holdout=TRUE, silent="all")
+```
+
+we can then reuse it for different purposes:
+```{r es_N2457_reuse_model}
+es(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, intervals=TRUE, intervalsType="n", level=0.93)
+```
+
+Or we can just use persistence or initials from one model to construct the other one:
+```{r es_N2457_reuse_model_parts}
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, initial=ourModel$initial, silent="graph")
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, persistence=ourModel$persistence, silent="graph")
+```
+or provide some arbitrary values:
+```{r es_N2457_set_initial}
+es(M3$N2457$x, model="MNN", h=18, holdout=FALSE, initial=1500, silent="graph")
+```
+
+Using some other parameters may lead to completely different model and forecasts:
+```{r es_N2457_aMSTFE}
+es(M3$N2457$x, h=18, holdout=TRUE, cfType="aMSTFE", bounds="a", ic="BIC", intervals=TRUE)
+```
+
+You can play around with all the available parameters to see what's their effect on final model.
+
+Model selection from a specified pool and forecasts combination are called using respectively:
+```{r es_N2457_pool}
+es(M3$N2457$x, model=c("ANN","AAN","AAdN","ANA","AAA","AAdA"), h=18, holdout=TRUE, silent="graph")
+es(M3$N2457$x, model="CCN", h=18, holdout=TRUE, silent="graph")
+```
+
+Now let's introduce some artificial exogenous variables:
+```{r es_N2457_xreg_create}
+x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
+```
+
+and fit a model with exogenous without update first:
+```{r es_N2457_xreg}
+es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x)
+```
+
+and then with the update:
+```{r es_N2457_xreg_update}
+es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
+```
+
+Be careful, however, when non additive ETS models are used with exogenous variables. The results may be highly unsatisfactory and unstable.

@@ -1,0 +1,56 @@
+---
+title: "ges() - Generalised Exponential Smoothing"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{ges() - Generalised Exponential Smoothing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+`ges()` constructs Generalised Exponential Smoothing - pure additive state-space model. It is a part of [smooth package](smooth.html).
+
+In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
+
+Let's load the necessary packages:
+```{r load_libraries, message=FALSE, warning=FALSE}
+require(smooth)
+require(Mcomp)
+```
+
+You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.
+
+Generalised Exponential Smoothing is a next step from CES. It is a state-space model in which all the matrices and vectors are estimated. It is very demanding in sample size, but is also insanely flexible.
+
+A simple call by default constructs GES$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with monthly data N2457, we will have GES$(1^1,1^{12})$:
+
+```{r ges_N2457}
+ges(M3$N2457$x, h=18, holdout=TRUE)
+```
+
+But some different orders and lags can be specified. For example:
+```{r ges_N2457_2[1]_1[12]}
+ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
+```
+
+Function `auto.ges()` is not yet implemented in `smooth`, but manual selection allows to conclude that GES$(1^1)$ has the lowest AIC amongst other possible GES models:
+```{r ges_N2457_1[1]}
+ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(1), lags=c(1), intervals=TRUE)
+```
+
+In theory inclusion of more orders and lags should lead to decrease of MSE. However this is not the case in our implementation, because currently we use linear programming optimisers, which may leave us with suboptimal values in cases when parameter space is wide.
+
+In addition to standard values that other functions accept, GES accepts predefined values for transition matrix, measurement and persistence vectors. For example, something more common can be passed to the function:
+```{r ges_N2457_predefined}
+	transition <- matrix(c(1,0,0,1,1,0,0,0,1),3,3)
+	measurement <- c(1,1,1)
+	ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12), transition=transition, measurement=measurement)
+```
+
+The resulting model will be equivalent to ETS(A,A,A). However due to different initialisation of optimisers and different method of number of parameters calculation, `ges()` above and `es(y, "AAA", h=h, holdout=TRUE)` will lead to different models.
