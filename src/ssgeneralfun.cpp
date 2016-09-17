@@ -933,7 +933,7 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
 
 // Fix for GV in order to perform better in the sides of the series
     for(int i=0; i<(hor-1); i=i+1){
-        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(i+1);
+        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(1.0+i);
     }
 
     return materrors;
