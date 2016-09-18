@@ -14,7 +14,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](smooth-Documentation.pdf)".
+This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](https://github.com/config-i1/smooth/blob/master/inst/doc/smooth-Documentation.pdf)".
 
 The package includes the following functions:
 
