@@ -12,7 +12,7 @@ Description: The set of smoothing functions used for time series analysis and in
              form + several simulation functions.
 License: GPL (>=2)
 Depends: R (>= 3.0.2)
-Imports: Rcpp (>= 0.12.3), stats, graphics, zoo, nloptr, polynom
+Imports: Rcpp (>= 0.12.3), stats, graphics, zoo, nloptr, polynom, utils
 LinkingTo: Rcpp, RcppArmadillo (>= 0.6.500.0.0)
 Suggests: Mcomp, forecast, numDeriv,
     testthat,
