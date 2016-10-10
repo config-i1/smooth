@@ -21,7 +21,7 @@ Future works:
 10. sim.ces, sim.ges, sim.ssarima - simulation functions for CES, GES and SSARIMA respectively.
 11. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
 12. auto.ges - Automatic selection of the most appropriate GES model.
-13. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of a regression model.
+13. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
 14. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
 ## Installation
