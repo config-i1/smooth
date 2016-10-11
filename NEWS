@@ -1,3 +1,17 @@
+smooth v1.4.4 (Release date: 2016-09-20)
+==============
+
+Changes:
+
+* auto.ssarima() function uses now a different algorithm. This allows speeding up order selection process and selecting models closer to the "true" one.
+* Some corrections in smooth-Documentation.
+* Package will now tell its version when loaded.
+
+Bugfixes:
+
+* Corrected C++ bug that caused problems on Solar OS.
+
+
 smooth v1.4.3 (Release date: 2016-09-16)
 ==============
 

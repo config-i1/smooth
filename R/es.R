@@ -945,7 +945,12 @@ CreatorES <- function(silent=FALSE,...){
         if(persistenceEstimate){
             persistence <- as.vector(vecg);
         }
-        names(persistence) <- c("alpha","beta","gamma")[1:n.components];
+        if(Ttype!="N"){
+            names(persistence) <- c("alpha","beta","gamma")[1:n.components];
+        }
+        else{
+            names(persistence) <- c("alpha","gamma")[1:n.components];
+        }
 
         if(initialType!="p"){
             initialValue <- matvt[maxlag,1:(n.components - (Stype!="N"))];

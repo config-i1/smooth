@@ -3,7 +3,7 @@ context("Tests for ssarima() function");
 # Basic SSARIMA selection
 testModel <- auto.ssarima(Mcomp::M3$N1234$x, silent=TRUE);
 test_that("Test if Auto SSARIMA selected correct model for N1234$x", {
-    expect_equal(testModel$model, "ARIMA(0,1,0) with drift");
+    expect_equal(testModel$model, "ARIMA(0,1,3) with drift");
 })
 
 # Reuse previous SSARIMA
