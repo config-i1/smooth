@@ -230,6 +230,8 @@ CreatorGES <- function(silentText=FALSE,...){
             C <- c(C,rep(1,n.components));
         }
         if(transitionEstimate){
+            #C <- c(C,as.vector(test$transition));
+            #C <- c(C,rep(1,n.components^2 - length(test$transition)))
             C <- c(C,rep(1,n.components^2));
             #C <- c(C,c(diag(1,n.components)));
         }
