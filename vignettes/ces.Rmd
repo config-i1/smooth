@@ -34,14 +34,14 @@ This output is very similar to ones printed out by `es()` function. The only dif
 
 If we want automatic model selection, then we use `auto.ces()` function:
 ```{r auto_ces_N2457}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE)
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, intervals="p")
 ```
 
 Note that prediction intervals are too narrow and do not include 95% of values. This is because CES is pure additive model and it cannot take into account possible heteroscedasticity.
 
 If for some reason we want to optimise initial values then we call:
 ```{r auto_ces_N2457_optimal}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, initial="o", intervals=TRUE, intervalsType="s")
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, initial="o", intervals="sp")
 ```
 
 Now let's introduce some artificial exogenous variables:
@@ -51,10 +51,10 @@ x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
 
 `ces()` allows using exogenous variables and different types of prediction intervals in exactly the same manner as `es()`:
 ```{r auto_ces_N2457_xreg_simple}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, intervals=TRUE)
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, intervals="p")
 ```
 
 The same model but with updated parameters of exogenous variables is called:
 ```{r auto_ces_N2457_xreg_update}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE, intervals=TRUE)
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE, intervals="p")
 ```
