@@ -11,8 +11,8 @@ Function constructs ETS model and returns forecast, fitted values, errors and ma
 es(data, model="ZZZ", persistence=NULL, phi=NULL,
    initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
    cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-   h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-   intervalsType=c("parametric","semiparametric","nonparametric"),
+   h=10, holdout=FALSE,
+   intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
    intermittent=c("none","auto","fixed","croston","tsb"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
@@ -59,23 +59,24 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{
-    If \code{TRUE}, prediction intervals are constructed.
-  }
-  \item{level}{
-    Confidence level. Defines width of prediction interval.
-  }
-  \item{intervalsType}{
-    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
+    Type of intervals to construct. This can be:
 
     \itemize{
-        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{none}, aka \code{n} - do not produce prediction intervals.
 
-        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
+        \item \code{parametric}, \code{p} - use state-space structure of ETS. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{semiparametric}, \code{sp} - intervals based on covariance matrix of 1 to h steps ahead errors and assumption of normal / log-normal distribution (depending on error type).
+
+        \item \code{nonparametric}, \code{np} - intervals based on values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
+
+    The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that parametric intervals are constructed, while latter is equivalent to \code{none}.
+  }
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
   \item{intermittent}{
     Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead.
@@ -134,12 +135,12 @@ For the details see Hyndman et al.(2008).
     \item \code{nParam} - number of estimated parameters.
     \item \code{fitted} - fitted values of ETS.
     \item \code{forecast} - point forecast of ETS.
-    \item \code{lower} - lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{upper} - higher bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"} then NA is returned.
+    \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"} then NA is returned.
     \item \code{residuals} - residuals of the estimated model.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
     \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
-    \item \code{intervalsType} - type of intervals asked by user.
+    \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - original data.
     \item \code{holdout} - holdout part of the original data.
@@ -169,7 +170,7 @@ For the details see Hyndman et al.(2008).
     \item \code{upper},
     \item \code{residuals},
     \item \code{s2},
-    \item \code{intervalsType},
+    \item \code{intervals},
     \item \code{level},
     \item \code{actuals},
     \item \code{holdout},
@@ -219,14 +220,15 @@ es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 test <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
 # Redo previous model and produce prediction intervals
-es(M3$N1587$x,model=test,h=18,intervals=TRUE)
+es(M3$N1587$x,model=test,h=18,intervals="p")
 
 # Semiparametric intervals example
-es(M3$N1587$x,h=18,holdout=TRUE,intervals=TRUE,intervalsType="s")
+es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")
 
 # Exogenous variables in ETS example
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,cfType="aMSTFE")
+y <- ts(c(M3$N1457$x,M3$N1457$xx),frequency=12)
+es(y,h=18,holdout=TRUE,xreg=x,cfType="aMSTFE",intervals="np")
 test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
 
 # This will be the same model as in previous line but estimated on new portion of data

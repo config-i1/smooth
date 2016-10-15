@@ -9,8 +9,8 @@ Simple Moving Average
 }
 \usage{
 sma(data, order=NULL, ic=c("AICc","AIC","BIC"),
-    h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-    intervalsType=c("parametric","semiparametric","nonparametric"),
+    h=10, holdout=FALSE,
+    intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
     silent=c("none","all","graph","legend","output"), ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -32,23 +32,24 @@ sma(data, order=NULL, ic=c("AICc","AIC","BIC"),
     If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{
-    If \code{TRUE}, prediction intervals are constructed.
-  }
-  \item{level}{
-    Confidence level. Defines width of prediction interval.
-  }
-  \item{intervalsType}{
-    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
+    Type of intervals to construct. This can be:
 
     \itemize{
-        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{none}, aka \code{n} - do not produce prediction intervals.
 
-        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
+        \item \code{parametric}, \code{p} - use state-space structure of ETS. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{semiparametric}, \code{sp} - intervals based on covariance matrix of 1 to h steps ahead errors and assumption of normal / log-normal distribution (depending on error type).
+
+        \item \code{nonparametric}, \code{np} - intervals based on values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
+
+    The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that parametric intervals are constructed, while latter is equivalent to \code{none}.
+  }
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
   \item{silent}{
     If \code{silent="none"}, then nothing is silent, everything is printed out and drawn. \code{silent="all"} means that nothing is produced or drawn (except for warnings). In case of \code{silent="graph"}, no graph is produced. If \code{silent="legend"}, then legend of the graph is skipped. And finally \code{silent="output"} means that nothing is printed out in the console, but the graph is produced. \code{silent} also accepts \code{TRUE} and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to \code{silent="all"}, while \code{silent=FALSE} is equivalent to \code{silent="none"}. The parameter also accepts first letter of words ("n", "a", "g", "l", "o").
@@ -87,7 +88,7 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}).
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
-    \item \code{intervalsType} - type of intervals asked by user.
+    \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
@@ -113,10 +114,10 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}).
 
 \examples{
 # SMA of specific order
-test <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals=TRUE)
+test <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
 
 # SMA of arbitrary order
-test <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals=TRUE)
+test <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
 
 summary(test)
 forecast(test)

@@ -3,8 +3,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric"),
+                h=10, holdout=FALSE,
+                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
@@ -50,13 +50,13 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full
         }
 
         CESModel <- ces(data, C=C, seasonality="n",
-                         initial=initialType,
-                         cfType=cfType,
-                         h=h, holdout=holdout, intervals=intervals, level=level,
-                         intervalsType=intervalsType,
-                         intermittent=intermittent,
-                         bounds=bounds, silent=silent,
-                         xreg=xreg, updateX=updateX, FI=FI);
+                        initial=initialType,
+                        cfType=cfType,
+                        h=h, holdout=holdout,
+                        intervals=intervals, level=level,
+                        intermittent=intermittent,
+                        bounds=bounds, silent=silent,
+                        xreg=xreg, updateX=updateX, FI=FI);
         return(CESModel);
     }
 
@@ -90,13 +90,13 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full
             cat(paste0('"',i,'" '));
         }
         CESModel[[j]] <- ces(data, C=C, seasonality=i,
-                              initial=initialType,
-                              cfType=cfType,
-                              h=h, holdout=holdout, intervals=intervals, level=level,
-                              intervalsType=intervalsType,
-                              intermittent=intermittent,
-                              bounds=bounds, silent=TRUE,
-                              xreg=xreg, updateX=updateX, FI=FI);
+                             initial=initialType,
+                             cfType=cfType,
+                             h=h, holdout=holdout,
+                             intervals=intervals, level=level,
+                             intermittent=intermittent,
+                             bounds=bounds, silent=TRUE,
+                             xreg=xreg, updateX=updateX, FI=FI);
         IC.vector[j] <- CESModel[[j]]$ICs[ic];
         j <- j+1;
     }

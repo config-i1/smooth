@@ -8,8 +8,8 @@ utils::globalVariables(c("vecg","n.components","modellags","phiEstimate","y","da
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-               h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-               intervalsType=c("parametric","semiparametric","nonparametric"),
+               h=10, holdout=FALSE,
+               intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                intermittent=c("none","auto","fixed","croston","tsb"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
@@ -1095,7 +1095,7 @@ CreatorES <- function(silent=FALSE,...){
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=n.param,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                      errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                      errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                       ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
@@ -1105,7 +1105,7 @@ CreatorES <- function(silent=FALSE,...){
         model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                       initialType=initialType,
                       fitted=y.fit,forecast=y.for,
-                      lower=y.low,upper=y.high,residuals=errors,s2=s2,intervalsType=intervalsType,level=level,
+                      lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                       xreg=xreg,updateX=updateX,
                       ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);

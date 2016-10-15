@@ -11,8 +11,8 @@
 auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-         h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-         intervalsType=c("parametric","semiparametric","nonparametric"),
+         h=10, holdout=FALSE,
+         intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
          intermittent=c("none","auto","fixed","croston","tsb"),
          bounds=c("admissible","none"),
          silent=c("none","all","graph","legend","output"),
@@ -47,23 +47,24 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
     If \code{TRUE}, the holdout sample of size h will be taken from the data. If \code{FALSE}, no holdout is defined.
   }
   \item{intervals}{
-    If \code{TRUE}, the prediction intervals are constructed.
-  }
-  \item{level}{
-    Confidence level. Defines width of prediction interval.
-  }
-  \item{intervalsType}{
-    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
+    Type of intervals to construct. This can be:
 
     \itemize{
-        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{none}, aka \code{n} - do not produce prediction intervals.
 
-        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
+        \item \code{parametric}, \code{p} - use state-space structure of ETS. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{semiparametric}, \code{sp} - intervals based on covariance matrix of 1 to h steps ahead errors and assumption of normal / log-normal distribution (depending on error type).
+
+        \item \code{nonparametric}, \code{np} - intervals based on values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
+
+    The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that parametric intervals are constructed, while latter is equivalent to \code{none}.
+  }
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
   \item{intermittent}{
     Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on data. The first letter can be used instead of the full words.
@@ -113,10 +114,10 @@ auto.ces(y,h=20,holdout=FALSE)
 library("Mcomp")
 \dontrun{y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
 # Selection between "none" and "full" seasonalities
-auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals=TRUE,level=0.8,ic="AIC")}
+auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals="p",level=0.8,ic="AIC")}
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-test <- auto.ces(y,h=18,holdout=TRUE,intervals=TRUE)
+test <- auto.ces(y,h=18,holdout=TRUE,intervals="sp")
 
 summary(test)
 forecast(test)

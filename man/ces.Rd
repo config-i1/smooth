@@ -11,8 +11,8 @@
 ces(data, seasonality=c("none","simple","partial","full"),
     initial=c("backcasting","optimal"), A=NULL, B=NULL,
     cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-    h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-    intervalsType=c("parametric","semiparametric","nonparametric"),
+    h=10, holdout=FALSE,
+    intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
     intermittent=c("none","auto","fixed","croston","tsb"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
@@ -49,23 +49,24 @@ ces(data, seasonality=c("none","simple","partial","full"),
     If \code{TRUE}, holdout sample of size \code{h} is taken from the end of the data.
   }
   \item{intervals}{
-    If \code{TRUE}, prediction intervals are constructed.
-  }
-  \item{level}{
-    Confidence level. Defines width of prediction interval.
-  }
-  \item{intervalsType}{
-    Type of intervals to construct. First letter can be used instead of the whole word. This can be:
+    Type of intervals to construct. This can be:
 
     \itemize{
-        \item \code{parametric} use state-space structure of ETS. For multiplicative models they are approximated using the same function as for additive. As a result they are a bit wider than should be but are still efficient. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
+        \item \code{none}, aka \code{n} - do not produce prediction intervals.
 
-        \item \code{semiparametric} are based on covariance matrix of 1 to h steps ahead errors and assumption of normal distribution.
+        \item \code{parametric}, \code{p} - use state-space structure of ETS. In case of mixed models this is done using simulations, which may take longer time than for the pure additive and pure multiplicative models.
 
-        \item \code{nonparametric} intervals use values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
+        \item \code{semiparametric}, \code{sp} - intervals based on covariance matrix of 1 to h steps ahead errors and assumption of normal / log-normal distribution (depending on error type).
+
+        \item \code{nonparametric}, \code{np} - intervals based on values from a quantile regression on error matrix (see Taylor and Bunn, 1999). The model used in this process is e[j] = a j^b, where j={1,..,h}.
 
         %\item Finally \code{asymmetric} are based on half moment of distribution.
     }
+
+    The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that parametric intervals are constructed, while latter is equivalent to \code{none}.
+  }
+  \item{level}{
+    Confidence level. Defines width of prediction interval.
   }
   \item{intermittent}{
     Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead.
@@ -114,12 +115,12 @@ ces(data, seasonality=c("none","simple","partial","full"),
     \item \code{nParam} - number of estimated parameters.
     \item \code{fitted} - the fitted values of CES.
     \item \code{forecast} - the point forecast of CES.
-    \item \code{lower} - the lower bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
-    \item \code{upper} - the upper bound of prediction interval. When \code{intervals=FALSE} then NA is returned.
+    \item \code{lower} - the lower bound of prediction interval. When \code{intervals="none"} then NA is returned.
+    \item \code{upper} - the upper bound of prediction interval. When \code{intervals="none"} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
     \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
-    \item \code{intervalsType} - type of intervals asked by user.
+    \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - The data provided in the call of the function.
     \item \code{holdout} - the holdout part of the original data.
@@ -156,20 +157,20 @@ ces(y,h=20,holdout=TRUE)
 ces(y,h=20,holdout=FALSE)
 
 y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-ces(y,h=20,holdout=TRUE,intervals=TRUE,bounds="a")
+ces(y,h=20,holdout=TRUE,intervals="p",bounds="a")
 
 library("Mcomp")
 y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-ces(y,h=8,holdout=TRUE,seasonality="s",intervals=TRUE,level=0.8)
+ces(y,h=8,holdout=TRUE,seasonality="s",intervals="sp",level=0.8)
 
 \dontrun{y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-ces(y,h=18,holdout=TRUE,seasonality="s",intervals=TRUE)
-ces(y,h=18,holdout=TRUE,seasonality="p",intervals=TRUE)
-ces(y,h=18,holdout=TRUE,seasonality="f",intervals=TRUE)}
+ces(y,h=18,holdout=TRUE,seasonality="s",intervals="sp")
+ces(y,h=18,holdout=TRUE,seasonality="p",intervals="np")
+ces(y,h=18,holdout=TRUE,seasonality="f",intervals="p")}
 
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-    intervals=TRUE,xreg=x,cfType="MSTFE")}
+    intervals="np",xreg=x,cfType="MSTFE")}
 
 # Exogenous variables in CES
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))

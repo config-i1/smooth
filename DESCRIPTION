@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using Smoothing Functions
-Version: 1.4.4
-Date: 2016-09-20
+Version: 1.4.5
+Date: 2016-10-15
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Research Associate at Lancaster Centre for Forecasting, UK")
 URL: https://github.com/config-i1/smooth

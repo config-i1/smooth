@@ -3,8 +3,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                         h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                         intervalsType=c("parametric","semiparametric","nonparametric"),
+                         h=10, holdout=FALSE,
+                         intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                          intermittent=c("none","auto","fixed","croston","tsb"),
                          bounds=c("admissible","none"),
                          silent=c("none","all","graph","legend","output"),
@@ -185,10 +185,11 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
     if(all(c(ar.max,i.max,ma.max)==0)){
         cat("\b\b\b\bDone!\n");
         bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
-                               constant=TRUE,initial=initialType,cfType=cfType,
-                               h=h,holdout=holdout,intervals=intervals,level=level,
-                               intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                               xreg=xreg,updateX=updateX,FI=FI);
+                             constant=TRUE,initial=initialType,cfType=cfType,
+                             h=h,holdout=holdout,
+                             intervals=intervals,level=level,
+                             intermittent=intermittent,silent=TRUE,
+                             xreg=xreg,updateX=updateX,FI=FI);
         return(bestModel);
     }
 
@@ -218,10 +219,11 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 # cat("I: ");cat(i.orders[d,]);
             nParamOriginal <- 1;
             testModel <- ssarima(data,ar.orders=0,i.orders=i.orders[d,],ma.orders=0,lags=lags,
-                                        constant=TRUE,initial=initialType,cfType=cfType,
-                                        h=h,holdout=holdout,intervals=intervals,level=level,
-                                        intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                        xreg=xreg,updateX=updateX,FI=FI);
+                                 constant=TRUE,initial=initialType,cfType=cfType,
+                                 h=h,holdout=holdout,
+                                 intervals=intervals,level=level,
+                                 intermittent=intermittent,silent=TRUE,
+                                 xreg=xreg,updateX=updateX,FI=FI);
             ICValue <- testModel$ICs[ic];
 # print(ICValue);
             if(m==1){
@@ -263,10 +265,11 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                             nParamNew <- nParamOriginal + nParamMA;
 
                             testModel <- ssarima(dataI,ar.orders=0,i.orders=0,ma.orders=ma.test,lags=lags,
-                                                        constant=FALSE,initial=initialType,cfType=cfType,
-                                                        h=h,holdout=FALSE,intervals=intervals,level=level,
-                                                        intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                                        xreg=xreg,updateX=updateX,FI=FI);
+                                                 constant=FALSE,initial=initialType,cfType=cfType,
+                                                 h=h,holdout=FALSE,
+                                                 intervals=intervals,level=level,
+                                                 intermittent=intermittent,silent=TRUE,
+                                                 xreg=xreg,updateX=updateX,FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
 # print(ICValue);
                             if(ICValue < bestICMA){
@@ -303,10 +306,11 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
                                             nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
                                             testModel <- ssarima(dataMA,ar.orders=ar.test,i.orders=0,ma.orders=0,lags=lags,
-                                                                        constant=FALSE,initial=initialType,cfType=cfType,
-                                                                        h=h,holdout=FALSE,intervals=intervals,level=level,
-                                                                        intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
-                                                                        xreg=xreg,updateX=updateX,FI=FI);
+                                                                 constant=FALSE,initial=initialType,cfType=cfType,
+                                                                 h=h,holdout=FALSE,
+                                                                 intervals=intervals,level=level,
+                                                                 intermittent=intermittent,silent=TRUE,
+                                                                 xreg=xreg,updateX=updateX,FI=FI);
                                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
 # print(ICValue);
                                             if(ICValue < bestIC){
@@ -341,8 +345,9 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
     if(any(c(ar.best,i.best,ma.best)!=0)){
         testModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
                              constant=FALSE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,intervals=intervals,level=level,
-                             intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
+                             h=h,holdout=holdout,
+                             intervals=intervals,level=level,
+                             intermittent=intermittent,silent=TRUE,
                              xreg=xreg,updateX=updateX,FI=FI);
         ICValue <- testModel$ICs[ic];
 # cat("Constant: ");print(ICValue);
@@ -359,8 +364,9 @@ auto.ssarima <- function(data,ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c
 #### Reestimate the best model in order to get rid of bias ####
         bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
                              constant=TRUE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,intervals=intervals,level=level,
-                             intervalsType=intervalsType,intermittent=intermittent,silent=TRUE,
+                             h=h,holdout=holdout,
+                             intervals=intervals,level=level,
+                             intermittent=intermittent,silent=TRUE,
                              xreg=xreg,updateX=updateX,FI=FI);
     }
 

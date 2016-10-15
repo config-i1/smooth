@@ -3,8 +3,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 ces <- function(data, seasonality=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), A=NULL, B=NULL,
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric"),
+                h=10, holdout=FALSE,
+                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -538,7 +538,7 @@ CreatorCES <- function(silentText=FALSE,...){
                   initialType=initialType,initial=initialValue,
                   nParam=n.param,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                  errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                   ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);

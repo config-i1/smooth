@@ -1,3 +1,15 @@
+smooth v1.4.5 (Release date: 2016-10-15)
+==============
+
+Changes:
+
+* Parameter intervals now accepts type of interval instead of intervalsType.
+
+Bugfixes:
+
+* Fixed names of returned smoothing parameters by es().
+
+
 smooth v1.4.4 (Release date: 2016-09-20)
 ==============
 

@@ -1,6 +1,6 @@
 sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
-                h=10, holdout=FALSE, intervals=FALSE, level=0.95,
-                intervalsType=c("parametric","semiparametric","nonparametric"),
+                h=10, holdout=FALSE,
+                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 silent=c("none","all","graph","legend","output"), ...){
 # Function constructs simple moving average in state-space model
 
@@ -166,7 +166,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   states=matvt,transition=matF,persistence=vecg,
                   order=order, initialType=initialType, nParam=n.param,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                  errors=errors.mat,s2=s2,intervalsType=intervalsType,level=level,
+                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,
                   ICs=ICs,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));

@@ -542,11 +542,42 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     cfTypeOriginal <- cfType;
 
     ##### intervals, intervalsType, level #####
-    intervalsType <- substring(intervalsType[1],1,1);
+    #intervalsType <- substring(intervalsType[1],1,1);
+    intervalsType <- intervals[1];
     # Check the provided type of interval
-    if(all(intervalsType!=c("p","s","n","a"))){
+
+    if(is.logical(intervalsType)){
+        if(intervalsType){
+            intervalsType <- "p";
+        }
+        else{
+            intervalsType <- "none";
+        }
+    }
+
+    if(all(intervalsType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
         warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalsType <- "p";
+    }
+
+    if(intervalsType=="none"){
+        intervalsType <- "n";
+        intervals <- FALSE;
+    }
+    else if(intervalsType=="parametric"){
+        intervalsType <- "p";
+        intervals <- TRUE;
+    }
+    else if(intervalsType=="semiparametric"){
+        intervalsType <- "sp";
+        intervals <- TRUE;
+    }
+    else if(intervalsType=="nonparametric"){
+        intervalsType <- "np";
+        intervals <- TRUE;
+    }
+    else{
+        intervals <- TRUE;
     }
 
     if(level>1){
@@ -966,6 +997,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("cfTypeOriginal",cfTypeOriginal,ParentEnvironment);
     assign("multisteps",multisteps,ParentEnvironment);
     assign("intervalsType",intervalsType,ParentEnvironment);
+    assign("intervals",intervals,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
     assign("ot",ot,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
@@ -1160,11 +1192,42 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### intervals, intervalsType, level #####
-    intervalsType <- substring(intervalsType[1],1,1);
+    #intervalsType <- substring(intervalsType[1],1,1);
+    intervalsType <- intervals[1];
     # Check the provided type of interval
-    if(all(intervalsType!=c("a","p","s","n"))){
-        warning(paste0("Wrong type of interval chosen: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
+
+    if(is.logical(intervalsType)){
+        if(intervalsType){
+            intervalsType <- "p";
+        }
+        else{
+            intervalsType <- "none";
+        }
+    }
+
+    if(all(intervalsType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
+        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalsType <- "p";
+    }
+
+    if(intervalsType=="none"){
+        intervalsType <- "n";
+        intervals <- FALSE;
+    }
+    else if(intervalsType=="parametric"){
+        intervalsType <- "p";
+        intervals <- TRUE;
+    }
+    else if(intervalsType=="semiparametric"){
+        intervalsType <- "sp";
+        intervals <- TRUE;
+    }
+    else if(intervalsType=="nonparametric"){
+        intervalsType <- "np";
+        intervals <- TRUE;
+    }
+    else{
+        intervals <- TRUE;
     }
 
     ##### intermittent #####
@@ -1226,6 +1289,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("ic",ic,ParentEnvironment);
     assign("cfType",cfType,ParentEnvironment);
     assign("multisteps",multisteps,ParentEnvironment);
+    assign("intervals",intervals,ParentEnvironment);
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
 }
@@ -1269,7 +1333,7 @@ ssFitter <- function(...){
 }
 
 ##### *State-space intervals* #####
-ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","s","n"), df=NULL,
+ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
                         modellags=NULL, states=NULL,
                         y.for=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
@@ -1290,11 +1354,34 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         }
     }
 
-    intervalsType <- intervalsType[1]
     hsmN <- gamma(0.75)*pi^(-0.5)*2^(-0.75);
+    intervalsType <- intervalsType[1]
+    # Check the provided type of interval
 
-    if(all(intervalsType!=c("a","p","s","n"))){
+    if(is.logical(intervalsType)){
+        if(intervalsType){
+            intervalsType <- "p";
+        }
+        else{
+            intervalsType <- "none";
+        }
+    }
+
+    if(all(intervalsType!=c("a","p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric","asymmetric"))){
         stop(paste0("What do you mean by 'intervalsType=",intervalsType,"'? I can't work with this!"),call.=FALSE);
+    }
+
+    if(intervalsType=="none"){
+        intervalsType <- "n";
+    }
+    else if(intervalsType=="parametric"){
+        intervalsType <- "p";
+    }
+    else if(intervalsType=="semiparametric"){
+        intervalsType <- "sp";
+    }
+    else if(intervalsType=="nonparametric"){
+        intervalsType <- "np";
     }
 
     if(intervalsType=="p"){
@@ -1346,7 +1433,7 @@ quantfunc <- function(A){
         }
 
 #### Semiparametric intervals using the variance of errors ####
-        else if(intervalsType=="s"){
+        else if(intervalsType=="sp"){
             errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
             vec.var <- colSums(errors^2,na.rm=T)/df;
             if(Etype=="M"){
@@ -1372,7 +1459,7 @@ quantfunc <- function(A){
         }
 
 #### Nonparametric intervals using Taylor and Bunn, 1999 ####
-        else if(intervalsType=="n"){
+        else if(intervalsType=="np"){
             ye <- errors;
             xe <- matrix(c(1:n.var),byrow=TRUE,ncol=n.var,nrow=nrow(errors));
             xe <- xe[!is.na(ye)];
@@ -1541,7 +1628,7 @@ quantfunc <- function(A){
             upper <- ev + upperquant / hsmN^2 * Re(hm(errors,ev))^2;
             lower <- ev + lowerquant / hsmN^2 * Im(hm(errors,ev))^2;
         }
-        else if(any(intervalsType==c("s","p"))){
+        else if(any(intervalsType==c("sp","p"))){
             if(Etype=="M"){
                 upperquant <- qlnorm((1+level)/2,0,sqrt(s2));
                 lowerquant <- qlnorm((1-level)/2,0,sqrt(s2));
@@ -1562,7 +1649,7 @@ quantfunc <- function(A){
                 lower <- ev + lowerquant * sqrt(s2);
             }
         }
-        else if(intervalsType=="n"){
+        else if(intervalsType=="np"){
             upper <- quantile(errors,(1+level)/2);
             lower <- quantile(errors,(1-level)/2);
         }
@@ -1601,7 +1688,7 @@ ssForecaster <- function(...){
     }
 
 # Write down the forecasting intervals
-    if(intervals==TRUE){
+    if(intervals){
         if(h==1){
             errors.x <- as.vector(errors);
             ev <- median(errors);
@@ -1959,7 +2046,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      cfType="MSE", cfObjective=NULL, intervals=FALSE,
-                     intervalsType=c("p","s","n","a"), level=0.95, ICs,
+                     intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
                      intermittent="n", iprob=1){
 # Function forms the generic output for State-space models.
@@ -2102,14 +2189,14 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     print(ICs);
     cat("\n");
 
-    if(intervals==TRUE){
+    if(intervals){
         if(intervalsType=="p"){
             intervalsType <- "parametric";
         }
-        else if(intervalsType=="s"){
+        else if(intervalsType=="sp"){
             intervalsType <- "semiparametric";
         }
-        else if(intervalsType=="n"){
+        else if(intervalsType=="np"){
             intervalsType <- "nonparametric";
         }
         else if(intervalsType=="a"){

@@ -10,8 +10,8 @@
 }
 \usage{
     forecast(object, ...)
-    \method{forecast}{smooth}(object, h=10, intervals=TRUE,
-      intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
+    \method{forecast}{smooth}(object, h=10,
+      intervals=c("none","parametric","semiparametric","nonparametric"),
       level=0.95, ...)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -24,9 +24,6 @@
         Forecast horizon
     }
     \item{intervals}{
-        If \code{TRUE}, prediction intervals are constructed.
-    }
-    \item{intervalsType}{
         Type of intervals to construct. See \link[smooth]{es} for details.
     }
     \item{level}{

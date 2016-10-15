@@ -116,23 +116,24 @@ fitted.smooth <- function(object, ...){
     return(object$fitted);
 }
 
-forecast.smooth <- function(object, h=10, intervals=TRUE,
-                        intervalsType=c("parametric","semiparametric","nonparametric","asymmetric"),
-                        level=0.95, ...){
+forecast.smooth <- function(object, h=10,
+                            intervals=c("none","parametric","semiparametric","nonparametric"),
+                            level=0.95, ...){
+    intervals <- intervals[1];
     if(gregexpr("ETS",object$model)!=-1){
-        newModel <- es(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+        newModel <- es(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(gregexpr("CES",object$model)!=-1){
-        newModel <- ces(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+        newModel <- ces(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(gregexpr("GES",object$model)!=-1){
-        newModel <- ges(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+        newModel <- ges(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
-        newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+        newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(gregexpr("SMA",object$model)!=-1){
-        newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,intervalsType=intervalsType,level=level,silent="all",...);
+        newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else{
         stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
@@ -180,7 +181,7 @@ plot.smooth <- function(x, ...){
 }
 
 plot.forecastSmooth <- function(x, ...){
-    if(x$intervals){
+    if(any(x$intervals!=c("none","n"))){
         graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$model);
     }
     else{
@@ -208,7 +209,7 @@ plot.iss <- function(x, ...){
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
-    if(all(holdout==TRUE,intervals==TRUE)){
+    if(all(holdout,intervals)){
         insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
     }
     else{
@@ -225,13 +226,13 @@ print.smooth <- function(x, ...){
              phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, A=x$A, B=x$B,initialType=x$initialType,
              nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$updateX,
              cfType=x$cfType, cfObjective=x$cf, intervals=intervals,
-             intervalsType=x$intervalsType, level=x$level, ICs=x$ICs,
+             intervalsType=x$intervals, level=x$level, ICs=x$ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
              intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
 }
 
 print.forecastSmooth <- function(x, ...){
-    if(x$intervals){
+    if(any(x$intervals!=c("none","n"))){
         level <- x$level;
         if(level>1){
             level <- level/100;
