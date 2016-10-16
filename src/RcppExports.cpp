@@ -59,6 +59,43 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// polysos
+RcppExport SEXP polysos(SEXP matvt, SEXP vecg, SEXP matF, SEXP AR, SEXP MA, SEXP constant, SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp, SEXP Cvalues, SEXP fittertype, SEXP nexovars, SEXP matat, SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst, SEXP estiminit, SEXP estimxreg, SEXP matFX, SEXP vecgX, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX);
+RcppExport SEXP smooth_polysos(SEXP matvtSEXP, SEXP vecgSEXP, SEXP matFSEXP, SEXP ARSEXP, SEXP MASEXP, SEXP constantSEXP, SEXP ARordersSEXP, SEXP MAordersSEXP, SEXP IordersSEXP, SEXP ARIMAlagsSEXP, SEXP nCompSEXP, SEXP CvaluesSEXP, SEXP fittertypeSEXP, SEXP nexovarsSEXP, SEXP matatSEXP, SEXP estimARSEXP, SEXP estimMASEXP, SEXP requireConstSEXP, SEXP estimConstSEXP, SEXP estiminitSEXP, SEXP estimxregSEXP, SEXP matFXSEXP, SEXP vecgXSEXP, SEXP gowildSEXP, SEXP estimFXSEXP, SEXP estimgXSEXP, SEXP estiminitXSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type matvt(matvtSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type vecg(vecgSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matF(matFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type AR(ARSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type MA(MASEXP);
+    Rcpp::traits::input_parameter< SEXP >::type constant(constantSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ARorders(ARordersSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type MAorders(MAordersSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Iorders(IordersSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type ARIMAlags(ARIMAlagsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type nComp(nCompSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type Cvalues(CvaluesSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type fittertype(fittertypeSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type nexovars(nexovarsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matat(matatSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimAR(estimARSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimMA(estimMASEXP);
+    Rcpp::traits::input_parameter< SEXP >::type requireConst(requireConstSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimConst(estimConstSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estiminit(estiminitSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimxreg(estimxregSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type matFX(matFXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type vecgX(vecgXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type gowild(gowildSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimFX(estimFXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estimgX(estimgXSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type estiminitX(estiminitXSEXP);
+    rcpp_result_gen = Rcpp::wrap(polysos(matvt, vecg, matF, AR, MA, constant, ARorders, MAorders, Iorders, ARIMAlags, nComp, Cvalues, fittertype, nexovars, matat, estimAR, estimMA, requireConst, estimConst, estiminit, estimxreg, matFX, vecgX, gowild, estimFX, estimgX, estiminitX));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fitterwrap
 RcppExport SEXP fitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP fittertype, SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot);
 RcppExport SEXP smooth_fitterwrap(SEXP matvtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP ytSEXP, SEXP vecgSEXP, SEXP modellagsSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP fittertypeSEXP, SEXP matxtSEXP, SEXP matatSEXP, SEXP matFXSEXP, SEXP vecgXSEXP, SEXP otSEXP) {

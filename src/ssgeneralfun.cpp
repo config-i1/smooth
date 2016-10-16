@@ -17,6 +17,23 @@ arma::mat matrixPower(arma::mat A, int power){
     return B;
 }
 
+/* # Function allows to multiply polinomails */
+arma::vec polyMult(arma::vec poly1, arma::vec poly2){
+
+    int poly1Nonzero = arma::as_scalar(find(poly1,1,"last"));
+    int poly2Nonzero = arma::as_scalar(find(poly2,1,"last"));
+
+    arma::vec poly3(poly1Nonzero + poly2Nonzero + 1, arma::fill::zeros);
+
+    for(int i = 0; i <= poly1Nonzero; i++){
+        for(int j = 0; j <= poly2Nonzero; j++){
+            poly3(i+j) += poly1(i) * poly2(j);
+        }
+    }
+
+    return poly3;
+}
+
 /* # Function returns multiplicative or additive error for scalar */
 double errorf(double yact, double yfit, char Etype){
     if(Etype=='A'){
@@ -581,6 +598,218 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
                              Named("phi") = phivalue, Named("matvt") = matrixVt, Named("matat") = matrixAt,
                              Named("matFX") = matrixFX, Named("vecgX") = vecGX));
 }
+
+/*
+# polysos - function that transforms AR and MA parameters into polynomials
+# and then in matF and other things.
+# Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
+*/
+// [[Rcpp::export]]
+RcppExport SEXP polysos(SEXP matvt, SEXP vecg, SEXP matF, SEXP AR, SEXP MA, SEXP constant,
+                        SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp,
+                        SEXP Cvalues, SEXP fittertype, SEXP nexovars, SEXP matat,
+                        SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst, SEXP estiminit,
+                        SEXP estimxreg, SEXP matFX, SEXP vecgX, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX){
+
+    NumericMatrix matvt_n(matvt);
+    arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
+
+    NumericMatrix vecg_n(vecg);
+    arma::vec vecG(vecg_n.begin(), vecg_n.nrow(), false);
+
+    NumericMatrix matF_n(matF);
+    arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol());
+
+    NumericVector AR_n;
+    if(!Rf_isNull(AR)){
+        AR_n = as<NumericVector>(AR);
+    }
+    arma::vec arValues(AR_n.begin(), AR_n.size(), false);
+
+    NumericVector MA_n;
+    if(!Rf_isNull(MA)){
+        MA_n = as<NumericVector>(MA);
+    }
+    arma::vec maValues(MA_n.begin(), MA_n.size(), false);
+
+    double constValue;
+    if(!Rf_isNull(constant)){
+        constValue = as<double>(constant);
+    }
+
+    IntegerVector ARorders_n(ARorders);
+    arma::uvec arOrders = as<arma::uvec>(ARorders_n);
+
+    IntegerVector MAorders_n(MAorders);
+    arma::uvec maOrders = as<arma::uvec>(MAorders_n);
+
+    IntegerVector Iorders_n(Iorders);
+    arma::uvec iOrders = as<arma::uvec>(Iorders_n);
+
+    IntegerVector ARIMAlags_n(ARIMAlags);
+    arma::uvec lags = as<arma::uvec>(ARIMAlags_n);
+
+    int nComponents = as<int>(nComp);
+
+    NumericVector Cvalues_n;
+    if(!Rf_isNull(Cvalues)){
+        Cvalues_n = as<NumericVector>(Cvalues);
+    }
+    arma::vec C(Cvalues_n.begin(), Cvalues_n.size(), false);
+
+    char fitterType = as<char>(fittertype);
+
+    int nexo = as<int>(nexovars);
+
+    NumericMatrix matat_n(matat);
+    arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
+
+    bool arEstimate = as<bool>(estimAR);
+    bool maEstimate = as<bool>(estimMA);
+    bool constRequired = as<bool>(requireConst);
+    bool constEstimate = as<bool>(estimConst);
+    bool initialEstimate = as<bool>(estiminit);
+    bool xregEstimate = as<bool>(estimxreg);
+
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol());
+
+    NumericMatrix vecgX_n(vecgX);
+    arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow());
+
+    bool wild = as<bool>(gowild);
+    bool fXEstimate = as<bool>(estimFX);
+    bool gXEstimate = as<bool>(estimgX);
+    bool initialXEstimate = as<bool>(estiminitX);
+
+// Form matrices with parameters, that are then used for polynomial multiplication
+    arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
+    arma::mat iParameters(max(iOrders % lags)+1, iOrders.n_elem, arma::fill::zeros);
+    arma::mat maParameters(max(maOrders % lags)+1, maOrders.n_elem, arma::fill::zeros);
+
+    arParameters.row(0).fill(1);
+    iParameters.row(0).fill(1);
+    maParameters.row(0).fill(1);
+
+    int nParam = 0;
+    int arnParam = 0;
+    int manParam = 0;
+    for(int i=0; i<lags.n_rows; i++){
+        if(arOrders(i) * lags(i) != 0){
+            for(int j=0; j<arOrders(i); j++){
+                if(arEstimate){
+                    arParameters((j+1)*lags(i),i) = -C(nParam);
+                    nParam += 1;
+                }
+                else{
+                    arParameters((j+1)*lags(i),i) = -arValues(arnParam);
+                    arnParam += 1;
+                }
+            }
+        }
+
+        if(iOrders(i) * lags(i) != 0){
+            iParameters(lags(i),i) = -1;
+        }
+
+        if(maOrders(i) * lags(i) != 0){
+            for(int j=0; j<maOrders(i); j++){
+                if(maEstimate){
+                    maParameters((j+1)*lags(i),i) = C(nParam);
+                    nParam += 1;
+                }
+                else{
+                    maParameters((j+1)*lags(i),i) = maValues(manParam);
+                    manParam += 1;
+                }
+            }
+        }
+    }
+
+// Prepare vectors with coefficients for polynomials
+    arma::vec arPolynomial(sum(arOrders % lags)+1, arma::fill::zeros);
+    arma::vec iPolynomial(sum(iOrders % lags)+1, arma::fill::zeros);
+    arma::vec maPolynomial(sum(maOrders % lags)+1, arma::fill::zeros);
+    arma::vec ariPolynomial(sum(arOrders % lags)+sum(iOrders % lags)+1, arma::fill::zeros);
+
+    arPolynomial.rows(0,arOrders(0)*lags(0)) = arParameters.submat(0,0,arOrders(0)*lags(0),0);
+    iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
+    maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
+
+    for(int i=1; i<lags.n_rows; i++){
+// Form polynomials
+        arPolynomial = polyMult(arPolynomial, arParameters.col(i));
+        maPolynomial = polyMult(maPolynomial, maParameters.col(i));
+        if(iOrders(i)>1){
+            for(int j=1; j<iOrders(i); j++){
+                iParameters.col(i) = polyMult(iParameters.col(i), iParameters.col(i));
+            }
+        }
+        iPolynomial = polyMult(iPolynomial, iParameters.col(i));
+    }
+    ariPolynomial = polyMult(arPolynomial, iPolynomial);
+
+    if(maPolynomial.n_elem!=(nComponents+1)){
+        maPolynomial.resize(nComponents+1);
+    }
+    if(ariPolynomial.n_elem!=(nComponents+1)){
+        ariPolynomial.resize(nComponents+1);
+    }
+
+// Fill in transition matrix
+    if(ariPolynomial.n_elem>1){
+        matrixF.submat(0,0,ariPolynomial.n_elem-2,0) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1);
+    }
+
+// Fill in persistence vector
+    if(nComponents>0){
+        vecG.rows(0,ariPolynomial.n_elem-2) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1) + maPolynomial.rows(1,maPolynomial.n_elem-1);
+
+// Fill in initials of state vector
+        if(fitterType=='o'){
+            matrixVt.submat(0,0,0,nComponents-1) = C.rows(nParam,nParam+nComponents-1).t();
+            nParam += nComponents;
+        }
+    }
+
+// Deal with constant if needed
+    if(constRequired){
+        if(constEstimate){
+            matrixVt(0,matrixVt.n_cols-1) = C(nParam);
+            nParam += 1;
+        }
+        else{
+            matrixVt(0,matrixVt.n_cols-1) = constValue;
+        }
+    }
+
+    if(xregEstimate){
+        if(initialXEstimate){
+            matrixAt.each_row() = C.rows(nParam,nParam + nexo - 1).t();
+            nParam += nexo;
+        }
+
+        if(wild){
+            if(fXEstimate){
+                for(int i=0; i < nexo; i = i+1){
+                    matrixFX.row(i) = C.rows(nParam, nParam + nexo - 1).t();
+                    nParam += nexo;
+                }
+            }
+
+            if(gXEstimate){
+                vecGX = C.rows(nParam, nParam + nexo - 1);
+                nParam += nexo;
+            }
+        }
+    }
+
+    return wrap(List::create(Named("matF") = matrixF, Named("vecg") = vecG,
+                             Named("arPolynomial") = arPolynomial, Named("maPolynomial") = maPolynomial,
+                             Named("matvt") = matrixVt, Named("matat") = matrixAt,
+                             Named("matFX") = matrixFX, Named("vecgX") = vecGX));
+}
+
 
 List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
              arma::uvec lags, char E, char T, char S,

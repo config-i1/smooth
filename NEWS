@@ -1,9 +1,10 @@
-smooth v1.4.5 (Release date: 2016-10-15)
+smooth v1.4.5 (Release date: 2016-10-16)
 ==============
 
 Changes:
 
 * Parameter intervals now accepts type of interval instead of intervalsType.
+* Polynomials of ssarima() are now multiplied in C++. Initialisation is now done there as well. This slightly speeds up the estimation and construction of SSARIMA.
 
 Bugfixes:
 

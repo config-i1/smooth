@@ -7,7 +7,7 @@ test_that("Test if Auto SSARIMA selected correct model for N1234$x", {
 })
 
 # Reuse previous SSARIMA
-test_that("Reuse previous GES on N1234$x", {
+test_that("Reuse previous SSARIMA on N1234$x", {
     expect_equal(ssarima(Mcomp::M3$N1234$x, model=testModel, silent=TRUE)$cf, testModel$cf);
 })
 

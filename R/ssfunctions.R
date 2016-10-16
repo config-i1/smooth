@@ -249,7 +249,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     ARValue <- NULL;
                 }
                 else{
-                    ARValue <- as.vector(ARValue[ARValue!=0]);
+                    ARValue <- ARValue[ARValue!=0];
                     AREstimate <- FALSE;
                     ARRequired <- TRUE;
                 }
@@ -282,7 +282,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     MAValue <- NULL;
                 }
                 else{
-                    MAValue <- as.vector(MAValue[MAValue!=0]);
+                    MAValue <- MAValue[MAValue!=0];
                     MAEstimate <- FALSE;
                     MARequired <- TRUE;
                 }
@@ -452,7 +452,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
-        #   matvt - the matrix with the components, lags is the lags used in pt matrix.
+        # lags is the lags used in pt matrix.
         if(seasonality=="n"){
             # No seasonality
             maxlag <- 1;
