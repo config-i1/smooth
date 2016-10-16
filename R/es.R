@@ -62,10 +62,10 @@ CF <- function(C){
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
     cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
-                       h, modellags, Etype, Ttype, Stype,
-                       multisteps, cfType, normalizer, initialType,
-                       matxt, elements$matat, elements$matFX, elements$vecgX, ot,
-                       bounds);
+                      h, modellags, Etype, Ttype, Stype,
+                      multisteps, cfType, normalizer, initialType,
+                      matxt, elements$matat, elements$matFX, elements$vecgX, ot,
+                      bounds);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
