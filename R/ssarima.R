@@ -139,163 +139,31 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
                         n.param.max," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
     }
 
-# polyroots <- function(C){
-#     polysos.ar <- 0;
-#     polysos.ma <- 0;
-#     n.coef <- 0;
-#     matF[,1] <- 0;
-#     if(n.components > 0){
-#         ar.inner.coef <- ma.inner.coef <- 0;
-#         for(i in 1:length(lags)){
-#             if((ar.orders*lags)[i]!=0){
-#                 armat <- matrix(0,lags[i],ar.orders[i]);
-#                 if(AREstimate){
-#                     armat[lags[i],] <- -C[n.coef+(1:ar.orders[i])];
-#                     n.coef <- n.coef + ar.orders[i];
-#                 }
-#                 else{
-#                     armat[lags[i],] <- -ARValue[ar.inner.coef+(1:ar.orders[i])];
-#                     ar.inner.coef <- ar.inner.coef + ar.orders[i];
-#                 }
-#                 P[[i]] <- c(1,c(armat));
-#
-#             }
-#             else{
-#                 P[[i]] <- 1;
-#             }
-#
-#             if((i.orders*lags)[i]!=0){
-#                 D[[i]] <- c(1,rep(0,max(lags[i]-1,0)),-1);
-#             }
-#             else{
-#                 D[[i]] <- 1;
-#             }
-#
-#             if((ma.orders*lags)[i]!=0){
-#                 armat <- matrix(0,lags[i],ma.orders[i]);
-#                 if(MAEstimate){
-#                     armat[lags[i],] <- C[n.coef+(1:ma.orders[i])];
-#                     n.coef <- n.coef + ma.orders[i];
-#                 }
-#                 else{
-#                     armat[lags[i],] <- MAValue[ma.inner.coef+(1:ma.orders[i])];
-#                     ma.inner.coef <- ma.inner.coef + ma.orders[i];
-#                 }
-#                 Q[[i]] <- c(1,c(armat));
-#             }
-#             else{
-#                 Q[[i]] <- 1;
-#             }
-#         }
-#
-# ##### Polynom multiplication is the slowest part now #####
-#         polysos.i <- as.polynomial(1);
-#         for(i in 1:length(lags)){
-#             polysos.i <- polysos.i * polynomial(D[[i]])^i.orders[i];
-#         }
-#
-#         polysos.ar <- 1;
-#         polysos.ma <- 1;
-#         for(i in 1:length(P)){
-#             polysos.ar <- polysos.ar * polynomial(P[[i]]);
-#         }
-#         polysos.ari <- polysos.ar * polysos.i;
-#
-#         for(i in 1:length(Q)){
-#             polysos.ma <- polysos.ma * polynomial(Q[[i]]);
-#         }
-#
-#         if(length((polysos.ari))!=1){
-#             matF[1:(length(polysos.ari)-1),1] <- -(polysos.ari)[2:length(polysos.ari)];
-#         }
-#
-# ### The MA parameters are in the style "1 + b1 * B".
-#         vecg[1:n.components,] <- (-polysos.ari + polysos.ma)[2:(n.components+1)];
-#         vecg[is.na(vecg),] <- 0;
-#
-#         if(initialType=="o"){
-#             vt <- C[(n.coef + 1):(n.coef + n.components)];
-#             n.coef <- n.coef + n.components;
-#         }
-#         else if(initialType=="b"){
-#             vt <- matvt[1,];
-#             vt[-1] <- vt[1] * matF[-1,1];
-#         }
-#         else{
-#             vt <- initialValue;
-#         }
-#
-#         if(constantRequired){
-#             if(constantEstimate){
-#                 vt[n.components+constantRequired] <- C[(n.coef + 1)];
-#                 n.coef <- n.coef + 1;
-#             }
-#             else{
-#                 vt[n.components+constantRequired] <- constantValue;
-#             }
-#         }
-#     }
-#     else{
-#         matF[1,1] <- 1;
-#         if(constantEstimate){
-#             vt <- C[n.coef+1];
-#             n.coef <- n.coef + 1;
-#         }
-#         else{
-#             vt <- constantValue;
-#         }
-#     }
-#
-# # If exogenous are included
-#     if(!is.null(xreg)){
-#         at <- matrix(NA,maxlag,n.exovars);
-#         if(initialXEstimate){
-#             at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
-#             n.coef <- n.coef + n.exovars;
-#         }
-#         else{
-#             at <- matat[1:maxlag,];
-#         }
-#         if(FXEstimate){
-#             matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
-#             n.coef <- n.coef + n.exovars^2;
-#         }
-#
-#         if(gXEstimate){
-#             vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
-#             n.coef <- n.coef + n.exovars;
-#         }
-#     }
-#     else{
-#         at <- matrix(0,maxlag,n.exovars);
-#     }
-#
-#     return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX,polysos.ar=polysos.ar,polysos.ma=polysos.ma));
-# }
-
 # Cost function for SSARIMA
 CF <- function(C){
-    # elements <- polyroots(C);
+
+    # cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, n.components,
+    #                        ARValue, MAValue, constantValue, C,
+    #                        matvt, matF, matw, y, vecg,
+    #                        h, modellags, Etype, Ttype, Stype,
+    #                        multisteps, cfType, normalizer, initialType,
+    #                        n.exovars, matxt, matat, matFX, vecgX, ot,
+    #                        AREstimate, MAEstimate, constantRequired, constantEstimate,
+    #                        xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
+    #                        bounds);
+
+    elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, n.components,
+                            ARValue, MAValue, constantValue, C,
+                            matvt, vecg, matF,
+                            initialType, n.exovars, matat, matFX, vecgX,
+                            AREstimate, MAEstimate, constantRequired, constantEstimate,
+                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
     # matF <- elements$matF;
     # vecg <- elements$vecg;
-    # matvt[1:maxlag,] <- elements$vt;
-    # matat[1:maxlag,] <- elements$at;
+    # matvt[,] <- elements$matvt;
+    # matat[,] <- elements$matat;
     # matFX <- elements$matFX;
     # vecgX <- elements$vecgX;
-    # polysos.ar <- elements$polysos.ar;
-    # polysos.ma <- elements$polysos.ma;
-
-    elements <- polysos(matvt, vecg, matF, ARValue, MAValue, constantValue,
-                        ar.orders, ma.orders, i.orders, lags, n.components,
-                        C, initialType, n.exovars, matat,
-                        AREstimate, MAEstimate, constantRequired, constantEstimate, initialType=="o",
-                        xregEstimate, matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
-    matF <- elements$matF;
-    vecg <- elements$vecg;
-    matvt[,] <- elements$matvt;
-    matat[,] <- elements$matat;
-    matFX <- elements$matFX;
-    vecgX <- elements$vecgX;
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
 
@@ -310,10 +178,10 @@ CF <- function(C){
         }
     }
 
-    cfRes <- optimizerwrap(matvt, matF, matw, y, vecg,
+    cfRes <- optimizerwrap(elements$matvt, elements$matF, matw, y, elements$vecg,
                            h, modellags, Etype, Ttype, Stype,
                            multisteps, cfType, normalizer, initialType,
-                           matxt, matat, matFX, vecgX, ot);
+                           matxt, elements$matat, elements$matFX, elements$vecgX, ot);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -498,11 +366,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     # arroots <- abs(polyroot(polysos.ar));
     # maroots <- abs(polyroot(polysos.ma));
 
-    elements <- polysos(matvt, vecg, matF, ARValue, MAValue, constantValue,
-                        ar.orders, ma.orders, i.orders, lags, n.components,
-                        C, initialType, n.exovars, matat,
-                        AREstimate, MAEstimate, constantRequired, constantEstimate, initialType=="o",
-                        xregEstimate, matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
+    elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, n.components,
+                            ARValue, MAValue, constantValue, C,
+                            matvt, vecg, matF,
+                            initialType, n.exovars, matat, matFX, vecgX,
+                            AREstimate, MAEstimate, constantRequired, constantEstimate,
+                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;
