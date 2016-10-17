@@ -65,18 +65,16 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     }
     else{
 # The number of the smoothing parameters needed
-        persistence.length <- 1;
+        persistenceLength <- 1;
 # The number initial values of the state vector
-        n.components <- 1;
+        componentsNumber <- 1;
 # The lag of components (needed for the seasonal models)
         modellags <- 1;
 # The names of the state vector components
-        component.names <- "level";
+        componentsNames <- "level";
         matw <- 1;
 # The transition matrix
         matF <- matrix(1,1,1);
-# The matrix used for the multiplicative error models. Should contain ^yt
-        mat.r <- 1;
     }
 
 # Check the trend type of the model
@@ -87,19 +85,19 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         if(is.na(phi) | is.null(phi)){
             phi <- 1;
         }
-        persistence.length <- persistence.length + 1;
-        n.components <- n.components + 1;
+        persistenceLength <- persistenceLength + 1;
+        componentsNumber <- componentsNumber + 1;
         modellags <- c(modellags,1);
-        component.names <- c(component.names,"trend");
+        componentsNames <- c(componentsNames,"trend");
         matw <- c(matw,phi);
         matF <- matrix(c(1,0,phi,phi),2,2);
-        trend.component=TRUE;
+        componentTrend=TRUE;
         if(phi!=1){
             model <- paste0(Etype,Ttype,"d",Stype);
         }
     }
     else{
-        trend.component=FALSE;
+        componentTrend=FALSE;
     }
 
 # Check the seasonaity type of the model
@@ -112,15 +110,15 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     }
 
     if(Stype!="N"){
-        persistence.length <- persistence.length + 1;
+        persistenceLength <- persistenceLength + 1;
 # maxlag is used in the cases of seasonal models.
 #   if maxlag==1 then non-seasonal data will be produced with the defined frequency.
         modellags <- c(modellags,frequency);
-        component.names <- c(component.names,"seasonality");
+        componentsNames <- c(componentsNames,"seasonality");
         matw <- c(matw,1);
-        seasonal.component <- TRUE;
+        componentSeasonal <- TRUE;
 
-        if(trend.component==FALSE){
+        if(componentTrend==FALSE){
             matF <- matrix(c(1,0,0,1),2,2);
         }
         else{
@@ -128,17 +126,17 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
     }
     else{
-        seasonal.component <- FALSE;
+        componentSeasonal <- FALSE;
     }
 
 # Make matrices
-    modellags <- matrix(modellags,persistence.length,1);
+    modellags <- matrix(modellags,persistenceLength,1);
     maxlag <- max(modellags);
-    matw <- matrix(matw,1,persistence.length);
+    matw <- matrix(matw,1,persistenceLength);
 
 # Check the persistence vector length
     if(!is.null(persistence)){
-        if(persistence.length != length(persistence)){
+        if(persistenceLength != length(persistence)){
             if(silent == FALSE){
                 warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
                                "Falling back to random number generator."),call.=FALSE);
@@ -152,7 +150,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         if(length(initial)>2){
             stop("The length of the initial value is wrong! It should not be greater than 2.",call.=FALSE);
         }
-        if(n.components!=length(initial)){
+        if(componentsNumber!=length(initial)){
             if(silent == FALSE){
                 warning(paste0("The length of initial state vector does not correspond to the chosen model!\n",
                                "Falling back to random number generator."),call.=FALSE);
@@ -190,8 +188,8 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
 
 ##### Let's make sum fun #####
 
-    matg <- matrix(NA,persistence.length,nsim);
-    arrvt <- array(NA,c(obs+maxlag,persistence.length,nsim),dimnames=list(NULL,component.names,NULL));
+    matg <- matrix(NA,persistenceLength,nsim);
+    arrvt <- array(NA,c(obs+maxlag,persistenceLength,nsim),dimnames=list(NULL,componentsNames,NULL));
     materrors <- matrix(NA,obs,nsim);
     matyt <- matrix(NA,obs,nsim);
     matot <- matrix(NA,obs,nsim);
@@ -200,11 +198,11 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     if(is.null(persistence)){
 ### For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
         if(bounds=="u"){
-            matg[,] <- runif(persistence.length*nsim,0,1);
+            matg[,] <- runif(persistenceLength*nsim,0,1);
         }
 ### These restrictions are even touhger
         else if(bounds=="r"){
-            matg[,] <- runif(persistence.length*nsim,0,0.3);
+            matg[,] <- runif(persistenceLength*nsim,0,0.3);
         }
 ### Fill in the other smoothing parameters
         if(bounds!="a"){
@@ -212,12 +210,12 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
                 matg[2,] <- runif(nsim,0,matg[1,]);
             }
             if(Stype!="N"){
-                matg[persistence.length,] <- runif(nsim,0,max(0,1-matg[1]));
+                matg[persistenceLength,] <- runif(nsim,0,max(0,1-matg[1]));
             }
         }
 ### In case of admissible bounds, do some stuff
         else{
-            matg[,] <- runif(persistence.length*nsim,1-1/phi,1+1/phi);
+            matg[,] <- runif(persistenceLength*nsim,1-1/phi,1+1/phi);
             if(Ttype!="N"){
                 matg[2,] <- runif(nsim,matg[1,]*(phi-1),(2-matg[1,])*(1+phi));
                 if(Stype!="N"){
@@ -276,28 +274,28 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
     }
     else{
-        arrvt[,1:n.components,] <- rep(rep(initial,each=(obs+maxlag)),nsim);
+        arrvt[,1:componentsNumber,] <- rep(rep(initial,each=(obs+maxlag)),nsim);
     }
 
 # Generate seasonal states if they were not supplied
-    if(seasonal.component==TRUE & is.null(initialSeason)){
+    if(componentSeasonal==TRUE & is.null(initialSeason)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
-            arrvt[1:maxlag,n.components+1,] <- runif(nsim*maxlag,-500,500);
+            arrvt[1:maxlag,componentsNumber+1,] <- runif(nsim*maxlag,-500,500);
             for(i in 1:nsim){
-                arrvt[1:maxlag,n.components+1,i] <- arrvt[1:maxlag,n.components+1,i] - mean(arrvt[1:maxlag,n.components+1,i]);
+                arrvt[1:maxlag,componentsNumber+1,i] <- arrvt[1:maxlag,componentsNumber+1,i] - mean(arrvt[1:maxlag,componentsNumber+1,i]);
             }
         }
         else{
-            arrvt[1:maxlag,n.components+1,] <- runif(nsim*maxlag,0.3,1.7);
+            arrvt[1:maxlag,componentsNumber+1,] <- runif(nsim*maxlag,0.3,1.7);
             for(i in 1:nsim){
-                arrvt[1:maxlag,n.components+1,i] <- arrvt[1:maxlag,n.components+1,i] / exp(mean(log(arrvt[1:maxlag,n.components+1,i])));
+                arrvt[1:maxlag,componentsNumber+1,i] <- arrvt[1:maxlag,componentsNumber+1,i] / exp(mean(log(arrvt[1:maxlag,componentsNumber+1,i])));
             }
         }
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
-    else if(seasonal.component==TRUE & !is.null(initialSeason)){
-        arrvt[1:maxlag,n.components+1,] <- rep(initialSeason,nsim);
+    else if(componentSeasonal==TRUE & !is.null(initialSeason)){
+        arrvt[1:maxlag,componentsNumber+1,] <- rep(initialSeason,nsim);
     }
 
 # Check if any argument was passed in dots
@@ -312,7 +310,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         }
         else if(randomizer=="rt"){
 # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(persistence.length + maxlag));
+            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + maxlag));
         }
 
         if(randomizer!="rlnorm"){
@@ -374,7 +372,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         matyt <- simulateddata$matyt;
     }
     arrvt <- simulateddata$arrvt;
-    dimnames(arrvt) <- list(NULL,component.names,NULL);
+    dimnames(arrvt) <- list(NULL,componentsNames,NULL);
 
     if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);
