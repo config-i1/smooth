@@ -1,86 +1,108 @@
-forecast <- function(object,...) UseMethod("forecast")
-AICc <- function(object,...) UseMethod("AICc")
+forecast <- function(object, ...) UseMethod("forecast")
+AICc <- function(object, ...) UseMethod("AICc")
+orders <- function(object, ...) UseMethod("orders")
+lags <- function(object, ...) UseMethod("lags")
+modelType <-  function(object, ...) UseMethod("modelType")
 
-##### Functions of "es" #####
+##### Likelihood function
 #logLik.smooth <- function(object,...)
 #{
 #  structure(object$logLik,df=length(coef(object)),class="logLik");
 #}
 
+##### IC functions #####
 AIC.smooth <- function(object, ...){
     if(gregexpr("ETS",object$model)!=-1){
         if(any(unlist(gregexpr("C",object$model))==-1)){
-            return(object$ICs["AIC"]);
+            IC <- object$ICs["AIC"];
         }
         else{
             if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AIC"){
-                return(object$ICs);
+                IC <- object$ICs;
             }
             else{
                 message("ICs were combined during the model construction. Nothing to return.");
-                return(NULL);
+                IC <- NA;
             }
         }
     }
     else{
-        return(object$ICs["AIC"]);
+        IC <- object$ICs["AIC"];
     }
+
+    return(IC);
 }
 
-AICc.smooth <- function(object, ...){
-    if(gregexpr("ETS",object$model)!=-1){
-        if(any(unlist(gregexpr("C",object$model))==-1)){
-            return(object$ICs["AICc"]);
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
-                return(object$ICs);
+AICc.default <- function(object, ...){
+    if(!is.null(object$model)){
+        if(gregexpr("ETS",object$model)!=-1){
+            if(any(unlist(gregexpr("C",object$model))==-1)){
+                IC <- object$ICs["AICc"];
             }
             else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                return(NULL);
+                if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
+                    IC <- object$ICs;
+                }
+                else{
+                    message("ICs were combined during the model construction. Nothing to return.");
+                    IC <- NA;
+                }
             }
+        }
+        else{
+            IC <- object$ICs["AICc"];
         }
     }
     else{
-        return(object$ICs["AICc"]);
+        if(any(gregexpr("ets",object$call)!=-1)){
+            IC <- object$aicc;
+        }
+        else{
+            message("AICc is not available for the provided class.");
+            IC <- NA;
+        }
     }
+
+    return(IC);
 }
 
 BIC.smooth <- function(object, ...){
     if(gregexpr("ETS",object$model)!=-1){
         if(any(unlist(gregexpr("C",object$model))==-1)){
-            return(object$ICs["BIC"]);
+            IC <- object$ICs["BIC"];
         }
         else{
             if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="BIC"){
-                return(object$ICs);
+                IC <- object$ICs;
             }
             else{
                 message("ICs were combined during the model construction. Nothing to return.");
-                return(NULL);
+                IC <- NULL;
             }
         }
     }
     else{
-        return(object$ICs["BIC"]);
+        IC <- object$ICs["BIC"];
     }
+
+    return(IC);
 }
 
+#### Extraction of parameters of models ####
 coef.smooth <- function(object, ...)
 {
     if(gregexpr("CES",object$model)!=-1){
-        return(c(object$A,object$B));
+        parameters <- c(object$A,object$B);
     }
     else if(gregexpr("ETS",object$model)!=-1){
         if(any(unlist(gregexpr("C",object$model))==-1)){
             # If this was normal ETS, return values
-            return(c(object$persistence,object$initial,object$initial.season));
+            parameters <- c(object$persistence,object$initial,object$initial.season);
         }
         else{
             # If we did combinations, we cannot return anything
             message("Combination of models was done, so there are no coefficients to return");
-            return(NULL);
+            parameters <- NULL;
         }
     }
     else if(gregexpr("GES",object$model)!=-1){
@@ -89,7 +111,6 @@ coef.smooth <- function(object, ...)
                                paste0("Transition ",c(1:length(object$transition))),
                                paste0("Persistence ",c(1:length(object$persistence))),
                                paste0("Initial ",c(1:length(object$initial))));
-        return(parameters);
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
         namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
@@ -107,9 +128,12 @@ coef.smooth <- function(object, ...)
         }
         names(parameters) <- c(NamesAR,NamesMA,namesConstant);
         parameters <- parameters[parameters!=0];
-
-        return(parameters);
     }
+    else if(gregexpr("SMA",object$model)!=-1){
+        parameters <- object$persistence;
+    }
+
+    return(parameters);
 }
 
 fitted.smooth <- function(object, ...){
@@ -138,13 +162,99 @@ forecast.smooth <- function(object, h=10,
     else{
         stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
     }
-
     output <- list(model=newModel$model,fitted=newModel$fitted,actuals=newModel$actuals,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
                    intervals=intervals,mean=newModel$forecast);
+
     return(structure(output,class="forecastSmooth"));
 }
 
+#### Function extracts lags of provided model ####
+lags.default <- function(object, ...){
+    model <- object$model;
+    if(!is.null(model)){
+        if(gregexpr("GES",model)!=-1){
+            lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+        }
+        else if(gregexpr("ARIMA",model)!=-1){
+            if(any(unlist(gregexpr("\\[",model))!=-1)){
+                lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+            }
+            else{
+                lags <- 1;
+            }
+        }
+        else if(gregexpr("SMA",model)!=-1){
+            lags <- 1;
+        }
+        else{
+            lags <- NA;
+        }
+    }
+    else{
+        lags <- NA;
+    }
+
+    return(lags);
+}
+
+#### Function extracts type of model. For example "AAN" from ets ####
+modelType.default <- function(object, ...){
+    model <- object$model;
+    if(!is.null(model)){
+        if(gregexpr("ETS",model)!=-1){
+            modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        }
+        else if(gregexpr("CES",model)!=-1){
+            modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        }
+        else{
+            modelType <- NA;
+        }
+    }
+    else{
+        if(any(gregexpr("ets",object$call)!=-1)){
+            model <- object$method;
+            modelType <- gsub(",","",substring(model,5,nchar(model)-1));
+        }
+    }
+
+    return(modelType);
+}
+
+#### Function extracts orders of provided model ####
+orders.default <- function(object, ...){
+    model <- object$model;
+    if(!is.null(model)){
+        if(gregexpr("GES",model)!=-1){
+            orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
+        }
+        else if(gregexpr("ARIMA",model)!=-1){
+            arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+                                   ,collapse=";");
+            comas <- unlist(gregexpr("\\,",arima.orders));
+            semicolons <- unlist(gregexpr("\\;",arima.orders));
+            ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+            i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+            ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+
+            orders <- list(ar.orders=ar.orders,i.orders=i.orders,ma.orders=ma.orders);
+        }
+        else if(gregexpr("SMA",model)!=-1){
+            orders <- as.numeric(substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1));
+        }
+        else{
+            orders <- NA;
+        }
+    }
+    else{
+        orders <- NA;
+    }
+
+    return(orders);
+}
+
+#### Plots of smooth objects ####
 plot.smooth <- function(x, ...){
     parDefault <- par(no.readonly = TRUE);
     if(gregexpr("ETS",x$model)!=-1){
@@ -206,6 +316,7 @@ plot.iss <- function(x, ...){
     graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent));
 }
 
+#### Prints of smooth ####
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
@@ -266,6 +377,7 @@ print.iss <- function(x, ...){
     cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
 }
 
+#### Simulate data using provided object ####
 simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     if(is.null(obs)){
         obs <- length(object$actuals);
@@ -302,6 +414,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     return(simulatedData);
 }
 
+#### Summary of objects ####
 summary.smooth <- function(object, ...){
     print(object);
 }

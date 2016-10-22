@@ -1,6 +1,6 @@
 \name{AICc}
 \alias{AICc}
-\alias{AICc.smooth}
+\alias{AICc.default}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
     Corrected Akaike's Information Criterion
@@ -10,7 +10,7 @@
 }
 \usage{
     AICc(object, ...)
-    \method{AICc}{smooth}(object, ...)
+    \method{AICc}{default}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
