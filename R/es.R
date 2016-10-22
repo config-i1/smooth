@@ -330,7 +330,11 @@ BasicInitialiserES <- function(...){
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
                            ", while the maximum number of parameters to estimate is ", n.param.max,".\n",
+<<<<<<< HEAD
                            "Updating pool of models."));
+=======
+                           "Pool of models will be changed."));
+>>>>>>> 3538ea6611f6ec67aaef10baaa02b11c51930567
         }
 
         # We have enough observations for local level model
