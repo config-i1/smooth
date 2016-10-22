@@ -137,46 +137,63 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     Stype <- "Z";
                 }
             }
-            else if(any(unlist(strsplit(model,""))=="Z") | any(unlist(strsplit(model,""))=="X")){
+            else if(any(unlist(strsplit(model,""))=="Z") |
+                    any(unlist(strsplit(model,""))=="X") |
+                    any(unlist(strsplit(model,""))=="Y")){
                 modelDo <- "select";
-                if(any(unlist(strsplit(model,""))=="X")){
-                    models.pool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
-                                     "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
-                                     "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
-                    # Restrict error types in the pool
-                    if(Etype=="X"){
-                        models.pool <- models.pool[substr(models.pool,1,1)=="A"];
-                    }
-                    else{
-                        if(Etype!="Z"){
-                            models.pool <- models.pool[substr(models.pool,1,1)==Etype];
-                        }
-                    }
-                    # Restrict trend types in the pool
-                    if(Ttype=="X"){
-                        models.pool <- models.pool[substr(models.pool,2,2)=="A"];
-                    }
-                    else{
-                        if(Ttype!="Z"){
-                            models.pool <- models.pool[substr(models.pool,2,2)==Ttype];
-                            if(damped){
-                                models.pool <- models.pool[nchar(models.pool)==4];
-                            }
-                        }
-                    }
-                    # Restrict season types in the pool
-                    if(Stype=="X"){
-                        models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="A"];
-                    }
-                    else{
-                        if(Stype!="Z"){
-                            models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))==Stype];
-                        }
-                    }
-                }
             }
             else{
                 modelDo <- "estimate";
+            }
+
+            if(any(unlist(strsplit(model,""))=="X") | any(unlist(strsplit(model,""))=="Y")){
+                models.pool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
+                                 "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
+                                 "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
+                # Restrict error types in the pool
+                if(Etype=="X"){
+                    models.pool <- models.pool[substr(models.pool,1,1)=="A"];
+                }
+                else if(Etype=="Y"){
+                    models.pool <- models.pool[substr(models.pool,1,1)=="M"];
+                }
+                else{
+                    if(Etype!="Z"){
+                        models.pool <- models.pool[substr(models.pool,1,1)==Etype];
+                    }
+                }
+                # Restrict trend types in the pool
+                if(Ttype=="X"){
+                    models.pool <- models.pool[substr(models.pool,2,2)=="A" | substr(models.pool,2,2)=="N"];
+                }
+                else if(Ttype=="Y"){
+                    models.pool <- models.pool[substr(models.pool,2,2)=="M" | substr(models.pool,2,2)=="N"];
+                }
+                else{
+                    if(Ttype!="Z"){
+                        models.pool <- models.pool[substr(models.pool,2,2)==Ttype];
+                        if(damped){
+                            models.pool <- models.pool[nchar(models.pool)==4];
+                        }
+                    }
+                }
+                # Restrict season types in the pool
+                if(Stype=="X"){
+                    models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="A" |
+                                               substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                }
+                else if(Stype=="Y"){
+                    models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="M" |
+                                               substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                }
+                else{
+                    if(Stype!="Z"){
+                        models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))==Stype];
+                    }
+                }
+                Etype <- "Z";
+                Ttype <- "Z";
+                Stype <- "Z";
             }
         }
         else{
@@ -184,14 +201,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         ### Check error type
-        if(all(Etype!=c("Z","X","A","M"))){
+        if(all(Etype!=c("Z","X","Y","A","M"))){
             warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Etype <- "Z";
         }
 
         ### Check trend type
-        if(all(Ttype!=c("Z","X","N","A","M"))){
+        if(all(Ttype!=c("Z","X","Y","N","A","M"))){
             warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Ttype <- "Z";
@@ -396,7 +413,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         ### Check seasonality type
-        if(all(Stype!=c("Z","X","N","A","M"))){
+        if(all(Stype!=c("Z","X","Y","N","A","M"))){
             warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'X', 'N', 'A' or 'M'.",
                            "Setting to 'Z'."),call.=FALSE);
             if(datafreq==1){
@@ -407,7 +424,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
         }
         if(all(Stype!="N",datafreq==1)){
-            if(all(Stype!=c("Z","X"))){
+            if(all(Stype!=c("Z","X","Y"))){
                 warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
                                "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
             }
