@@ -322,43 +322,91 @@ BasicInitialiserES <- function(...){
     initialXEstimate <- xregdata$initialXEstimate;
     xregNames <- colnames(matat);
 
-    n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param.max <- n.param.max + n.param.exo;
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= n.param.max){
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the maximum number of parameters to estimate is ", n.param.max,"."));
+                           ", while the maximum number of parameters to estimate is ", n.param.max,".\n",
+                           "Pool of models will be changed."));
         }
 
-        if(obsNonzero > 3){
+        # We have enough observations for local level model
+        if(obsNonzero > (3 + n.param.exo) & is.null(models.pool)){
             models.pool <- c("ANN");
             if(allowMultiplicative){
                 models.pool <- c(models.pool,"MNN");
             }
-            if(obsNonzero > 5){
+            # We have enough observations for trend model
+            if(obsNonzero > (5 + n.param.exo)){
                 models.pool <- c(models.pool,"AAN");
                 if(allowMultiplicative){
                     models.pool <- c(models.pool,"AMN","MAN","MMN");
                 }
             }
-            if(obsNonzero > 6){
+            # We have enough observations for damped trend model
+            if(obsNonzero > (6 + n.param.exo)){
                 models.pool <- c(models.pool,"AAdN");
                 if(allowMultiplicative){
                     models.pool <- c(models.pool,"AMdN","MAdN","MMdN");
                 }
             }
-            if((obsNonzero > 2*datafreq) & datafreq!=1){
+            # We have enough observations for seasonal model
+            if((obsNonzero > (2*datafreq)) & datafreq!=1){
                 models.pool <- c(models.pool,"ANA");
                 if(allowMultiplicative){
                     models.pool <- c(models.pool,"ANM","MNA","MNM");
                 }
             }
-            if((obsNonzero > (6 + datafreq)) & (obsNonzero > 2*datafreq) & datafreq!=1){
+            # We have enough observations for seasonal model with trend
+            if((obsNonzero > (6 + datafreq + n.param.exo)) & (obsNonzero > 2*datafreq) & datafreq!=1){
                 models.pool <- c(models.pool,"AAA");
                 if(allowMultiplicative){
                     models.pool <- c(models.pool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
                 }
+            }
+
+            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
+            if(modelDo=="combine"){
+                model <- "CNN";
+                if(length(models.pool)>2){
+                    model <- "CCN";
+                }
+                if(length(models.pool)>10){
+                    model <- "CCC";
+                }
+            }
+            else{
+                model <- "ZZZ";
+            }
+        }
+        else if(obsNonzero > (3 + n.param.exo) & !is.null(models.pool)){
+            models.pool.new <- models.pool;
+            # We don't have enough observations for seasonal models with damped trend
+            if((obsNonzero <= (6 + datafreq + 1 + n.param.exo))){
+                models.pool <- models.pool[!(nchar(models.pool)==4 &
+                                           substr(models.pool,nchar(models.pool),nchar(models.pool))=="A")];
+                models.pool <- models.pool[!(nchar(models.pool)==4 &
+                                           substr(models.pool,nchar(models.pool),nchar(models.pool))=="M")];
+            }
+            # We don't have enough observations for seasonal models with trend
+            if((obsNonzero <= (5 + datafreq + 1 + n.param.exo))){
+                models.pool <- models.pool[!(substr(models.pool,2,2)!="N" &
+                                             substr(models.pool,nchar(models.pool),nchar(models.pool))!="N")];
+            }
+            # We don't have enough observations for seasonal models
+            if(obsNonzero <= 2*datafreq){
+                models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="N"];
+            }
+            # We don't have enough observations for damped trend
+            if(obsNonzero <= (6 + n.param.exo)){
+                models.pool <- models.pool[nchar(models.pool)!=4];
+            }
+            # We don't have enough observations for any trend
+            if(obsNonzero <= (5 + n.param.exo)){
+                models.pool <- models.pool[substr(models.pool,2,2)=="N"];
             }
 
             warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
