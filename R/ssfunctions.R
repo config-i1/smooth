@@ -153,9 +153,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 # Restrict error types in the pool
                 if(Etype=="X"){
                     models.pool <- models.pool[substr(models.pool,1,1)=="A"];
+                    Etype <- "Z";
                 }
                 else if(Etype=="Y"){
                     models.pool <- models.pool[substr(models.pool,1,1)=="M"];
+                    Etype <- "Z";
                 }
                 else{
                     if(Etype!="Z"){
@@ -165,9 +167,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 # Restrict trend types in the pool
                 if(Ttype=="X"){
                     models.pool <- models.pool[substr(models.pool,2,2)=="A" | substr(models.pool,2,2)=="N"];
+                    Ttype <- "Z";
                 }
                 else if(Ttype=="Y"){
                     models.pool <- models.pool[substr(models.pool,2,2)=="M" | substr(models.pool,2,2)=="N"];
+                    Ttype <- "Z";
                 }
                 else{
                     if(Ttype!="Z"){
@@ -181,19 +185,18 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 if(Stype=="X"){
                     models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="A" |
                                                substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                    Stype <- "Z";
                 }
                 else if(Stype=="Y"){
                     models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="M" |
                                                substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                    Stype <- "Z";
                 }
                 else{
                     if(Stype!="Z"){
                         models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))==Stype];
                     }
                 }
-                Etype <- "Z";
-                Ttype <- "Z";
-                Stype <- "Z";
             }
         }
         else{
@@ -910,13 +913,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Check the length of the provided data. Say bad words if:
         # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
         # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
-        if((Stype!="N" & (obsInsample <= 2*datafreq) & is.null(initialSeason)) |
-           (Stype!="N" & (obsInsample <= datafreq) & is.null(initialSeason) & is.null(persistence))){
-            if(is.null(initialSeason)){
-                warning(paste0("Are you out of your mind?! We don't have enough observations for the seasonal model!\n",
-                               "Switching to non-seasonal."),call.=FALSE);
-                Stype <- "N";
-                initialSeasonEstimate <- FALSE;
+        if(is.null(models.pool)){
+            if((Stype!="N" & (obsInsample <= 2*datafreq) & is.null(initialSeason)) |
+               (Stype!="N" & (obsInsample <= datafreq) & is.null(initialSeason) & is.null(persistence))){
+                if(is.null(initialSeason)){
+                    warning(paste0("Sorry, but we don't have enough observations for the seasonal model!\n",
+                                   "Switching to non-seasonal."),call.=FALSE);
+                    Stype <- "N";
+                    initialSeasonEstimate <- FALSE;
+                }
             }
         }
 
