@@ -24,13 +24,13 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     Vector or ts object, containing data needed to be forecasted.
   }
   \item{model}{
-    The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen information criteria type. If \code{model="CCC"}, then all the models are estimated and combination of their forecasts using AIC weights is produced (Kolassa, 2011). This can also be regulated. For example, \code{model="CCN"} will combine forecasts of all non-seasonal models.
+    The type of ETS model. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the chosen information criteria type. If \code{model="CCC"}, then all the models are estimated and combination of their forecasts using AIC weights is produced (Kolassa, 2011). This can also be regulated. For example, \code{model="CCN"} will combine forecasts of all non-seasonal models. Furthermore, models can be restricted with additive only components. This is done via \code{model="XXX"}. For example, making selection between models with none / additive / damped additive trend component only (i.e. excluding multiplicative trend) can be done with \code{model="ZXZ"}.
 
     The parameter \code{model} can also be a vector of names of models for a finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will estimate only two models and select the best of them.
 
     Also \code{model} can accept a previously estimated ES model and use all its parameters.
 
-    Keep in mind that model selection uses Branch and Bound algorithm and may skip some models that could have slightly smaller information criteria.
+    Keep in mind that model selection with "Z" components uses Branch and Bound algorithm and may skip some models that could have slightly smaller information criteria.
   }
   \item{persistence}{
     Vector of smoothing parameters. If \code{NULL}, the parameters are estimated.
@@ -213,8 +213,11 @@ es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
 \dontrun{es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
 es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 
+# Model selection, excluding multiplicative trend
+\dontrun{es(M3$N1245$x,model="ZXZ",h=8,holdout=TRUE)}
+
 # Combination example
-\dontrun{es(M3$N1245$x,model="CCC",h=8,holdout=TRUE)}
+\dontrun{es(M3$N1245$x,model="CCN",h=8,holdout=TRUE)}
 
 # Model selection using a specified pool of models
 test <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
