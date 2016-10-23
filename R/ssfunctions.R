@@ -50,6 +50,32 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         silentLegend <- FALSE;
     }
 
+    ##### data #####
+    if(!is.numeric(data)){
+        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+    }
+    # Check the data for NAs
+    if(any(is.na(data))){
+        if(!silentText){
+            warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
+        }
+        data[is.na(data)] <- 0;
+    }
+
+    # Define obs, the number of observations of in-sample
+    obsInsample <- length(data) - holdout*h;
+
+    # Define obsAll, the overal number of observations (in-sample + holdout)
+    obsAll <- length(data) + (1 - holdout)*h;
+
+    # If obsInsample is negative, this means that we can't do anything...
+    if(obsInsample<=0){
+        stop("Not enough observations in sample.",call.=FALSE);
+    }
+    # Define the actual values
+    y <- matrix(data[1:obsInsample],obsInsample,1);
+    datafreq <- frequency(data);
+
     if(modelType=="es"){
         ##### model for ES #####
         if(!is.character(model)){
@@ -150,6 +176,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 models.pool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
                                  "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
                                  "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
+                if(datafreq==1){
+                    Stype <- "N";
+                }
                 # Restrict error types in the pool
                 if(Etype=="X"){
                     models.pool <- models.pool[substr(models.pool,1,1)=="A"];
@@ -205,14 +234,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
         ### Check error type
         if(all(Etype!=c("Z","X","Y","A","M"))){
-            warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'A' or 'M'.\n",
+            warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'Y', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Etype <- "Z";
         }
 
         ### Check trend type
         if(all(Ttype!=c("Z","X","Y","N","A","M"))){
-            warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'A' or 'M'.\n",
+            warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Ttype <- "Z";
         }
@@ -380,32 +409,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         seasonality <- substring(seasonality[1],1,1);
     }
 
-    ##### data #####
-    if(!is.numeric(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
-    }
-    # Check the data for NAs
-    if(any(is.na(data))){
-        if(!silentText){
-            warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
-        }
-        data[is.na(data)] <- 0;
-    }
-
-    # Define obs, the number of observations of in-sample
-    obsInsample <- length(data) - holdout*h;
-
-    # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- length(data) + (1 - holdout)*h;
-
-    # If obsInsample is negative, this means that we can't do anything...
-    if(obsInsample<=0){
-        stop("Not enough observations in sample.",call.=FALSE);
-    }
-    # Define the actual values
-    y <- matrix(data[1:obsInsample],obsInsample,1);
-    datafreq <- frequency(data);
-
     if(modelType=="es"){
         # Check if the data is ts-object
         if(!is.ts(data) & Stype!="N"){
@@ -417,7 +420,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
         ### Check seasonality type
         if(all(Stype!=c("Z","X","Y","N","A","M"))){
-            warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'X', 'N', 'A' or 'M'.",
+            warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.",
                            "Setting to 'Z'."),call.=FALSE);
             if(datafreq==1){
                 Stype <- "N";
