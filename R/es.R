@@ -37,6 +37,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
+        phi <- model$phi;
         if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
