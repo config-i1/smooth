@@ -14,7 +14,7 @@ Here is the list of included functions:
 6. auto.ssarima - selection between different State-Space ARIMA models.
 7. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
 8. sma - Simple Moving Average in state-space form.
-9. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods.
+9. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
 
 Future works:
 
