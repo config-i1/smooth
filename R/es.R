@@ -708,7 +708,12 @@ PoolPreparerES <- function(...){
                 errors.pool <- Etype;
             }
             if(Ttype!="Z"){
-                trends.pool <- Ttype;
+                if(damped){
+                    trends.pool <- paste0(Ttype,"d");
+                }
+                else{
+                    trends.pool <- Ttype;
+                }
             }
             if(Stype!="Z"){
                 season.pool <- Stype;
