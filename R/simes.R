@@ -133,6 +133,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
     modellags <- matrix(modellags,persistenceLength,1);
     maxlag <- max(modellags);
     matw <- matrix(matw,1,persistenceLength);
+    arrF <- array(matF,c(dim(matF),nsim));
 
 # Check the persistence vector length
     if(!is.null(persistence)){
@@ -363,7 +364,7 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         matot[,] <- 1;
     }
 
-    simulateddata <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags);
+    simulateddata <- simulateETSwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,modellags);
 
     if((iprob < 1) & (iprob > 0)){
         matyt <- round(simulateddata$matyt,0);
@@ -385,6 +386,20 @@ sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
         materrors <- ts(materrors,frequency=frequency);
         matot <- ts(matot,frequency=frequency);
     }
-    return(list(model=model,data=matyt,states=arrvt,persistence=matg,residuals=materrors,
-                occurrences=matot,likelihood=veclikelihood));
+
+    if(Ttype!="N"){
+        rownames(matg) <- c("alpha","beta","gamma")[1:persistenceLength];
+    }
+    else{
+        rownames(matg) <- c("alpha","gamma")[1:persistenceLength];
+    }
+
+    model <- paste0("ETS(",model,")");
+    if(iprob!=1){
+        model <- paste0("i",model);
+    }
+
+    model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
+                residuals=materrors, occurrences=matot, likelihood=veclikelihood);
+    return(structure(model,class="smooth.sim"));
 }
