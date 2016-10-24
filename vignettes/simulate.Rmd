@@ -115,6 +115,13 @@ ourSimulation
 plot(ourSimulation)
 ```
 
+`sim.ssarima` also supports intermittent data, which is defined via `iprob` parameter, similar to `sim.es()`:
+```{r sim_ssarima_(1,0,2)_1(0,1,1)_7intermittent}
+ourSimulation <- sim.ssarima(ar.orders=c(1,0), i.orders=c(0,1), ma.orders=c(2,1), lags=c(1,7), obs=120, iprob=0.2)
+ourSimulation
+plot(ourSimulation)
+```
+
 Finally we can use `simulate()` function in a similar manner as with `sim.es()`. For example:
 ```{r simulate_smooth_ssarima}
 x <- ts(100 + c(1:100) + rnorm(100,0,15),frequency=12)
