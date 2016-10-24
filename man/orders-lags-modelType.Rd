@@ -36,6 +36,12 @@
 }
 \value{
     Either vector or list with values is returned.
+    \code{orders()} in case of ssarima returns list of values:
+    \itemize{
+        \item \code{ar} - AR orders.
+        \item \code{i} - I orders.
+        \item \code{ma} - MA orders.
+    }
 }
 \author{
     Ivan Svetunkov, \email{ivan@svetunkov.ru}
