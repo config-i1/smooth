@@ -119,7 +119,7 @@ ces(data, seasonality=c("none","simple","partial","full"),
     \item \code{upper} - the upper bound of prediction interval. When \code{intervals="none"} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
-    \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
+    \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
     \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - The data provided in the call of the function.

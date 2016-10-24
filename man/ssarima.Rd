@@ -38,7 +38,7 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
     Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector. It is recommended to order \code{lags} ascending.
   }
   \item{constant}{
-    If \code{TRUE}, constant term is included in the model.
+    If \code{TRUE}, constant term is included in the model. Can also be a number (constant value).
   }
   \item{AR}{
     Vector or matrix of AR parameters. The order of parameters should be lag-wise. This means that first all the AR parameters of the firs lag should be passed, then for the second etc. AR of another ssarima can be passed here.
@@ -143,7 +143,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
     \item \code{upper} - the higher bound of prediction interval. When \code{intervals="none"} then NA is returned.
     \item \code{residuals} - the residuals of the estimated model.
     \item \code{errors} - The matrix of 1 to h steps ahead errors.
-    \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
+    \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
     \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - the original data.

@@ -139,7 +139,7 @@ For the details see Hyndman et al.(2008).
     \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"} then NA is returned.
     \item \code{residuals} - residuals of the estimated model.
     \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
-    \item \code{s2} - standard deviation of the residuals (taking degrees of freedom into account).
+    \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
     \item \code{intervals} - type of intervals asked by user.
     \item \code{level} - confidence level for intervals.
     \item \code{actuals} - original data.
