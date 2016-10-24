@@ -17,6 +17,16 @@ arma::mat matrixPower(arma::mat A, int power){
     return B;
 }
 
+// [[Rcpp::export]]
+RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power){
+    NumericMatrix matA_n(matA);
+    arma::mat matrixA(matA_n.begin(), matA_n.nrow(), matA_n.ncol(), false);
+
+    int pow = as<int>(power);
+
+    return wrap(matrixPower(matrixA, pow));
+}
+
 /* # Function allows to multiply polinomails */
 arma::vec polyMult(arma::vec poly1, arma::vec poly2){
 
@@ -1790,7 +1800,7 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
 // ##### Script for sim.ets function
 List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
-                 arma::mat matrixF, arma::rowvec rowvecW, arma::mat matrixG,
+                 arma::cube arrayF, arma::rowvec rowvecW, arma::mat matrixG,
                  unsigned int obs, unsigned int nseries,
                  char E, char T, char S, arma::uvec lags) {
 
@@ -1808,9 +1818,11 @@ List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
     arma::mat matrixVt(obsall, lagslength, arma::fill::zeros);
+    arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
 
     for(unsigned int i=0; i<nseries; i=i+1){
         matrixVt = arrayVt.slice(i);
+        matrixF = arrayF.slice(i);
         for (int j=maxlag; j<obsall; j=j+1) {
 
             lagrows = lags - maxlag + j;
@@ -1855,8 +1867,9 @@ RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP mat
     NumericMatrix matot_n(matot);
     arma::mat matrixot(matot_n.begin(), matot_n.nrow(), matot_n.ncol(), false);
 
-    NumericMatrix matF_n(matF);
-    arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol(), false);
+    NumericVector arrF_n(matF);
+    IntegerVector arrF_dim = arrF_n.attr("dim");
+    arma::cube arrayF(arrF_n.begin(),arrF_dim[0], arrF_dim[1], arrF_dim[2], false);
 
     NumericMatrix matw_n(matw);
     arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
@@ -1874,6 +1887,6 @@ RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP mat
     IntegerVector modellags_n(modellags);
     arma::uvec lags = as<arma::uvec>(modellags_n);
 
-    return wrap(simulateETS(arrayVt, matrixerrors, matrixot, matrixF, rowvecW, matrixG,
+    return wrap(simulateETS(arrayVt, matrixerrors, matrixot, arrayF, rowvecW, matrixG,
                             obs, nseries, E, T, S, lags));
 }
