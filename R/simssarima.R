@@ -428,7 +428,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         matot[,] <- 1;
     }
 
-    simulateddata <- simulateETSwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
+    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
 
     if((iprob < 1) & (iprob > 0)){
         matyt <- round(simulateddata$matyt,0);

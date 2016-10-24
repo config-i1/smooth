@@ -1798,8 +1798,8 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 # autoets - function estimates all the necessary ETS models and returns the one with the smallest chosen IC.
 */
 
-// ##### Script for sim.ets function
-List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
+// ##### Script for simulate functions
+List simulator(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
                  arma::cube arrayF, arma::rowvec rowvecW, arma::mat matrixG,
                  unsigned int obs, unsigned int nseries,
                  char E, char T, char S, arma::uvec lags) {
@@ -1851,9 +1851,9 @@ List simulateETS(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
     return List::create(Named("arrvt") = arrayVt, Named("matyt") = matY);
 }
 
-/* # Wrapper for simulateETS */
+/* # Wrapper for simulator */
 // [[Rcpp::export]]
-RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
+RcppExport SEXP simulatorwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
                                 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags) {
 
 // ### arrvt should contain array of obs x ncomponents x nseries elements.
@@ -1887,6 +1887,6 @@ RcppExport SEXP simulateETSwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP mat
     IntegerVector modellags_n(modellags);
     arma::uvec lags = as<arma::uvec>(modellags_n);
 
-    return wrap(simulateETS(arrayVt, matrixerrors, matrixot, arrayF, rowvecW, matrixG,
+    return wrap(simulator(arrayVt, matrixerrors, matrixot, arrayF, rowvecW, matrixG,
                             obs, nseries, E, T, S, lags));
 }

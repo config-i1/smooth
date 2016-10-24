@@ -1789,7 +1789,7 @@ ssForecaster <- function(...){
                 matot <- matrix(1,h,n.samples);
             }
 
-            y.simulated <- simulateETSwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
+            y.simulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
                                            Etype,Ttype,Stype,modellags)$matyt;
             if(!is.null(xreg)){
                 y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
