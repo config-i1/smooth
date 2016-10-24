@@ -6,6 +6,18 @@
 
 using namespace Rcpp;
 
+// matrixPowerWrap
+RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power);
+RcppExport SEXP smooth_matrixPowerWrap(SEXP matASEXP, SEXP powerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type matA(matASEXP);
+    Rcpp::traits::input_parameter< SEXP >::type power(powerSEXP);
+    rcpp_result_gen = Rcpp::wrap(matrixPowerWrap(matA, power));
+    return rcpp_result_gen;
+END_RCPP
+}
 // initparams
 RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt, SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs);
 RcppExport SEXP smooth_initparams(SEXP TtypeSEXP, SEXP StypeSEXP, SEXP datafreqSEXP, SEXP obsRSEXP, SEXP obsallRSEXP, SEXP ytSEXP, SEXP dampedSEXP, SEXP phiSEXP, SEXP smoothingparametersSEXP, SEXP initialstatesSEXP, SEXP seasonalcoefsSEXP) {
