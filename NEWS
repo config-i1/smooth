@@ -1,3 +1,26 @@
+smooth v1.4.6 (Release date: 2016-11-01)
+==============
+
+Changes:
+
+* New function - sim.ssarima() that allows generating data from any ARIMA with any provided parameters.
+* New methods for smooth class: lags, orders and modelType. First two are for ssarima(), ges() and sma(), the last one is for es(), ces() and ets() from "forecast" package.
+* Introduced new class for simulation functions, "smooth.sim" and created print and plot methods for them.
+* es() now accepts "XXX" as model. This allows excluding multiplicative components from the pool. This does not use branch and bound. So model="ZXZ" will go through all the models with T="N", T="A" and T="Ad".
+* Similarly es() can now select the most appropriate non-additive model. This is regulated with: model="YYY".
+
+Minor changes:
+
+* Updated print for "smooth" class for es() and ges(): now we produce a nice vector with names of smoothing parameters.
+* simulate.smooth() method update in order to take sim.ssarima() into account.
+* AICc now also extracts AICc from ets() of "forecast" package.
+
+Bugfixes:
+
+* Fixed a bug with provided model with damped trend.
+* Fixed a bug in pool of models with damped trend ("ZAdZ").
+
+
 smooth v1.4.5 (Release date: 2016-10-16)
 ==============
 
