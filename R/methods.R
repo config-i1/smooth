@@ -238,7 +238,7 @@ orders.default <- function(object, ...){
             i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
             ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
 
-            orders <- list(ar.orders=ar.orders,i.orders=i.orders,ma.orders=ma.orders);
+            orders <- list(ar=ar.orders,i=i.orders,ma=ma.orders);
         }
         else if(gregexpr("SMA",model)!=-1){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1));
@@ -288,6 +288,24 @@ plot.smooth <- function(x, ...){
         }
     }
     par(parDefault);
+}
+
+plot.smooth.sim <- function(x, ...){
+    if(is.null(dim(x$data))){
+        nsim <- 1
+    }
+    else{
+        nsim <- dim(x$data)[2]
+    }
+
+    if(nsim==1){
+        plot(x$data, main=x$model);
+    }
+    else{
+        message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
+                       "Please use plot(ourSimulation$data[,k]) instead. Plotting a random series."));
+        plot(x$data[,ceiling(runif(1,1,nsim))], main=x$model, ylab="Y");
+    }
 }
 
 plot.forecastSmooth <- function(x, ...){
@@ -340,6 +358,90 @@ print.smooth <- function(x, ...){
              intervalsType=x$intervals, level=x$level, ICs=x$ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
              intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
+}
+
+print.smooth.sim <- function(x, ...){
+    if(is.null(dim(x$data))){
+        nsim <- 1
+    }
+    else{
+        nsim <- dim(x$data)[2]
+    }
+
+    cat(paste0("Data generated from: ",x$model,"\n"));
+    cat(paste0("Number of generated series: ",nsim,"\n"));
+
+    if(nsim==1){
+        if(gregexpr("ETS",x$model)!=-1){
+            cat(paste0("Persistence vector: \n"));
+                print(t(round(x$persistence,3)));
+            if(x$phi!=1){
+                cat(paste0("Phi: ",x$phi,"\n"));
+            }
+            cat(paste0("True likelihood: ",round(x$likelihood,3),"\n"));
+        }
+        else if(gregexpr("ARIMA",x$model)!=-1){
+            ar.orders <- orders(x)$ar;
+            i.orders <- orders(x)$i;
+            ma.orders <- orders(x)$ma;
+            lags <- lags(x);
+            # AR terms
+            if(any(ar.orders!=0)){
+                ARterms <- matrix(0,max(ar.orders),sum(ar.orders!=0),
+                                  dimnames=list(paste0("AR(",c(1:max(ar.orders)),")"),
+                                                paste0("Lag ",lags[ar.orders!=0])));
+            }
+            else{
+                ARterms <- matrix(0,1,1);
+            }
+            # Differences
+            if(any(i.orders!=0)){
+                Iterms <- matrix(0,1,length(i.orders),
+                                 dimnames=list("I(...)",paste0("Lag ",lags)));
+                Iterms[,] <- i.orders;
+            }
+            else{
+                Iterms <- 0;
+            }
+            # MA terms
+            if(any(ma.orders!=0)){
+                MAterms <- matrix(0,max(ma.orders),sum(ma.orders!=0),
+                                  dimnames=list(paste0("MA(",c(1:max(ma.orders)),")"),
+                                                paste0("Lag ",lags[ma.orders!=0])));
+            }
+            else{
+                MAterms <- matrix(0,1,1);
+            }
+
+            n.coef <- ar.coef <- ma.coef <- 0;
+            ar.i <- ma.i <- 1;
+            for(i in 1:length(ar.orders)){
+                if(ar.orders[i]!=0){
+                    ARterms[1:ar.orders[i],ar.i] <- x$AR[ar.coef+(1:ar.orders[i])];
+                    ar.coef <- ar.coef + ar.orders[i];
+                    ar.i <- ar.i + 1;
+                }
+                if(ma.orders[i]!=0){
+                    MAterms[1:ma.orders[i],ma.i] <- x$MA[ma.coef+(1:ma.orders[i])];
+                    ma.coef <- ma.coef + ma.orders[i];
+                    ma.i <- ma.i + 1;
+                }
+            }
+
+            if(!is.null(x$AR)){
+                cat(paste0("AR parameters: \n"));
+                print(round(ARterms,3));
+            }
+            if(!is.null(x$MA)){
+                cat(paste0("MA parameters: \n"));
+                print(round(MAterms,3));
+            }
+            if(!is.na(x$constant)){
+                cat(paste0("Constant value: ",round(x$constant,3),"\n"));
+            }
+            cat(paste0("True likelihood: ",round(x$likelihood,3),"\n"));
+        }
+    }
 }
 
 print.forecastSmooth <- function(x, ...){
@@ -405,6 +507,16 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             message("Sorry, but we cannot simulate data out of combined model.");
             simulatedData <- NA;
         }
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        model <- object$model;
+        orders <- orders(object);
+        lags <- lags(object);
+        randomizer <- "rnorm";
+        simulatedData <- sim.ssarima(ar.orders=orders$ar, i.orders=orders$i, ma.orders=orders$ma, lags=lags,
+                                     frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
+                                     initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
+                                     iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
     }
     else{
         model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
