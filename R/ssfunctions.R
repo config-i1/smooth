@@ -1789,7 +1789,8 @@ ssForecaster <- function(...){
                 matot <- matrix(1,h,n.samples);
             }
 
-            y.simulated <- simulateETSwrap(arrvt,materrors,matot,matF,matw,matg,Etype,Ttype,Stype,modellags)$matyt;
+            y.simulated <- simulateETSwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
+                                           Etype,Ttype,Stype,modellags)$matyt;
             if(!is.null(xreg)){
                 y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                                        matF, matw, h, Ttype, Stype, modellags,
@@ -2153,7 +2154,8 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 ### Stuff for ETS
     if(any(model==c("ETS","GES"))){
         if(!is.null(persistence)){
-            cat(paste0("Persistence vector g: ", paste(round(persistence,3),collapse=", "),"\n"));
+            cat(paste0("Persistence vector g:\n"));
+            print(t(round(persistence,3)));
         }
         if(!is.null(phi)){
             if(phi!=1){
