@@ -63,8 +63,9 @@ sim.es(model="ANN",frequency=1, persistence=NULL, phi=1,
         \item{model}{Name of ETS model.}
         \item{data}{Time series vector (or matrix if \code{nsim>1}) of the generated series.}
         \item{states}{Matrix (or array if \code{nsim>1}) of states. States are in columns, time is in rows.}
-        \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
         \item{persistence}{Vector (or matrix if \code{nsim>1}) of smoothing parameters used in the simulation.}
+        \item{phi}{Value of damping parameter used in time series generation.}
+        \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
         \item{occurrences}{Values of occurrence variable. Once again, can be either a vector or a matrix...}
         \item{likelihood}{Log-likelihood of the constructed model.}
 }
