@@ -161,6 +161,7 @@ CF <- function(C){
     # matF <- elements$matF;
     # vecg <- elements$vecg;
     # matvt[,] <- elements$matvt;
+    # matvt[1,] <- matrixPowerWrap(matF,n.components+1) %*% matvt[1,];
     # matat[,] <- elements$matat;
     # matFX <- elements$matFX;
     # vecgX <- elements$vecgX;
