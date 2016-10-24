@@ -1,10 +1,10 @@
 ---
-title: "simulate(), sim.es() - simulate exponential smoothing"
+title: "simulate(), sim.es(), sim.ssarima() - simulate functions for ETS and SARIMA"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{simulate(), sim.es() - simulate exponential smoothing}
+  %\VignetteIndexEntry{simulate(), sim.es(), sim.ssarima() - simulate functions for ETS and SARIMA}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,16 +14,15 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-Currently "smooth" function contains simulation function for Exponential Smoothing ([es](es.html)). It is planned to produce other functions for other state-space models. This is part of [smooth package](smooth.html).
+Currently "smooth" function contains simulation function for Exponential Smoothing ([es](es.html)) and SARIMA ([ssarima](ssarima.html)). It is planned to produce other functions for other state-space models. This is part of [smooth package](smooth.html).
 
 Let's load the necessary package:
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
 ```
 
-Currently there is only one simulation function, which allows simulating data from any desired exponential smoothing model with any parameters.
-
-Let's start from something simple. For example, monthly data generated from ETS(A,N,N), 120 observations:
+## Exponential Smoothing
+We start with an Exponential Smoothing. For example, monthly data generated from ETS(A,N,N), 120 observations:
 ```{r sim_es_ANN}
 ourSimulation <- sim.es("ANN", frequency=12, obs=120)
 ```
@@ -31,20 +30,25 @@ ourSimulation <- sim.es("ANN", frequency=12, obs=120)
 The resulting `ourSimulation` object contains: `ourSimulation$model` -- name of ETS model used in simulation; `ourSimulation$data` -- vector of simulated data; `ourSimulation$states` -- matrix of states, where columns contain different states and rows corresponds to time; `ourSimulation$persistence` -- vector of smoothing parameters used in simulation (in our case generated randomly); `ourSimulation$residuals` -- vector of errors generated in the simulation; `ourSimulation$occurrences` -- vector of demand occurrences (zeroes and ones, in our case only ones); `ourSimulation$likelihood` -- true likelihood function for the used generating model.
 
 We can plot produced data, states or residuals in order to see what was generated. This is done using:
-```{r sim_es_ANN_plot}
+```{r sim_es_ANN_plot_data}
 plot(ourSimulation$data)
+```
+
+If only one time series has been generated, we can use a simpler command in order to plot it:
+```{r sim_es_ANN_plot}
+plot(ourSimulation)
 ```
 
 Now let's use more complicated model and be more specific, providing persistence vector:
 ```{r sim_es_MAdM}
 ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01))
-plot(ourSimulation$data)
+plot(ourSimulation)
 ```
 
 High values of smoothing parameters are not advised for models with multiplicative components, because they may lead to explosive data. As for randomizer the default values seem to work fine in the majority of cases, but if we want, we can intervene and ask for something specific (for example, some values taken from some estimated model):
 ```{r sim_es_MAdM_lnorm}
 ourSimulation <- sim.es("MAdM", frequency=12, obs=120, phi=0.95, persistence=c(0.1,0.05,0.01), randomizer="rlnorm", meanlog=0, sdlog=0.015)
-plot(ourSimulation$data)
+plot(ourSimulation)
 ```
 
 It is advised to use lower values for `sdlog` and `sd` for models with multiplicative components. Once again, using higher values may lead to data with explosive behaviour.
@@ -52,7 +56,7 @@ It is advised to use lower values for `sdlog` and `sd` for models with multiplic
 If we need intermittent data, we can define probability of occurrences. And it also makes sense to use pure multiplicative models and specify initials in this case:
 ```{r sim_es_iMNN}
 ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1)
-plot(ourSimulation$data)
+plot(ourSimulation)
 ```
 
 If we want to have several time series generated using the same parameters then we can use `nsim` parameter:
@@ -66,7 +70,7 @@ There is also `simulate()` function that allows to simulate data from estimated 
 ```{r simulate_smooth_es}
 x <- ts(rnorm(100,120,15),frequency=12)
 ourModel <- es(x, h=18, silent=TRUE)
-ourData <- simulate(ourModel,nsim=50,obs=100)
+ourData <- simulate(ourModel, nsim=50, obs=100)
 ```
 
 Now let's compare the original data and the simulated one:
@@ -78,3 +82,52 @@ par(mfcol=c(1,1))
 ```
 
 As we see the level is the same and variance is similar for both series. Achievement unlocked!
+
+## SARIMA
+Let's start from something simple. By default `sim.ssarima()` generates data from ARIMA(0,1,1). Let's produce 10 time serie with 120 observations of that:
+```{r sim_ssarima_(0,1,1)}
+ourSimulation <- sim.ssarima(frequency=12, obs=120, nsim=10)
+```
+
+The resulting `ourSimulation` object contains: `ourSimulation$model` -- name of ARIMA model used in simulation; `ourSimulation$AR` -- matrix with generated or provided AR parameters, `ourSimulation$MA` -- matrix with MA parameters, `ourSimulation$AR` -- vector with constant values (one for each time series), `ourSimulation$initial` -- matrix with initial values, `ourSimulation$data` -- matrix of simulated data (if we had `nsim=1`, then that would be a vector); `ourSimulation$states` -- array of states, where columns contain different states, rows corresponds to time and last dimension is for each time series; `ourSimulation$residuals` -- vector of errors generated in the simulation; `ourSimulation$occurrences` -- vector of demand occurrences (zeroes and ones, in our case only ones); `ourSimulation$likelihood` -- true likelihood function for the used generating model.
+
+Similarly to `sim.es()`, we can plot produced data, states or residuals for each time series in order to see what was generated. Here's an example:
+```{r sim_ssarima_(0,1,1)_plot}
+plot(ourSimulation$data[,5])
+```
+
+Now let's use more complicated model. For example, data from SARIMA(0,1,1)(1,0,2)_12 with drift can be generated using:
+```{r sim_ssarima_(0,1,1)(1,0,2)_12_drift}
+ourSimulation <- sim.ssarima(ar.orders=c(0,1), i.orders=c(1,0), ma.orders=c(1,2), lags=c(1,12), constant=TRUE, obs=120)
+plot(ourSimulation)
+```
+
+If we want to provide some specific parameters, then we should follow the structure: from lower lag to lag from lower order to higher order. For example, the same model with predefined MA terms will be:
+```{r sim_ssarima_(0,1,1)(1,0,2)_12_drift_predefined}
+ourSimulation <- sim.ssarima(ar.orders=c(0,1), i.orders=c(1,0), ma.orders=c(1,2), lags=c(1,12), constant=TRUE, MA=c(0.5,0.2,0.3), obs=120)
+ourSimulation
+```
+
+We can create time series with several frequencies For example, some sort of daily series from SARIMA(1,0,2)(0,1,1)_7(1,0,1)_30 can be generated with a command:
+```{r sim_ssarima_(1,0,2)_1(0,1,1)_7(1,0,1)_30}
+ourSimulation <- sim.ssarima(ar.orders=c(1,0,1), i.orders=c(0,1,0), ma.orders=c(2,1,1), lags=c(1,7,30), obs=360)
+ourSimulation
+plot(ourSimulation)
+```
+
+Finally we can use `simulate()` function in a similar manner as with `sim.es()`. For example:
+```{r simulate_smooth_ssarima}
+x <- ts(100 + c(1:100) + rnorm(100,0,15),frequency=12)
+ourModel <- auto.ssarima(x, h=18, silent=TRUE)
+ourData <- simulate(ourModel, nsim=50, obs=100)
+```
+
+Now let's compare the original data and one of series from the simulated array:
+```{r simulate_smooth_ssarima_compare}
+par(mfcol=c(1,2))
+plot(x)
+plot(ourData$data)
+par(mfcol=c(1,1))
+```
+
+As we see series demonstrate similarities in dynamics and have similar variances.
