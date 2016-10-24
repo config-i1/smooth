@@ -126,7 +126,7 @@ Now let's compare the original data and one of series from the simulated array:
 ```{r simulate_smooth_ssarima_compare}
 par(mfcol=c(1,2))
 plot(x)
-plot(ourData$data)
+plot(ourData)
 par(mfcol=c(1,1))
 ```
 
