@@ -614,14 +614,12 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 # and then in matF and other things.
 # Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
 */
-List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma::uvec lags, int nComponents,
+List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma::uvec lags, unsigned int nComponents,
              arma::vec arValues, arma::vec maValues, double constValue, arma::vec C,
              arma::mat matrixVt, arma::vec vecG, arma::mat matrixF,
              char fitterType, int nexo, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX,
              bool arEstimate, bool maEstimate, bool constRequired, bool constEstimate,
              bool xregEstimate, bool wild, bool fXEstimate, bool gXEstimate, bool initialXEstimate){
-
-    bool initialEstimate = (fitterType=='o');
 
 // Form matrices with parameters, that are then used for polynomial multiplication
     arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
@@ -635,9 +633,9 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
     int nParam = 0;
     int arnParam = 0;
     int manParam = 0;
-    for(int i=0; i<lags.n_rows; i++){
+    for(unsigned int i=0; i<lags.n_rows; i++){
         if(arOrders(i) * lags(i) != 0){
-            for(int j=0; j<arOrders(i); j++){
+            for(unsigned int j=0; j<arOrders(i); j++){
                 if(arEstimate){
                     arParameters((j+1)*lags(i),i) = -C(nParam);
                     nParam += 1;
@@ -654,7 +652,7 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
         }
 
         if(maOrders(i) * lags(i) != 0){
-            for(int j=0; j<maOrders(i); j++){
+            for(unsigned int j=0; j<maOrders(i); j++){
                 if(maEstimate){
                     maParameters((j+1)*lags(i),i) = C(nParam);
                     nParam += 1;
@@ -677,12 +675,12 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
     iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
     maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
 
-    for(int i=1; i<lags.n_rows; i++){
+    for(unsigned int i=1; i<lags.n_rows; i++){
 // Form polynomials
         arPolynomial = polyMult(arPolynomial, arParameters.col(i));
         maPolynomial = polyMult(maPolynomial, maParameters.col(i));
         if(iOrders(i)>1){
-            for(int j=1; j<iOrders(i); j++){
+            for(unsigned int j=1; j<iOrders(i); j++){
                 iParameters.col(i) = polyMult(iParameters.col(i), iParameters.col(i));
             }
         }
@@ -771,7 +769,7 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
     IntegerVector ARIMAlags_n(ARIMAlags);
     arma::uvec lags = as<arma::uvec>(ARIMAlags_n);
 
-    int nComponents = as<int>(nComp);
+    unsigned int nComponents = as<int>(nComp);
 
     NumericVector AR_n;
     if(!Rf_isNull(AR)){
@@ -785,7 +783,7 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
     }
     arma::vec maValues(MA_n.begin(), MA_n.size(), false);
 
-    double constValue;
+    double constValue = 0;
     if(!Rf_isNull(constant)){
         constValue = as<double>(constant);
     }
@@ -822,7 +820,6 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
     bool maEstimate = as<bool>(estimMA);
     bool constRequired = as<bool>(requireConst);
     bool constEstimate = as<bool>(estimConst);
-    bool initialEstimate = (fitterType=='o');
     bool xregEstimate = as<bool>(estimxreg);
     bool wild = as<bool>(gowild);
     bool fXEstimate = as<bool>(estimFX);
