@@ -2155,7 +2155,12 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     if(any(model==c("ETS","GES"))){
         if(!is.null(persistence)){
             cat(paste0("Persistence vector g:\n"));
-            print(t(round(persistence,3)));
+            if(is.matrix(persistence)){
+                print(round(t(persistence),3));
+            }
+            else{
+                print(round(persistence,3));
+            }
         }
         if(!is.null(phi)){
             if(phi!=1){
