@@ -304,7 +304,8 @@ plot.smooth.sim <- function(x, ...){
     else{
         message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
                        "Please use plot(ourSimulation$data[,k]) instead. Plotting a random series."));
-        plot(x$data[,ceiling(runif(1,1,nsim))], main=x$model, ylab="Y");
+        randomNumber <- ceiling(runif(1,1,nsim));
+        plot(x$data[,randomNumber], main=x$model, ylab=paste0("Series N",randomNumber));
     }
 }
 
