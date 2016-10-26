@@ -1888,6 +1888,9 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
+            if(!is.matrix(xreg)){
+                xreg <- as.matrix(xreg);
+            }
             checkvariability <- apply(xreg[1:obsInsample,]==rep(xreg[1,],each=obsInsample),2,all);
             if(any(checkvariability)){
                 if(all(checkvariability)){
