@@ -33,7 +33,9 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         persistence <- model$persistence;
         initial <- model$initial;
         initialSeason <- model$initialSeason;
-        xreg <- model$xreg;
+        if(is.null(xreg)){
+            xreg <- model$xreg;
+        }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;

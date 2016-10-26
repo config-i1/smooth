@@ -40,7 +40,9 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         persistence <- model$persistence;
         transition <- model$transition;
         measurement <- model$measurement;
-        xreg <- model$xreg;
+        if(is.null(xreg)){
+            xreg <- model$xreg;
+        }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
