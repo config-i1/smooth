@@ -19,6 +19,7 @@ Here is the list of included functions:
 
 Future works:
 
+
 11. sim.ces, sim.ges - simulation functions for CES and GES respectively.
 12. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
 13. auto.ges - Automatic selection of the most appropriate GES model.
