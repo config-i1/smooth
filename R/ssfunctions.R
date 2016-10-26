@@ -1868,7 +1868,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                     warning("No exogenous variable provided for the holdout sample. es() was used in order to forecast it.",call.=FALSE);
                     xregForecast <- es(xreg,h=h,intermittent="auto",ic="AICc",silent=TRUE)$forecast;
                     xreg <- c(as.vector(xreg),as.vector(xregForecast));
-#                    xreg <- c(as.vector(xreg),rep(xreg[obsInsample],h));
+##                    xreg <- c(as.vector(xreg),rep(xreg[obsInsample],h));
                 }
 # Number of exogenous variables
                 n.exovars <- 1;
