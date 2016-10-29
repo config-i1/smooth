@@ -1,4 +1,4 @@
-sim.es <- function(model="ANN",frequency=1, persistence=NULL, phi=1,
+sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
                    initial=NULL, initialSeason=NULL,
                    bounds=c("usual","admissible","restricted"),
                    obs=10, nsim=1, silent=FALSE,
