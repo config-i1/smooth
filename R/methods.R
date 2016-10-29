@@ -141,7 +141,7 @@ fitted.smooth <- function(object, ...){
 }
 
 forecast.smooth <- function(object, h=10,
-                            intervals=c("none","parametric","semiparametric","nonparametric"),
+                            intervals=c("parametric","semiparametric","nonparametric","none"),
                             level=0.95, ...){
     intervals <- intervals[1];
     if(gregexpr("ETS",object$model)!=-1){
@@ -207,6 +207,18 @@ modelType.default <- function(object, ...){
         }
         else if(gregexpr("CES",model)!=-1){
             modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+            if(modelType=="n"){
+                modelType <- "none";
+            }
+            else if(modelType=="s"){
+                modelType <- "simple";
+            }
+            else if(modelType=="p"){
+                modelType <- "partial";
+            }
+            else{
+                modelType <- "full";
+            }
         }
         else{
             modelType <- NA;
