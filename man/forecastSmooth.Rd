@@ -11,7 +11,7 @@
 \usage{
     forecast(object, ...)
     \method{forecast}{smooth}(object, h=10,
-      intervals=c("none","parametric","semiparametric","nonparametric"),
+      intervals=c("parametric","semiparametric","nonparametric","none"),
       level=0.95, ...)
 }
 %- maybe also 'usage' for other objects documented here.
