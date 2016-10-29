@@ -1,6 +1,6 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
-auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
+auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","full"),
                 initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
@@ -27,7 +27,14 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","partial","full
     ssAutoInput(modelType="ces",ParentEnvironment=environment());
 
 # If the pool of models is wrong, fall back to default
-    if(all(models!=c("n","s","p","f","none","simple","partial","full"))){
+    if(length(models)!=1){
+        modelsOk <- rep(FALSE,length(models));
+        for(i in 1:length(models)){
+            modelsOk[i] <- any(models[i]==c("n","s","p","f","none","simple","partial","full"));
+        }
+    }
+
+    if(!all(modelsOk)){
         message("The pool of models includes a strange type of model! Reverting to default pool.");
         models <- c("n","s","p","f");
     }

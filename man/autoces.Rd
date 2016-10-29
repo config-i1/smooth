@@ -8,7 +8,7 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-auto.ces(data, C=c(1.1, 1), models=c("none","simple","partial","full"),
+auto.ces(data, C=c(1.1, 1), models=c("none","simple","full"),
          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
          h=10, holdout=FALSE,
