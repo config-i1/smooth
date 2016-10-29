@@ -2281,7 +2281,6 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat("\nInformation criteria:\n");
     print(ICs);
-    cat("\n");
 
     if(intervals){
         if(intervalsType=="p"){
