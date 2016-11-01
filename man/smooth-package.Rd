@@ -59,7 +59,7 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 \keyword{forecasting}
 \keyword{time series}
 \seealso{
-    \code{\link[forecast:forecast]{forecast}, \link[smooth]{es}, \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{ges}, \link[smooth]{simulate}}
+    \code{\link[forecast:forecast]{forecast}, \link[smooth]{es}, \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{ges}}
 }
 \examples{
 \dontrun{y <- ts(rnorm(100,10,3),frequency=12)
