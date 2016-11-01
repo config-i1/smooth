@@ -24,10 +24,12 @@ The following functions are included in the package:
     \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
     \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
     \item \link[smooth]{sma} - Simple Moving Average in state-space form.
-%    \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
     \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
+    \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
+    \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
     \item \link[smooth]{iss} - intermittent data state-space model. This function models the part with data occurances using one of three methods.
   }
+  There are also several methods implemented in the package for the classes "smooth" and "smooth.sim"
 }
 \author{
 Ivan Svetunkov
@@ -57,7 +59,7 @@ Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 \keyword{forecasting}
 \keyword{time series}
 \seealso{
-\code{\link[forecast:forecast]{forecast}}
+    \code{\link[forecast:forecast]{forecast}, \link[smooth]{es}, \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{ges}, \link[smooth]{simulate}}
 }
 \examples{
 \dontrun{y <- ts(rnorm(100,10,3),frequency=12)

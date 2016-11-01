@@ -87,7 +87,7 @@ sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
 }
 
 \seealso{
-    \code{\link[smooth]{sim.es}, \link[smooth]{es}, \link[stats]{Distributions}}
+    \code{\link[smooth]{sim.es}, \link[smooth]{ssarima}, \link[stats]{Distributions}}
 }
 \examples{
 # Create 120 observations from ARIMA(1,1,1) with drift. Generate 100 time series of this kind.
