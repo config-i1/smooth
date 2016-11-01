@@ -509,13 +509,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             B$estimate <- FALSE;
         }
 
-        # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
-        # lags is the lags used in pt matrix.
+        # Define lags, number of components and number of parameters
         if(seasonality=="n"){
             # No seasonality
             maxlag <- 1;
             modellags <- c(1,1);
-            ces.name <- "Complex Exponential Smoothing";
             # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
             n.components <- 2;
             A$number <- 2;
@@ -525,7 +523,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Simple seasonality, lagged CES
             maxlag <- datafreq;
             modellags <- c(maxlag,maxlag);
-            ces.name <- "Lagged Complex Exponential Smoothing (Simple seasonality)";
             n.components <- 2;
             A$number <- 2;
             B$number <- 0;
@@ -534,7 +531,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Partial seasonality with a real part only
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag);
-            ces.name <- "Complex Exponential Smoothing with a partial (real) seasonality";
             n.components <- 3;
             A$number <- 2;
             B$number <- 1;
@@ -543,7 +539,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Full seasonality with both real and imaginary parts
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag,maxlag);
-            ces.name <- "Complex Exponential Smoothing with a full (complex) seasonality";
             n.components <- 4;
             A$number <- 2;
             B$number <- 2;
@@ -861,7 +856,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
             else if(modelType=="ces"){
                 if(length(initialValue) != maxlag*n.components){
-                    warning(paste0("Wrong length of initial vector. Should be ",n.components,
+                    warning(paste0("Wrong length of initial vector. Should be ",maxlag*n.components,
                                    " instead of ",length(initial),".\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
@@ -1106,7 +1101,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
     else if(modelType=="ces"){
         assign("seasonality",seasonality,ParentEnvironment);
-        assign("ces.name",ces.name,ParentEnvironment);
         assign("A",A,ParentEnvironment);
         assign("B",B,ParentEnvironment);
     }
