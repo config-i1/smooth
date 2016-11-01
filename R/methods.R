@@ -311,7 +311,7 @@ plot.smooth.sim <- function(x, ...){
     }
 
     if(nsim==1){
-        plot(x$data, main=x$model);
+        plot(x$data, main=x$model, ylab="Data");
     }
     else{
         message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
@@ -454,6 +454,18 @@ print.smooth.sim <- function(x, ...){
             }
             cat(paste0("True likelihood: ",round(x$likelihood,3),"\n"));
         }
+        else if(gregexpr("CES",x$model)!=-1){
+            cat(paste0("Smoothing parameter A: ",round(x$A,3),"\n"));
+            if(!is.null(x$B)){
+                if(is.complex(x$B)){
+                    cat(paste0("Smoothing parameter B: ",round(x$B,3),"\n"));
+                }
+                else{
+                    cat(paste0("Smoothing parameter b: ",round(x$B,3),"\n"));
+                }
+            }
+            cat(paste0("True likelihood: ",round(x$likelihood,3),"\n"));
+        }
     }
 }
 
@@ -522,7 +534,6 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         }
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
-        model <- object$model;
         orders <- orders(object);
         lags <- lags(object);
         randomizer <- "rnorm";
@@ -530,6 +541,15 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
                                      frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
                                      initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
                                      iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
+    }
+    else if(gregexpr("CES",object$model)!=-1){
+        model <- substring(object$model,unlist(gregexpr("\\(",object$model))+1,unlist(gregexpr("\\)",object$model))-1);
+        initial <- object$initial;
+        randomizer <- "rnorm";
+        simulatedData <- sim.ces(seasonality=model,
+                                 frequency=frequency(object$actuals), A=object$A, B=object$B,
+                                 initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
+                                 iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
     }
     else{
         model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
