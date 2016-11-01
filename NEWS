@@ -1,4 +1,20 @@
-smooth v1.4.6 (Release date: 2016-11-01)
+smooth v1.4.7 (Release date: 2016-11-01)
+==============
+
+Changes:
+
+* New function - sim.ces(), that generates data from CES model with predefined parameters.
+* Due to (1) simulate.smooth() now also works with CES.
+* modelType() in cases of ces() now returns the full name of model instead of the first letter.
+* auto.ces() has now a smaller pool of models: "none", "simple" and "full".
+
+Bugfixes:
+
+* Fixed problem with xreg length and provided initialX (issue #59 on github).
+* Fixed a check of models pool in auto.ces().
+
+
+smooth v1.4.6 (Release date: 2016-10-23)
 ==============
 
 Changes:

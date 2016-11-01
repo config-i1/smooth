@@ -1,10 +1,10 @@
 ---
-title: "simulate(), sim.es(), sim.ssarima() - simulate functions for ETS and SARIMA"
+title: "simulate(), sim.es(), sim.ssarima(), sim.ces() - simulate functions for ETS, SARIMA and CES"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{simulate(), sim.es(), sim.ssarima() - simulate functions for ETS and SARIMA}
+  %\VignetteIndexEntry{simulate(), sim.es(), sim.ssarima(), sim.ces() - simulate functions for ETS, SARIMA and CES}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -138,3 +138,64 @@ par(mfcol=c(1,1))
 ```
 
 As we see series demonstrate similarities in dynamics and have similar variances.
+
+## Complex Exponential Smoothing
+As usual we start from a simple model. By default `sim.ces()` generates data from CES(n). If we do not provide specific parameters, then they will be automatically generated:
+```{r sim_ces_(n)}
+ourSimulation <- sim.ces(frequency=12, obs=120, nsim=1)
+```
+
+The resulting `ourSimulation` object contains: `ourSimulation$model` -- name of CES model used in simulation; `ourSimulation$A` -- vector of complex smoothing parameters A, `ourSimulation$B` -- vector of complex smoothing parameters A (if "partial" or "full" seasonal model was used in the simulation), `ourSimulation$initial` -- array with initial values, `ourSimulation$data` -- matrix of simulated data (if we had `nsim=1`, then that would be a vector); `ourSimulation$states` -- array of states, where columns contain different states, rows corresponds to time and last dimension is for each time series; `ourSimulation$residuals` -- vector of errors generated in the simulation; `ourSimulation$occurrences` -- vector of demand occurrences (zeroes and ones, in our case only ones); `ourSimulation$likelihood` -- true likelihood function for the used generating model.
+
+Similarly to other simulate functions in "smooth", we can plot produced data, states or residuals for each time series in order to see what was generated. Here's an example:
+```{r sim_ces_(n)_plot}
+plot(ourSimulation)
+```
+
+We can also see a brief summary of our simulated data:
+```{r sim_ces_(n)_summary}
+ourSimulation
+```
+
+We can produce one out of three possible seasonal CES models. For example, Let's generate data from "Simple CES", which does not have a level:
+```{r sim_ces_(s)}
+ourSimulation <- sim.ces("s",frequency=24, obs=240, nsim=1)
+plot(ourSimulation)
+```
+
+Now let's be more creative and mess around with the generated initial values of the previous model. We will make some of them equal to zero and regenerate the data:
+```{r sim_ces_(s)_messing_arround}
+ourSimulation$initial[c(1:5,20:24),] <- 0
+ourSimulation <- sim.ces("s",frequency=24, obs=120, nsim=1, initial=ourSimulation$initial, randomizer="rt", df=4)
+plot(ourSimulation)
+```
+
+The resulting generated series has properties close to the ones that solar irradiation data has: changing amplitude of seasonality without changes in level. We have also chosen a random number generator, based on Student distribution rather than normal. This is done just in order to show what can be done using simulate functions in "smooth". 
+
+We can also produce CES with so called "partial" seasonality, which corresponds to CES(n) with additive seasonal components. Let's produce 10 of such time series:
+```{r sim_ces_(p)}
+ourSimulation <- sim.ces("p",B=0.2,frequency=12, obs=240, nsim=10)
+plot(ourSimulation)
+```
+
+Finally, the most complicated CES model is the one with "full" seasonality, implyin that there are two complex exponential smoothing models inside: one for seasonal and the other for non-seasonal part:
+```{r sim_ces_(f)}
+ourSimulation <- sim.ces("f",frequency=12, obs=240, nsim=10)
+plot(ourSimulation)
+```
+
+The generated smoothing parameters may sometimes lead to explosive behaviour and produce meaningless time series. That is why it is advised to use parameters of a model fitted to time series of interest. For example, here we generate something crazy and then simulate the data:
+
+```{r simulate_smooth_ces}
+x <- ts(rnorm(120,0,5) + rep(runif(12,-50,50),10)*rep(c(1:10),each=12) ,frequency=12)
+ourModel <- ces(x, seasonality="s", h=18, silent=TRUE)
+ourData <- simulate(ourModel, nsim=50, obs=100)
+```
+
+Comparing the original data with the simulated one, we will see some similarities:
+```{r simulate_smooth_ces_compare}
+par(mfcol=c(1,2))
+plot(x)
+plot(ourData)
+par(mfcol=c(1,1))
+```

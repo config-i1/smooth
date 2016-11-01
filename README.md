@@ -14,16 +14,17 @@ Here is the list of included functions:
 6. auto.ssarima - selection between different State-Space ARIMA models.
 7. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
 8. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
-9. sma - Simple Moving Average in state-space form.
-10. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
+9. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
+10. sma - Simple Moving Average in state-space form.
+11. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
 
 Future works:
 
-11. sim.ces, sim.ges - simulation functions for CES and GES respectively.
-12. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
-13. auto.ges - Automatic selection of the most appropriate GES model.
-14. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
-15. sofa.ts - Survival of the fittest algorithm applied to state-space models.
+12. sim.ges - simulation functions for GES.
+13. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
+14. auto.ges - Automatic selection of the most appropriate GES model.
+15. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
+16. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
 ## Installation
 

@@ -5,7 +5,7 @@ importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median
            cor,qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate)
 importFrom("utils", packageVersion)
 export(es, ges, ces, ssarima, iss, sma, auto.ces, auto.ssarima)
-export(sim.es, sim.ssarima)
+export(sim.es, sim.ssarima, sim.ces)
 export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias)
 export(graphmaker, forecast, forecast.smooth, AICc, orders, lags, modelType)
 
