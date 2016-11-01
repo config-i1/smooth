@@ -13,18 +13,11 @@ sim.ssarima <- function(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
 #### Elements Generator for AR and MA ####
 elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders=i.orders,
                               ARValue=ARValue, MAValue=MAValue,
-                              #matvt, vecg, matF,
                               ARGenerate=FALSE, MAGenerate=FALSE){
     componentsNumber <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-    #if(!exists(matvt,inherits=FALSE)){
     matvt <- matrix(1,5,componentsNumber+constantRequired);
-    #}
-    #if(!exists(vecg,inherits=FALSE)){
     vecg <- matrix(0,componentsNumber+constantRequired,1);
-    #}
-    #if(!exists(matF,inherits=FALSE)){
     matF <- diag(componentsNumber+constantRequired);
-    #}
 
     if(ARGenerate){
         ARRoots <- 0.5;
@@ -428,6 +421,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         matot[,] <- 1;
     }
 
+#### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
 
     if((iprob < 1) & (iprob > 0)){
