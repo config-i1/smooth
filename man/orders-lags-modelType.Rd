@@ -47,18 +47,27 @@
     Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \seealso{
-    \link[smooth]{forecast}
+    \link[smooth]{forecast}, \link[smooth]{ssarima}
 }
 \examples{
-# Just as example
-test <- ces(rnorm(100,0,1), h=10)
-orders(test)
-lags(test)
-modelType(test)
+x <- rnorm(100,0,1)
 
-test <- ges(rnorm(100,0,1), h=10, orders=c(1,1), lags=c(1,4))
-orders(test)
-lags(test)
-modelType(test)
+# Just as example. orders and lags do not return anything for ces() and es(). But modelType does.
+ourModel <- ces(x, h=10)
+orders(ourModel)
+lags(ourModel)
+modelType(ourModel)
+
+# And as another example it does the opposite for ges() and ssarima()
+ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
+orders(ourModel)
+lags(ourModel)
+modelType(ourModel)
+
+# Finally these values can be used for simulate functions or original functions.
+ourModel <- auto.ssarima(x)
+ssarima(x, orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+
 }
 \keyword{ forecasting }
