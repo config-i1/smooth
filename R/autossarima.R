@@ -1,6 +1,7 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
 auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
+                         combine=FALSE,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                          h=10, holdout=FALSE,
@@ -151,9 +152,15 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
     nModels <- prod(i.max + 1) * (1 + sum(ma.max*(1 + sum(ar.max)))) + 1;
     testModel <- list(NA);
+# Array with elements x maxorders x horizon x point/lower/upper
+    if(combine){
+        testForecasts <- list(NA);
+        testFitted <- list(NA);
+        testICs <- list(NA);
+        testLevels <- list(NA);
+    }
     ICValue <- 1E+100;
     m <- 0;
-    obsInsample <- length(data);
     constant <- TRUE;
 
     test.lags <- ma.test <- ar.test <- i.test <- rep(0,length(lags));
@@ -225,6 +232,15 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                  intermittent=intermittent,silent=TRUE,
                                  xreg=xreg,updateX=updateX,FI=FI);
             ICValue <- testModel$ICs[ic];
+            if(combine){
+                testForecasts[[m]] <- matrix(NA,h,3);
+                testForecasts[[m]][,1] <- testModel$forecast;
+                testForecasts[[m]][,2] <- testModel$lower;
+                testForecasts[[m]][,3] <- testModel$upper;
+                testFitted[[m]] <- testModel$fitted;
+                testICs[[m]] <- ICValue;
+                testLevels[[m]] <- 1;
+            }
 # print(ICValue);
             if(m==1){
                 bestIC <- ICValue;
@@ -271,6 +287,15 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                  intermittent=intermittent,silent=TRUE,
                                                  xreg=xreg,updateX=updateX,FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
+                            if(combine){
+                                testForecasts[[m]] <- matrix(NA,h,3);
+                                testForecasts[[m]][,1] <- testModel$forecast;
+                                testForecasts[[m]][,2] <- testModel$lower;
+                                testForecasts[[m]][,3] <- testModel$upper;
+                                testFitted[[m]] <- testModel$fitted;
+                                testICs[[m]] <- ICValue;
+                                testLevels[[m]] <- 2;
+                            }
 # print(ICValue);
                             if(ICValue < bestICMA){
                                 bestICMA <- ICValue;
@@ -312,6 +337,15 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                                  intermittent=intermittent,silent=TRUE,
                                                                  xreg=xreg,updateX=updateX,FI=FI);
                                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
+                                            if(combine){
+                                                testForecasts[[m]] <- matrix(NA,h,3);
+                                                testForecasts[[m]][,1] <- testModel$forecast;
+                                                testForecasts[[m]][,2] <- testModel$lower;
+                                                testForecasts[[m]][,3] <- testModel$upper;
+                                                testFitted[[m]] <- testModel$fitted;
+                                                testICs[[m]] <- ICValue;
+                                                testLevels[[m]] <- 3;
+                                            }
 # print(ICValue);
                                             if(ICValue < bestIC){
                                                 bestIC <- ICValue;
@@ -350,6 +384,15 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                              intermittent=intermittent,silent=TRUE,
                              xreg=xreg,updateX=updateX,FI=FI);
         ICValue <- testModel$ICs[ic];
+        if(combine){
+            testForecasts[[m]] <- matrix(NA,h,3);
+            testForecasts[[m]][,1] <- testModel$forecast;
+            testForecasts[[m]][,2] <- testModel$lower;
+            testForecasts[[m]][,3] <- testModel$upper;
+            testFitted[[m]] <- testModel$fitted;
+            testICs[[m]] <- ICValue;
+            testLevels[[m]] <- 1;
+        }
 # cat("Constant: ");print(ICValue);
         if(ICValue < bestIC){
             bestModel <- testModel;
@@ -360,25 +403,75 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
         }
     }
 
-    if(constant){
-#### Reestimate the best model in order to get rid of bias ####
-        bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
-                             constant=TRUE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,
-                             intervals=intervals,level=level,
-                             intermittent=intermittent,silent=TRUE,
-                             xreg=xreg,updateX=updateX,FI=FI);
+    if(combine){
+        testICs <- unlist(testICs);
+        testLevels <- unlist(testLevels);
+        testForecasts <- array(unlist(testForecasts),c(h,3,length(testICs)));
+        testFitted <- matrix(unlist(testFitted),ncol=length(testICs));
+        icWeights <- exp(-0.5*(testICs-min(testICs)))/sum(exp(-0.5*(testICs-min(testICs))));
+
+        testForecastsNew <- testForecasts;
+        testFittedNew <- testFitted;
+        for(i in 1:length(testLevels)){
+            if(testLevels[i]==1){
+                j <- i;
+            }
+            else if(testLevels[i]==2){
+                k <- i;
+                testForecastsNew[,,i] <- testForecasts[,,j] + testForecasts[,,i];
+                testFittedNew[,i] <- testFitted[,j] + testFitted[,i];
+            }
+            else if(testLevels[i]==3){
+                testForecastsNew[,,i] <- testForecasts[,,j] + testForecasts[,,k] + testForecasts[,,i];
+                testFittedNew[,i] <- testFitted[,j] + testFitted[,k] + testFitted[,i];
+            }
+        }
+        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=frequency(testModel$forecast));
+        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=frequency(testModel$lower));
+        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=frequency(testModel$upper));
+        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=frequency(testModel$fitted));
+        modelname <- "ARIMA combined";
+
+        errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=frequency(testModel$forecast));
+        s2 <- mean(errors^2);
+        errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        ICs <- c(t(testICs) %*% icWeights);
+        names(ICs) <- ic;
+
+        bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
+                          initialType=initialType,
+                          fitted=y.fit,forecast=y.for,
+                          lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervals,level=level,
+                          actuals=data,holdout=y.holdout,intermittent=intermittent,
+                          xreg=xreg,updateX=updateX,
+                          ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
+
+        bestModel <- structure(bestModel,class="smooth");
+    }
+    else{
+        if(constant){
+            #### Reestimate the best model in order to get rid of bias ####
+            bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
+                                 constant=TRUE,initial=initialType,cfType=cfType,
+                                 h=h,holdout=holdout,
+                                 intervals=intervals,level=level,
+                                 intermittent=intermittent,silent=TRUE,
+                                 xreg=xreg,updateX=updateX,FI=FI);
+        }
+
+        y.fit <- bestModel$fitted;
+        y.for <- bestModel$forecast;
+        y.high <- bestModel$upper;
+        y.low <- bestModel$lower;
+        modelname <- bestModel$model;
+
+        bestModel$timeElapsed <- Sys.time()-startTime;
     }
 
     if(silentText==FALSE){
         cat("... Done! \n");
     }
-
-    y.fit <- bestModel$fitted;
-    y.for <- bestModel$forecast;
-    y.high <- bestModel$upper;
-    y.low <- bestModel$lower;
-    modelname <- bestModel$model;
 
     # Make plot
     if(silentGraph==FALSE){
@@ -392,6 +485,5 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
         }
     }
 
-    bestModel$timeElapsed <- Sys.time()-startTime;
     return(bestModel);
 }

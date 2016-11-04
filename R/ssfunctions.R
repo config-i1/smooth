@@ -1186,6 +1186,8 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
 # Define obsAll, the overal number of observations (in-sample + holdout)
     obsAll <- length(data) + (1 - holdout)*h;
 
+    y <- data[1:obsInsample];
+
 # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
     if(obsInsample < 4){
         stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
@@ -1302,7 +1304,6 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         }
     }
     else{
-        y <- data[1:obsInsample];
         obsNonzero <- sum((y!=0)*1);
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
@@ -1346,6 +1347,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("intervals",intervals,ParentEnvironment);
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
+    assign("y",y,ParentEnvironment);
 }
 
 ##### *ssFitter function* #####

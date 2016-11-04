@@ -41,6 +41,12 @@ test_that("Test initials, AR, MA and constant of SSARIMA on N2568$x", {
     expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
 })
 
+# Combine SSARIMA
+testModel <- auto.ssarima(Mcomp::M3$N2568$x, combine=TRUE, silent=TRUE, ic="AIC");
+test_that("Test if combined ARIMA works", {
+    expect_match(testModel$model, "combine");
+})
+
 # Test exogenous (normal + updateX) with SSARIMA
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);

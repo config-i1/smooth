@@ -9,6 +9,7 @@ Function selects the best State-Space ARIMA based on information criteria, using
 }
 \usage{
 auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
+        combine=FALSE,
         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
         h=10, holdout=FALSE,
@@ -35,6 +36,9 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
   }
   \item{lags}{
     Defines lags for the corresponding orders (see examples). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
+  }
+  \item{combine}{
+    If \code{TRUE}, then resulting ARIMA is combined using AIC weights.
   }
   \item{initial}{
     Character value which defines how the model is initialised: it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
@@ -123,6 +127,10 @@ ourModel <- auto.ssarima(x,ar.max=c(2,1),i.max=c(1,1),ma.max=c(2,1),lags=c(1,12)
 # The other one using optimised states
 \dontrun{auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
                      initial="o",h=18,holdout=TRUE)}
+
+# And now combined ARIMA
+\dontrun{auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+                      combine=TRUE,h=18,holdout=TRUE)}
 
 summary(ourModel)
 forecast(ourModel)

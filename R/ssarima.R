@@ -30,40 +30,47 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         else if(gregexpr("ARIMA",model$model)==-1){
             stop("The provided model is not ARIMA.",call.=FALSE);
         }
-        intermittent <- model$intermittent;
-        if(any(intermittent==c("p","provided"))){
-            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
-            warning("Switching to intermittent='auto'.",call.=FALSE);
-            intermittent <- "a";
-        }
-        if(!is.null(model$initial)){
-            initial <- model$initial;
-        }
-        if(is.null(xreg)){
-            xreg <- model$xreg;
-        }
-        initialX <- model$initialX;
-        persistenceX <- model$persistenceX;
-        transitionX <- model$transitionX;
-        if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
-            updateX <- TRUE;
-        }
-        AR <- model$AR;
-        MA <- model$MA;
-        constant <- model$constant;
-        model <- model$model;
-        arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
-                               ,collapse=";");
-        comas <- unlist(gregexpr("\\,",arima.orders));
-        semicolons <- unlist(gregexpr("\\;",arima.orders));
-        ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
-        i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
-        ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
-        if(any(unlist(gregexpr("\\[",model))!=-1)){
-            lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+
+# If this is a normal ARIMA, do things
+        if(any(unlist(gregexpr("combine",model$model))==-1)){
+            intermittent <- model$intermittent;
+            if(any(intermittent==c("p","provided"))){
+                warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
+                warning("Switching to intermittent='auto'.",call.=FALSE);
+                intermittent <- "a";
+            }
+            if(!is.null(model$initial)){
+                initial <- model$initial;
+            }
+            if(is.null(xreg)){
+                xreg <- model$xreg;
+            }
+            initialX <- model$initialX;
+            persistenceX <- model$persistenceX;
+            transitionX <- model$transitionX;
+            if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
+                updateX <- TRUE;
+            }
+            AR <- model$AR;
+            MA <- model$MA;
+            constant <- model$constant;
+            model <- model$model;
+            arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+                                   ,collapse=";");
+            comas <- unlist(gregexpr("\\,",arima.orders));
+            semicolons <- unlist(gregexpr("\\;",arima.orders));
+            ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+            i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+            ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+            if(any(unlist(gregexpr("\\[",model))!=-1)){
+                lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+            }
+            else{
+                lags <- 1;
+            }
         }
         else{
-            lags <- 1;
+            stop("The provided model is a combination of ARIMAs. We cannot fit that.",call.=FALSE);
         }
     }
     else if(exists("orders",inherits=FALSE)){

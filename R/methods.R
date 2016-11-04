@@ -26,6 +26,20 @@ AIC.smooth <- function(object, ...){
             }
         }
     }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            IC <- object$ICs["AIC"];
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AIC"){
+                IC <- object$ICs;
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                IC <- NA;
+            }
+        }
+    }
     else{
         IC <- object$ICs["AIC"];
     }
@@ -53,6 +67,20 @@ AICc.default <- function(object, ...){
             IC <- object$ICs["AICc"];
         }
     }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            IC <- object$ICs["AICc"];
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
+                IC <- object$ICs;
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                IC <- NA;
+            }
+        }
+    }
     else{
         if(any(gregexpr("ets",object$call)!=-1)){
             IC <- object$aicc;
@@ -78,6 +106,20 @@ BIC.smooth <- function(object, ...){
             else{
                 message("ICs were combined during the model construction. Nothing to return.");
                 IC <- NULL;
+            }
+        }
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            IC <- object$ICs["BIC"];
+        }
+        else{
+            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="BIC"){
+                IC <- object$ICs;
+            }
+            else{
+                message("ICs were combined during the model construction. Nothing to return.");
+                IC <- NA;
             }
         }
     }
@@ -113,21 +155,29 @@ coef.smooth <- function(object, ...)
                                paste0("Initial ",c(1:length(object$initial))));
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
-        namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
-        if(any(object$AR!=0)){
-            parameters <- c(parameters,object$AR);
-            NamesAR <- paste(rownames(object$AR),rep(colnames(object$AR),each=ncol(object$AR)),sep=", ");
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            # If this was normal ARIMA, return values
+            namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
+            if(any(object$AR!=0)){
+                parameters <- c(parameters,object$AR);
+                NamesAR <- paste(rownames(object$AR),rep(colnames(object$AR),each=ncol(object$AR)),sep=", ");
+            }
+            if(any(object$MA!=0)){
+                parameters <- c(parameters,object$MA);
+                NamesMA <- paste(rownames(object$MA),rep(colnames(object$MA),each=ncol(object$MA)),sep=", ")
+            }
+            if(object$constant!=0){
+                parameters <- c(parameters,object$constant);
+                namesConstant <- "Constant";
+            }
+            names(parameters) <- c(NamesAR,NamesMA,namesConstant);
+            parameters <- parameters[parameters!=0];
         }
-        if(any(object$MA!=0)){
-            parameters <- c(parameters,object$MA);
-            NamesMA <- paste(rownames(object$MA),rep(colnames(object$MA),each=ncol(object$MA)),sep=", ")
+        else{
+            # If we did combinations, we cannot return anything
+            message("Combination of models was done, so there are no coefficients to return");
+            parameters <- NULL;
         }
-        if(object$constant!=0){
-            parameters <- c(parameters,object$constant);
-            namesConstant <- "Constant";
-        }
-        names(parameters) <- c(NamesAR,NamesMA,namesConstant);
-        parameters <- parameters[parameters!=0];
     }
     else if(gregexpr("SMA",object$model)!=-1){
         parameters <- object$persistence;
@@ -154,7 +204,13 @@ forecast.smooth <- function(object, h=10,
         newModel <- ges(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
-        newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+        }
+        else{
+            stop(paste0("Sorry, but in order to produce forecasts for this ARIMA we need to recombine it.\n",
+                 "You will have to use auto.ssarima() function instead."),call.=FALSE);
+        }
     }
     else if(gregexpr("SMA",object$model)!=-1){
         newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
@@ -177,11 +233,16 @@ lags.default <- function(object, ...){
             lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
         }
         else if(gregexpr("ARIMA",model)!=-1){
-            if(any(unlist(gregexpr("\\[",model))!=-1)){
-                lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+            if(any(unlist(gregexpr("combine",object$model))==-1)){
+                if(any(unlist(gregexpr("\\[",model))!=-1)){
+                    lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+                }
+                else{
+                    lags <- 1;
+                }
             }
             else{
-                lags <- 1;
+                warning("ARIMA was combined and we cannot extract lags anymore. Sorry!",call.=FALSE);
             }
         }
         else if(gregexpr("SMA",model)!=-1){
@@ -242,15 +303,20 @@ orders.default <- function(object, ...){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
         }
         else if(gregexpr("ARIMA",model)!=-1){
-            arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
-                                   ,collapse=";");
-            comas <- unlist(gregexpr("\\,",arima.orders));
-            semicolons <- unlist(gregexpr("\\;",arima.orders));
-            ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
-            i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
-            ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+            if(any(unlist(gregexpr("combine",object$model))==-1)){
+                arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+                                       ,collapse=";");
+                comas <- unlist(gregexpr("\\,",arima.orders));
+                semicolons <- unlist(gregexpr("\\;",arima.orders));
+                ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+                i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+                ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
 
-            orders <- list(ar=ar.orders,i=i.orders,ma=ma.orders);
+                orders <- list(ar=ar.orders,i=i.orders,ma=ma.orders);
+            }
+            else{
+                warning("ARIMA was combined and we cannot extract orders anymore. Sorry!",call.=FALSE);
+            }
         }
         else if(gregexpr("SMA",model)!=-1){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1));
@@ -288,6 +354,10 @@ plot.smooth <- function(x, ...){
         }
     }
     else{
+        if(any(unlist(gregexpr("combine",x$model))!=-1)){
+            # If we did combinations, we cannot do anything
+            message("Combination of models was done. Sorry, but there is nothing to plot.");
+        }
         if(ncol(x$states)>10){
             message("Too many states. Plotting them one by one on several graphs.");
             nPlots <- ceiling(ncol(x$states)/10);
@@ -529,18 +599,24 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
                                     randomizer=randomizer,mean=0,sd=sqrt(object$s2),...);
         }
         else{
-            message("Sorry, but we cannot simulate data out of combined model.");
+            message("Sorry, but we cannot simulate data from combined model.");
             simulatedData <- NA;
         }
     }
     else if(gregexpr("ARIMA",object$model)!=-1){
-        orders <- orders(object);
-        lags <- lags(object);
-        randomizer <- "rnorm";
-        simulatedData <- sim.ssarima(ar.orders=orders$ar, i.orders=orders$i, ma.orders=orders$ma, lags=lags,
-                                     frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
-                                     initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
-                                     iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
+        if(any(unlist(gregexpr("combine",object$model))==-1)){
+            orders <- orders(object);
+            lags <- lags(object);
+            randomizer <- "rnorm";
+            simulatedData <- sim.ssarima(ar.orders=orders$ar, i.orders=orders$i, ma.orders=orders$ma, lags=lags,
+                                         frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
+                                         initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
+                                         iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
+        }
+        else{
+            message("Sorry, but we cannot simulate data from combined model.");
+            simulatedData <- NA;
+        }
     }
     else if(gregexpr("CES",object$model)!=-1){
         model <- substring(object$model,unlist(gregexpr("\\(",object$model))+1,unlist(gregexpr("\\)",object$model))-1);
