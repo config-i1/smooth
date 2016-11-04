@@ -9,6 +9,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 
     bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
+    args <- list(...);
 
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
     if(nchar(model)==4){
@@ -180,7 +181,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE)){
+    if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
         if(silent == FALSE){
             warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         }
@@ -300,7 +301,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
 # Check if any argument was passed in dots
-    if(any(names(match.call(expand.dots=FALSE)[-1]) == "...")==FALSE){
+    if(length(args)==0){
 # Create vector of the errors
         if(any(randomizer==c("rnorm","runif"))){
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
@@ -338,7 +339,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(list(...))),")")));
+        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
         if(randomizer=="rbeta"){
 # Center the errors around 0
             materrors <- materrors - 0.5;
