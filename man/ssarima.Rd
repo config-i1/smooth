@@ -113,15 +113,15 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
 }
 \details{
-The function constructs ARIMA in the Single Source of Error State-space form (first proposed in Snyder, 1985):
+The basic ARIMA(p,d,q) used in the function has the following form:
+\eqn{(1 - B)^d (1 - a_1 B - a_2 B^2 - ... - a_p B^p) y_[t] = (1 - b_1 B - b_2 B^2 - ... - b_q B^q) \epsilon_[t] + c}
+where \eqn{y_[t]} is actual values,  \eqn{\epsilon_[t]} is error term, \eqn{a_i, b_j} are parameters for AR and MA respectively and \eqn{c} is constant. In case of non-zero differences \eqn{c} starts acting as drift.
 
+This model is then transformed into ARIMA in the Single Source of Error State-space form (proposed in Snyder, 1985):
 \eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
-
 \eqn{v_[t] = F v_[t-1] + g \epsilon_[t]}
-
 \eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
-
-Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equals to 1 for all observations), \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
+where \eqn{o_[t]} is Bernoulli distributed random variable (in case of normal data equals to 1 for all observations), \eqn{v_[t]} is a state vector (defined using \code{ar.orders} and \code{i.orders}), \eqn{x_t} vector of exogenous parameters.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For example, something crazy like this can be constructed: SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may take a lot of time...
 }
