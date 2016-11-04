@@ -23,7 +23,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     list2env(list(...),environment());
 
     # If a previous model provided as a model, write down the variables
-    if(exists("model")){
+    if(exists("model",inherits=FALSE)){
         if(is.null(model$model)){
             stop("The provided model is not GES.",call.=FALSE);
         }
