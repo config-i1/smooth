@@ -104,7 +104,11 @@ ssarima(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
   }
   \item{...}{
     Other non-documented parameters.
-    For example parameter \code{model} can accept a previously estimated SSARIMA model and use all its parameters.
+
+    A list of orders can be passed here using \code{orders} parameter instead of \code{ar.orders}, \code{i.orders} and \code{ma.orders}. This should be handy when using extraction function \code{orders()}. See example below.
+
+    Parameter \code{model} can accept a previously estimated SSARIMA model and use all its parameters.
+
     \code{FI=TRUE} will make the function produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
   }
 }
@@ -173,20 +177,23 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 }
 
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ges}}
+\code{\link[forecast]{auto.arima}, \link[smooth]{orders}, \link[smooth]{lags}, \link[smooth]{sim.ssarima}}
 }
 
 \examples{
-# ARIMA(1,1,1)
-test <- ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,intervals="p")
+# ARIMA(1,1,1) fitted to some data
+ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),lags=c(1),h=18,holdout=TRUE,intervals="p")
+
+# Model with the same lags and orders, applied to a different data
+ssarima(rnorm(118,100,3),lags=lags(ourModel),orders=orders(ourModel),h=18,holdout=TRUE)
 
 # The same model applied to a different data
-ssarima(rnorm(118,100,3),model=test,h=18,holdout=TRUE)
+ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 
-# SARIMA(1,0,0)(1,0,0)[4]
+# Example of SARIMA(2,0,0)(1,0,0)[4]
 \dontrun{ssarima(rnorm(118,100,3),ar.orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
-# SARIMA(1,1,1)(0,0,1)[4]
+# SARIMA(1,1,1)(0,0,1)[4] with different initialisations
 \dontrun{ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
         lags=c(1,4),h=18,holdout=TRUE)
 ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1,1),
@@ -204,11 +211,11 @@ ssarima(rnorm(118,100,3),ar.orders=1,lags=1,h=18,holdout=TRUE,cfType="aMSTFE")}
 ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118))
 
 # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-test <- ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
+ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)
 
-summary(test)
-forecast(test)
-plot(forecast(test))
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
