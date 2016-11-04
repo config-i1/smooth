@@ -281,6 +281,36 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         obsStates <- obsStates + burnInPeriod;
     }
 
+    if((componentsNumber==0) & !constantRequired){
+        warning("You have not defined any model. So here's series generated from your distribution.", call.=FALSE);
+        matyt <- materrors <- matrix(NA,obs,nsim);
+        if(length(args)==0){
+            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
+        }
+        else{
+            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
+        }
+        matot <- matrix(NA,obs,nsim);
+        # Generate values for occurence variable
+        if((iprob < 1) & (iprob > 0)){
+            matot[,] <- rbinom(obs*nsim,1,iprob);
+        }
+        else{
+            matot[,] <- 1;
+        }
+        matot <- ts(matot,frequency=frequency);
+        materrors <- ts(materrors,frequency=frequency);
+        matyt <- materrors;
+
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+        modelname <- "ARIMA(0,0,0)";
+        model <- list(model=modelname,
+                      AR=NULL, MA=NULL, constant=NA, initial=NULL,
+                      data=matyt, states=NULL, residuals=materrors,
+                      occurrences=matot, likelihood=veclikelihood);
+        return(structure(model,class="smooth.sim"));
+    }
+
 ##### Preset values of matvt and other matrices and arrays ######
     if(componentsNumber > 0){
 # Transition matrix, measurement vector and persistence vector + state vector
