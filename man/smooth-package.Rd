@@ -27,9 +27,22 @@ The following functions are included in the package:
     \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
     \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
     \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
+%    \item \link[smooth]{sim.ges} - simulate time series using GES as a model.
     \item \link[smooth]{iss} - intermittent data state-space model. This function models the part with data occurances using one of three methods.
   }
-  There are also several methods implemented in the package for the classes "smooth" and "smooth.sim"
+  There are also several methods implemented in the package for the classes "smooth" and "smooth.sim":
+  \itemize{
+    \item \link[smooth]{orders} - extracts orders of the fitted model.
+    \item \link[smooth]{lags} - extracts lags of the fitted model.
+    \item \link[smooth]{modelType} - extracts type of the fitted model.
+    \item \link[smooth]{AICc} - extracts AICc of the fitted model.
+    \item forecast - produces forecast using provided model.
+    \item fitted - extracts fitted values from provided model.
+    \item residuals - extracts residuals of provided model.
+    \item plot - plots either states of the model or produced forecast (depending on what object is passed).
+    \item simulate - uses sim functions in order to simulate data using the provided object.
+    \item summary - provides summary of the object.
+  }
 }
 \author{
 Ivan Svetunkov
