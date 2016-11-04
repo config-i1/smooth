@@ -1,3 +1,18 @@
+smooth v1.4.8 (Release date: 2016-11-11)
+==============
+
+Changes:
+
+* Some tuning in sim functions in parts with ellipsis checks.
+* sim.ssarima() now can accept orders as list. This should be handy when doing sim.ssarim(orders=orders(ourModel))
+* ssarim() now also accepts orders as list. No need to specify separate ar.orders, ma.orders and i.orders if you want to extract value from another model.
+* sim.ssarim() now uses burn-in period if the initials were generated.
+* Uodated manuals, so they are a bit more consistent.
+
+Bugfixes:
+
+* sim.ssarima() wouldn't work in cases of ARIMA(0,0,0) with/without constant.
+
 smooth v1.4.7 (Release date: 2016-11-01)
 ==============
 
