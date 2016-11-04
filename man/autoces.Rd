@@ -117,11 +117,11 @@ library("Mcomp")
 auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals="p",level=0.8,ic="AIC")}
 
 y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-test <- auto.ces(y,h=18,holdout=TRUE,intervals="sp")
+ourModel <- auto.ces(y,h=18,holdout=TRUE,intervals="sp")
 
-summary(test)
-forecast(test)
-plot(forecast(test))
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

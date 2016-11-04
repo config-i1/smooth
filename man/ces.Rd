@@ -175,18 +175,18 @@ ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
 # Exogenous variables in CES
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
-test <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
+ourModel <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
 # This will be the same model as in previous line but estimated on new portion of data
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)}
+ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=ourModel,h=18,holdout=FALSE)}
 
 # Intermittent data example
 x <- rpois(100,0.2)
 # Best type of intermittent model based on iETS(Z,Z,N)
-test <- ces(x,intermittent="auto")
+ourModel <- ces(x,intermittent="auto")
 
-summary(test)
-forecast(test)
-plot(forecast(test))
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

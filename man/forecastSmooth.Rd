@@ -60,11 +60,11 @@
     \code{\link[forecast]{ets}, \link[forecast]{forecast}}
 }
 \examples{
-test <- ces(rnorm(100,0,1),h=10)
+ourModel <- ces(rnorm(100,0,1),h=10)
 
-forecast.smooth(test,h=10)
-forecast(test,h=10,intervals=TRUE)
-plot(forecast(test,h=10,intervals=TRUE))
+forecast.smooth(ourModel,h=10)
+forecast(ourModel,h=10,intervals=TRUE)
+plot(forecast(ourModel,h=10,intervals=TRUE))
 
 }
 \keyword{ forecast }

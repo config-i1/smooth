@@ -114,14 +114,14 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}).
 
 \examples{
 # SMA of specific order
-test <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
+ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
 
 # SMA of arbitrary order
-test <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
+ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
 
-summary(test)
-forecast(test)
-plot(forecast(test))
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

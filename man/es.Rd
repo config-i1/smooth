@@ -220,10 +220,10 @@ es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 \dontrun{es(M3$N1245$x,model="CCN",h=8,holdout=TRUE)}
 
 # Model selection using a specified pool of models
-test <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
+ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
 # Redo previous model and produce prediction intervals
-es(M3$N1587$x,model=test,h=18,intervals="p")
+es(M3$N1587$x,model=ourModel,h=18,intervals="p")
 
 # Semiparametric intervals example
 es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")
@@ -232,10 +232,10 @@ es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 y <- ts(c(M3$N1457$x,M3$N1457$xx),frequency=12)
 es(y,h=18,holdout=TRUE,xreg=x,cfType="aMSTFE",intervals="np")
-test <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
+ourModel <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
 
 # This will be the same model as in previous line but estimated on new portion of data
-\dontrun{es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=test,h=18,holdout=FALSE)}
+\dontrun{es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=ourModel,h=18,holdout=FALSE)}
 
 # Intermittent data example
 x <- rpois(100,0.2)
@@ -246,11 +246,11 @@ es(x,"MNN",intermittent="tsb")
 # Constant probability based on iETS(M,N,N)
 es(x,"MNN",intermittent="fixed")
 # Best type of intermittent model based on iETS(Z,Z,N)
-test <- es(x,"ZZN",intermittent="auto")
+ourModel <- es(x,"ZZN",intermittent="auto")
 
-summary(test)
-forecast(test)
-plot(forecast(test))
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))
 }
 \keyword{ exponential smoothing }
 \keyword{ ETS }

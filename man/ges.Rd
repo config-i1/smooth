@@ -169,10 +169,10 @@ Ivan Svetunkov
 ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",intervals="p")
 
 # A more complicated model with seasonality
-\dontrun{test <- ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
+\dontrun{ourModel <- ges(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
 # Redo previous model on a new data and produce prediction intervals
-\dontrun{ges(rnorm(118,100,3),model=test,h=18,intervals="sp")}
+\dontrun{ges(rnorm(118,100,3),model=ourModel,h=18,intervals="sp")}
 
 # Produce something crazy with optimal initials (not recommended)
 \dontrun{ges(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
@@ -190,11 +190,11 @@ ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="
 # Do the same but now let's shrink parameters...
 \dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="MSTFE")
 
-test <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aMSTFE")
+ourModel <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aMSTFE")
 
-summary(test)
-forecast(test)
-plot(forecast(test))}
+summary(ourModel)
+forecast(ourModel)
+plot(forecast(ourModel))}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

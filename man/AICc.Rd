@@ -37,9 +37,9 @@
     \code{\link[stats]{AIC}, \link[stats]{BIC}}
 }
 \examples{
-test <- ces(rnorm(100,0,1),h=10)
+ourModel <- ces(rnorm(100,0,1),h=10)
 
-AICc(test,h=10)
+AICc(ourModel,h=10)
 }
 \keyword{ information criteria }
 \keyword{ information criterion }
