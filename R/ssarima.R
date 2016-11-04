@@ -23,7 +23,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
     list2env(list(...),environment());
 
     # If a previous model provided as a model, write down the variables
-    if(exists("model")){
+    if(exists("model",inherits=FALSE)){
         if(is.null(model$model)){
             stop("The provided model is not ARIMA.",call.=FALSE);
         }
@@ -64,6 +64,13 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         }
         else{
             lags <- 1;
+        }
+    }
+    else if(exists("orders",inherits=FALSE)){
+        if(!is.null(orders)){
+            ar.orders <- orders$ar;
+            i.orders <- orders$i;
+            ma.orders <- orders$ma;
         }
     }
 
