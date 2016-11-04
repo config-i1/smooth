@@ -129,6 +129,11 @@ ourModel <- auto.ssarima(x, h=18, silent=TRUE)
 ourData <- simulate(ourModel, nsim=50, obs=100)
 ```
 
+If we don't want to use everything from the estimated function and need, for example, to use orders only, then we can extract them using `orders()` and `lags()` functions:
+```{r simulate_ssarima_orders}
+ourData <- sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), nsim=50, obs=100)
+```
+
 Now let's compare the original data and one of series from the simulated array:
 ```{r simulate_smooth_ssarima_compare}
 par(mfcol=c(1,2))
