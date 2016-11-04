@@ -64,6 +64,8 @@ sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
   }
   \item{...}{
     Additional parameters passed to the chosen randomizer. All the parameters should be passed in the order they are used in chosen randomizer. For example, passing just \code{sd=0.5} to \code{rnorm} function will lead to the call \code{rnorm(obs, mean=0.5, sd=1)}.
+
+    A list of orders can be passed here using \code{orders} parameter instead of \code{ar.orders}, \code{i.orders} and \code{ma.orders}. This should be handy when using extraction function \code{orders()}. See vignettes on simulate functions for examples.
   }
 }
 \value{
@@ -87,7 +89,7 @@ sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
 }
 
 \seealso{
-    \code{\link[smooth]{sim.es}, \link[smooth]{ssarima}, \link[stats]{Distributions}}
+    \code{\link[smooth]{sim.es}, \link[smooth]{ssarima}, \link[stats]{Distributions}, \link[smooth]{orders}, \link[smooth]{lags}}
 }
 \examples{
 # Create 120 observations from ARIMA(1,1,1) with drift. Generate 100 time series of this kind.
