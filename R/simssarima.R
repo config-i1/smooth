@@ -1,7 +1,7 @@
 sim.ssarima <- function(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
                         frequency=1, AR=NULL, MA=NULL, constant=FALSE,
                         initial=NULL, bounds=c("admissible","none"),
-                        obs=10, nsim=1, silent=FALSE,
+                        obs=10, nsim=1,
                         randomizer=c("rnorm","runif","rbeta","rt"),
                         iprob=1, ...){
 # Function generates data using SSARIMA in Single Source of Error as a data generating process.
@@ -414,9 +414,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
     if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
-        if(silent == FALSE){
-            warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
-        }
+        warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 

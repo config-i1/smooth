@@ -595,7 +595,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             }
             simulatedData <- sim.es(model=model, frequency=frequency(object$actuals), phi=object$phi,
                                     persistence=object$persistence, initial=object$initial, initialSeason=object$initialSeason,
-                                    obs=obs,nsim=nsim,silent=TRUE,iprob=object$iprob[length(object$iprob)],
+                                    obs=obs,nsim=nsim,iprob=object$iprob[length(object$iprob)],
                                     randomizer=randomizer,mean=0,sd=sqrt(object$s2),...);
         }
         else{
@@ -610,7 +610,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             randomizer <- "rnorm";
             simulatedData <- sim.ssarima(ar.orders=orders$ar, i.orders=orders$i, ma.orders=orders$ma, lags=lags,
                                          frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
-                                         initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
+                                         initial=object$initial, obs=obs, nsim=nsim,
                                          iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
         }
         else{
@@ -624,7 +624,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         randomizer <- "rnorm";
         simulatedData <- sim.ces(seasonality=model,
                                  frequency=frequency(object$actuals), A=object$A, B=object$B,
-                                 initial=object$initial, obs=obs, nsim=nsim, silent=TRUE,
+                                 initial=object$initial, obs=obs, nsim=nsim,
                                  iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
     }
     else{

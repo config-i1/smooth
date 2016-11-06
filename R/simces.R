@@ -1,7 +1,7 @@
 sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     frequency=1, A=NULL, B=NULL,
                     initial=NULL,
-                    obs=10, nsim=1, silent=FALSE,
+                    obs=10, nsim=1,
                     randomizer=c("rnorm","runif","rbeta","rt"),
                     iprob=1, ...){
 # Function simulates the data using CES state-space framework
@@ -13,7 +13,6 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
 #    If NULL it will be generated.
 # obs - the number of observations in each time series.
 # nsim - the number of series needed to be generated.
-# silent - if TRUE no output is given.
 # randomizer - the type of the random number generator function
 # ... - the parameters passed to the randomizer.
 
@@ -224,9 +223,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
     if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
-        if(silent == FALSE){
-            warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
-        }
+        warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 

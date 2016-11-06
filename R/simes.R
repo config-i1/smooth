@@ -1,7 +1,7 @@
 sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
                    initial=NULL, initialSeason=NULL,
                    bounds=c("usual","admissible","restricted"),
-                   obs=10, nsim=1, silent=FALSE,
+                   obs=10, nsim=1,
                    randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
                    iprob=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
@@ -17,17 +17,15 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
         Ttype <- substring(model,2,2);
         Stype <- substring(model,4,4);
         if(substring(model,3,3)!="d"){
-            if(silent == FALSE){
-                warning(paste0("You have defined a strange model: ",model),call.=FALSE);
-                sowhat(model);
-            }
+            warning(paste0("You have defined a strange model: ",model),call.=FALSE);
+            # if(!silent){
+            #     sowhat(model);
+            # }
             model <- paste0(Etype,Ttype,"d",Stype);
         }
         if(Ttype!="N" & phi==1){
             model <- paste0(Etype,Ttype,Stype);
-            if(silent == FALSE){
-                warning(paste0("Damping parameter is set to 1. Changing model to: ",model),call.=FALSE);
-            }
+            warning(paste0("Damping parameter is set to 1. Changing model to: ",model),call.=FALSE);
         }
     }
     else if(nchar(model)==3){
@@ -36,9 +34,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
         Stype <- substring(model,3,3);
         if(phi!=1 & Ttype!="N"){
             model <- paste0(Etype,Ttype,"d",Stype);
-            if(silent == FALSE){
-                warning(paste0("Damping parameter is set to ",phi,". Changing model to: ",model),call.=FALSE);
-            }
+            warning(paste0("Damping parameter is set to ",phi,". Changing model to: ",model),call.=FALSE);
         }
     }
     else{
@@ -55,9 +51,8 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
     if(phi<0 | phi>2){
-        if(silent == FALSE){
-            message(paste0("Damping parameter should lie in (0, 2) region! You have chosen phi=",phi,". Be careful!"));
-        }
+        warning(paste0("Damping parameter should lie in (0, 2) region! You have chosen phi=",phi,
+                       ". Be careful!"),call.=FALSE);
     }
 
 # Check the used model and estimate the length of needed persistence vector.
@@ -139,10 +134,8 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 # Check the persistence vector length
     if(!is.null(persistence)){
         if(persistenceLength != length(persistence)){
-            if(silent == FALSE){
-                warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
-                               "Falling back to random number generator."),call.=FALSE);
-            }
+            warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
+                           "Falling back to random number generator."),call.=FALSE);
             persistence <- NULL;
         }
     }
@@ -153,18 +146,14 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
             stop("The length of the initial value is wrong! It should not be greater than 2.",call.=FALSE);
         }
         if(componentsNumber!=length(initial)){
-            if(silent == FALSE){
-                warning(paste0("The length of initial state vector does not correspond to the chosen model!\n",
-                               "Falling back to random number generator."),call.=FALSE);
-            }
+            warning(paste0("The length of initial state vector does not correspond to the chosen model!\n",
+                           "Falling back to random number generator."),call.=FALSE);
             initial <- NULL;
         }
         else{
             if(Ttype=="M" & initial[2]<=0){
-                if(silent == FALSE){
-                    warning(paste0("Wrong initial value for multiplicative trend! It should be greater than zero!\n",
-                                   "Falling back to random number generator."),call.=FALSE);
-                }
+                warning(paste0("Wrong initial value for multiplicative trend! It should be greater than zero!\n",
+                               "Falling back to random number generator."),call.=FALSE);
                 initial <- NULL;
             }
         }
@@ -172,19 +161,15 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 
     if(!is.null(initialSeason)){
         if(maxlag!=length(initialSeason)){
-            if(silent == FALSE){
-                    warning(paste0("The length of seasonal initial states does not correspond to the chosen frequency!\n",
-                                   "Falling back to random number generator."),call.=FALSE);
-            }
+            warning(paste0("The length of seasonal initial states does not correspond to the chosen frequency!\n",
+                           "Falling back to random number generator."),call.=FALSE);
             initialSeason <- NULL;
         }
     }
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
     if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
-        if(silent == FALSE){
-            warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
-        }
+        warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 

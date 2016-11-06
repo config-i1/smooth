@@ -11,7 +11,7 @@
 sim.es(model="ANN", frequency=1, persistence=NULL, phi=1,
         initial=NULL, initialSeason=NULL,
         bounds=c("usual","admissible","restricted"),
-        obs=10, nsim=1, silent=FALSE,
+        obs=10, nsim=1,
         randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
         iprob=1, ...)
 }
@@ -43,9 +43,6 @@ sim.es(model="ANN", frequency=1, persistence=NULL, phi=1,
   }
   \item{nsim}{
     Number of series to generate (numeber of simulations to do).
-  }
-  \item{silent}{
-    If TRUE then no output is printed.
   }
   \item{randomizer}{
     Type of random number generator function used for error term. Defaults are: \code{rnorm}, \code{rlnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used as well.

@@ -11,7 +11,7 @@
 sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
             frequency=1, AR=NULL, MA=NULL, constant=FALSE,
             initial=NULL, bounds=c("admissible","none"),
-            obs=10, nsim=1, silent=FALSE,
+            obs=10, nsim=1,
             randomizer=c("rnorm","runif","rbeta","rt"),
             iprob=1, ...)
 }
@@ -52,9 +52,6 @@ sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
   }
   \item{nsim}{
     Number of series to generate (numeber of simulations to do).
-  }
-  \item{silent}{
-    If TRUE then no output is printed.
   }
   \item{randomizer}{
     Type of random number generator function used for error term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used as well.
