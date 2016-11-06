@@ -5,6 +5,10 @@ matrixPowerWrap <- function(matA, power) {
     .Call('smooth_matrixPowerWrap', PACKAGE = 'smooth', matA, power)
 }
 
+polyMultwrap <- function(polyVec1, polyVec2) {
+    .Call('smooth_polyMultwrap', PACKAGE = 'smooth', polyVec1, polyVec2)
+}
+
 initparams <- function(Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs) {
     .Call('smooth_initparams', PACKAGE = 'smooth', Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
 }

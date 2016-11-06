@@ -44,6 +44,18 @@ arma::vec polyMult(arma::vec poly1, arma::vec poly2){
     return poly3;
 }
 
+/* # Function allows to multiply polinomails */
+// [[Rcpp::export]]
+RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
+    NumericVector polyVec1_n(polyVec1);
+    arma::vec poly1(polyVec1_n.begin(), polyVec1_n.size(), false);
+
+    NumericVector polyVec2_n(polyVec2);
+    arma::vec poly2(polyVec2_n.begin(), polyVec2_n.size(), false);
+
+    return wrap(polyMult(poly1, poly2));
+}
+
 /* # Function returns multiplicative or additive error for scalar */
 double errorf(double yact, double yfit, char Etype){
     if(Etype=='A'){
