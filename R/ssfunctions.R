@@ -325,7 +325,13 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 ARValue <- NULL;
             }
             else{
-                if(sum(ar.orders)!=length(ARValue[ARValue!=0])){
+                if(is.matrix(ARValue)){
+                    ARLength <- length(ARValue[ARValue!=0]);
+                }
+                else{
+                    ARLength <- length(ARValue);
+                }
+                if(sum(ar.orders)!=ARLength){
                     warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
                                     " instead of ",length(ARValue[ARValue!=0]),".\n",
                                    "AR will be estimated."),call.=FALSE);
@@ -333,7 +339,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     ARValue <- NULL;
                 }
                 else{
-                    ARValue <- ARValue[ARValue!=0];
+                    if(is.matrix(ARValue)){
+                        ARValue <- ARValue[ARValue!=0];
+                    }
                     AREstimate <- FALSE;
                     ARRequired <- TRUE;
                 }
@@ -358,7 +366,13 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 MAValue <- NULL;
             }
             else{
-                if(sum(ma.orders)!=length(MAValue[MAValue!=0])){
+                if(is.matrix(MAValue)){
+                    MALength <- length(MAValue[MAValue!=0]);
+                }
+                else{
+                    MALength <- length(MAValue);
+                }
+                if(sum(ma.orders)!=MALength){
                     warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
                                     " instead of ",length(MAValue[MAValue!=0]),".\n",
                                    "MA will be estimated."),call.=FALSE);
@@ -366,7 +380,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     MAValue <- NULL;
                 }
                 else{
-                    MAValue <- MAValue[MAValue!=0];
+                    if(is.matrix(MAValue)){
+                        MAValue <- MAValue[MAValue!=0];
+                    }
                     MAEstimate <- FALSE;
                     MARequired <- TRUE;
                 }
@@ -2213,11 +2229,11 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
 ### Stuff for ARIMA
     if(model=="ARIMA"){
-        if(all(!is.null(ARterms),any(ARterms!=0))){
+        if(all(!is.null(ARterms))){
             cat("Matrix of AR terms:\n");
             print(round(ARterms,3));
         }
-        if(all(!is.null(MAterms),any(MAterms!=0))){
+        if(all(!is.null(MAterms))){
             cat("Matrix of MA terms:\n");
             print(round(MAterms,3));
         }
