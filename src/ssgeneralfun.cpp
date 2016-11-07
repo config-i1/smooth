@@ -936,8 +936,8 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 }
 
 List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
-             arma::uvec lags, char E, char T, char S,
-             arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
+                arma::uvec lags, char E, char T, char S,
+                arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
     /* # matrixVt should have a length of obs + maxlag.
     * # rowvecW should have 1 row.
     * # matgt should be a vector
@@ -1058,10 +1058,21 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             matrixAt.row(i) = matrixAt.row(i+1) * matrixFX + bufferforat;
         }
 /* # Fill in the head of the matrices */
-        for (int i=maxlag-1; i>=0; i=i-1) {
+        for (int i=maxlag-1; i>0; i=i-1) {
             lagrows = backlags + i + 1;
             matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S));
             matrixAt.row(i) = matrixAt.row(i+1) * matrixFX;
+        }
+
+// A fix for SARIMAs
+        if(maxlag==minlag){
+            matrixVt.row(0) = matrixVt.row(1);
+            matrixVt.row(0) = fliplr(matrixVt.row(0));
+        }
+        else{
+            lagrows = backlags + 1;
+            matrixVt.row(0) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S));
+            matrixAt.row(0) = matrixAt.row(1) * matrixFX;
         }
     }
 
