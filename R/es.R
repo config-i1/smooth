@@ -439,6 +439,7 @@ BasicInitialiserES <- function(...){
            phiEstimate, FXEstimate, gXEstimate, initialXEstimate)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
+            current.model <- model;
         }
     }
     else{
