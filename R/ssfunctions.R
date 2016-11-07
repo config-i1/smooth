@@ -260,10 +260,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
         }
 
-        if(length(lags)!=length(ar.orders) & length(lags)!=length(i.orders) & length(lags)!=length(ma.orders)){
-            stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
-        }
-
         # If there are zero lags, drop them
         if(any(lags==0)){
             ar.orders <- ar.orders[lags!=0];
@@ -282,6 +278,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
         if(length(ma.orders)!=maxorder){
             ma.orders <- c(ma.orders,rep(0,maxorder-length(ma.orders)));
+        }
+
+        if((length(lags)!=length(ar.orders)) & (length(lags)!=length(i.orders)) & (length(lags)!=length(ma.orders))){
+            stop("Seasonal lags do not correspond to any element of SARIMA",call.=FALSE);
         }
 
         # If zeroes are defined for some orders, drop them.
@@ -740,22 +740,30 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
             else{
                 if(modelType=="es"){
-                    if(length(persistence)>3){
-                        warning(paste0("Length of persistence vector is wrong! It should not be greater than 3.\n",
+                    if(modelDo!="estimate"){
+                        warning(paste0("Predefined persistence vector can only be used with preselected ETS model.\n",
                                        "Changing to estimation of persistence vector values."),call.=FALSE);
                         persistence <- NULL;
                         persistenceEstimate <- TRUE;
                     }
                     else{
-                        if(length(persistence)!=(1 + (Ttype!="N") + (Stype!="N"))){
-                            warning(paste0("Wrong length of persistence vector. Should be ",(1 + (Ttype!="N") + (Stype!="N")),
-                                           " instead of ",length(persistence),".\n",
+                        if(length(persistence)>3){
+                            warning(paste0("Length of persistence vector is wrong! It should not be greater than 3.\n",
                                            "Changing to estimation of persistence vector values."),call.=FALSE);
                             persistence <- NULL;
                             persistenceEstimate <- TRUE;
                         }
                         else{
-                            persistenceEstimate <- FALSE;
+                            if(length(persistence)!=(1 + (Ttype!="N") + (Stype!="N"))){
+                                warning(paste0("Wrong length of persistence vector. Should be ",(1 + (Ttype!="N") + (Stype!="N")),
+                                               " instead of ",length(persistence),".\n",
+                                               "Changing to estimation of persistence vector values."),call.=FALSE);
+                                persistence <- NULL;
+                                persistenceEstimate <- TRUE;
+                            }
+                            else{
+                                persistenceEstimate <- FALSE;
+                            }
                         }
                     }
                 }
