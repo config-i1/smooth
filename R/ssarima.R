@@ -107,10 +107,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
             matvt[1,1:n.components] <- initialValue;
         }
         else{
-            slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-            intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-            initialStuff <- c(intercept,-intercept,rep(slope,n.components));
-            matvt[1,1:n.components] <- initialStuff[1:n.components];
+            matvt[1:n.components,] <- y[1:n.components];
         }
     }
     else{
@@ -371,18 +368,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     list2env(ssarimaValues,environment());
 
 # Prepare for fitting
-    # elements <- polyroots(C);
-    # matF <- elements$matF;
-    # vecg <- elements$vecg;
-    # matvt[1:maxlag,] <- elements$vt;
-    # matat[1:maxlag,] <- elements$at;
-    # matFX <- elements$matFX;
-    # vecgX <- elements$vecgX;
-    # polysos.ar <- elements$polysos.ar;
-    # polysos.ma <- elements$polysos.ma;
-    # arroots <- abs(polyroot(polysos.ar));
-    # maroots <- abs(polyroot(polysos.ma));
-
     elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, n.components,
                             ARValue, MAValue, constantValue, C,
                             matvt, vecg, matF,
@@ -472,7 +457,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                         paste0("Lag ",lags[ar.orders!=0])));
     }
     else{
-        ARterms <- matrix(0,1,1);
+        ARterms <- NULL;
     }
 # Differences
     if(any(i.orders!=0)){
@@ -490,7 +475,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                         paste0("Lag ",lags[ma.orders!=0])));
     }
     else{
-        MAterms <- matrix(0,1,1);
+        MAterms <- NULL;
     }
 
     n.coef <- ar.coef <- ma.coef <- 0;
