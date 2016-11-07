@@ -1099,6 +1099,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("modelDo",modelDo,ParentEnvironment);
         assign("initialSeason",initialSeason,ParentEnvironment);
         assign("phi",phi,ParentEnvironment);
+        assign("phiEstimate",phiEstimate,ParentEnvironment);
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
         assign("ic",ic,ParentEnvironment);
     }

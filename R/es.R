@@ -436,7 +436,7 @@ BasicInitialiserES <- function(...){
 
 ##### Define modelDo #####
     if(any(persistenceEstimate, (initialType=="o"), initialSeasonEstimate*(initialType=="o"),
-           FXEstimate, gXEstimate, initialXEstimate)){
+           phiEstimate, FXEstimate, gXEstimate, initialXEstimate)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
         }
