@@ -481,6 +481,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);
 
     if(initialGenerate){
+        matInitialValue[,] <- arrvt[burnInPeriod+1,,];
         arrvt <- arrvt[-c(1:burnInPeriod),,];
         materrors <- materrors[-c(1:burnInPeriod),];
         matyt <- matyt[-c(1:burnInPeriod),];
