@@ -682,21 +682,31 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
     arma::vec iPolynomial(sum(iOrders % lags)+1, arma::fill::zeros);
     arma::vec maPolynomial(sum(maOrders % lags)+1, arma::fill::zeros);
     arma::vec ariPolynomial(sum(arOrders % lags)+sum(iOrders % lags)+1, arma::fill::zeros);
+    arma::vec buferPolynomial;
 
     arPolynomial.rows(0,arOrders(0)*lags(0)) = arParameters.submat(0,0,arOrders(0)*lags(0),0);
     iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
     maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
 
-    for(unsigned int i=1; i<lags.n_rows; i++){
+    for(unsigned int i=0; i<lags.n_rows; i++){
 // Form polynomials
-        arPolynomial = polyMult(arPolynomial, arParameters.col(i));
-        maPolynomial = polyMult(maPolynomial, maParameters.col(i));
+        if(i!=0){
+            buferPolynomial = polyMult(arPolynomial, arParameters.col(i));
+            arPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+
+            buferPolynomial = polyMult(maPolynomial, maParameters.col(i));
+            maPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+
+            buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+            iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+        }
         if(iOrders(i)>1){
             for(unsigned int j=1; j<iOrders(i); j++){
-                iParameters.col(i) = polyMult(iParameters.col(i), iParameters.col(i));
+                buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+                iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
             }
         }
-        iPolynomial = polyMult(iPolynomial, iParameters.col(i));
+
     }
     ariPolynomial = polyMult(arPolynomial, iPolynomial);
 
