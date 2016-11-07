@@ -257,11 +257,11 @@ BasicInitialiserES <- function(...){
             initialstates <- matrix(NA,1,4);
 # "-1" is needed, so the level would correspond to the values before the in-sample
             #min(max(12,datafreq),obsNonzero)
-            initialstates[1,2] <- cov(yot[1:obsNonzero],c(1:obsNonzero))/var(c(1:obsNonzero));
-            initialstates[1,1] <- mean(yot[1:obsNonzero]) - initialstates[1,2] * mean(c(1:obsNonzero));
+            initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
+            initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * mean(c(1:min(12,obsNonzero)));
             if(allowMultiplicative){
-                initialstates[1,4] <- exp(cov(log(yot[1:obsNonzero]),c(1:obsNonzero))/var(c(1:obsNonzero)));
-                initialstates[1,3] <- exp(mean(log(yot[1:obsNonzero])) - log(initialstates[1,4]) * mean(c(1:obsNonzero)));
+                initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));
+                initialstates[1,3] <- exp(mean(log(yot[1:min(12,obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(12,obsNonzero))));
             }
         }
         else{
@@ -270,7 +270,7 @@ BasicInitialiserES <- function(...){
     }
     else{
         if(initialType!="p"){
-            initialstates <- matrix(rep(mean(yot[1:obsNonzero]),4),nrow=1);
+            initialstates <- matrix(rep(mean(yot[1:min(12,obsNonzero)]),4),nrow=1);
         }
         else{
             initialstates <- matrix(rep(initialValue,4),nrow=1);
