@@ -4,6 +4,7 @@ smooth v1.4.8 (Release date: 2016-11-11)
 Changes:
 
 * auto.ssarima() now allows combining forecasts using IC weights. This is a first try. Prediction intervals for the combined model are yet inccorect.
+* Made important changes to initialisation of SARIMA and some tuning in backcasting mechanism.
 * Some tuning in sim functions in parts with ellipsis checks.
 * sim.ssarima() now can accept orders as list. This should be handy when doing sim.ssarim(orders=orders(ourModel))
 * ssarima() now also accepts orders as list. No need to specify separate ar.orders, ma.orders and i.orders if you want to extract value from another model.
@@ -11,11 +12,14 @@ Changes:
 * Uodated manuals, so they are a bit more consistent.
 * Got rid of silent parameter in sim functionst, because all the info they give needs to be put in warnings.
 * sim functions now print proper warnings.
+* Tuned initial values of es(). This should be helpfull in cases with backcasting of initials.
 
 Bugfixes:
 
 * sim.ssarima() wouldn't work in cases of ARIMA(0,0,0) with/without constant.
 * polynomials were multiplied inccorectly in cases of ARIMAs with d>1.
+* Fixed a bug with phiEstimate not beeing used correctly.
+
 
 smooth v1.4.7 (Release date: 2016-11-01)
 ==============
