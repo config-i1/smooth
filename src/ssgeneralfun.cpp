@@ -951,7 +951,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 2;
+    int nloops = 1;
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_rows;
@@ -976,9 +976,11 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     arma::vec materrors(obs, arma::fill::zeros);
     arma::rowvec bufferforat(vecGX.n_rows);
 
-    arma::mat matrixFInverted(matrixF.n_rows, matrixF.n_cols);
-    if(!inv(matrixFInverted, matrixF)){
-        matrixFInverted = matrixF.t();
+    arma::mat matrixFInverted(matrixF);
+    if(maxlag != minlag){
+        if(!inv(matrixFInverted, matrixF)){
+            matrixFInverted = matrixF.t();
+        }
     }
 
     for(int j=0; j<=nloops; j=j+1){
