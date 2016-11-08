@@ -9,7 +9,7 @@ Function selects the best State-Space ARIMA based on information criteria, using
 }
 \usage{
 auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
-        combine=FALSE,
+        combine=FALSE, workFast=TRUE,
         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
         h=10, holdout=FALSE,
@@ -39,6 +39,9 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
   }
   \item{combine}{
     If \code{TRUE}, then resulting ARIMA is combined using AIC weights.
+  }
+  \item{workFast}{
+    If \code{TRUE}, then some of the orders of ARIMA are skipped. This is not advised for models with \code{lags} greater than 12.
   }
   \item{initial}{
     Character value which defines how the model is initialised: it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.

@@ -1,7 +1,7 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
 auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
-                         combine=FALSE,
+                         combine=FALSE, workFast=TRUE,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                          h=10, holdout=FALSE,
@@ -267,8 +267,10 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                     }
                 }
                 else{
-                    # m <- m + sum(ma.max*(1 + sum(ar.max)));
-                    # next;
+                    if(workFast){
+                        m <- m + sum(ma.max*(1 + sum(ar.max)));
+                        next;
+                    }
                 }
             }
 
@@ -321,9 +323,12 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                 dataMA <- testModel$residuals;
                             }
                             else{
-                                m <- m + ma.test[seasSelectMA] * (1 + sum(ar.max)) - 1;
-                                ma.test <- ma.best;
-                                break;
+                                if(workFast){
+                                    m <- m + ma.test[seasSelectMA] * (1 + sum(ar.max)) - 1;
+                                    ma.test <- ma.best;
+                                    break;
+                                }
+                                ma.test[seasSelectMA] <- 0;
                             }
 
 ##### Loop for AR #####
@@ -372,9 +377,12 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                 ma.best <- ma.test;
                                             }
                                             else{
-                                                m <- m + ar.test[seasSelectAR] - 1;
-                                                ar.test <- ar.best;
-                                                break;
+                                                if(workFast){
+                                                    m <- m + ar.test[seasSelectAR] - 1;
+                                                    ar.test <- ar.best;
+                                                    break;
+                                                }
+                                                ar.test[seasSelectMA] <- 0;
                                             }
                                         }
                                     }
