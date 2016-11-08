@@ -104,10 +104,10 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                 if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
                     ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
                     n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                    # if(obsInsample <= n.param.max){
-                    ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
-                    # n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                    # }
+                    if(obsInsample <= n.param.max){
+                        ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
+                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    }
                 }
                 else{
                     if(arma.length==2){
@@ -226,7 +226,6 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                 cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                 cat(paste0(round((m)/nModels,2)*100,"%"));
             }
-# cat("I: ");cat(i.orders[d,]);cat(", ");
             nParamOriginal <- 1;
             testModel <- ssarima(data,ar.orders=0,i.orders=i.orders[d,],ma.orders=0,lags=lags,
                                  constant=TRUE,initial=initialType,cfType=cfType,
@@ -247,7 +246,10 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                 testTransition[[m]] <- testModel$transition;
                 testPersistence[[m]] <- testModel$persistence;
             }
-# cat(ICValue); cat("\n")
+            if(silent[1]=="d"){
+                cat("I: ");cat(i.orders[d,]);cat(", ");
+                cat(ICValue); cat("\n");
+            }
             if(m==1){
                 bestIC <- ICValue;
                 dataI <- testModel$residuals;
@@ -265,8 +267,8 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                     }
                 }
                 else{
-                    m <- m + sum(ma.max*(1 + sum(ar.max)));
-                    next;
+                    # m <- m + sum(ma.max*(1 + sum(ar.max)));
+                    # next;
                 }
             }
 
@@ -282,7 +284,6 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                 cat(paste0(round((m)/nModels,2)*100,"%"));
                             }
                             ma.test[seasSelectMA] <- ma.max[seasSelectMA] - maSelect + 1;
-# cat("MA: ");cat(ma.test);cat(", ");
                             nParamMA <- sum(ma.test);
                             nParamNew <- nParamOriginal + nParamMA;
 
@@ -305,7 +306,10 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                 testTransition[[m]] <- testModel$transition;
                                 testPersistence[[m]] <- testModel$persistence;
                             }
-# cat(ICValue); cat("\n")
+                            if(silent[1]=="d"){
+                                cat("MA: ");cat(ma.test);cat(", ");
+                                cat(ICValue); cat("\n");
+                            }
                             if(ICValue < bestICMA){
                                 bestICMA <- ICValue;
                                 if(ICValue < bestIC){
@@ -335,7 +339,6 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                 cat(paste0(round((m)/nModels,2)*100,"%"));
                                             }
                                             ar.test[seasSelectAR] <- ar.max[seasSelectAR] - arSelect + 1;
-# cat("AR: ");cat(ar.test);cat(", ");
                                             nParamAR <- sum(ar.test);
                                             nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
@@ -358,7 +361,10 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                 testTransition[[m]] <- testModel$transition;
                                                 testPersistence[[m]] <- testModel$persistence;
                                             }
-# cat(ICValue); cat("\n");
+                                            if(silent[1]=="d"){
+                                                cat("AR: ");cat(ar.test);cat(", ");
+                                                cat(ICValue); cat("\n");
+                                            }
                                             if(ICValue < bestIC){
                                                 bestIC <- ICValue;
                                                 i.best <- i.orders[d,];
