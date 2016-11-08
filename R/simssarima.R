@@ -26,7 +26,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                               ARValue=ARValue, MAValue=MAValue,
                               ARGenerate=FALSE, MAGenerate=FALSE){
     componentsNumber <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-    matvt <- matrix(1,5,componentsNumber+constantRequired);
+    matvt <- matrix(1,componentsNumber+constantRequired,componentsNumber+constantRequired);
     vecg <- matrix(0,componentsNumber+constantRequired,1);
     matF <- diag(componentsNumber+constantRequired);
 
@@ -349,7 +349,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         else{
             matInitialValue[1:componentsNumber,] <- rep(initialValue,nsim);
         }
-        arrvt[1,,] <- matInitialValue;
+        arrvt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
     }
 
     if(ARRequired){
