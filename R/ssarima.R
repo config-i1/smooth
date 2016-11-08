@@ -108,7 +108,7 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
         }
         else{
             if(obsInsample<(n.components+datafreq)){
-                matvt[1:n.components,] <- y[1:n.components];
+                matvt[1:n.components,] <- y[1:n.components] + diff(y[1:(n.components+1)]);
             }
             else{
                 matvt[1:n.components,] <- (y[1:n.components]+y[1:n.components+datafreq])/2;
