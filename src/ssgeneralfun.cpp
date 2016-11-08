@@ -1075,17 +1075,6 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S));
             matrixAt.row(i) = matrixAt.row(i+1) * matrixFX;
         }
-
-// // A fix for SARIMAs
-//         if(maxlag==minlag){
-//             matrixVt.row(0) = matrixVt.row(1);
-//             matrixVt.row(0) = fliplr(matrixVt.row(0));
-//         }
-//         else{
-//             lagrows = backlags + 1;
-//             matrixVt.row(0) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S));
-//             matrixAt.row(0) = matrixAt.row(1) * matrixFX;
-//         }
     }
 
     return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
