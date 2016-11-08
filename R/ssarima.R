@@ -227,10 +227,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # initial values of state vector and the constant term
             if(initialType=="o"){
-                slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-                intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-                initialStuff <- c(rep(intercept,n.components));
-                C <- c(C,initialStuff[1:n.components]);
+                # slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
+                # intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
+                # initialStuff <- c(rep(intercept,n.components));
+                # C <- c(C,initialStuff[1:n.components]);
+                C <- c(C,matvt[1:n.components,1]);
             }
         }
 
