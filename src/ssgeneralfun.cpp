@@ -951,7 +951,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 5;
+    int nloops = 2;
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_rows;
