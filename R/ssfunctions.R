@@ -16,7 +16,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     silent <- silent[1];
     # Fix for cases with TRUE/FALSE.
     if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output","n","a","g","l","o"))){
+        if(all(silent!=c("none","all","graph","legend","output","debugging","n","a","g","l","o","d"))){
             warning(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."),call.=FALSE);
             silent <- "none";
         }
@@ -45,6 +45,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         silentLegend <- TRUE;
     }
     else if(silentValue=="o"){
+        silentText <- TRUE;
+        silentGraph <- FALSE;
+        silentLegend <- FALSE;
+    }
+    else if(silentValue=="d"){
         silentText <- TRUE;
         silentGraph <- FALSE;
         silentLegend <- FALSE;
@@ -1153,7 +1158,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     silent <- silent[1];
     # Fix for cases with TRUE/FALSE.
     if(!is.logical(silent)){
-        if(all(silent!=c("none","all","graph","legend","output","n","a","g","l","o"))){
+        if(all(silent!=c("none","all","graph","legend","output","debugging","n","a","g","l","o","d"))){
             message(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."));
             silent <- "none";
         }
@@ -1182,6 +1187,11 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         silentLegend <- TRUE;
     }
     else if(silentValue=="o"){
+        silentText <- TRUE;
+        silentGraph <- FALSE;
+        silentLegend <- FALSE;
+    }
+    else if(silentValue=="d"){
         silentText <- TRUE;
         silentGraph <- FALSE;
         silentLegend <- FALSE;
