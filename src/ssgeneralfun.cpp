@@ -390,7 +390,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 // # Define the initial states for level and trend components
     switch(T){
     case 'N':
-        matrixVt.submat(0,0,maxlag-1,0).each_row() = initial.submat(0,2,0,2);
+        matrixVt.submat(0,0,maxlag-1,0).each_row() = initial.submat(0,0,0,0);
     break;
     case 'A':
         matrixVt.submat(0,0,maxlag-1,1).each_row() = initial.submat(0,0,0,1);
@@ -731,6 +731,11 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
             matrixVt.submat(0,0,0,nComponents-1) = C.rows(nParam,nParam+nComponents-1).t();
             nParam += nComponents;
         }
+        else if(fitterType=='b'){
+            for(int i=1; i < nComponents; i=i+1){
+                matrixVt.submat(0,i,nComponents-i-1,i) = matrixVt.submat(1,i-1,nComponents-i,i-1) - matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
+            }
+        }
     }
 
 // Deal with constant if needed
@@ -971,6 +976,11 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     arma::vec materrors(obs, arma::fill::zeros);
     arma::rowvec bufferforat(vecGX.n_rows);
 
+    arma::mat matrixFInverted(matrixF.n_rows, matrixF.n_cols);
+    if(!inv(matrixFInverted, matrixF)){
+        matrixFInverted = matrixF.t();
+    }
+
     for(int j=0; j<=nloops; j=j+1){
 /* ### Go forward ### */
         for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
@@ -1033,8 +1043,8 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
-            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S) +
-                                          gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
+            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S) +
+                                          gvalue(matrixVt(lagrows), matrixFInverted, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.row(i).is_finite()){
@@ -1060,20 +1070,20 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 /* # Fill in the head of the matrices */
         for (int i=maxlag-1; i>0; i=i-1) {
             lagrows = backlags + i + 1;
-            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S));
+            matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S));
             matrixAt.row(i) = matrixAt.row(i+1) * matrixFX;
         }
 
-// A fix for SARIMAs
-        if(maxlag==minlag){
-            matrixVt.row(0) = matrixVt.row(1);
-            matrixVt.row(0) = fliplr(matrixVt.row(0));
-        }
-        else{
-            lagrows = backlags + 1;
-            matrixVt.row(0) = arma::trans(fvalue(matrixVt(lagrows), matrixF, T, S));
-            matrixAt.row(0) = matrixAt.row(1) * matrixFX;
-        }
+// // A fix for SARIMAs
+//         if(maxlag==minlag){
+//             matrixVt.row(0) = matrixVt.row(1);
+//             matrixVt.row(0) = fliplr(matrixVt.row(0));
+//         }
+//         else{
+//             lagrows = backlags + 1;
+//             matrixVt.row(0) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S));
+//             matrixAt.row(0) = matrixAt.row(1) * matrixFX;
+//         }
     }
 
     return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
