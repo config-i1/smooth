@@ -168,6 +168,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 
     test.lags <- ma.test <- ar.test <- i.test <- rep(0,length(lags));
     ar.best <- ma.best <- i.best <- rep(0,length(lags));
+    ar.best.local <- ma.best.local <- i.best.local <- ar.best;
 
 #### Function corrects IC taking number of parameters on previous step ####
     icCorrector <- function(icValue, nParam, obsInsample, nParamNew){
@@ -254,7 +255,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                 bestIC <- ICValue;
                 dataI <- testModel$residuals;
                 i.best <- i.orders[d,];
-                bestICI <- bestICMA <- bestIC;
+                bestICAR <- bestICI <- bestICMA <- bestIC;
             }
             else{
                 if(ICValue < bestICI){
@@ -276,7 +277,8 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 
 ##### Loop for MA #####
             if(any(ma.max!=0)){
-                ma.test <- rep(0,length(ma.test));
+                bestICMA <- bestICI;
+                ma.best.local <- ma.test <- rep(0,length(ma.test));
                 for(seasSelectMA in 1:length(lags)){
                     if(ma.max[seasSelectMA]!=0){
                         for(maSelect in 1:ma.max[seasSelectMA]){
@@ -314,6 +316,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                             }
                             if(ICValue < bestICMA){
                                 bestICMA <- ICValue;
+                                ma.best.local <- ma.test;
                                 if(ICValue < bestIC){
                                     bestIC <- bestICMA;
                                     i.best <- i.orders[d,];
@@ -325,15 +328,18 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                             else{
                                 if(workFast){
                                     m <- m + ma.test[seasSelectMA] * (1 + sum(ar.max)) - 1;
-                                    ma.test <- ma.best;
+                                    ma.test <- ma.best.local;
                                     break;
                                 }
-                                ma.test[seasSelectMA] <- 0;
+                                else{
+                                    ma.test <- ma.best.local;
+                                }
                             }
 
 ##### Loop for AR #####
                             if(any(ar.max!=0)){
-                                ar.test <- rep(0,length(ar.test));
+                                bestICAR <- bestICMA;
+                                ar.best.local <- ar.test <- rep(0,length(ar.test));
                                 for(seasSelectAR in 1:length(lags)){
                                     test.lags[seasSelectAR] <- lags[seasSelectAR];
                                     if(ar.max[seasSelectAR]!=0){
@@ -370,19 +376,25 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                                 cat("AR: ");cat(ar.test);cat(", ");
                                                 cat(ICValue); cat("\n");
                                             }
-                                            if(ICValue < bestIC){
-                                                bestIC <- ICValue;
-                                                i.best <- i.orders[d,];
-                                                ar.best <- ar.test;
-                                                ma.best <- ma.test;
+                                            if(ICValue < bestICAR){
+                                                bestICAR <- ICValue;
+                                                ar.best.local <- ar.test;
+                                                if(ICValue < bestIC){
+                                                    bestIC <- ICValue;
+                                                    i.best <- i.orders[d,];
+                                                    ar.best <- ar.test;
+                                                    ma.best <- ma.test;
+                                                }
                                             }
                                             else{
                                                 if(workFast){
                                                     m <- m + ar.test[seasSelectAR] - 1;
-                                                    ar.test <- ar.best;
+                                                    ar.test <- ar.best.local;
                                                     break;
                                                 }
-                                                ar.test[seasSelectMA] <- 0;
+                                                else{
+                                                    ar.test <- ar.best.local;
+                                                }
                                             }
                                         }
                                     }
