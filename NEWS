@@ -13,6 +13,7 @@ Changes:
 * Got rid of silent parameter in sim functionst, because all the info they give needs to be put in warnings.
 * sim functions now print proper warnings.
 * Tuned initial values of es(). This should be helpfull in cases with backcasting of initials.
+* Optimised auto.ssarima() mechanism. Not faster, but more accurate.
 
 Bugfixes:
 
