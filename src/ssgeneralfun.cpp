@@ -733,7 +733,8 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
         }
         else if(fitterType=='b'){
             for(unsigned int i=1; i < nComponents; i=i+1){
-                matrixVt.submat(0,i,nComponents-i-1,i) = matrixVt.submat(1,i-1,nComponents-i,i-1) - matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
+                matrixVt.submat(0,i,nComponents-i-1,i) = matrixVt.submat(1,i-1,nComponents-i,i-1) -
+                                                         matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
             }
         }
     }
