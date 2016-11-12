@@ -177,39 +177,23 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
             }
             persistenceEstimate <- FALSE;
             vecg <- matrix(persistence,1,1);
-            A <- c(ivt[1]);
-            ALower <- c(1e-10);
-            AUpper <- c(1);
+            C <- c(ivt[1]);
+            CLower <- c(0);
+            CUpper <- c(1);
         }
         else{
             persistenceEstimate <- TRUE;
-            vecg <- matrix(0.01,1,1);
-            A <- c(ivt[1],vecg[1]);
-            ALower <- c(1e-10,1e-10);
-            AUpper <- c(1,1);
+            vecg <- matrix(0.1,1,1);
+            C <- c(ivt[1],vecg[1]);
+            CLower <- c(0,0);
+            CUpper <- c(1,1);
         }
 
         errors <- matrix(NA,obsInsample,1);
         iyt.fit <- matrix(NA,obsInsample,1);
 
-#### CF for beta distribution ####
-        CF <- function(C){
-
-            fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
-                                  modellags, Etype, Ttype, Stype, "o",
-                                  matrix(0,obsInsample,1), matrix(0,obsInsample+1,1),
-                                  matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
-
-            iyt.fit <- fitting$yfit;
-            errors <- fitting$errors;
-
-            CF.res <- -(sum(log(dbeta(iyt.fit*(1+errors),shape1=C[1],shape2=C[2]))));
-
-            return(CF.res);
-        }
-
 #### CF for initial and persistence ####
-        CF2 <- function(C){
+        CF <- function(C){
             ivt[1,] <- C[1];
             if(persistenceEstimate){
                 vecg[,] <- C[2];
@@ -222,38 +206,35 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
 
             iyt.fit <- fitting$yfit;
 
-            # This is part of final likelihood. Otherwise it cannot be optimised...
-            CF.res <- -(sum(log(iyt.fit[ot==1])) + sum(log(1-iyt.fit[ot==0])));
-
+            CF.res <- -(sum(log(iyt.fit[ot==1])) + sum(log((1-iyt.fit[ot==0]))));
             return(CF.res);
         }
 
         kappa <- 1E-5;
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
-
-        # Run in order to set shape1, shape2
-        C <- c(0.5,0.5);
-        res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(10,10),
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
-        likelihood <- -res$objective;
-        C <- res$solution;
+#
+#         # Run in order to set shape1, shape2
+#         C <- c(0.5,0.5);
+#         res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(10,10),
+#                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
+#         likelihood <- -res$objective;
+#         C <- res$solution;
 
         # Another run, now to define persistence and initial
-        res <- nloptr(A, CF2, lb=ALower, ub=AUpper,
+        res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
 
         ivt[1,] <- res$solution[1];
         if(persistenceEstimate){
             vecg[,] <- res$solution[2];
-        }
-        if(persistenceEstimate){
-            C <- c(rev(res$solution),C);
+            C <- c(rev(res$solution));
         }
         else{
-            C <- c(persistence,res$solution,C);
+            C <- c(persistence,res$solution);
         }
 
-        names(C) <- c("persistence","initial","shape1","shape2")
+        names(C) <- c("persistence","initial");
+        likelihood <- -res$objective;
 
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
         fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
