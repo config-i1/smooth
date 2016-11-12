@@ -1,6 +1,6 @@
-utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
+utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
 
-auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
+auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(data)),
                          combine=FALSE, workFast=TRUE,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
@@ -19,6 +19,53 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
+
+    if(!is.null(orders)){
+        ar.max <- orders$ar;
+        i.max <- orders$i;
+        ma.max <- orders$ma;
+    }
+
+# If orders are provided in ellipsis via ar.max, write them down.
+    if(exists("ar.orders",inherits=FALSE)){
+        if(is.null(ar.orders)){
+            ar.max <- 0;
+        }
+        else{
+            ar.max <- ar.orders;
+        }
+    }
+    else{
+        if(is.null(orders)){
+            ar.max <- 0;
+        }
+    }
+    if(exists("i.orders",inherits=FALSE)){
+        if(is.null(i.orders)){
+            i.max <- 0;
+        }
+        else{
+            i.max <- i.orders;
+        }
+    }
+    else{
+        if(is.null(orders)){
+            i.max <- 0;
+        }
+    }
+    if(exists("ma.orders",inherits=FALSE)){
+        if(is.null(ma.orders)){
+            ma.max <- 0;
+        }
+        else{
+            ma.max <- ma.orders
+        }
+    }
+    else{
+        if(is.null(orders)){
+            ma.max <- 0;
+        }
+    }
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
@@ -195,7 +242,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 ### If for some reason we have model with zeroes for orders, return it.
     if(all(c(ar.max,i.max,ma.max)==0)){
         cat("\b\b\b\bDone!\n");
-        bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
+        bestModel <- ssarima(data,orders=list(ar=ar.best,i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=TRUE,initial=initialType,cfType=cfType,
                              h=h,holdout=holdout,
                              intervals=intervals,level=level,
@@ -228,7 +275,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                 cat(paste0(round((m)/nModels,2)*100,"%"));
             }
             nParamOriginal <- 1;
-            testModel <- ssarima(data,ar.orders=0,i.orders=i.orders[d,],ma.orders=0,lags=lags,
+            testModel <- ssarima(data,orders=list(ar=0,i=i.orders[d,],ma=0),lags=lags,
                                  constant=TRUE,initial=initialType,cfType=cfType,
                                  h=h,holdout=holdout,
                                  intervals=intervals,level=level,
@@ -291,7 +338,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                             nParamMA <- sum(ma.test);
                             nParamNew <- nParamOriginal + nParamMA;
 
-                            testModel <- ssarima(dataI,ar.orders=0,i.orders=0,ma.orders=ma.test,lags=lags,
+                            testModel <- ssarima(dataI,orders=list(ar=0,i=0,ma=ma.test),lags=lags,
                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                  h=h,holdout=FALSE,
                                                  intervals=intervals,level=level,
@@ -353,7 +400,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
                                             nParamAR <- sum(ar.test);
                                             nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
-                                            testModel <- ssarima(dataMA,ar.orders=ar.test,i.orders=0,ma.orders=0,lags=lags,
+                                            testModel <- ssarima(dataMA,orders=list(ar=ar.test,i=0,ma=0),lags=lags,
                                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                                  h=h,holdout=FALSE,
                                                                  intervals=intervals,level=level,
@@ -415,7 +462,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
 
 #### Test the constant ####
     if(any(c(ar.best,i.best,ma.best)!=0)){
-        testModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
+        testModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=FALSE,initial=initialType,cfType=cfType,
                              h=h,holdout=holdout,
                              intervals=intervals,level=level,
@@ -493,7 +540,7 @@ auto.ssarima <- function(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=
     else{
         if(constant){
             #### Reestimate the best model in order to get rid of bias ####
-            bestModel <- ssarima(data,ar.orders=(ar.best),i.orders=(i.best),ma.orders=(ma.best),lags=(lags),
+            bestModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                                  constant=TRUE,initial=initialType,cfType=cfType,
                                  h=h,holdout=holdout,
                                  intervals=intervals,level=level,

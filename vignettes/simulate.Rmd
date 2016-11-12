@@ -98,26 +98,26 @@ plot(ourSimulation$data[,5])
 
 Now let's use more complicated model. For example, data from SARIMA(0,1,1)(1,0,2)_12 with drift can be generated using:
 ```{r sim_ssarima_(0,1,1)(1,0,2)_12_drift}
-ourSimulation <- sim.ssarima(ar.orders=c(0,1), i.orders=c(1,0), ma.orders=c(1,2), lags=c(1,12), constant=TRUE, obs=120)
+ourSimulation <- sim.ssarima(orders=list(ar=c(0,1),i=c(1,0),ma=c(1,2)), lags=c(1,12), constant=TRUE, obs=120)
 plot(ourSimulation)
 ```
 
 If we want to provide some specific parameters, then we should follow the structure: from lower lag to lag from lower order to higher order. For example, the same model with predefined MA terms will be:
 ```{r sim_ssarima_(0,1,1)(1,0,2)_12_drift_predefined}
-ourSimulation <- sim.ssarima(ar.orders=c(0,1), i.orders=c(1,0), ma.orders=c(1,2), lags=c(1,12), constant=TRUE, MA=c(0.5,0.2,0.3), obs=120)
+ourSimulation <- sim.ssarima(orders=list(ar=c(0,1),i=c(1,0),ma=c(1,2)), lags=c(1,12), constant=TRUE, MA=c(0.5,0.2,0.3), obs=120)
 ourSimulation
 ```
 
 We can create time series with several frequencies For example, some sort of daily series from SARIMA(1,0,2)(0,1,1)_7(1,0,1)_30 can be generated with a command:
 ```{r sim_ssarima_(1,0,2)_1(0,1,1)_7(1,0,1)_30}
-ourSimulation <- sim.ssarima(ar.orders=c(1,0,1), i.orders=c(0,1,0), ma.orders=c(2,1,1), lags=c(1,7,30), obs=360)
+ourSimulation <- sim.ssarima(orders=list(ar=c(1,0,1),i=c(0,1,0),ma=c(2,1,1)), lags=c(1,7,30), obs=360)
 ourSimulation
 plot(ourSimulation)
 ```
 
 `sim.ssarima` also supports intermittent data, which is defined via `iprob` parameter, similar to `sim.es()`:
 ```{r sim_ssarima_(1,0,2)_1(0,1,1)_7intermittent}
-ourSimulation <- sim.ssarima(ar.orders=c(1,0), i.orders=c(0,1), ma.orders=c(2,1), lags=c(1,7), obs=120, iprob=0.2)
+ourSimulation <- sim.ssarima(orders=list(ar=c(1,0),i=c(0,1),ma=c(2,1)), lags=c(1,7), obs=120, iprob=0.2)
 ourSimulation
 plot(ourSimulation)
 ```

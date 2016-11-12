@@ -1,7 +1,7 @@
 utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate"));
 
-ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(1),
+ssarima <- function(data, orders=list(ar=0,i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"),
                     cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
@@ -73,12 +73,36 @@ ssarima <- function(data, ar.orders=c(0), i.orders=c(1), ma.orders=c(1), lags=c(
             stop("The provided model is a combination of ARIMAs. We cannot fit that.",call.=FALSE);
         }
     }
-    else if(exists("orders",inherits=FALSE)){
-        if(!is.null(orders)){
-            ar.orders <- orders$ar;
-            i.orders <- orders$i;
-            ma.orders <- orders$ma;
+    else if(!is.null(orders)){
+        ar.orders <- orders$ar;
+        i.orders <- orders$i;
+        ma.orders <- orders$ma;
+    }
+
+# If orders are provided in ellipsis via ar.orders, write them down.
+    if(exists("ar.orders",inherits=FALSE)){
+        if(is.null(ar.orders)){
+            ar.orders <- 0;
         }
+    }
+    else{
+        ar.orders <- 0;
+    }
+    if(exists("i.orders",inherits=FALSE)){
+        if(is.null(i.orders)){
+            i.orders <- 0;
+        }
+    }
+    else{
+        i.orders <- 0;
+    }
+    if(exists("ma.orders",inherits=FALSE)){
+        if(is.null(ma.orders)){
+            ma.orders <- 0;
+        }
+    }
+    else{
+        ma.orders <- 0;
     }
 
 ##### Set environment for ssInput and make all the checks #####

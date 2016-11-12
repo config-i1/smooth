@@ -12,7 +12,7 @@ test_that("Reuse previous SSARIMA on N1234$x", {
 })
 
 # Test some crazy order of SSARIMA
-testModel <- ssarima(Mcomp::M3$N2568$x, ar.orders=c(1,1,0), i.orders=c(1,0,1), ma.orders=c(0,1,1), lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, intervals=TRUE)
+testModel <- ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=c(1,1,0), i.orders=c(1,0,1), ma.orders=c(0,1,1), lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, intervals=TRUE)
 test_that("Test if crazy order SSARIMA was estimated on N1234$x", {
     expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]");
 })
@@ -35,10 +35,10 @@ if(any(unlist(gregexpr("\\[",SSARIMAModel))!=-1)){
 }
 # Test how different passed values are accepted by SSARIMA
 test_that("Test initials, AR, MA and constant of SSARIMA on N2568$x", {
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, AR=testModel$AR, silent=TRUE)$AR, testModel$AR);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, transition=testModel$MA, silent=TRUE)$MA, testModel$MA);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, AR=testModel$AR, silent=TRUE)$AR, testModel$AR);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, transition=testModel$MA, silent=TRUE)$MA, testModel$MA);
+    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
 })
 
 # Combine SSARIMA

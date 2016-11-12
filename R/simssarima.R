@@ -1,4 +1,4 @@
-sim.ssarima <- function(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
+sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
                         frequency=1, AR=NULL, MA=NULL, constant=FALSE,
                         initial=NULL, bounds=c("admissible","none"),
                         obs=10, nsim=1,
@@ -11,14 +11,28 @@ sim.ssarima <- function(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
     randomizer <- randomizer[1];
     args <- list(...);
 
-    if("orders" %in% names(args)){
-        orders <- args$orders;
-        if(!is.null(orders)){
-            ar.orders <- orders$ar;
-            i.orders <- orders$i;
-            ma.orders <- orders$ma;
-        }
-        args$orders <- NULL;
+    if(!is.null(orders)){
+        ar.orders <- orders$ar;
+        i.orders <- orders$i;
+        ma.orders <- orders$ma;
+    }
+    else{
+        ar.orders <- 0;
+        i.orders <- 0;
+        ma.orders <- 0;
+    }
+
+    if("ar.orders" %in% names(args)){
+        ar.orders <- args$ar.orders;
+        args$ar.orders <- NULL;
+    }
+    if("i.orders" %in% names(args)){
+        i.orders <- args$i.orders;
+        args$i.orders <- NULL;
+    }
+    if("ma.orders" %in% names(args)){
+        ma.orders <- args$ma.orders;
+        args$ma.orders <- NULL;
     }
 
 #### Elements Generator for AR and MA ####

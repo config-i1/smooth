@@ -8,7 +8,7 @@
     Function generates data using SSARIMA with Single Source of Error as a data generating process.
 }
 \usage{
-sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
+sim.ssarima(orders=list(ar=0,i=1,ma=1), lags=1,
             frequency=1, AR=NULL, MA=NULL, constant=FALSE,
             initial=NULL, bounds=c("admissible","none"),
             obs=10, nsim=1,
@@ -17,14 +17,8 @@ sim.ssarima(ar.orders=0, i.orders=1, ma.orders=1, lags=1,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{ar.orders}{
-    Vector of autoregressive orders, corresponding to seasonal lags. For example \code{ar.orders=c(1,1)} with \code{lags=c(1,12)} will lead to model with AR(1), SAR(1).
-  }
-  \item{i.orders}{
-    Vector of differences, corresponding to seasonal lags. For example \code{i.orders=c(0,1)} with \code{lags=c(1,12)} will lead to model with I(0), SI(1).
-  }
-  \item{ma.orders}{
-    Vector of moving average orders, corresponding to seasonal lags. For example \code{i.orders=c(1,2)} with \code{lags=c(1,12)} will lead to model with MA(1), SMA(2).
+  \item{orders}{
+    List of orders, containing vector variables \code{ar}, \code{i} and \code{ma}. Example: \code{orders=list(ar=c(1,2),i=c(1),ma=c(1,1,1))}. If a variable is not provided in the list, then it is assumed to be equal to zero. At least one variable should have the same length as \code{lags}.
   }
   \item{lags}{
     Defines lags for the corresponding orders (see examples above). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector. It is recommended to order \code{lags} ascending.

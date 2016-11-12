@@ -608,7 +608,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             orders <- orders(object);
             lags <- lags(object);
             randomizer <- "rnorm";
-            simulatedData <- sim.ssarima(ar.orders=orders$ar, i.orders=orders$i, ma.orders=orders$ma, lags=lags,
+            simulatedData <- sim.ssarima(orders=orders, lags=lags,
                                          frequency=frequency(object$actuals), AR=object$AR, MA=object$MA, constant=object$constant,
                                          initial=object$initial, obs=obs, nsim=nsim,
                                          iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);

@@ -8,7 +8,7 @@ State-Space ARIMA
 Function selects the best State-Space ARIMA based on information criteria, using fancy branch and bound mechanism. The resulting model can be not optimal in IC meaning, but it is usually reasonable.
 }
 \usage{
-auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequency(data)),
+auto.ssarima(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(data)),
         combine=FALSE, workFast=TRUE,
         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
@@ -25,14 +25,8 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
   \item{data}{
     Data that needs to be forecasted.
   }
-  \item{ar.max}{
-    Maximum order of AR term. Can be vector, defining max orders of AR, SAR etc.
-  }
-  \item{i.max}{
-    Maximum order of I. Can be vector, defining max orders of I, SI etc.
-  }
-  \item{ma.max}{
-    Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
+  \item{orders}{
+    List of maximum orders to check, containing vector variables \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the list, then it is assumed to be equal to zero. At least one variable should have the same length as \code{lags}.
   }
   \item{lags}{
     Defines lags for the corresponding orders (see examples). The length of \code{lags} must correspond to the length of either \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no restrictions on the length of \code{lags} vector.
@@ -97,6 +91,10 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
   }
   \item{...}{
     Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
+    Maximum orders to check can also be specified separately, however \code{orders} variable must be set to \code{NULL}:
+    \code{ar.orders} - Maximum order of AR term. Can be vector, defining max orders of AR, SAR etc.
+    \code{i.orders} - Maximum order of I. Can be vector, defining max orders of I, SI etc.
+    \code{ma.orders} - Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
   }
 }
 \details{
@@ -124,15 +122,15 @@ auto.ssarima(data, ar.max=c(3,3), i.max=c(2,1), ma.max=c(3,3), lags=c(1,frequenc
 x <- rnorm(118,100,3)
 
 # The best ARIMA for the data
-ourModel <- auto.ssarima(x,ar.max=c(2,1),i.max=c(1,1),ma.max=c(2,1),lags=c(1,12),
+ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
                      h=18,holdout=TRUE,intervals="np")
 
 # The other one using optimised states
-\dontrun{auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+\dontrun{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
                      initial="o",h=18,holdout=TRUE)}
 
 # And now combined ARIMA
-\dontrun{auto.ssarima(x,ar.max=c(3,2),i.max=c(2,1),ma.max=c(3,2),lags=c(1,12),
+\dontrun{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
                       combine=TRUE,h=18,holdout=TRUE)}
 
 summary(ourModel)
