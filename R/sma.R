@@ -82,7 +82,13 @@ CreatorSMA <- function(silentText=FALSE,...){
     }
     vecg <- matrix(1/n.components,n.components);
     matvt <- matrix(NA,obsStates,n.components);
-    matvt[1,] <- rep(mean(y[1:order]),n.components);
+    matvt[1:n.components,1] <- rep(mean(y[1:n.components]),n.components);
+    if(n.components>1){
+        for(i in 2:n.components){
+            matvt[1:(n.components-i+1),i] <- matvt[1:(n.components-i+1)+1,i-1] - matvt[1:(n.components-i+1),1] * matF[i-1,1];
+        }
+    }
+
     modellags <- rep(1,n.components);
 
 ##### Prepare exogenous variables #####
