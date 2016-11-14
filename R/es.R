@@ -329,7 +329,7 @@ BasicInitialiserES <- function(...){
     xregNames <- colnames(matat);
 
     n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    n.param.max <- n.param.max + n.param.exo;
+    n.param.max <- n.param.max + n.param.exo + (intermittent!="n");
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= n.param.max){
@@ -374,7 +374,7 @@ BasicInitialiserES <- function(...){
                 }
             }
 
-            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
+            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
                 if(length(models.pool)>2){
@@ -647,6 +647,7 @@ PoolPreparerES <- function(...){
                 }
 
                 res <- EstimatorES(ParentEnvironment=environment());
+
                 results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param);
 
                 tested.model <- c(tested.model,current.model);
@@ -935,13 +936,10 @@ CreatorES <- function(silent=FALSE,...){
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorES(silent=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
-#            if(intermittentICs[i]>intermittentICs[i-1]){
-#                break;
-#            }
         }
         intermittentICs[is.nan(intermittentICs)] <- 1e+100;
         intermittentICs[is.na(intermittentICs)] <- 1e+100;
-        iBest <- which(intermittentICs==min(intermittentICs));
+        iBest <- which(intermittentICs==min(intermittentICs))[1];
 
         if(!silentText){
             cat("Done!\n");
