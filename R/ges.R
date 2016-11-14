@@ -86,7 +86,8 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     Stype <- "N";
 
 # Check number of parameters vs data
-    n.param.max <- n.param.max + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    n.param.max <- n.param.max + n.param.exo + (intermittent!="n");
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= n.param.max){
