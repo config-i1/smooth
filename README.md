@@ -1,4 +1,5 @@
 # smooth
+[![GitHub version](https://badge.fury.io/gh/config-i1%2Fsmooth.svg)](https://badge.fury.io/gh/config-i1%2Fsmooth)
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/smooth)](https://cran.r-project.org/package=smooth)
 [![Downloads](http://cranlogs.r-pkg.org/badges/smooth)](https://cran.r-project.org/package=smooth)
 
