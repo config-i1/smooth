@@ -1,3 +1,14 @@
+smooth v1.5.1 (Release date: 2016-11-15)
+==============
+
+Changes:
+
+
+Bugfixes:
+
+* intermittent data was not taken correctly into account in number of parameters in functions.
+
+
 smooth v1.5.0 (Release date: 2016-11-13)
 ==============
 
@@ -21,7 +32,6 @@ Bugfixes:
 * sim.ssarima() wouldn't work in cases of ARIMA(0,0,0) with/without constant.
 * polynomials were multiplied inccorectly in cases of ARIMAs with d>1.
 * Fixed a bug with phiEstimate not beeing used correctly.
-* intermittent data was not taken correctly into account in number of parameters in functions.
 
 
 smooth v1.4.7 (Release date: 2016-11-01)
