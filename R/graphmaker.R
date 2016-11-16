@@ -17,8 +17,11 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
     if(is.null(fitted)){
         fitted <- NA;
     }
-    h <- length(forecast)
+    h <- length(forecast);
 
+    if(all(is.na(forecast))){
+        h <- 0;
+    }
 # Write down the default values of par
     parDefault <- par(no.readonly = TRUE);
 
@@ -46,14 +49,14 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
-    plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[h]),
+    plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[max(h,1)]),
          ylim=plot.range,xlab="", ylab="", main=main);
-    if(!all(is.na(fitted))){
+    if(any(!is.na(fitted))){
         lines(fitted,col="purple",lwd=2,lty=2);
     }
     abline(v=deltat(forecast)*(start(forecast)[2]-2)+start(forecast)[1],col="red",lwd=2);
 
-    if(intervals==TRUE){
+    if(intervals){
         if(h>1){
             lines(lower,col="darkgrey",lwd=3,lty=2);
             lines(upper,col="darkgrey",lwd=3,lty=2);

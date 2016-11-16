@@ -1,7 +1,7 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model",
-                         "constant","AR","MA","data"));
+                         "constant","AR","MA","data","y.fit"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -53,6 +53,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         silentText <- TRUE;
         silentGraph <- FALSE;
         silentLegend <- FALSE;
+    }
+
+    # Check what was passed as a horizon
+    if(h<=0){
+        warning(paste0("You have set forecast horizon equal to ",h,". We hope you know, what you are doing."), call.=FALSE);
+        if(h<0){
+            warning("And by the way, we can't do anything with negative horizon, so we will set it equal to zero.", call.=FALSE);
+            h <- 0;
+        }
     }
 
     ##### data #####
@@ -1065,6 +1074,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Return values to previous environment #####
+    assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
@@ -1195,6 +1205,15 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         silentText <- TRUE;
         silentGraph <- FALSE;
         silentLegend <- FALSE;
+    }
+
+    # Check what was asked as a horizon
+    if(h<=0){
+        warning(paste0("You have set forecast horizon equal to ",h,". We hope you know, what you are doing."), call.=FALSE);
+        if(h<0){
+            warning("And by the way, we can't do anything with negative horizon, so we will set it equal to zero.", call.=FALSE);
+            h <- 0;
+        }
     }
 
     ##### Fisher Information #####
@@ -1366,6 +1385,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         }
     }
 
+    assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
@@ -1397,6 +1417,7 @@ ssFitter <- function(...){
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
     colnames(matvt) <- statesNames;
     y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
+    errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
 
     if(Etype=="M" & any(matvt[,1]<0)){
         matvt[matvt[,1]<0,1] <- 0.001;
@@ -1409,12 +1430,16 @@ ssFitter <- function(...){
         matat[1:nrow(fitting$matat),] <- fitting$matat;
     }
 
-    errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
-                                 h, Etype, Ttype, Stype, modellags,
-                                 matxt, matat, matFX, ot),
-                     start=start(data),frequency=frequency(data));
-    colnames(errors.mat) <- paste0("Error",c(1:h));
-    errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
+    if(h>0){
+        errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
+                                     h, Etype, Ttype, Stype, modellags,
+                                     matxt, matat, matFX, ot),
+                         start=start(data),frequency=frequency(data));
+        colnames(errors.mat) <- paste0("Error",c(1:h));
+    }
+    else{
+        errors.mat <- NA;
+    }
 
     assign("matvt",matvt,ParentEnvironment);
     assign("y.fit",y.fit,ParentEnvironment);
@@ -1757,17 +1782,6 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                      matF, matw, h, Ttype, Stype, modellags,
-                                      matrix(matxt[(obsAll-h+1):(obsAll),],ncol=n.exovars),
-                                      matrix(matat[(obsAll-h+1):(obsAll),],ncol=n.exovars), matFX),
-                start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
-
-    if(Etype=="M" & any(y.for<0)){
-        warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
-                       "Please, use another model."),call.=FALSE);
-    }
-
 # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
         s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - n.param));
@@ -1778,91 +1792,114 @@ ssForecaster <- function(...){
         s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - n.param);
     }
 
-# Write down the forecasting intervals
-    if(intervals){
-        if(h==1){
-            errors.x <- as.vector(errors);
-            ev <- median(errors);
-        }
-        else{
-            errors.x <- errors.mat;
-            ev <- apply(errors.mat,2,median,na.rm=TRUE);
-        }
-        if(intervalsType!="a"){
-            ev <- 0;
+    if(h>0){
+        y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+                                   matF, matw, h, Ttype, Stype, modellags,
+                                   matrix(matxt[(obsAll-h+1):(obsAll),],ncol=n.exovars),
+                                   matrix(matat[(obsAll-h+1):(obsAll),],ncol=n.exovars), matFX),
+                    start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+
+        if(Etype=="M" & any(y.for<0)){
+            warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
+                           "Please, use another model."),call.=FALSE);
         }
 
-# We don't simulate pure additive models, pure multiplicative and
-# additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
-        if(all(c(Etype,Stype,Ttype)!="M") |
-           all(c(Etype,Stype,Ttype)!="A") |
-           (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
-            simulateint <- FALSE;
-        }
-        else{
-            simulateint <- TRUE;
-        }
-
-        if(intervalsType=="p" & simulateint==TRUE){
-            n.samples <- 10000;
-            matg <- matrix(vecg,n.components,n.samples);
-            arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
-            arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
-            materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
-
-            if(Etype=="M"){
-                materrors <- exp(materrors) - 1;
-            }
-            if(all(intermittent!=c("n","p"))){
-                matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
+        # Write down the forecasting intervals
+        if(intervals){
+            if(h==1){
+                errors.x <- as.vector(errors);
+                ev <- median(errors);
             }
             else{
-                matot <- matrix(1,h,n.samples);
+                errors.x <- errors.mat;
+                ev <- apply(errors.mat,2,median,na.rm=TRUE);
+            }
+            if(intervalsType!="a"){
+                ev <- 0;
             }
 
-            y.simulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
-                                           Etype,Ttype,Stype,modellags)$matyt;
-            if(!is.null(xreg)){
-                y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                                       matF, matw, h, Ttype, Stype, modellags,
-                                                       matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+            # We don't simulate pure additive models, pure multiplicative and
+            # additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
+            if(all(c(Etype,Stype,Ttype)!="M") |
+               all(c(Etype,Stype,Ttype)!="A") |
+               (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
+                simulateint <- FALSE;
             }
             else{
-                y.exo.for <- rep(0,h);
+                simulateint <- TRUE;
             }
 
+            if(intervalsType=="p" & simulateint==TRUE){
+                n.samples <- 10000;
+                matg <- matrix(vecg,n.components,n.samples);
+                arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
+                arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
+                materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
+
+                if(Etype=="M"){
+                    materrors <- exp(materrors) - 1;
+                }
+                if(all(intermittent!=c("n","p"))){
+                    matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
+                }
+                else{
+                    matot <- matrix(1,h,n.samples);
+                }
+
+                y.simulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
+                                             Etype,Ttype,Stype,modellags)$matyt;
+                if(!is.null(xreg)){
+                    y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+                                                           matF, matw, h, Ttype, Stype, modellags,
+                                                           matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+                }
+                else{
+                    y.exo.for <- rep(0,h);
+                }
+
+                y.for <- c(pt.for)*y.for;
+                y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+                y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+            }
+            else{
+                vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:n.components))],n.components,1);
+
+                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - n.param),
+                                           measurement=matw, transition=matF, persistence=vecg, s2=s2,
+                                           modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
+                                           y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
+                                           iprob=iprob, ivar=ivar);
+
+                y.for <- c(pt.for)*y.for;
+                if(Etype=="A"){
+                    y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
+                }
+                else if(Etype=="M" & all(c(Ttype,Stype)!="A")){
+                    y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                }
+                else{
+                    y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
+                    y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
+                }
+            }
+        }
+        else{
+            y.low <- NA;
+            y.high <- NA;
             y.for <- c(pt.for)*y.for;
-            y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-            y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-        }
-        else{
-            vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:n.components))],n.components,1);
-
-            quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - n.param),
-                                       measurement=matw, transition=matF, persistence=vecg, s2=s2,
-                                       modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
-                                       y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
-                                       iprob=iprob, ivar=ivar);
-
-            y.for <- c(pt.for)*y.for;
-            if(Etype=="A"){
-                y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
-            }
-            else if(Etype=="M" & all(c(Ttype,Stype)!="A")){
-                y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
-            }
-            else{
-                y.low <- ts(c(y.for) * (1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                y.high <- ts(c(y.for) * (1 + quantvalues$upper),start=start(y.for),frequency=frequency(data));
-            }
         }
     }
     else{
         y.low <- NA;
         y.high <- NA;
-        y.for <- c(pt.for)*y.for;
+        y.for <- ts(NA,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+    }
+
+    if(any(is.na(y.fit),all(is.na(y.for),h>0))){
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
     }
 
     assign("s2",s2,ParentEnvironment);

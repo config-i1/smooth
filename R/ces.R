@@ -429,10 +429,6 @@ CreatorCES <- function(silentText=FALSE,...){
     ssForecaster(ParentEnvironment=environment());
 
 ##### Do final check and make some preparations for output #####
-    if(any(is.na(y.fit),is.na(y.for))){
-        message("Something went wrong during the optimisation and NAs were produced!");
-        message("Please check the input and report this error if it persists to the maintainer.");
-    }
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){

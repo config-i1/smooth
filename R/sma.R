@@ -139,10 +139,6 @@ CreatorSMA <- function(silentText=FALSE,...){
     ssForecaster(ParentEnvironment=environment());
 
 ##### Do final check and make some preparations for output #####
-    if(any(is.na(y.fit),is.na(y.for))){
-        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
-        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
-    }
 
     if(holdout==T){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
