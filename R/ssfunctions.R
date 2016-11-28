@@ -792,6 +792,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                                 persistenceEstimate <- TRUE;
                             }
                             else{
+                                persistence <- as.vector(persistence);
                                 persistenceEstimate <- FALSE;
                             }
                         }
