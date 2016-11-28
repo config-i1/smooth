@@ -8,6 +8,8 @@ Changes:
 Bugfixes:
 
 * intermittent data was not taken correctly into account in number of parameters calculation in functions.
+* Fixed a bug with persistence not accepting matrices in es()
+* persistence now looks nice in the output of sim.es()
 
 
 smooth v1.5.0 (Release date: 2016-11-13)
