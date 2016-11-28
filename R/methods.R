@@ -457,7 +457,9 @@ print.smooth.sim <- function(x, ...){
     if(nsim==1){
         if(gregexpr("ETS",x$model)!=-1){
             cat(paste0("Persistence vector: \n"));
-                print(t(round(x$persistence,3)));
+            xPersistence <- as.vector(x$persistence);
+            names(xPersistence) <- rownames(x$persistence);
+            print(round(xPersistence,3));
             if(x$phi!=1){
                 cat(paste0("Phi: ",x$phi,"\n"));
             }
