@@ -161,6 +161,23 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     AValue <- matrix(NA,2,nsim);
     BValue <- matrix(NA,B$number,nsim);
 
+# Check the vector of probabilities
+    if(is.vector(iprob)){
+        if(any(iprob!=iprob[1])){
+            if(length(iprob)!=obs){
+                warning("Length of iprob does not correspond to number of observations.",call.=FALSE);
+                if(length(iprob)>obs){
+                    warning("We will cut off the excessive ones.",call.=FALSE);
+                    iprob <- iprob[1:obs];
+                }
+                else{
+                    warning("We will duplicate the last one.",call.=FALSE);
+                    iprob <- c(iprob,rep(iprob[length(iprob)],obs-length(iprob)));
+                }
+            }
+        }
+    }
+
 #### Generate stuff if needed ####
 # First deal with initials
     if(initialGenerate){
@@ -270,7 +287,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matot[,] <- rbinom(obs*nsim,1,iprob);
     }
     else{
@@ -280,7 +297,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
 
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matyt <- round(simulateddata$matyt,0);
     }
     else{
@@ -303,7 +320,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
     modelname <- paste0("CES(",seasonality,")");
-    if(iprob!=1){
+    if(any(iprob!=1)){
         modelname <- paste0("i",modelname);
     }
 

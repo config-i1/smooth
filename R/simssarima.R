@@ -283,6 +283,23 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         initialGenerate <- TRUE;
     }
 
+# Check the vector of probabilities
+    if(is.vector(iprob)){
+        if(any(iprob!=iprob[1])){
+            if(length(iprob)!=obs){
+                warning("Length of iprob does not correspond to number of observations.",call.=FALSE);
+                if(length(iprob)>obs){
+                    warning("We will cut off the excessive ones.",call.=FALSE);
+                    iprob <- iprob[1:obs];
+                }
+                else{
+                    warning("We will duplicate the last one.",call.=FALSE);
+                    iprob <- c(iprob,rep(iprob[length(iprob)],obs-length(iprob)));
+                }
+            }
+        }
+    }
+
 # In the case of wrong nsim, make it natural number. The same is for obs and frequency.
     nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
@@ -306,7 +323,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         }
         matot <- matrix(NA,obs,nsim);
         # Generate values for occurence variable
-        if((iprob < 1) & (iprob > 0)){
+        if(all(iprob < 1) & all(iprob > 0)){
             matot[,] <- rbinom(obs*nsim,1,iprob);
         }
         else{
@@ -475,7 +492,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matot[,] <- rbinom(obs*nsim,1,iprob);
     }
     else{
@@ -485,7 +502,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
 
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matyt <- round(simulateddata$matyt,0);
     }
     else{
@@ -496,7 +513,10 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 
     if(initialGenerate){
         matInitialValue[,] <- arrvt[burnInPeriod+1,,];
-        arrvt <- arrvt[-c(1:burnInPeriod),,];
+        arrvtDim <- dim(arrvt);
+        arrvtDim[1] <- arrvtDim[1] - burnInPeriod;
+        print(arrvtDim)
+        arrvt <- array(arrvt[-c(1:burnInPeriod),,],arrvtDim);
         materrors <- materrors[-c(1:burnInPeriod),];
         matyt <- matyt[-c(1:burnInPeriod),];
         matot <- matot[-c(1:burnInPeriod),];
@@ -527,7 +547,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         }
         modelname <- paste0("SARIMA",modelname);
     }
-    if(iprob!=1){
+    if(any(iprob!=1)){
         modelname <- paste0("i",modelname);
     }
 

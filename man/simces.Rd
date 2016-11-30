@@ -45,7 +45,7 @@ sim.ces(seasonality=c("none","simple","partial","full"),
     Type of random number generator function used for error term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But any function from \link[stats]{Distributions} will do the trick if the appropriate parameters are passed. For example \code{rpois} with \code{lambda=2} can be used as well.
   }
   \item{iprob}{
-    Probability of occurrence, used for intermittent data generation.
+    Probability of occurrence, used for intermittent data generation. This can be a vector, implying that probability varies in time (in TSB or Croston style).
   }
   \item{...}{
     Additional parameters passed to the chosen randomizer. All the parameters should be passed in the order they are used in chosen randomizer. For example, passing just \code{sd=0.5} to \code{rnorm} function will lead to the call \code{rnorm(obs, mean=0.5, sd=1)}.

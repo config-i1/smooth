@@ -159,6 +159,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
         }
     }
 
+# Check the inital seasonal vector length
     if(!is.null(initialSeason)){
         if(maxlag!=length(initialSeason)){
             warning(paste0("The length of seasonal initial states does not correspond to the chosen frequency!\n",
@@ -173,8 +174,24 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
         randomizer = "rnorm";
     }
 
-##### Let's make sum fun #####
+# Check the vector of probabilities
+    if(is.vector(iprob)){
+        if(any(iprob!=iprob[1])){
+            if(length(iprob)!=obs){
+                warning("Length of iprob does not correspond to number of observations.",call.=FALSE);
+                if(length(iprob)>obs){
+                    warning("We will cut off the excessive ones.",call.=FALSE);
+                    iprob <- iprob[1:obs];
+                }
+                else{
+                    warning("We will duplicate the last one.",call.=FALSE);
+                    iprob <- c(iprob,rep(iprob[length(iprob)],obs-length(iprob)));
+                }
+            }
+        }
+    }
 
+##### Let's make sum fun #####
     matg <- matrix(NA,persistenceLength,nsim);
     arrvt <- array(NA,c(obs+maxlag,persistenceLength,nsim),dimnames=list(NULL,componentsNames,NULL));
     materrors <- matrix(NA,obs,nsim);
@@ -306,7 +323,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 # If the error is multiplicative, scale it!
             if(Etype=="M"){
 # Errors will be lognormal, decrease variance, so it behaves better
-                if(iprob!=1){
+                if(any(iprob!=1)){
                     materrors <- materrors * 0.5;
                 }
                 else{
@@ -343,7 +360,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matot[,] <- rbinom(obs*nsim,1,iprob);
     }
     else{
@@ -353,7 +370,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,modellags);
 
-    if((iprob < 1) & (iprob > 0)){
+    if(all(iprob < 1) & all(iprob > 0)){
         matyt <- round(simulateddata$matyt,0);
     }
     else{
@@ -382,7 +399,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
     model <- paste0("ETS(",model,")");
-    if(iprob!=1){
+    if(any(iprob!=1)){
         model <- paste0("i",model);
     }
 
