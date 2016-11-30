@@ -1,9 +1,10 @@
-smooth v1.5.1 (Release date: 2016-11-15)
+smooth v1.5.1 (Release date: 2016-11-30)
 ==============
 
 Changes:
 
 * Now you can produce 0-steps ahead forecasts using smooth functions. Pretty cool, ah? And pretty useless for my taste. But here it is!
+* iprob in sim functions now also accepts a vector, implying that probability may vary over time in style of TSB and Croston's method.
 
 Bugfixes:
 
