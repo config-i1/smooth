@@ -505,7 +505,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     if(nsim==1){
         matyt <- ts(matyt,frequency=frequency);
         materrors <- ts(materrors,frequency=frequency);
-        arrvt <- ts(arrvt,frequency=frequency,start=c(0,frequency-maxlag+1));
+        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
         matot <- ts(matot,frequency=frequency);
     }
     else{
