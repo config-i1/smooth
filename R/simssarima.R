@@ -323,12 +323,13 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         }
         matot <- matrix(NA,obs,nsim);
         # Generate values for occurence variable
-        if(all(iprob < 1) & all(iprob > 0)){
-            matot[,] <- rbinom(obs*nsim,1,iprob);
-        }
-        else{
+        if(all(iprob == 1)){
             matot[,] <- 1;
         }
+        else{
+            matot[,] <- rbinom(obs*nsim,1,iprob);
+        }
+
         matot <- ts(matot,frequency=frequency);
         materrors <- ts(materrors,frequency=frequency);
         matyt <- materrors;
@@ -492,11 +493,11 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    if(all(iprob < 1) & all(iprob > 0)){
-        matot[,] <- rbinom(obs*nsim,1,iprob);
+    if(all(iprob == 1)){
+        matot[,] <- 1;
     }
     else{
-        matot[,] <- 1;
+        matot[,] <- rbinom(obs*nsim,1,iprob);
     }
 
 #### Simulate the data ####

@@ -287,11 +287,11 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
-    if(all(iprob < 1) & all(iprob > 0)){
-        matot[,] <- rbinom(obs*nsim,1,iprob);
+    if(all(iprob == 1)){
+        matot[,] <- 1;
     }
     else{
-        matot[,] <- 1;
+        matot[,] <- rbinom(obs*nsim,1,iprob);
     }
 
 #### Simulate the data ####
