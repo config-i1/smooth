@@ -370,11 +370,11 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,modellags);
 
-    if(all(iprob < 1) & all(iprob > 0)){
-        matyt <- round(simulateddata$matyt,0);
+    if(all(iprob == 1)){
+        matyt <- simulateddata$matyt;
     }
     else{
-        matyt <- simulateddata$matyt;
+        matyt <- round(simulateddata$matyt,0);
     }
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);

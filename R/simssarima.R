@@ -503,11 +503,11 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
 
-    if(all(iprob < 1) & all(iprob > 0)){
-        matyt <- round(simulateddata$matyt,0);
+    if(all(iprob == 1)){
+        matyt <- simulateddata$matyt;
     }
     else{
-        matyt <- simulateddata$matyt;
+        matyt <- round(simulateddata$matyt,0);
     }
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);
