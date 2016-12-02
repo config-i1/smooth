@@ -1,3 +1,11 @@
+smooth v1.5.2 (Release date: 2016-12-02)
+==============
+
+Changes:
+
+* Instead of having dozens of methods based on AIC and BIC, we now have logLik, nobs and AICc.default. The latter should also work with other, non smooth, classes (e.g. "ets","lm").
+
+
 smooth v1.5.1 (Release date: 2016-11-30)
 ==============
 
