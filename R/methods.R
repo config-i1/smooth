@@ -488,10 +488,14 @@ print.iss <- function(x, ...){
     else{
         intermittent <- "None";
     }
+    ICs <- round(c(AIC(x),AICc(x),BIC(x)),4);
+    names(ICs) <- c("AIC","AICc","BIC");
     cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
     cat(paste0("Smoothing parameter: ",round(x$C[1],3),"\n"));
     cat(paste0("Initial value: ",round(x$states[1],3),"\n"));
     cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
+    cat("Information criteria: \n");
+    print(ICs);
 }
 
 #### Simulate data using provided object ####
