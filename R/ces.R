@@ -332,20 +332,17 @@ CreatorCES <- function(silentText=FALSE,...){
     else{
         cfType <- "MSE";
     }
-    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
-    ICs <- IC.values$ICs;
+    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICs <- ICValues$ICs;
+    logLik <- ICValues$llikelihood;
+
     bestIC <- ICs["AICc"];
-    # Change back
+
+# Revert to the provided cost function
     cfType <- cfTypeOriginal;
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param,logLik=logLik));
 }
-
-# Information criterion derived and used especially for CES
-#   k here is equal to number of coefficients/2 (number of numbers) + number of complex initial states of CES.
-#    CIC.coef <- 2 * (ceiling(length(C)/2) + maxlag) * h ^ multisteps - 2 * llikelihood;
-#    ICs <- c(AIC.coef, AICc.coef, BIC.coef,CIC.coef);
-#    names(ICs) <- c("AIC", "AICc", "BIC","CIC");
 
 ##### Start doing things #####
     environment(intermittentParametersSetter) <- environment();
@@ -540,6 +537,6 @@ CreatorCES <- function(silentText=FALSE,...){
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-                  ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

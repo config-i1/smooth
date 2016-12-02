@@ -18,7 +18,7 @@ test_that("Test on N1234$x, predefined ETS", {
 # Test combinations of ETS
 testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
 test_that("Test ETS(CCC) with BIC on N2568$x", {
-    expect_equal(round(testModel$s2,3), 0.004);
+    expect_equal(round(testModel$s2,4), 0.0004);
 })
 
 # Test model selection of non-multiplicative trend ETS
@@ -28,9 +28,9 @@ test_that("Test ETS(MXM) with AIC on N2568$x", {
 })
 
 # Test trace cost function for ETS
-testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, cfType="MSTFE", silent=TRUE, intervals=TRUE)
+testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, silent=TRUE, intervals=TRUE)
 test_that("Test AIC of ETS based on MSTFE on N2568$x", {
-    expect_equal(AIC(testModel), testModel$ICs["AIC"]);
+    expect_equal(round(AIC(testModel),2), as.numeric(round(testModel$ICs["AIC"],2)));
 })
 
 # Test how different passed values are accepted by ETS

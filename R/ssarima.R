@@ -326,14 +326,15 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         cfType <- "MSE";
     }
 
-    IC.values <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
-    ICs <- IC.values$ICs;
+    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICs <- ICValues$ICs;
     bestIC <- ICs["AICc"];
+    logLik <- ICValues$llikelihood;
 
 # Revert to the provided cost function
     cfType <- cfTypeOriginal
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param,logLik=logLik));
 }
 
 #####Start the calculations#####
@@ -618,6 +619,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-                  ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

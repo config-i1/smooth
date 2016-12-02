@@ -103,13 +103,14 @@ CreatorSMA <- function(silentText=FALSE,...){
     C <- NULL;
     cfObjective <- CF(C);
 
-    IC.values <- ICFunction(n.param=n.param,C=C,Etype=Etype);
-    ICs <- IC.values$ICs;
+    ICValues <- ICFunction(n.param=n.param,C=C,Etype=Etype);
+    ICs <- ICValues$ICs;
+    logLik <- ICValues$llikelihood;
     bestIC <- ICs["AICc"];
 
     return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,n.param=n.param,n.components=n.components,
                 matF=matF,vecg=vecg,matvt=matvt,matw=matw,modellags=modellags,
-                matxt=matxt,matat=matat,matFX=matFX,vecgX=vecgX));
+                matxt=matxt,matat=matat,matFX=matFX,vecgX=vecgX,logLik=logLik));
 }
 
 #####Start the calculations#####
@@ -170,6 +171,6 @@ CreatorSMA <- function(silentText=FALSE,...){
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,
-                  ICs=ICs,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

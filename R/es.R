@@ -525,10 +525,11 @@ EstimatorES <- function(...){
 
     ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
     ICs <- ICValues$ICs;
+    logLik <- ICValues$llikelihood;
 
     # Change back
     cfType <- cfTypeOriginal;
-    return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param,FI=FI));
+    return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param,FI=FI,logLik=logLik));
 }
 
 ##### This function prepares pool of models to use #####
@@ -648,7 +649,7 @@ PoolPreparerES <- function(...){
 
                 res <- EstimatorES(ParentEnvironment=environment());
 
-                results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param);
+                results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param,res$logLik);
 
                 tested.model <- c(tested.model,current.model);
 
@@ -781,16 +782,14 @@ PoolEstimatorES <- function(silent=FALSE,...){
         }
 
         res <- EstimatorES(ParentEnvironment=environment());
-        results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param);
+        results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param,res$logLik);
     }
 
     if(!silent){
         cat("... Done! \n");
     }
     icSelection <- matrix(NA,models.number,3);
-#    icSelection <- rep(NA,models.number);
     for(i in 1:models.number){
-#        icSelection[i,] <- as.numeric(eval(parse(text=paste0("results[[",i,"]]['",ic,"']"))));
         icSelection[i,] <- as.numeric(results[[i]][1:3]);
     }
     colnames(icSelection) <- names(results[[1]])[1:3]
@@ -824,10 +823,11 @@ CreatorES <- function(silent=FALSE,...){
             phi <- NULL;
         }
         cfObjective <- as.numeric(results[8]);
-        C <- as.numeric(results[-c(1:8)]);
+        C <- as.numeric(results[-c(1:8,length(results)-1,length(results))]);
+        logLik <- as.numeric(results[length(results)]);
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=as.numeric(results[length(results)]),FI=FI));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=as.numeric(results[length(results)-1]),FI=FI,logLik=logLik));
     }
     else if(modelDo=="combine"){
         if(cfType!="MSE"){
@@ -842,15 +842,16 @@ CreatorES <- function(silent=FALSE,...){
         icSelection <- icSelection/(h^multisteps);
         icWeights <- exp(-0.5*(icSelection-icBest))/sum(exp(-0.5*(icSelection-icBest)));
         ICs <- sum(icSelection * icWeights);
-        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results));
+        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results,logLik=NA));
     }
     else if(modelDo=="estimate"){
         environment(EstimatorES) <- environment();
         res <- EstimatorES(ParentEnvironment=environment());
         icBest <- res$ICs[ic];
+        logLik <- res$logLik;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,n.param=res$n.param,FI=FI));
+                    cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,n.param=res$n.param,FI=FI,logLik=logLik));
     }
     else{
         environment(CF) <- environment();
@@ -878,25 +879,21 @@ CreatorES <- function(silent=FALSE,...){
 
 # Change cfType for model selection
         if(multisteps){
-            #     if(substring(cfType,1,1)=="a"){
             cfType <- "aTFL";
-            #     }
-            #     else{
-            #         cfType <- "TFL";
-            #     }
         }
         else{
             cfType <- "MSE";
         }
 
         ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+        logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
         # Change back
         cfType <- cfTypeOriginal;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,FI=FI));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,FI=FI,logLik=logLik));
     }
 }
 
@@ -1152,7 +1149,7 @@ CreatorES <- function(silent=FALSE,...){
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
-                      ICs=ICs,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                      ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }
     else{

@@ -515,7 +515,6 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         matInitialValue[,] <- arrvt[burnInPeriod+1,,];
         arrvtDim <- dim(arrvt);
         arrvtDim[1] <- arrvtDim[1] - burnInPeriod;
-        print(arrvtDim)
         arrvt <- array(arrvt[-c(1:burnInPeriod),,],arrvtDim);
         materrors <- materrors[-c(1:burnInPeriod),];
         matyt <- matyt[-c(1:burnInPeriod),];

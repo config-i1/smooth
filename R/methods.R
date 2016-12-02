@@ -5,130 +5,87 @@ lags <- function(object, ...) UseMethod("lags")
 modelType <-  function(object, ...) UseMethod("modelType")
 
 ##### Likelihood function
-#logLik.smooth <- function(object,...)
-#{
-#  structure(object$logLik,df=length(coef(object)),class="logLik");
-#}
+logLik.smooth <- function(object,...){
+    structure(object$logLik,df=object$nParam,class="logLik");
+}
+
+nobs.smooth <- function(object, ...){
+    return(length(object$fitted));
+}
 
 ##### IC functions #####
-AIC.smooth <- function(object, ...){
-    if(gregexpr("ETS",object$model)!=-1){
-        if(any(unlist(gregexpr("C",object$model))==-1)){
-            IC <- object$ICs["AIC"];
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AIC"){
-                IC <- object$ICs;
-            }
-            else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                IC <- NA;
-            }
-        }
-    }
-    else if(gregexpr("ARIMA",object$model)!=-1){
-        if(any(unlist(gregexpr("combine",object$model))==-1)){
-            IC <- object$ICs["AIC"];
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AIC"){
-                IC <- object$ICs;
-            }
-            else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                IC <- NA;
-            }
-        }
-    }
-    else{
-        IC <- object$ICs["AIC"];
-    }
-
-    return(IC);
-}
-
 AICc.default <- function(object, ...){
-    if(!is.null(object$model)){
-        if(gregexpr("ETS",object$model)!=-1){
-            if(any(unlist(gregexpr("C",object$model))==-1)){
-                IC <- object$ICs["AICc"];
-            }
-            else{
-                if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
-                    IC <- object$ICs;
-                }
-                else{
-                    message("ICs were combined during the model construction. Nothing to return.");
-                    IC <- NA;
-                }
-            }
-        }
-        else{
-            IC <- object$ICs["AICc"];
-        }
-    }
-    else if(gregexpr("ARIMA",object$model)!=-1){
-        if(any(unlist(gregexpr("combine",object$model))==-1)){
-            IC <- object$ICs["AICc"];
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
-                IC <- object$ICs;
-            }
-            else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                IC <- NA;
-            }
-        }
+    if(!is.null(object$x)){
+        obs <- length(object$x);
     }
     else{
-        if(any(gregexpr("ets",object$call)!=-1)){
-            IC <- object$aicc;
-        }
-        else{
-            message("AICc is not available for the provided class.");
-            IC <- NA;
-        }
+        obs <- nobs(object);
     }
+
+    llikelihood <- logLik(object);
+    nParam <- attributes(llikelihood)$df;
+    llikelihood <- llikelihood[1];
+
+    IC <- 2*nParam - 2*llikelihood + 2 * nParam * (nParam + 1) / (obs - nParam - 1);
 
     return(IC);
 }
 
-BIC.smooth <- function(object, ...){
-    if(gregexpr("ETS",object$model)!=-1){
-        if(any(unlist(gregexpr("C",object$model))==-1)){
-            IC <- object$ICs["BIC"];
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="BIC"){
-                IC <- object$ICs;
-            }
-            else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                IC <- NULL;
-            }
-        }
-    }
-    else if(gregexpr("ARIMA",object$model)!=-1){
-        if(any(unlist(gregexpr("combine",object$model))==-1)){
-            IC <- object$ICs["BIC"];
-        }
-        else{
-            if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="BIC"){
-                IC <- object$ICs;
-            }
-            else{
-                message("ICs were combined during the model construction. Nothing to return.");
-                IC <- NA;
-            }
-        }
-    }
-    else{
-        IC <- object$ICs["BIC"];
-    }
-
-    return(IC);
-}
+# AICc.smooth <- function(object, ...){
+#     if(gregexpr("ETS",object$model)!=-1){
+#         if(any(unlist(gregexpr("C",object$model))==-1)){
+#             IC <- object$ICs["AICc"];
+#         }
+#         else{
+#             if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
+#                 IC <- object$ICs;
+#             }
+#             else{
+#                 message("ICs were combined during the model construction. Nothing to return.");
+#                 IC <- NA;
+#             }
+#         }
+#     }
+#     else if(gregexpr("ARIMA",object$model)!=-1){
+#         if(any(unlist(gregexpr("combine",object$model))==-1)){
+#             IC <- object$ICs["AICc"];
+#         }
+#         else{
+#             if(substring(names(object$ICs),10,nchar(names(object$ICs)))=="AICc"){
+#                 IC <- object$ICs;
+#             }
+#             else{
+#                 message("ICs were combined during the model construction. Nothing to return.");
+#                 IC <- NA;
+#             }
+#         }
+#     }
+#
+#     return(IC);
+# }
+#
+# AICc.ets <- function(object, ...){
+#     if(any(gregexpr("ets",object$call)!=-1)){
+#         IC <- object$aicc;
+#     }
+#     else{
+#         message("AICc is not available for the provided class.");
+#         IC <- NA;
+#     }
+#
+#     return(IC);
+# }
+#
+# AICc.lm <- function(object, ...){
+#
+#     errors <- residuals(object);
+#     obs <- length(errors);
+#     n.param <- length(coef(object));
+#     llikelihood <- - obs/2 *(log(2*pi*exp(1)) + log(mean(errors^2)));
+#     IC <- 2*n.param - 2*llikelihood + 2 * n.param * (n.param + 1) / (obs - n.param - 1);
+#
+#     return(IC)
+# }
 
 #### Extraction of parameters of models ####
 coef.smooth <- function(object, ...)

@@ -147,6 +147,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     \item \code{persistenceX} - persistence vector g for exogenous variables.
     \item \code{transitionX} - transition matrix F for exogenous variables.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
+    \item \code{logLik} - log-likelihood of the function.
     \item \code{cf} - Cost function value.
     \item \code{cfType} - Type of cost function used in the estimation.
     \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.

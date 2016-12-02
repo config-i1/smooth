@@ -191,7 +191,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                                  "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
                                  "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
                 if(datafreq==1){
+                    if(!silentText){
+                        message("The provided data has frequency of 1. Only non-seasonal models are available.");
+                    }
                     Stype <- "N";
+                    substr(model,nchar(model),nchar(model)) <- "N";
                 }
                 # Restrict error types in the pool
                 if(Etype=="X"){
@@ -446,6 +450,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 message("The provided data is not ts object. Only non-seasonal models are available.");
             }
             Stype <- "N";
+            substr(model,nchar(model),nchar(model)) <- "N";
         }
 
         ### Check seasonality type

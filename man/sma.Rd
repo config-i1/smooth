@@ -93,6 +93,7 @@ Where \eqn{v_[t]} is a state vector (defined using \code{order}).
     \item \code{actuals} - the original data.
     \item \code{holdout} - the holdout part of the original data.
     \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
+    \item \code{logLik} - log-likelihood of the function.
     \item \code{cf} - Cost function value.
     \item \code{cfType} - Type of cost function used in the estimation.
     \item \code{accuracy} - the vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
