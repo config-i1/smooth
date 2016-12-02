@@ -64,7 +64,7 @@ sim.es(model="ANN", frequency=1, persistence=NULL, phi=1,
         \item{phi}{Value of damping parameter used in time series generation.}
         \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
         \item{occurrences}{Values of occurrence variable. Once again, can be either a vector or a matrix...}
-        \item{likelihood}{Log-likelihood of the constructed model.}
+        \item{logLik}{Log-likelihood of the constructed model.}
 }
 \references{
     Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.

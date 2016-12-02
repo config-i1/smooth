@@ -566,6 +566,6 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     model <- list(model=modelname,
                   AR=matARValue, MA=matMAValue, constant=vecConstantValue, initial=matInitialValue,
                   data=matyt, states=arrvt, residuals=materrors,
-                  occurrences=matot, likelihood=veclikelihood);
+                  occurrences=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

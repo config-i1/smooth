@@ -404,6 +404,6 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
     model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
-                residuals=materrors, occurrences=matot, likelihood=veclikelihood);
+                  residuals=materrors, occurrences=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

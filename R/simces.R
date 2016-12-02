@@ -335,6 +335,6 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     model <- list(model=modelname,
                   A=AValue, B=BValue, initial=matInitialValue,
                   data=matyt, states=arrvt, residuals=materrors,
-                  occurrences=matot, likelihood=veclikelihood);
+                  occurrences=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

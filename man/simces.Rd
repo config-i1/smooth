@@ -61,7 +61,7 @@ sim.ces(seasonality=c("none","simple","partial","full"),
         \item{states}{Matrix (or array if \code{nsim>1}) of states. States are in columns, time is in rows.}
         \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
         \item{occurrences}{Values of occurrence variable. Once again, can be either a vector or a matrix...}
-        \item{likelihood}{Log-likelihood of the constructed model.}
+        \item{logLik}{Log-likelihood of the constructed model.}
 }
 \references{
     \itemize{

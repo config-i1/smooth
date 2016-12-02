@@ -70,7 +70,7 @@ sim.ssarima(orders=list(ar=0,i=1,ma=1), lags=1,
         \item{states}{Matrix (or array if \code{nsim>1}) of states. States are in columns, time is in rows.}
         \item{residuals}{Error terms used in the simulation. Either vector or matrix, depending on \code{nsim}.}
         \item{occurrences}{Values of occurrence variable. Once again, can be either a vector or a matrix...}
-        \item{likelihood}{Log-likelihood of the constructed model.}
+        \item{logLik}{Log-likelihood of the constructed model.}
 }
 \references{
     Snyder, R.D. (1985) Recursive Estimation of Dynamic Linear Models. Journal of the Royal Statistical Society. Series B. Vol. 47, No. 2, pp. 272-276.
