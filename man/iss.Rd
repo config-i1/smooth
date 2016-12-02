@@ -42,7 +42,8 @@
     \item \code{states} - values of states (currently level only);
     \item \code{forecast} - forecast for \code{h} observations ahead;
     \item \code{variance} - conditional variance of the forecast;
-    \item \code{likelihood} - likelihood value for the model;
+    \item \code{logLik} - likelihood value for the model;
+    \item \code{nParam} - number of parameters used in the model;
     \item \code{residuals} - residuals of the model;
     \item \code{C} - vector of all the parameters.
     \item \code{actuals} - actual values of probabilities (zeroes and ones).

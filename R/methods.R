@@ -8,15 +8,16 @@ modelType <-  function(object, ...) UseMethod("modelType")
 logLik.smooth <- function(object,...){
     structure(object$logLik,df=object$nParam,class="logLik");
 }
+logLik.smooth.sim <- function(object,...){
+    structure(object$logLik,df=0,class="logLik");
+}
+logLik.iss <- function(object,...){
+    structure(object$logLik,df=object$nParam,class="logLik");
+}
 
 nobs.smooth <- function(object, ...){
     return(length(object$fitted));
 }
-
-logLik.smooth.sim <- function(object,...){
-    structure(object$logLik,df=0,class="logLik");
-}
-
 nobs.smooth.sim <- function(object, ...){
     if(is.null(dim(object$data))){
         return(length(object$data));
@@ -24,6 +25,9 @@ nobs.smooth.sim <- function(object, ...){
     else{
         return(nrow(object$data));
     }
+}
+nobs.iss <- function(object, ...){
+    return(length(object$fitted));
 }
 
 ##### IC functions #####

@@ -126,9 +126,10 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
         pt.for <- ts(rep(iprob,h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
         errors <- ts(ot-iprob, start=start(y), frequency=frequency(y));
+        logLik <- structure((sum(log(pt[ot==1])) + sum(log((1-pt[ot==0])))),df=1,class="logLik");
 
         output <- list(fitted=pt,forecast=pt.for,states=pt,variance=pt.for*(1-pt.for),
-                      likelihood=0,residuals=errors,C=c(0,iprob),actuals=otAll)
+                      logLik=logLik,nParam=1,residuals=errors,C=c(0,iprob),actuals=otAll)
     }
 #### Croston's method ####
     else if(intermittent=="c"){
@@ -146,13 +147,13 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
         pt <- ts(rep((1-sum(crostonModel$persistence)/2)/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
         pt.for <- ts((1-sum(crostonModel$persistence)/2)/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
-        likelihood <- - (crostonModel$ICs["AIC"]/2 - 3);
+        logLik <- logLik(crostonModel);
         C <- c(crostonModel$persistence,crostonModel$states[1,]);
         names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
                       paste0("state ",c(1:length(crostonModel$states[1,]))))
 
         output <- list(fitted=pt,forecast=pt.for,states=1/crostonModel$states,variance=pt.for*(1-pt.for),
-                      likelihood=likelihood,residuals=crostonModel$residuals,C=C,actuals=otAll);
+                      logLik=logLik,nParam=crostonModel$nParam,residuals=crostonModel$residuals,C=C,actuals=otAll);
     }
 #### TSB method ####
     else if(intermittent=="t"){
@@ -212,13 +213,6 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
 
         kappa <- 1E-5;
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
-#
-#         # Run in order to set shape1, shape2
-#         C <- c(0.5,0.5);
-#         res <- nloptr(C, CF, lb=c(1e-10,1e-10), ub=c(10,10),
-#                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
-#         likelihood <- -res$objective;
-#         C <- res$solution;
 
         # Another run, now to define persistence and initial
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
@@ -234,7 +228,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         }
 
         names(C) <- c("persistence","initial");
-        likelihood <- -res$objective;
+        logLik <- structure(-res$objective,df=3,class="logLik");
 
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
         fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
@@ -253,7 +247,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         iyt.for <- (iyt.for - kappa) / (1 - 2*kappa);
 
         output <- list(fitted=iyt.fit,states=ivt,forecast=iyt.for,variance=iyt.for*(1-iyt.for),
-                      likelihood=likelihood,residuals=errors,C=C,actuals=otAll);
+                      logLik=logLik,nParam=3,residuals=errors,C=C,actuals=otAll);
     }
 #### None ####
     else{
@@ -261,7 +255,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         pt.for <- ts(rep(1,h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
         errors <- ts(rep(0,obsInsample), start=start(y), frequency=frequency(y));
         output <- list(fitted=pt,states=pt,forecast=pt.for,variance=rep(0,h),
-                      likelihood=NULL,residuals=errors,C=c(0,1),actuals=pt);
+                      logLik=NULL,nParam=0,residuals=errors,C=c(0,1),actuals=pt);
     }
     output$intermittent <- intermittent;
     return(structure(output,class="iss"));
