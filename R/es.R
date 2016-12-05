@@ -10,7 +10,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                h=10, holdout=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-               intermittent=c("none","auto","fixed","croston","tsb"),
+               intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -923,7 +923,7 @@ CreatorES <- function(silent=FALSE,...){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","c","t");
+        intermittentModelsPool <- c("n","f","c","t","s");
         intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs <- esValues$icBest;

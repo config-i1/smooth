@@ -713,7 +713,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
     else{
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
+        if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE);
             intermittent <- "f";
@@ -1366,7 +1366,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     else{
         obsNonzero <- sum((y!=0)*1);
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","c","t","a","none","fixed","croston","tsb","auto"))){
+        if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE);
             intermittent <- "f";
@@ -2239,6 +2239,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         else if(any(intermittent==c("t","tsb"))){
             intermittent <- "TSB";
+        }
+        else if(any(intermittent==c("s","sba"))){
+            intermittent <- "Croston with SBA";
         }
         cat(paste0("Intermittent model type: ",intermittent));
         if(iprob!=1){

@@ -13,7 +13,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
    cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
    h=10, holdout=FALSE,
    intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-   intermittent=c("none","auto","fixed","croston","tsb"),
+   intermittent=c("none","auto","fixed","croston","tsb","sba"),
    bounds=c("usual","admissible","none"),
    silent=c("none","all","graph","legend","output"),
    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
@@ -79,7 +79,7 @@ es(data, model="ZZZ", persistence=NULL, phi=NULL,
     Confidence level. Defines width of prediction interval.
   }
   \item{intermittent}{
-    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead.
+    Defines type of intermittent model used. Can be: 1. \code{none}, meaning that the data should be considered as non-intermittent; 2. \code{fixed}, taking into account constant Bernoulli distribution of demand occurancies; 3. \code{croston}, based on Croston, 1972 method with SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5. \code{auto} - automatic selection of intermittency type based on information criteria. The first letter can be used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's method (bias correction) discussed in Syntetos and Boylan, 2005.
   }
   \item{bounds}{
     What type of bounds to use for smoothing parameters ("admissible" or "usual"). The first letter can be used instead of the whole word.
@@ -191,6 +191,7 @@ For the details see Hyndman et al.(2008).
         \item{Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike weights. International Journal of Forecasting, 27, pp 238 - 251.}
         \item{Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research 214, 606-615.}
         \item{Croston, J. (1972) Forecasting and stock control for intermittent demands. Operational Research Quarterly, 23(3), 289-303.}
+        \item{Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand estimates. International Journal of Forecasting, 21(2), 303-314.}
     }
 }
 \author{

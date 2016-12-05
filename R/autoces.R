@@ -5,7 +5,7 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","full"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb"),
+                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
                 xreg=NULL, updateX=FALSE, ...){

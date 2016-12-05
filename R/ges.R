@@ -8,7 +8,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb"),
+                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
                 xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -335,7 +335,7 @@ CreatorGES <- function(silentText=FALSE,...){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","c","t");
+        intermittentModelsPool <- c("n","f","c","t","s");
         intermittentICs <- rep(1e+10,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs <- gesValues$icBest;

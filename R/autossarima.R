@@ -6,7 +6,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                          h=10, holdout=FALSE,
                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                         intermittent=c("none","auto","fixed","croston","tsb"),
+                         intermittent=c("none","auto","fixed","croston","tsb","sba"),
                          bounds=c("admissible","none"),
                          silent=c("none","all","graph","legend","output"),
                          xreg=NULL, updateX=FALSE, ...){

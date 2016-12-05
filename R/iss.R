@@ -75,12 +75,19 @@ intermittentMaker <- function(intermittent="n",...){
     assign("ivar",ivar,ParentEnvironment);
 }
 
-iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
+iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
                 h=10, holdout=FALSE, model=NULL, persistence=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
-    if(all(intermittent!=c("n","f","c","t"))){
+    if(all(intermittent!=c("n","f","c","t","s"))){
         intermittent <- "f";
+    }
+    if(intermittent=="s"){
+        intermittent <- "c";
+        sbaCorrection <- TRUE;
+    }
+    else{
+        sbaCorrection <- FALSE;
     }
 
     obsInsample <- length(data) - holdout*h;
@@ -145,14 +152,23 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb"),
         crostonModel <- es(iyt,model=model,intervals=FALSE,int.w=0.95,silent=TRUE,h=h,persistence=persistence);
 
         zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
-        pt <- ts(rep((1-sum(crostonModel$persistence)/2)/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
-        pt.for <- ts((1-sum(crostonModel$persistence)/2)/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+        if(sbaCorrection){
+            pt <- ts(rep((1-sum(crostonModel$persistence)/2)/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
+            pt.for <- ts((1-sum(crostonModel$persistence)/2)/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            states <- 1/crostonModel$states;
+        }
+        else{
+            pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
+            pt.for <- ts(1/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            states <- 1/crostonModel$states;
+        }
+
         logLik <- logLik(crostonModel);
         C <- c(crostonModel$persistence,crostonModel$states[1,]);
         names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
                       paste0("state ",c(1:length(crostonModel$states[1,]))))
 
-        output <- list(fitted=pt,forecast=pt.for,states=1/crostonModel$states,variance=pt.for*(1-pt.for),
+        output <- list(fitted=pt,forecast=pt.for,states=states,variance=pt.for*(1-pt.for),
                       logLik=logLik,nParam=crostonModel$nParam,residuals=crostonModel$residuals,C=C,actuals=otAll);
     }
 #### TSB method ####
