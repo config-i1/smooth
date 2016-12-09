@@ -1659,8 +1659,8 @@ quantfunc <- function(A){
                     }
                 }
                 # Produce quantiles for log-normal dist with the specified variance
-                upperquant <- qlnorm(0.975,0,sqrt(vec.var));
-                lowerquant <- qlnorm(0.025,0,sqrt(vec.var));
+                upperquant <- qlnorm((1+level)/2,0,sqrt(vec.var));
+                lowerquant <- qlnorm((1-level)/2,0,sqrt(vec.var));
                 # These two allow to return mean instead of median...
                 #vec.mean <- exp((vec.var)/2);
                 #y.for <- exp(log(y.for) + (vec.var)/2);

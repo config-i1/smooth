@@ -8,6 +8,10 @@ Changes:
 * iss function now also does the same...
 * Introduced "SBA" as a separate method for intermittent demand.
 
+Bugfixes:
+
+* Parametric prediction intervals for iSS models always had width of 95%. This is now fixed.
+
 
 smooth v1.5.1 (Release date: 2016-11-30)
 ==============
