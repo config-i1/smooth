@@ -740,7 +740,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(pt[1,]==1 & all(intermittent!=c("n","p"))){
+    if(all(pt==1) & all(intermittent!=c("n","p"))){
         intermittent <- "n";
     }
 

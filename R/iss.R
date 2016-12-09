@@ -28,6 +28,8 @@ intermittentParametersSetter <- function(intermittent="n",...){
 
 # If number of observations is low, set intermittency to "none"
     if(obsNonzero < 5){
+        warning(paste0("Not enough non-zero observations for intermittent state-space model. We need at least 5.\n",
+                       "Changing intermittent to 'n'."),call.=FALSE);
         intermittent <- "n";
     }
 
