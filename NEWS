@@ -11,6 +11,7 @@ Changes:
 Bugfixes:
 
 * Parametric prediction intervals for iSS models always had width of 95%. This is now fixed.
+* Corrected bug in Croston's iSS, where the last observation of data was included as non-zero demand.
 
 
 smooth v1.5.1 (Release date: 2016-11-30)

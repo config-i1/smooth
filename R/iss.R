@@ -143,23 +143,34 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
 # Define the matrix of states
         ivt <- matrix(rep(iprob,obsInsample+1),obsInsample+1,1);
 # Define the matrix of actuals as intervals between demands
-        zeroes <- c(0,which(y!=0),obsInsample+1);
+        # zeroes <- c(0,which(y!=0),obsInsample+1);
+        zeroes <- c(0,which(y!=0));
 ### With this thing we fit model of the type 1/(1+qt)
 #        zeroes <- diff(zeroes)-1;
         zeroes <- diff(zeroes);
 # Number of intervals in Croston
         iyt <- matrix(zeroes,length(zeroes),1);
-        crostonModel <- es(iyt,model=model,intervals=FALSE,int.w=0.95,silent=TRUE,h=h,persistence=persistence);
+        newh <- which(y!=0)
+        newh <- newh[length(newh)];
+        newh <- obsInsample - newh + h
+        crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,persistence=persistence);
 
-        zeroes[length(zeroes)] <- zeroes[length(zeroes)] - 1;
+        zeroes[length(zeroes)] <- zeroes[length(zeroes)];
+        pt <- rep((crostonModel$fitted),zeroes);
+        tailNumber <- obsInsample - length(pt);
+        if(tailNumber>0){
+            pt <- c(pt,crostonModel$forecast[1:tailNumber]);
+        }
+        pt.for <- crostonModel$forecast[(tailNumber+1):newh];
+
         if(sbaCorrection){
-            pt <- ts(rep((1-sum(crostonModel$persistence)/2)/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
-            pt.for <- ts((1-sum(crostonModel$persistence)/2)/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            pt <- ts((1-sum(crostonModel$persistence)/2)/pt,start=start(y),frequency=frequency(y));
+            pt.for <- ts((1-sum(crostonModel$persistence)/2)/pt.for, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
             states <- 1/crostonModel$states;
         }
         else{
-            pt <- ts(rep(1/(crostonModel$fitted),zeroes),start=start(y),frequency=frequency(y));
-            pt.for <- ts(1/(crostonModel$forecast), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            pt <- ts(1/pt,start=start(y),frequency=frequency(y));
+            pt.for <- ts(1/pt.for, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
             states <- 1/crostonModel$states;
         }
 
