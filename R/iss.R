@@ -271,7 +271,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         pt.for <- ts(rep(1,h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
         errors <- ts(rep(0,obsInsample), start=start(y), frequency=frequency(y));
         output <- list(fitted=pt,states=pt,forecast=pt.for,variance=rep(0,h),
-                      logLik=NULL,nParam=0,residuals=errors,C=c(0,1),actuals=pt);
+                      logLik=NA,nParam=0,residuals=errors,C=c(0,1),actuals=pt);
     }
     output$intermittent <- intermittent;
     return(structure(output,class="iss"));
