@@ -910,14 +910,16 @@ CreatorES <- function(silent=FALSE,...){
 # If auto intermittent, then estimate model with intermittent="n" first.
     if(any(intermittent==c("a","n"))){
         intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
-        if(Etype=="M"){
-            Etype <- "A";
-        }
-        if(Ttype=="M"){
-            Ttype <- "A";
-        }
-        if(Stype=="M"){
-            Stype <- "A";
+        if(intermittent=="a"){
+            if(Etype=="M"){
+                Etype <- "A";
+            }
+            if(Ttype=="M"){
+                Ttype <- "A";
+            }
+            if(Stype=="M"){
+                Stype <- "A";
+            }
         }
     }
     else{
