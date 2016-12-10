@@ -904,9 +904,21 @@ CreatorES <- function(silent=FALSE,...){
     environment(ssFitter) <- environment();
     environment(ssForecaster) <- environment();
 
+    EtypeOriginal <- Etype;
+    TtypeOriginal <- Ttype;
+    StypeOriginal <- Stype;
 # If auto intermittent, then estimate model with intermittent="n" first.
     if(any(intermittent==c("a","n"))){
         intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
+        if(Etype=="M"){
+            Etype <- "A";
+        }
+        if(Ttype=="M"){
+            Ttype <- "A";
+        }
+        if(Stype=="M"){
+            Stype <- "A";
+        }
     }
     else{
         intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
@@ -916,6 +928,9 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
+        Etype <- EtypeOriginal;
+        Ttype <- TtypeOriginal;
+        Stype <- StypeOriginal;
         if(cfType!="MSE"){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
         }
