@@ -1,4 +1,4 @@
-smooth v1.5.2 (Release date: 2016-12-02)
+smooth v1.5.2 (Release date: 2016-12-10)
 ==============
 
 Changes:
@@ -12,6 +12,7 @@ Bugfixes:
 
 * Parametric prediction intervals for iSS models always had width of 95%. This is now fixed.
 * Corrected bug in Croston's iSS, where the last observation of data was included as non-zero demand.
+* Fixed a bug when MNN was fit to intermittent data without intermittency.
 
 
 smooth v1.5.1 (Release date: 2016-11-30)
