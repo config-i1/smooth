@@ -112,6 +112,38 @@ cbias <- function(x,C=mean(x),digits=5,...)
     return(result);
 }
 
+sPIS <- function(actual,forecast,scale,digits=3){
+# This function calculates scaled Periods-In-Stock.
+# actual - actual values,
+# forecast - forecasted values.
+# scale - the measure to scale errors with.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        message("Can't procede further on.");
+    }
+    else{
+        return(round(sum(cumsum(forecast-actual))/scale,digits=digits));
+    }
+}
+
+sCE <- function(actual,forecast,scale,digits=3){
+# This function calculates scaled Cumulative Error.
+# actual - actual values,
+# forecast - forecasted values.
+# scale - the measure to scale errors with.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        message("Can't procede further on.");
+    }
+    else{
+        return(round(sum(forecast-actual)/scale,digits=digits));
+    }
+}
+
 errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
     holdout <- as.vector(holdout);
     forecast <- as.vector(forecast);
@@ -123,8 +155,10 @@ errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
                        MASE(holdout,forecast,mean(abs(diff(actuals))),digits=digits),
                        MASE(holdout,forecast,mean(abs(actuals)),digits=digits),
                        RelMAE(holdout,forecast,rep(actuals[length(actuals)],length(holdout)),digits=digits),
-                       sMSE(holdout,forecast,mean(abs(actuals[actuals!=0]))^2,digits=digits));
-    names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE");
+                       sMSE(holdout,forecast,mean(abs(actuals[actuals!=0]))^2,digits=digits),
+                       sPIS(holdout,forecast,mean(abs(actuals[actuals!=0])),digits=digits),
+                       sCE(holdout,forecast,mean(abs(actuals[actuals!=0])),digits=digits));
+    names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE","sPIS","sCE");
 
     return(errormeasures);
 }

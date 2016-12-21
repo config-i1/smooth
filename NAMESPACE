@@ -6,7 +6,7 @@ importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median
 importFrom("utils", packageVersion)
 export(es, ges, ces, ssarima, iss, sma, auto.ces, auto.ssarima)
 export(sim.es, sim.ssarima, sim.ces)
-export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias)
+export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias, sPIS, sCE)
 export(graphmaker, forecast, forecast.smooth, AICc, orders, lags, modelType)
 
 S3method(logLik,smooth)

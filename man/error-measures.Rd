@@ -6,6 +6,8 @@
 \alias{MASE}
 \alias{RelMAE}
 \alias{sMSE}
+\alias{sPIS}
+\alias{sCE}
 
 \title{
     Error measures
@@ -18,7 +20,9 @@
         \item{SMAPE - Symmetric Mean Absolute Percentage Error,}
         \item{MASE - Mean Absolute Scaled Error,}
         \item{RelMAE - Average Rellative Mean Absolute Error,}
-        \item{sMSE - Scaled Mean Squared Error.}
+        \item{sMSE - Scaled Mean Squared Error,}
+        \item{sPIS- Scaled Periods-In-Stock,}
+        \item{sCE - Scaled Cumulative Error.}
     }
 
     In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical one -- squared mean value of in-sample actuals.
@@ -30,6 +34,8 @@
     MASE(actual,forecast,scale,digits=3)
     RelMAE(actual,forecast,benchmark,digits=3)
     sMSE(actual,forecast,scale,digits=3)
+    sPIS(actual,forecast,scale,digits=3)
+    sCE(actual,forecast,scale,digits=3)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -63,6 +69,9 @@
         \item{
             Hyndman R.J., Koehler A.B. (2006). Another look at measures of forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
         }
+        \item{
+            Petropoulos F., Kourentzes N. (2015). Forecast combinations for intermittent demand. Journal of the Operational Research Society, 66, pp.914-924.
+        }
     }
 }
 \author{
@@ -83,6 +92,10 @@ esmodel2 <- es(y[1:90],model="AAN",h=10)
 RelMAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
 
 MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90]))^2,digits=5)
+
+sMSE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+sPIS(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+sCE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
 }
 \keyword{ error measures }
 \keyword{ forecasting }
