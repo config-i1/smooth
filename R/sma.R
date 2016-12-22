@@ -170,7 +170,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   order=order, initialType=initialType, nParam=n.param,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
-                  actuals=data,holdout=y.holdout,
+                  actuals=data,holdout=y.holdout,intermittent="none",
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }
