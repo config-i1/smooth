@@ -4,6 +4,7 @@ smooth v1.6.0 (Release date: 2016-12-31)
 Changes:
 
 * iSS models now return relevant error measures.
+* es() now allows combining a pool of models, when the list includes "CCC".
 
 
 smooth v1.5.2 (Release date: 2016-12-18)

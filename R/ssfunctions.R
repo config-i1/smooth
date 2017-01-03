@@ -98,39 +98,46 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         # Predefine models pool for a model selection
-        models.pool <- NULL;
+        modelsPool <- NULL;
         # Deal with the list of models. Check what has been provided. Stop if there is a mistake.
         if(length(model)>1){
             if(any(nchar(model)>4)){
                 stop(paste0("You have defined strange model(s) in the pool: ",
                             paste0(model[nchar(model)>4],collapse=",")),call.=FALSE);
             }
-            else if(any(substr(model,1,1)!="A" & substr(model,1,1)!="M")){
+            else if(any(substr(model,1,1)!="A" & substr(model,1,1)!="M" & substr(model,1,1)!="C")){
                 stop(paste0("You have defined strange model(s) in the pool: ",
                             paste0(model[substr(model,1,1)!="A" & substr(model,1,1)!="M"],collapse=",")),call.=FALSE);
             }
             else if(any(substr(model,2,2)!="N" & substr(model,2,2)!="A" &
-                        substr(model,2,2)!="M")){
+                        substr(model,2,2)!="M" & substr(model,2,2)!="C")){
                 stop(paste0("You have defined strange model(s) in the pool: ",
                             paste0(model[substr(model,2,2)!="N" & substr(model,2,2)!="A" &
                                              substr(model,2,2)!="M"],collapse=",")),call.=FALSE);
             }
             else if(any(substr(model,3,3)!="N" & substr(model,3,3)!="A" &
-                        substr(model,3,3)!="M" & substr(model,3,3)!="d")){
+                        substr(model,3,3)!="M" & substr(model,3,3)!="d" & substr(model,3,3)!="C")){
                 stop(paste0("You have defined strange model(s) in the pool: ",
                             paste0(model[substr(model,3,3)!="N" & substr(model,3,3)!="A" &
                                              substr(model,3,3)!="M" & substr(model,3,3)!="d"],collapse=",")),call.=FALSE);
             }
-            else if(any(nchar(model)==4 & substr(model,4,4)!="N" &
-                        substr(model,4,4)!="A" & substr(model,4,4)!="M")){
+            else if(any(nchar(model)==4 & substr(model,4,4)!="N" & substr(model,4,4)!="A" &
+                        substr(model,4,4)!="M" & substr(model,4,4)!="C")){
                 stop(paste0("You have defined strange model(s) in the pool: ",
                             paste0(model[nchar(model)==4 & substr(model,4,4)!="N" &
                                              substr(model,4,4)!="A" & substr(model,4,4)!="M"],collapse=",")),call.=FALSE);
             }
             else{
-                models.pool <- model;
+                modelsPoolCombiner <- (substr(model,1,1)=="C" | substr(model,2,2)=="C" |
+                                         substr(model,3,3)=="C" | substr(model,4,4)=="C");
+                modelsPool <- model[!modelsPoolCombiner];
+                if(any(modelsPoolCombiner)){
+                    model <- "CCC";
+                }
+                else{
+                    model <- "ZZZ";
+                }
             }
-            model <- "ZZZ";
         }
 
         # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
@@ -164,7 +171,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         # Define if we want to select or combine models... or do none of the above.
-        if(is.null(models.pool)){
+        if(is.null(modelsPool)){
             if(any(unlist(strsplit(model,""))=="C")){
                 modelDo <- "combine";
                 if(Etype=="C"){
@@ -187,7 +194,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
 
             if(any(unlist(strsplit(model,""))=="X") | any(unlist(strsplit(model,""))=="Y")){
-                models.pool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
+                modelsPool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
                                  "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
                                  "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
                 if(datafreq==1){
@@ -199,66 +206,71 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
                 # Restrict error types in the pool
                 if(Etype=="X"){
-                    models.pool <- models.pool[substr(models.pool,1,1)=="A"];
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)=="A"];
                     Etype <- "Z";
                 }
                 else if(Etype=="Y"){
-                    models.pool <- models.pool[substr(models.pool,1,1)=="M"];
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)=="M"];
                     Etype <- "Z";
                 }
                 else{
                     if(Etype!="Z"){
-                        models.pool <- models.pool[substr(models.pool,1,1)==Etype];
+                        modelsPool <- modelsPool[substr(modelsPool,1,1)==Etype];
                     }
                 }
                 # Restrict trend types in the pool
                 if(Ttype=="X"){
-                    models.pool <- models.pool[substr(models.pool,2,2)=="A" | substr(models.pool,2,2)=="N"];
+                    modelsPool <- modelsPool[substr(modelsPool,2,2)=="A" | substr(modelsPool,2,2)=="N"];
                     Ttype <- "Z";
                 }
                 else if(Ttype=="Y"){
-                    models.pool <- models.pool[substr(models.pool,2,2)=="M" | substr(models.pool,2,2)=="N"];
+                    modelsPool <- modelsPool[substr(modelsPool,2,2)=="M" | substr(modelsPool,2,2)=="N"];
                     Ttype <- "Z";
                 }
                 else{
                     if(Ttype!="Z"){
-                        models.pool <- models.pool[substr(models.pool,2,2)==Ttype];
+                        modelsPool <- modelsPool[substr(modelsPool,2,2)==Ttype];
                         if(damped){
-                            models.pool <- models.pool[nchar(models.pool)==4];
+                            modelsPool <- modelsPool[nchar(modelsPool)==4];
                         }
                     }
                 }
                 # Restrict season types in the pool
                 if(Stype=="X"){
-                    models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="A" |
-                                               substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A" |
+                                               substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
                     Stype <- "Z";
                 }
                 else if(Stype=="Y"){
-                    models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="M" |
-                                               substr(models.pool,nchar(models.pool),nchar(models.pool))=="N" ];
+                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M" |
+                                               substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
                     Stype <- "Z";
                 }
                 else{
                     if(Stype!="Z"){
-                        models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))==Stype];
+                        modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))==Stype];
                     }
                 }
             }
         }
         else{
-            modelDo <- "select";
+            if(any(unlist(strsplit(model,""))=="C")){
+                modelDo <- "combine";
+            }
+            else{
+                modelDo <- "select";
+            }
         }
 
         ### Check error type
-        if(all(Etype!=c("Z","X","Y","A","M"))){
+        if(all(Etype!=c("Z","X","Y","A","M","C"))){
             warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'Y', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Etype <- "Z";
         }
 
         ### Check trend type
-        if(all(Ttype!=c("Z","X","Y","N","A","M"))){
+        if(all(Ttype!=c("Z","X","Y","N","A","M","C"))){
             warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Ttype <- "Z";
@@ -454,7 +466,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         ### Check seasonality type
-        if(all(Stype!=c("Z","X","Y","N","A","M"))){
+        if(all(Stype!=c("Z","X","Y","N","A","M","C"))){
             warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.",
                            "Setting to 'Z'."),call.=FALSE);
             if(datafreq==1){
@@ -955,7 +967,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         # Check the length of the provided data. Say bad words if:
         # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
         # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
-        if(is.null(models.pool)){
+        if(is.null(modelsPool)){
             if((Stype!="N" & (obsInsample <= 2*datafreq) & is.null(initialSeason)) |
                (Stype!="N" & (obsInsample <= datafreq) & is.null(initialSeason) & is.null(persistence))){
                 if(is.null(initialSeason)){
@@ -1112,7 +1124,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     if(modelType=="es"){
         assign("model",model,ParentEnvironment);
-        assign("models.pool",models.pool,ParentEnvironment);
+        assign("modelsPool",modelsPool,ParentEnvironment);
         assign("Etype",Etype,ParentEnvironment);
         assign("Ttype",Ttype,ParentEnvironment);
         assign("Stype",Stype,ParentEnvironment);

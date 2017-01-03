@@ -13,7 +13,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
-               xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+               xreg=NULL, xregDo=c("nothing","select","combine"), initialX=NULL, updateX=FALSE,
+               persistenceX=NULL, transitionX=NULL, ...){
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -340,47 +341,47 @@ BasicInitialiserES <- function(...){
         }
 
         # We have enough observations for local level model
-        if(obsNonzero > (3 + n.param.exo) & is.null(models.pool)){
-            models.pool <- c("ANN");
+        if(obsNonzero > (3 + n.param.exo) & is.null(modelsPool)){
+            modelsPool <- c("ANN");
             if(allowMultiplicative){
-                models.pool <- c(models.pool,"MNN");
+                modelsPool <- c(modelsPool,"MNN");
             }
             # We have enough observations for trend model
             if(obsNonzero > (5 + n.param.exo)){
-                models.pool <- c(models.pool,"AAN");
+                modelsPool <- c(modelsPool,"AAN");
                 if(allowMultiplicative){
-                    models.pool <- c(models.pool,"AMN","MAN","MMN");
+                    modelsPool <- c(modelsPool,"AMN","MAN","MMN");
                 }
             }
             # We have enough observations for damped trend model
             if(obsNonzero > (6 + n.param.exo)){
-                models.pool <- c(models.pool,"AAdN");
+                modelsPool <- c(modelsPool,"AAdN");
                 if(allowMultiplicative){
-                    models.pool <- c(models.pool,"AMdN","MAdN","MMdN");
+                    modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
                 }
             }
             # We have enough observations for seasonal model
             if((obsNonzero > (2*datafreq)) & datafreq!=1){
-                models.pool <- c(models.pool,"ANA");
+                modelsPool <- c(modelsPool,"ANA");
                 if(allowMultiplicative){
-                    models.pool <- c(models.pool,"ANM","MNA","MNM");
+                    modelsPool <- c(modelsPool,"ANM","MNA","MNM");
                 }
             }
             # We have enough observations for seasonal model with trend
             if((obsNonzero > (6 + datafreq + n.param.exo)) & (obsNonzero > 2*datafreq) & datafreq!=1){
-                models.pool <- c(models.pool,"AAA");
+                modelsPool <- c(modelsPool,"AAA");
                 if(allowMultiplicative){
-                    models.pool <- c(models.pool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
+                    modelsPool <- c(modelsPool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
                 }
             }
 
             warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
-                if(length(models.pool)>2){
+                if(length(modelsPool)>2){
                     model <- "CCN";
                 }
-                if(length(models.pool)>10){
+                if(length(modelsPool)>10){
                     model <- "CCC";
                 }
             }
@@ -388,40 +389,40 @@ BasicInitialiserES <- function(...){
                 model <- "ZZZ";
             }
         }
-        else if(obsNonzero > (3 + n.param.exo) & !is.null(models.pool)){
-            models.pool.new <- models.pool;
+        else if(obsNonzero > (3 + n.param.exo) & !is.null(modelsPool)){
+            modelsPool.new <- modelsPool;
             # We don't have enough observations for seasonal models with damped trend
             if((obsNonzero <= (6 + datafreq + 1 + n.param.exo))){
-                models.pool <- models.pool[!(nchar(models.pool)==4 &
-                                           substr(models.pool,nchar(models.pool),nchar(models.pool))=="A")];
-                models.pool <- models.pool[!(nchar(models.pool)==4 &
-                                           substr(models.pool,nchar(models.pool),nchar(models.pool))=="M")];
+                modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
+                                           substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A")];
+                modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
+                                           substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M")];
             }
             # We don't have enough observations for seasonal models with trend
             if((obsNonzero <= (5 + datafreq + 1 + n.param.exo))){
-                models.pool <- models.pool[!(substr(models.pool,2,2)!="N" &
-                                             substr(models.pool,nchar(models.pool),nchar(models.pool))!="N")];
+                modelsPool <- modelsPool[!(substr(modelsPool,2,2)!="N" &
+                                             substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
             }
             # We don't have enough observations for seasonal models
             if(obsNonzero <= 2*datafreq){
-                models.pool <- models.pool[substr(models.pool,nchar(models.pool),nchar(models.pool))=="N"];
+                modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
             }
             # We don't have enough observations for damped trend
             if(obsNonzero <= (6 + n.param.exo)){
-                models.pool <- models.pool[nchar(models.pool)!=4];
+                modelsPool <- modelsPool[nchar(modelsPool)!=4];
             }
             # We don't have enough observations for any trend
             if(obsNonzero <= (5 + n.param.exo)){
-                models.pool <- models.pool[substr(models.pool,2,2)=="N"];
+                modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
             warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
             if(modelDo=="combine"){
                 model <- "CNN";
-                if(length(models.pool)>2){
+                if(length(modelsPool)>2){
                     model <- "CCN";
                 }
-                if(length(models.pool)>10){
+                if(length(modelsPool)>10){
                     model <- "CCC";
                 }
             }
@@ -538,11 +539,11 @@ PoolPreparerES <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
     environment(EstimatorES) <- environment();
 
-    if(!is.null(models.pool)){
-        models.number <- length(models.pool);
+    if(!is.null(modelsPool)){
+        modelsNumber <- length(modelsPool);
 
 # List for the estimated models in the pool
-        results <- as.list(c(1:models.number));
+        results <- as.list(c(1:modelsNumber));
         j <- 0;
     }
     else{
@@ -703,12 +704,12 @@ PoolPreparerES <- function(...){
                 }
             }
 
-            models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
+            modelsPool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
                                   trends.pool,
                                   rep(season.pool,each=length(trends.pool)));
 
-            models.pool <- unique(c(tested.model,models.pool));
-            models.number <- length(models.pool);
+            modelsPool <- unique(c(tested.model,modelsPool));
+            modelsNumber <- length(modelsPool);
             j <- length(tested.model);
         }
         else{
@@ -728,15 +729,15 @@ PoolPreparerES <- function(...){
                 season.pool <- Stype;
             }
 
-            models.number <- (length(errors.pool)*length(trends.pool)*length(season.pool));
-            models.pool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
+            modelsNumber <- (length(errors.pool)*length(trends.pool)*length(season.pool));
+            modelsPool <- paste0(rep(errors.pool,each=length(trends.pool)*length(season.pool)),
                                   trends.pool,
                                   rep(season.pool,each=length(trends.pool)));
             j <- 0;
         }
     }
-    assign("models.pool",models.pool,ParentEnvironment);
-    assign("models.number",models.number,ParentEnvironment);
+    assign("modelsPool",modelsPool,ParentEnvironment);
+    assign("modelsNumber",modelsNumber,ParentEnvironment);
     assign("j",j,ParentEnvironment);
     assign("results",results,ParentEnvironment);
 }
@@ -751,17 +752,17 @@ PoolEstimatorES <- function(silent=FALSE,...){
         cat("Estimation progress:    ");
     }
 # Start loop of models
-    while(j < models.number){
+    while(j < modelsNumber){
         j <- j + 1;
         if(!silent){
             if(j==1){
                 cat("\b");
             }
-            cat(paste0(rep("\b",nchar(round((j-1)/models.number,2)*100)+1),collapse=""));
-            cat(paste0(round(j/models.number,2)*100,"%"));
+            cat(paste0(rep("\b",nchar(round((j-1)/modelsNumber,2)*100)+1),collapse=""));
+            cat(paste0(round(j/modelsNumber,2)*100,"%"));
         }
 
-        current.model <- models.pool[j];
+        current.model <- modelsPool[j];
         Etype <- substring(current.model,1,1);
         Ttype <- substring(current.model,2,2);
         if(nchar(current.model)==4){
@@ -788,8 +789,8 @@ PoolEstimatorES <- function(silent=FALSE,...){
     if(!silent){
         cat("... Done! \n");
     }
-    icSelection <- matrix(NA,models.number,3);
-    for(i in 1:models.number){
+    icSelection <- matrix(NA,modelsNumber,3);
+    for(i in 1:modelsNumber){
         icSelection[i,] <- as.numeric(results[[i]][1:3]);
     }
     colnames(icSelection) <- names(results[[1]])[1:3]
@@ -1045,14 +1046,14 @@ CreatorES <- function(silent=FALSE,...){
 
         modelOriginal <- model;
         # Produce the forecasts using AIC weights
-        models.number <- length(icWeights);
-        model.current <- rep(NA,models.number);
-        fitted.list <- matrix(NA,obsInsample,models.number);
-        errors.list <- matrix(NA,obsInsample,models.number);
-        forecasts.list <- matrix(NA,h,models.number);
+        modelsNumber <- length(icWeights);
+        model.current <- rep(NA,modelsNumber);
+        fitted.list <- matrix(NA,obsInsample,modelsNumber);
+        errors.list <- matrix(NA,obsInsample,modelsNumber);
+        forecasts.list <- matrix(NA,h,modelsNumber);
         if(intervals){
-             lower.list <- matrix(NA,h,models.number);
-             upper.list <- matrix(NA,h,models.number);
+             lower.list <- matrix(NA,h,modelsNumber);
+             upper.list <- matrix(NA,h,modelsNumber);
         }
 
         for(i in 1:length(icWeights)){
