@@ -13,8 +13,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
-               xreg=NULL, xregDo=c("nothing","select","combine"), initialX=NULL, updateX=FALSE,
-               persistenceX=NULL, transitionX=NULL, ...){
+               xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
