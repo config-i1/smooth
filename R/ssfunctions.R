@@ -2392,7 +2392,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             cat(paste0(round(insideintervals,0), "% of values are in the prediction interval\n"));
         }
         cat("Forecast errors:\n");
-        if(intermittent=="n"){
+        if(any(intermittent==c("none","n"))){
             cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
                       paste0("Bias: ",errormeasures["cbias"]*100,"%"),
                       paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
