@@ -4,11 +4,21 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
     if(!is.data.frame(ourData)){
         ourData <- as.data.frame(ourData);
     }
+    ic <- ic[1];
+    if(ic=="AIC"){
+        IC <- AIC;
+    }
+    else if(ic=="AICc"){
+        IC <- AICc;
+    }
+    else if(ic=="BIC"){
+        IC <- BIC;
+    }
     ourncols <- ncol(ourData) - 1;
     bestICNotFound <- TRUE;
     testFormula <- paste0(colnames(ourData)[1],"~ 1");
     testModel <- lm(as.formula(testFormula),data=ourData);
-    currentIC <- bestIC <- AIC(testModel);
+    currentIC <- bestIC <- IC(testModel);
     ourData <- cbind(ourData,residuals(testModel));
     colnames(ourData)[ncol(ourData)] <- "const resid";
     bestFormula <- testFormula;
@@ -20,9 +30,13 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
         ourCorrelation <- ourCorrelation[1:ourncols];
         newElement <- which(abs(ourCorrelation)==max(abs(ourCorrelation)))[1];
         newElement <- names(ourCorrelation)[newElement];
+        if(any(newElement==all.vars(as.formula(bestFormula))[-1])){
+            bestICNotFound <- FALSE;
+            break;
+        }
         testFormula <- paste0(testFormula,"+",newElement);
         testModel <- lm(as.formula(testFormula),data=ourData);
-        currentIC <- AIC(testModel);
+        currentIC <- IC(testModel);
         if(!silent){
             cat(testFormula); cat(", "); cat(currentIC); cat("\n");
             cat(round(ourCorrelation,3)); cat("\n\n");
