@@ -2,12 +2,13 @@ import(zoo, Rcpp)
 importFrom("nloptr", nloptr)
 importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
 importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median,coef,optim,nlminb,
-           cor,qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate,nobs,logLik)
+           cor,qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate,nobs,logLik,
+           lm,as.formula,residuals)
 importFrom("utils", packageVersion)
 export(es, ges, ces, ssarima, iss, sma, auto.ces, auto.ssarima)
 export(sim.es, sim.ssarima, sim.ces)
 export(sowhat, MPE, MAPE, SMAPE, MASE, RelMAE, sMSE, hm, cbias, sPIS, sCE)
-export(graphmaker, forecast, forecast.smooth, AICc, orders, lags, modelType)
+export(graphmaker, forecast, forecast.smooth, AICc, orders, lags, modelType, stepwise)
 
 S3method(logLik,smooth)
 S3method(logLik,smooth.sim)

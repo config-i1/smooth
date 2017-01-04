@@ -4,14 +4,15 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 
 ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 persistence=NULL, transition=NULL, measurement=NULL,
-                initial=c("optimal","backcasting"),
+                initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
-                xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
 #    Copyright (C) 2016  Ivan Svetunkov
@@ -68,17 +69,34 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
-    n.exovars <- xregdata$n.exovars;
-    matxt <- xregdata$matxt;
-    matat <- xregdata$matat;
-    matFX <- xregdata$matFX;
-    vecgX <- xregdata$vecgX;
+
+    if(xregDo=="n"){
+        n.exovars <- xregdata$n.exovars;
+        matxt <- xregdata$matxt;
+        matat <- xregdata$matat;
+        xregEstimate <- xregdata$xregEstimate;
+        matFX <- xregdata$matFX;
+        vecgX <- xregdata$vecgX;
+    }
+    else{
+        n.exovars <- 1;
+        n.exovarsOriginal <- xregdata$n.exovars;
+        matxtOriginal <- xregdata$matxt;
+        matatOriginal <- xregdata$matat;
+        xregEstimateOriginal <- xregdata$xregEstimate;
+        matFXOriginal <- xregdata$matFX;
+        vecgXOriginal <- xregdata$vecgX;
+
+        matxt <- matrix(0,nrow(matxtOriginal),1);
+        matat <- matrix(0,nrow(matatOriginal),1);
+        xregEstimate <- FALSE;
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(1,1,1);
+    }
     xreg <- xregdata$xreg;
-    xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
-    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -301,12 +319,17 @@ CreatorGES <- function(silentText=FALSE,...){
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
-    icBest <- ICs["AICc"];
+    icBest <- ICs[ic];
 
 # Revert to the provided cost function
     cfType <- cfTypeOriginal
 
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,logLik=logLik));
+}
+
+##### Xreg Selector #####
+xregSelector <- function(silentText=FALSE,...){
+    gesValues <- CreatorGES(silentText=silentText);
 }
 
 ##### Start the calculations #####
@@ -371,6 +394,52 @@ CreatorGES <- function(silentText=FALSE,...){
 
     list2env(gesValues,environment());
 
+    if(xregDo!="n"){
+# Prepare for fitting
+        elements <- ElementsGES(C);
+        matw <- elements$matw;
+        matF <- elements$matF;
+        vecg <- elements$vecg;
+        matvt[1:maxlag,] <- elements$vt;
+        matat[1:maxlag,] <- elements$at;
+        matFX <- elements$matFX;
+        vecgX <- elements$vecgX;
+
+        gesValues <- xregSelector(silentText=silentText);
+        ssFitter(ParentEnvironment=environment());
+
+        xregNames <- colnames(matxtOriginal);
+        xregNew <- cbind(errors,xreg[1:nrow(errors),]);
+        colnames(xregNew)[1] <- "errors";
+        colnames(xregNew)[-1] <- xregNames;
+        xregNew <- as.data.frame(xregNew);
+        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE);
+        xregNames <- names(coef(xregResults$model))[-1];
+        matxt <- as.data.frame(matxtOriginal)[,xregNames];
+        matat <- as.data.frame(matatOriginal)[,xregNames];
+        if(is.null(dim(matxt))){
+            matxt <- matrix(matxt,ncol=1);
+            matat <- matrix(matat,ncol=1);
+            colnames(matxt) <- colnames(matat) <- xregNames;
+        }
+        else{
+            matxt <- as.matrix(matxt);
+            matat <- as.matrix(matat);
+        }
+        xregEstimate <- TRUE;
+        n.exovars <- ncol(matxt);
+        matFX <- diag(n.exovars);
+        vecgX <- matrix(0,n.exovars,1);
+
+        gesValues <- CreatorGES(silentText=TRUE);
+
+        list2env(gesValues,environment());
+    }
+
+    if(!is.null(xreg)){
+        xregNames <- colnames(matat);
+        xreg <- matxt[,xregNames];
+    }
 # Prepare for fitting
     elements <- ElementsGES(C);
     matw <- elements$matw;

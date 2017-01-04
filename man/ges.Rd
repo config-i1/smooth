@@ -10,14 +10,15 @@ Function constructs General Exponential Smoothing, estimating matrices F, w, vec
 \usage{
 ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     persistence=NULL, transition=NULL, measurement=NULL,
-    initial=c("optimal","backcasting"),
+    initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
     cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
     h=10, holdout=FALSE,
     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
     intermittent=c("none","auto","fixed","croston","tsb","sba"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
-    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+    xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+    updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -42,6 +43,9 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
   }
   \item{initial}{
     Can be either character or a vector of initial states. If it is character, then it can be \code{"optimal"}, meaning that the initial states are optimised, or \code{"backcasting"}, meaning that the initials are produced using backcasting procedure.
+  }
+  \item{ic}{
+    Information criterion to use in model selection.
   }
   \item{cfType}{
     Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"}, then likelihood and model selection is done based on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
@@ -85,6 +89,9 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
   }
   \item{xreg}{
     Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
+  }
+  \item{xregDo}{
+    Variable defines what to do with the provided xreg: \code{"nothing"} means that all of the data should be used, whilie \code{"select"} means that a selection using \code{ic} should be done. \code{"combine"} will be available at some point in future...
   }
   \item{initialX}{
     Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.

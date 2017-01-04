@@ -617,7 +617,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         bounds <- "u";
     }
 
-    if(modelType=="es"){
+    if(any(modelType==c("es","ges"))){
         ##### Information Criteria #####
         ic <- ic[1];
         if(all(ic!=c("AICc","AIC","BIC"))){
@@ -1091,6 +1091,11 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     normalizer <- mean(abs(diff(c(y))));
 
+    if(!exists("xregDo")){
+        xregDo <- "n";
+    }
+    xregDo <- substr(xregDo[1],1,1);
+
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
@@ -1121,6 +1126,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
     assign("n.param.max",n.param.max,ParentEnvironment);
+    assign("xregDo",xregDo,ParentEnvironment);
 
     if(modelType=="es"){
         assign("model",model,ParentEnvironment);
@@ -1141,6 +1147,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("measurementEstimate",measurementEstimate,ParentEnvironment);
         assign("orders",orders,ParentEnvironment);
         assign("lags",lags,ParentEnvironment);
+        assign("ic",ic,ParentEnvironment);
     }
     else if(modelType=="ssarima"){
         assign("ar.orders",ar.orders,ParentEnvironment);
@@ -1980,9 +1987,11 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 }
                 if(is.null(names(xreg))){
                     colnames(matat) <- "x";
+                    colnames(matxt) <- "x";
                 }
                 else{
                     colnames(matat) <- names(xreg);
+                    colnames(matxt) <- names(xreg);
                 }
             }
         }
@@ -2063,9 +2072,11 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 }
                 if(is.null(colnames(xreg))){
                     colnames(matat) <- paste0("x",c(1:n.exovars));
+                    colnames(matxt) <- paste0("x",c(1:n.exovars));
                 }
                 else{
                     colnames(matat) <- colnames(xreg);
+                    colnames(matxt) <- colnames(xreg);
                 }
             }
         }

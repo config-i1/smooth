@@ -1,6 +1,9 @@
-regressorsSelector <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
-    ##### Function that selects variables based on AIC and using partial correlations
+stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
+##### Function that selects variables based on IC and using partial correlations
     ourData <- data;
+    if(!is.data.frame(ourData)){
+        ourData <- as.data.frame(ourData);
+    }
     ourncols <- ncol(ourData) - 1;
     bestICNotFound <- TRUE;
     testFormula <- paste0(colnames(ourData)[1],"~ 1");
@@ -13,7 +16,8 @@ regressorsSelector <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
     while(bestICNotFound){
         ourCorrelation <- cor(ourData);
         ourCorrelation <- ourCorrelation[-1,-1];
-        ourCorrelation <- ourCorrelation[nrow(ourCorrelation),1:ourncols];
+        ourCorrelation <- ourCorrelation[nrow(ourCorrelation),];
+        ourCorrelation <- ourCorrelation[1:ourncols];
         newElement <- which(abs(ourCorrelation)==max(abs(ourCorrelation)))[1];
         newElement <- names(ourCorrelation)[newElement];
         testFormula <- paste0(testFormula,"+",newElement);
@@ -23,7 +27,7 @@ regressorsSelector <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
             cat(testFormula); cat(", "); cat(currentIC); cat("\n");
             cat(round(ourCorrelation,3)); cat("\n\n");
         }
-        if(currentIC > bestIC){
+        if(currentIC >= bestIC){
             bestICNotFound <- FALSE;
         }
         else{
@@ -34,5 +38,5 @@ regressorsSelector <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
         }
     }
     bestModel <- lm(as.formula(bestFormula),data=ourData);
-    return(list(model=bestModel,formula=as.formula(bestFormula)));
+    return(model=bestModel);
 }
