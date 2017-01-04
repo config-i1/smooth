@@ -1094,6 +1094,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     if(!exists("xregDo")){
         xregDo <- "n";
     }
+    else{
+        if(!any(xregDo==c("nothing","select","n","s"))){
+            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
+            xregDo <- "select";
+        }
+    }
     xregDo <- substr(xregDo[1],1,1);
 
     ##### Return values to previous environment #####
