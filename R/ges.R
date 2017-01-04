@@ -415,21 +415,28 @@ xregSelector <- function(silentText=FALSE,...){
         xregNew <- as.data.frame(xregNew);
         xregResults <- stepwise(xregNew, ic=ic, silent=TRUE);
         xregNames <- names(coef(xregResults$model))[-1];
-        matxt <- as.data.frame(matxtOriginal)[,xregNames];
-        matat <- as.data.frame(matatOriginal)[,xregNames];
-        if(is.null(dim(matxt))){
-            matxt <- matrix(matxt,ncol=1);
-            matat <- matrix(matat,ncol=1);
-            colnames(matxt) <- colnames(matat) <- xregNames;
+        n.exovars <- length(xregNames);
+        if(n.exovars>0){
+            xregEstimate <- TRUE;
+            matxt <- as.data.frame(matxtOriginal)[,xregNames];
+            matat <- as.data.frame(matatOriginal)[,xregNames];
+            matFX <- diag(n.exovars);
+            vecgX <- matrix(0,n.exovars,1);
+
+            if(n.exovars==1){
+                matxt <- matrix(matxt,ncol=1);
+                matat <- matrix(matat,ncol=1);
+                colnames(matxt) <- colnames(matat) <- xregNames;
+            }
+            else{
+                matxt <- as.matrix(matxt);
+                matat <- as.matrix(matat);
+            }
         }
         else{
-            matxt <- as.matrix(matxt);
-            matat <- as.matrix(matat);
+            n.exovars <- 1;
+            xreg <- NULL;
         }
-        xregEstimate <- TRUE;
-        n.exovars <- ncol(matxt);
-        matFX <- diag(n.exovars);
-        vecgX <- matrix(0,n.exovars,1);
 
         gesValues <- CreatorGES(silentText=TRUE);
 
