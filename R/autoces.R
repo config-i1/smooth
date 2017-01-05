@@ -1,6 +1,6 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
-auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","full"),
+auto.ces <- function(data, models=c("none","simple","full"),
                 initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
@@ -56,8 +56,8 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","full"),
         message("The data is not seasonal. Simple CES was the only solution here.");
         }
 
-        CESModel <- ces(data, C=C, seasonality="n",
-                        initial=initialType,
+        CESModel <- ces(data, seasonality="n",
+                        initial=initialType, ic=ic,
                         cfType=cfType,
                         h=h, holdout=holdout,
                         intervals=intervals, level=level,
@@ -96,8 +96,8 @@ auto.ces <- function(data, C=c(1.1, 1), models=c("none","simple","full"),
         if(silentText==FALSE){
             cat(paste0('"',i,'" '));
         }
-        CESModel[[j]] <- ces(data, C=C, seasonality=i,
-                             initial=initialType,
+        CESModel[[j]] <- ces(data, seasonality=i,
+                             initial=initialType, ic=ic,
                              cfType=cfType,
                              h=h, holdout=holdout,
                              intervals=intervals, level=level,

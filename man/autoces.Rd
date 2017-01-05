@@ -8,7 +8,7 @@
   Function estimates CES in state-space form with information potential equal to errors with different seasonality types and chooses the one with the lowest IC value.
 }
 \usage{
-auto.ces(data, C=c(1.1, 1), models=c("none","simple","full"),
+auto.ces(data, models=c("none","simple","full"),
          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
          cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
          h=10, holdout=FALSE,
@@ -22,9 +22,6 @@ auto.ces(data, C=c(1.1, 1), models=c("none","simple","full"),
 \arguments{
   \item{data}{
     Either numeric vector or time series vector.
-  }
-  \item{C}{
-    The initial value of complex smoothing parameter, where C[1] = a0, C[2] = a1.
   }
   \item{models}{
     The vector containing several types of seasonality that should be used in CES selection. See \link[smooth]{ces} for more details about the possible types of seasonal models.
