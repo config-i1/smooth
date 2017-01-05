@@ -1,9 +1,9 @@
-smooth v1.6.0 (Release date: 2016-12-31)
+smooth v1.6.0 (Release date: 2017-01-07)
 ==============
 
 Changes:
 
-* ges() now has xreg selection mechanism.
+* ges() and ces() now have xreg selection mechanism.
 * iSS models now return relevant error measures.
 * es() now allows combining a pool of models, when the list includes "CCC".
 * logLik() now also includes nobs as an attribute.
