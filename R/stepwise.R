@@ -27,6 +27,9 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
     ourData <- cbind(ourData,residuals(testModel));
     colnames(ourData)[ncol(ourData)] <- "const resid";
     bestFormula <- testFormula;
+    if(!silent){
+        cat(testFormula); cat(", "); cat(currentIC); cat("\n\n");
+    }
 
     while(bestICNotFound){
         ourCorrelation <- cor(ourData);
@@ -35,7 +38,7 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
         ourCorrelation <- ourCorrelation[1:ourncols];
         newElement <- which(abs(ourCorrelation)==max(abs(ourCorrelation)))[1];
         newElement <- names(ourCorrelation)[newElement];
-        if(any(newElement==all.vars(as.formula(bestFormula))[-1])){
+        if(any(newElement==all.vars(as.formula(bestFormula)))){
             bestICNotFound <- FALSE;
             break;
         }
