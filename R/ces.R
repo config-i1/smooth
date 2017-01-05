@@ -1,13 +1,14 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
 ces <- function(data, seasonality=c("none","simple","partial","full"),
-                initial=c("backcasting","optimal"), A=NULL, B=NULL,
+                initial=c("backcasting","optimal"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
-                xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -114,17 +115,34 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
-    nExovars <- xregdata$nExovars;
-    matxt <- xregdata$matxt;
-    matat <- xregdata$matat;
-    matFX <- xregdata$matFX;
-    vecgX <- xregdata$vecgX;
+
+    if(xregDo=="n"){
+        nExovars <- xregdata$nExovars;
+        matxt <- xregdata$matxt;
+        matat <- xregdata$matat;
+        xregEstimate <- xregdata$xregEstimate;
+        matFX <- xregdata$matFX;
+        vecgX <- xregdata$vecgX;
+    }
+    else{
+        nExovars <- 1;
+        nExovarsOriginal <- xregdata$nExovars;
+        matxtOriginal <- xregdata$matxt;
+        matatOriginal <- xregdata$matat;
+        xregEstimateOriginal <- xregdata$xregEstimate;
+        matFXOriginal <- xregdata$matFX;
+        vecgXOriginal <- xregdata$vecgX;
+
+        matxt <- matrix(1,nrow(matxtOriginal),1);
+        matat <- matrix(0,nrow(matatOriginal),1);
+        xregEstimate <- FALSE;
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
+    }
     xreg <- xregdata$xreg;
-    xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
-    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -212,7 +230,7 @@ ElementsCES <- function(C){
     }
 
 # If exogenous are included
-    if(!is.null(xreg)){
+    if(xregEstimate){
         at <- matrix(NA,maxlag,nExovars);
         if(initialXEstimate){
             at[,] <- rep(C[n.coef+(1:nExovars)],each=maxlag);
@@ -234,7 +252,7 @@ ElementsCES <- function(C){
         }
     }
     else{
-        at <- matrix(0,maxlag,nExovars);
+        at <- matrix(matat[1:maxlag,],maxlag,nExovars);
     }
 
     return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -252,10 +270,10 @@ CF <- function(C){
     vecgX <- elements$vecgX;
 
     cfRes <- costfunc(matvt, matF, matw, y, vecg,
-                       h, modellags, Etype, Ttype, Stype,
-                       multisteps, cfType, normalizer, initialType,
-                       matxt, matat, matFX, vecgX, ot,
-                       bounds);
+                      h, modellags, Etype, Ttype, Stype,
+                      multisteps, cfType, normalizer, initialType,
+                      matxt, matat, matFX, vecgX, ot,
+                      bounds);
 
     if(is.nan(cfRes) | is.na(cfRes)){
         cfRes <- 1e100;
@@ -405,6 +423,59 @@ CreatorCES <- function(silentText=FALSE,...){
     }
 
     list2env(cesValues,environment());
+
+    if(xregDo!="n"){
+        # Prepare for fitting
+        elements <- ElementsCES(C);
+        matF <- elements$matF;
+        vecg <- elements$vecg;
+        matvt[1:maxlag,] <- elements$vt;
+        matat[1:maxlag,] <- elements$at;
+        matFX <- elements$matFX;
+        vecgX <- elements$vecgX;
+
+        # cesValues <- CreatorCES(silentText=TRUE);
+        ssFitter(ParentEnvironment=environment());
+
+        xregNames <- colnames(matxtOriginal);
+        xregNew <- cbind(errors,xreg[1:nrow(errors),]);
+        colnames(xregNew)[1] <- "errors";
+        colnames(xregNew)[-1] <- xregNames;
+        xregNew <- as.data.frame(xregNew);
+        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
+        xregNames <- names(coef(xregResults$model))[-1];
+        nExovars <- length(xregNames);
+        if(nExovars>0){
+            xregEstimate <- TRUE;
+            matxt <- as.data.frame(matxtOriginal)[,xregNames];
+            matat <- as.data.frame(matatOriginal)[,xregNames];
+            matFX <- diag(nExovars);
+            vecgX <- matrix(0,nExovars,1);
+
+            if(nExovars==1){
+                matxt <- matrix(matxt,ncol=1);
+                matat <- matrix(matat,ncol=1);
+                colnames(matxt) <- colnames(matat) <- xregNames;
+            }
+            else{
+                matxt <- as.matrix(matxt);
+                matat <- as.matrix(matat);
+            }
+        }
+        else{
+            nExovars <- 1;
+            xreg <- NULL;
+        }
+
+        cesValues <- CreatorCES(silentText=TRUE);
+
+        list2env(cesValues,environment());
+    }
+
+    if(!is.null(xreg)){
+        xregNames <- colnames(matat);
+        xreg <- matxt[,xregNames];
+    }
 
 # Prepare for fitting
     elements <- ElementsCES(C);

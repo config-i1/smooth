@@ -9,14 +9,15 @@
 }
 \usage{
 ces(data, seasonality=c("none","simple","partial","full"),
-    initial=c("backcasting","optimal"), A=NULL, B=NULL,
+    initial=c("backcasting","optimal"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
     cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
     h=10, holdout=FALSE,
     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
     intermittent=c("none","auto","fixed","croston","tsb","sba"),
     bounds=c("admissible","none"),
     silent=c("none","all","graph","legend","output"),
-    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
+    xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+    updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 \arguments{
   \item{data}{
@@ -36,6 +37,9 @@ ces(data, seasonality=c("none","simple","partial","full"),
   }
   \item{B}{
     Second complex smoothing parameter. Can be real if \code{seasonality="partial"}. In case of \code{seasonality="full"} must be complex number.
+  }
+  \item{ic}{
+    Information criterion to use in model selection.
   }
   \item{cfType}{
     Type of Cost Function used in optimization. \code{cfType} can be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error), \code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and \code{MSEh} - optimisation using only h-steps ahead error. If \code{cfType!="MSE"}, then likelihood and model selection is done based on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
@@ -79,6 +83,9 @@ ces(data, seasonality=c("none","simple","partial","full"),
   }
   \item{xreg}{
     Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
+  }
+  \item{xregDo}{
+    Variable defines what to do with the provided xreg: \code{"nothing"} means that all of the data should be used, whilie \code{"select"} means that a selection using \code{ic} should be done. \code{"combine"} will be available at some point in future...
   }
   \item{initialX}{
     Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.

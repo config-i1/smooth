@@ -617,7 +617,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         bounds <- "u";
     }
 
-    if(any(modelType==c("es","ges"))){
+    if(any(modelType==c("es","ges","ces"))){
         ##### Information Criteria #####
         ic <- ic[1];
         if(all(ic!=c("AICc","AIC","BIC"))){
@@ -1178,6 +1178,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("seasonality",seasonality,ParentEnvironment);
         assign("A",A,ParentEnvironment);
         assign("B",B,ParentEnvironment);
+        assign("ic",ic,ParentEnvironment);
     }
 
     if(any(modelType==c("es","ges"))){

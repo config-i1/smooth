@@ -87,11 +87,11 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         matFXOriginal <- xregdata$matFX;
         vecgXOriginal <- xregdata$vecgX;
 
-        matxt <- matrix(0,nrow(matxtOriginal),1);
+        matxt <- matrix(1,nrow(matxtOriginal),1);
         matat <- matrix(0,nrow(matatOriginal),1);
         xregEstimate <- FALSE;
         matFX <- matrix(1,1,1);
-        vecgX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
     }
     xreg <- xregdata$xreg;
     FXEstimate <- xregdata$FXEstimate;
@@ -204,7 +204,7 @@ ElementsGES <- function(C){
         }
     }
     else{
-        at <- matrix(0,maxlag,nExovars);
+        at <- matrix(matat[1:maxlag,],maxlag,nExovars);
     }
 
     return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -327,11 +327,6 @@ CreatorGES <- function(silentText=FALSE,...){
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
-##### Xreg Selector #####
-xregSelector <- function(silentText=FALSE,...){
-    gesValues <- CreatorGES(silentText=silentText);
-}
-
 ##### Start the calculations #####
     environment(intermittentParametersSetter) <- environment();
     environment(intermittentMaker) <- environment();
@@ -405,7 +400,6 @@ xregSelector <- function(silentText=FALSE,...){
         matFX <- elements$matFX;
         vecgX <- elements$vecgX;
 
-        gesValues <- xregSelector(silentText=silentText);
         ssFitter(ParentEnvironment=environment());
 
         xregNames <- colnames(matxtOriginal);

@@ -59,5 +59,7 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
         }
     }
     bestModel <- lm(as.formula(bestFormula),data=ourData);
+    # attributes(bestModel)$ic <- bestIC;
+
     return(model=bestModel);
 }
