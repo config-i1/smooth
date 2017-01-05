@@ -446,7 +446,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         estimphi = FALSE;
     }
 
-    return wrap(List::create(Named("n.components") = ncomponents, Named("maxlag") = maxlag, Named("modellags") = modellags,
+    return wrap(List::create(Named("nComponents") = ncomponents, Named("maxlag") = maxlag, Named("modellags") = modellags,
                              Named("matvt") = matrixVt, Named("vecg") = vecG, Named("phiEstimate") = estimphi,
                              Named("phi") = phivalue));
 }

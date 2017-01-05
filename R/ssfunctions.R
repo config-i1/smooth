@@ -1,6 +1,6 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","n.exovars","matat","errors","n.param","intervals","intervalsType","level","ivar","model",
+                         "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
                          "constant","AR","MA","data","y.fit"));
 
 ##### *Checker of input of basic functions* #####
@@ -439,8 +439,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
 
         # Number of components to use
-        n.components <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-        modellags <- matrix(rep(1,times=n.components),ncol=1);
+        nComponents <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+        modellags <- matrix(rep(1,times=nComponents),ncol=1);
         if(constantRequired==TRUE){
             modellags <- rbind(modellags,1);
         }
@@ -487,10 +487,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     else if(modelType=="sma"){
         maxlag <- 1;
         if(is.null(order)){
-            n.param.max <- obsInsample;
+            nParamMax <- obsInsample;
         }
         else{
-            n.param.max <- order;
+            nParamMax <- order;
         }
     }
 
@@ -534,7 +534,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
         modellags <- matrix(rep(lags,times=orders),ncol=1);
         maxlag <- max(modellags);
-        n.components <- sum(orders);
+        nComponents <- sum(orders);
     }
     else if(modelType=="es"){
         maxlag <- datafreq * (Stype!="N") + 1 * (Stype=="N");
@@ -562,7 +562,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             maxlag <- 1;
             modellags <- c(1,1);
             # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
-            n.components <- 2;
+            nComponents <- 2;
             A$number <- 2;
             B$number <- 0;
         }
@@ -570,7 +570,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Simple seasonality, lagged CES
             maxlag <- datafreq;
             modellags <- c(maxlag,maxlag);
-            n.components <- 2;
+            nComponents <- 2;
             A$number <- 2;
             B$number <- 0;
         }
@@ -578,7 +578,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Partial seasonality with a real part only
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag);
-            n.components <- 3;
+            nComponents <- 3;
             A$number <- 2;
             B$number <- 1;
         }
@@ -586,7 +586,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             # Full seasonality with both real and imaginary parts
             maxlag <- datafreq;
             modellags <- c(1,1,maxlag,maxlag);
-            n.components <- 4;
+            nComponents <- 4;
             A$number <- 2;
             B$number <- 2;
         }
@@ -721,7 +721,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         iprob <- pt.for[1];
         # "p" stand for "provided", meaning that we have been provided the future data
         intermittent <- "p";
-        n.param.intermittent <- 0;
+        nParamIntermittent <- 0;
     }
     else{
         intermittent <- intermittent[1];
@@ -735,13 +735,13 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         environment(intermittentParametersSetter) <- environment();
         intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
-        if(obsNonzero <= n.param.intermittent){
+        if(obsNonzero <= nParamIntermittent){
             warning(paste0("Not enough observations for estimation of occurence probability.\n",
                            "Switching to simpler model."),
                     call.=FALSE);
             if(obsNonzero > 1){
                 intermittent <- "f";
-                n.param.intermittent <- 1;
+                nParamIntermittent <- 1;
                 intermittentParametersSetter(intermittent,ParentEnvironment=environment());
             }
             else{
@@ -816,8 +816,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     }
                 }
                 else if(modelType=="ges"){
-                    if(length(persistence) != n.components){
-                        warning(paste0("Wrong length of persistence vector. Should be ",n.components,
+                    if(length(persistence) != nComponents){
+                        warning(paste0("Wrong length of persistence vector. Should be ",nComponents,
                                        " instead of ",length(persistence),".\n",
                                        "Changing to estimation of persistence vector values."),call.=FALSE);
                         persistence <- NULL;
@@ -885,7 +885,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
             }
             else if(modelType=="ges"){
-                if(length(initialValue) != (n.components*max(lags))){
+                if(length(initialValue) != (nComponents*max(lags))){
                     warning(paste0("Wrong length of initial vector. Should be ",orders %*% lags,
                                    " instead of ",length(initial),".\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
@@ -898,8 +898,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
             }
             else if(modelType=="ssarima"){
-                if(length(initialValue) != n.components){
-                    warning(paste0("Wrong length of initial vector. Should be ",n.components,
+                if(length(initialValue) != nComponents){
+                    warning(paste0("Wrong length of initial vector. Should be ",nComponents,
                                    " instead of ",length(initial),".\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
@@ -911,8 +911,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 }
             }
             else if(modelType=="ces"){
-                if(length(initialValue) != maxlag*n.components){
-                    warning(paste0("Wrong length of initial vector. Should be ",maxlag*n.components,
+                if(length(initialValue) != maxlag*nComponents){
+                    warning(paste0("Wrong length of initial vector. Should be ",maxlag*nComponents,
                                    " instead of ",length(initial),".\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
@@ -1010,8 +1010,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                                "The matrix will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
-            else if(length(transition) != n.components^2){
-                warning(paste0("Wrong length of transition matrix. Should be ",n.components^2,
+            else if(length(transition) != nComponents^2){
+                warning(paste0("Wrong length of transition matrix. Should be ",nComponents^2,
                                " instead of ",length(transition),".\n",
                                "The matrix will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
@@ -1031,8 +1031,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                                "The vector will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
             }
-            else if(length(measurement) != n.components){
-                warning(paste0("Wrong length of measurement vector. Should be ",n.components,
+            else if(length(measurement) != nComponents){
+                warning(paste0("Wrong length of measurement vector. Should be ",nComponents,
                                " instead of ",length(measurement),".\n",
                                "The vector will be estimated!"),call.=FALSE);
                 transitionEstimate <- TRUE;
@@ -1047,7 +1047,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     if(modelType=="ssarima"){
-        if((n.components==0) & (constantRequired==FALSE)){
+        if((nComponents==0) & (constantRequired==FALSE)){
             warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
             constantRequired <- TRUE;
             constantValue <- 0;
@@ -1055,27 +1055,27 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
     }
 
-    ##### Calculate n.param.max for checks #####
+    ##### Calculate nParamMax for checks #####
     if(modelType=="es"){
         # 1 - 3: persitence vector;
         # 1 - 2: initials;
         # 1 - 1 phi value;
         # datafreq: datafreq initials for seasonal component;
         # 1: estimation of variance;
-        n.param.max <- (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
+        nParamMax <- (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
             (1 + (Ttype!="N"))*(initialType=="o") +
             phiEstimate*damped + datafreq*(Stype!="N")*initialSeasonEstimate*(initialType=="o") + 1;
     }
     else if(modelType=="ges"){
-        n.param.max <- n.components*measurementEstimate + n.components*(initialType=="o") +
-            transitionEstimate*n.components^2 + (orders %*% lags)*persistenceEstimate + 1;
+        nParamMax <- nComponents*measurementEstimate + nComponents*(initialType=="o") +
+            transitionEstimate*nComponents^2 + (orders %*% lags)*persistenceEstimate + 1;
     }
     else if(modelType=="ssarima"){
-        n.param.max <- n.components*(initialType=="o") + sum(ar.orders)*ARRequired +
+        nParamMax <- nComponents*(initialType=="o") + sum(ar.orders)*ARRequired +
             sum(ma.orders)*MARequired + constantRequired + 1;
     }
     else if(modelType=="ces"){
-        n.param.max <- sum(modellags)*(initialType=="o") + A$number + B$number + 1;
+        nParamMax <- sum(modellags)*(initialType=="o") + A$number + B$number + 1;
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -1102,6 +1102,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
     xregDo <- substr(xregDo[1],1,1);
 
+    if(is.null(xreg)){
+        xregDo <- "n";
+    }
+
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
@@ -1126,12 +1130,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
-    assign("n.param.intermittent",n.param.intermittent,ParentEnvironment);
+    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
-    assign("n.param.max",n.param.max,ParentEnvironment);
+    assign("nParamMax",nParamMax,ParentEnvironment);
     assign("xregDo",xregDo,ParentEnvironment);
 
     if(modelType=="es"){
@@ -1182,7 +1186,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     if(any(modelType==c("ges","ssarima","ces"))){
-        assign("n.components",n.components,ParentEnvironment);
+        assign("nComponents",nComponents,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
     }
@@ -1400,13 +1404,13 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         environment(intermittentParametersSetter) <- environment();
         intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
-        if(obsNonzero <= n.param.intermittent){
+        if(obsNonzero <= nParamIntermittent){
             warning(paste0("Not enough observations for estimation of occurence probability.\n",
                            "Switching to simpler model."),
                     call.=FALSE);
             if(obsNonzero > 1){
                 intermittent <- "f";
-                n.param.intermittent <- 1;
+                nParamIntermittent <- 1;
                 intermittentParametersSetter(intermittent,ParentEnvironment=environment());
             }
             else{
@@ -1627,7 +1631,7 @@ quantfunc <- function(A){
         else if(intervalsType=="p"){
             #s2i <- iprob*(1-iprob);
 
-            n.components <- nrow(transition);
+            nComponents <- nrow(transition);
             maxlag <- max(modellags);
             h <- n.var;
 
@@ -1637,18 +1641,18 @@ quantfunc <- function(A){
 #### Pure multiplicative models ####
             if(Etype=="M" & all(c(Ttype,Stype)!="A")){
                 # Array of variance of states
-                mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
+                mat.var.states <- array(0,c(nComponents,nComponents,h+maxlag));
                 mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
                 mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 
                 # New transition and measurement for the internal use
-                transitionnew <- matrix(0,n.components,n.components);
-                measurementnew <- matrix(0,1,n.components);
+                transitionnew <- matrix(0,nComponents,nComponents);
+                measurementnew <- matrix(0,1,nComponents);
 
                 # selectionmat is needed for the correct selection of lagged variables in the array
                 # newelements are needed for the correct fill in of all the previous matrices
                 selectionmat <- transitionnew;
-                newelements <- rep(FALSE,n.components);
+                newelements <- rep(FALSE,nComponents);
 
                 # Define chunks, which correspond to the lags with h being the final one
                 chuncksofhorizon <- c(1,unique(modellags),h);
@@ -1675,8 +1679,8 @@ quantfunc <- function(A){
                         selectionmat[modellags>chuncksofhorizon[j],] <- i;
                         selectionmat[,modellags>chuncksofhorizon[j]] <- i;
 
-                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
-                                                                                               rep(c(1:n.components),n.components),
+                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:nComponents),each=nComponents),
+                                                                                               rep(c(1:nComponents),nComponents),
                                                                                                i - c(selectionmat))];
 
                         mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + s2g;
@@ -1712,18 +1716,18 @@ quantfunc <- function(A){
 #### Pure Additive models ####
             else{
                 # Array of variance of states
-                mat.var.states <- array(0,c(n.components,n.components,h+maxlag));
+                mat.var.states <- array(0,c(nComponents,nComponents,h+maxlag));
                 mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
                 mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
 
                 # New transition and measurement for the internal use
-                transitionnew <- matrix(0,n.components,n.components);
-                measurementnew <- matrix(0,1,n.components);
+                transitionnew <- matrix(0,nComponents,nComponents);
+                measurementnew <- matrix(0,1,nComponents);
 
                 # selectionmat is needed for the correct selection of lagged variables in the array
                 # newelements are needed for the correct fill in of all the previous matrices
                 selectionmat <- transitionnew;
-                newelements <- rep(FALSE,n.components);
+                newelements <- rep(FALSE,nComponents);
 
                 # Define chunks, which correspond to the lags with h being the final one
                 chuncksofhorizon <- c(1,unique(modellags),h);
@@ -1750,8 +1754,8 @@ quantfunc <- function(A){
                         selectionmat[modellags>chuncksofhorizon[j],] <- i;
                         selectionmat[,modellags>chuncksofhorizon[j]] <- i;
 
-                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:n.components),each=n.components),
-                                                                                               rep(c(1:n.components),n.components),
+                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:nComponents),each=nComponents),
+                                                                                               rep(c(1:nComponents),nComponents),
                                                                                                i - c(selectionmat))];
 
                         mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
@@ -1815,19 +1819,19 @@ ssForecaster <- function(...){
 
 # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
-        s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - n.param));
+        s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - nParam));
         s2g <- 1;
     }
     else{
-        s2 <- as.vector(sum(log(1 + errors*ot)^2)/(obsNonzero - n.param));
-        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - n.param);
+        s2 <- as.vector(sum(log(1 + errors*ot)^2)/(obsNonzero - nParam));
+        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - nParam);
     }
 
     if(h>0){
         y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                    matF, matw, h, Ttype, Stype, modellags,
-                                   matrix(matxt[(obsAll-h+1):(obsAll),],ncol=n.exovars),
-                                   matrix(matat[(obsAll-h+1):(obsAll),],ncol=n.exovars), matFX),
+                                   matrix(matxt[(obsAll-h+1):(obsAll),],ncol=nExovars),
+                                   matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX),
                     start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
 
         if(Etype=="M" & any(y.for<0)){
@@ -1862,8 +1866,8 @@ ssForecaster <- function(...){
 
             if(intervalsType=="p" & simulateint==TRUE){
                 n.samples <- 10000;
-                matg <- matrix(vecg,n.components,n.samples);
-                arrvt <- array(NA,c(h+maxlag,n.components,n.samples));
+                matg <- matrix(vecg,nComponents,n.samples);
+                arrvt <- array(NA,c(h+maxlag,nComponents,n.samples));
                 arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
                 materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
 
@@ -1893,9 +1897,9 @@ ssForecaster <- function(...){
                 y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             }
             else{
-                vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:n.components))],n.components,1);
+                vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:nComponents))],nComponents,1);
 
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - n.param),
+                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - nParam),
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
                                            y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
@@ -1982,7 +1986,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 }
 
 # Number of exogenous variables
-                n.exovars <- 1;
+                nExovars <- 1;
 # Define matrix w for exogenous variables
                 matxt <- matrix(xreg,ncol=1);
 # Define the second matat to fill in the coefs of the exogenous vars
@@ -2007,17 +2011,17 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 xreg <- as.matrix(xreg);
             }
 
-            n.exovars <- ncol(xreg);
+            nExovars <- ncol(xreg);
             if(nrow(xreg) < obsAll){
                 warning("xreg did not contain values for the holdout, so we had to predict missing values.", call.=FALSE);
-                xregForecast <- matrix(NA,nrow=obsAll-nrow(xreg),ncol=n.exovars);
+                xregForecast <- matrix(NA,nrow=obsAll-nrow(xreg),ncol=nExovars);
                 if(!silent){
                     message("Producing forecasts for xreg variable...");
                 }
-                for(j in 1:n.exovars){
+                for(j in 1:nExovars){
                     if(!silent){
-                        cat(paste0(rep("\b",nchar(round((j-1)/n.exovars,2)*100)+1),collapse=""));
-                        cat(paste0(round(j/n.exovars,2)*100,"%"));
+                        cat(paste0(rep("\b",nchar(round((j-1)/nExovars,2)*100)+1),collapse=""));
+                        cat(paste0(round(j/nExovars,2)*100,"%"));
                     }
                     xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
                 }
@@ -2030,7 +2034,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 warning("xreg contained too many observations, so we had to cut off some of them.", call.=FALSE);
                 xreg <- xreg[1:obsAll,];
             }
-            n.exovars <- ncol(xreg);
+            nExovars <- ncol(xreg);
 
 # If initialX is provided, then probably we don't need to check the xreg on variability and multicollinearity
             if(is.null(initialX)){
@@ -2040,13 +2044,13 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                         warning("None of exogenous variables has variability. Cannot do anything with that, so dropping out xreg.",
                                 call.=FALSE);
                         xreg <- NULL;
-                        n.exovars <- 0;
+                        nExovars <- 0;
                     }
                     else{
                         warning("Some exogenous variables do not have any variability. Dropping them out.",
                                 call.=FALSE);
                         xreg <- as.matrix(xreg[,!checkvariability]);
-                        n.exovars <- ncol(xreg);
+                        nExovars <- ncol(xreg);
                     }
                 }
 
@@ -2067,18 +2071,18 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
 # mat.x is needed for the initial values of coefs estimation using OLS
                 mat.x <- as.matrix(cbind(rep(1,obsAll),xreg));
 # Define the second matat to fill in the coefs of the exogenous vars
-                matat <- matrix(NA,obsStates,n.exovars);
+                matat <- matrix(NA,obsStates,nExovars);
 # Define matrix w for exogenous variables
                 matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
-                                                  t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(n.exovars+1)],
+                                                  t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(nExovars+1)],
                                             each=maxlag);
                 }
                 if(is.null(colnames(xreg))){
-                    colnames(matat) <- paste0("x",c(1:n.exovars));
-                    colnames(matxt) <- paste0("x",c(1:n.exovars));
+                    colnames(matat) <- paste0("x",c(1:nExovars));
+                    colnames(matxt) <- paste0("x",c(1:nExovars));
                 }
                 else{
                     colnames(matat) <- colnames(xreg);
@@ -2097,7 +2101,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 stop("The initials for exogenous are not a numeric vector or a matrix!", call.=FALSE);
             }
             else{
-                if(length(initialX) != n.exovars){
+                if(length(initialX) != nExovars){
                     stop(paste0("The size of initial vector for exogenous is wrong!\n",
                                 "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
@@ -2118,7 +2122,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
 ##### In case we changed xreg to null or if it was like that...
     if(is.null(xreg)){
 # "1" is needed for the final forecast simplification
-        n.exovars <- 1;
+        nExovars <- 1;
         matxt <- matrix(1,obsStates,1);
         matat <- matrix(0,obsStates,1);
         matFX <- matrix(1,1,1);
@@ -2137,18 +2141,18 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 stop("Transition matrix for exogenous is not a numeric vector or a matrix!", call.=FALSE);
             }
             else{
-                if(length(transitionX) != n.exovars^2){
+                if(length(transitionX) != nExovars^2){
                     stop(paste0("Size of transition matrix for exogenous is wrong!\n",
                                 "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
                 else{
-                    matFX <- matrix(transitionX,n.exovars,n.exovars);
+                    matFX <- matrix(transitionX,nExovars,nExovars);
                     FXEstimate <- FALSE;
                 }
             }
         }
         else{
-            matFX <- diag(n.exovars);
+            matFX <- diag(nExovars);
             FXEstimate <- TRUE;
         }
 # Now - persistence vector
@@ -2157,26 +2161,26 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 stop("Persistence vector for exogenous is not numeric!", call.=FALSE);
             }
             else{
-                if(length(persistenceX) != n.exovars){
+                if(length(persistenceX) != nExovars){
                     stop(paste0("Size of persistence vector for exogenous is wrong!\n",
                                 "It should correspond to the number of exogenous variables."), call.=FALSE);
                 }
                 else{
-                    vecgX <- matrix(persistenceX,n.exovars,1);
+                    vecgX <- matrix(persistenceX,nExovars,1);
                     gXEstimate <- FALSE;
                 }
             }
         }
         else{
-            vecgX <- matrix(0,n.exovars,1);
+            vecgX <- matrix(0,nExovars,1);
             gXEstimate <- TRUE;
         }
     }
     else if(xregEstimate==TRUE & updateX==FALSE){
-        matFX <- diag(n.exovars);
+        matFX <- diag(nExovars);
         FXEstimate <- FALSE;
 
-        vecgX <- matrix(0,n.exovars,1);
+        vecgX <- matrix(0,nExovars,1);
         gXEstimate <- FALSE;
     }
 
@@ -2184,7 +2188,7 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
         xregEstimate <- FALSE;
     }
 
-    return(list(n.exovars=n.exovars, matxt=matxt, matat=matat, matFX=matFX, vecgX=vecgX,
+    return(list(nExovars=nExovars, matxt=matxt, matat=matat, matFX=matFX, vecgX=vecgX,
                 xreg=xreg, xregEstimate=xregEstimate, FXEstimate=FXEstimate,
                 gXEstimate=gXEstimate, initialXEstimate=initialXEstimate))
 }
@@ -2214,17 +2218,17 @@ likelihoodFunction <- function(C){
 }
 
 ##### *Function calculates ICs* #####
-ICFunction <- function(n.param=n.param,C,Etype=Etype){
+ICFunction <- function(nParam=nParam,C,Etype=Etype){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
     llikelihood <- likelihoodFunction(C);
 
-    AIC.coef <- 2*n.param*h^multisteps - 2*llikelihood;
+    AIC.coef <- 2*nParam*h^multisteps - 2*llikelihood;
 # max here is needed in order to take into account cases with higher number of parameters than observations
-    AICc.coef <- AIC.coef + 2 * n.param*h^multisteps * (n.param + 1) / max(obsNonzero - n.param - 1,0);
-    BIC.coef <- log(obsNonzero)*n.param*h^multisteps - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * nParam*h^multisteps * (nParam + 1) / max(obsNonzero - nParam - 1,0);
+    BIC.coef <- log(obsNonzero)*nParam*h^multisteps - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");

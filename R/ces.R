@@ -56,7 +56,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
     ssInput(modelType="ces",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
-    matvt <- matrix(NA,nrow=obsStates,ncol=n.components);
+    matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
     y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
     errors <- rep(NA,obsInsample);
@@ -114,7 +114,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
-    n.exovars <- xregdata$n.exovars;
+    nExovars <- xregdata$nExovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
@@ -132,14 +132,14 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
     Stype <- "N";
 
 # Check number of parameters vs data
-    n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    n.param.max <- n.param.max + n.param.exo + (intermittent!="n");
+    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
 
 ##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= n.param.max){
+    if(obsNonzero <= nParamMax){
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the number of parameters to estimate is ", n.param.max,"."));
+                           ", while the number of parameters to estimate is ", nParamMax,"."));
         }
         stop("Can't fit the model you ask.",call.=FALSE);
     }
@@ -213,28 +213,28 @@ ElementsCES <- function(C){
 
 # If exogenous are included
     if(!is.null(xreg)){
-        at <- matrix(NA,maxlag,n.exovars);
+        at <- matrix(NA,maxlag,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
-            n.coef <- n.coef + n.exovars;
+            at[,] <- rep(C[n.coef+(1:nExovars)],each=maxlag);
+            n.coef <- n.coef + nExovars;
         }
         else{
             at <- matat[1:maxlag,];
         }
         if(updateX){
             if(FXEstimate){
-                matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
-                n.coef <- n.coef + n.exovars^2;
+                matFX <- matrix(C[n.coef+(1:(nExovars^2))],nExovars,nExovars);
+                n.coef <- n.coef + nExovars^2;
             }
 
             if(gXEstimate){
-                vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
-                n.coef <- n.coef + n.exovars;
+                vecgX <- matrix(C[n.coef+(1:nExovars)],nExovars,1);
+                n.coef <- n.coef + nExovars;
             }
         }
     }
     else{
-        at <- matrix(0,maxlag,n.exovars);
+        at <- matrix(0,maxlag,nExovars);
     }
 
     return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -268,7 +268,7 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    n.param <- sum(modellags)*(initialType!="b") + A$number + B$number + (!is.null(xreg))*(ncol(matat) + updateX*(length(matFX) + nrow(vecgX))) + 1;
+    nParam <- sum(modellags)*(initialType!="b") + A$number + B$number + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars) + 1;
 
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         C <- NULL;
@@ -307,10 +307,10 @@ CreatorCES <- function(silentText=FALSE,...){
             }
             if(updateX){
                 if(FXEstimate){
-                    C <- c(C,c(diag(n.exovars)));
+                    C <- c(C,c(diag(nExovars)));
                 }
                 if(gXEstimate){
-                    C <- c(C,rep(0,n.exovars));
+                    C <- c(C,rep(0,nExovars));
                 }
             }
         }
@@ -332,7 +332,7 @@ CreatorCES <- function(silentText=FALSE,...){
     else{
         cfType <- "MSE";
     }
-    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
@@ -341,7 +341,7 @@ CreatorCES <- function(silentText=FALSE,...){
 # Revert to the provided cost function
     cfType <- cfTypeOriginal;
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,n.param=n.param,logLik=logLik));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,nParam=nParam,logLik=logLik));
 }
 
 ##### Start doing things #####
@@ -532,7 +532,7 @@ CreatorCES <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,A=A$value,B=B$value,
                   initialType=initialType,initial=initialValue,
-                  nParam=n.param,
+                  nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,

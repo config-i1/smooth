@@ -9,14 +9,14 @@ intermittentParametersSetter <- function(intermittent="n",...){
         ot <- (y!=0)*1;
         obsNonzero <- sum(ot);
         # 1 parameter for estimating initial probability
-        n.param.intermittent <- 1;
+        nParamIntermittent <- 1;
 #         if(intermittent=="c"){
 #             # In Croston we also need to estimate smoothing parameter and variance
-#            n.param.intermittent <- n.param.intermittent + 2;
+#            nParamIntermittent <- nParamIntermittent + 2;
 #         }
 #         else if(any(intermittent==c("t","a"))){
 #             # In TSB we also need to estimate smoothing parameter and two parameters of distribution...
-#            n.param.intermittent <- n.param.intermittent + 3;
+#            nParamIntermittent <- nParamIntermittent + 3;
 #         }
         yot <- matrix(y[y!=0],obsNonzero,1);
         pt <- matrix(mean(ot),obsInsample,1);
@@ -39,7 +39,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         yot <- y;
         pt <- matrix(1,obsInsample,1);
         pt.for <- matrix(1,h,1);
-        n.param.intermittent <- 0;
+        nParamIntermittent <- 0;
     }
     iprob <- pt[1];
     ivar <- iprob * (1-iprob);
@@ -49,7 +49,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
-    assign("n.param.intermittent",n.param.intermittent,ParentEnvironment);
+    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
     assign("ivar",ivar,ParentEnvironment);
 }

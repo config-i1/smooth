@@ -8,7 +8,7 @@
     Function selects variables that give linear regression with the lowest information criteria. The selection is done stepwise (forward) based on partial correlations. This should be a simpler and faster implementation than step() function from `stats' package.
 }
 \usage{
-    stepwise(data, ic=c("AIC","AICc","BIC"), silent=TRUE)
+    stepwise(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL)
 }
 \arguments{
   \item{data}{
@@ -19,6 +19,9 @@
   }
   \item{silent}{
     If \code{silent=FALSE}, then nothing is silent, everything is printed out. \code{silent=TRUE} means that nothing is produced.
+  }
+  \item{df}{
+    Number of degrees of freedom to add (should be used if stepwise is used on residuals).
   }
 }
 \details{

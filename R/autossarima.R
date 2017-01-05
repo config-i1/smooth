@@ -140,29 +140,29 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     }
 
 # 1 stands for constant, the other one stands for variance
-    n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+    nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
 
 # Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
 # Don't try to fix anything if the number of seasonalities is greater than 2
     if(length(lags)<=2){
-        if(obsInsample <= n.param.max){
+        if(obsInsample <= nParamMax){
             arma.length <- length(ar.max);
-            while(obsInsample <= n.param.max){
+            while(obsInsample <= nParamMax){
                 if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
                     ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
-                    n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                    if(obsInsample <= n.param.max){
+                    nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    if(obsInsample <= nParamMax){
                         ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
-                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
                 }
                 else{
                     if(arma.length==2){
                         ar.max[1] <- ar.max[1] - 1;
-                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                        if(obsInsample <= n.param.max){
+                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        if(obsInsample <= nParamMax){
                             ma.max[1] <- ma.max[1] - 1;
-                            n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                            nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
                     }
                     else{
@@ -172,12 +172,12 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 if(all(c(ar.max,ma.max)==0)){
                     if(i.max[arma.length]>0){
                         i.max[arma.length] <- max(0,i.max[arma.length] - 1);
-                        n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
                     else if(i.max[1]>0){
-                        if(obsInsample <= n.param.max){
+                        if(obsInsample <= nParamMax){
                             i.max[1] <- max(0,i.max[1] - 1);
-                            n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                            nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
                     }
                     else{
@@ -186,13 +186,13 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 }
 
             }
-                n.param.max <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
         }
     }
 
-    if(obsInsample <= n.param.max){
+    if(obsInsample <= nParamMax){
         message(paste0("Not enough observations for the reasonable fit. Number of possible parameters is ",
-                        n.param.max," while the number of observations is ",obsInsample,"!"));
+                        nParamMax," while the number of observations is ",obsInsample,"!"));
         stop("Redefine maximum orders and try again.",call.=FALSE)
     }
 

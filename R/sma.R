@@ -27,7 +27,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
     bounds <- "admissible";
     cfType <- "MSE";
     xreg <- NULL;
-    n.exovars <- 1;
+    nExovars <- 1;
     ivar <- 0;
 
 ##### Set environment for ssInput and make all the checks #####
@@ -51,8 +51,8 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
         }
     }
 
-# sd of residuals + a parameter... n.components not included.
-    n.param <- 1 + 1;
+# sd of residuals + a parameter... nComponents not included.
+    nParam <- 1 + 1;
 
 # Cost function for GES
 CF <- function(C){
@@ -70,26 +70,26 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(ICFunction) <- environment();
     environment(CF) <- environment();
 
-    n.components <- order;
-    #n.param <- n.components + 1;
+    nComponents <- order;
+    #nParam <- nComponents + 1;
     if(order>1){
-        matF <- rbind(cbind(rep(1/n.components,n.components-1),diag(n.components-1)),c(1/n.components,rep(0,n.components-1)));
-        matw <- matrix(c(1,rep(0,n.components-1)),1,n.components);
+        matF <- rbind(cbind(rep(1/nComponents,nComponents-1),diag(nComponents-1)),c(1/nComponents,rep(0,nComponents-1)));
+        matw <- matrix(c(1,rep(0,nComponents-1)),1,nComponents);
     }
     else{
         matF <- matrix(1,1,1);
         matw <- matrix(1,1,1);
     }
-    vecg <- matrix(1/n.components,n.components);
-    matvt <- matrix(NA,obsStates,n.components);
-    matvt[1:n.components,1] <- rep(mean(y[1:n.components]),n.components);
-    if(n.components>1){
-        for(i in 2:n.components){
-            matvt[1:(n.components-i+1),i] <- matvt[1:(n.components-i+1)+1,i-1] - matvt[1:(n.components-i+1),1] * matF[i-1,1];
+    vecg <- matrix(1/nComponents,nComponents);
+    matvt <- matrix(NA,obsStates,nComponents);
+    matvt[1:nComponents,1] <- rep(mean(y[1:nComponents]),nComponents);
+    if(nComponents>1){
+        for(i in 2:nComponents){
+            matvt[1:(nComponents-i+1),i] <- matvt[1:(nComponents-i+1)+1,i-1] - matvt[1:(nComponents-i+1),1] * matF[i-1,1];
         }
     }
 
-    modellags <- rep(1,n.components);
+    modellags <- rep(1,nComponents);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=NULL, updateX=FALSE,
@@ -103,12 +103,12 @@ CreatorSMA <- function(silentText=FALSE,...){
     C <- NULL;
     cfObjective <- CF(C);
 
-    ICValues <- ICFunction(n.param=n.param,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
     bestIC <- ICs["AICc"];
 
-    return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,n.param=n.param,n.components=n.components,
+    return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,nParam=nParam,nComponents=nComponents,
                 matF=matF,vecg=vecg,matvt=matvt,matw=matw,modellags=modellags,
                 matxt=matxt,matat=matat,matFX=matFX,vecgX=vecgX,logLik=logLik));
 }
@@ -167,7 +167,7 @@ CreatorSMA <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
-                  order=order, initialType=initialType, nParam=n.param,
+                  order=order, initialType=initialType, nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,intermittent="none",

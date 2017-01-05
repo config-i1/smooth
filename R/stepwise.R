@@ -1,6 +1,9 @@
-stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
+stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
 ##### Function that selects variables based on IC and using partial correlations
     ourData <- data;
+    if(is.null(df)){
+        df <- 0;
+    }
     if(!is.data.frame(ourData)){
         ourData <- as.data.frame(ourData);
     }
@@ -18,7 +21,9 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
     bestICNotFound <- TRUE;
     testFormula <- paste0(colnames(ourData)[1],"~ 1");
     testModel <- lm(as.formula(testFormula),data=ourData);
-    currentIC <- bestIC <- IC(testModel);
+    logLikValue <- logLik(testModel);
+    attributes(logLikValue)$df <- attributes(logLikValue)$df + df;
+    currentIC <- bestIC <- IC(logLikValue);
     ourData <- cbind(ourData,residuals(testModel));
     colnames(ourData)[ncol(ourData)] <- "const resid";
     bestFormula <- testFormula;
@@ -36,7 +41,9 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE){
         }
         testFormula <- paste0(testFormula,"+",newElement);
         testModel <- lm(as.formula(testFormula),data=ourData);
-        currentIC <- IC(testModel);
+        logLikValue <- logLik(testModel);
+        attributes(logLikValue)$df <- attributes(logLikValue)$df + df;
+        currentIC <- IC(logLikValue);
         if(!silent){
             cat(testFormula); cat(", "); cat(currentIC); cat("\n");
             cat(round(ourCorrelation,3)); cat("\n\n");

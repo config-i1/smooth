@@ -1,6 +1,6 @@
-utils::globalVariables(c("vecg","n.components","modellags","phiEstimate","y","datafreq","initialType",
+utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","datafreq","initialType",
                          "yot","maxlag","silent","allowMultiplicative","current.model",
-                         "n.param.intermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
+                         "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
                          "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend"));
@@ -59,8 +59,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ##### Cost Function for ES #####
 CF <- function(C){
-    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                            modellags, initialType, Ttype, Stype, n.exovars, matat,
+    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), nComponents,
+                            modellags, initialType, Ttype, Stype, nExovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
@@ -79,7 +79,7 @@ CF <- function(C){
 
 ##### C values for estimation #####
 # Function constructs default bounds where C values should lie
-CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat){
+CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
     C <- NA;
     CLower <- NA;
     CUpper <- NA;
@@ -97,10 +97,10 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
                 }
                 else{
                     CLower <- c(CLower,0.1,0.01);
@@ -109,7 +109,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,n.components]);
+                    C <- c(C,matvt[1:maxlag,nComponents]);
                     if(Stype=="A"){
                         CLower <- c(CLower,rep(-Inf,maxlag));
                         CUpper <- c(CUpper,rep(Inf,maxlag));
@@ -135,10 +135,10 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
                 }
                 else{
                     CLower <- c(CLower,0.1,0.01);
@@ -147,7 +147,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,n.components]);
+                    C <- c(C,matvt[1:maxlag,nComponents]);
                     if(Stype=="A"){
                         CLower <- c(CLower,rep(-Inf,maxlag));
                         CUpper <- c(CUpper,rep(Inf,maxlag));
@@ -173,10 +173,10 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(n.components - (Stype!="N"))]);
+                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(n.components - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(n.components - (Stype!="N"))));
+                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
+                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
                 }
                 else{
                     CLower <- c(CLower,-Inf,-Inf);
@@ -185,7 +185,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,n.components]);
+                    C <- c(C,matvt[1:maxlag,nComponents]);
                     if(Stype=="A"){
                         CLower <- c(CLower,rep(-Inf,maxlag));
                         CUpper <- c(CUpper,rep(Inf,maxlag));
@@ -202,19 +202,19 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat)
     if(xregEstimate){
         if(initialXEstimate){
             C <- c(C,matat[maxlag,]);
-            CLower <- c(CLower,rep(-Inf,n.exovars));
-            CUpper <- c(CUpper,rep(Inf,n.exovars));
+            CLower <- c(CLower,rep(-Inf,nExovars));
+            CUpper <- c(CUpper,rep(Inf,nExovars));
         }
         if(updateX){
             if(FXEstimate){
                 C <- c(C,as.vector(matFX));
-                CLower <- c(CLower,rep(-Inf,n.exovars^2));
-                CUpper <- c(CUpper,rep(Inf,n.exovars^2));
+                CLower <- c(CLower,rep(-Inf,nExovars^2));
+                CUpper <- c(CUpper,rep(Inf,nExovars^2));
             }
             if(gXEstimate){
                 C <- c(C,as.vector(vecgX));
-                CLower <- c(CLower,rep(-Inf,n.exovars));
-                CUpper <- c(CUpper,rep(Inf,n.exovars));
+                CLower <- c(CLower,rep(-Inf,nExovars));
+                CUpper <- c(CUpper,rep(Inf,nExovars));
             }
         }
     }
@@ -241,8 +241,8 @@ BasicInitialiserES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), n.components,
-                            modellags, initialType, Ttype, Stype, n.exovars, matat,
+    elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), nComponents,
+                            modellags, initialType, Ttype, Stype, nExovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
@@ -316,7 +316,7 @@ BasicInitialiserES <- function(...){
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
-    n.exovars <- xregdata$n.exovars;
+    nExovars <- xregdata$nExovars;
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
@@ -328,32 +328,32 @@ BasicInitialiserES <- function(...){
     initialXEstimate <- xregdata$initialXEstimate;
     xregNames <- colnames(matat);
 
-    n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    n.param.max <- n.param.max + n.param.exo + (intermittent!="n");
+    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
 
 ##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= n.param.max){
+    if(obsNonzero <= nParamMax){
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the maximum number of parameters to estimate is ", n.param.max,".\n",
+                           ", while the maximum number of parameters to estimate is ", nParamMax,".\n",
                            "Updating pool of models."));
         }
 
         # We have enough observations for local level model
-        if(obsNonzero > (3 + n.param.exo) & is.null(modelsPool)){
+        if(obsNonzero > (3 + nParamExo) & is.null(modelsPool)){
             modelsPool <- c("ANN");
             if(allowMultiplicative){
                 modelsPool <- c(modelsPool,"MNN");
             }
             # We have enough observations for trend model
-            if(obsNonzero > (5 + n.param.exo)){
+            if(obsNonzero > (5 + nParamExo)){
                 modelsPool <- c(modelsPool,"AAN");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AMN","MAN","MMN");
                 }
             }
             # We have enough observations for damped trend model
-            if(obsNonzero > (6 + n.param.exo)){
+            if(obsNonzero > (6 + nParamExo)){
                 modelsPool <- c(modelsPool,"AAdN");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
@@ -367,7 +367,7 @@ BasicInitialiserES <- function(...){
                 }
             }
             # We have enough observations for seasonal model with trend
-            if((obsNonzero > (6 + datafreq + n.param.exo)) & (obsNonzero > 2*datafreq) & datafreq!=1){
+            if((obsNonzero > (6 + datafreq + nParamExo)) & (obsNonzero > 2*datafreq) & datafreq!=1){
                 modelsPool <- c(modelsPool,"AAA");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
@@ -388,17 +388,17 @@ BasicInitialiserES <- function(...){
                 model <- "ZZZ";
             }
         }
-        else if(obsNonzero > (3 + n.param.exo) & !is.null(modelsPool)){
+        else if(obsNonzero > (3 + nParamExo) & !is.null(modelsPool)){
             modelsPool.new <- modelsPool;
             # We don't have enough observations for seasonal models with damped trend
-            if((obsNonzero <= (6 + datafreq + 1 + n.param.exo))){
+            if((obsNonzero <= (6 + datafreq + 1 + nParamExo))){
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                            substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A")];
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                            substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M")];
             }
             # We don't have enough observations for seasonal models with trend
-            if((obsNonzero <= (5 + datafreq + 1 + n.param.exo))){
+            if((obsNonzero <= (5 + datafreq + 1 + nParamExo))){
                 modelsPool <- modelsPool[!(substr(modelsPool,2,2)!="N" &
                                              substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
             }
@@ -407,11 +407,11 @@ BasicInitialiserES <- function(...){
                 modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
             }
             # We don't have enough observations for damped trend
-            if(obsNonzero <= (6 + n.param.exo)){
+            if(obsNonzero <= (6 + nParamExo)){
                 modelsPool <- modelsPool[nchar(modelsPool)!=4];
             }
             # We don't have enough observations for any trend
-            if(obsNonzero <= (5 + n.param.exo)){
+            if(obsNonzero <= (5 + nParamExo)){
                 modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
@@ -455,7 +455,7 @@ EstimatorES <- function(...){
     environment(CF) <- environment();
     BasicMakerES(ParentEnvironment=environment());
 
-    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,n.components,matat);
+    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat);
     C <- Cs$C;
     CUpper <- Cs$CUpper;
     CLower <- Cs$CLower;
@@ -508,7 +508,7 @@ EstimatorES <- function(...){
                 call.=FALSE);
     }
 
-    n.param <- 1 + n.components + damped + (n.components + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
+    nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);
 
     # Change cfType for model selection
     if(multisteps){
@@ -523,13 +523,13 @@ EstimatorES <- function(...){
         cfType <- "MSE";
     }
 
-    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=res$solution,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=res$solution,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
     # Change back
     cfType <- cfTypeOriginal;
-    return(list(ICs=ICs,objective=res$objective,C=C,n.param=n.param,FI=FI,logLik=logLik));
+    return(list(ICs=ICs,objective=res$objective,C=C,nParam=nParam,FI=FI,logLik=logLik));
 }
 
 ##### This function prepares pool of models to use #####
@@ -649,7 +649,7 @@ PoolPreparerES <- function(...){
 
                 res <- EstimatorES(ParentEnvironment=environment());
 
-                results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param,res$logLik);
+                results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
 
                 tested.model <- c(tested.model,current.model);
 
@@ -782,7 +782,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
         }
 
         res <- EstimatorES(ParentEnvironment=environment());
-        results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$n.param,res$logLik);
+        results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
     }
 
     if(!silent){
@@ -827,7 +827,7 @@ CreatorES <- function(silent=FALSE,...){
         logLik <- as.numeric(results[length(results)]);
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=as.numeric(results[length(results)-1]),FI=FI,logLik=logLik));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=as.numeric(results[length(results)-1]),FI=FI,logLik=logLik));
     }
     else if(modelDo=="combine"){
         if(cfType!="MSE"){
@@ -851,7 +851,7 @@ CreatorES <- function(silent=FALSE,...){
         logLik <- res$logLik;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,n.param=res$n.param,FI=FI,logLik=logLik));
+                    cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,nParam=res$nParam,FI=FI,logLik=logLik));
     }
     else{
         environment(CF) <- environment();
@@ -875,7 +875,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        n.param <- 1 + n.components + damped + (n.components + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars);
+        nParam <- 1 + nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
 
 # Change cfType for model selection
         if(multisteps){
@@ -885,7 +885,7 @@ CreatorES <- function(silent=FALSE,...){
             cfType <- "MSE";
         }
 
-        ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+        ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
@@ -893,7 +893,7 @@ CreatorES <- function(silent=FALSE,...){
         cfType <- cfTypeOriginal;
 
         return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,FI=FI,logLik=logLik));
+                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,FI=FI,logLik=logLik));
     }
 }
 
@@ -1018,14 +1018,14 @@ CreatorES <- function(silent=FALSE,...){
             persistence <- as.vector(vecg);
         }
         if(Ttype!="N"){
-            names(persistence) <- c("alpha","beta","gamma")[1:n.components];
+            names(persistence) <- c("alpha","beta","gamma")[1:nComponents];
         }
         else{
-            names(persistence) <- c("alpha","gamma")[1:n.components];
+            names(persistence) <- c("alpha","gamma")[1:nComponents];
         }
 
         if(initialType!="p"){
-            initialValue <- matvt[maxlag,1:(n.components - (Stype!="N"))];
+            initialValue <- matvt[maxlag,1:(nComponents - (Stype!="N"))];
         }
 
         if(initialXEstimate){
@@ -1034,7 +1034,7 @@ CreatorES <- function(silent=FALSE,...){
 
         if(initialSeasonEstimate){
             if(Stype!="N"){
-                initialSeason <- matvt[1:maxlag,n.components];
+                initialSeason <- matvt[1:maxlag,nComponents];
                 names(initialSeason) <- paste0("s",1:maxlag);
             }
         }
@@ -1063,7 +1063,7 @@ CreatorES <- function(silent=FALSE,...){
             damped <- as.logical(results[[i]][7]);
             cfObjective <- as.numeric(results[[i]][8]);
             C <- as.numeric(results[[i]][-c(1:8)]);
-            n.param <- as.numeric(results[[i]][length(results[[i]])]);
+            nParam <- as.numeric(results[[i]][length(results[[i]])]);
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
             if(damped){
@@ -1161,7 +1161,7 @@ CreatorES <- function(silent=FALSE,...){
         model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
-                      nParam=n.param,
+                      nParam=nParam,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,

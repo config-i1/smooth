@@ -60,7 +60,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     ssInput(modelType="ges",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
-    matvt <- matrix(NA,nrow=obsStates,ncol=n.components);
+    matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
     y.fit <- rep(NA,obsInsample);
     y.for <- rep(NA,h);
     errors <- rep(NA,obsInsample);
@@ -71,7 +71,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
 
     if(xregDo=="n"){
-        n.exovars <- xregdata$n.exovars;
+        nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
         xregEstimate <- xregdata$xregEstimate;
@@ -79,8 +79,8 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         vecgX <- xregdata$vecgX;
     }
     else{
-        n.exovars <- 1;
-        n.exovarsOriginal <- xregdata$n.exovars;
+        nExovars <- 1;
+        nExovarsOriginal <- xregdata$nExovars;
         matxtOriginal <- xregdata$matxt;
         matatOriginal <- xregdata$matat;
         xregEstimateOriginal <- xregdata$xregEstimate;
@@ -104,14 +104,14 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     Stype <- "N";
 
 # Check number of parameters vs data
-    n.param.exo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    n.param.max <- n.param.max + n.param.exo + (intermittent!="n");
+    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
 
 ##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= n.param.max){
+    if(obsNonzero <= nParamMax){
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the number of parameters to estimate is ", n.param.max,"."));
+                           ", while the number of parameters to estimate is ", nParamMax,"."));
         }
         stop("Not enough observations. Can't fit the model you ask.",call.=FALSE);
     }
@@ -128,8 +128,8 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
     }
 
-    vt <- matrix(NA,maxlag,n.components);
-    for(i in 1:n.components){
+    vt <- matrix(NA,maxlag,nComponents);
+    for(i in 1:nComponents){
         vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
         vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
                                            ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
@@ -140,36 +140,36 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
 ElementsGES <- function(C){
     n.coef <- 0;
     if(measurementEstimate){
-        matw <- matrix(C[n.coef+(1:n.components)],1,n.components);
-        n.coef <- n.coef + n.components;
+        matw <- matrix(C[n.coef+(1:nComponents)],1,nComponents);
+        n.coef <- n.coef + nComponents;
     }
     else{
-        matw <- matrix(measurement,1,n.components);
+        matw <- matrix(measurement,1,nComponents);
     }
 
     if(transitionEstimate){
-        matF <- matrix(C[n.coef+(1:(n.components^2))],n.components,n.components);
-        n.coef <- n.coef + n.components^2;
+        matF <- matrix(C[n.coef+(1:(nComponents^2))],nComponents,nComponents);
+        n.coef <- n.coef + nComponents^2;
     }
     else{
-        matF <- matrix(transition,n.components,n.components);
+        matF <- matrix(transition,nComponents,nComponents);
     }
 
     if(persistenceEstimate){
-        vecg <- matrix(C[n.coef+(1:n.components)],n.components,1);
-        n.coef <- n.coef + n.components;
+        vecg <- matrix(C[n.coef+(1:nComponents)],nComponents,1);
+        n.coef <- n.coef + nComponents;
     }
     else{
-        vecg <- matrix(persistence,n.components,1);
+        vecg <- matrix(persistence,nComponents,1);
     }
 
-    vt <- matrix(NA,maxlag,n.components);
+    vt <- matrix(NA,maxlag,nComponents);
     if(initialType!="b"){
         if(initialType=="o"){
             vtvalues <- C[n.coef+(1:(orders %*% lags))];
             n.coef <- n.coef + orders %*% lags;
 
-            for(i in 1:n.components){
+            for(i in 1:nComponents){
                 vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
                 vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
                                                    ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
@@ -180,31 +180,31 @@ ElementsGES <- function(C){
         }
     }
     else{
-        vt[,] <- matvt[1:maxlag,n.components];
+        vt[,] <- matvt[1:maxlag,nComponents];
     }
 
 # If exogenous are included
     if(xregEstimate){
-        at <- matrix(NA,maxlag,n.exovars);
+        at <- matrix(NA,maxlag,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[n.coef+(1:n.exovars)],each=maxlag);
-            n.coef <- n.coef + n.exovars;
+            at[,] <- rep(C[n.coef+(1:nExovars)],each=maxlag);
+            n.coef <- n.coef + nExovars;
         }
         else{
             at <- matat[1:maxlag,];
         }
         if(FXEstimate){
-            matFX <- matrix(C[n.coef+(1:(n.exovars^2))],n.exovars,n.exovars);
-            n.coef <- n.coef + n.exovars^2;
+            matFX <- matrix(C[n.coef+(1:(nExovars^2))],nExovars,nExovars);
+            n.coef <- n.coef + nExovars^2;
         }
 
         if(gXEstimate){
-            vecgX <- matrix(C[n.coef+(1:n.exovars)],n.exovars,1);
-            n.coef <- n.coef + n.exovars;
+            vecgX <- matrix(C[n.coef+(1:nExovars)],nExovars,1);
+            n.coef <- n.coef + nExovars;
         }
     }
     else{
-        at <- matrix(0,maxlag,n.exovars);
+        at <- matrix(0,maxlag,nExovars);
     }
 
     return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -239,7 +239,7 @@ CreatorGES <- function(silentText=FALSE,...){
     environment(ICFunction) <- environment();
 
 # 1 stands for the variance
-    n.param <- 2*n.components + n.components^2 + orders %*% lags * (initialType!="b") + !is.null(xreg) * n.exovars + (updateX)*(n.exovars^2 + n.exovars) + 1;
+    nParam <- 2*nComponents + nComponents^2 + orders %*% lags * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars) + 1;
 
 # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(measurementEstimate),(transitionEstimate),(persistenceEstimate),
@@ -248,16 +248,16 @@ CreatorGES <- function(silentText=FALSE,...){
         C <- NULL;
 # matw, matF, vecg, vt
         if(measurementEstimate){
-            C <- c(C,rep(1,n.components));
+            C <- c(C,rep(1,nComponents));
         }
         if(transitionEstimate){
             #C <- c(C,as.vector(test$transition));
-            #C <- c(C,rep(1,n.components^2 - length(test$transition)))
-            C <- c(C,rep(1,n.components^2));
-            #C <- c(C,c(diag(1,n.components)));
+            #C <- c(C,rep(1,nComponents^2 - length(test$transition)))
+            C <- c(C,rep(1,nComponents^2));
+            #C <- c(C,c(diag(1,nComponents)));
         }
         if(persistenceEstimate){
-            C <- c(C,rep(0.1,n.components));
+            C <- c(C,rep(0.1,nComponents));
         }
         if(initialType=="o"){
             C <- c(C,intercept);
@@ -276,10 +276,10 @@ CreatorGES <- function(silentText=FALSE,...){
             }
             if(updateX){
                 if(FXEstimate){
-                    C <- c(C,c(diag(n.exovars)));
+                    C <- c(C,c(diag(nExovars)));
                 }
                 if(gXEstimate){
-                    C <- c(C,rep(0,n.exovars));
+                    C <- c(C,rep(0,nExovars));
                 }
             }
         }
@@ -315,7 +315,7 @@ CreatorGES <- function(silentText=FALSE,...){
         cfType <- "MSE";
     }
 
-    ICValues <- ICFunction(n.param=n.param+n.param.intermittent,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
@@ -324,7 +324,7 @@ CreatorGES <- function(silentText=FALSE,...){
 # Revert to the provided cost function
     cfType <- cfTypeOriginal
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,n.param=n.param,logLik=logLik));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
 ##### Xreg Selector #####
@@ -413,17 +413,17 @@ xregSelector <- function(silentText=FALSE,...){
         colnames(xregNew)[1] <- "errors";
         colnames(xregNew)[-1] <- xregNames;
         xregNew <- as.data.frame(xregNew);
-        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE);
+        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
         xregNames <- names(coef(xregResults$model))[-1];
-        n.exovars <- length(xregNames);
-        if(n.exovars>0){
+        nExovars <- length(xregNames);
+        if(nExovars>0){
             xregEstimate <- TRUE;
             matxt <- as.data.frame(matxtOriginal)[,xregNames];
             matat <- as.data.frame(matatOriginal)[,xregNames];
-            matFX <- diag(n.exovars);
-            vecgX <- matrix(0,n.exovars,1);
+            matFX <- diag(nExovars);
+            vecgX <- matrix(0,nExovars,1);
 
-            if(n.exovars==1){
+            if(nExovars==1){
                 matxt <- matrix(matxt,ncol=1);
                 matat <- matrix(matat,ncol=1);
                 colnames(matxt) <- colnames(matat) <- xregNames;
@@ -434,7 +434,7 @@ xregSelector <- function(silentText=FALSE,...){
             }
         }
         else{
-            n.exovars <- 1;
+            nExovars <- 1;
             xreg <- NULL;
         }
 
@@ -499,14 +499,14 @@ xregSelector <- function(silentText=FALSE,...){
     matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat);
-        colnames(matvt) <- c(paste0("Component ",c(1:n.components)),colnames(matat));
+        colnames(matvt) <- c(paste0("Component ",c(1:nComponents)),colnames(matat));
         if(updateX){
             rownames(vecgX) <- xregNames;
             dimnames(matFX) <- list(xregNames,xregNames);
         }
     }
     else{
-        colnames(matvt) <- paste0("Component ",c(1:n.components));
+        colnames(matvt) <- paste0("Component ",c(1:nComponents));
     }
 
     if(holdout==T){
@@ -552,7 +552,7 @@ xregSelector <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,measurement=matw,transition=matF,persistence=vecg,
                   initialType=initialType,initial=initialValue,
-                  nParam=n.param,
+                  nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
