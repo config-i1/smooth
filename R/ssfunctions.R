@@ -1091,6 +1091,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     normalizer <- mean(abs(diff(c(y))));
 
+    ##### Define xregDo #####
     if(!exists("xregDo")){
         xregDo <- "n";
     }
@@ -1421,6 +1422,23 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
         }
     }
 
+    ##### Define xregDo #####
+    if(!exists("xregDo")){
+        xregDo <- "n";
+    }
+    else{
+        if(!any(xregDo==c("nothing","select","n","s"))){
+            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
+            xregDo <- "select";
+        }
+    }
+    xregDo <- substr(xregDo[1],1,1);
+
+    if(is.null(xreg)){
+        xregDo <- "n";
+    }
+
+    ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
@@ -1439,6 +1457,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
     assign("y",y,ParentEnvironment);
+    assign("xregDo",xregDo,ParentEnvironment);
 }
 
 ##### *ssFitter function* #####
