@@ -55,3 +55,9 @@ test_that("Check exogenous variables for SSARIMA on N1457", {
     expect_equal(suppressWarnings(ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$model), testModel$model);
     expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$model), testModel$model);
 })
+
+# Test selection of exogenous with Auto.SSARIMA
+testModel <- auto.ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+test_that("Select exogenous variables for auto SSARIMA on N1457", {
+    expect_null(suppressWarnings(testModel$xreg));
+})
