@@ -408,7 +408,7 @@ CreatorGES <- function(silentText=FALSE,...){
         colnames(xregNew)[-1] <- xregNames;
         xregNew <- as.data.frame(xregNew);
         xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
-        xregNames <- names(coef(xregResults$model))[-1];
+        xregNames <- names(coef(xregResults))[-1];
         nExovars <- length(xregNames);
         if(nExovars>0){
             xregEstimate <- TRUE;
