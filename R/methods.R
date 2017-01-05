@@ -6,13 +6,16 @@ modelType <-  function(object, ...) UseMethod("modelType")
 
 ##### Likelihood function
 logLik.smooth <- function(object,...){
-    structure(object$logLik,df=object$nParam,class="logLik");
+    obs <- nobs(object);
+    structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
 }
 logLik.smooth.sim <- function(object,...){
-    structure(object$logLik,df=0,class="logLik");
+    obs <- nobs(object);
+    structure(object$logLik,nobs=obs,df=0,class="logLik");
 }
 logLik.iss <- function(object,...){
-    structure(object$logLik,df=object$nParam,class="logLik");
+    obs <- nobs(object);
+    structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
 }
 
 nobs.smooth <- function(object, ...){
@@ -32,12 +35,12 @@ nobs.iss <- function(object, ...){
 
 ##### IC functions #####
 AICc.default <- function(object, ...){
-    if(!is.null(object$x)){
-        obs <- length(object$x);
-    }
-    else{
+    # if(!is.null(object$x)){
+    #     obs <- length(object$x);
+    # }
+    # else{
         obs <- nobs(object);
-    }
+    # }
 
     llikelihood <- logLik(object);
     nParam <- attributes(llikelihood)$df;
