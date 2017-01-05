@@ -36,5 +36,5 @@ test_that("Check exogenous variables for CES on N1457", {
 # Test selection of exogenous with CES
 testModel <- ces(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for CES on N1457", {
-    expect_null(suppressWarnings(testModel$xreg));
+    expect_equal(suppressWarnings(sum(testModel$xreg)),1);
 })
