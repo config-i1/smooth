@@ -1085,11 +1085,18 @@ CreatorES <- function(silent=FALSE,...){
             }
             phi <- NULL;
         }
+        badStuff <- apply(is.na(rbind(fitted.list,forecasts.list)),2,any);
+        fitted.list <- fitted.list[,!badStuff];
+        forecasts.list <- forecasts.list[,!badStuff];
+        icWeights <- icWeights[!badStuff];
+        model.current <- model.current[!badStuff];
         y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=frequency(data));
         y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
         errors <- ts(c(y) - y.fit,start=start(data),frequency=frequency(data));
         names(icWeights) <- model.current;
         if(intervals){
+            lower.list <- lower.list[,!badStuff];
+            upper.list <- upper.list[,!badStuff];
             y.low <- ts(lower.list %*% icWeights,start=start(y.for),frequency=frequency(data));
             y.high <- ts(upper.list %*% icWeights,start=start(y.for),frequency=frequency(data));
         }

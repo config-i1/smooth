@@ -10,8 +10,9 @@ Changes:
 * logLik() now also includes nobs as an attribute.
 
 Bugfixes:
-* renamed some internal parameters for consistency purposes.
+* Renamed some internal parameters for consistency purposes.
 * Found a bug with nParam calculation in ges().
+* Fixed a bug that did not allow to use combinations with intermittent demand in es().
 
 
 smooth v1.5.2 (Release date: 2016-12-18)
