@@ -17,7 +17,8 @@ auto.ssarima(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency
         intermittent=c("none","auto","fixed","croston","tsb","sba"),
         bounds=c("admissible","none"),
         silent=c("none","all","graph","legend","output"),
-        xreg=NULL, updateX=FALSE, ...)
+        xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+        updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -86,8 +87,20 @@ auto.ssarima(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency
   \item{xreg}{
     Vector (either numeric or time series) or matrix (or data.frame) of exogenous variables that should be included in the model. If matrix included than columns should contain variables and rows - observations. Note that \code{xreg} should have number of observations equal either to in-sample or to the whole series. If the number of observations in \code{xreg} is equal to in-sample, then values for the holdout sample are produced using Naive.
   }
+  \item{xregDo}{
+    Variable defines what to do with the provided xreg: \code{"nothing"} means that all of the data should be used, whilie \code{"select"} means that a selection using \code{ic} should be done. \code{"combine"} will be available at some point in future...
+  }
+  \item{initialX}{
+    Vector of initial parameters for exogenous variables. Ignored if \code{xreg} is NULL.
+  }
   \item{updateX}{
     If \code{TRUE}, transition matrix for exogenous variables is estimated, introducing non-linear interractions between parameters. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{persistenceX}{
+    Persistence vector \eqn{g_X}, containing smoothing parameters for exogenous variables. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
+  }
+  \item{transitionX}{
+    Transition matrix \eqn{F_x} for exogenous variables. Can be provided as a vector. Matrix will be formed using the default \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL \code{xreg}.
   }
   \item{...}{
     Other non-documented parameters. For example \code{FI=TRUE} will make the function also produce Fisher Information matrix, which then can be used to calculated variances of parameters of the model.
