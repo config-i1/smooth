@@ -3,14 +3,15 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 
 ssarima <- function(data, orders=list(ar=0,i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
-                    initial=c("backcasting","optimal"),
+                    initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                     cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                     h=10, holdout=FALSE,
                     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                     intermittent=c("none","auto","fixed","croston","tsb","sba"),
                     bounds=c("admissible","none"),
                     silent=c("none","all","graph","legend","output"),
-                    xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                    xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                    updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -151,21 +152,38 @@ ssarima <- function(data, orders=list(ar=0,i=c(1),ma=c(1)), lags=c(1),
     y.for <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
-##### Prepare exogenous variables #####
+    ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
-    nExovars <- xregdata$nExovars;
-    matxt <- xregdata$matxt;
-    matat <- xregdata$matat;
-    matFX <- xregdata$matFX;
-    vecgX <- xregdata$vecgX;
+
+    if(xregDo=="n"){
+        nExovars <- xregdata$nExovars;
+        matxt <- xregdata$matxt;
+        matat <- xregdata$matat;
+        xregEstimate <- xregdata$xregEstimate;
+        matFX <- xregdata$matFX;
+        vecgX <- xregdata$vecgX;
+    }
+    else{
+        nExovars <- 1;
+        nExovarsOriginal <- xregdata$nExovars;
+        matxtOriginal <- xregdata$matxt;
+        matatOriginal <- xregdata$matat;
+        xregEstimateOriginal <- xregdata$xregEstimate;
+        matFXOriginal <- xregdata$matFX;
+        vecgXOriginal <- xregdata$vecgX;
+
+        matxt <- matrix(1,nrow(matxtOriginal),1);
+        matat <- matrix(0,nrow(matatOriginal),1);
+        xregEstimate <- FALSE;
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
+    }
     xreg <- xregdata$xreg;
-    xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
-    xregNames <- colnames(matat);
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -399,6 +417,66 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     list2env(ssarimaValues,environment());
 
+    if(xregDo!="n"){
+        # Prepare for fitting
+        elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
+                                ARValue, MAValue, constantValue, C,
+                                matvt, vecg, matF,
+                                initialType, nExovars, matat, matFX, vecgX,
+                                AREstimate, MAEstimate, constantRequired, constantEstimate,
+                                xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
+        matF <- elements$matF;
+        vecg <- elements$vecg;
+        matvt[,] <- elements$matvt;
+        matat[,] <- elements$matat;
+        matFX <- elements$matFX;
+        vecgX <- elements$vecgX;
+        polysos.ar <- elements$arPolynomial;
+        polysos.ma <- elements$maPolynomial;
+        arroots <- abs(polyroot(polysos.ar));
+        maroots <- abs(polyroot(polysos.ma));
+
+        ssFitter(ParentEnvironment=environment());
+
+        xregNames <- colnames(matxtOriginal);
+        xregNew <- cbind(errors,xreg[1:nrow(errors),]);
+        colnames(xregNew)[1] <- "errors";
+        colnames(xregNew)[-1] <- xregNames;
+        xregNew <- as.data.frame(xregNew);
+        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
+        xregNames <- names(coef(xregResults))[-1];
+        nExovars <- length(xregNames);
+        if(nExovars>0){
+            xregEstimate <- TRUE;
+            matxt <- as.data.frame(matxtOriginal)[,xregNames];
+            matat <- as.data.frame(matatOriginal)[,xregNames];
+            matFX <- diag(nExovars);
+            vecgX <- matrix(0,nExovars,1);
+
+            if(nExovars==1){
+                matxt <- matrix(matxt,ncol=1);
+                matat <- matrix(matat,ncol=1);
+                colnames(matxt) <- colnames(matat) <- xregNames;
+            }
+            else{
+                matxt <- as.matrix(matxt);
+                matat <- as.matrix(matat);
+            }
+        }
+        else{
+            nExovars <- 1;
+            xreg <- NULL;
+        }
+
+        ssarimaValues <- CreatorSSARIMA(silentText);
+
+        list2env(ssarimaValues,environment());
+    }
+
+    if(!is.null(xreg)){
+        xregNames <- colnames(matat);
+        xreg <- matxt[,xregNames];
+    }
 # Prepare for fitting
     elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
                             ARValue, MAValue, constantValue, C,
