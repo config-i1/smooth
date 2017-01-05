@@ -6,7 +6,7 @@ Changes:
 * ges() now has xreg selection mechanism.
 * iSS models now return relevant error measures.
 * es() now allows combining a pool of models, when the list includes "CCC".
-* logLik now also includes nobs as an attribute.
+* logLik() now also includes nobs as an attribute.
 
 Bugfixes:
 * renamed some internal parameters for consistency purposes.
