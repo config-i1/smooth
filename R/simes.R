@@ -327,7 +327,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
                     materrors <- materrors * 0.5;
                 }
                 else{
-                    materrors <- materrors * 0.01;
+                    materrors <- materrors * 0.1;
                 }
                 materrors <- exp(materrors) - 1;
 #            exceedingerrors <- apply(abs(materrors),2,max)>1;
