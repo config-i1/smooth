@@ -978,11 +978,23 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     arma::rowvec bufferforat(vecGX.n_rows);
 
     arma::mat matrixFInverted(matrixF);
-    if(maxlag != minlag){
-        if(!inv(matrixFInverted, matrixF)){
-            matrixFInverted = matrixF.t();
-        }
+    arma::rowvec rowvecWInverted = rowvecW;
+
+    if(!inv(matrixFInverted, matrixF)){
+        matrixFInverted = matrixF.t();
     }
+// Fix for strange behaviour of ETS(ZAdZ) on seasonal data
+    if(T!='N'){
+        matrixFInverted(1,1) = 1;
+    }
+
+    rowvecWInverted = rowvecW * matrixFInverted * matrixFInverted;
+
+    // if(maxlag != minlag){
+        // if(!inv(matrixFInverted, matrixF)){
+            // matrixFInverted = matrixF.t();
+        // }
+    // }
 
     for(int j=0; j<=nloops; j=j+1){
 /* ### Go forward ### */
@@ -1041,13 +1053,13 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             lagrows = backlags + i + 1;
 
 /* # Measurement equation and the error term */
-            matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
+            matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecWInverted, T, S) +
                                            matrixXt.row(i-maxlag) * arma::trans(matrixAt.row(i+1)));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
             matrixVt.row(i) = arma::trans(fvalue(matrixVt(lagrows), matrixFInverted, T, S) +
-                                          gvalue(matrixVt(lagrows), matrixFInverted, rowvecW, E, T, S) % vecG * materrors(i-maxlag));
+                                          gvalue(matrixVt(lagrows), matrixFInverted, rowvecWInverted, E, T, S) % vecG * materrors(i-maxlag));
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.row(i).is_finite()){
