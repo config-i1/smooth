@@ -8,6 +8,7 @@ Changes:
 * iSS models now return relevant error measures.
 * es() now allows combining a pool of models, when the list includes "CCC".
 * logLik() now also includes nobs as an attribute.
+* Renamed some internal variables for consistency purpose.
 
 Bugfixes:
 * Renamed some internal parameters for consistency purposes.
