@@ -1,4 +1,4 @@
-smooth v1.6.0 (Release date: 2017-01-07)
+smooth v1.6.0 (Release date: 2017-01-13)
 ==============
 
 Changes:
@@ -13,6 +13,7 @@ Bugfixes:
 * Renamed some internal parameters for consistency purposes.
 * Found a bug with nParam calculation in ges().
 * Fixed a bug that did not allow to use combinations with intermittent demand in es().
+* Fixed a bug in backcasting mechanism.
 
 
 smooth v1.5.2 (Release date: 2016-12-18)
