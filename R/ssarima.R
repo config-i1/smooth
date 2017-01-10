@@ -468,9 +468,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             xreg <- NULL;
         }
 
-        ssarimaValues <- CreatorSSARIMA(silentText);
-
-        list2env(ssarimaValues,environment());
+        if(!is.null(xreg)){
+            ssarimaValues <- CreatorSSARIMA(silentText);
+            list2env(ssarimaValues,environment());
+        }
     }
 
     if(!is.null(xreg)){

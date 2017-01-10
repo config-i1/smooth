@@ -432,9 +432,10 @@ CreatorGES <- function(silentText=FALSE,...){
             xreg <- NULL;
         }
 
-        gesValues <- CreatorGES(silentText=TRUE);
-
-        list2env(gesValues,environment());
+        if(!is.null(xreg)){
+            gesValues <- CreatorGES(silentText=TRUE);
+            list2env(gesValues,environment());
+        }
     }
 
     if(!is.null(xreg)){
