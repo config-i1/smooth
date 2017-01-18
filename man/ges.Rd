@@ -148,7 +148,7 @@ ges(data, orders=c(1,1), lags=c(1,frequency(data)),
     \item \code{holdout} - holdout part of the original data.
     \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
     \item \code{intermittent} - type of intermittent model fitted to the data.
-    \item \code{xreg} - provided vector or matrix of exogenous variables.
+    \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"}, then this value will contain only selected exogenous variables.
     \item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
     \item \code{initialX} - initial values for parameters of exogenous variables.
     \item \code{persistenceX} - persistence vector g for exogenous variables.
@@ -201,8 +201,10 @@ ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="
 
 # Do the same but now let's shrink parameters...
 \dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="MSTFE")
-
 ourModel <- ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aMSTFE")
+
+# Or select the most appropriate one
+\dontrun{ges(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")}
 
 summary(ourModel)
 forecast(ourModel)

@@ -467,9 +467,10 @@ CreatorCES <- function(silentText=FALSE,...){
             xreg <- NULL;
         }
 
-        cesValues <- CreatorCES(silentText=TRUE);
-
-        list2env(cesValues,environment());
+        if(!is.null(xreg)){
+            cesValues <- CreatorCES(silentText=TRUE);
+            list2env(cesValues,environment());
+        }
     }
 
     if(!is.null(xreg)){

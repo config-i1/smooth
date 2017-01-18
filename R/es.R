@@ -13,7 +13,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
-               xreg=NULL, initialX=NULL, updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+               xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+               updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -316,17 +317,34 @@ BasicInitialiserES <- function(...){
     xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
-    nExovars <- xregdata$nExovars;
-    matxt <- xregdata$matxt;
-    matat <- xregdata$matat;
-    matFX <- xregdata$matFX;
-    vecgX <- xregdata$vecgX;
+
+    if(xregDo=="n"){
+        nExovars <- xregdata$nExovars;
+        matxt <- xregdata$matxt;
+        matat <- xregdata$matat;
+        xregEstimate <- xregdata$xregEstimate;
+        matFX <- xregdata$matFX;
+        vecgX <- xregdata$vecgX;
+    }
+    else{
+        nExovars <- 1;
+        nExovarsOriginal <- xregdata$nExovars;
+        matxtOriginal <- xregdata$matxt;
+        matatOriginal <- xregdata$matat;
+        xregEstimateOriginal <- xregdata$xregEstimate;
+        matFXOriginal <- xregdata$matFX;
+        vecgXOriginal <- xregdata$vecgX;
+
+        matxt <- matrix(1,nrow(matxtOriginal),1);
+        matat <- matrix(0,nrow(matatOriginal),1);
+        xregEstimate <- FALSE;
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
+    }
     xreg <- xregdata$xreg;
-    xregEstimate <- xregdata$xregEstimate;
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
-    xregNames <- colnames(matat);
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
     nParamMax <- nParamMax + nParamExo + (intermittent!="n");
@@ -530,6 +548,52 @@ EstimatorES <- function(...){
     # Change back
     cfType <- cfTypeOriginal;
     return(list(ICs=ICs,objective=res$objective,C=C,nParam=nParam,FI=FI,logLik=logLik));
+}
+
+##### This function uses residuals in order to determine the needed xreg #####
+XregSelector <- function(...){
+# Prepare for fitting
+    environment(BasicInitialiserES) <- environment();
+    environment(EstimatorES) <- environment();
+
+    BasicInitialiserES(ParentEnvironment=environment());
+    ssFitter(ParentEnvironment=environment());
+
+    xregNames <- colnames(matxtOriginal);
+    xregNew <- cbind(errors,xreg[1:nrow(errors),]);
+    colnames(xregNew)[1] <- "errors";
+    colnames(xregNew)[-1] <- xregNames;
+    xregNew <- as.data.frame(xregNew);
+    xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
+    xregNames <- names(coef(xregResults))[-1];
+    nExovars <- length(xregNames);
+    if(nExovars>0){
+        xregEstimate <- TRUE;
+        matxt <- as.data.frame(matxtOriginal)[,xregNames];
+        matat <- as.data.frame(matatOriginal)[,xregNames];
+        matFX <- diag(nExovars);
+        vecgX <- matrix(0,nExovars,1);
+
+        if(nExovars==1){
+            matxt <- matrix(matxt,ncol=1);
+            matat <- matrix(matat,ncol=1);
+            colnames(matxt) <- colnames(matat) <- xregNames;
+        }
+        else{
+            matxt <- as.matrix(matxt);
+            matat <- as.matrix(matat);
+        }
+    }
+    else{
+        nExovars <- 1;
+        xreg <- NULL;
+    }
+
+    if(!is.null(xreg)){
+        res <- EstimatorES(ParentEnvironment=environment());
+    }
+
+    return(res);
 }
 
 ##### This function prepares pool of models to use #####
@@ -969,6 +1033,11 @@ CreatorES <- function(silent=FALSE,...){
 
         intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
         intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
+    }
+
+    if(!is.null(xreg)){
+        xregNames <- colnames(matat);
+        xreg <- matxt[,xregNames];
     }
 
 ##### Fit simple model and produce forecast #####
