@@ -1138,7 +1138,13 @@ CreatorES <- function(silent=FALSE,...){
         errormeasures <- NA;
     }
 
-    modelname <- paste0("ETS(",model,")");
+    if(!is.null(xreg)){
+        modelname <- "ETSX";
+    }
+    else{
+        modelname <- "ETS";
+    }
+    modelname <- paste0(modelname,"(",model,")");
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);
     }

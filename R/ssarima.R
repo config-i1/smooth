@@ -622,7 +622,13 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Give model the name
     if((length(ar.orders)==1) && all(lags==1)){
-        modelname <- paste0("ARIMA(",ar.orders,",",i.orders,",",ma.orders,")");
+        if(!is.null(xreg)){
+            modelname <- "ARIMAX";
+        }
+        else{
+            modelname <- "ARIMA";
+        }
+        modelname <- paste0(modelname,"(",ar.orders,",",i.orders,",",ma.orders,")");
     }
     else{
         modelname <- "";
@@ -631,7 +637,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             modelname <- paste0(modelname,i.orders[i],",");
             modelname <- paste0(modelname,ma.orders[i],")[",lags[i],"]");
         }
-        modelname <- paste0("SARIMA",modelname);
+        if(!is.null(xreg)){
+            modelname <- paste0("SARIMAX",modelname);
+        }
+        else{
+            modelname <- paste0("SARIMA",modelname);
+        }
     }
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);

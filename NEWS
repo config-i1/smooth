@@ -1,4 +1,4 @@
-smooth v1.6.0 (Release date: 2017-01-07)
+smooth v1.6.0 (Release date: 2017-01-18)
 ==============
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * iSS models now return relevant error measures.
 * es() now allows combining a pool of models, when the list includes "CCC".
 * logLik() now also includes nobs as an attribute.
+* We now report modelX if it includes xreg. For example, "ARIMAX" instead of ARIMA.
 
 Bugfixes:
 * Renamed some internal parameters for consistency purposes.

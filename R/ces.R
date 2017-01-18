@@ -560,7 +560,13 @@ CreatorCES <- function(silentText=FALSE,...){
         }
     }
 
-    modelname <- paste0("CES(",seasonality,")");
+    if(!is.null(xreg)){
+        modelname <- "CESX";
+    }
+    else{
+        modelname <- "CES";
+    }
+    modelname <- paste0(modelname,"(",seasonality,")");
 
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);

@@ -512,7 +512,13 @@ CreatorGES <- function(silentText=FALSE,...){
         errormeasures <- NA;
     }
 
-    modelname <- paste0("GES(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
+    if(!is.null(xreg)){
+        modelname <- "GESX";
+    }
+    else{
+        modelname <- "GES";
+    }
+    modelname <- paste0(modelname,"(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);
     }
