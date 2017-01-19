@@ -174,7 +174,7 @@ For the details see Hyndman et al.(2008).
     \item \code{lower},
     \item \code{upper},
     \item \code{residuals},
-    \item \code{s2},
+    \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
     \item \code{intervals},
     \item \code{level},
     \item \code{actuals},
@@ -229,10 +229,10 @@ es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
 # Redo previous model and produce prediction intervals
-es(M3$N1587$x,model=ourModel,h=18,intervals="p")
+\dontrun{es(M3$N1587$x,model=ourModel,h=18,intervals="p")}
 
 # Semiparametric intervals example
-es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")
+\dontrun{es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")}
 
 # Exogenous variables in ETS example
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))

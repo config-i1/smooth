@@ -188,7 +188,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 \examples{
 # ARIMA(1,1,1) fitted to some data
 ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-                             holdout=TRUE,intervals="p")
+                             holdout=TRUE)
 
 # The previous one is equivalent to:
 \dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
@@ -221,8 +221,8 @@ ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfT
 ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
 
 # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-ourModel <- ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
-                    xreg=c(1:118),updateX=TRUE)
+\dontrun{ourModel <- ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
+                    xreg=c(1:118),updateX=TRUE)}
 
 summary(ourModel)
 forecast(ourModel)
