@@ -18,7 +18,7 @@ test_that("Test on N1234$x, predefined ETS", {
 # Test combinations of ETS
 testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
 test_that("Test ETS(CCC) with BIC on N2568$x", {
-    expect_equal(round(testModel$s2,4), 0.0004);
+    expect_equal(round(testModel$s2,0), 190070);
 })
 
 # Test model selection of non-multiplicative trend ETS
