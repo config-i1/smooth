@@ -10,12 +10,14 @@ Changes:
 * logLik() now also includes nobs as an attribute.
 * We now report modelX if it includes xreg. For example, "ARIMAX" instead of ARIMA.
 * Renamed some internal variables for consistency purpose.
+* Redone prediction intervals for iSS models.
 
 Bugfixes:
 * Renamed some internal parameters for consistency purposes.
 * Found a bug with nParam calculation in ges().
 * Fixed a bug that did not allow to use combinations with intermittent demand in es().
 * Fixed a bug in backcasting mechanism.
+* Fixed a bug with incorrect df calculation for prediction intervals in combinations.
 
 
 smooth v1.5.2 (Release date: 2016-12-18)
