@@ -188,7 +188,7 @@ Due to the flexibility of the model, multiple seasonalities can be used. For exa
 \examples{
 # ARIMA(1,1,1) fitted to some data
 ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-                             holdout=TRUE)
+                             holdout=TRUE,intervals="p")
 
 # The previous one is equivalent to:
 \dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,

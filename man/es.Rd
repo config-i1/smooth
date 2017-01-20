@@ -229,7 +229,7 @@ es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
 # Redo previous model and produce prediction intervals
-\dontrun{es(M3$N1587$x,model=ourModel,h=18,intervals="p")}
+es(M3$N1587$x,model=ourModel,h=18,intervals="p")
 
 # Semiparametric intervals example
 \dontrun{es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")}

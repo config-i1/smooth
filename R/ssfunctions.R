@@ -1650,34 +1650,42 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Semiparametric intervals using the variance of errors ####
         else if(intervalsType=="sp"){
             if(Etype=="M"){
-                # meanVec <- 1;
-                # upperquant <- qlnorm((1+level)/2,rep(0,n.var),sqrt(varVec));
-                # lowerquant <- qlnorm((1-level)/2,rep(0,n.var),sqrt(varVec));
-                # Return to normal values
-                # varVec <- (exp(varVec) - 1) * exp(varVec);
-                # Standartise quantiles
-                # upperquant <- (upperquant - meanVec) / sqrt(varVec);
-                # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
-                # Take intermittent data into account
-                # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
-                # Write down quantiles with new variances
-                # upper <- upperquant * sqrt(varVec);
-                # lower <- lowerquant * sqrt(varVec);
                 errors[errors < -1] <- -0.999;
                 varVec <- colSums(log(1+errors)^2,na.rm=T)/df;
-                quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
-                upper <- quants$upper;
-                lower <- quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
+                    upper <- quants$upper;
+                    lower <- quants$lower;
+                }
+                else{
+                    upper <- qlnorm((1+level)/2,rep(0,n.var),sqrt(varVec));
+                    lower <- qlnorm((1-level)/2,rep(0,n.var),sqrt(varVec));
+                    # meanVec <- 1;
+                    # Return to normal values
+                    # varVec <- (exp(varVec) - 1) * exp(varVec);
+                    # Standartise quantiles
+                    # upperquant <- (upperquant - meanVec) / sqrt(varVec);
+                    # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
+                    # Take intermittent data into account
+                    # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
+                    # Write down quantiles with new variances
+                    # upper <- upperquant * sqrt(varVec);
+                    # lower <- lowerquant * sqrt(varVec);
+                }
             }
             else{
                 errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
                 varVec <- colSums(errors^2,na.rm=T)/df;
-                # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
-                # upper <- ev + upperquant * sqrt(varVec);
-                # lower <- ev + lowerquant * sqrt(varVec);
-                quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
-                upper <- ev + quants$upper;
-                lower <- ev + quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
+                    upper <- ev + quants$upper;
+                    lower <- ev + quants$lower;
+                }
+                else{
+                    # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
+                    upper <- ev + upperquant * sqrt(varVec);
+                    lower <- ev + lowerquant * sqrt(varVec);
+                }
             }
         }
 
@@ -1760,24 +1768,28 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         varVec[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
                     }
                 }
-                # Produce quantiles for log-normal dist with the specified variance
-                # upperquant <- qlnorm((1+level)/2,0,sqrt(varVec));
-                # lowerquant <- qlnorm((1-level)/2,0,sqrt(varVec));
-                # Use median instead of mean and forget about the whole thing
-                # meanVec <- 1;
-                # Calculate variance for log-normal distribution
-                # varVec <- (exp(varVec) - 1) * exp(varVec);
-                # Standartise quantiles
-                # upperquant <- (upperquant - meanVec) / sqrt(varVec);
-                # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
-                # Take intermittent data into account
-                # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
-                # Write down quantiles with new variances
-                # upper <- upperquant * sqrt(varVec);
-                # lower <- lowerquant * sqrt(varVec);
-                quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
-                upper <- quants$upper;
-                lower <- quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
+                    upper <- quants$upper;
+                    lower <- quants$lower;
+                }
+                else{
+                    # Produce quantiles for log-normal dist with the specified variance
+                    upper <- y.for*qlnorm((1+level)/2,0,sqrt(varVec));
+                    lower <- y.for*qlnorm((1-level)/2,0,sqrt(varVec));
+                    # Use median instead of mean and forget about the whole thing
+                    # meanVec <- 1;
+                    # Calculate variance for log-normal distribution
+                    # varVec <- (exp(varVec) - 1) * exp(varVec);
+                    # Standartise quantiles
+                    # upperquant <- (upperquant - meanVec) / sqrt(varVec);
+                    # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
+                    # Take intermittent data into account
+                    # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
+                    # Write down quantiles with new variances
+                    # upper <- upperquant * sqrt(varVec);
+                    # lower <- lowerquant * sqrt(varVec);
+                }
             }
 #### Multiplicative error and additive trend / seasonality
             # else if(Etype=="M" & all(c(Ttype,Stype)!="M") & all(c(Ttype,Stype)!="N")){
@@ -1835,14 +1847,18 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         varVec[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
                     }
                 }
-                # Take intermittent data into account
-                # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
-                # upper <- upperquant * sqrt(varVec);
-                # lower <- lowerquant * sqrt(varVec);
 
-                quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
-                upper <- quants$upper;
-                lower <- quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
+                    upper <- quants$upper;
+                    lower <- quants$lower;
+                }
+                else{
+                    # Take intermittent data into account
+                    # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
+                    upper <- upperquant * sqrt(varVec);
+                    lower <- lowerquant * sqrt(varVec);
+                }
             }
         }
     }
@@ -1858,29 +1874,37 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         }
         else if(any(intervalsType==c("sp","p"))){
             if(Etype=="M"){
-                # upperquant <- qlnorm((1+level)/2,0,sqrt(s2));
-                # lowerquant <- qlnorm((1-level)/2,0,sqrt(s2));
-                # Return to normal values
-                # s2 <- (exp(s2) - 1) * exp(s2);
-                # Standartise quantiles
-                # upperquant <- (upperquant - 1) / sqrt(s2);
-                # lowerquant <- (lowerquant - 1) / sqrt(s2);
-                # Take intermittent data into account
-                # s2 <- s2 * ivar + ivar + iprob^2 * s2;
-                # Write down quantiles with new variances
-                # upper <- upperquant * sqrt(s2);
-                # lower <- lowerquant * sqrt(s2);
-                quants <- qlnormBin(iprob, level=level, meanVec=0, sdVec=sqrt(s2), Etype="M");
-                upper <- quants$upper;
-                lower <- quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=0, sdVec=sqrt(s2), Etype="M");
+                    upper <- quants$upper;
+                    lower <- quants$lower;
+                }
+                else{
+                    upperquant <- y.for*qlnorm((1+level)/2,0,sqrt(s2));
+                    lowerquant <- y.for*qlnorm((1-level)/2,0,sqrt(s2));
+                    # Return to normal values
+                    # s2 <- (exp(s2) - 1) * exp(s2);
+                    # Standartise quantiles
+                    # upperquant <- (upperquant - 1) / sqrt(s2);
+                    # lowerquant <- (lowerquant - 1) / sqrt(s2);
+                    # Take intermittent data into account
+                    # s2 <- s2 * ivar + ivar + iprob^2 * s2;
+                    # Write down quantiles with new variances
+                    # upper <- upperquant * sqrt(s2);
+                    # lower <- lowerquant * sqrt(s2);
+                }
             }
             else{
                 # s2 <- s2 * ivar + c(y.for)^2 * ivar + iprob^2 * s2;
-                # upper <- ev + upperquant * sqrt(s2);
-                # lower <- ev + lowerquant * sqrt(s2);
-                quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(s2), Etype="A");
-                upper <- quants$upper;
-                lower <- quants$lower;
+                if(any(iprob!=1)){
+                    quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(s2), Etype="A");
+                    upper <- quants$upper;
+                    lower <- quants$lower;
+                }
+                else{
+                    upper <- ev + upperquant * sqrt(s2);
+                    lower <- ev + lowerquant * sqrt(s2);
+                }
             }
         }
         else if(intervalsType=="np"){

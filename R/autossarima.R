@@ -346,7 +346,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                  h=h,holdout=FALSE,
                                                  intervals=intervals,level=level,
                                                  intermittent=intermittent,silent=TRUE,
-                                                 xreg=xreg, xregDo=xregDo, initialX=initialX,
+                                                 xreg=NULL, xregDo="nothing", initialX=initialX,
                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
                             if(combine){
@@ -409,7 +409,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                                  h=h,holdout=FALSE,
                                                                  intervals=intervals,level=level,
                                                                  intermittent=intermittent,silent=TRUE,
-                                                                 xreg=xreg, xregDo=xregDo, initialX=initialX,
+                                                                 xreg=NULL, xregDo="nothing", initialX=initialX,
                                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
                                             if(combine){
@@ -472,7 +472,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                              h=h,holdout=holdout,
                              intervals=intervals,level=level,
                              intermittent=intermittent,silent=TRUE,
-                             xreg=xreg, xregDo=xregDo, initialX=initialX,
+                             xreg=NULL, xregDo="nothing", initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         ICValue <- testModel$ICs[ic];
         if(combine){
