@@ -1125,8 +1125,8 @@ CreatorES <- function(silent=FALSE,...){
         errors.list <- matrix(NA,obsInsample,modelsNumber);
         forecasts.list <- matrix(NA,h,modelsNumber);
         if(intervals){
-             lower.list <- matrix(NA,h,modelsNumber);
-             upper.list <- matrix(NA,h,modelsNumber);
+             lowerList <- matrix(NA,h,modelsNumber);
+             upperList <- matrix(NA,h,modelsNumber);
         }
 
         for(i in 1:length(icWeights)){
@@ -1137,7 +1137,7 @@ CreatorES <- function(silent=FALSE,...){
             damped <- as.logical(results[[i]][7]);
             cfObjective <- as.numeric(results[[i]][8]);
             C <- as.numeric(results[[i]][-c(1:8)]);
-            nParam <- as.numeric(results[[i]][length(results[[i]])]);
+            nParam <- as.numeric(results[[i]][length(results[[i]])-1]);
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
             if(damped){
@@ -1154,8 +1154,8 @@ CreatorES <- function(silent=FALSE,...){
             fitted.list[,i] <- y.fit;
             forecasts.list[,i] <- y.for;
             if(intervals){
-                lower.list[,i] <- y.low;
-                upper.list[,i] <- y.high;
+                lowerList[,i] <- y.low;
+                upperList[,i] <- y.high;
             }
             phi <- NULL;
         }
@@ -1167,12 +1167,13 @@ CreatorES <- function(silent=FALSE,...){
         y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=frequency(data));
         y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
         errors <- ts(c(y) - y.fit,start=start(data),frequency=frequency(data));
+        s2 <- mean(errors^2);
         names(icWeights) <- model.current;
         if(intervals){
-            lower.list <- lower.list[,!badStuff];
-            upper.list <- upper.list[,!badStuff];
-            y.low <- ts(lower.list %*% icWeights,start=start(y.for),frequency=frequency(data));
-            y.high <- ts(upper.list %*% icWeights,start=start(y.for),frequency=frequency(data));
+            lowerList <- lowerList[,!badStuff];
+            upperList <- upperList[,!badStuff];
+            y.low <- ts(lowerList %*% icWeights,start=start(y.for),frequency=frequency(data));
+            y.high <- ts(upperList %*% icWeights,start=start(y.for),frequency=frequency(data));
         }
         else{
             y.low <- NA;

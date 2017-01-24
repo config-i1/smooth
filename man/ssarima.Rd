@@ -221,8 +221,8 @@ ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfT
 ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
 
 # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-ourModel <- ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
-                    xreg=c(1:118),updateX=TRUE)
+\dontrun{ourModel <- ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
+                    xreg=c(1:118),updateX=TRUE)}
 
 summary(ourModel)
 forecast(ourModel)
