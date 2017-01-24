@@ -530,12 +530,12 @@ EstimatorES <- function(...){
 
     # Change cfType for model selection
     if(multisteps){
-        #     if(substring(cfType,1,1)=="a"){
-        cfType <- "aTFL";
-        #     }
-        #     else{
-        #         cfType <- "TFL";
-        #     }
+        if(substring(cfType,1,1)=="a"){
+            cfType <- "aTFL";
+        }
+        else{
+            cfType <- "TFL";
+        }
     }
     else{
         cfType <- "MSE";
@@ -943,7 +943,12 @@ CreatorES <- function(silent=FALSE,...){
 
 # Change cfType for model selection
         if(multisteps){
-            cfType <- "aTFL";
+            if(substring(cfType,1,1)=="a"){
+                cfType <- "aTFL";
+            }
+            else{
+                cfType <- "TFL";
+            }
         }
         else{
             cfType <- "MSE";
