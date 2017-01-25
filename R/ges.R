@@ -59,83 +59,6 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
     environment(ssInput) <- environment();
     ssInput(modelType="ges",ParentEnvironment=environment());
 
-##### Preset y.fit, y.for, errors and basic parameters #####
-    matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
-    y.fit <- rep(NA,obsInsample);
-    y.for <- rep(NA,h);
-    errors <- rep(NA,obsInsample);
-
-##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
-                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
-
-    if(xregDo=="n"){
-        nExovars <- xregdata$nExovars;
-        matxt <- xregdata$matxt;
-        matat <- xregdata$matat;
-        xregEstimate <- xregdata$xregEstimate;
-        matFX <- xregdata$matFX;
-        vecgX <- xregdata$vecgX;
-    }
-    else{
-        nExovars <- 1;
-        nExovarsOriginal <- xregdata$nExovars;
-        matxtOriginal <- xregdata$matxt;
-        matatOriginal <- xregdata$matat;
-        xregEstimateOriginal <- xregdata$xregEstimate;
-        matFXOriginal <- xregdata$matFX;
-        vecgXOriginal <- xregdata$vecgX;
-
-        matxt <- matrix(1,nrow(matxtOriginal),1);
-        matat <- matrix(0,nrow(matatOriginal),1);
-        xregEstimate <- FALSE;
-        matFX <- matrix(1,1,1);
-        vecgX <- matrix(0,1,1);
-    }
-    xreg <- xregdata$xreg;
-    FXEstimate <- xregdata$FXEstimate;
-    gXEstimate <- xregdata$gXEstimate;
-    initialXEstimate <- xregdata$initialXEstimate;
-
-# These three are needed in order to use ssgeneralfun.cpp functions
-    Etype <- "A";
-    Ttype <- "N";
-    Stype <- "N";
-
-# Check number of parameters vs data
-    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
-
-##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= nParamMax){
-        if(!silentText){
-            message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the number of parameters to estimate is ", nParamMax,"."));
-        }
-        stop("Not enough observations. Can't fit the model you ask.",call.=FALSE);
-    }
-
-##### Preset values of matvt ######
-    slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-    intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-
-    vtvalues <- intercept;
-    if((orders %*% lags)>1){
-        vtvalues <- c(vtvalues,slope);
-    }
-    if((orders %*% lags)>2){
-        vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
-    }
-
-    vt <- matrix(NA,maxlag,nComponents);
-    for(i in 1:nComponents){
-        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
-    }
-    matvt[1:maxlag,] <- vt;
-
 ##### Initialise ges #####
 ElementsGES <- function(C){
     n.coef <- 0;
@@ -327,6 +250,84 @@ CreatorGES <- function(silentText=FALSE,...){
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
+##### Preset y.fit, y.for, errors and basic parameters #####
+    matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
+    y.fit <- rep(NA,obsInsample);
+    y.for <- rep(NA,h);
+    errors <- rep(NA,obsInsample);
+
+##### Prepare exogenous variables #####
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
+                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
+
+    if(xregDo=="n"){
+        nExovars <- xregdata$nExovars;
+        matxt <- xregdata$matxt;
+        matat <- xregdata$matat;
+        xregEstimate <- xregdata$xregEstimate;
+        matFX <- xregdata$matFX;
+        vecgX <- xregdata$vecgX;
+        xregNames <- colnames(matxt);
+    }
+    else{
+        nExovars <- 1;
+        nExovarsOriginal <- xregdata$nExovars;
+        matxtOriginal <- xregdata$matxt;
+        matatOriginal <- xregdata$matat;
+        xregEstimateOriginal <- xregdata$xregEstimate;
+        matFXOriginal <- xregdata$matFX;
+        vecgXOriginal <- xregdata$vecgX;
+
+        matxt <- matrix(1,nrow(matxtOriginal),1);
+        matat <- matrix(0,nrow(matatOriginal),1);
+        xregEstimate <- FALSE;
+        matFX <- matrix(1,1,1);
+        vecgX <- matrix(0,1,1);
+    }
+    xreg <- xregdata$xreg;
+    FXEstimate <- xregdata$FXEstimate;
+    gXEstimate <- xregdata$gXEstimate;
+    initialXEstimate <- xregdata$initialXEstimate;
+
+    # These three are needed in order to use ssgeneralfun.cpp functions
+    Etype <- "A";
+    Ttype <- "N";
+    Stype <- "N";
+
+# Check number of parameters vs data
+    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
+
+##### Check number of observations vs number of max parameters #####
+    if(obsNonzero <= nParamMax){
+        if(!silentText){
+            message(paste0("Number of non-zero observations is ",obsNonzero,
+                           ", while the number of parameters to estimate is ", nParamMax,"."));
+        }
+        stop("Not enough observations. Can't fit the model you ask.",call.=FALSE);
+    }
+
+##### Preset values of matvt ######
+    slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
+    intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
+
+    vtvalues <- intercept;
+    if((orders %*% lags)>1){
+        vtvalues <- c(vtvalues,slope);
+    }
+    if((orders %*% lags)>2){
+        vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+    }
+
+    vt <- matrix(NA,maxlag,nComponents);
+    for(i in 1:nComponents){
+        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
+        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
+                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+    }
+    matvt[1:maxlag,] <- vt;
+
 ##### Start the calculations #####
     environment(intermittentParametersSetter) <- environment();
     environment(intermittentMaker) <- environment();
@@ -439,7 +440,6 @@ CreatorGES <- function(silentText=FALSE,...){
     }
 
     if(!is.null(xreg)){
-        xregNames <- colnames(matat);
         xreg <- matxt[,xregNames];
     }
 # Prepare for fitting
