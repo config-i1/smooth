@@ -339,6 +339,7 @@ CreatorCES <- function(silentText=FALSE,...){
         xregEstimate <- FALSE;
         matFX <- matrix(1,1,1);
         vecgX <- matrix(0,1,1);
+        xregNames <- NULL;
     }
     xreg <- xregdata$xreg;
     FXEstimate <- xregdata$FXEstimate;
