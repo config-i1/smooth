@@ -385,8 +385,7 @@ XregSelector <- function(listToReturn){
         logLik <- res$logLik;
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
-                             nParam=res$nParam,FI=FI,logLik=logLik,
-                             matat=matat,matxt=matxt,xregNames=xregNames);
+                             nParam=res$nParam,FI=FI,logLik=logLik,xregNames=xregNames);
     }
 
     return(listToReturn);
@@ -397,7 +396,6 @@ PoolPreparerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
     environment(EstimatorES) <- environment();
-    environment(XregSelector) <- environment();
 
     if(!is.null(modelsPool)){
         modelsNumber <- length(modelsPool);
@@ -510,9 +508,12 @@ PoolPreparerES <- function(...){
 
                 res <- EstimatorES(ParentEnvironment=environment());
 
-                if(xregDo!="n"){
-                    res <- XregSelector();
-                }
+                # listToReturn <- list(res$ICs,Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
+                                     # cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
+                                     # nParam=res$nParam,FI=FI,logLik=logLik);
+                # if(xregDo!="n"){
+                    # listToReturn <- XregSelector(listToReturn=listToReturn);
+                # }
 
                 results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
 
@@ -610,7 +611,6 @@ PoolPreparerES <- function(...){
 PoolEstimatorES <- function(silent=FALSE,...){
     environment(EstimatorES) <- environment();
     environment(PoolPreparerES) <- environment();
-    environment(XregSelector) <- environment();
     esPoolValues <- PoolPreparerES(ParentEnvironment=environment());
 
     if(!silent){
@@ -649,9 +649,9 @@ PoolEstimatorES <- function(silent=FALSE,...){
 
         res <- EstimatorES(ParentEnvironment=environment());
 
-        if(xregDo!="n"){
-            res <- XregSelector();
-        }
+        # if(xregDo!="n"){
+            # res <- XregSelector();
+        # }
         results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
     }
 
@@ -716,12 +716,12 @@ CreatorES <- function(silent=FALSE,...){
     }
     else if(modelDo=="estimate"){
         environment(EstimatorES) <- environment();
-        # environment(XregSelector) <- environment();
         res <- EstimatorES(ParentEnvironment=environment());
         icBest <- res$ICs[ic];
         logLik <- res$logLik;
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,nParam=res$nParam,FI=FI,logLik=logLik);
+                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
+                             nParam=res$nParam,FI=FI,logLik=logLik,xregNames=xregNames);
         if(xregDo!="n"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
@@ -847,8 +847,8 @@ CreatorES <- function(silent=FALSE,...){
 
     if(xregDo=="n"){
         nExovars <- xregdata$nExovars;
-        matxt <- xregdata$matxt;
-        matat <- xregdata$matat;
+        matxtOriginal <- matxt <- xregdata$matxt;
+        matatOriginal <- matat <- xregdata$matat;
         xregEstimate <- xregdata$xregEstimate;
         matFX <- xregdata$matFX;
         vecgX <- xregdata$vecgX;
@@ -868,6 +868,7 @@ CreatorES <- function(silent=FALSE,...){
         xregEstimate <- FALSE;
         matFX <- matrix(1,1,1);
         vecgX <- matrix(0,1,1);
+        xregNames <- NULL;
     }
     xreg <- xregdata$xreg;
     FXEstimate <- xregdata$FXEstimate;
@@ -1073,7 +1074,11 @@ CreatorES <- function(silent=FALSE,...){
         BasicInitialiserES(ParentEnvironment=environment());
 
         if(!is.null(xreg)){
-            colnames(matat) <- xregNames;
+            matat <- as.matrix(matatOriginal[,xregNames]);
+            matxt <- as.matrix(matxtOriginal[,xregNames]);
+            if(ncol(matat)==1){
+                colnames(matxt) <- colnames(matat) <- xregNames;
+            }
             xreg <- matxt;
         }
 
