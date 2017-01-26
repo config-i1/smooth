@@ -29,8 +29,8 @@ test_that("Test ETS(MXM) with AIC on N2568$x", {
 
 # Test trace cost function for ETS
 testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, silent=TRUE, intervals=TRUE)
-test_that("Test AIC of ETS based on MSTFE on N2568$x", {
-    expect_equal(round(AIC(testModel),2), as.numeric(round(testModel$ICs["AIC"],2)));
+test_that("Test AIC of ETS on N2568$x", {
+    expect_equal(as.numeric(round(AIC(testModel),2)), as.numeric(round(testModel$ICs["AIC"],2)));
 })
 
 # Test how different passed values are accepted by ETS
@@ -48,6 +48,12 @@ testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, interv
 test_that("Check exogenous variables for ETS on N1457", {
     expect_equal(suppressWarnings(es(y, h=18, holdout=TRUE, xreg=x, cfType="aMSTFE", silent=TRUE)$model), testModel$model);
     expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$model), testModel$model);
+})
+
+# Test selection of exogenous with ETS
+testModel <- es(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+test_that("Select exogenous variables for CES on N1457", {
+    expect_equal(suppressWarnings(sum(testModel$xreg)),1);
 })
 
 # iETS test
