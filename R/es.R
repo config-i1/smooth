@@ -13,7 +13,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
-               xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+               xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Copyright (C) 2015 - 2016  Ivan Svetunkov
 
@@ -377,6 +377,7 @@ XregSelector <- function(listToReturn){
     else{
         nExovars <- 1;
         xreg <- NULL;
+        xregNames <- NULL;
     }
 
     if(!is.null(xreg)){
@@ -511,11 +512,11 @@ PoolPreparerES <- function(...){
                 listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                                      cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
                                      nParam=res$nParam,logLik=res$logLik,xregNames=xregNames);
-                results[[i]] <- listToReturn;
 
-                # if(xregDo!="n"){
-                    # listToReturn <- XregSelector(listToReturn=listToReturn);
-                # }
+                if(xregDo!="u"){
+                    listToReturn <- XregSelector(listToReturn=listToReturn);
+                }
+                results[[i]] <- listToReturn;
 
                 tested.model <- c(tested.model,current.model);
 
@@ -649,12 +650,12 @@ PoolEstimatorES <- function(silent=FALSE,...){
 
         res <- EstimatorES(ParentEnvironment=environment());
 
-        # if(xregDo!="n"){
-            # res <- XregSelector();
-        # }
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
                              nParam=res$nParam,logLik=res$logLik,xregNames=xregNames);
+        if(xregDo!="u"){
+            listToReturn <- XregSelector(listToReturn=listToReturn);
+        }
         results[[j]] <- listToReturn;
     }
 
@@ -704,7 +705,7 @@ CreatorES <- function(silent=FALSE,...){
         icSelection <- icSelection/(h^multisteps);
         icWeights <- exp(-0.5*(icSelection-icBest))/sum(exp(-0.5*(icSelection-icBest)));
         ICs <- sum(icSelection * icWeights);
-        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results,logLik=NA));
+        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results));
     }
     else if(modelDo=="estimate"){
         environment(EstimatorES) <- environment();
@@ -712,7 +713,7 @@ CreatorES <- function(silent=FALSE,...){
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs[ic],
                              nParam=res$nParam,FI=FI,logLik=res$logLik,xregNames=xregNames);
-        if(xregDo!="n"){
+        if(xregDo!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
 
@@ -837,7 +838,7 @@ CreatorES <- function(silent=FALSE,...){
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
 
-    if(xregDo=="n"){
+    if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
         matxtOriginal <- matxt <- xregdata$matxt;
         matatOriginal <- matat <- xregdata$matat;
@@ -1140,7 +1141,7 @@ CreatorES <- function(silent=FALSE,...){
     else{
         list2env(esValues,environment());
 
-        if(!is.null(xreg)){
+        if(!is.null(xreg) & (xregDo=="u")){
             colnames(matat) <- xregNames;
             xreg <- matxt;
         }
@@ -1163,9 +1164,24 @@ CreatorES <- function(silent=FALSE,...){
             Ttype <- results[[i]]$Ttype;
             Stype <- results[[i]]$Stype;
             damped <- results[[i]]$damped;
+            phi <- results[[i]]$phi;
             cfObjective <- results[[i]]$cfObjective;
             C <- results[[i]]$C;
             nParam <- results[[i]]$nParam;
+            xregNames <- results[[i]]$xregNames
+            if(xregDo!="u"){
+                if(!is.null(xregNames)){
+                    matat <- as.matrix(matatOriginal[,xregNames]);
+                    matxt <- as.matrix(matxtOriginal[,xregNames]);
+                    # if(ncol(matat)==1){
+                    #     colnames(matxt) <- colnames(matat) <- xregNames;
+                    # }
+                    xregEstimate <- TRUE;
+                }
+                else{
+                    xregEstimate <- FALSE;
+                }
+            }
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
             if(damped){
