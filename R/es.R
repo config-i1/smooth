@@ -508,36 +508,36 @@ PoolPreparerES <- function(...){
 
                 res <- EstimatorES(ParentEnvironment=environment());
 
-                # listToReturn <- list(res$ICs,Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
-                                     # cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
-                                     # nParam=res$nParam,FI=FI,logLik=logLik);
+                listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
+                                     cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
+                                     nParam=res$nParam,logLik=res$logLik,xregNames=xregNames);
+                results[[i]] <- listToReturn;
+
                 # if(xregDo!="n"){
                     # listToReturn <- XregSelector(listToReturn=listToReturn);
                 # }
-
-                results[[i]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
 
                 tested.model <- c(tested.model,current.model);
 
                 if(j>1){
 # If the first is better than the second, then choose first
-                    if(as.numeric(results[[besti]][ic]) <= as.numeric(results[[i]][ic])){
+                    if(results[[besti]]$ICs[ic] <= results[[i]]$ICs[ic]){
 # If Ttype is the same, then we checked seasonality
                         if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
-                            season.pool <- results[[besti]][6];
+                            season.pool <- results[[besti]]$Stype;
                             check.S <- FALSE;
                             j <- which(small.pool!=small.pool[bestj] &
                                            substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool);
                         }
 # Otherwise we checked trend
                         else{
-                            trends.pool <- results[[bestj]][5];
+                            trends.pool <- results[[bestj]]$Ttype;
                             check.T <- FALSE;
                         }
                     }
                     else{
                         if(substring(current.model,2,2) == substring(small.pool[besti],2,2)){
-                            season.pool <- season.pool[season.pool!=results[[besti]][6]];
+                            season.pool <- season.pool[season.pool!=results[[besti]]$Stype];
                             if(length(season.pool)>1){
 # Select another seasonal model, that is not from the previous iteration and not the current one
                                 bestj <- j;
@@ -553,7 +553,7 @@ PoolPreparerES <- function(...){
                             }
                         }
                         else{
-                            trends.pool <- trends.pool[trends.pool!=results[[besti]][5]];
+                            trends.pool <- trends.pool[trends.pool!=results[[bestj]]$Ttype];
                             besti <- i;
                             bestj <- j;
                             check.T <- FALSE;
@@ -652,7 +652,10 @@ PoolEstimatorES <- function(silent=FALSE,...){
         # if(xregDo!="n"){
             # res <- XregSelector();
         # }
-        results[[j]] <- c(res$ICs,Etype,Ttype,Stype,damped,res$objective,res$C,res$nParam,res$logLik);
+        listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
+                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
+                             nParam=res$nParam,logLik=res$logLik,xregNames=xregNames);
+        results[[j]] <- listToReturn;
     }
 
     if(!silent){
@@ -660,9 +663,9 @@ PoolEstimatorES <- function(silent=FALSE,...){
     }
     icSelection <- matrix(NA,modelsNumber,3);
     for(i in 1:modelsNumber){
-        icSelection[i,] <- as.numeric(results[[i]][1:3]);
+        icSelection[i,] <- results[[i]]$ICs;
     }
-    colnames(icSelection) <- names(results[[1]])[1:3]
+    colnames(icSelection) <- names(results[[i]]$ICs);
 
     icSelection[is.nan(icSelection)] <- 1E100;
 
@@ -683,21 +686,10 @@ CreatorES <- function(silent=FALSE,...){
         icBest <- min(icSelection[,ic]);
         i <- which(icSelection[,ic]==icBest)[1];
         ICs <- icSelection[i,];
-        results <- results[[i]];
+        listToReturn <- results[[i]];
+        listToReturn$icBest <- icBest;
 
-        Etype <- results[4];
-        Ttype <- results[5];
-        Stype <- results[6];
-        damped <- as.logical(results[7]);
-        if(damped){
-            phi <- NULL;
-        }
-        cfObjective <- as.numeric(results[8]);
-        C <- as.numeric(results[-c(1:8,length(results)-1,length(results))]);
-        logLik <- as.numeric(results[length(results)]);
-
-        return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=as.numeric(results[length(results)-1]),FI=FI,logLik=logLik));
+        return(listToReturn);
     }
     else if(modelDo=="combine"){
         if(cfType!="MSE"){
@@ -717,11 +709,9 @@ CreatorES <- function(silent=FALSE,...){
     else if(modelDo=="estimate"){
         environment(EstimatorES) <- environment();
         res <- EstimatorES(ParentEnvironment=environment());
-        icBest <- res$ICs[ic];
-        logLik <- res$logLik;
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
-                             nParam=res$nParam,FI=FI,logLik=logLik,xregNames=xregNames);
+                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs[ic],
+                             nParam=res$nParam,FI=FI,logLik=res$logLik,xregNames=xregNames);
         if(xregDo!="n"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
@@ -772,8 +762,10 @@ CreatorES <- function(silent=FALSE,...){
         # Change back
         cfType <- cfTypeOriginal;
 
-        return(list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                    cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,FI=FI,logLik=logLik));
+        listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
+                             cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,
+                             nParam=nParam,FI=FI,logLik=logLik,xregNames=xregNames);
+        return(listToReturn);
     }
 }
 
@@ -1167,13 +1159,13 @@ CreatorES <- function(silent=FALSE,...){
 
         for(i in 1:length(icWeights)){
             # Get all the parameters from the model
-            Etype <- results[[i]][4];
-            Ttype <- results[[i]][5];
-            Stype <- results[[i]][6];
-            damped <- as.logical(results[[i]][7]);
-            cfObjective <- as.numeric(results[[i]][8]);
-            C <- as.numeric(results[[i]][-c(1:8)]);
-            nParam <- as.numeric(results[[i]][length(results[[i]])-1]);
+            Etype <- results[[i]]$Etype;
+            Ttype <- results[[i]]$Ttype;
+            Stype <- results[[i]]$Stype;
+            damped <- results[[i]]$damped;
+            cfObjective <- results[[i]]$cfObjective;
+            C <- results[[i]]$C;
+            nParam <- results[[i]]$nParam;
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
             if(damped){
