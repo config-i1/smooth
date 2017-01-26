@@ -8,7 +8,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
-                xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates several CES models in state-space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter

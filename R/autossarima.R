@@ -9,7 +9,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                          intermittent=c("none","auto","fixed","croston","tsb","sba"),
                          bounds=c("admissible","none"),
                          silent=c("none","all","graph","legend","output"),
-                         xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                         xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                          updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #

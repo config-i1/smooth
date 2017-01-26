@@ -10,7 +10,7 @@ ssarima <- function(data, orders=list(ar=0,i=c(1),ma=c(1)), lags=c(1),
                     intermittent=c("none","auto","fixed","croston","tsb","sba"),
                     bounds=c("admissible","none"),
                     silent=c("none","all","graph","legend","output"),
-                    xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                    xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                     updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
@@ -312,7 +312,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
 
-    if(xregDo=="n"){
+    if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -419,7 +419,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     list2env(ssarimaValues,environment());
 
-    if(xregDo!="n"){
+    if(xregDo!="u"){
         # Prepare for fitting
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
                                 ARValue, MAValue, constantValue, C,

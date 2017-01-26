@@ -7,7 +7,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
-                xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # Function estimates CES in state-space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
@@ -316,7 +316,7 @@ CreatorCES <- function(silentText=FALSE,...){
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
 
-    if(xregDo=="n"){
+    if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -426,7 +426,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     list2env(cesValues,environment());
 
-    if(xregDo!="n"){
+    if(xregDo!="u"){
         # Prepare for fitting
         elements <- ElementsCES(C);
         matF <- elements$matF;

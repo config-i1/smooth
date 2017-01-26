@@ -11,7 +11,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
-                xreg=NULL, xregDo=c("nothing","select"), initialX=NULL,
+                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
@@ -261,7 +261,7 @@ CreatorGES <- function(silentText=FALSE,...){
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
 
-    if(xregDo=="n"){
+    if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -391,7 +391,7 @@ CreatorGES <- function(silentText=FALSE,...){
 
     list2env(gesValues,environment());
 
-    if(xregDo!="n"){
+    if(xregDo!="u"){
 # Prepare for fitting
         elements <- ElementsGES(C);
         matw <- elements$matw;
