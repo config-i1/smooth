@@ -18,7 +18,7 @@ test_that("Test on N1234$x, predefined ETS", {
 # Test combinations of ETS
 testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
 test_that("Test ETS(CCC) with BIC on N2568$x", {
-    expect_equal(round(testModel$s2,0), 190070);
+    expect_equal(testModel$s2, mean(testModel$residuals^2));
 })
 
 # Test model selection of non-multiplicative trend ETS
@@ -53,7 +53,7 @@ test_that("Check exogenous variables for ETS on N1457", {
 # Test selection of exogenous with ETS
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for ETS on N1457", {
-    expect_equal(suppressWarnings(sum(testModel$xreg)),1);
+    expect_equal(sum(testModel$xreg),1);
 })
 
 # Test combination of ETS with exogenous selection
