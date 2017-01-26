@@ -52,8 +52,14 @@ test_that("Check exogenous variables for ETS on N1457", {
 
 # Test selection of exogenous with ETS
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
-test_that("Select exogenous variables for CES on N1457", {
+test_that("Select exogenous variables for ETS on N1457", {
     expect_equal(suppressWarnings(sum(testModel$xreg)),1);
+})
+
+# Test combination of ETS with exogenous selection
+testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+test_that("Select exogenous variables for CES on N1457", {
+    expect_match(testModel$model, "ETSX");
 })
 
 # iETS test
