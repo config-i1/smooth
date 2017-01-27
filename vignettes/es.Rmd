@@ -91,12 +91,17 @@ Now let's introduce some artificial exogenous variables:
 x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
 ```
 
-and fit a model with exogenous without update first:
+and fit a model with all the exogenous first:
 ```{r es_N2457_xreg}
 es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x)
 ```
 
-and then with the update:
+or construct a model with selected exogenous (based on IC):
+```{r es_N2457_xreg_select}
+es(M3$N2457$x, model="XXX", h=18, holdout=TRUE, xreg=x, xregDo="select")
+```
+
+or the one with the updated xreg:
 ```{r es_N2457_xreg_update}
 es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
 ```
