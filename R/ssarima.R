@@ -477,7 +477,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
     if(!is.null(xreg)){
-        xreg <- matxt[,xregNames];
+        if(ncol(matat)==1){
+            colnames(matxt) <- colnames(matat) <- xregNames;
+        }
+        xreg <- matxt;
     }
 # Prepare for fitting
     elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,

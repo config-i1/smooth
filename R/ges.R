@@ -441,7 +441,10 @@ CreatorGES <- function(silentText=FALSE,...){
     }
 
     if(!is.null(xreg)){
-        xreg <- matxt[,xregNames];
+        if(ncol(matat)==1){
+            colnames(matxt) <- colnames(matat) <- xregNames;
+        }
+        xreg <- matxt;
     }
 # Prepare for fitting
     elements <- ElementsGES(C);
