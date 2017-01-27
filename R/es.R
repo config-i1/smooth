@@ -386,7 +386,8 @@ XregSelector <- function(listToReturn){
         logLik <- res$logLik;
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
-                             nParam=res$nParam,FI=FI,logLik=logLik,xregNames=xregNames);
+                             nParam=res$nParam,FI=FI,logLik=logLik,
+                             xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
     }
 
     return(listToReturn);

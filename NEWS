@@ -1,3 +1,10 @@
+smooth v1.6.1 (Release date: 2017-01-27)
+==============
+
+Bugfixes:
+* Corrected a bug with nExovars in es()
+
+
 smooth v1.6.0 (Release date: 2017-01-27)
 ==============
 
