@@ -306,10 +306,12 @@ EstimatorES <- function(...){
     C <- res$solution;
 
     if(all(C==Cs$C)){
-        warning(paste0("Failed to optimise the model ETS(", current.model,
-                       "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
-                       "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
-                call.=FALSE);
+        if(initialType!="b"){
+            warning(paste0("Failed to optimise the model ETS(", current.model,
+                           "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
+                           "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
+                    call.=FALSE);
+        }
     }
 
     nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);

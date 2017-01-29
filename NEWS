@@ -1,7 +1,21 @@
+smooth v1.6.2 (Release date: 2017-01-29)
+==============
+
+Changes:
+
+* Addressed issue #58. Now matrix is first transposed and then model is fitted to data. This lead to a tiny increase in speed.
+
+Bugfixes:
+
+* Non-parametric and semi-parametric intervals were broken in 1.6.0
+* es() with backcasting and predefined persistence was complaining on estimation problems without any reason.
+
+
 smooth v1.6.1 (Release date: 2017-01-27)
 ==============
 
 Bugfixes:
+
 * Corrected a bug with nExovars in es()
 
 
@@ -21,6 +35,7 @@ Changes:
 * Redone prediction intervals for iSS models.
 
 Bugfixes:
+
 * Renamed some internal parameters for consistency purposes.
 * Found a bug with nParam calculation in ges().
 * Fixed a bug that did not allow to use combinations with intermittent demand in es().

@@ -1692,6 +1692,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Nonparametric intervals using Taylor and Bunn, 1999 ####
         else if(intervalsType=="np"){
             ye <- errors;
+            if(Etype=="M"){
+                ye <- 1 + ye;
+            }
             xe <- matrix(c(1:n.var),byrow=TRUE,ncol=n.var,nrow=nrow(errors));
             xe <- xe[!is.na(ye)];
             ye <- ye[!is.na(ye)];
@@ -1908,6 +1911,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             }
         }
         else if(intervalsType=="np"){
+            if(Etype=="M"){
+                errors <- errors + 1;
+            }
             upper <- quantile(errors,(1+level)/2);
             lower <- quantile(errors,(1-level)/2);
         }
@@ -2024,6 +2030,14 @@ ssForecaster <- function(...){
                     # y.high <- ts(quantvalues$upper,start=start(y.for),frequency=frequency(data));
                 # }
                 else{
+                    if(intervalsType=="np"){
+                        quantvalues$upper <- quantvalues$upper*y.for;
+                        quantvalues$lower <- quantvalues$lower*y.for;
+                    }
+                    else if(intervalsType=="sp"){
+                        quantvalues$upper <- quantvalues$upper * y.for/c(pt.for);
+                        quantvalues$lower <- quantvalues$lower * y.for/c(pt.for);
+                    }
                     # y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
                     # y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data))
                     # y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
