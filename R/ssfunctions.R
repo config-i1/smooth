@@ -1609,7 +1609,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         # quantInitials <- iprob*qlnorm(levelNew,meanVec,sdVec)
         # quantInitials <- qlnorm(levelNew,meanVec,sdVec)
         quantInitials <- rep(1,length(meanVec))
-        # print(quantInitials)
     }
     else{
         quantInitials <- qnorm(levelNew,meanVec,sdVec)
@@ -1618,6 +1617,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         upperquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
         # print(plnorm(upperquant[i], meanlog=meanVec[i], sdlog=sdVec[i]) + (1 - iprob))
         # hist(rlnorm(1000,meanlog=meanVec[i], sdlog=sdVec[i]),breaks="FD",xlim=range(0,10),ylim=range(0,500))
+        upperquant[i] <- max(0,upperquant[i]);
     }
 
     return(list(lower=lowerquant,upper=upperquant));
