@@ -1587,6 +1587,7 @@ qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
 qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
     lowerquant <- upperquant <- rep(0,length(sdVec));
 
+# Produce lower quantiles
     if(Etype=="A" | all(Etype=="M",(1-iprob) < (1-level)/2)){
         if(Etype=="M"){
             quantInitials <- qlnorm((1-level)/2,meanVec,sdVec)
@@ -1603,15 +1604,22 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         levelNew <- level;
     }
 
+# Produce upper quantiles
     if(Etype=="M"){
-        quantInitials <- qlnorm(levelNew,meanVec,sdVec)
+        # quantInitials <- iprob*qlnorm(levelNew,meanVec,sdVec)
+        # quantInitials <- qlnorm(levelNew,meanVec,sdVec)
+        quantInitials <- rep(1,length(meanVec))
+        # print(quantInitials)
     }
     else{
         quantInitials <- qnorm(levelNew,meanVec,sdVec)
     }
     for(i in 1:length(sdVec)){
         upperquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
+        # print(plnorm(upperquant[i], meanlog=meanVec[i], sdlog=sdVec[i]) + (1 - iprob))
+        # hist(rlnorm(1000,meanlog=meanVec[i], sdlog=sdVec[i]),breaks="FD",xlim=range(0,10),ylim=range(0,500))
     }
+
     return(list(lower=lowerquant,upper=upperquant));
 }
 
@@ -1712,8 +1720,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 #### Parametric intervals ####
         else if(intervalsType=="p"){
-            #s2i <- iprob*(1-iprob);
-
             nComponents <- nrow(transition);
             maxlag <- max(modellags);
             h <- n.var;
@@ -1722,7 +1728,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             varVec <- rep(NA,h);
 
 #### Pure multiplicative models ####
-            # if(Etype=="M" & all(c(Ttype,Stype)!="A")){
             if(Etype=="M"){
                 # Array of variance of states
                 mat.var.states <- array(0,c(nComponents,nComponents,h+maxlag));
@@ -1773,6 +1778,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 }
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
+                    # quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(y.for)), sdVec=sqrt(varVec), Etype="M");
                     upper <- quants$upper;
                     lower <- quants$lower;
                 }
@@ -2010,8 +2016,6 @@ ssForecaster <- function(...){
                 y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             }
             else{
-                # vt <- matrix(matvt[cbind(obsInsample-modellags,c(1:nComponents))],nComponents,1);
-
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - nParam),
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
