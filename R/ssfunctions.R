@@ -1596,7 +1596,8 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             quantInitials <- qnorm((1-level)/2,meanVec,sdVec)
         }
         for(i in 1:length(sdVec)){
-            lowerquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
+            lowerquant[i] <- optimize(qlnormBinCF, c(quantInitials[i],0), tol=1e-10, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
+            # lowerquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
         }
         levelNew <- (1+level)/2;
     }
@@ -1606,15 +1607,13 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 # Produce upper quantiles
     if(Etype=="M"){
-        # quantInitials <- iprob*qlnorm(levelNew,meanVec,sdVec)
-        # quantInitials <- qlnorm(levelNew,meanVec,sdVec)
-        quantInitials <- rep(1,length(meanVec))
+        quantInitials <- qlnorm(levelNew,meanVec,sdVec);
     }
     else{
-        quantInitials <- qnorm(levelNew,meanVec,sdVec)
+        quantInitials <- qnorm(levelNew,meanVec,sdVec);
     }
     for(i in 1:length(sdVec)){
-        upperquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
+        upperquant[i] <- optimize(qlnormBinCF, c(0,quantInitials[i]), tol=1e-10, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
         # print(plnorm(upperquant[i], meanlog=meanVec[i], sdlog=sdVec[i]) + (1 - iprob))
         # hist(rlnorm(1000,meanlog=meanVec[i], sdlog=sdVec[i]),breaks="FD",xlim=range(0,10),ylim=range(0,500))
         upperquant[i] <- max(0,upperquant[i]);
