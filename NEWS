@@ -1,15 +1,16 @@
-smooth v1.6.2 (Release date: 2017-01-29)
+smooth v1.6.2 (Release date: 2017-02-14)
 ==============
 
 Changes:
 
 * Addressed issue #58. Now matrix is first transposed and then model is fitted to data. This lead to a tiny increase in speed.
+* Prediction intervals for intermittent models are now rounded up.
 
 Bugfixes:
 
 * Non-parametric and semi-parametric intervals were broken in 1.6.0
 * es() with backcasting and predefined persistence was complaining on estimation problems without any reason.
-* Corrected initial quantiles for prediction intervals (for correct prediction intervals for intermittent data).
+* Corrected initial quantiles for prediction intervals and optimisation mechanism (for correct prediction intervals for intermittent data).
 
 
 smooth v1.6.1 (Release date: 2017-01-27)
