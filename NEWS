@@ -11,6 +11,7 @@ Bugfixes:
 * Non-parametric and semi-parametric intervals were broken in 1.6.0
 * es() with backcasting and predefined persistence was complaining on estimation problems without any reason.
 * Corrected initial quantiles for prediction intervals and optimisation mechanism (for correct prediction intervals for intermittent data).
+* Corrected description of accuracy measures in es(), ces(), ges() and ssarima().
 
 
 smooth v1.6.1 (Release date: 2017-01-27)

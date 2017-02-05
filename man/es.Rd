@@ -160,7 +160,7 @@ For the details see Hyndman et al.(2008).
     \item \code{cf} - cost function value.
     \item \code{cfType} - type of cost function used in the estimation.
     \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
-    \item \code{accuracy} - vector or accuracy measures for the holdout sample. Includes MPE, MAPE, SMAPE, MASE, MAE/mean, RelMAE and Bias coefficient (based on complex numbers). Available only when \code{holdout=TRUE}.
+    \item \code{accuracy} - vector of accuracy measures for the holdout sample. In case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE, RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled cumulative error) and Bias coefficient. This is available only when \code{holdout=TRUE}.
   }
 
   If combination of forecasts is produced (using \code{model="CCC"}), then a shorter list of values is returned:
