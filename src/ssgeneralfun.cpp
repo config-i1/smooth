@@ -86,6 +86,7 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
 }
 
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
+// !!! Add matrixAt and xreg as arguments passed here and implement additive / multiplicative xreg!!!
 double wvalue(arma::vec matrixVt, arma::rowvec rowvecW, char T, char S){
 // matrixVt is a vector here!
     double yfit = 0;
@@ -288,6 +289,25 @@ arma::vec gvalue(arma::vec matrixVt, arma::mat matrixF, arma::mat rowvecW, char 
     }
 
     return g;
+}
+
+/* # Function is needed for the proper xreg update in additive / multiplicative models.*/
+// Make sure that the provided vecXt is already in logs or whatever!
+arma::vec gXvalue(arma::vec vecXt, arma::vec vecGX, arma::vec error, char E){
+    arma::vec bufferforat(vecGX.n_rows);
+
+    switch(E){
+    case 'A':
+        bufferforat = vecGX / vecXt * error;
+        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+    break;
+    case 'M':
+        bufferforat = vecGX / vecXt * arma::log(1 + error);
+        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+    break;
+    }
+
+    return bufferforat;
 }
 
 /* # Function is needed for the renormalisation of seasonal components. It should be done seasonal-wise.*/
@@ -930,6 +950,8 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         }
 
 /* # Transition equation for xreg */
+// !!! Use gXregValue function here !!!
+// It is also important to pass here alread log values of xreg in cases of multiplicative models
         bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
         bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
         matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
