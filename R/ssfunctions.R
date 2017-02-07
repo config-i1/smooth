@@ -2097,7 +2097,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
 
     if(!is.null(xreg)){
         if(any(is.na(xreg))){
-            warning("The exogenous variables contain NAs! This may lead to problems during estimation and forecast.",
+            warning("The exogenous variables contain NAs! This may lead to problems during estimation and in forecasting.",
                     call.=FALSE);
         }
         if(!is.null(dim(xreg))){
@@ -2118,6 +2118,12 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
                             call.=FALSE);
                     xreg <- NULL;
                 }
+            }
+
+            if(all(data[1:obsInsample]==xreg[1:obsInsample])){
+                warning("The exogenous variable and the forecasted data are exactly the same. What's the point of such a regression?",
+                        call.=FALSE);
+                xreg <- NULL;
             }
 
             if(!is.null(xreg)){
@@ -2160,6 +2166,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
         else if(is.matrix(xreg) | is.data.frame(xreg)){
             if(!is.matrix(xreg)){
                 xreg <- as.matrix(xreg);
+            }
+
+            xregEqualToData <- apply(xreg[1:obsInsample,]==data[1:obsInsample],2,all);
+            if(any(xregEqualToData)){
+                warning("One of exogenous variables and the forecasted data are exactly the same. We have droped it.",
+                        call.=FALSE);
+                xreg <- matrix(xreg[,!xregEqualToData],nrow=nrow(xreg),ncol=ncol(xreg)-1);
             }
 
             nExovars <- ncol(xreg);
