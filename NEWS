@@ -23,7 +23,7 @@ Changes:
 
 Bugfixes:
 
-* Non-parametric and semi-parametric intervals were broken in 1.6.0
+* Non-parametric and semi-parametric intervals were broken since 1.6.0
 * es() with backcasting and predefined persistence was complaining on estimation problems without any reason.
 * Corrected initial quantiles for prediction intervals and optimisation mechanism (for correct prediction intervals for intermittent data).
 
