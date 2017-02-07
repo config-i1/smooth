@@ -3,7 +3,7 @@ importFrom("nloptr", nloptr)
 importFrom("graphics",abline,layout,legend,lines,par,plot,points,polygon)
 importFrom("stats",AIC,BIC,cov,dbeta,decompose,deltat,end,frequency,is.ts,median,coef,optim,nlminb,
            cor,qnorm,qt,qlnorm,quantile,rbinom,rlnorm,rnorm,rt,runif,start,time,ts,var,simulate,nobs,logLik,
-           lm,as.formula,residuals,plnorm,pnorm)
+           lm,as.formula,residuals,plnorm,pnorm,optimize)
 importFrom("utils", packageVersion)
 export(es, ges, ces, ssarima, iss, sma, auto.ces, auto.ssarima)
 export(sim.es, sim.ssarima, sim.ces)
