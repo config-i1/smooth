@@ -35,12 +35,7 @@ nobs.iss <- function(object, ...){
 
 ##### IC functions #####
 AICc.default <- function(object, ...){
-    # if(!is.null(object$x)){
-    #     obs <- length(object$x);
-    # }
-    # else{
         obs <- nobs(object);
-    # }
 
     llikelihood <- logLik(object);
     nParam <- attributes(llikelihood)$df;
