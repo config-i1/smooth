@@ -202,7 +202,16 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
 
     if(xregEstimate){
         if(initialXEstimate){
-            C <- c(C,matat[maxlag,]);
+            if(Etype=="A" & modelDo!="estimate"){
+                vecat <- matrix(y[2:obsInsample],nrow=obsInsample-1,ncol=ncol(matxt)) / diff(matxt[1:obsInsample,]);
+                vecat[is.infinite(vecat)] <- NA;
+                vecat <- colSums(vecat,na.rm=T);
+            }
+            else{
+                vecat <- matat[maxlag,];
+            }
+
+            C <- c(C,vecat);
             CLower <- c(CLower,rep(-Inf,nExovars));
             CUpper <- c(CUpper,rep(Inf,nExovars));
         }
@@ -380,6 +389,7 @@ XregSelector <- function(listToReturn){
         nExovars <- 1;
         xreg <- NULL;
         xregNames <- NULL;
+        listToReturn$xregEstimate <- xregEstimate;
     }
 
     if(!is.null(xreg)){
@@ -388,7 +398,7 @@ XregSelector <- function(listToReturn){
         logLik <- res$logLik;
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=icBest,
-                             nParam=res$nParam,FI=FI,logLik=logLik,xreg=xreg,
+                             nParam=res$nParam,FI=FI,logLik=logLik,xreg=xreg,xregEstimate=xregEstimate,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
     }
 
@@ -842,7 +852,7 @@ CreatorES <- function(silent=FALSE,...){
                               damped, phi, smoothingparameters, initialstates, seasonalcoefs);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
+    xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
 
@@ -1072,7 +1082,6 @@ CreatorES <- function(silent=FALSE,...){
     if(modelDo!="combine"){
         list2env(esValues,environment());
         BasicMakerES(ParentEnvironment=environment());
-        BasicInitialiserES(ParentEnvironment=environment());
 
         if(!is.null(xregNames)){
             matat <- as.matrix(matatOriginal[,xregNames]);
@@ -1085,6 +1094,7 @@ CreatorES <- function(silent=FALSE,...){
         else{
             xreg <- NULL;
         }
+        BasicInitialiserES(ParentEnvironment=environment());
 
         if(damped){
             model <- paste0(Etype,Ttype,"d",Stype);
@@ -1184,15 +1194,17 @@ CreatorES <- function(silent=FALSE,...){
                 if(!is.null(xregNames)){
                     matat <- as.matrix(matatOriginal[,xregNames]);
                     matxt <- as.matrix(matxtOriginal[,xregNames]);
-                    # if(ncol(matat)==1){
-                    #     colnames(matxt) <- colnames(matat) <- xregNames;
-                    # }
-                    xregEstimate <- TRUE;
                 }
                 else{
-                    xregEstimate <- FALSE;
+                    matxt <- matrix(1,nrow(matxtOriginal),1);
+                    matat <- matrix(0,nrow(matatOriginal),1);
                 }
+                nExovars <- results[[i]]$nExovars;
+                matFX <- results[[i]]$matFX;
+                vecgX <- results[[i]]$vecgX;
+                xregEstimate <- results[[i]]$xregEstimate;
             }
+
             BasicMakerES(ParentEnvironment=environment());
             BasicInitialiserES(ParentEnvironment=environment());
             if(damped){
