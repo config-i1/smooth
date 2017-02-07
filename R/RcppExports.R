@@ -25,8 +25,8 @@ fitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, Etype, Ttype, Sty
     .Call('smooth_fitterwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, modellags, Etype, Ttype, Stype, fittertype, matxt, matat, matFX, vecgX, ot)
 }
 
-forecasterwrap <- function(matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat, matFX) {
-    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Ttype, Stype, modellags, matxt, matat, matFX)
+forecasterwrap <- function(matvt, matF, matw, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX) {
+    .Call('smooth_forecasterwrap', PACKAGE = 'smooth', matvt, matF, matw, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX)
 }
 
 errorerwrap <- function(matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, ot) {
