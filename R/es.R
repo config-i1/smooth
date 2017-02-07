@@ -1087,7 +1087,7 @@ CreatorES <- function(silent=FALSE,...){
             matat <- as.matrix(matatOriginal[,xregNames]);
             matxt <- as.matrix(matxtOriginal[,xregNames]);
             if(ncol(matat)==1){
-                colnames(matxt) <- colnames(matat) <- xregNames;
+                colnames(matxt) <- xregNames;
             }
             xreg <- matxt;
         }
@@ -1095,6 +1095,9 @@ CreatorES <- function(silent=FALSE,...){
             xreg <- NULL;
         }
         BasicInitialiserES(ParentEnvironment=environment());
+        if(!is.null(xregNames)){
+            colnames(matat) <- xregNames;
+        }
 
         if(damped){
             model <- paste0(Etype,Ttype,"d",Stype);
@@ -1149,6 +1152,7 @@ CreatorES <- function(silent=FALSE,...){
 
         if(initialXEstimate){
             initialX <- matat[1,];
+            names(initialX) <- colnames(matat);
         }
 
         if(initialSeasonEstimate){
