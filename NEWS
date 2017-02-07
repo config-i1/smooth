@@ -13,6 +13,7 @@ Bugfixes:
 * es() with backcasting and predefined persistence was complaining on estimation problems without any reason.
 * Corrected initial quantiles for prediction intervals and optimisation mechanism (for correct prediction intervals for intermittent data).
 * Corrected description of accuracy measures in es(), ces(), ges() and ssarima().
+* Fixed some bugs relating combination of models with xregDo="s".
 
 
 smooth v1.6.1 (Release date: 2017-01-27)
