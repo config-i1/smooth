@@ -5,6 +5,7 @@ Changes:
 
 * Addressed issue #58. Now matrix is first transposed and then model is fitted to data. This lead to a tiny increase in speed.
 * Prediction intervals for intermittent models are now rounded up.
+* Fixed a problem with ETS(M,Z,Z) and xreg.
 
 Bugfixes:
 
