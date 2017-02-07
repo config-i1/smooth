@@ -299,13 +299,12 @@ arma::vec gXvalue(arma::vec vecXt, arma::vec vecGX, arma::vec error, char E){
     switch(E){
     case 'A':
         bufferforat = vecGX / vecXt * error;
-        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
     break;
     case 'M':
-        bufferforat = vecGX / vecXt * arma::log(1 + error);
-        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+        bufferforat = vecGX / vecXt * log(1 + error);
     break;
     }
+    bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
 
     return bufferforat;
 }
@@ -897,6 +896,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
+    matrixXt = matrixXt.t();
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_cols;
@@ -921,7 +921,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 
 /* # Measurement equation and the error term */
         matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                       matrixXt.row(i-maxlag) * matrixAt.col(i-1));
+                                       trans(matrixXt.col(i-maxlag)) * matrixAt.col(i-1));
         materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -952,8 +952,9 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 /* # Transition equation for xreg */
 // !!! Use gXregValue function here !!!
 // It is also important to pass here alread log values of xreg in cases of multiplicative models
-        bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
-        bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+        bufferforat = gXvalue(matrixXt.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+        // bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
+        // bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
         matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
     }
 
@@ -985,6 +986,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
+    matrixXt = matrixXt.t();
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_cols;
@@ -1014,7 +1016,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
 /* # Measurement equation and the error term */
             matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                    matrixXt.row(i-maxlag) * matrixAt.col(i-1));
+                                    trans(matrixXt.col(i-maxlag)) * matrixAt.col(i-1));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -1043,8 +1045,9 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             }
 
 /* # Transition equation for xreg */
-            bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
-            bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+            bufferforat = gXvalue(matrixXt.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+            // bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
+            // bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
             matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
         }
 
@@ -1065,7 +1068,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
 /* # Measurement equation and the error term */
             matyfit.row(i-maxlag) = vecOt(i-maxlag) * (wvalue(matrixVt(lagrows), rowvecW, T, S) +
-                                    matrixXt.row(i-maxlag) * matrixAt.col(i+1));
+                                    trans(matrixXt.col(i-maxlag)) * matrixAt.col(i+1));
             materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -1089,8 +1092,9 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 /* Skipping renormalisation of components in backcasting */
 
 /* # Transition equation for xreg */
-            bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
-            bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
+            bufferforat = gXvalue(matrixXt.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+            // bufferforat = vecGX / trans(matrixXt.row(i-maxlag)) * materrors(i-maxlag);
+            // bufferforat.elem(find_nonfinite(bufferforat)).fill(0);
             matrixAt.col(i) = matrixFX * matrixAt.col(i+1) + bufferforat;
         }
 /* # Fill in the head of the matrices */
