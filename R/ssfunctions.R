@@ -1947,7 +1947,7 @@ ssForecaster <- function(...){
 
     if(h>0){
         y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                   matF, matw, h, Ttype, Stype, modellags,
+                                   matF, matw, h, Etype, Ttype, Stype, modellags,
                                    matrix(matxt[(obsAll-h+1):(obsAll),],ncol=nExovars),
                                    matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX),
                     start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
@@ -2003,7 +2003,7 @@ ssForecaster <- function(...){
                                              Etype,Ttype,Stype,modellags)$matyt;
                 if(!is.null(xreg)){
                     y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                                           matF, matw, h, Ttype, Stype, modellags,
+                                                           matF, matw, h, Etype, Ttype, Stype, modellags,
                                                            matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
                 }
                 else{
@@ -2090,7 +2090,7 @@ ssForecaster <- function(...){
 }
 
 ##### *Check and initialisation of xreg* #####
-ssXreg <- function(data, xreg=NULL, updateX=FALSE,
+ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obsInsample, obsAll, obsStates, maxlag=1, h=1, silent=FALSE){
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
@@ -2139,7 +2139,12 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 matat <- matrix(NA,obsStates,1);
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
-                    matat[1:maxlag,] <- cov(data[1:obsInsample],xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                    if(Etype=="A"){
+                        matat[1:maxlag,] <- cov(data[1:obsInsample],xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                    }
+                    else{
+                        matat[1:maxlag,] <- cov(log(data[1:obsInsample]),xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                    }
                 }
                 if(is.null(names(xreg))){
                     colnames(matat) <- "x";
@@ -2222,9 +2227,16 @@ ssXreg <- function(data, xreg=NULL, updateX=FALSE,
                 matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
-                    matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
-                                                  t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(nExovars+1)],
-                                            each=maxlag);
+                    if(Etype=="A"){
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(nExovars+1)],
+                                                each=maxlag);
+                    }
+                    else{
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInsample,]) %*% log(data[1:obsInsample]))[2:(nExovars+1)],
+                                                each=maxlag);
+                    }
                 }
                 if(is.null(colnames(xreg))){
                     colnames(matat) <- paste0("x",c(1:nExovars));
