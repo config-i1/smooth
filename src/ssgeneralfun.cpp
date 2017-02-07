@@ -1006,7 +1006,6 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     int obsall = matrixVt.n_cols;
     unsigned int nComponents = matrixVt.n_rows;
     unsigned int maxlag = max(lags);
-    unsigned int minlag = min(lags);
     int lagslength = lags.n_rows;
     arma::uvec lagsModifier = lags;
 
