@@ -472,7 +472,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                              h=h,holdout=holdout,
                              intervals=intervals,level=level,
                              intermittent=intermittent,silent=TRUE,
-                             xreg=NULL, xregDo="use", initialX=initialX,
+                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         ICValue <- testModel$ICs[ic];
         if(combine){
