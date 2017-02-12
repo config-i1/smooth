@@ -129,6 +129,7 @@ For the details see Hyndman et al.(2008).
 
   \itemize{
     \item \code{model} - type of constructed model.
+    \item \code{formula} - mathematical formula, describing interations between components of es() and exogenous variables .
     \item \code{timeElapsed} - time elapsed for the construction of the model.
     \item \code{states} - matrix of the components of ETS.
     \item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
