@@ -176,6 +176,14 @@ lags.default <- function(object, ...){
     return(lags);
 }
 
+lags.Arima <- function(object, ...){
+    model <- object$arma;
+
+    lags <- c(1,model[5]);
+
+    return(lags);
+}
+
 #### Function extracts type of model. For example "AAN" from ets ####
 modelType.default <- function(object, ...){
     model <- object$model;
@@ -245,6 +253,18 @@ orders.default <- function(object, ...){
     else{
         orders <- NA;
     }
+
+    return(orders);
+}
+
+orders.Arima <- function(object, ...){
+    model <- object$arma;
+
+    ar.orders <- c(model[1],model[3]);
+    i.orders <-  c(model[6],model[7]);
+    ma.orders <- c(model[2],model[4]);
+
+    orders <- list(ar=ar.orders,i=i.orders,ma=ma.orders);
 
     return(orders);
 }
