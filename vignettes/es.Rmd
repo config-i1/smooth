@@ -65,18 +65,18 @@ es(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, intervals="np", level=0.93)
 
 We can also extract the type of model in order to reuse it later:
 ```{r es_N2457_modelType}
-modelType(ourModel)
+model.type(ourModel)
 ```
 This handy function, by the way, also works with ets() from forecast package.
 
 We can then use persistence or initials only from the model to construct the other one:
 ```{r es_N2457_reuse_model_parts}
-es(M3$N2457$x, model=modelType(ourModel), h=18, holdout=FALSE, initial=ourModel$initial, silent="graph")
-es(M3$N2457$x, model=modelType(ourModel), h=18, holdout=FALSE, persistence=ourModel$persistence, silent="graph")
+es(M3$N2457$x, model=model.type(ourModel), h=18, holdout=FALSE, initial=ourModel$initial, silent="graph")
+es(M3$N2457$x, model=model.type(ourModel), h=18, holdout=FALSE, persistence=ourModel$persistence, silent="graph")
 ```
 or provide some arbitrary values:
 ```{r es_N2457_set_initial}
-es(M3$N2457$x, model=modelType(ourModel), h=18, holdout=FALSE, initial=1500, silent="graph")
+es(M3$N2457$x, model=model.type(ourModel), h=18, holdout=FALSE, initial=1500, silent="graph")
 ```
 
 Using some other parameters may lead to completely different model and forecasts:

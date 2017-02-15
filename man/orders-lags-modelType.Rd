@@ -1,10 +1,10 @@
 \name{orders}
 \alias{orders}
 \alias{lags}
-\alias{modelType}
+\alias{model.type}
 \alias{orders.default}
 \alias{lags.default}
-\alias{modelType.default}
+\alias{model.type.default}
 \title{
     Functions that extract values from the fitted model
 }
@@ -17,7 +17,7 @@
     lags(object, ...)
     \method{lags}{default}(object, ...)
     lags(object, ...)
-    \method{modelType}{default}(object, ...)
+    \method{model.type}{default}(object, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -31,7 +31,7 @@
 \details{
     \code{orders()} and \code{lags()} are usefull only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 
-    \code{modelType()} is usefull only for ETS and CES. They return \code{NA} for other functions. This can also be applied to \code{ets()} function from forecast package.
+    \code{model.type()} is usefull only for ETS and CES. They return \code{NA} for other functions. This can also be applied to \code{ets()} function from forecast package.
 
 }
 \value{
@@ -52,17 +52,17 @@
 \examples{
 x <- rnorm(100,0,1)
 
-# Just as example. orders and lags do not return anything for ces() and es(). But modelType does.
+# Just as example. orders and lags do not return anything for ces() and es(). But model.type does.
 ourModel <- ces(x, h=10)
 orders(ourModel)
 lags(ourModel)
-modelType(ourModel)
+model.type(ourModel)
 
 # And as another example it does the opposite for ges() and ssarima()
 ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 orders(ourModel)
 lags(ourModel)
-modelType(ourModel)
+model.type(ourModel)
 
 # Finally these values can be used for simulate functions or original functions.
 ourModel <- auto.ssarima(x)

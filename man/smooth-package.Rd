@@ -34,7 +34,7 @@ The following functions are included in the package:
   \itemize{
     \item \link[smooth]{orders} - extracts orders of the fitted model.
     \item \link[smooth]{lags} - extracts lags of the fitted model.
-    \item \link[smooth]{modelType} - extracts type of the fitted model.
+    \item \link[smooth]{model.type} - extracts type of the fitted model.
     \item \link[smooth]{AICc} - extracts AICc of the fitted model.
     \item forecast - produces forecast using provided model.
     \item fitted - extracts fitted values from provided model.

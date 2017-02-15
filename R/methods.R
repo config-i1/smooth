@@ -2,7 +2,7 @@ forecast <- function(object, ...) UseMethod("forecast")
 AICc <- function(object, ...) UseMethod("AICc")
 orders <- function(object, ...) UseMethod("orders")
 lags <- function(object, ...) UseMethod("lags")
-modelType <-  function(object, ...) UseMethod("modelType")
+model.type <-  function(object, ...) UseMethod("model.type")
 
 ##### Likelihood function and stuff #####
 logLik.smooth <- function(object,...){
@@ -185,7 +185,7 @@ lags.Arima <- function(object, ...){
 }
 
 #### Function extracts type of model. For example "AAN" from ets ####
-modelType.default <- function(object, ...){
+model.type.default <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
         if(gregexpr("ETS",model)!=-1){
