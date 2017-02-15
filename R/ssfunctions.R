@@ -2097,8 +2097,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
 
     if(!is.null(xreg)){
         if(any(is.na(xreg))){
-            warning("The exogenous variables contain NAs! This may lead to problems during estimation and in forecasting.",
+            warning("The exogenous variables contain NAs! This may lead to problems during estimation and in forecasting.\nSubstituting them with 0.",
                     call.=FALSE);
+            xreg[is.na(xreg)] <- 0;
         }
         if(!is.null(dim(xreg))){
             if(ncol(xreg)==1){
@@ -2197,7 +2198,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
             if(any(xregEqualToData)){
                 warning("One of exogenous variables and the forecasted data are exactly the same. We have droped it.",
                         call.=FALSE);
-                xreg <- matrix(xreg[,!xregEqualToData],nrow=nrow(xreg),ncol=ncol(xreg)-1);
+                xreg <- matrix(xreg[,!xregEqualToData],nrow=nrow(xreg),ncol=ncol(xreg)-1,dimnames=list(NULL,colnames(xreg[,!xregEqualToData])));
             }
 
             nExovars <- ncol(xreg);

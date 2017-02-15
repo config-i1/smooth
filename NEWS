@@ -5,11 +5,13 @@ Changes:
 
 * Added orders and lags method for the class Arima. This should allow easily extracting these values from models fitted using arima(), Arima() and auto.arima() functions from stats and forecast packages.
 * modelType() is now renamed into model.type().
+* If xreg contains NAs, we now substitute them with zeroes.
 
 Bugfixes:
 
 * Fixed a bug with initial value in backcasting, that was causing annoying problems in ssarima.
 * Fixed a bug in sma() function and model provided to it.
+* Fixed names of xreg in cases when we need to drop some of the variables.
 
 
 smooth v1.6.3 (Release date: 2017-02-14)
