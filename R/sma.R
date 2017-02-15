@@ -15,11 +15,14 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
 # If a previous model provided as a model, write down the variables
     if(exists("model")){
         if(is.null(model$model)){
+            stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
         else if(gregexpr("SMA",model$model)==-1){
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
-        order <- model$order;
+        else{
+            order <- model$order;
+        }
     }
 
     initial <- "backcasting";
