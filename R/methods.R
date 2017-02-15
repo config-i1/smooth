@@ -139,7 +139,7 @@ forecast.smooth <- function(object, h=10,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
                    intervals=intervals,mean=newModel$forecast);
 
-    return(structure(output,class="forecastSmooth"));
+    return(structure(output,class="smooth.forecast"));
 }
 
 #### Function extracts lags of provided model ####
@@ -328,7 +328,7 @@ plot.smooth.sim <- function(x, ...){
     }
 }
 
-plot.forecastSmooth <- function(x, ...){
+plot.smooth.forecast <- function(x, ...){
     if(any(x$intervals!=c("none","n"))){
         graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$model);
     }
@@ -483,7 +483,7 @@ print.smooth.sim <- function(x, ...){
     }
 }
 
-print.forecastSmooth <- function(x, ...){
+print.smooth.forecast <- function(x, ...){
     if(any(x$intervals!=c("none","n"))){
         level <- x$level;
         if(level>1){
@@ -588,7 +588,7 @@ summary.smooth <- function(object, ...){
     print(object);
 }
 
-summary.forecastSmooth <- function(object, ...){
+summary.smooth.forecast <- function(object, ...){
     print(object);
 }
 

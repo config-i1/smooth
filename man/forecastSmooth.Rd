@@ -37,7 +37,7 @@
     This is not a compulsary function. You can simply use \link[smooth]{es}, \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without \code{forecast.smooth}. But if you are really used to \code{forecast} function, then go ahead!
 }
 \value{
-    Returns object of class "forecastSmooth", which contains:
+    Returns object of class "smooth.forecast", which contains:
 
     \itemize{
         \item \code{model} - estimated model (ES / CES / GES / SSARIMA).
