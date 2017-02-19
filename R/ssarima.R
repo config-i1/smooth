@@ -222,7 +222,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         C <- res$solution;
         if(initialType=="o"){
 # Optimise model. Second run
-            res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+            res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+                # This condition is needed in order to make sure that we did not make the solution worse
+            if(res2$objective <= res$objective){
+                res <- res2;
+            }
+
             C <- res$solution;
         }
         cfObjective <- res$objective;

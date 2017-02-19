@@ -310,8 +310,12 @@ EstimatorES <- function(...){
         C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
     }
 
-    res <- nloptr(C, CF, lb=CLower, ub=CUpper,
+    res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
+    # This condition is needed in order to make sure that we did not make the solution worse
+    if(res2$objective <= res$objective){
+        res <- res2;
+    }
     C <- res$solution;
 
     if(all(C==Cs$C)){
@@ -322,6 +326,7 @@ EstimatorES <- function(...){
                     call.=FALSE);
         }
     }
+
 
     nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);
 

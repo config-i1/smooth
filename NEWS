@@ -12,6 +12,7 @@ Bugfixes:
 * Fixed a bug with initial value in backcasting, that was causing annoying problems in ssarima.
 * Fixed a bug in sma() function and model provided to it.
 * Fixed names of xreg in cases when we need to drop some of the variables.
+* In some cases the second optimiser behaved badly and returned worsened value. Fixed it.
 
 
 smooth v1.6.3 (Release date: 2017-02-14)

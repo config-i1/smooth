@@ -230,7 +230,12 @@ CreatorCES <- function(silentText=FALSE,...){
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
 
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
+        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
+            # This condition is needed in order to make sure that we did not make the solution worse
+        if(res2$objective <= res$objective){
+            res <- res2;
+        }
+
         C <- res$solution;
         cfObjective <- res$objective;
     }
