@@ -997,7 +997,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             }
         }
         else{
-            phiEstimate <- TRUE;
+            if(damped==TRUE){
+                phiEstimate <- TRUE;
+            }
+            else{
+                phiEstimate <- FALSE;
+            }
         }
     }
 
