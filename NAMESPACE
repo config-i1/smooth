@@ -38,4 +38,4 @@ S3method(summary,smooth)
 S3method(summary,smooth.forecast)
 S3method(summary,iss)
 
-useDynLib(smooth)
+useDynLib(smooth, .registration=TRUE, .fixes="smooth_")
