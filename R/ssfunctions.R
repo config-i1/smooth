@@ -66,7 +66,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     ##### data #####
     if(!is.numeric(data)){
-        stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
+        stop("The provided data is not a vector or ts object! Can't construct any model!", call.=FALSE);
+    }
+    if(!is.null(ncol(data))){
+        if(ncol(data)>1){
+            stop("The provided data is not a vector! Can't construct any model!", call.=FALSE);
+        }
     }
     # Check the data for NAs
     if(any(is.na(data))){
