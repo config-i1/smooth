@@ -38,6 +38,7 @@ The following functions are included in the package:
     \item \link[smooth]{AICc} - extracts AICc of the fitted model.
     \item forecast - produces forecast using provided model.
     \item fitted - extracts fitted values from provided model.
+    \item getResponse - returns actual values from the provided model.
     \item residuals - extracts residuals of provided model.
     \item plot - plots either states of the model or produced forecast (depending on what object is passed).
     \item simulate - uses sim functions in order to simulate data using the provided object.

@@ -1,3 +1,16 @@
+smooth v1.7.0 (Release date: 2017-02-30)
+==============
+
+Changes:
+
+* We now import a couple of functions from forecast package (forecast and getResponse). This helps us make better connection between methods in packages.
+* forecast() function for smooth now returns $method as a name of applied model and $model as a fitted R model (corresponds to what forecast does in forecast package).
+
+Bugfixes:
+
+*
+
+
 smooth v1.6.4 (Release date: 2017-02-20)
 ==============
 

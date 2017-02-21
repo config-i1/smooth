@@ -1,4 +1,4 @@
-forecast <- function(object, ...) UseMethod("forecast")
+# forecast <- function(object, ...) UseMethod("forecast")
 AICc <- function(object, ...) UseMethod("AICc")
 orders <- function(object, ...) UseMethod("orders")
 lags <- function(object, ...) UseMethod("lags")
@@ -102,7 +102,14 @@ coef.smooth <- function(object, ...)
     return(parameters);
 }
 
-#### Fitted and forecast values ####
+#### Actuals, fitted and forecast values ####
+getResponse.smooth <- function(object, ...){
+    return(object$actuals);
+}
+getResponse.smooth.forecast <- function(object, ...){
+    return(object$model$actuals);
+}
+
 fitted.smooth <- function(object, ...){
     return(object$fitted);
 }
@@ -135,11 +142,11 @@ forecast.smooth <- function(object, h=10,
     else{
         stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
     }
-    output <- list(model=newModel$model,fitted=newModel$fitted,actuals=newModel$actuals,
+    output <- list(model=object,method=object$model,fitted=newModel$fitted,actuals=newModel$actuals,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
-                   intervals=intervals,mean=newModel$forecast);
+                   intervals=intervals,mean=newModel$forecast,x=object$actuals,residuals=object$residuals);
 
-    return(structure(output,class="smooth.forecast"));
+    return(structure(output,class=c("smooth.forecast","forecast")));
 }
 
 #### Function extracts lags of provided model ####
@@ -330,10 +337,10 @@ plot.smooth.sim <- function(x, ...){
 
 plot.smooth.forecast <- function(x, ...){
     if(any(x$intervals!=c("none","n"))){
-        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$model);
+        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$method);
     }
     else{
-        graphmaker(x$actuals,x$forecast,x$fitted,main=x$model);
+        graphmaker(x$actuals,x$forecast,x$fitted,main=x$method);
     }
 }
 

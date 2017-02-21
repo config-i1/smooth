@@ -47,7 +47,7 @@
     Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \seealso{
-    \link[smooth]{forecast}, \link[smooth]{ssarima}
+    \link[forecast]{forecast}, \link[smooth]{ssarima}
 }
 \examples{
 x <- rnorm(100,0,1)
