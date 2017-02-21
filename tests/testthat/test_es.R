@@ -47,18 +47,18 @@ y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, intervals="np")
 test_that("Check exogenous variables for ETS on N1457", {
     expect_equal(suppressWarnings(es(y, h=18, holdout=TRUE, xreg=x, cfType="aMSTFE", silent=TRUE)$model), testModel$model);
-    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$model), testModel$model);
+    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
 })
 
 # Test selection of exogenous with ETS
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
-test_that("Select exogenous variables for ETS on N1457", {
+test_that("Select exogenous variables for ETS on N1457 with selection", {
     expect_equal(sum(testModel$xreg),1);
 })
 
 # Test combination of ETS with exogenous selection
 testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
-test_that("Select exogenous variables for CES on N1457", {
+test_that("Select exogenous variables for ETSX combined on N1457", {
     expect_match(testModel$model, "ETSX");
 })
 

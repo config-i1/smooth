@@ -9,8 +9,8 @@
     This function is created in order for the package to be compatible with Rob Hyndman's "forecast" package
 }
 \usage{
-    forecast(object, ...)
-    \method{forecast}{smooth}(object, h=10,
+forecast(object, ...)
+\method{forecast}{smooth}(object, h=10,
       intervals=c("parametric","semiparametric","nonparametric","none"),
       level=0.95, ...)
 }
@@ -40,7 +40,8 @@
     Returns object of class "smooth.forecast", which contains:
 
     \itemize{
-        \item \code{model} - estimated model (ES / CES / GES / SSARIMA).
+        \item \code{model} - the estimated model (ES / CES / GES / SSARIMA).
+        \item \code{method} - the name of the estimated model (ES / CES / GES / SSARIMA).
         \item \code{fitted} - fitted values of the model.
         \item \code{actuals} - actuals provided in the call of the model.
         \item \code{forecast} aka \code{mean} - point forecasts of the model (conditional mean).
@@ -48,6 +49,7 @@
         \item \code{upper} - upper bound of prediction intervals.
         \item \code{level} - confidence level.
         \item \code{intervals} - binary variable (whether intervals were produced or not).
+        \item \code{residuals} - the residuals of the original model.
     }
 }
 \references{
@@ -63,8 +65,8 @@
 ourModel <- ces(rnorm(100,0,1),h=10)
 
 forecast.smooth(ourModel,h=10)
-forecast(ourModel,h=10,intervals=TRUE)
-plot(forecast(ourModel,h=10,intervals=TRUE))
+forecast.smooth(ourModel,h=10,intervals=TRUE)
+plot(forecast.smooth(ourModel,h=10,intervals=TRUE))
 
 }
 \keyword{ forecast }

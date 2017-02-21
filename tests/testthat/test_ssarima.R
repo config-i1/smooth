@@ -51,13 +51,13 @@ test_that("Test if combined ARIMA works", {
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
 testModel <- ssarima(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, cfType="aMSTFE", intervals=TRUE)
-test_that("Check exogenous variables for SSARIMA on N1457", {
+test_that("Check exogenous variables for SSARIMAX on N1457", {
     expect_equal(suppressWarnings(ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$model), testModel$model);
-    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$model), testModel$model);
+    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
 })
 
 # Test selection of exogenous with Auto.SSARIMA
 testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=x, xregDo="select", silent=TRUE)
-test_that("Select exogenous variables for auto SSARIMA on N1457", {
+test_that("Select exogenous variables for auto SSARIMAX on N1457 with selection", {
     expect_length((testModel$xreg),69);
 })
