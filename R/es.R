@@ -162,7 +162,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' components of es() and exogenous variables.
 #' \item \code{timeElapsed} - time elapsed for the construction of the model.
 #' \item \code{states} - matrix of the components of ETS.
-#' \item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
+#' \item \code{persistence} - persistence vector. This is the place, where
+#' smoothing parameters live.
 #' \item \code{phi} - value of damping parameter.
 #' \item \code{initialType} - Type of initial values used.
 #' \item \code{initial} - intial values of the state vector (non-seasonal).
@@ -170,10 +171,14 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{nParam} - number of estimated parameters.
 #' \item \code{fitted} - fitted values of ETS.
 #' \item \code{forecast} - point forecast of ETS.
-#' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"} then NA is returned.
-#' \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"} then NA is returned.
+#' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
+#' then NA is returned.
+#' \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"}
+#' then NA is returned.
 #' \item \code{residuals} - residuals of the estimated model.
-#' \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
+#' \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the
+#' case of trace forecasts this is the matrix used in optimisation. In non-trace estimations
+#' it is returned just for the information.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 #' \item \code{intervals} - type of intervals asked by user.
 #' \item \code{level} - confidence level for intervals.
@@ -181,8 +186,10 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{holdout} - holdout part of the original data.
 #' \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
 #' \item \code{intermittent} - type of intermittent model fitted to the data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"}, then this value will contain only selected exogenous variables.
-#' \item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+#' then this value will contain only selected exogenous variables.
+#' \item \code{updateX} - boolean, defining, if the states of exogenous variables were
+#' estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
@@ -190,7 +197,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - cost function value.
 #' \item \code{cfType} - type of cost function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
+#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
+#' is not provided at all.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
 #' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
 #' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of

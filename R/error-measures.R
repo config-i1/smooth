@@ -22,20 +22,17 @@
 #' @param digits Number of digits of the output.
 #' @return All the functions return the scalar value.
 #' @author Ivan Svetunkov
-#' @references \itemize{ \item Fildes, R. (1992). The evaluation of
+#' @references \itemize{
+#' \item Fildes, R. (1992). The evaluation of
 #' extrapolative forecasting methods. International Journal of Forecasting, 8,
 #' pp.81-98.
-#'
 #' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
 #' concerns. International Journal of Forecasting, 9, pp.527-529.
-#'
 #' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
 #' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
-#'
 #' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
 #' intermittent demand. Journal of the Operational Research Society, 66,
 #' pp.914-924.
-#'
 #' }
 #' @keywords error measures forecasting accuracy
 #' @examples
