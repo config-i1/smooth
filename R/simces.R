@@ -40,19 +40,26 @@
 #' parameters should be passed in the order they are used in chosen randomizer.
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 #' to the call \code{rnorm(obs, mean=0.5, sd=1)}.
-#' @return List of the following values is returned: \item{model}{Name of CES
-#' model.} \item{A}{Value of complex smoothing parameter A. If \code{nsim>1},
-#' then this is a vector.} \item{B}{Value of complex smoothing parameter B. If
-#' \code{seasonality="n"} or \code{seasonality="s"}, then this is equal to
-#' NULL. If \code{nsim>1}, then this is a vector.} \item{initial}{Initial
-#' values of CES in a form of matrix. If \code{nsim>1}, then this is an array.}
+#' @return List of the following values is returned:
+#' \itemize{
+#' \item{model}{Name of CES model.}
+#' \item{A}{Value of complex smoothing parameter A. If \code{nsim>1}, then
+#' this is a vector.}
+#' \item{B}{Value of complex smoothing parameter B. If \code{seasonality="n"}
+#' or \code{seasonality="s"}, then this is equal to NULL. If \code{nsim>1},
+#' then this is a vector.}
+#' \item{initial}{Initial values of CES in a form of matrix. If \code{nsim>1},
+#' then this is an array.}
 #' \item{data}{Time series vector (or matrix if \code{nsim>1}) of the generated
-#' series.} \item{states}{Matrix (or array if \code{nsim>1}) of states. States
-#' are in columns, time is in rows.} \item{residuals}{Error terms used in the
-#' simulation. Either vector or matrix, depending on \code{nsim}.}
+#' series.}
+#' \item{states}{Matrix (or array if \code{nsim>1}) of states. States are in
+#' columns, time is in rows.}
+#' \item{residuals}{Error terms used in the simulation. Either vector or matrix,
+#' depending on \code{nsim}.}
 #' \item{occurrences}{Values of occurrence variable. Once again, can be either
-#' a vector or a matrix...} \item{logLik}{Log-likelihood of the constructed
-#' model.}
+#' a vector or a matrix...}
+#' \item{logLik}{Log-likelihood of the constructed model.}
+#' }
 #' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
 #' @seealso \code{\link[smooth]{sim.es}, \link[smooth]{sim.ssarima},
 #' \link[smooth]{ces}, \link[stats]{Distributions}}

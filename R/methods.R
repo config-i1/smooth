@@ -42,9 +42,9 @@ AICc <- function(object, ...) UseMethod("AICc")
 #' @return     Either vector or list with values is returned.
 #' \code{orders()} in case of ssarima returns list of values:
 #' \itemize{
-#'     \item \code{ar} - AR orders.
-#'     \item \code{i} - I orders.
-#'     \item \code{ma} - MA orders.
+#' \item \code{ar} - AR orders.
+#' \item \code{i} - I orders.
+#' \item \code{ma} - MA orders.
 #' }
 #' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
 #' @seealso \link[forecast]{forecast}, \link[smooth]{ssarima}
@@ -229,16 +229,19 @@ NULL
 #' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima}.
 #' @return Returns object of class "smooth.forecast", which contains:
 #'
-#' \itemize{ \item \code{model} - the estimated model (ES / CES / GES /
-#' SSARIMA).  \item \code{method} - the name of the estimated model (ES / CES /
-#' GES / SSARIMA).  \item \code{fitted} - fitted values of the model.  \item
-#' \code{actuals} - actuals provided in the call of the model.  \item
-#' \code{forecast} aka \code{mean} - point forecasts of the model (conditional
-#' mean).  \item \code{lower} - lower bound of prediction intervals.  \item
-#' \code{upper} - upper bound of prediction intervals.  \item \code{level} -
-#' confidence level.  \item \code{intervals} - binary variable (whether
-#' intervals were produced or not).  \item \code{residuals} - the residuals of
-#' the original model.  }
+#' \itemize{
+#' \item \code{model} - the estimated model (ES / CES / GES / SSARIMA).
+#' \item \code{method} - the name of the estimated model (ES / CES / GES / SSARIMA).
+#' \item \code{fitted} - fitted values of the model.
+#' \item \code{actuals} - actuals provided in the call of the model.
+#' \item \code{forecast} aka \code{mean} - point forecasts of the model
+#' (conditional mean).
+#' \item \code{lower} - lower bound of prediction intervals.
+#' \item \code{upper} - upper bound of prediction intervals.
+#' \item \code{level} - confidence level.
+#' \item \code{intervals} - binary variable (whether intervals were produced or not).
+#' \item \code{residuals} - the residuals of the original model.
+#' }
 #' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast}}
 #' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)

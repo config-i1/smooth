@@ -24,16 +24,19 @@ details.}
 \value{
 Returns object of class "smooth.forecast", which contains:
 
-\itemize{ \item \code{model} - the estimated model (ES / CES / GES /
-SSARIMA).  \item \code{method} - the name of the estimated model (ES / CES /
-GES / SSARIMA).  \item \code{fitted} - fitted values of the model.  \item
-\code{actuals} - actuals provided in the call of the model.  \item
-\code{forecast} aka \code{mean} - point forecasts of the model (conditional
-mean).  \item \code{lower} - lower bound of prediction intervals.  \item
-\code{upper} - upper bound of prediction intervals.  \item \code{level} -
-confidence level.  \item \code{intervals} - binary variable (whether
-intervals were produced or not).  \item \code{residuals} - the residuals of
-the original model.  }
+\itemize{
+\item \code{model} - the estimated model (ES / CES / GES / SSARIMA).
+\item \code{method} - the name of the estimated model (ES / CES / GES / SSARIMA).
+\item \code{fitted} - fitted values of the model.
+\item \code{actuals} - actuals provided in the call of the model.
+\item \code{forecast} aka \code{mean} - point forecasts of the model
+(conditional mean).
+\item \code{lower} - lower bound of prediction intervals.
+\item \code{upper} - upper bound of prediction intervals.
+\item \code{level} - confidence level.
+\item \code{intervals} - binary variable (whether intervals were produced or not).
+\item \code{residuals} - the residuals of the original model.
+}
 }
 \description{
 This function is created in order for the package to be compatible with Rob
