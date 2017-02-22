@@ -83,22 +83,19 @@ the end of the data.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
-\itemize{ \item \code{none}, aka \code{n} - do not produce prediction
+\itemize{
+\item \code{none}, aka \code{n} - do not produce prediction
 intervals.
-
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-
 \item \code{semiparametric}, \code{sp} - intervals based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
-
 The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
 parametric intervals are constructed, while latter is equivalent to
 \code{none}.}
@@ -170,44 +167,41 @@ Object of class "smooth" is returned. It contains the list of the
 following values for clasical ETS models:
 
 \itemize{
-\item \code{model} - type of constructed model.  \item
-\code{formula} - mathematical formula, describing interations between
-components of es() and exogenous variables .  \item \code{timeElapsed} -
-time elapsed for the construction of the model.  \item \code{states} -
-matrix of the components of ETS.  \item \code{persistence} - persistence
-vector. This is the place, where smoothing parameters live.  \item
-\code{phi} - value of damping parameter.  \item \code{initialType} - Typetof
-initial values used.  \item \code{initial} - intial values of the state
-vector (non-seasonal).  \item \code{initialSeason} - intial values of the
-seasonal part of state vector.  \item \code{nParam} - number of estimated
-parameters.  \item \code{fitted} - fitted values of ETS.  \item
-\code{forecast} - point forecast of ETS.  \item \code{lower} - lower bound
-of prediction interval. When \code{intervals="none"} then NA is returned.
-\item \code{upper} - higher bound of prediction interval. When
-\code{intervals="none"} then NA is returned.  \item \code{residuals} -
-residuals of the estimated model.  \item \code{errors} - trace forecast
-in-sample errors, returned as a matrix. In the case of trace forecasts this
-is the matrix used in optimisation. In non-trace estimations it is returned
-just for the information.  \item \code{s2} - variance of the residuals
-(taking degrees of freedom into account).  \item \code{intervals} - type of
-intervals asked by user.  \item \code{level} - confidence level for
-intervals.  \item \code{actuals} - original data.  \item \code{holdout} -
-holdout part of the original data.  \item \code{iprob} - fitted and
-forecasted values of the probability of demand occurrence.  \item
-\code{intermittent} - type of intermittent model fitted to the data.  \item
-\code{xreg} - provided vector or matrix of exogenous variables. If
-\code{xregDo="s"}, then this value will contain only selected exogenous
-variables.  \item \code{updateX} - boolean, defining, if the states of
-exogenous variables were estimated as well.  \item \code{initialX} - initial
-values for parameters of exogenous variables.  \item \code{persistenceX} -
-persistence vector g for exogenous variables.  \item \code{transitionX} -
-transition matrix F for exogenous variables.  \item \code{ICs} - values of
-information criteria of the model. Includes AIC, AICc and BIC.  \item
-\code{logLik} - log-likelihood of the function.  \item \code{cf} - cost
-function value.  \item \code{cfType} - type of cost function used in the
-estimation.  \item \code{FI} - Fisher Information. Equal to NULL if
-\code{FI=FALSE} or when \code{FI} is not provided at all.  \item
-\code{accuracy} - vector of accuracy measures for the holdout sample. In
+\item \code{model} - type of constructed model.
+\item \code{formula} - mathematical formula, describing interations between
+components of es() and exogenous variables.
+\item \code{timeElapsed} - time elapsed for the construction of the model.
+\item \code{states} - matrix of the components of ETS.
+\item \code{persistence} - persistence vector. This is the place, where smoothing parameters live.
+\item \code{phi} - value of damping parameter.
+\item \code{initialType} - Type of initial values used.
+\item \code{initial} - intial values of the state vector (non-seasonal).
+\item \code{initialSeason} - intial values of the seasonal part of state vector.
+\item \code{nParam} - number of estimated parameters.
+\item \code{fitted} - fitted values of ETS.
+\item \code{forecast} - point forecast of ETS.
+\item \code{lower} - lower bound of prediction interval. When \code{intervals="none"} then NA is returned.
+\item \code{upper} - higher bound of prediction interval. When \code{intervals="none"} then NA is returned.
+\item \code{residuals} - residuals of the estimated model.
+\item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the case of trace forecasts this is the matrix used in optimisation. In non-trace estimations it is returned just for the information.
+\item \code{s2} - variance of the residuals (taking degrees of freedom into account).
+\item \code{intervals} - type of intervals asked by user.
+\item \code{level} - confidence level for intervals.
+\item \code{actuals} - original data.
+\item \code{holdout} - holdout part of the original data.
+\item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
+\item \code{intermittent} - type of intermittent model fitted to the data.
+\item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"}, then this value will contain only selected exogenous variables.
+\item \code{updateX} - boolean, defining, if the states of exogenous variables were estimated as well.
+\item \code{initialX} - initial values for parameters of exogenous variables.
+\item \code{persistenceX} - persistence vector g for exogenous variables.
+\item \code{transitionX} - transition matrix F for exogenous variables.
+\item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
+\item \code{logLik} - log-likelihood of the function.
+\item \code{cf} - cost function value.
+\item \code{cfType} - type of cost function used in the estimation.
+\item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
+\item \code{accuracy} - vector of accuracy measures for the holdout sample. In
 case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
 RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
@@ -219,14 +213,26 @@ If combination of forecasts is produced (using \code{model="CCC"}), then a
 shorter list of values is returned:
 
 \itemize{
-\item \code{model}, \item \code{timeElapsed}, \item
-\code{initialType}, \item \code{fitted}, \item \code{forecast}, \item
-\code{lower}, \item \code{upper}, \item \code{residuals}, \item \code{s2} -
-variance of additive error of combined one-step-ahead forecasts, \item
-\code{intervals}, \item \code{level}, \item \code{actuals}, \item
-\code{holdout}, \item \code{iprob}, \item \code{intermittent}, \item
-\code{ICs} - combined ic, \item \code{ICw} - ic weights used in the
-combination, \item \code{cfType}, \item \code{xreg}, \item \code{accuracy}.
+\item \code{model},
+\item \code{timeElapsed},
+\item \code{initialType},
+\item \code{fitted},
+\item \code{forecast},
+\item \code{lower},
+\item \code{upper},
+\item \code{residuals},
+\item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
+\item \code{intervals},
+\item \code{level},
+\item \code{actuals},
+\item \code{holdout},
+\item \code{iprob},
+\item \code{intermittent},
+\item \code{ICs} - combined ic,
+\item \code{ICw} - ic weights used in the combination,
+\item \code{cfType},
+\item \code{xreg},
+\item \code{accuracy}.
 }
 }
 \description{
@@ -307,20 +313,23 @@ plot(forecast(ourModel))
 
 }
 \references{
-\enumerate{ \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and
-Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space
-approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+\enumerate{
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting
+with exponential smoothing: the state space approach, Springer-Verlag.
+\url{http://www.exponentialsmoothing.net}.
 \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
 Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
-225-237.  \item Kolassa, S. (2011) Combining exponential smoothing forecasts
-using Akaike weights. International Journal of Forecasting, 27, pp 238 -
-251.  \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+225-237.
+\item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
+weights. International Journal of Forecasting, 27, pp 238 - 251.
+\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
-Operational Research 214, 606-615.  \item Croston, J. (1972) Forecasting and
-stock control for intermittent demands. Operational Research Quarterly,
-23(3), 289-303.  \item Syntetos, A., Boylan J. (2005) The accuracy of
-intermittent demand estimates. International Journal of Forecasting, 21(2),
-303-314.  }
+Operational Research 214, 606-615.
+\item Croston, J. (1972) Forecasting and stock control for intermittent demands.
+Operational Research Quarterly, 23(3), 289-303.
+\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand estimates.
+International Journal of Forecasting, 21(2), 303-314.
+}
 }
 \seealso{
 \code{\link[forecast]{ets}, \link[forecast]{forecast},
