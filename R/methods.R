@@ -1,26 +1,114 @@
 # forecast <- function(object, ...) UseMethod("forecast")
+
+
+#' Corrected Akaike's Information Criterion
+#'
+#' This function extracts AICc from "smooth" objects.
+#'
+#' AICc was proposed by Nariaki Sugiura in 1978 and is used on small samples.
+#'
+#' @aliases AICc AICc.default
+#' @param object Time series model.
+#' @param ...  Some stuff.
+#' @return This function returns numeric value.
+#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @seealso \link[stats]{AIC}, \link[stats]{BIC}
+#' @references Kenneth P. Burnham, David R. Anderson (1998). Model Selection
+#' and Multimodel Inference. Springer Science & Business Media.
+#' @keywords information criteria information criterion
+#' @examples
+#'
+#' ourModel <- ces(rnorm(100,0,1),h=10)
+#'
+#' AICc(ourModel,h=10)
+#'
+#' @export AICc
 AICc <- function(object, ...) UseMethod("AICc")
+
+
+#' Functions that extract values from the fitted model
+#'
+#' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()}
+#' and type of model from \code{es()} and \code{ces()}.
+#'
+#' \code{orders()} and \code{lags()} are usefull only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
+#' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
+#' \code{model.type()} is usefull only for ETS and CES. They return \code{NA} for other functions.
+#' This can also be applied to \code{ets()} function from forecast package.
+#'
+#' @aliases orders orders.default
+#' @param object Model estimated using one of the functions of smooth package.
+#' @param ... Currently nothing is accepted via ellipsis.
+#' @return     Either vector or list with values is returned.
+#' \code{orders()} in case of ssarima returns list of values:
+#' \itemize{
+#'     \item \code{ar} - AR orders.
+#'     \item \code{i} - I orders.
+#'     \item \code{ma} - MA orders.
+#' }
+#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @seealso \link[forecast]{forecast}, \link[smooth]{ssarima}
+#' @keywords forecasting
+#' @examples
+#'
+#' x <- rnorm(100,0,1)
+#'
+#' # Just as example. orders and lags do not return anything for ces() and es(). But model.type does.
+#' ourModel <- ces(x, h=10)
+#' orders(ourModel)
+#' lags(ourModel)
+#' model.type(ourModel)
+#' # And as another example it does the opposite for ges() and ssarima()
+#' ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
+#' orders(ourModel)
+#' lags(ourModel)
+#' model.type(ourModel)
+#'
+#' # Finally these values can be used for simulate functions or original functions.
+#' ourModel <- auto.ssarima(x)
+#' ssarima(x, orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+#' sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+#'
+#' @rdname orders
+#' @export orders
 orders <- function(object, ...) UseMethod("orders")
+
+#' @aliases lags.default
+#' @rdname orders
+#' @export lags
 lags <- function(object, ...) UseMethod("lags")
+
+#' @aliases model.type.default
+#' @rdname orders
+#' @export model.type
 model.type <-  function(object, ...) UseMethod("model.type")
 
 ##### Likelihood function and stuff #####
+#' @importFrom stats logLik
+#' @export
 logLik.smooth <- function(object,...){
     obs <- nobs(object);
     structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
 }
+#' @export
 logLik.smooth.sim <- function(object,...){
     obs <- nobs(object);
     structure(object$logLik,nobs=obs,df=0,class="logLik");
 }
+#' @export
 logLik.iss <- function(object,...){
     obs <- nobs(object);
     structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
 }
 
+#' @importFrom stats nobs
+#' @method nobs smooth
+#' @export
 nobs.smooth <- function(object, ...){
     return(length(object$fitted));
 }
+#' @method nobs smooth.sim
+#' @export
 nobs.smooth.sim <- function(object, ...){
     if(is.null(dim(object$data))){
         return(length(object$data));
@@ -29,11 +117,14 @@ nobs.smooth.sim <- function(object, ...){
         return(nrow(object$data));
     }
 }
+#' @method nobs iss
+#' @export
 nobs.iss <- function(object, ...){
     return(length(object$fitted));
 }
 
 ##### IC functions #####
+#' @export
 AICc.default <- function(object, ...){
         obs <- nobs(object);
 
@@ -47,6 +138,7 @@ AICc.default <- function(object, ...){
 }
 
 #### Extraction of parameters of models ####
+#' @export
 coef.smooth <- function(object, ...)
 {
     if(gregexpr("CES",object$model)!=-1){
@@ -102,18 +194,67 @@ coef.smooth <- function(object, ...)
     return(parameters);
 }
 
-#### Actuals, fitted and forecast values ####
-getResponse.smooth <- function(object, ...){
-    return(object$actuals);
-}
-getResponse.smooth.forecast <- function(object, ...){
-    return(object$model$actuals);
-}
+#' @importFrom forecast getResponse
+#' @export
+forecast::getResponse
 
+
+#### Fitted, forecast and actual values ####
+#' @export
 fitted.smooth <- function(object, ...){
     return(object$fitted);
 }
 
+#' @importFrom forecast forecast
+#' @export forecast
+NULL
+
+#' Forecasting time series using smooth functions
+#'
+#' This function is created in order for the package to be compatible with Rob
+#' Hyndman's "forecast" package
+#'
+#' This is not a compulsary function. You can simply use \link[smooth]{es},
+#' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without
+#' \code{forecast.smooth}. But if you are really used to \code{forecast}
+#' function, then go ahead!
+#'
+#' @aliases forecast forecast.smooth
+#' @param object Time series model for which forecasts are required.
+#' @param h Forecast horizon
+#' @param intervals Type of intervals to construct. See \link[smooth]{es} for
+#' details.
+#' @param level Confidence level. Defines width of prediction interval.
+#' @param ...  Other arguments accepted by either \link[smooth]{es},
+#' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima}.
+#' @return Returns object of class "smooth.forecast", which contains:
+#'
+#' \itemize{ \item \code{model} - the estimated model (ES / CES / GES /
+#' SSARIMA).  \item \code{method} - the name of the estimated model (ES / CES /
+#' GES / SSARIMA).  \item \code{fitted} - fitted values of the model.  \item
+#' \code{actuals} - actuals provided in the call of the model.  \item
+#' \code{forecast} aka \code{mean} - point forecasts of the model (conditional
+#' mean).  \item \code{lower} - lower bound of prediction intervals.  \item
+#' \code{upper} - upper bound of prediction intervals.  \item \code{level} -
+#' confidence level.  \item \code{intervals} - binary variable (whether
+#' intervals were produced or not).  \item \code{residuals} - the residuals of
+#' the original model.  }
+#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast}}
+#' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' Forecasting with exponential smoothing: the state space approach,
+#' Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+#' @keywords forecast
+#' @examples
+#'
+#' ourModel <- ces(rnorm(100,0,1),h=10)
+#'
+#' forecast.smooth(ourModel,h=10)
+#' forecast.smooth(ourModel,h=10,intervals=TRUE)
+#' plot(forecast.smooth(ourModel,h=10,intervals=TRUE))
+#'
+#' @export forecast.smooth
+#' @export
 forecast.smooth <- function(object, h=10,
                             intervals=c("parametric","semiparametric","nonparametric","none"),
                             level=0.95, ...){
@@ -149,7 +290,17 @@ forecast.smooth <- function(object, h=10,
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
 
+#' @export
+getResponse.smooth <- function(object, ...){
+    return(object$actuals);
+}
+#' @export
+getResponse.smooth.forecast <- function(object, ...){
+    return(object$model$actuals);
+}
+
 #### Function extracts lags of provided model ####
+#' @export
 lags.default <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
@@ -183,6 +334,7 @@ lags.default <- function(object, ...){
     return(lags);
 }
 
+#' @export
 lags.Arima <- function(object, ...){
     model <- object$arma;
 
@@ -192,6 +344,7 @@ lags.Arima <- function(object, ...){
 }
 
 #### Function extracts type of model. For example "AAN" from ets ####
+#' @export
 model.type.default <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
@@ -228,6 +381,7 @@ model.type.default <- function(object, ...){
 }
 
 #### Function extracts orders of provided model ####
+#' @export
 orders.default <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
@@ -264,6 +418,7 @@ orders.default <- function(object, ...){
     return(orders);
 }
 
+#' @export
 orders.Arima <- function(object, ...){
     model <- object$arma;
 
@@ -277,6 +432,9 @@ orders.Arima <- function(object, ...){
 }
 
 #### Plots of smooth objects ####
+#' @importFrom graphics plot
+#' @method plot smooth
+#' @export
 plot.smooth <- function(x, ...){
     parDefault <- par(no.readonly = TRUE);
     if(gregexpr("ETS",x$model)!=-1){
@@ -316,6 +474,8 @@ plot.smooth <- function(x, ...){
     par(parDefault);
 }
 
+#' @method plot smooth.sim
+#' @export
 plot.smooth.sim <- function(x, ...){
     if(is.null(dim(x$data))){
         nsim <- 1
@@ -335,6 +495,8 @@ plot.smooth.sim <- function(x, ...){
     }
 }
 
+#' @method plot smooth.forecast
+#' @export
 plot.smooth.forecast <- function(x, ...){
     if(any(x$intervals!=c("none","n"))){
         graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$method);
@@ -344,6 +506,8 @@ plot.smooth.forecast <- function(x, ...){
     }
 }
 
+#' @method plot iss
+#' @export
 plot.iss <- function(x, ...){
     intermittent <- x$intermittent
     if(intermittent=="c"){
@@ -362,6 +526,7 @@ plot.iss <- function(x, ...){
 }
 
 #### Prints of smooth ####
+#' @export
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
@@ -392,6 +557,7 @@ print.smooth <- function(x, ...){
              intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
 }
 
+#' @export
 print.smooth.sim <- function(x, ...){
     if(is.null(dim(x$data))){
         nsim <- 1
@@ -490,6 +656,7 @@ print.smooth.sim <- function(x, ...){
     }
 }
 
+#' @export
 print.smooth.forecast <- function(x, ...){
     if(any(x$intervals!=c("none","n"))){
         level <- x$level;
@@ -505,6 +672,7 @@ print.smooth.forecast <- function(x, ...){
     print(output);
 }
 
+#' @export
 print.iss <- function(x, ...){
     intermittent <- x$intermittent
     if(intermittent=="c"){
@@ -530,6 +698,7 @@ print.iss <- function(x, ...){
 }
 
 #### Simulate data using provided object ####
+#' @export
 simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     if(is.null(obs)){
         obs <- length(object$actuals);
@@ -591,14 +760,17 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
 }
 
 #### Summary of objects ####
+#' @export
 summary.smooth <- function(object, ...){
     print(object);
 }
 
+#' @export
 summary.smooth.forecast <- function(object, ...){
     print(object);
 }
 
+#' @export
 summary.iss <- function(object, ...){
     print(object);
 }

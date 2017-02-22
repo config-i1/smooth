@@ -1,3 +1,70 @@
+#' Error measures
+#'
+#' Functions allow to calculate different types of errors: \enumerate{ \item MPE
+#' - Mean Percentage Error, \item MAPE - Mean Absolute Percentage Error,
+#' \item SMAPE - Symmetric Mean Absolute Percentage Error, \item MASE - Mean
+#' Absolute Scaled Error, \item RelMAE - Average Rellative Mean Absolute Error,
+#' \item sMSE - Scaled Mean Squared Error, \item sPIS- Scaled Periods-In-Stock,
+#' \item sCE - Scaled Cumulative Error.  }
+#'
+#' In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical
+#' one -- squared mean value of in-sample actuals.
+#'
+#'
+#' @aliases Error measures
+#' @param actual The vector or matrix of actual values.
+#' @param forecast The vector or matrix of forecasts values.
+#' @param scale The value that should be used in the denominator of MASE. Can
+#' be anything but advised values are: mean absolute deviation of in-sample one
+#' step ahead Naive error or mean absolute value of the in-sample actuals.
+#' @param benchmark The vector or matrix of the forecasts of the benchmark
+#' model.
+#' @param digits Number of digits of the output.
+#' @return All the functions return the scalar value.
+#' @author Ivan Svetunkov
+#' @references \itemize{ \item Fildes, R. (1992). The evaluation of
+#' extrapolative forecasting methods. International Journal of Forecasting, 8,
+#' pp.81-98.
+#'
+#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
+#' concerns. International Journal of Forecasting, 9, pp.527-529.
+#'
+#' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
+#' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
+#'
+#' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
+#' intermittent demand. Journal of the Operational Research Society, 66,
+#' pp.914-924.
+#'
+#' }
+#' @keywords error measures forecasting accuracy
+#' @examples
+#'
+#'
+#' y <- rnorm(100,10,2)
+#' esmodel <- es(y[1:90],model="ANN",h=10)
+#'
+#' MPE(y[91:100],esmodel$forecast,digits=5)
+#' MAPE(y[91:100],esmodel$forecast,digits=5)
+#' SMAPE(y[91:100],esmodel$forecast,digits=5)
+#' MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+#' MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),digits=5)
+#'
+#' esmodel2 <- es(y[1:90],model="AAN",h=10)
+#' RelMAE(y[91:100],esmodel2$forecast,esmodel$forecast,digits=5)
+#'
+#' MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90]))^2,digits=5)
+#'
+#' sMSE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+#' sPIS(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+#' sCE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
+#'
+#' @rdname error-measures
+
+
+#' @rdname error-measures
+#' @export MPE
+#' @aliases MPE
 MPE <- function(actual,forecast,digits=3)
 {
 # This function calculates Mean / Median Percentage Error
@@ -14,6 +81,9 @@ MPE <- function(actual,forecast,digits=3)
     }
 }
 
+#' @rdname error-measures
+#' @export MAPE
+#' @aliases MAPE
 MAPE <- function(actual,forecast,digits=3){
 # This function calculates Mean Absolute Percentage Error
 # actual - actual values,
@@ -29,6 +99,9 @@ MAPE <- function(actual,forecast,digits=3){
     }
 }
 
+#' @rdname error-measures
+#' @export SMAPE
+#' @aliases SMAPE
 SMAPE <- function(actual,forecast,digits=3)
 {
 # This function calculates Symmetric Mean / Median Absolute Percentage Error with
@@ -46,6 +119,9 @@ SMAPE <- function(actual,forecast,digits=3)
     }
 }
 
+#' @rdname error-measures
+#' @export MASE
+#' @aliases MASE
 MASE <- function(actual,forecast,scale,digits=3){
 # This function calculates Mean Absolute Scaled Error as in Hyndman & Koehler, 2006
 # actual - actual values,
@@ -62,6 +138,9 @@ MASE <- function(actual,forecast,scale,digits=3){
     }
 }
 
+#' @rdname error-measures
+#' @export RelMAE
+#' @aliases RelMAE
 RelMAE <-function(actual,forecast,benchmark,digits=3){
 # This function calculates Average Rellative MAE
 # actual - actual values,
@@ -79,6 +158,9 @@ RelMAE <-function(actual,forecast,benchmark,digits=3){
     }
 }
 
+#' @rdname error-measures
+#' @export sMSE
+#' @aliases sMSE
 sMSE <- function(actual,forecast,scale,digits=3){
 # This function calculates scaled Mean Squared Error.
 # Attention! Scale factor should be provided as squares of something!
@@ -96,22 +178,9 @@ sMSE <- function(actual,forecast,scale,digits=3){
     }
 }
 
-hm <- function(x,C=mean(x),digits=5,...)
-{
-# This function calculates half moment
-    x <- x[!is.na(x)];
-    result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
-    return(result);
-}
-
-cbias <- function(x,C=mean(x),digits=5,...)
-{
-# This function calculates half moment
-    result <- hm(x,C,digits);
-    result <- round(1 - Arg(result)/(pi/4),digits);
-    return(result);
-}
-
+#' @rdname error-measures
+#' @export sPIS
+#' @aliases sPIS
 sPIS <- function(actual,forecast,scale,digits=3){
 # This function calculates scaled Periods-In-Stock.
 # actual - actual values,
@@ -128,6 +197,9 @@ sPIS <- function(actual,forecast,scale,digits=3){
     }
 }
 
+#' @rdname error-measures
+#' @export sCE
+#' @aliases sCE
 sCE <- function(actual,forecast,scale,digits=3){
 # This function calculates scaled Cumulative Error.
 # actual - actual values,
@@ -161,4 +233,49 @@ errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
     names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE","sPIS","sCE");
 
     return(errormeasures);
+}
+
+
+#' Half moment of a distribution and its derivatives.
+#'
+#' \code{hm} function estimates half moment from some predefined constant
+#' \code{C}.  \code{cbias} function calculates bias based on \code{hm}.
+#'
+#' \code{NA} values of \code{x} are excluded on the first step of calculation.
+#'
+#' @aliases hm
+#' @param x A variable based on which HM is estimated.
+#' @param C Centering parameter.
+#' @param digits Number of digits for rounding.
+#' @param ...  Other parameters passed to mean function.
+#' @return A complex variable is returned for \code{hm} function and real value
+#' is returned for \code{cbias}.
+#' @author Ivan Svetunkov
+#' @references TBA
+#' @keywords half moment moments of distribution
+#' @examples
+#'
+#' x <- rnorm(100,0,1)
+#' hm(x)
+#' cbias(x)
+#'
+#' @export hm
+#' @rdname hm
+hm <- function(x,C=mean(x),digits=5,...)
+{
+    # This function calculates half moment
+    x <- x[!is.na(x)];
+    result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
+    return(result);
+}
+
+#' @rdname hm
+#' @export cbias
+#' @aliases cbias
+cbias <- function(x,C=mean(x),digits=5,...)
+{
+    # This function calculates half moment
+    result <- hm(x,C,digits);
+    result <- round(1 - Arg(result)/(pi/4),digits);
+    return(result);
 }

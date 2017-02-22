@@ -1,3 +1,31 @@
+#' Stepwise selection of regressors
+#' 
+#' Function selects variables that give linear regression with the lowest
+#' information criteria. The selection is done stepwise (forward) based on
+#' partial correlations. This should be a simpler and faster implementation
+#' than step() function from `stats' package.
+#' 
+#' The algorithm uses lm() to fit different models and cor() to select the next
+#' regressor in the sequence.
+#' 
+#' @param data Data frame containing dependant variable in the first column and
+#' the others in the rest.
+#' @param ic Information criterion to use.
+#' @param silent If \code{silent=FALSE}, then nothing is silent, everything is
+#' printed out. \code{silent=TRUE} means that nothing is produced.
+#' @param df Number of degrees of freedom to add (should be used if stepwise is
+#' used on residuals).
+#' @return Function returns \code{model} - the final model of the class "lm".
+#' @author Ivan Svetunkov
+#' @keywords stepwise linear regression
+#' @examples
+#' 
+#' xreg <- cbind(rnorm(100,10,3),rnorm(100,50,5))
+#' xreg <- cbind(100+0.5*xreg[,1]-0.75*xreg[,2]+rnorm(100,0,3),xreg)
+#' 
+#' stepwise(xreg)
+#' 
+#' @export stepwise
 stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
 ##### Function that selects variables based on IC and using partial correlations
     ourData <- data;
