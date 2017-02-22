@@ -62,19 +62,15 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
 #' intervals.
-#'
 #' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 #' case of mixed models this is done using simulations, which may take longer
 #' time than for the pure additive and pure multiplicative models.
-#'
 #' \item \code{semiparametric}, \code{sp} - intervals based on covariance
 #' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 #' distribution (depending on error type).
-#'
 #' \item \code{nonparametric}, \code{np} - intervals based on values from a
 #' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 #' used in this process is e[j] = a j^b, where j=1,..,h.
-#'
 #' %\item Finally \code{asymmetric} are based on half moment of distribution.
 #' }
 #'
@@ -136,39 +132,49 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' @return Object of class "smooth" is returned. It contains:
 #'
 #' \itemize{
-#' \item \code{model} - name of the estimated model.  \item
-#' \code{timeElapsed} - time elapsed for the construction of the model.  \item
-#' \code{states} - matrix of fuzzy components of GES, where \code{rows}
-#' correspond to time and \code{cols} to states.  \item \code{initialType} -
-#' Typetof initial values used.  \item \code{initial} - initial values of state
-#' vector (extracted from \code{states}).  \item \code{nParam} - number of
-#' estimated parameters.  \item \code{measurement} - matrix w.  \item
-#' \code{transition} - matrix F.  \item \code{persistence} - persistence
-#' vector. This is the place, where smoothing parameters live.  \item
-#' \code{fitted} - fitted values of ETS.  \item \code{forecast} - point
-#' forecast of ETS.  \item \code{lower} - lower bound of prediction interval.
-#' When \code{intervals="none"} then NA is returned.  \item \code{upper} -
-#' higher bound of prediction interval. When \code{intervals="none"} then NA is
-#' returned.  \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - matrix of 1 to h steps ahead errors.  \item \code{s2}
-#' - variance of the residuals (taking degrees of freedom into account).  \item
-#' \code{intervals} - type of intervals asked by user.  \item \code{level} -
-#' confidence level for intervals.  \item \code{actuals} - original data.
-#' \item \code{holdout} - holdout part of the original data.  \item
-#' \code{iprob} - fitted and forecasted values of the probability of demand
-#' occurrence.  \item \code{intermittent} - type of intermittent model fitted
-#' to the data.  \item \code{xreg} - provided vector or matrix of exogenous
-#' variables. If \code{xregDo="s"}, then this value will contain only selected
-#' exogenous variables.  \item \code{updateX} - boolean, defining, if the
-#' states of exogenous variables were estimated as well.  \item \code{initialX}
-#' - initial values for parameters of exogenous variables.  \item
-#' \code{persistenceX} - persistence vector g for exogenous variables.  \item
-#' \code{transitionX} - transition matrix F for exogenous variables.  \item
-#' \code{ICs} - values of information criteria of the model. Includes AIC, AICc
-#' and BIC.  \item \code{logLik} - log-likelihood of the function.  \item
-#' \code{cf} - Cost function value.  \item \code{cfType} - Type of cost
-#' function used in the estimation.  \item \code{FI} - Fisher Information.
-#' Equal to NULL if \code{FI=FALSE} or when \code{FI} is not provided at all.
+#' \item \code{model} - name of the estimated model.
+#' \item \code{timeElapsed} - time elapsed for the construction of the model.
+#' \item \code{states} - matrix of fuzzy components of GES, where \code{rows}
+#' correspond to time and \code{cols} to states.
+#' \item \code{initialType} - Typetof initial values used.
+#' \item \code{initial} - initial values of state vector (extracted from
+#' \code{states}).
+#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{measurement} - matrix w.
+#' \item \code{transition} - matrix F.
+#' \item \code{persistence} - persistence vector. This is the place, where
+#' smoothing parameters live.
+#' \item \code{fitted} - fitted values of ETS.
+#' \item \code{forecast} - point forecast of ETS.
+#' \item \code{lower} - lower bound of prediction interval. When
+#' \code{intervals="none"} then NA is returned.
+#' \item \code{upper} - higher bound of prediction interval. When
+#' \code{intervals="none"} then NA is returned.
+#' \item \code{residuals} - the residuals of the estimated model.
+#' \item \code{errors} - matrix of 1 to h steps ahead errors.
+#' \item \code{s2} - variance of the residuals (taking degrees of freedom
+#' into account).
+#' \item \code{intervals} - type of intervals asked by user.
+#' \item \code{level} - confidence level for intervals.
+#' \item \code{actuals} - original data.
+#' \item \code{holdout} - holdout part of the original data.
+#' \item \code{iprob} - fitted and forecasted values of the probability of demand
+#' occurrence.
+#' \item \code{intermittent} - type of intermittent model fitted to the data.
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
+#' \code{xregDo="s"}, then this value will contain only selected exogenous variables.
+#' \item \code{updateX} - boolean, defining, if the states of exogenous variables
+#' were estimated as well.
+#' \item \code{initialX} - initial values for parameters of exogenous variables.
+#' \item \code{persistenceX} - persistence vector g for exogenous variables.
+#' \item \code{transitionX} - transition matrix F for exogenous variables.
+#' \item \code{ICs} - values of information criteria of the model. Includes
+#' AIC, AICc and BIC.
+#' \item \code{logLik} - log-likelihood of the function.
+#' \item \code{cf} - Cost function value.
+#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or
+#' when \code{FI} variable is not provided at all.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample.
 #' In case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
 #' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
@@ -178,13 +184,15 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{sim.es}}
-#' @references \enumerate{ \item Teunter R., Syntetos A., Babai Z. (2011).
-#' Intermittent demand: Linking forecasting to inventory obsolescence. European
-#' Journal of Operational Research, 214, 606-615.  \item Croston, J. (1972)
-#' Forecasting and stock control for intermittent demands. Operational Research
-#' Quarterly, 23(3), 289-303.  \item Syntetos, A., Boylan J. (2005) The accuracy
-#' of intermittent demand estimates. International Journal of Forecasting,
-#' 21(2), 303-314.  }
+#' @references \enumerate{
+#' \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+#' Linking forecasting to inventory obsolescence. European Journal of
+#' Operational Research, 214, 606-615.
+#' \item Croston, J. (1972) Forecasting and stock control for intermittent
+#' demands. Operational Research Quarterly, 23(3), 289-303.
+#' \item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
+#' estimates. International Journal of Forecasting, 21(2), 303-314.
+#' }
 #' @keywords ges Exponential Smoothing
 #' @examples
 #'

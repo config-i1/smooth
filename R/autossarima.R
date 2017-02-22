@@ -51,21 +51,17 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' from the data. If \code{FALSE}, no holdout is defined.
 #' @param intervals Type of intervals to construct. This can be:
 #'
-#' \itemize{ \item \code{none}, aka \code{n} - do not produce prediction
-#' intervals.
-#'
+#' \itemize{
+#' \item \code{none}, aka \code{n} - do not produce prediction intervals.
 #' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 #' case of mixed models this is done using simulations, which may take longer
 #' time than for the pure additive and pure multiplicative models.
-#'
 #' \item \code{semiparametric}, \code{sp} - intervals based on covariance
 #' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 #' distribution (depending on error type).
-#'
 #' \item \code{nonparametric}, \code{np} - intervals based on values from a
 #' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 #' used in this process is e[j] = a j^b, where j=1,..,h.
-#'
 #' %\item Finally \code{asymmetric} are based on half moment of distribution.
 #' }
 #'
@@ -131,18 +127,20 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @author Ivan Svetunkov
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{sim.es}, \link[smooth]{ges}, \link[smooth]{ssarima}}
-#' @references \enumerate{ \item Snyder, R. D., 1985. Recursive Estimation of
-#' Dynamic Linear Models. Journal of the Royal Statistical Society, Series B
-#' (Methodological) 47 (2), 272-276.  \item Hyndman, R.J., Koehler, A.B., Ord,
-#' J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the
-#' state space approach, Springer-Verlag.
-#' \url{http://www.exponentialsmoothing.net}.  \item Teunter R., Syntetos A.,
-#' Babai Z. (2011). Intermittent demand: Linking forecasting to inventory
-#' obsolescence. European Journal of Operational Research, 214, 606-615.
+#' @references \enumerate{
+#' \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
+#' Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
+#' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' Forecasting with exponential smoothing: the state space approach,
+#' Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+#' \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+#' Linking forecasting to inventory obsolescence. European Journal of
+#' Operational Research, 214, 606-615.
 #' \item Croston, J. (1972) Forecasting and stock control for intermittent
-#' demands. Operational Research Quarterly, 23(3), 289-303.  \item Syntetos, A.,
-#' Boylan J. (2005) The accuracy of intermittent demand estimates.
-#' International Journal of Forecasting, 21(2), 303-314.  }
+#' demands. Operational Research Quarterly, 23(3), 289-303.
+#' \item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
+#' estimates. International Journal of Forecasting, 21(2), 303-314.
+#' }
 #' @keywords SARIMA ARIMA
 #' @examples
 #'

@@ -63,21 +63,17 @@ the end of the data.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
-\itemize{ \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
-
+\itemize{
+\item \code{none}, aka \code{n} - do not produce prediction intervals.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-
 \item \code{semiparametric}, \code{sp} - intervals based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
-
 %\item Finally \code{asymmetric} are based on half moment of distribution.
 }
 
@@ -150,49 +146,59 @@ parameters of the model.}
 }
 \value{
 Object of class "smooth" is returned. It contains the list of the
-following values: \itemize{ \item \code{model} - type of constructed model.
+following values: \itemize{
+\item \code{model} - type of constructed model.
 \item \code{timeElapsed} - time elapsed for the construction of the model.
 \item \code{states} - the matrix of the components of CES. The included
 minimum is "level" and "potential". In the case of seasonal model the
 seasonal component is also included. In the case of exogenous variables the
-estimated coefficients for the exogenous variables are also included.  \item
-\code{A} - complex smoothing parameter in the form a0 + ia1 \item \code{B} -
-smoothing parameter for the seasonal component. Can either be real (if
-\code{seasonality="P"}) or complex (if \code{seasonality="F"}) in a form b0
-+ ib1.  \item \code{initialType} - Typetof initial values used.  \item
-\code{initial} - the intial values of the state vector (non-seasonal).
-\item \code{nParam} - number of estimated parameters.  \item \code{fitted} -
-the fitted values of CES.  \item \code{forecast} - the point forecast of
-CES.  \item \code{lower} - the lower bound of prediction interval. When
-\code{intervals="none"} then NA is returned.  \item \code{upper} - the upper
-bound of prediction interval. When \code{intervals="none"} then NA is
-returned.  \item \code{residuals} - the residuals of the estimated model.
-\item \code{errors} - The matrix of 1 to h steps ahead errors.  \item
-\code{s2} - variance of the residuals (taking degrees of freedom into
-account).  \item \code{intervals} - type of intervals asked by user.  \item
-\code{level} - confidence level for intervals.  \item \code{actuals} - The
-data provided in the call of the function.  \item \code{holdout} - the
-holdout part of the original data.  \item \code{iprob} - the fitted and
-forecasted values of the probability of demand occurrence.  \item
-\code{intermittent} - type of intermittent model fitted to the data.  \item
-\code{xreg} - provided vector or matrix of exogenous variables. If
+estimated coefficients for the exogenous variables are also included.
+\item \code{A} - complex smoothing parameter in the form a0 + ia1
+\item \code{B} - smoothing parameter for the seasonal component. Can either
+be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
+in a form b0 + ib1.
+\item \code{initialType} - Typetof initial values used.
+\item \code{initial} - the intial values of the state vector (non-seasonal).
+\item \code{nParam} - number of estimated parameters.
+\item \code{fitted} - the fitted values of CES.
+\item \code{forecast} - the point forecast of CES.
+\item \code{lower} - the lower bound of prediction interval. When
+\code{intervals="none"} then NA is returned.
+\item \code{upper} - the upper bound of prediction interval. When
+\code{intervals="none"} then NA is returned.
+\item \code{residuals} - the residuals of the estimated model.
+\item \code{errors} - The matrix of 1 to h steps ahead errors.
+\item \code{s2} - variance of the residuals (taking degrees of
+freedom into account).
+\item \code{intervals} - type of intervals asked by user.
+\item \code{level} - confidence level for intervals.
+\item \code{actuals} - The data provided in the call of the function.
+\item \code{holdout} - the holdout part of the original data.
+\item \code{iprob} - the fitted and forecasted values of the probability
+of demand occurrence.
+\item \code{intermittent} - type of intermittent model fitted to the data.
+\item \code{xreg} - provided vector or matrix of exogenous variables. If
 \code{xregDo="s"}, then this value will contain only selected exogenous
-variables.  \item \code{updateX} - boolean, defining, if the states of
-exogenous variables were estimated as well.  \item \code{initialX} - initial
-values for parameters of exogenous variables.  \item \code{persistenceX} -
-persistence vector g for exogenous variables.  \item \code{transitionX} -
-transition matrix F for exogenous variables.  \item \code{ICs} - values of
-information criteria of the model. Includes AIC, AICc, BIC and CIC (Complex
-IC).  \item \code{logLik} - log-likelihood of the function.  \item \code{cf}
-- Cost function value.  \item \code{cfType} - Type of cost function used in
-the estimation.  \item \code{FI} - Fisher Information. Equal to NULL if
-\code{FI=FALSE} or when \code{FI} is not provided at all.  \item
-\code{accuracy} - vector of accuracy measures for the holdout sample. In
+variables.
+\item \code{updateX} - boolean, defining, if the states of
+exogenous variables were estimated as well.
+\item \code{initialX} - initial values for parameters of exogenous variables.
+\item \code{persistenceX} - persistence vector g for exogenous variables.
+\item \code{transitionX} - transition matrix F for exogenous variables.
+\item \code{ICs} - values of information criteria of the model. Includes
+AIC, AICc, BIC and CIC (Complex IC).
+\item \code{logLik} - log-likelihood of the function.
+\item \code{cf} - Cost function value.
+\item \code{cfType} - Type of cost function used in the estimation.
+\item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
+or when \code{FI} is not provided at all.
+\item \code{accuracy} - vector of accuracy measures for the holdout sample. In
 case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
 RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient. This is available only when
-\code{holdout=TRUE}.  }
+\code{holdout=TRUE}.
+}
 }
 \description{
 Function estimates CES in state-space form with information potential equal
@@ -244,20 +250,24 @@ plot(forecast(ourModel))
 
 }
 \references{
-\itemize{ \item Svetunkov, I., Kourentzes, N. (February 2015).
-Complex exponential smoothing. Working Paper of Department of Management
-Science, Lancaster University 2015:1, 1-31.  \item Hyndman, R.J., Koehler,
-A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential
-smoothing: the state space approach, Springer-Verlag.
-\url{http://www.exponentialsmoothing.net}.  \item Svetunkov S. (2012)
-Complex-Valued Modeling in Economics and Finance. SpringerLink: Bucher.
-Springer.  \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent
-demand: Linking forecasting to inventory obsolescence. European Journal of
-Operational Research, 214, 606-615.  \item Croston, J. (1972) Forecasting and
-stock control for intermittent demands. Operational Research Quarterly,
-23(3), 289-303.  \item Syntetos, A., Boylan J. (2005) The accuracy of
-intermittent demand estimates. International Journal of Forecasting, 21(2),
-303-314.  }
+\itemize{
+\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
+smoothing. Working Paper of Department of Management Science, Lancaster
+University 2015:1, 1-31.
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+Forecasting with exponential smoothing: the state space approach,
+Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+\item Svetunkov S. (2012) Complex-Valued Modeling in Economics and Finance.
+SpringerLink: Bucher. Springer.
+\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+Linking forecasting to inventory obsolescence. European Journal of
+Operational Research, 214, 606-615.
+\item Croston, J. (1972) Forecasting and stock control for intermittent
+demands. Operational Research Quarterly, 23(3), 289-303.
+\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
+estimates. International Journal of Forecasting, 21(2),
+303-314.
+}
 }
 \seealso{
 \code{\link[forecast]{ets}, \link[forecast]{forecast},
