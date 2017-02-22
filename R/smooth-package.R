@@ -56,8 +56,7 @@
 #' \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.
 #' \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research, 214, 606-615.
 #' }
-#' @keywords exponential smoothing ETS CES GES ARIMA SARIMA NUS forecasting
-#' time series
+#' @keywords univar ts models smooth regression nonlinear
 #' @examples
 #'
 #' \dontrun{y <- ts(rnorm(100,10,3),frequency=12)

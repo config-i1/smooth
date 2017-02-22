@@ -77,14 +77,9 @@ Ivan Svetunkov
 
 Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 }
-\keyword{ARIMA}
-\keyword{CES}
-\keyword{ETS}
-\keyword{GES}
-\keyword{NUS}
-\keyword{SARIMA}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{series}
-\keyword{smoothing}
-\keyword{time}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}
