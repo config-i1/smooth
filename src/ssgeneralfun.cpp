@@ -137,6 +137,9 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
             yfit = as_scalar(matyfit + rowvecXt * vecAt);
         break;
         case 'M':
+            if(any(any(matyfit<0))){
+                matyfit.elem(find(matyfit<0)).ones();
+            }
             yfit = as_scalar(exp(log(matyfit) + rowvecXt * vecAt));
         break;
     }
