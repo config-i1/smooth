@@ -1965,6 +1965,9 @@ ssForecaster <- function(...){
         if(Etype=="M" & any(y.for<0)){
             warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
                            "Please, use another model."),call.=FALSE);
+            if(intervals){
+            warning("And don't expect anything reasonable from the prediction intervals!",call.=FALSE);
+            }
         }
 
         # Write down the forecasting intervals
