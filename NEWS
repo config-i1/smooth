@@ -1,3 +1,11 @@
+smooth v1.7.1 (Release date: 2017-02-26)
+==============
+
+Changes:
+
+* Mixed ETS models now produce negative forecasts. But it does not make much sense to my taste...
+
+
 smooth v1.7.0 (Release date: 2017-02-24)
 ==============
 
