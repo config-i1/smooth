@@ -51,9 +51,6 @@ smooth.thief <- function(data,h,type,...){
          "ges" = {stop("No automatic GES model fitting yet")})
   
   fc <- forecast(fit,h=h)
-  if (type == "es" | type == "ces"){
-    fc$x <- fc$actuals
-  }
   fc$lower <- fc$upper <- fc$level <- fc$forecast <- fc$intervals <- fc$residuals <- fc$method <- fc$xname <- fc$actuals <- NULL
    
   return(fc)
