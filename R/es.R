@@ -545,7 +545,7 @@ BasicMakerES <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
-                              damped, phi, smoothingparameters, initialstates, seasonalcoefs);
+                              damped, phi, smoothingParameters, initialstates, seasonalCoefs);
     list2env(basicparams,ParentEnvironment);
 }
 
@@ -1096,14 +1096,12 @@ CreatorES <- function(silent=FALSE,...){
     }
 }
 
-##### Set initialstates, initialsesons and persistence vector #####
+##### Set initialstates, initialSesons and persistence vector #####
     # If initial values are provided, write them. If not, estimate them.
     # First two columns are needed for additive seasonality, the 3rd and 4th - for the multiplicative
     if(Ttype!="N"){
         if(initialType!="p"){
             initialstates <- matrix(NA,1,4);
-            # "-1" is needed, so the level would correspond to the values before the in-sample
-            #min(max(12,datafreq),obsNonzero)
             initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
             initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * mean(c(1:min(12,obsNonzero)));
             if(allowMultiplicative){
@@ -1129,27 +1127,27 @@ CreatorES <- function(silent=FALSE,...){
     if(Stype!="N"){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
-            seasonalcoefs <- decompose(ts(c(y),frequency=datafreq),type="additive")$seasonal[1:datafreq];
-            seasonalcoefs <- cbind(seasonalcoefs,decompose(ts(c(y),frequency=datafreq),
+            seasonalCoefs <- decompose(ts(c(y),frequency=datafreq),type="additive")$seasonal[1:datafreq];
+            seasonalCoefs <- cbind(seasonalCoefs,decompose(ts(c(y),frequency=datafreq),
                                                            type="multiplicative")$seasonal[1:datafreq]);
         }
         else{
             initialSeasonEstimate <- FALSE;
-            seasonalcoefs <- cbind(initialSeason,initialSeason);
+            seasonalCoefs <- cbind(initialSeason,initialSeason);
         }
     }
     else{
         initialSeasonEstimate <- FALSE;
-        seasonalcoefs <- matrix(1,1,1);
+        seasonalCoefs <- matrix(1,1,1);
     }
 
     # If the persistence vector is provided, use it
     if(!is.null(persistence)){
-        smoothingparameters <- cbind(persistence,persistence);
+        smoothingParameters <- cbind(persistence,persistence);
     }
     else{
-        # smoothingparameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
-        smoothingparameters <- cbind(c(0.3,0.2,0.1),c(0.3,0.2,0.1));
+        # smoothingParameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
+        smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.3,0.2,0.1));
     }
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
@@ -1158,7 +1156,7 @@ CreatorES <- function(silent=FALSE,...){
     errors <- rep(NA,obsInsample);
 
     basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
-                              damped, phi, smoothingparameters, initialstates, seasonalcoefs);
+                              damped, phi, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX,
