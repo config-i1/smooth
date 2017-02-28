@@ -34,13 +34,13 @@
 #'
 #' @export smooth.thief
 
-smooth.thief <- function(data,h,type,...){
+smooth.thief <- function(data, h, type=c("es","ssarima","ces","ges","sma"), ...){
 # This is a wrapper function to create smooth thieves
   
 # Check if thief is loaded. If not give an error to the user
   if ("package:thief" %in% search()){
-  
-    type <- match.arg(type,c("es","ssarima","ces","ges"))
+    type <- type[1];  
+    type <- match.arg(type,c("es","ssarima","ces","ges","sma"))
     switch(type,
            "es" = {
              fit <- es(data,silent=TRUE,...)
@@ -50,6 +50,9 @@ smooth.thief <- function(data,h,type,...){
            },
            "ces" = {
              fit <- auto.ces(data,silent=TRUE,...)
+           },
+           "sma" = {
+             fit <- sma(data,silent=TRUE,...)
            },
            "ges" = {stop("No automatic GES model fitting yet")})
     
