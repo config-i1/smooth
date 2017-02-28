@@ -37,21 +37,30 @@
 smooth.thief <- function(data,h,type,...){
 # This is a wrapper function to create smooth thieves
   
-  type <- match.arg(type,c("es","ssarima","ces","ges"))
-  switch(type,
-         "es" = {
-           fit <- es(data,silent=TRUE,...)
-         },
-         "ssarima" = {
-           fit <- auto.ssarima(data,silent=TRUE,...)
-         },
-         "ces" = {
-           fit <- auto.ces(data,silent=TRUE,...)
-         },
-         "ges" = {stop("No automatic GES model fitting yet")})
+# Check if thief is loaded. If not give an error to the user
+  if ("package:thief" %in% search()){
   
-  fc <- forecast(fit,h=h)
-  fc$lower <- fc$upper <- fc$level <- fc$forecast <- fc$intervals <- fc$residuals <- fc$method <- fc$xname <- fc$actuals <- NULL
+    type <- match.arg(type,c("es","ssarima","ces","ges"))
+    switch(type,
+           "es" = {
+             fit <- es(data,silent=TRUE,...)
+           },
+           "ssarima" = {
+             fit <- auto.ssarima(data,silent=TRUE,...)
+           },
+           "ces" = {
+             fit <- auto.ces(data,silent=TRUE,...)
+           },
+           "ges" = {stop("No automatic GES model fitting yet")})
+    
+    fc <- forecast(fit,h=h)
+    fc$lower <- fc$upper <- fc$level <- fc$forecast <- fc$intervals <- fc$residuals <- fc$method <- fc$xname <- fc$actuals <- NULL
+  
+  } else {
+    
+    stop("Package thief must be loaded first and this function is to be used as an argument in thief, not as a standalone. See example in help.")
+    
+  } 
    
   return(fc)
   
