@@ -446,11 +446,11 @@ plot.smooth <- function(x, ...){
                 message("Too many states. Plotting them one by one on several graphs.");
                 nPlots <- ceiling(ncol(x$states)/10);
                 for(i in 1:nPlots){
-                    plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i));
+                    plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i), ...);
                 }
             }
             else{
-                plot(x$states,main=paste0("States of ",x$model));
+                plot(x$states,main=paste0("States of ",x$model), ...);
             }
         }
         else{
@@ -467,11 +467,11 @@ plot.smooth <- function(x, ...){
             message("Too many states. Plotting them one by one on several graphs.");
             nPlots <- ceiling(ncol(x$states)/10);
             for(i in 1:nPlots){
-                plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i));
+                plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i), ...);
             }
         }
         else{
-            plot(x$states,main=paste0("States of ",x$model));
+            plot(x$states,main=paste0("States of ",x$model), ...);
         }
     }
     par(parDefault);
@@ -488,13 +488,13 @@ plot.smooth.sim <- function(x, ...){
     }
 
     if(nsim==1){
-        plot(x$data, main=x$model, ylab="Data");
+        plot(x$data, main=x$model, ylab="Data", ...);
     }
     else{
         message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
                        "Please use plot(ourSimulation$data[,k]) instead. Plotting a random series."));
         randomNumber <- ceiling(runif(1,1,nsim));
-        plot(x$data[,randomNumber], main=x$model, ylab=paste0("Series N",randomNumber));
+        plot(x$data[,randomNumber], main=x$model, ylab=paste0("Series N",randomNumber), ...);
     }
 }
 
