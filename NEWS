@@ -6,6 +6,8 @@ Changes:
 * Mixed ETS models now produce negative forecasts. But it does not make much sense to my taste...
 * The initial values of smoothing parameters before the optimisation are now set to 0.3, 0.2, 0.1 for both additive and multiplicative models.
 * Some plot() methods for smooth now accept additional parameters.
+* es() now also accepts hidden parameters C, CLower and CUpper for initialisation of optimiser and setting bounds in which to search for the optimal value.
+
 
 smooth v1.7.0 (Release date: 2017-02-24)
 ==============

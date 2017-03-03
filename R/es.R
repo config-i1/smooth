@@ -153,6 +153,12 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
 #' the model.
+#' Parameters \code{C}, \code{CLower} and \code{CUpper} can be passed via
+#' ellipsis as well. In this case they will be used for optimisation. \code{C}
+#' sets the initial values before the optimisation, \code{CLower} and
+#' \code{CUpper} define lower and upper bounds for the search inside of the
+#' specified \code{bounds}. These values should have exactly the length equal
+#' to the number of parameters to estimate.
 #' @return Object of class "smooth" is returned. It contains the list of the
 #' following values for clasical ETS models:
 #'
@@ -572,9 +578,15 @@ EstimatorES <- function(...){
     BasicMakerES(ParentEnvironment=environment());
 
     Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat);
-    C <- Cs$C;
-    CUpper <- Cs$CUpper;
-    CLower <- Cs$CLower;
+    if(is.null(providedC)){
+        C <- Cs$C;
+    }
+    if(is.null(providedCLower)){
+        CLower <- Cs$CLower;
+    }
+    if(is.null(providedCUpper)){
+        CUpper <- Cs$CUpeer;
+    }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
@@ -1309,6 +1321,57 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         modelDo <- "nothing";
+    }
+
+    ellipsis <- list(...);
+    providedC <- ellipsis$C;
+    providedCLower <- ellipsis$CLower;
+    providedCUpper <- ellipsis$CUpper;
+##### Initials for optimiser #####
+    if(!all(c(is.null(providedC),is.null(providedCLower),is.null(providedCUpper)))){
+        if((modelDo==c("estimate")) & (xregDo==c("u"))){
+            environment(BasicMakerES) <- environment();
+            BasicMakerES(ParentEnvironment=environment());
+
+            # Number of parameters
+            nParam <- nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
+            if(nParam!=length(providedC)){
+                warning(paste0("Number of parameters to optimise differes from the length of C:",nParam," vs ",length(providedC),".\n",
+                               "We will have to drop parameter C."),call.=FALSE);
+                providedC <- NULL;
+            }
+            if(nParam!=length(providedCLower)){
+                warning(paste0("Number of parameters to optimise differes from the length of CLower:",nParam," vs ",length(providedCLower),".\n",
+                               "We will have to drop parameter CLower."),call.=FALSE);
+                providedCLower <- NULL;
+            }
+            if(nParam!=length(providedCUpper)){
+                warning(paste0("Number of parameters to optimise differes from the length of CUpper:",nParam," vs ",length(providedCUpper),".\n",
+                               "We will have to drop parameter CUpper."),call.=FALSE);
+                providedCUpper <- NULL;
+            }
+            C <- providedC;
+            CLower <- providedCLower;
+            CUpper <- providedCUpper;
+        }
+        else{
+            if(modelDo==c("select")){
+                warning("Predefined values of C cannot be used with model selection.",call.=FALSE);
+            }
+            else if(modelDo==c("combine")){
+                warning("Predefined values of C cannot be used with combination of forecasts.",call.=FALSE);
+            }
+            else if(modelDo==c("nothing")){
+                warning("Sorry, but there is nothing to optimise, so we have to drop parameter C.",call.=FALSE);
+            }
+
+            if(xregDo==c("select")){
+                warning("Predefined values of C cannot be used with xreg selection.",call.=FALSE);
+            }
+            C <- NULL;
+            CLower <- NULL;
+            CUpper <- NULL;
+        }
     }
 
 ##### Now do estimation and model selection #####
