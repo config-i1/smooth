@@ -65,6 +65,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### data #####
+    if(class(data)=="smooth.sim"){
+        data <- data$data;
+    }
     if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't construct any model!", call.=FALSE);
     }
