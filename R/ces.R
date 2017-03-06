@@ -96,7 +96,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' that \code{xreg} should have number of observations equal either to
 #' in-sample or to the whole series. If the number of observations in
 #' \code{xreg} is equal to in-sample, then values for the holdout sample are
-#' produced using Naive.
+#' produced using \link[smooth]{es} function.
 #' @param xregDo Variable defines what to do with the provided xreg:
 #' \code{"use"} means that all of the data should be used, whilie
 #' \code{"select"} means that a selection using \code{ic} should be done.
