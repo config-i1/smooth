@@ -1641,8 +1641,14 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         lowerquant <- qnorm((1-level)/2,0,1);
     }
     else{
-        upperquant <- qt((1+level)/2,df=df);
-        lowerquant <- qt((1-level)/2,df=df);
+        if(df>0){
+            upperquant <- qt((1+level)/2,df=df);
+            lowerquant <- qt((1-level)/2,df=df);
+        }
+        else{
+            upperquant <- sqrt(1/((1-level)/2))
+            lowerquant <- -upperquant;
+        }
     }
 
 ##### If they want us to produce several steps ahead #####
@@ -1948,14 +1954,22 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
+    df <- (obsNonzero - nParam);
+    if(df<=0){
+        warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
+        df <- obsNonzero;
+    }
 # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
-        s2 <- as.vector(sum((errors*ot)^2)/(obsNonzero - nParam));
+        s2 <- as.vector(sum((errors*ot)^2)/df);
         s2g <- 1;
     }
     else{
-        s2 <- as.vector(sum(log(1 + errors*ot)^2)/(obsNonzero - nParam));
-        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/(obsNonzero - nParam);
+        s2 <- as.vector(sum(log(1 + errors*ot)^2)/df);
+        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/df;
+    }
+    if((obsNonzero - nParam)<=0){
+        df <- 0;
     }
 
     if(h>0){
@@ -2031,7 +2045,7 @@ ssForecaster <- function(...){
                 y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
             }
             else{
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=(obsNonzero - nParam),
+                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
                                            y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
