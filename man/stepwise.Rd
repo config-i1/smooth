@@ -39,6 +39,9 @@ xreg <- cbind(100+0.5*xreg[,1]-0.75*xreg[,2]+rnorm(100,0,3),xreg)
 stepwise(xreg)
 
 }
+\seealso{
+\code{\link[stats]{step}, \link[smooth]{xregExpander}}
+}
 \author{
 Ivan Svetunkov
 }

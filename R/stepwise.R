@@ -15,9 +15,15 @@
 #' printed out. \code{silent=TRUE} means that nothing is produced.
 #' @param df Number of degrees of freedom to add (should be used if stepwise is
 #' used on residuals).
+#'
 #' @return Function returns \code{model} - the final model of the class "lm".
+#'
 #' @author Ivan Svetunkov
+#'
+#' @seealso \code{\link[stats]{step}, \link[smooth]{xregExpander}}
+#'
 #' @keywords stepwise linear regression
+#'
 #' @examples
 #'
 #' xreg <- cbind(rnorm(100,10,3),rnorm(100,50,5))
