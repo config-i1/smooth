@@ -1,4 +1,14 @@
-smooth v1.7.1 (Release date: 2017-02-26)
+smooth v1.8.0 (Release data: 2017-03-12)
+
+Changes:
+* New function - xregExpander(), which creates matrix of xreg with lagged values based on provided data.
+
+Bugfixes:
+* In cases of df<=0 we now produce a warning and prediction intervals based on Chebyshev's inequality.
+* es() now does not complain about failing to estimate something when persistence is predefined.
+
+
+smooth v1.7.1 (Release date: 2017-03-01)
 ==============
 
 Changes:
