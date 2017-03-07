@@ -51,9 +51,9 @@ test_that("Check exogenous variables for ETS on N1457", {
 })
 
 # Test selection of exogenous with ETS
-testModel <- es(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for ETS on N1457 with selection", {
-    expect_equal(sum(testModel$xreg),1);
+    expect_equal(ncol(testModel$xreg),3);
 })
 
 # Test combination of ETS with exogenous selection

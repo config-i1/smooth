@@ -57,7 +57,7 @@ test_that("Check exogenous variables for SSARIMAX on N1457", {
 })
 
 # Test selection of exogenous with Auto.SSARIMA
-testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=x, xregDo="select", silent=TRUE)
+testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=xregExpander(x), xregDo="select", silent=TRUE)
 test_that("Select exogenous variables for auto SSARIMAX on N1457 with selection", {
-    expect_length((testModel$xreg),69);
+    expect_equal(ncol(testModel$xreg),2);
 })

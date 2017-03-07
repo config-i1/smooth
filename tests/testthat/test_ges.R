@@ -35,7 +35,7 @@ test_that("Check exogenous variables for GESX on N1457", {
 })
 
 # Test selection of exogenous with GES
-testModel <- ges(y, h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+testModel <- ges(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for GESX on N1457 with selection", {
     expect_null(suppressWarnings(testModel$xreg));
 })

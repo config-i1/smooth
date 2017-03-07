@@ -117,6 +117,11 @@ or the one with the updated xreg:
 ourModel <- es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
 ```
 
+If we want to check if lagged x can be used for forecasting purposes, we can use `xregExpander()` function:
+```{r es_N2457_xreg_expanded_select}
+es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=xregExpander(x), xregDo="select")
+```
+
 If we are confused about the type of estimated model, the function `formula()` will help us:
 ```{r es_N2457_xreg_formula}
 formula(ourModel)
