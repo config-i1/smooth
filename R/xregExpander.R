@@ -70,6 +70,9 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
         xregStart <- start(xreg);
         xregFrequency <- frequency(xreg);
         xregNames <- colnames(xreg);
+        if(is.null(xregNames)){
+            xregNames <- paste0("x",1:ncol(xreg));
+        }
         obs <- nrow(xreg);
         nExovars <- ncol(xreg);
         xregNew <- matrix(NA,obs,(lagsLengthAll+1)*nExovars);
@@ -85,7 +88,7 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
             }
             chosenColumn <- (lagsLengthAll+1)*(i-1);
             xregNew[,chosenColumn+1] <- xregData <- xreg[,i];
-            xregCurrentName <- colnames(xreg)[i];
+            xregCurrentName <- xregNames[i];
             colnames(xregNew)[(lagsLengthAll+1)*(i-1)+1] <- xregCurrentName;
             # Produce forecasts for leads
             xregModel <- suppressWarnings(es(xregData,h=maxLead,intermittent="a",silent=TRUE));
