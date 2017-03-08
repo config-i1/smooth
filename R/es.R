@@ -2,7 +2,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
                          "yot","maxlag","silent","allowMultiplicative","current.model",
                          "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
-                         "persistenceEstimate","initial","multisteps","ot","FXestimate",
+                         "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend"));
 
 
@@ -634,7 +634,7 @@ EstimatorES <- function(...){
     C <- res$solution;
 
     if(all(C==Cs$C) & (initialType!="b")){
-        if(any(persistenceEstimate,gXEstimate,FXestimate)){
+        if(any(persistenceEstimate,gXEstimate,FXEstimate)){
             warning(paste0("Failed to optimise the model ETS(", current.model,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                            "If you did your best, but the optimiser still fails, report this to the maintainer, please."),

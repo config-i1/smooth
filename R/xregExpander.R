@@ -40,14 +40,29 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
     # Remove zero from lags
     lags <- lags[lags!=0]
     lagsLengthAll <- length(lags);
+    if(lagsLengthAll==0){
+        warning("You have not specified any leads or lags.",call.=FALSE);
+        return(xreg);
+    }
     # Form leads
     leads <- lags[lags>0];
     leadsLength <- length(leads);
-    maxLead <- max(leads);
+    if(leadsLength!=0){
+        maxLead <- max(leads);
+    }
+    else{
+        maxLead <- 0;
+    }
+
     # Form proper lags
     lags <- abs(lags[lags<0]);
     lagsLength <- length(lags);
-    maxLag <- max(lags);
+    if(lagsLength!=0){
+        maxLag <- max(lags);
+    }
+    else{
+        maxLag <- 0;
+    }
 
     if(!silent){
         cat("Preparing matrices...    ");
@@ -90,13 +105,23 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
             xregNew[,chosenColumn+1] <- xregData <- xreg[,i];
             xregCurrentName <- xregNames[i];
             colnames(xregNew)[(lagsLengthAll+1)*(i-1)+1] <- xregCurrentName;
+            xregDataNew <- xregData;
+            if(leadsLength!=0){
             # Produce forecasts for leads
-            xregModel <- suppressWarnings(es(xregData,h=maxLead,intermittent="a",silent=TRUE));
-            xregDataNew <- c(xregData,xregModel$forecast);
+                xregModel <- suppressWarnings(es(xregData,h=maxLead,intermittent="a",silent=TRUE));
+                xregDataNew <- c(xregDataNew,xregModel$forecast);
+            }
+            if(lagsLength!=0){
             # Produce reversed forecasts for lags
-            xregModel <- suppressWarnings(es(rev(xregData),model=model.type(xregModel),persistence=xregModel$persistence,
-                                             intermittent=xregModel$intermittent,h=maxLag,silent=TRUE));
-            xregDataNew <- c(rev(xregModel$forecast),xregDataNew);
+                if(leadsLength!=0){
+                    xregModel <- suppressWarnings(es(rev(xregData),model=model.type(xregModel),persistence=xregModel$persistence,
+                                                     intermittent=xregModel$intermittent,h=maxLag,silent=TRUE));
+                }
+                else{
+                    xregModel <- suppressWarnings(es(rev(xregData),h=maxLag,intermittent="a",silent=TRUE));
+                }
+                xregDataNew <- c(rev(xregModel$forecast),xregDataNew);
+            }
 
             if(any(lagsOriginal<0)){
                 for(j in 1:lagsLength){
