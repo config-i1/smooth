@@ -2409,6 +2409,19 @@ likelihoodFunction <- function(C){
         }
     }
     else{
+        #Failsafe for exceptional cases when the probability is equal to zero / one, when it should not have been.
+        if(any(c(1-pt[ot==0]==0,pt[ot==1]==0))){
+            return(-Inf);
+        }
+        #Failsage for cases, when data has no variability when ot==1.
+        if(CF(C)==0){
+            if(cfType=="TFL" | cfType=="aTFL"){
+                return(sum(log(pt[ot==1]))*h + sum(log(1-pt[ot==0]))*h);
+            }
+            else{
+                return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
+            }
+        }
         if(cfType=="TFL" | cfType=="aTFL"){
             return(sum(log(pt[ot==1]))*h
                    + sum(log(1-pt[ot==0]))*h
@@ -2587,7 +2600,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat(paste0("Cost function type: ",cfType))
     if(!is.null(cfObjective)){
-        cat(paste0("; Cost function value: ",round(cfObjective,0),"\n"));
+        cat(paste0("; Cost function value: ",round(cfObjective,3),"\n"));
     }
     else{
         cat("\n");
