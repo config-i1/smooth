@@ -26,13 +26,16 @@
 #' \item Fildes, R. (1992). The evaluation of
 #' extrapolative forecasting methods. International Journal of Forecasting, 8,
 #' pp.81-98.
-#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
-#' concerns. International Journal of Forecasting, 9, pp.527-529.
 #' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
 #' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
+#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
+#' concerns. International Journal of Forecasting, 9, pp.527-529.
 #' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
 #' intermittent demand. Journal of the Operational Research Society, 66,
 #' pp.914-924.
+#' \item Wallstrom P., Segerstedt A. (2010). Evaluation of forecasting error
+#' measurements and techniques for intermittent demand. International Journal
+#' of Production Economics, 128, pp.625-636.
 #' }
 #' @keywords error measures forecasting accuracy
 #' @examples
