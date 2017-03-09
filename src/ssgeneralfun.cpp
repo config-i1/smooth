@@ -1425,7 +1425,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         break;
 // no exp is the temporary fix for very strange behaviour of MAM type models
         case 3:
-            CFres = arma::as_scalar(log(sum(sum(pow(materrors,2)) / double(matobs), 1))
+            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1)
                         + (2 / double(obs)) * double(hor) * yactsum);
         break;
         case 4:
