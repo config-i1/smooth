@@ -645,21 +645,29 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
 # Prepare stuff for intermittency selection
         intermittentModelsPool <- c("n","f","c","t","s");
-        intermittentICs <- rep(1e+10,length(intermittentModelsPool));
+        intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs <- ssarimaValues$bestIC;
+        intermittentICs[1] <- ssarimaValues$bestIC;
+        intermittentCFs[1] <- ssarimaValues$cfObjective;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorSSARIMA(silentText=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
-            if(intermittentICs[i]>intermittentICs[i-1]){
-                break;
+            intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
+            # if(intermittentICs[i]>intermittentICs[i-1]){
+            #     break;
+            # }
+        }
+        intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
+        intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
+        # In cases when the data is binary, choose between intermittent models only
+        if(any(intermittentCFs==0)){
+            if(all(intermittentCFs[2:length(intermittentModelsPool)]==0)){
+                intermittentICs[1] <- Inf;
             }
         }
-        intermittentICs[is.nan(intermittentICs)] <- 1e+100;
-        intermittentICs[is.na(intermittentICs)] <- 1e+100;
         iBest <- which(intermittentICs==min(intermittentICs));
 
         if(!silentText){

@@ -1,4 +1,4 @@
-smooth v1.8.0 (Release data: 2017-03-12)
+smooth v1.8.0 (Release data: 2017-03-17)
 
 Changes:
 * New function - xregExpander(), which creates matrix of xreg with lagged values based on provided data and automatically fills in NAs with forecasted values using es().
@@ -6,6 +6,7 @@ Changes:
 Bugfixes:
 * In cases of df<=0 we now produce a warning and prediction intervals based on Chebyshev's inequality.
 * es() now does not complain about failing to estimate something when persistence is predefined.
+* Fixed a bug, when predicting binary variables using any iSS model, we would end up with errors. Now in this case we just select among the intermittent models, ignoring non-intermittent one.
 
 
 smooth v1.7.1 (Release date: 2017-03-01)

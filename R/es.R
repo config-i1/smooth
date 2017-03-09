@@ -2,7 +2,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
                          "yot","maxlag","silent","allowMultiplicative","current.model",
                          "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
-                         "persistenceEstimate","initial","multisteps","ot","FXestimate",
+                         "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend"));
 
 
@@ -634,7 +634,7 @@ EstimatorES <- function(...){
     C <- res$solution;
 
     if(all(C==Cs$C) & (initialType!="b")){
-        if(any(persistenceEstimate,gXEstimate,FXestimate)){
+        if(any(persistenceEstimate,gXEstimate,FXEstimate)){
             warning(paste0("Failed to optimise the model ETS(", current.model,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                            "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
@@ -1417,18 +1417,26 @@ CreatorES <- function(silent=FALSE,...){
         }
 # Prepare stuff for intermittency selection
         intermittentModelsPool <- c("n","f","c","t","s");
-        intermittentICs <- rep(NA,length(intermittentModelsPool));
+        intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs <- esValues$icBest;
+        intermittentICs[1] <- esValues$icBest;
+        intermittentCFs[1] <- esValues$cfObjective;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorES(silent=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
+            intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
         }
-        intermittentICs[is.nan(intermittentICs)] <- 1e+100;
-        intermittentICs[is.na(intermittentICs)] <- 1e+100;
+        intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
+        intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
+        # In cases when the data is binary, choose between intermittent models only
+        if(any(intermittentCFs==0)){
+            if(all(intermittentCFs[2:length(intermittentModelsPool)]==0)){
+                intermittentICs[1] <- Inf;
+            }
+        }
         iBest <- which(intermittentICs==min(intermittentICs))[1];
 
         if(!silentText){
