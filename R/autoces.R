@@ -190,17 +190,60 @@ auto.ces <- function(data, models=c("none","simple","full"),
         message("The pool of models includes a strange type of model! Reverting to default pool.");
         models <- c("n","s","p","f");
     }
+    models <- substr(models,1,1);
 
     datafreq <- frequency(data);
-    if(any(is.na(data))){
-        if(silentText==FALSE){
-            message("Data contains NAs. These observations will be excluded.")
+    # if(any(is.na(data))){
+    #     if(silentText==FALSE){
+    #         message("Data contains NAs. These observations will be excluded.")
+    #     }
+    #     datanew <- data[!is.na(data)];
+    #     if(is.ts(data)){
+    #         datanew <- ts(datanew,start=start(data),frequency=datafreq);
+    #     }
+    #     data <- datanew;
+    # }
+
+    # Define maximum needed number of parameters
+    if(any(models=="n")){
+    # 1 is for variance, 2 is for complex smoothing parameter
+        nParamMax <- 3;
+        if(initialType=="o"){
+            nParamMax <- nParamMax + 2;
         }
-        datanew <- data[!is.na(data)];
-        if(is.ts(data)){
-            datanew <- ts(datanew,start=start(data),frequency=datafreq);
+        if(obsInsample <= nParamMax){
+            stop(paste0("The sample is too small. We need at least ",nParamMax + 1," observations."),call.=FALSE);
         }
-        data <- datanew;
+    }
+    if(any(models=="p")){
+        nParamMax <- 4;
+        if(initialType=="o"){
+            nParamMax <- nParamMax + 2 + datafreq;
+        }
+        if(obsInsample <= nParamMax){
+            warning("The sample is too small. We cannot use partial seasonal model.",call.=FALSE);
+            models <- models[models!="p"];
+        }
+    }
+    if(any(models=="s")){
+        nParamMax <- 3;
+        if(initialType=="o"){
+            nParamMax <- nParamMax + 2*datafreq;
+        }
+        if(obsInsample <= nParamMax){
+            warning("The sample is too small. We cannot use simple seasonal model.",call.=FALSE);
+            models <- models[models!="s"];
+        }
+    }
+    if(any(models=="f")){
+        nParamMax <- 5;
+        if(initialType=="o"){
+            nParamMax <- nParamMax + 2 + 2*datafreq;
+        }
+        if(obsInsample <= nParamMax){
+            warning("The sample is too small. We cannot use full seasonal model.",call.=FALSE);
+            models <- models[models!="f"];
+        }
     }
 
     if(datafreq==1){
