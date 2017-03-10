@@ -1470,6 +1470,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
     assign("y",y,ParentEnvironment);
+    assign("data",data,ParentEnvironment);
     assign("xregDo",xregDo,ParentEnvironment);
 }
 
