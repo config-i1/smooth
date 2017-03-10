@@ -5,8 +5,6 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
                          "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend"));
 
-
-
 #' Exponential Smoothing in SSOE state-space model
 #'
 #' Function constructs ETS model and returns forecast, fitted values, errors
