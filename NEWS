@@ -2,6 +2,7 @@ smooth v1.8.0 (Release data: 2017-03-17)
 
 Changes:
 * New function - xregExpander(), which creates matrix of xreg with lagged values based on provided data and automatically fills in NAs with forecasted values using es().
+* "optimal" is now the default initialisation method for ces().
 
 Bugfixes:
 * In cases of df<=0 we now produce a warning and prediction intervals based on Chebyshev's inequality.

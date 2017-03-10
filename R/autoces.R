@@ -152,7 +152,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @export auto.ces
 auto.ces <- function(data, models=c("none","simple","full"),
-                initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+                initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
