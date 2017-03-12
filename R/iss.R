@@ -87,6 +87,10 @@ intermittentMaker <- function(intermittent="n",...){
 #' The function estimates probability of demand occurance, using one of the ETS
 #' state-space models.
 #'
+#' @template ssIntermittentRef
+#' @template ssAuthor
+#' @template ssKeywords
+#'
 #' @param data Either numeric vector or time series vector.
 #' @param intermittent Type of method used in probability estimation. Can be
 #' \code{"none"} - none, \code{"fixed"} - constant probability,
@@ -114,18 +118,8 @@ intermittentMaker <- function(intermittent="n",...){
 #' \item \code{C} - vector of all the parameters.
 #' \item \code{actuals} - actual values of probabilities (zeroes and ones).
 #' }
-#' @author Ivan Svetunkov
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[smooth]{es}}
-#' @references \itemize{
-#' \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking
-#' forecasting to inventory obsolescence. European Journal of Operational
-#' Research, 214, 606-615.
-#' \item Croston, J. (1972) Forecasting and stock control for intermittent
-#' demands. Operational Research Quarterly, 23(3), 289-303.
-#' \item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
-#' estimates. International Journal of Forecasting, 21(2), 303-314.
-#' }
 #' @keywords iss intermittent demand intermittent demand state space model
 #' exponential smoothing forecasting
 #' @examples

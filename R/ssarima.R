@@ -29,7 +29,15 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
 #' take a lot of time...
 #'
-#' @param data Data that needs to be forecasted.
+#' @template ssBasicParam
+#' @template ssAdvancedParam
+#' @template ssInitialParam
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @template ssIntervalsRef
+#' @template ssGeneralRef
+#'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:
 #' \code{orders=list(ar=c(1,2),i=c(1),ma=c(1,1,1))}. If a variable is not
@@ -50,97 +58,6 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' be lag-wise. This means that first all the MA parameters of the firs lag
 #' should be passed, then for the second etc. MA of another ssarima can be
 #' passed here.
-#' @param initial Can be either character or a vector of initial states. If it
-#' is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (advised for data with high frequency).
-#' If character, then \code{initial.season} will be estimated in the way
-#' defined by \code{initial}.
-#' @param ic Information criterion to use in model selection.
-#' @param cfType Type of Cost Function used in optimization. \code{cfType} can
-#' be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
-#' \code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace
-#' Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and
-#' \code{MSEh} - optimisation using only h-steps ahead error. If
-#' \code{cfType!="MSE"}, then likelihood and model selection is done based on
-#' equivalent \code{MSE}. Model selection in this cases becomes not optimal.
-#'
-#' There are also available analytical approximations for multistep functions:
-#' \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
-#' of small samples.
-#' @param h the forecasting horizon.
-#' @param holdout if \code{TRUE}, the holdout of the size \code{h} is taken
-#' from the end of the data.
-#' @param intervals Type of intervals to construct. This can be:
-#'
-#' \itemize{ \item \code{none}, aka \code{n} - do not produce prediction
-#' intervals.
-#'
-#' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
-#' case of mixed models this is done using simulations, which may take longer
-#' time than for the pure additive and pure multiplicative models.
-#'
-#' \item \code{semiparametric}, \code{sp} - intervals based on covariance
-#' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-#' distribution (depending on error type).
-#'
-#' \item \code{nonparametric}, \code{np} - intervals based on values from a
-#' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-#' used in this process is e[j] = a j^b, where j=1,..,h.
-#'
-#' %\item Finally \code{asymmetric} are based on half moment of distribution.
-#' }
-#'
-#' The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
-#' parametric intervals are constructed, while latter is equivalent to
-#' \code{none}.
-#' @param level Confidence level. Defines width of prediction interval.
-#' @param intermittent Defines type of intermittent model used. Can be: 1.
-#' \code{none}, meaning that the data should be considered as non-intermittent;
-#' 2. \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurancies; 3. \code{croston}, based on Croston, 1972 method with
-#' SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
-#' \code{auto} - automatic selection of intermittency type based on information
-#' criteria. The first letter can be used instead. 6. \code{"sba"} -
-#' Syntetos-Boylan Approximation for Croston's method (bias correction)
-#' discussed in Syntetos and Boylan, 2005.
-#' @param bounds What type of bounds to use for smoothing parameters
-#' ("admissible" or "none"). The first letter can be used instead of the whole
-#' word.
-#' @param silent If \code{silent="none"}, then nothing is silent, everything is
-#' printed out and drawn. \code{silent="all"} means that nothing is produced or
-#' drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-#' produced. If \code{silent="legend"}, then legend of the graph is skipped.
-#' And finally \code{silent="output"} means that nothing is printed out in the
-#' console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-#' and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-#' \code{silent="all"}, while \code{silent=FALSE} is equivalent to
-#' \code{silent="none"}. The parameter also accepts first letter of words ("n",
-#' "a", "g", "l", "o").
-#' @param xreg Vector (either numeric or time series) or matrix (or data.frame)
-#' of exogenous variables that should be included in the model. If matrix
-#' included than columns should contain variables and rows - observations. Note
-#' that \code{xreg} should have number of observations equal either to
-#' in-sample or to the whole series. If the number of observations in
-#' \code{xreg} is equal to in-sample, then values for the holdout sample are
-#' produced using \link[smooth]{es} function.
-#' @param xregDo Variable defines what to do with the provided xreg:
-#' \code{"use"} means that all of the data should be used, whilie
-#' \code{"select"} means that a selection using \code{ic} should be done.
-#' \code{"combine"} will be available at some point in future...
-#' @param initialX Vector of initial parameters for exogenous variables.
-#' Ignored if \code{xreg} is NULL.
-#' @param updateX If \code{TRUE}, transition matrix for exogenous variables is
-#' estimated, introducing non-linear interractions between parameters.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param persistenceX Persistence vector \eqn{g_X}, containing smoothing
-#' parameters for exogenous variables. If \code{NULL}, then estimated.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param transitionX Transition matrix \eqn{F_x} for exogenous variables. Can
-#' be provided as a vector. Matrix will be formed using the default
-#' \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-#' state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-#' \code{xreg}.
 #' @param ...  Other non-documented parameters.
 #'
 #' Vectors of orders can be passed here using \code{ar.orders}, \code{i.orders}
@@ -151,67 +68,70 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' \code{FI=TRUE} will make the function produce Fisher Information matrix,
 #' which then can be used to calculated variances of parameters of the model.
+#'
 #' @return Object of class "smooth" is returned. It contains the list of the
 #' following values:
 #'
-#' \itemize{ \item \code{model} - the name of the estimated model.  \item
-#' \code{timeElapsed} - time elapsed for the construction of the model.  \item
-#' \code{states} - the matrix of the fuzzy components of ssarima, where
-#' \code{rows} correspond to time and \code{cols} to states.  \item
-#' \code{transition} - matrix F.  \item \code{persistence} - the persistence
-#' vector. This is the place, where smoothing parameters live.  \item \code{AR}
-#' - the matrix of coefficients of AR terms.  \item \code{I} - the matrix of
-#' coefficients of I terms.  \item \code{MA} - the matrix of coefficients of MA
-#' terms.  \item \code{constant} - the value of the constant term.  \item
-#' \code{initialType} - Typetof initial values used.  \item \code{initial} -
-#' the initial values of the state vector (extracted from \code{states}).
-#' \item \code{nParam} - number of estimated parameters.  \item \code{fitted} -
-#' the fitted values of ETS.  \item \code{forecast} - the point forecast of
-#' ETS.  \item \code{lower} - the lower bound of prediction interval. When
-#' \code{intervals="none"} then NA is returned.  \item \code{upper} - the
-#' higher bound of prediction interval. When \code{intervals="none"} then NA is
-#' returned.  \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors.  \item
-#' \code{s2} - variance of the residuals (taking degrees of freedom into
-#' account).  \item \code{intervals} - type of intervals asked by user.  \item
-#' \code{level} - confidence level for intervals.  \item \code{actuals} - the
-#' original data.  \item \code{holdout} - the holdout part of the original
-#' data.  \item \code{iprob} - the fitted and forecasted values of the
-#' probability of demand occurrence.  \item \code{intermittent} - type of
-#' intermittent model fitted to the data.  \item \code{xreg} - provided vector
-#' or matrix of exogenous variables. If \code{xregDo="s"}, then this value will
-#' contain only selected exogenous variables.  \item \code{updateX} - boolean,
+#' \itemize{
+#' \item \code{model} - the name of the estimated model.
+#' \item \code{timeElapsed} - time elapsed for the construction of the model.
+#' \item \code{states} - the matrix of the fuzzy components of ssarima, where
+#' \code{rows} correspond to time and \code{cols} to states.
+#' \item \code{transition} - matrix F.
+#' \item \code{persistence} - the persistence vector. This is the place, where
+#' smoothing parameters live.
+#' \item \code{AR} - the matrix of coefficients of AR terms.
+#' \item \code{I} - the matrix of coefficients of I terms.
+#' \item \code{MA} - the matrix of coefficients of MA terms.
+#' \item \code{constant} - the value of the constant term.
+#' \item \code{initialType} - Typetof initial values used.
+#' \item \code{initial} - the initial values of the state vector (extracted
+#' from \code{states}).
+#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{fitted} - the fitted values of ETS.
+#' \item \code{forecast} - the point forecast of ETS.
+#' \item \code{lower} - the lower bound of prediction interval. When
+#' \code{intervals="none"} then NA is returned.
+#' \item \code{upper} - the higher bound of prediction interval. When
+#' \code{intervals="none"} then NA is returned.
+#' \item \code{residuals} - the residuals of the estimated model.
+#' \item \code{errors} - The matrix of 1 to h steps ahead errors.
+#' \item \code{s2} - variance of the residuals (taking degrees of freedom into
+#' account).
+#' \item \code{intervals} - type of intervals asked by user.
+#' \item \code{level} - confidence level for intervals.
+#' \item \code{actuals} - the original data.
+#' \item \code{holdout} - the holdout part of the original data.
+#' \item \code{iprob} - the fitted and forecasted values of the probability of
+#' demand occurrence.
+#' \item \code{intermittent} - type of intermittent model fitted to the data.
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
+#' \code{xregDo="s"}, then this value will contain only selected exogenous
+#' variables.
+#' \item \code{updateX} - boolean,
 #' defining, if the states of exogenous variables were estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous
-#' variables.  \item \code{persistenceX} - persistence vector g for exogenous
-#' variables.  \item \code{transitionX} - transition matrix F for exogenous
-#' variables.  \item \code{ICs} - values of information criteria of the model.
-#' Includes AIC, AICc and BIC.  \item \code{logLik} - log-likelihood of the
-#' function.  \item \code{cf} - Cost function value.  \item \code{cfType} -
-#' Type of cost function used in the estimation.  \item \code{FI} - Fisher
-#' Information. Equal to NULL if \code{FI=FALSE} or when \code{FI} is not
-#' provided at all.  \item \code{accuracy} - vector of accuracy measures for
-#' the holdout sample. In case of non-intermittent data includes: MPE, MAPE,
-#' SMAPE, MASE, sMAE, RelMAE, sMSE and Bias coefficient (based on complex
-#' numbers). In case of intermittent data the set of errors will be: sMSE,
-#' sPIS, sCE (scaled cumulative error) and Bias coefficient. This is available
-#' only when \code{holdout=TRUE}.  }
-#' @author Ivan Svetunkov
+#' variables.
+#' \item \code{persistenceX} - persistence vector g for exogenous variables.
+#' \item \code{transitionX} - transition matrix F for exogenous variables.
+#' \item \code{ICs} - values of information criteria of the model. Includes
+#' AIC, AICc and BIC.
+#' \item \code{logLik} - log-likelihood of the function.
+#' \item \code{cf} - Cost function value.
+#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
+#' or when \code{FI} is not provided at all.
+#' \item \code{accuracy} - vector of accuracy measures for the holdout sample.
+#' In case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
+#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
+#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
+#' cumulative error) and Bias coefficient. This is available only when
+#' \code{holdout=TRUE}.
+#' }
+#'
 #' @seealso \code{\link[forecast]{auto.arima}, \link[smooth]{orders},
 #' \link[smooth]{lags}, \link[smooth]{sim.ssarima}}
-#' @references \enumerate{ \item Snyder, R. D., 1985. Recursive Estimation of
-#' Dynamic Linear Models. Journal of the Royal Statistical Society, Series B
-#' (Methodological) 47 (2), 272-276.  \item Hyndman, R.J., Koehler, A.B., Ord,
-#' J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the
-#' state space approach, Springer-Verlag.
-#' \url{http://www.exponentialsmoothing.net}.  \item Teunter R., Syntetos A.,
-#' Babai Z. (2011). Intermittent demand: Linking forecasting to inventory
-#' obsolescence. European Journal of Operational Research, 214, 606-615.
-#' \item Croston, J. (1972) Forecasting and stock control for intermittent
-#' demands. Operational Research Quarterly, 23(3), 289-303.  \item Syntetos, A.,
-#' Boylan J. (2005) The accuracy of intermittent demand estimates.
-#' International Journal of Forecasting, 21(2), 303-314.  }
-#' @keywords SARIMA ARIMA
+#'
 #' @examples
 #'
 #' # ARIMA(1,1,1) fitted to some data

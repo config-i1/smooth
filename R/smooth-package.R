@@ -42,21 +42,18 @@
 #' @docType package
 #' @author Ivan Svetunkov
 #'
-#' Maintainer: Ivan Svetunkov <ivan@@svetunkov.ru>
+#' Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 #' @seealso \code{\link[forecast:forecast]{forecast}, \link[smooth]{es},
 #' \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{ges}}
-#' @references \itemize{
-#' \item Croston, J. (1972) Forecasting and stock control for intermittent demands. Operational Research Quarterly, 23(3), 289-303.
-#' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
-#' \item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike weights. International Journal of Forecasting, 27, pp 238 - 251.
-#' \item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential smoothing. Working Paper of Department of Management Science, Lancaster University 2015:1, 1-31.
-#' \item Svetunkov I., Kourentzes N. (2016) Complex Exponential Smoothing for Time Series Forecasting. Not yet published.
-#' \item Svetunkov I., Kourentzes N. (2016) Trace forecast likelihood and shrinkage in time series models. Not yet published.
-#' \item Svetunkov S. (2012) Complex-Valued Modeling in Economics and Finance. SpringerLink: Bucher. Springer.
-#' \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.
-#' \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research, 214, 606-615.
-#' }
-#' @keywords univar ts models smooth regression nonlinear
+#'
+#' @template ssGeneralRef
+#' @template ssIntermittentRef
+#' @template ssCESRef
+#' @template smoothRef
+#' @template ssETSRef
+#' @template ssIntervalsRef
+#' @template ssKeywords
+#'
 #' @examples
 #'
 #' \dontrun{y <- ts(rnorm(100,10,3),frequency=12)

@@ -10,12 +10,12 @@ sma(data, order = NULL, ic = c("AICc", "AIC", "BIC"), h = 10,
   "legend", "output"), ...)
 }
 \arguments{
-\item{data}{Data that needs to be forecasted.}
+\item{data}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{order}{Order of simple moving average. If \code{NULL}, then it is
 selected automatically using information criteria.}
 
-\item{ic}{Information criterion to use in order selection.}
+\item{ic}{The information criterion used in the model selection procedure.}
 
 \item{h}{Length of forecasting horizon.}
 
@@ -24,24 +24,19 @@ the end of the data.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
-\itemize{ \item \code{none}, aka \code{n} - do not produce prediction
+\itemize{
+\item \code{none}, aka \code{n} - do not produce prediction
 intervals.
-
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-
 \item \code{semiparametric}, \code{sp} - intervals based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
-
-%\item Finally \code{asymmetric} are based on half moment of distribution.
 }
-
 The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
 parametric intervals are constructed, while latter is equivalent to
 \code{none}.}
@@ -67,47 +62,60 @@ parameters.}
 Object of class "smooth" is returned. It contains the list of the
 following values:
 
-\itemize{ \item \code{model} - the name of the estimated model.  \item
-\code{timeElapsed} - time elapsed for the construction of the model.  \item
-\code{states} - the matrix of the fuzzy components of ssarima, where
-\code{rows} correspond to time and \code{cols} to states.  \item
-\code{transition} - matrix F.  \item \code{persistence} - the persistence
-vector. This is the place, where smoothing parameters live.  \item
-\code{order} - order of moving average.  \item \code{initialType} - Typetof
-initial values used.  \item \code{nParam} - number of estimated parameters.
-\item \code{fitted} - the fitted values of ETS.  \item \code{forecast} - the
-point forecast of ETS.  \item \code{lower} - the lower bound of prediction
-interval. When \code{intervals=FALSE} then NA is returned.  \item
-\code{upper} - the higher bound of prediction interval. When
-\code{intervals=FALSE} then NA is returned.  \item \code{residuals} - the
-residuals of the estimated model.  \item \code{errors} - The matrix of 1 to
-h steps ahead errors.  \item \code{s2} - variance of the residuals (taking
-degrees of freedom into account).  \item \code{intervals} - type of
-intervals asked by user.  \item \code{level} - confidence level for
-intervals.  \item \code{actuals} - the original data.  \item \code{holdout}
-- the holdout part of the original data.  \item \code{ICs} - values of
-information criteria of the model. Includes AIC, AICc and BIC.  \item
-\code{logLik} - log-likelihood of the function.  \item \code{cf} - Cost
-function value.  \item \code{cfType} - Type of cost function used in the
-estimation.  \item \code{accuracy} - vector of accuracy measures for the
+\itemize{
+\item \code{model} - the name of the estimated model.
+\item \code{timeElapsed} - time elapsed for the construction of the model.
+\item \code{states} - the matrix of the fuzzy components of ssarima, where
+\code{rows} correspond to time and \code{cols} to states.
+\item \code{transition} - matrix F.
+\item \code{persistence} - the persistence vector. This is the place, where
+smoothing parameters live.
+\item \code{order} - order of moving average.
+\item \code{initialType} - Type of initial values used.
+\item \code{nParam} - number of estimated parameters.
+\item \code{fitted} - the fitted values of ETS.
+\item \code{forecast} - the point forecast of ETS.
+\item \code{lower} - the lower bound of prediction interval. When
+\code{intervals=FALSE} then NA is returned.
+\item \code{upper} - the higher bound of prediction interval. When
+\code{intervals=FALSE} then NA is returned.
+\item \code{residuals} - the residuals of the estimated model.
+\item \code{errors} - The matrix of 1 to h steps ahead errors.
+\item \code{s2} - variance of the residuals (taking degrees of freedom into
+account).
+\item \code{intervals} - type of intervals asked by user.
+\item \code{level} - confidence level for intervals.
+\item \code{actuals} - the original data.
+\item \code{holdout} - the holdout part of the original data.
+\item \code{ICs} - values of information criteria of the model. Includes AIC,
+AICc and BIC.
+\item \code{logLik} - log-likelihood of the function.
+\item \code{cf} - Cost function value.
+\item \code{cfType} - Type of cost function used in the estimation.
+\item \code{accuracy} - vector of accuracy measures for the
 holdout sample. In case of non-intermittent data includes: MPE, MAPE, SMAPE,
 MASE, sMAE, RelMAE, sMSE and Bias coefficient (based on complex numbers). In
 case of intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient. This is available only when
-\code{holdout=TRUE}.  }
+\code{holdout=TRUE}.
+}
 }
 \description{
 Function constructs State-Space simple moving average of predefined order
 }
 \details{
-The function constructs ARIMA in the Single Source of Error State-space form
-(first proposed in Snyder, 1985):
+The function constructs AR model in the Single Source of Error State-space form
+based on the idea that:
 
-\eqn{y_[t] = w' v_[t-l] + \epsilon_[t]}
+\eqn{y_{t} = \frac{1}{n} \sum_{j=1}^n y_{t-j}}
 
-\eqn{v_[t] = F v_[t-1] + g \epsilon_[t]}
+which is AR(n) process, that can be modelled using:
 
-Where \eqn{v_[t]} is a state vector (defined using \code{order}).
+\eqn{y_{t} = w' v_{t-1} + \epsilon_{t}}
+
+\eqn{v_{t} = F v_{t-1} + g \epsilon_{t}}
+
+Where \eqn{v_{t}} is a state vector.
 }
 \examples{
 
@@ -123,19 +131,24 @@ plot(forecast(ourModel))
 
 }
 \references{
-\enumerate{ \item Snyder, R. D., 1985. Recursive Estimation of
-Dynamic Linear Models. Journal of the Royal Statistical Society, Series B
-(Methodological) 47 (2), 272-276.  \item Hyndman, R.J., Koehler, A.B., Ord,
-J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the
-state space approach, Springer-Verlag.
-\url{http://www.exponentialsmoothing.net}.  }
+\itemize{
+\item Svetunkov I. (2017). Statistical models underlying functions of 'smooth'
+package for R. Working Paper of Department of Management Science, Lancaster
+University 2017:1, 1-52.
+}
 }
 \seealso{
 \code{\link[forecast]{ma}, \link[smooth]{es},
 \link[smooth]{ssarima}}
 }
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \keyword{ARIMA}
 \keyword{SARIMA}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

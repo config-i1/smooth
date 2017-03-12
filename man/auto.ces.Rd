@@ -15,7 +15,7 @@ auto.ces(data, models = c("none", "simple", "full"), initial = c("optimal",
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Either numeric vector or time series vector.}
+\item{data}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{models}{The vector containing several types of seasonality that should
 be used in CES selection. See \link[smooth]{ces} for more details about the
@@ -40,15 +40,16 @@ There are also available analytical approximations for multistep functions:
 \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
 of small samples.}
 
-\item{h}{The forecasting horizon.}
+\item{h}{Length of forecasting horizon.}
 
-\item{holdout}{If \code{TRUE}, the holdout sample of size h will be taken
-from the data. If \code{FALSE}, no holdout is defined.}
+\item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
+the end of the data.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
 \itemize{
-\item \code{none}, aka \code{n} - do not produce prediction intervals.
+\item \code{none}, aka \code{n} - do not produce prediction
+intervals.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
@@ -58,9 +59,7 @@ distribution (depending on error type).
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
-%\item Finally \code{asymmetric} are based on half moment of distribution.
 }
-
 The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
 parametric intervals are constructed, while latter is equivalent to
 \code{none}.}
@@ -77,8 +76,9 @@ criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
 
-\item{bounds}{What type of bounds to use for the smoothing parameters. The
-first letter can be used instead of the whole word.}
+\item{bounds}{What type of bounds to use for smoothing parameters
+("admissible" or "usual"). The first letter can be used instead of the whole
+word.}
 
 \item{silent}{If \code{silent="none"}, then nothing is silent, everything is
 printed out and drawn. \code{silent="all"} means that nothing is produced or
@@ -100,7 +100,7 @@ in-sample or to the whole series. If the number of observations in
 produced using \link[smooth]{es} function.}
 
 \item{xregDo}{Variable defines what to do with the provided xreg:
-\code{"nothing"} means that all of the data should be used, whilie
+\code{"use"} means that all of the data should be used, whilie
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
@@ -166,20 +166,8 @@ plot(forecast(ourModel))
 \item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
 smoothing. Working Paper of Department of Management Science, Lancaster
 University 2015:1, 1-31.
-\item Svetunkov I., Kourentzes N. (2015) Complex Exponential Smoothing
+\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
 for Time Series Forecasting. Not yet published.
-\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
-Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
-\item Svetunkov S. (2012) Complex-Valued Modeling in Economics and
-Finance. SpringerLink: Bucher. Springer.
-\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
-Linking forecasting to inventory obsolescence. European Journal of
-Operational Research, 214, 606-615.
-\item Croston, J. (1972) Forecasting and stock control for intermittent
-demands. Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent
-demand estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 }
 \seealso{
@@ -189,9 +177,9 @@ demand estimates. International Journal of Forecasting, 21(2), 303-314.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ces}
-\keyword{complex}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{smoothing}
-\keyword{variables}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

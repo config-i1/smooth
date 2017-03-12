@@ -8,6 +8,10 @@
 #' The algorithm uses lm() to fit different models and cor() to select the next
 #' regressor in the sequence.
 #'
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
 #' @param data Data frame containing dependant variable in the first column and
 #' the others in the rest.
 #' @param ic Information criterion to use.
@@ -17,8 +21,6 @@
 #' used on residuals).
 #'
 #' @return Function returns \code{model} - the final model of the class "lm".
-#'
-#' @author Ivan Svetunkov
 #'
 #' @seealso \code{\link[stats]{step}, \link[smooth]{xregExpander}}
 #'

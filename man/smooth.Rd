@@ -57,15 +57,46 @@ auto.ssarima(y,h=20,holdout=TRUE)}
 }
 \references{
 \itemize{
-\item Croston, J. (1972) Forecasting and stock control for intermittent demands. Operational Research Quarterly, 23(3), 289-303.
-\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting with exponential smoothing: the state space approach, Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
-\item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike weights. International Journal of Forecasting, 27, pp 238 - 251.
-\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential smoothing. Working Paper of Department of Management Science, Lancaster University 2015:1, 1-31.
-\item Svetunkov I., Kourentzes N. (2016) Complex Exponential Smoothing for Time Series Forecasting. Not yet published.
-\item Svetunkov I., Kourentzes N. (2016) Trace forecast likelihood and shrinkage in time series models. Not yet published.
-\item Svetunkov S. (2012) Complex-Valued Modeling in Economics and Finance. SpringerLink: Bucher. Springer.
-\item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to Generating Prediction Intervals. Management Science, Vol 45, No 2, pp 225-237.
-\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand: Linking forecasting to inventory obsolescence. European Journal of Operational Research, 214, 606-615.
+\item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
+Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+Forecasting with exponential smoothing: the state space approach,
+Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+}
+
+\itemize{
+\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+Linking forecasting to inventory obsolescence. European Journal of
+Operational Research, 214, 606-615.
+\item Croston, J. (1972) Forecasting and stock control for intermittent
+demands. Operational Research Quarterly, 23(3), 289-303.
+\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
+estimates. International Journal of Forecasting, 21(2), 303-314.
+}
+
+\itemize{
+\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
+smoothing. Working Paper of Department of Management Science, Lancaster
+University 2015:1, 1-31.
+\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
+for Time Series Forecasting. Not yet published.
+}
+
+\itemize{
+\item Svetunkov I. (2017). Statistical models underlying functions of 'smooth'
+package for R. Working Paper of Department of Management Science, Lancaster
+University 2017:1, 1-52.
+}
+
+\itemize{
+\item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
+weights. International Journal of Forecasting, 27, pp 238 - 251.
+}
+
+\itemize{
+\item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
+Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
+225-237.
 }
 }
 \seealso{

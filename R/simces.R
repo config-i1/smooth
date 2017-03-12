@@ -4,6 +4,12 @@
 #' generating process.
 #'
 #'
+#' @template ssSimParam
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @template ssCESRef
+#'
 #' @param seasonality The type of seasonality used in CES. Can be: \code{none}
 #' - No seasonality; \code{simple} - Simple seasonality, using lagged CES
 #' (based on \code{t-m} observation, where \code{m} is the seasonality lag);
@@ -13,8 +19,6 @@
 #' seasonality, depending on the data). First letter can be used instead of
 #' full words.  Any seasonal CES can only be constructed for time series
 #' vectors.
-#' @param frequency Frequency of generated data. In cases of seasonal models
-#' must be greater than 1.
 #' @param A First complex smoothing parameter. Should be a complex number.
 #'
 #' NOTE! CES is very sensitive to A and B values so it is advised to use values
@@ -26,20 +30,11 @@
 #' \code{seasonality="partial"} and \code{seasonality="full"} first two columns
 #' should contain initial values for non-seasonal components, repeated
 #' \code{frequency} times.
-#' @param obs Number of observations in each generated time series.
-#' @param nsim Number of series to generate (numeber of simulations to do).
-#' @param randomizer Type of random number generator function used for error
-#' term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But
-#' any function from \link[stats]{Distributions} will do the trick if the
-#' appropriate parameters are passed. For example \code{rpois} with
-#' \code{lambda=2} can be used as well.
-#' @param iprob Probability of occurrence, used for intermittent data
-#' generation. This can be a vector, implying that probability varies in time
-#' (in TSB or Croston style).
 #' @param ...  Additional parameters passed to the chosen randomizer. All the
 #' parameters should be passed in the order they are used in chosen randomizer.
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 #' to the call \code{rnorm(obs, mean=0.5, sd=1)}.
+#'
 #' @return List of the following values is returned:
 #' \itemize{
 #' \item{model}{Name of CES model.}
@@ -60,13 +55,10 @@
 #' a vector or a matrix...}
 #' \item{logLik}{Log-likelihood of the constructed model.}
 #' }
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#'
 #' @seealso \code{\link[smooth]{sim.es}, \link[smooth]{sim.ssarima},
 #' \link[smooth]{ces}, \link[stats]{Distributions}}
-#' @references \itemize{ \item Svetunkov, I., Kourentzes, N. (February 2015).
-#' Complex exponential smoothing. Working Paper of Department of Management
-#' Science, Lancaster University 2015:1, 1-31.  }
-#' @keywords CES forecasting simulation
+#'
 #' @examples
 #'
 #' # Create 120 observations from CES(n). Generate 100 time series of this kind.

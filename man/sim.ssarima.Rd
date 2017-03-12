@@ -106,9 +106,13 @@ x <- sim.ssarima(ar.orders=c(1,0,1),i.orders=c(0,1,0),ma.orders=c(2,1,1),lags=c(
 
 }
 \references{
-Snyder, R.D. (1985) Recursive Estimation of Dynamic Linear
-Models. Journal of the Royal Statistical Society. Series B. Vol. 47, No. 2,
-pp. 272-276.
+\itemize{
+\item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
+Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+Forecasting with exponential smoothing: the state space approach,
+Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+}
 }
 \seealso{
 \code{\link[smooth]{sim.es}, \link[smooth]{ssarima},
@@ -117,7 +121,9 @@ pp. 272-276.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ARIMA}
-\keyword{SARIMA}
-\keyword{forecasting}
-\keyword{simulation}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

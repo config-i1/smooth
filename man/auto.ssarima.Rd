@@ -16,7 +16,7 @@ auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Data that needs to be forecasted.}
+\item{data}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{orders}{List of maximum orders to check, containing vector variables
 \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the
@@ -34,12 +34,12 @@ weights.}
 \item{workFast}{If \code{TRUE}, then some of the orders of ARIMA are
 skipped. This is not advised for models with \code{lags} greater than 12.}
 
-\item{initial}{Character value which defines how the model is initialised:
-it can be \code{"optimal"}, meaning that the initial states are optimised,
-or \code{"backcasting"}, meaning that the initials are produced using
-backcasting procedure.}
+\item{initial}{Can be either character or a vector of initial states. If it
+is character, then it can be \code{"optimal"}, meaning that the initial
+states are optimised, or \code{"backcasting"}, meaning that the initials are
+produced using backcasting procedure.}
 
-\item{ic}{Information criterion to use in model selection.}
+\item{ic}{The information criterion used in the model selection procedure.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
@@ -53,15 +53,16 @@ There are also available analytical approximations for multistep functions:
 \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
 of small samples.}
 
-\item{h}{The forecasting horizon.}
+\item{h}{Length of forecasting horizon.}
 
-\item{holdout}{If \code{TRUE}, the holdout sample of size h will be taken
-from the data. If \code{FALSE}, no holdout is defined.}
+\item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
+the end of the data.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
 \itemize{
-\item \code{none}, aka \code{n} - do not produce prediction intervals.
+\item \code{none}, aka \code{n} - do not produce prediction
+intervals.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
@@ -71,9 +72,7 @@ distribution (depending on error type).
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
-%\item Finally \code{asymmetric} are based on half moment of distribution.
 }
-
 The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
 parametric intervals are constructed, while latter is equivalent to
 \code{none}.}
@@ -90,8 +89,9 @@ criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
 
-\item{bounds}{What type of bounds to use for the smoothing parameters. The
-first letter can be used instead of the whole word.}
+\item{bounds}{What type of bounds to use for smoothing parameters
+("admissible" or "usual"). The first letter can be used instead of the whole
+word.}
 
 \item{silent}{If \code{silent="none"}, then nothing is silent, everything is
 printed out and drawn. \code{silent="all"} means that nothing is produced or
@@ -113,7 +113,7 @@ in-sample or to the whole series. If the number of observations in
 produced using \link[smooth]{es} function.}
 
 \item{xregDo}{Variable defines what to do with the provided xreg:
-\code{"nothing"} means that all of the data should be used, whilie
+\code{"use"} means that all of the data should be used, whilie
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
@@ -185,12 +185,15 @@ plot(forecast(ourModel))
 
 }
 \references{
-\enumerate{
+\itemize{
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+}
+
+\itemize{
 \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
 Operational Research, 214, 606-615.
@@ -205,7 +208,11 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 \link[smooth]{sim.es}, \link[smooth]{ges}, \link[smooth]{ssarima}}
 }
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ARIMA}
-\keyword{SARIMA}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

@@ -43,8 +43,13 @@ stepwise(xreg)
 \code{\link[stats]{step}, \link[smooth]{xregExpander}}
 }
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \keyword{linear}
+\keyword{models}
+\keyword{nonlinear}
 \keyword{regression}
+\keyword{smooth}
 \keyword{stepwise}
+\keyword{ts}
+\keyword{univar}

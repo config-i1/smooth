@@ -47,8 +47,8 @@ Keep in mind that model selection with "Z" components uses Branch and Bound
 algorithm and may skip some models that could have slightly smaller
 information criteria.}
 
-\item{persistence}{Vector of smoothing parameters. If \code{NULL}, the
-parameters are estimated.}
+\item{persistence}{Persistence vector \eqn{g}, containing smoothing
+parameters. If \code{NULL}, then estimated.}
 
 \item{phi}{Value of damping parameter. If \code{NULL} then it is estimated.}
 
@@ -62,7 +62,7 @@ by \code{initial}.}
 \item{initialSeason}{Vector of initial values for seasonal components. If
 \code{NULL}, they are estimated during optimisation.}
 
-\item{ic}{Information criterion to use in model selection.}
+\item{ic}{The information criterion used in the model selection procedure.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
@@ -327,22 +327,33 @@ plot(forecast(ourModel))
 
 }
 \references{
-\enumerate{
-\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008) Forecasting
-with exponential smoothing: the state space approach, Springer-Verlag.
-\url{http://www.exponentialsmoothing.net}.
+\itemize{
+\item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
+Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
+\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+Forecasting with exponential smoothing: the state space approach,
+Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+}
+
+\itemize{
+\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
+Linking forecasting to inventory obsolescence. European Journal of
+Operational Research, 214, 606-615.
+\item Croston, J. (1972) Forecasting and stock control for intermittent
+demands. Operational Research Quarterly, 23(3), 289-303.
+\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
+estimates. International Journal of Forecasting, 21(2), 303-314.
+}
+
+\itemize{
+\item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
+weights. International Journal of Forecasting, 27, pp 238 - 251.
+}
+
+\itemize{
 \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
 Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
 225-237.
-\item Kolassa, S. (2011) Combining exponential smoothing forecasts using Akaike
-weights. International Journal of Forecasting, 27, pp 238 - 251.
-\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
-Linking forecasting to inventory obsolescence. European Journal of
-Operational Research 214, 606-615.
-\item Croston, J. (1972) Forecasting and stock control for intermittent demands.
-Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand estimates.
-International Journal of Forecasting, 21(2), 303-314.
 }
 }
 \seealso{
@@ -352,9 +363,9 @@ International Journal of Forecasting, 21(2), 303-314.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ETS}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{likelihood}
-\keyword{smoothing}
-\keyword{trace}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

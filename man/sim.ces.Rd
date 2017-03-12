@@ -95,9 +95,13 @@ simulate(ourModel,nsim=10)
 
 }
 \references{
-\itemize{ \item Svetunkov, I., Kourentzes, N. (February 2015).
-Complex exponential smoothing. Working Paper of Department of Management
-Science, Lancaster University 2015:1, 1-31.  }
+\itemize{
+\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
+smoothing. Working Paper of Department of Management Science, Lancaster
+University 2015:1, 1-31.
+\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
+for Time Series Forecasting. Not yet published.
+}
 }
 \seealso{
 \code{\link[smooth]{sim.es}, \link[smooth]{sim.ssarima},
@@ -106,6 +110,9 @@ Science, Lancaster University 2015:1, 1-31.  }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{CES}
-\keyword{forecasting}
-\keyword{simulation}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

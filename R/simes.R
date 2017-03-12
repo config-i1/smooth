@@ -4,11 +4,15 @@
 #' generating process.
 #'
 #'
+#' @template ssSimParam
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @template ssGeneralRef
+#'
 #' @param model Type of ETS model according to [Hyndman et. al., 2008]
 #' taxonomy. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN},
 #' \code{AAA}, \code{AAdA}, \code{MAdM} etc.
-#' @param frequency Frequency of generated data. In cases of seasonal models
-#' must be greater than 1.
 #' @param persistence Persistence vector, which includes all the smoothing
 #' parameters. Must correspond to the chosen model. The maximum length is 3:
 #' level, trend and seasonal smoothing parameters. If \code{NULL}, values are
@@ -26,22 +30,13 @@
 #' to 0.3. \code{"admissible"} - bounds from tables 10.1 and 10.2 of Hyndman
 #' et. al., 2008. Using first letter of the type of bounds also works. These
 #' bounds are also used for multiplicative models, so be careful!
-#' @param obs Number of observations in each generated time series.
-#' @param nsim Number of series to generate (numeber of simulations to do).
-#' @param randomizer Type of random number generator function used for error
-#' term. Defaults are: \code{rnorm}, \code{rlnorm}, \code{rt}, \code{runif},
-#' \code{rbeta}. But any function from \link[stats]{Distributions} will do the
-#' trick if the appropriate parameters are passed. For example \code{rpois}
-#' with \code{lambda=2} can be used as well.
-#' @param iprob Probability of occurrence, used for intermittent data
-#' generation. This can be a vector, implying that probability varies in time
-#' (in TSB or Croston style).
 #' @param ...  Additional parameters passed to the chosen randomizer. All the
 #' parameters should be passed in the order they are used in chosen randomizer.
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 #' to the call \code{rnorm(obs, mean=0.5, sd=1)}.  ATTENTION! When generating
 #' the multiplicative errors some tuning might be needed to obtain meaningful
 #' data. \code{sd=0.1} is usually already a high value for such models.
+#'
 #' @return List of the following values is returned:
 #' \itemize{
 #' \item{model}{Name of ETS model.}
@@ -58,13 +53,10 @@
 #' a vector or a matrix...}
 #' \item{logLik}{Log-likelihood of the constructed model.}
 #' }
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#'
 #' @seealso \code{\link[smooth]{es}, \link[forecast]{ets},
 #' \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
-#' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
-#' Forecasting with exponential smoothing: the state space approach,
-#' Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
-#' @keywords exponential smoothing ETS forecasting simulation
+#'
 #' @examples
 #'
 #' # Create 40 observations of quarterly data using AAA model with errors from normal distribution

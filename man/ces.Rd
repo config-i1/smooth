@@ -16,7 +16,7 @@ ces(data, seasonality = c("none", "simple", "partial", "full"),
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Either numeric vector or time series vector.}
+\item{data}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{seasonality}{The type of seasonality used in CES. Can be: \code{none}
 - No seasonality; \code{simple} - Simple seasonality, using lagged CES
@@ -31,7 +31,7 @@ vectors.}
 \item{initial}{Can be either character or a vector of initial states. If it
 is character, then it can be \code{"optimal"}, meaning that the initial
 states are optimised, or \code{"backcasting"}, meaning that the initials are
-produced using backcasting procedure (advised for data with high frequency).}
+produced using backcasting procedure.}
 
 \item{A}{First complex smoothing parameter. Should be a complex number.
 
@@ -42,7 +42,7 @@ leave them alone, or to use values from previously estimated model.}
 \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 complex number.}
 
-\item{ic}{Information criterion to use in model selection.}
+\item{ic}{The information criterion used in the model selection procedure.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
@@ -56,7 +56,7 @@ There are also available analytical approximations for multistep functions:
 \code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
 of small samples.}
 
-\item{h}{The forecasting horizon.}
+\item{h}{Length of forecasting horizon.}
 
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
@@ -64,7 +64,8 @@ the end of the data.}
 \item{intervals}{Type of intervals to construct. This can be:
 
 \itemize{
-\item \code{none}, aka \code{n} - do not produce prediction intervals.
+\item \code{none}, aka \code{n} - do not produce prediction
+intervals.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
@@ -74,9 +75,7 @@ distribution (depending on error type).
 \item \code{nonparametric}, \code{np} - intervals based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
-%\item Finally \code{asymmetric} are based on half moment of distribution.
 }
-
 The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
 parametric intervals are constructed, while latter is equivalent to
 \code{none}.}
@@ -206,7 +205,7 @@ to errors and returns several variables.
 }
 \details{
 The function estimates Complex Exponential Smoothing in the state-space 2
-described in Svetunkov, Kourentzes (2015) with the information potential
+described in Svetunkov, Kourentzes (2017) with the information potential
 equal to the approximation error.  The estimation of initial states of xt is
 done using backcast.
 }
@@ -254,19 +253,8 @@ plot(forecast(ourModel))
 \item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
 smoothing. Working Paper of Department of Management Science, Lancaster
 University 2015:1, 1-31.
-\item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
-Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
-\item Svetunkov S. (2012) Complex-Valued Modeling in Economics and Finance.
-SpringerLink: Bucher. Springer.
-\item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
-Linking forecasting to inventory obsolescence. European Journal of
-Operational Research, 214, 606-615.
-\item Croston, J. (1972) Forecasting and stock control for intermittent
-demands. Operational Research Quarterly, 23(3), 289-303.
-\item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
-estimates. International Journal of Forecasting, 21(2),
-303-314.
+\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
+for Time Series Forecasting. Not yet published.
 }
 }
 \seealso{
@@ -276,9 +264,9 @@ estimates. International Journal of Forecasting, 21(2),
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ces}
-\keyword{complex}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{smoothing}
-\keyword{variables}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}
