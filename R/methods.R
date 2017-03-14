@@ -439,18 +439,33 @@ orders.Arima <- function(object, ...){
 #' @method plot smooth
 #' @export
 plot.smooth <- function(x, ...){
+    ellipsis <- list(...);
     parDefault <- par(no.readonly = TRUE);
     if(gregexpr("ETS",x$model)!=-1){
         if(any(unlist(gregexpr("C",x$model))==-1)){
             if(ncol(x$states)>10){
                 message("Too many states. Plotting them one by one on several graphs.");
+                if(is.null(ellipsis$main)){
+                    ellipsisMain <- NULL;
+                }
+                else{
+                    ellipsisMain <- ellipsis$main;
+                }
                 nPlots <- ceiling(ncol(x$states)/10);
                 for(i in 1:nPlots){
-                    plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i), ...);
+                    if(is.null(ellipsisMain)){
+                        ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                    }
+                    ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                    do.call(plot, ellipsis);
                 }
             }
             else{
-                plot(x$states,main=paste0("States of ",x$model), ...);
+                if(is.null(ellipsis$main)){
+                    ellipsis$main <- paste0("States of ",x$model);
+                }
+                ellipsis$x <- x$states;
+                do.call(plot, ellipsis);
             }
         }
         else{
@@ -463,15 +478,31 @@ plot.smooth <- function(x, ...){
             # If we did combinations, we cannot do anything
             message("Combination of models was done. Sorry, but there is nothing to plot.");
         }
-        if(ncol(x$states)>10){
-            message("Too many states. Plotting them one by one on several graphs.");
-            nPlots <- ceiling(ncol(x$states)/10);
-            for(i in 1:nPlots){
-                plot(x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))],main=paste0("States of ",x$model,", part ",i), ...);
-            }
-        }
         else{
-            plot(x$states,main=paste0("States of ",x$model), ...);
+            if(ncol(x$states)>10){
+                message("Too many states. Plotting them one by one on several graphs.");
+                if(is.null(ellipsis$main)){
+                    ellipsisMain <- NULL;
+                }
+                else{
+                    ellipsisMain <- ellipsis$main;
+                }
+                nPlots <- ceiling(ncol(x$states)/10);
+                for(i in 1:nPlots){
+                    if(is.null(ellipsisMain)){
+                        ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                    }
+                    ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                    do.call(plot, ellipsis);
+                }
+            }
+            else{
+                if(is.null(ellipsis$main)){
+                    ellipsis$main <- paste0("States of ",x$model);
+                }
+                ellipsis$x <- x$states;
+                do.call(plot, ellipsis);
+            }
         }
     }
     par(parDefault);
@@ -480,6 +511,11 @@ plot.smooth <- function(x, ...){
 #' @method plot smooth.sim
 #' @export
 plot.smooth.sim <- function(x, ...){
+    ellipsis <- list(...);
+    if(is.null(ellipsis$main)){
+        ellipsis$main <- x$model;
+    }
+
     if(is.null(dim(x$data))){
         nsim <- 1
     }
@@ -488,13 +524,21 @@ plot.smooth.sim <- function(x, ...){
     }
 
     if(nsim==1){
-        plot(x$data, main=x$model, ylab="Data", ...);
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- "Data";
+        }
+        ellipsis$x <- x$data;
+        do.call(plot, ellipsis);
     }
     else{
         message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
                        "Please use plot(ourSimulation$data[,k]) instead. Plotting a random series."));
         randomNumber <- ceiling(runif(1,1,nsim));
-        plot(x$data[,randomNumber], main=x$model, ylab=paste0("Series N",randomNumber), ...);
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- paste0("Series N",randomNumber);
+        }
+        ellipsis$x <- x$data[,randomNumber];
+        do.call(plot, ellipsis);
     }
 }
 
