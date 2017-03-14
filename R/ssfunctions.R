@@ -508,7 +508,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             stop("Complex values? Right! Come on! Be real!",call.=FALSE);
         }
         if(any(c(orders)<0)){
-            stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
+            stop("Funny guy! How am I gonna construct a model with negative orders?",call.=FALSE);
         }
         if(any(c(lags)<0)){
             stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
