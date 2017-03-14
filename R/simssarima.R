@@ -47,18 +47,27 @@
 #' \code{ar.orders}, \code{i.orders} and \code{ma.orders}. This should be handy
 #' when using extraction function \code{orders()}. See vignettes on simulate
 #' functions for examples.
-#' @return List of the following values is returned: \item{model}{Name of
-#' SSARIMA model.} \item{AR}{Value of AR parameters. If \code{nsim>1}, then
-#' this is a matrix.} \item{MA}{Value of MA parameters. If \code{nsim>1}, then
-#' this is a matrix.} \item{constant}{Value of constant term. If \code{nsim>1},
-#' then this is a vector.} \item{initial}{Initial values of SSARIM. If
-#' \code{nsim>1}, then this is a matrix.} \item{data}{Time series vector (or
-#' matrix if \code{nsim>1}) of the generated series.} \item{states}{Matrix (or
-#' array if \code{nsim>1}) of states. States are in columns, time is in rows.}
-#' \item{residuals}{Error terms used in the simulation. Either vector or
-#' matrix, depending on \code{nsim}.} \item{occurrences}{Values of occurrence
-#' variable. Once again, can be either a vector or a matrix...}
-#' \item{logLik}{Log-likelihood of the constructed model.}
+#' @return List of the following values is returned:
+#' \itemize{
+#' \item \code{model} - Name of SSARIMA model.
+#' \item \code{AR} - Value of AR parameters. If \code{nsim>1}, then this is a
+#' matrix.
+#' \item \code{MA} - Value of MA parameters. If \code{nsim>1}, then this is a
+#' matrix.
+#' \item \code{constant} - Value of constant term. If \code{nsim>1}, then this
+#' is a vector.
+#' \item \code{initial} - Initial values of SSARIM. If \code{nsim>1}, then this
+#' is a matrix.
+#' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the
+#' generated series.
+#' \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States
+#' are in columns, time is in rows.
+#' \item \code{residuals} - Error terms used in the simulation. Either vector or
+#' matrix, depending on \code{nsim}.
+#' \item \code{occurrences} - Values of occurrence variable. Once again, can be
+#' either a vector or a matrix...
+#' \item \code{logLik} - Log-likelihood of the constructed model.
+#' }
 #'
 #' @seealso \code{\link[smooth]{sim.es}, \link[smooth]{ssarima},
 #' \link[stats]{Distributions}, \link[smooth]{orders}, \link[smooth]{lags}}

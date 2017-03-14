@@ -63,19 +63,19 @@ data. \code{sd=0.1} is usually already a high value for such models.}
 \value{
 List of the following values is returned:
 \itemize{
-\item{model}{Name of ETS model.}
-\item{data}{Time series vector (or matrix if \code{nsim>1}) of the generated
-series.}
-\item{states}{Matrix (or array if \code{nsim>1}) of states. States are in
-columns, time is in rows.}
-\item{persistence}{Vector (or matrix if \code{nsim>1}) of smoothing
-parameters used in the simulation.}
-\item{phi}{Value of damping parameter used in time series generation.}
-\item{residuals}{Error terms used in the simulation. Either vector or matrix,
-depending on \code{nsim}.}
-\item{occurrences}{Values of occurrence variable. Once again, can be either
-a vector or a matrix...}
-\item{logLik}{Log-likelihood of the constructed model.}
+\item \code{model} - Name of ETS model.
+\item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the generated
+series.
+\item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in
+columns, time is in rows.
+\item \code{persistence} - Vector (or matrix if \code{nsim>1}) of smoothing
+parameters used in the simulation.
+\item \code{phi} - Value of damping parameter used in time series generation.
+\item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
+depending on \code{nsim}.
+\item \code{occurrences} - Values of occurrence variable. Once again, can be either
+a vector or a matrix...
+\item \code{logLik} - Log-likelihood of the constructed model.
 }
 }
 \description{
