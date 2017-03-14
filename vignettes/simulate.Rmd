@@ -204,3 +204,21 @@ plot(x)
 plot(ourData)
 par(mfcol=c(1,1))
 ```
+
+## Generalised Exponential Smoothing
+There is also `sim.ges()` function in the package that generates data from GES model. If we do not provide specific parameters, then they will be automatically generated. This model is very flexible and taking that there is a lot of parameters to set, in general it is not advised to leave such parameters as `measurement`, `transition` and `persistence` blank. The good practice is to simulate data from a fitted model:
+```{r simulate_smooth_ges}
+x <- ts(100 + rnorm(120,0,5) + rep(runif(12,-50,50),10)*rep(c(1:10),each=12) ,frequency=12)
+ourModel <- ges(x, orders=c(1,1), lags=c(1,12), h=18, silent=TRUE)
+ourData <- simulate(ourModel, nsim=50)
+```
+
+Comparing the original data with the simulated one, we will see some similarities:
+```{r simulate_smooth_ges_compare}
+par(mfcol=c(1,2))
+plot(x)
+plot(ourData)
+par(mfcol=c(1,1))
+```
+
+Note that GES is still an ongoing research and its properties are currently understudied.

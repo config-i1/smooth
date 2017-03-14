@@ -48,3 +48,13 @@ test_that("CES(p) with some random A parameter and fixed b=0.1 ", {
 test_that("CES(f) with intermittent data", {
     expect_match(sim.ces(seasonality="f",frequency=12,nsim=10,obs=100,iprob=0.2)$model, "iCES");
 })
+
+#### GES ####
+testModel <- ges(Mcomp::M3$N1234$x, orders=1, lags=1, h=8, silent=TRUE);
+test_that("GES(1[1]) simulated from estimated model", {
+    expect_match(simulate(testModel,nsim=10,seed=5,obs=100)$model, "GES");
+})
+
+test_that("GES(1[1]) with intermittent data", {
+    expect_match(sim.ges(nsim=10,obs=100,iprob=0.2)$model, "iGES");
+})

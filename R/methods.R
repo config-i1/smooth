@@ -798,6 +798,18 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
                                  initial=object$initial, obs=obs, nsim=nsim,
                                  iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
     }
+    else if(gregexpr("GES",object$model)!=-1){
+        model <- object$model;
+        orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
+        lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+        initial <- object$initial;
+        randomizer <- "rnorm";
+        simulatedData <- sim.ges(orders=orders, lags=lags, frequency=frequency(object$actuals), measurement=object$measurement,
+                                 transition=object$transition, persistence=object$persistence, initial=object$initial,
+                                 obs=obs, nsim=nsim,
+                                 iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
+
+    }
     else{
         model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
         message(paste0("Sorry, but simulate is not yet available for the model ",model,"."));

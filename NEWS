@@ -5,6 +5,7 @@ Changes:
 * "optimal" is now the default initialisation method for ces().
 * Created templates for roxygen2 for the consistency purposes of the documentation.
 * plot() methods for classes smooth and smooth.sim now accept main and ylab parameters. Do whatever you want!
+* New function - sim.ges() - simulate data using GES model.
 
 Bugfixes:
 * In cases of df<=0 we now produce a warning and prediction intervals based on Chebyshev's inequality.
