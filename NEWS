@@ -1,17 +1,26 @@
-smooth v1.8.0 (Release data: 2017-03-17)
+smooth v1.9.0 (Release data: 2017-03-18)
+==============
 
 Changes:
 * New function - xregExpander(), which creates matrix of xreg with lagged values based on provided data and automatically fills in NAs with forecasted values using es().
+* New function - sim.ges() - simulate data using GES model.
+
+Bugfixes:
+* Fixed a bug, when predicting binary variables using any iSS model, we would end up with errors. Now in this case we just select among the intermittent models, ignoring non-intermittent one.
+* Fixed bug with cfType="MSTFE" in case of multiplicative errors.
+
+
+smooth v1.8.0 (Release data: 2017-03-12)
+==============
+
+Changes:
 * "optimal" is now the default initialisation method for ces().
 * Created templates for roxygen2 for the consistency purposes of the documentation.
 * plot() methods for classes smooth and smooth.sim now accept main and ylab parameters. Do whatever you want!
-* New function - sim.ges() - simulate data using GES model.
 
 Bugfixes:
 * In cases of df<=0 we now produce a warning and prediction intervals based on Chebyshev's inequality.
 * es() now does not complain about failing to estimate something when persistence is predefined.
-* Fixed a bug, when predicting binary variables using any iSS model, we would end up with errors. Now in this case we just select among the intermittent models, ignoring non-intermittent one.
-* Fixed bug with cfType="MSTFE" in case of multiplicative errors.
 
 
 smooth v1.7.1 (Release date: 2017-03-01)
