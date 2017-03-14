@@ -16,12 +16,12 @@ Here is the list of included functions:
 7. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
 8. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
 9. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
-10. sma - Simple Moving Average in state-space form.
-11. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
+10. sim.ges - simulation functions for GES.
+11. sma - Simple Moving Average in state-space form.
+12. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
 
 Future works:
 
-12. sim.ges - simulation functions for GES.
 13. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
 14. auto.ges - Automatic selection of the most appropriate GES model.
 15. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
