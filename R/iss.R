@@ -145,6 +145,10 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         sbaCorrection <- FALSE;
     }
 
+    if(class(data)=="smooth.sim"){
+        data <- data$data;
+    }
+
     obsInsample <- length(data) - holdout*h;
     obsAll <- length(data) + (1 - holdout)*h;
     y <- ts(data[1:obsInsample],frequency=frequency(data),start=start(data));
