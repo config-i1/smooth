@@ -31,3 +31,8 @@ sowhat <- function(...){
     }
     message("So what?");
 }
+
+# Function is needed to ask additional question before the release
+release_questions <- function(){
+  c("Did you check package with --use-valgrind if C++ code changed?");
+}
