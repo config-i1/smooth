@@ -4,3 +4,4 @@
 vignettes/rsconnect
 man-roxygen
 ^revdep$
+cran-comments.md
