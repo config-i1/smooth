@@ -1,3 +1,13 @@
+smooth v1.9.1 (Release data: 2017-04-18)
+==============
+
+Changes:
+* New function in error measures category - pls() - Prediction Likelihood Score.
+
+Bugfixes:
+*
+
+
 smooth v1.9.0 (Release data: 2017-03-18)
 ==============
 

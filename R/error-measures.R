@@ -11,6 +11,9 @@
 #' one -- squared mean value of in-sample actuals.
 #'
 #'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
 #' @aliases Error measures
 #' @param actual The vector or matrix of actual values.
 #' @param forecast The vector or matrix of forecasts values.
@@ -21,7 +24,6 @@
 #' model.
 #' @param digits Number of digits of the output.
 #' @return All the functions return the scalar value.
-#' @author Ivan Svetunkov
 #' @references \itemize{
 #' \item Fildes, R. (1992). The evaluation of
 #' extrapolative forecasting methods. International Journal of Forecasting, 8,
@@ -37,7 +39,6 @@
 #' measurements and techniques for intermittent demand. International Journal
 #' of Production Economics, 128, pp.625-636.
 #' }
-#' @keywords error measures forecasting accuracy
 #' @examples
 #'
 #'
@@ -243,6 +244,9 @@ errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
 #'
 #' \code{NA} values of \code{x} are excluded on the first step of calculation.
 #'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
 #' @aliases hm
 #' @param x A variable based on which HM is estimated.
 #' @param C Centering parameter.
@@ -250,9 +254,6 @@ errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
 #' @param ...  Other parameters passed to mean function.
 #' @return A complex variable is returned for \code{hm} function and real value
 #' is returned for \code{cbias}.
-#' @author Ivan Svetunkov
-#' @references TBA
-#' @keywords half moment moments of distribution
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
@@ -278,4 +279,160 @@ cbias <- function(x,C=mean(x),digits=5,...)
     result <- hm(x,C,digits);
     result <- round(1 - Arg(result)/(pi/4),digits);
     return(result);
+}
+
+
+#' Prediction Likelihood Score
+#'
+#' Function estimates Prediction Likelihood Score of the holdout actuals based on the model.
+#'
+#' Prediction likelihood score (PLS) is based on either normal or log-normal
+#' distribution of errors with the provided parameters. It returns the log of probability
+#' that the data was "produced" by the estimated model. %In case of trace forecasts PLS is
+#' %based on trace forecast likelihood but returns value devided by squared horizon (in order
+#' %to keep scale consistent with non-trace cases).
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @param actuals Actual values from the holdout.
+#' @param forecasts Point forecasts for the holdout (conditional mean).
+#' @param EType Type of the error. If \code{Etype="A"}, then normal distribution
+#' is used, if \code{Etype="M"}, then log-normal distribution is used.
+#' @param sigma Value of variance of the errors. In case of \code{trace=TRUE}, this
+#' needs to be a covariance matrix of trace errors.
+#' @param trace If \code{TRUE}, then it is assumed that we are provided with trace
+#' forecasts (multiple steps ahead), Trace Forecast Likelihood is used in this case.
+#' @param iprob Vector of probabilities of occurrences for the holdout (only needed
+#' for intermittent models).
+#' @param digits Number of digits for rounding.
+#' @param ...  Other parameters passed to mean function.
+#'
+#' @return A value of the log-likelihood.
+#' @references \itemize{
+#' \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
+#' demand for slow-moving inventories: A modelling approach. International
+#' Journal of Forecasting 28 (2), 485–496.
+#' \item Kolassa, S., 2016. Evaluating predictive count data distributions in retail
+#' sales forecasting. International Journal of Forecasting 32 (3), 788–803.
+#' }
+#' @examples
+#'
+#' # Generate data, apply es() with the holdout parameter and calculate PLS
+#' x <- rnorm(100,0,1)
+#' ourModel <- es(x, h=10, holdout=T)
+#' sigma <- t(ourModel$errors) %*% (ourModel$errors) / length(ourModel$residuals)
+#' EType <- substr(model.type(ourModel),1,1)
+#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+#'     sigma=sigma, trace=TRUE)
+#'
+#' # Do the same with intermittent data. Trace is not available yet for
+#' # intermittent state-space models
+#' x <- rpois(100,0.4)
+#' ourModel <- es(x, h=10, holdout=T, intermittent='a')
+#' EType <- substr(model.type(ourModel),1,1)
+#' iprob <- window(ourModel$iprob,start(ourModel$holdout))
+#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+#'     sigma=ourModel$s2, trace=FALSE, iprob=iprob)
+#'
+#' @export pls
+pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
+                iprob=1, digits=5, ...)
+{
+    # This function calculates half moment
+    if(length(actuals)!=length(forecasts)){
+        warning("Length of actuals and forecasts differs. Using the shortest of the two.", call.=FALSE);
+        lengthMin <- min(length(actuals),length(forecasts));
+        actuals <- actuals[1:lengthMin];
+        forecasts <- forecasts[1:lengthMin];
+    }
+    obsHoldout <- length(actuals);
+    if(obsHoldout==1){
+        trace=FALSE;
+    }
+
+    if(any(c(actuals,forecasts)<0) & EType=="M"){
+        warning("Error type cannot be multiplicative, with negative actuals and/or forecasts.",call.=FALSE)
+        return(-Inf);
+    }
+
+    EType <- EType[1];
+    if(!any(EType==c("A","M"))){
+        warning(paste0("Unknown type of error term: ",EType,
+                       "Switching to 'A'."), call.=FALSE);
+    }
+
+    if(trace){
+        if(!is.matrix(sigma) | (length(sigma) != obsHoldout^2)){
+            warning(paste0("sigma is not a covariance matrix, but it is supposed to be. ",
+                           "Forcing trace=FALSE."), call.=FALSE);
+            trace <- FALSE;
+        }
+    }
+
+    if(all(iprob==1) & length(iprob)>1){
+        warning("Probability for the holdout is equal to 1. Using non-intermittent model.", call.=FALSE);
+        iprob <- 1;
+    }
+
+    if(!all(iprob==1)){
+        if(length(iprob)!=obsHoldout){
+            if(length(iprob) < obsHoldout){
+                # Repeat last iprob as many times as needed
+                iprob <- c(iprob,rep(iprob[length(iprob)],obsHoldout))[1:obsHoldout];
+            }
+            else{
+                iprob <- iprob[1:obsHoldout];
+            }
+        }
+        ot <- (actuals==1);
+    }
+
+    if(EType=="A"){
+        errors <- as.matrix(c(actuals - forecasts));
+    }
+    else{
+        errors <- as.matrix(c(log(actuals[ot]) - log(forecasts[ot])));
+    }
+
+    ##### Now do the calculations #####
+    if(all(iprob==1)){
+        if(trace){
+            if(EType=="A"){
+                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2);
+            }
+            else{
+                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsHoldout * sum(log(actuals)));
+            }
+            # pls <- pls / obsHoldout^2;
+        }
+        else{
+            if(EType=="A"){
+                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma));
+            }
+            else{
+                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals)));
+            }
+        }
+    }
+    else{
+        if(trace){
+            if(EType=="A"){
+                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2) + obsHoldout * (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+            }
+            else{
+                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsHoldout * sum(log(actuals[ot]))) + obsHoldout * (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+            }
+        }
+        else{
+            if(EType=="A"){
+                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma)) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+            }
+            else{
+                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals[ot]))) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+            }
+        }
+    }
+
+    return(round(pls, digits=digits));
 }
