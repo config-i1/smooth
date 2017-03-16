@@ -98,9 +98,11 @@ of Production Economics, 128, pp.625-636.
 }
 }
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{accuracy}
-\keyword{error}
-\keyword{forecasting}
-\keyword{measures}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}

@@ -36,14 +36,12 @@ hm(x)
 cbias(x)
 
 }
-\references{
-TBA
-}
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{distribution}
-\keyword{half}
-\keyword{moment}
-\keyword{moments}
-\keyword{of}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
+\keyword{ts}
+\keyword{univar}
