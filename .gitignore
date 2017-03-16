@@ -1,7 +1,6 @@
 # History files
 .Rhistory
 .Rapp.history
-
 # Session Data files
 .RData
 # RStudio files
@@ -24,3 +23,4 @@ inst/doc/*.R
 inst/doc/*.Rmd
 vignettes/rsconnect
 vignettes/Figs
+revdep
