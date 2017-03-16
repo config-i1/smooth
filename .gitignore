@@ -23,4 +23,3 @@ inst/doc/*.R
 inst/doc/*.Rmd
 vignettes/rsconnect
 vignettes/Figs
-revdep
