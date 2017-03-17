@@ -312,15 +312,15 @@ cbias <- function(x,C=mean(x),digits=5,...)
 #' @references \itemize{
 #' \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
 #' demand for slow-moving inventories: A modelling approach. International
-#' Journal of Forecasting 28 (2), 485–496.
+#' Journal of Forecasting 28 (2), 485-496.
 #' \item Kolassa, S., 2016. Evaluating predictive count data distributions in retail
-#' sales forecasting. International Journal of Forecasting 32 (3), 788–803.
+#' sales forecasting. International Journal of Forecasting 32 (3), 788-803.
 #' }
 #' @examples
 #'
 #' # Generate data, apply es() with the holdout parameter and calculate PLS
 #' x <- rnorm(100,0,1)
-#' ourModel <- es(x, h=10, holdout=T)
+#' ourModel <- es(x, h=10, holdout=TRUE)
 #' sigma <- t(ourModel$errors) %*% (ourModel$errors) / length(ourModel$residuals)
 #' EType <- substr(model.type(ourModel),1,1)
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
@@ -329,7 +329,7 @@ cbias <- function(x,C=mean(x),digits=5,...)
 #' # Do the same with intermittent data. Trace is not available yet for
 #' # intermittent state-space models
 #' x <- rpois(100,0.4)
-#' ourModel <- es(x, h=10, holdout=T, intermittent='a')
+#' ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
 #' EType <- substr(model.type(ourModel),1,1)
 #' iprob <- window(ourModel$iprob,start(ourModel$holdout))
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
