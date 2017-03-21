@@ -5,7 +5,8 @@ Changes:
 * New function in error measures category - pls() - Prediction Likelihood Score.
 
 Bugfixes:
-*
+* Fixed a problem with phi estimation in cases, when initial values for the optimiser are provided.
+* Now we don't check C / CLower / CUpper if they are not provided.
 
 
 smooth v1.9.0 (Release data: 2017-03-18)
