@@ -24,7 +24,7 @@ test_that("Test ETS(CCC) with BIC on N2568$x", {
 # Test model selection of non-multiplicative trend ETS
 testModel <- es(Mcomp::M3$N2568$x, "MXM", silent=TRUE, ic="AIC");
 test_that("Test ETS(MXM) with AIC on N2568$x", {
-    expect_match(testModel$model, "MAM");
+    expect_match(testModel$model, "MAdM");
 })
 
 # Test trace cost function for ETS
