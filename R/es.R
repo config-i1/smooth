@@ -1631,6 +1631,24 @@ CreatorES <- function(silent=FALSE,...){
     if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
+
+# Add PLS
+        errormeasuresNames <- names(errormeasures);
+        if(all(intermittent!=c("n","none"))){
+            errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
+                                                                   sigma=s2, trace=FALSE, iprob=pt[obsInsample+c(1:h)])));
+        }
+        else{
+            if(multisteps){
+                sigma <- t(errors.mat) %*% errors.mat / obsInsample;
+            }
+            else{
+                sigma <- s2;
+            }
+            errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
+                                                                   sigma=sigma, trace=multisteps, iprob=pt[obsInsample+c(1:h)])));
+        }
+        names(errormeasures) <- c(errormeasuresNames,"PLS");
     }
     else{
         y.holdout <- NA;
