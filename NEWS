@@ -3,6 +3,7 @@ smooth v1.9.1 (Release data: 2017-04-18)
 
 Changes:
 * New function in error measures category - pls() - Prediction Likelihood Score.
+* PLS is now included in accuracy measures of es().
 
 Bugfixes:
 * Fixed a problem with phi estimation in cases, when initial values for the optimiser are provided.
