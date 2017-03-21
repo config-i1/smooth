@@ -4,7 +4,7 @@
 \alias{pls}
 \title{Prediction Likelihood Score}
 \usage{
-pls(actuals, forecasts, EType = c("A", "M"), sigma, trace = TRUE,
+pls(actuals, forecasts, Etype = c("A", "M"), sigma, trace = TRUE,
   iprob = 1, digits = 5, ...)
 }
 \arguments{
@@ -12,7 +12,7 @@ pls(actuals, forecasts, EType = c("A", "M"), sigma, trace = TRUE,
 
 \item{forecasts}{Point forecasts for the holdout (conditional mean).}
 
-\item{EType}{Type of the error. If \code{Etype="A"}, then normal distribution
+\item{Etype}{Type of the error. If \code{Etype="A"}, then normal distribution
 is used, if \code{Etype="M"}, then log-normal distribution is used.}
 
 \item{sigma}{Value of variance of the errors. In case of \code{trace=TRUE}, this
@@ -47,17 +47,17 @@ that the data was "produced" by the estimated model. %In case of trace forecasts
 x <- rnorm(100,0,1)
 ourModel <- es(x, h=10, holdout=TRUE)
 sigma <- t(ourModel$errors) \%*\% (ourModel$errors) / length(ourModel$residuals)
-EType <- substr(model.type(ourModel),1,1)
-pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+Etype <- substr(model.type(ourModel),1,1)
+pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
     sigma=sigma, trace=TRUE)
 
 # Do the same with intermittent data. Trace is not available yet for
 # intermittent state-space models
 x <- rpois(100,0.4)
 ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
-EType <- substr(model.type(ourModel),1,1)
+Etype <- substr(model.type(ourModel),1,1)
 iprob <- window(ourModel$iprob,start(ourModel$holdout))
-pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
     sigma=ourModel$s2, trace=FALSE, iprob=iprob)
 
 }

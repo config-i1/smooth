@@ -297,7 +297,7 @@ cbias <- function(x,C=mean(x),digits=5,...)
 #'
 #' @param actuals Actual values from the holdout.
 #' @param forecasts Point forecasts for the holdout (conditional mean).
-#' @param EType Type of the error. If \code{Etype="A"}, then normal distribution
+#' @param Etype Type of the error. If \code{Etype="A"}, then normal distribution
 #' is used, if \code{Etype="M"}, then log-normal distribution is used.
 #' @param sigma Value of variance of the errors. In case of \code{trace=TRUE}, this
 #' needs to be a covariance matrix of trace errors.
@@ -322,21 +322,21 @@ cbias <- function(x,C=mean(x),digits=5,...)
 #' x <- rnorm(100,0,1)
 #' ourModel <- es(x, h=10, holdout=TRUE)
 #' sigma <- t(ourModel$errors) %*% (ourModel$errors) / length(ourModel$residuals)
-#' EType <- substr(model.type(ourModel),1,1)
-#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+#' Etype <- substr(model.type(ourModel),1,1)
+#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 #'     sigma=sigma, trace=TRUE)
 #'
 #' # Do the same with intermittent data. Trace is not available yet for
 #' # intermittent state-space models
 #' x <- rpois(100,0.4)
 #' ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
-#' EType <- substr(model.type(ourModel),1,1)
+#' Etype <- substr(model.type(ourModel),1,1)
 #' iprob <- window(ourModel$iprob,start(ourModel$holdout))
-#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, EType=EType,
+#' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 #'     sigma=ourModel$s2, trace=FALSE, iprob=iprob)
 #'
 #' @export pls
-pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
+pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
                 iprob=1, digits=5, ...)
 {
     # This function calculates half moment
@@ -351,14 +351,14 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
         trace=FALSE;
     }
 
-    if(any(c(actuals,forecasts)<0) & EType=="M"){
+    if(any(c(actuals,forecasts)<0) & Etype=="M"){
         warning("Error type cannot be multiplicative, with negative actuals and/or forecasts.",call.=FALSE)
         return(-Inf);
     }
 
-    EType <- EType[1];
-    if(!any(EType==c("A","M"))){
-        warning(paste0("Unknown type of error term: ",EType,
+    Etype <- Etype[1];
+    if(!any(Etype==c("A","M"))){
+        warning(paste0("Unknown type of error term: ",Etype,
                        "Switching to 'A'."), call.=FALSE);
     }
 
@@ -391,7 +391,7 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
         ot <- rep(1,obsHoldout);
     }
 
-    if(EType=="A"){
+    if(Etype=="A"){
         errors <- as.matrix(c(actuals[ot] - forecasts[ot]));
     }
     else{
@@ -401,7 +401,7 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
     ##### Now do the calculations #####
     if(all(iprob==1)){
         if(trace){
-            if(EType=="A"){
+            if(Etype=="A"){
                 pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2);
             }
             else{
@@ -410,7 +410,7 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
             # pls <- pls / obsHoldout^2;
         }
         else{
-            if(EType=="A"){
+            if(Etype=="A"){
                 pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma));
             }
             else{
@@ -420,7 +420,7 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
     }
     else{
         if(trace){
-            if(EType=="A"){
+            if(Etype=="A"){
                 pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2) + obsHoldout * (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
             }
             else{
@@ -428,7 +428,7 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
             }
         }
         else{
-            if(EType=="A"){
+            if(Etype=="A"){
                 pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma)) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
             }
             else{
