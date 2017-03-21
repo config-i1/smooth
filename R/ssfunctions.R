@@ -1490,8 +1490,8 @@ ssFitter <- function(...){
 
     if(Etype=="M" & any(matvt[,1]<0)){
         matvt[matvt[,1]<0,1] <- 0.001;
-        warning(paste0("Negative values produced in state vector of model ",model,".\n",
-                       "Please, use a different model."),call.=FALSE);
+        warning(paste0("Negative values produced in the level of state vector of model ",model,".\n",
+                       "We had to substitute them by low values. Please, use a different model."),call.=FALSE);
     }
 
     if(!is.null(xreg)){
