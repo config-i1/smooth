@@ -385,8 +385,11 @@ pls <- function(actuals, forecasts, EType=c("A","M"), sigma, trace=TRUE,
                 iprob <- iprob[1:obsHoldout];
             }
         }
+        ot <- (actuals!=0);
     }
-    ot <- (actuals==1);
+    else{
+        ot <- rep(1,obsHoldout);
+    }
 
     if(EType=="A"){
         errors <- as.matrix(c(actuals[ot] - forecasts[ot]));
