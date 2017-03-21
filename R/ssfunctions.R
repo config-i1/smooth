@@ -205,7 +205,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 modelsPool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
                                  "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
                                  "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
-                if(datafreq==1){
+                if(datafreq==1 & Stype!="N"){
                     if(!silentText){
                         message("The provided data has frequency of 1. Only non-seasonal models are available.");
                     }
