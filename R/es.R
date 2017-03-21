@@ -1066,7 +1066,7 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         # smoothingParameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
-        smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.3,0.2,0.1));
+        smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.1,0.05,0.01));
     }
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
