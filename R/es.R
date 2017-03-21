@@ -1242,20 +1242,26 @@ CreatorES <- function(silent=FALSE,...){
 
             # Number of parameters
             nParam <- nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
-            if(nParam!=length(providedC)){
-                warning(paste0("Number of parameters to optimise differes from the length of C:",nParam," vs ",length(providedC),".\n",
-                               "We will have to drop parameter C."),call.=FALSE);
-                providedC <- NULL;
+            if(!is.null(providedC)){
+                if(nParam!=length(providedC)){
+                    warning(paste0("Number of parameters to optimise differes from the length of C:",nParam," vs ",length(providedC),".\n",
+                                   "We will have to drop parameter C."),call.=FALSE);
+                    providedC <- NULL;
+                }
             }
-            if(nParam!=length(providedCLower)){
-                warning(paste0("Number of parameters to optimise differes from the length of CLower:",nParam," vs ",length(providedCLower),".\n",
-                               "We will have to drop parameter CLower."),call.=FALSE);
-                providedCLower <- NULL;
+            if(!is.null(providedCLower)){
+                if(nParam!=length(providedCLower)){
+                    warning(paste0("Number of parameters to optimise differes from the length of CLower:",nParam," vs ",length(providedCLower),".\n",
+                                   "We will have to drop parameter CLower."),call.=FALSE);
+                    providedCLower <- NULL;
+                }
             }
-            if(nParam!=length(providedCUpper)){
-                warning(paste0("Number of parameters to optimise differes from the length of CUpper:",nParam," vs ",length(providedCUpper),".\n",
-                               "We will have to drop parameter CUpper."),call.=FALSE);
-                providedCUpper <- NULL;
+            if(!is.null(providedCUpper)){
+                if(nParam!=length(providedCUpper)){
+                    warning(paste0("Number of parameters to optimise differes from the length of CUpper:",nParam," vs ",length(providedCUpper),".\n",
+                                   "We will have to drop parameter CUpper."),call.=FALSE);
+                    providedCUpper <- NULL;
+                }
             }
             C <- providedC;
             CLower <- providedCLower;
@@ -1278,6 +1284,11 @@ CreatorES <- function(silent=FALSE,...){
             C <- NULL;
             CLower <- NULL;
             CUpper <- NULL;
+        }
+
+        # If we need to estimate phi, make it NULL, so the next maker works
+        if(phiEstimate){
+            phi <- NULL
         }
     }
 
