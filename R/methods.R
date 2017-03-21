@@ -578,12 +578,12 @@ print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
     if(all(holdout,intervals)){
-        if(x$intermittent=="none"){
-            insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
-        }
-        else{
-            insideintervals <- sum((cumsum(x$holdout) <= cumsum(x$upper)) & (cumsum(x$holdout) >= cumsum(x$lower))) / length(x$forecast) * 100;
-        }
+        # if(x$intermittent=="none"){
+        insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
+        # }
+        # else{
+        #     insideintervals <- sum((cumsum(x$holdout) <= cumsum(x$upper)) & (cumsum(x$holdout) >= cumsum(x$lower))) / length(x$forecast) * 100;
+        # }
     }
     else{
         insideintervals <- NULL;
