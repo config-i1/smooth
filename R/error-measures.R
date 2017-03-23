@@ -364,6 +364,9 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
             trace <- FALSE;
         }
     }
+    if(all(sigma==0)){
+        return(NA);
+    }
 
     if(all(iprob==1) & length(iprob)>1){
         warning("Probability for the holdout is equal to 1. Using non-intermittent model.", call.=FALSE);
