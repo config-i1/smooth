@@ -8,6 +8,7 @@ Changes:
 Bugfixes:
 * Fixed a problem with phi estimation in cases, when initial values for the optimiser are provided.
 * Now we don't check C / CLower / CUpper if they are not provided.
+* Fixed a problem with prediction intervals construction for binary variables.
 
 
 smooth v1.9.0 (Release data: 2017-03-18)
