@@ -66,8 +66,7 @@
 #' @rdname error-measures
 #' @export MPE
 #' @aliases MPE
-MPE <- function(actual,forecast,digits=3)
-{
+MPE <- function(actual,forecast,digits=3){
 # This function calculates Mean / Median Percentage Error
 # actual - actual values,
 # forecast - forecasted or fitted values.
@@ -103,8 +102,7 @@ MAPE <- function(actual,forecast,digits=3){
 #' @rdname error-measures
 #' @export SMAPE
 #' @aliases SMAPE
-SMAPE <- function(actual,forecast,digits=3)
-{
+SMAPE <- function(actual,forecast,digits=3){
 # This function calculates Symmetric Mean / Median Absolute Percentage Error with
 # sum of absolute values in the denominator
 # actual - actual values,
@@ -262,8 +260,7 @@ errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
 #'
 #' @export hm
 #' @rdname hm
-hm <- function(x,C=mean(x),digits=5,...)
-{
+hm <- function(x,C=mean(x),digits=5,...){
     # This function calculates half moment
     x <- x[!is.na(x)];
     result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
@@ -273,8 +270,7 @@ hm <- function(x,C=mean(x),digits=5,...)
 #' @rdname hm
 #' @export cbias
 #' @aliases cbias
-cbias <- function(x,C=mean(x),digits=5,...)
-{
+cbias <- function(x,C=mean(x),digits=5,...){
     # This function calculates half moment
     result <- hm(x,C,digits);
     result <- round(1 - Arg(result)/(pi/4),digits);
@@ -337,8 +333,7 @@ cbias <- function(x,C=mean(x),digits=5,...)
 #'
 #' @export pls
 pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
-                iprob=1, digits=5, ...)
-{
+                iprob=1, digits=5, ...){
     # This function calculates half moment
     if(length(actuals)!=length(forecasts)){
         warning("Length of actuals and forecasts differs. Using the shortest of the two.", call.=FALSE);
