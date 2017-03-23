@@ -2073,12 +2073,6 @@ ssForecaster <- function(...){
                     y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
                 }
-                # else if(Etype=="M" & all(c(Ttype,Stype)!="A")){
-                    # y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                    # y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data))
-                    # y.low <- ts(quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    # y.high <- ts(quantvalues$upper,start=start(y.for),frequency=frequency(data));
-                # }
                 else{
                     if(intervalsType=="np"){
                         quantvalues$upper <- quantvalues$upper*y.for;
@@ -2096,10 +2090,6 @@ ssForecaster <- function(...){
                         y.high <- quantvalues$upper;
                         y.low <- quantvalues$lower;
                     }
-                    # y.low <- ts(c(y.for)*(1 + quantvalues$lower),start=start(y.for),frequency=frequency(data));
-                    # y.high <- ts(c(y.for)*(1 + quantvalues$upper),start=start(y.for),frequency=frequency(data))
-                    # y.low <- ts(c(y.for) + quantvalues$lower,start=start(y.for),frequency=frequency(data));
-                    # y.high <- ts(c(y.for) + quantvalues$upper,start=start(y.for),frequency=frequency(data));
                     y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
                 }
