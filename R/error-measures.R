@@ -384,6 +384,11 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
             }
         }
         ot <- (actuals!=0);
+        forecasts <- forecasts / iprob;
+        if(trace){
+            warning("We cannot yet do trace and intermittent models.",call.=FALSE);
+            trace <- FALSE;
+        }
     }
     else{
         ot <- rep(1,obsHoldout);
@@ -396,41 +401,53 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
         errors <- as.matrix(c(log(actuals[ot]) - log(forecasts[ot])));
     }
 
+    obsNonZero <- sum(ot);
+
     ##### Now do the calculations #####
     if(all(iprob==1)){
         if(trace){
             if(Etype=="A"){
-                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2);
+                pls <- -(obsNonZero/2 * obsNonZero * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2);
             }
             else{
-                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsHoldout * sum(log(actuals)));
+                pls <- -(obsNonZero/2 * obsNonZero * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsNonZero * sum(log(actuals)));
             }
-            # pls <- pls / obsHoldout^2;
+            # pls <- pls / obsNonZero^2;
         }
         else{
             if(Etype=="A"){
-                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma));
+                pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma));
             }
             else{
-                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals)));
+                pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals)));
             }
         }
     }
     else{
-        if(trace){
-            if(Etype=="A"){
-                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2) + obsHoldout * (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+        if(any(!ot)){
+            if(trace){
+                if(Etype=="A"){
+                    pls <- -(obsNonZero/2 * obsNonZero * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2) + (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+                }
+                else{
+                    pls <- -(obsNonZero/2 * obsNonZero * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsNonZero * sum(log(actuals[ot]))) + (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+                }
             }
             else{
-                pls <- -(obsHoldout/2 * obsHoldout * log(2*pi*det(sigma)) + sum(t(errors) %*% solve(sigma) %*% errors) / 2 + obsHoldout * sum(log(actuals[ot]))) + obsHoldout * (sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
+                if(Etype=="A"){
+                    pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma)) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+                }
+                else{
+                    pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals[ot]))) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+                }
             }
         }
         else{
-            if(Etype=="A"){
-                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma)) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+            if(trace){
+                pls <- sum(log(1-iprob[!ot]));
             }
             else{
-                pls <- -(obsHoldout/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals[ot]))) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
+                pls <- sum(log(1-iprob[!ot]));
             }
         }
     }
