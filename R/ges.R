@@ -10,16 +10,20 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' The function estimates the Single Source of Error State-space model of the
 #' following type:
 #'
-#' \eqn{y_[t] = o_[t] (w' v_[t-l] + x_t a_[t-1] + \epsilon_[t])}
+#' \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
 #'
-#' \eqn{v_[t] = F v_[t-l] + g \epsilon_[t]}
+#' \eqn{v_{t} = F v_{t-l} + g \epsilon_{t}}
 #'
-#' \eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
+#' \eqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
 #'
-#' Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of
-#' normal data equal to 1), \eqn{v_[t]} is a state vector (defined using
-#' \code{orders}) and \eqn{l} is a vector of \code{lags}, \eqn{x_t} vector of
-#' exogenous parameters.
+#' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
+#' normal data equal to 1), \eqn{v_{t}} is the state vector (defined using
+#' \code{orders}) and \eqn{l} is the vector of \code{lags}, \eqn{x_t} is the
+#' vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
+#' \eqn{F} is the \code{transition} matrix, \eqn{g} is the \code{persistence}
+#' vector, \eqn{a_t} is the vector of parameters for exogenous variables,
+#' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
+#' \code{persistenceX} matrix. Finally, \eqn{\epsilon_{t}} is the error term.
 #'
 #'
 #' @template ssBasicParam

@@ -13,17 +13,20 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' Function estimates ETS in a form of the Single Source of Error State-space
 #' model of the following type:
 #'
-#' \eqn{y_[t] = o_[t] (w(v_[t-l]) + x_t a_[t-1] + r(v_[t-l]) \epsilon_[t])}
+#' \eqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}
 #'
-#' \eqn{v_[t] = f(v_[t-l]) + g(v_[t-l]) \epsilon_[t]}
+#' \eqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
 #'
-#' \eqn{a_[t] = F_[X] a_[t-1] + g_[X] \epsilon_[t] / x_[t]}
+#' \eqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
 #'
-#' Where \eqn{o_[t]} is Bernoulli distributed random variable (in case of
-#' normal data it equals to 1 for all observations), \eqn{v_[t]} is a state
-#' vector and \eqn{l} is a vector of lags, \eqn{x_t} vector of exogenous
-#' parameters. w(.) is measurement function, r(.) is an error function, f(.) is
-#' transition function and g(.) is persistence function.
+#' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
+#' normal data it equals to 1 for all observations), \eqn{v_{t}} is the state
+#' vector and \eqn{l} is the vector of lags, \eqn{x_t} is the vector of
+#' exogenous variables. w(.) is the measurement function, r(.) is the error
+#' function, f(.) is the transition function and g(.) is the persistence
+#' function. \eqn{a_t} is the vector of parameters for exogenous variables,
+#' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
+#' \code{persistenceX} matrix.  Finally, \eqn{\epsilon_{t}} is the error term.
 #'
 #' For the details see Hyndman et al.(2008).
 #'
