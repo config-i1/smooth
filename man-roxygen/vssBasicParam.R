@@ -1,5 +1,14 @@
 #' @param data is the matrix with data, where series are in columns and
 #' observations are in rows.
+#' @param persistence Persistence vector \eqn{g}, containing smoothing
+#' parameters. Can either be \code{individual} for each series or \code{group},
+#' equal to all the time series. If a value is provided, then it is used by the model.
+#' @param transition Transition matrix \eqn{F}. Can either be \code{individual} for
+#' each series or \code{group}, equal to all the time series. If vector or a matrix
+#' is provided here, then it is used by the model.
+#' @param measurement Measurement vector \eqn{w}. Can either be \code{individual} for
+#' each series or \code{group}, equal to all the time series. If vector is provided
+#' here, then it is used by the model.
 #' @param h Length of forecasting horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
