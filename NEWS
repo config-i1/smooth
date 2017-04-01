@@ -1,4 +1,14 @@
-smooth v1.9.1 (Release data: 2017-04-18)
+smooth v2.0.0 (Release data: 2017-04-18)
+==============
+
+Changes:
+* New function - ves() - Vector Exponential Smoothing. Currently under construction.
+
+Bugfixes:
+*
+
+
+smooth v1.9.1 (Release data: 2017-03-28)
 ==============
 
 Changes:
