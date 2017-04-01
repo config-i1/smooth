@@ -13,14 +13,23 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' Function estimates vector ETS in a form of the Single Source of Error State-space
 #' model of the following type:
 #'
-#' \eqn{\mathbf{y}_{t} = \mathbf{o}_{t} (\mathbf{W} \mathbf{v}_{t-l} + \mathbf{x}_t
-#' \mathbf{a}_{t-1} + \mathbf{\epsilon}_{t})}
+#' \deqn{
+#' \mathbf{y}_{t} = \mathbf{o}_{t} (\mathbf{W} \mathbf{v}_{t-l} + \mathbf{x}_t
+#' \mathbf{a}_{t-1} + \mathbf{\epsilon}_{t})
+#' }{
+#' y_{t} = o_{t} (W v_{t-l} + x_t a_{t-1} + \epsilon_{t})
+#' }
 #'
-#' \eqn{\mathbf{v}_{t} = \mathbf{F} \mathbf{v}_{t-l} + \mathbf{G}
-#' \mathbf{\epsilon}_{t}}
+#' \deqn{
+#' \mathbf{v}_{t} = \mathbf{F} \mathbf{v}_{t-l} + \mathbf{G}
+#' \mathbf{\epsilon}_{t}
+#' }{
+#' v_{t} = F v_{t-l} + G \epsilon_{t}
+#' }
 #'
-#' \eqn{\mathbf{a}_{t} = \mathbf{F_{X}} \mathbf{a}_{t-1} + \mathbf{G_{X}}
-#' \mathbf{\epsilon}_{t} / \mathbf{x}_{t}}
+#' \deqn{\mathbf{a}_{t} = \mathbf{F_{X}} \mathbf{a}_{t-1} + \mathbf{G_{X}}
+#' \mathbf{\epsilon}_{t} / \mathbf{x}_{t}}{a_{t} = F_{X} a_{t-1} + G_{X} \epsilon_{t}
+#' / x_{t}}
 #'
 #' Where \eqn{y_{t}} is the vector of time series on observation \eqn{t}, \eqn{o_{t}}
 #' is the vector of Bernoulli distributed random variable (in case of normal data it
@@ -32,17 +41,17 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #'
 #' Conventionally we formulate values as:
 #'
-#' \eqn{\mathbf{y}_t = \begin{pmatrix} y_{1,t} \\ y_{2,t} \\ \vdots y_{m,t}
-#' \end{pmatrix}},
+#' \deqn{\mathbf{y}'_t = (y_{1,t}, y_{2,t}, \dots, y_{m,t})}{y_t = (y_{1,t}, y_{2,t},
+#' \dots, y_{m,t}),}
 #' where \eqn{m} is the number of series in the group.
-#' \eqn{\mathbf{v}_t = \begin{pmatrix} v_{1,t} \\ v_{2,t} \\ \vdots v_{m,t}
-#' \end{pmatrix}}
-#' \eqn{\mathbf{W} = \begin{pmatrix} w'_{1} & \hdots & 0 \\
-#' \vdots & \ddots & \vdots \\ 0 & \vdots & w'_{m} \end{pmatrix}}
-#'
-#' In a way, all the scalars of \code{es()} become vectors, all the vectors become
-#' matrices, all the matrices become arrays, because we add one more dimension -
-#' number of time series.
+#' \deqn{\mathbf{v}'_t = (v_{1,t}, v_{2,t}, \dots, v_{m,t})}{v'_t = (v_{1,t}, v_{2,t},
+#' \dots, v_{m,t}),}
+#' where \eqn{v_{i,t}} is vector of components for i-th time series.
+#' \deqn{\mathbf{W}' = (w_{1}, \dots , 0;
+#' \vdots & \ddots & \vdots;
+#' 0 & \vdots & w_{m})}{W' = (w_{1}, ... , 0;
+#' ... , ... , ...;
+#' 0 , ... , w_{m})} is matrix of measurement vectors.
 #'
 #' For the details see Hyndman et al. (2008), chapter 17.
 #'
@@ -68,17 +77,10 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' Keep in mind that model selection with "Z" components uses Branch and Bound
 #' algorithm and may skip some models that could have slightly smaller
 #' information criteria.
-#' @param persistence Persistence vector \eqn{g}, containing smoothing
-#' parameters. Can have one value for all the series or individual values for
-#' each separate series. If a value is provided, then it is used by the model.
-#' @param transition Transition matrix \eqn{F}. Can either be individual for
-#' each separate time series or the same for all of them. If vector or a matrix
-#' is provided here, then it is used by the model.
-#' @param measurement Measurement vector \eqn{w}. Can either be individual for
-#' each separate time series or the same for all of them. If vector or a matrix
-#' is provided here, then it is used by the model.
 
-#' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
+#' @param phi Value of damping parameter. Can either be \code{individual} for
+#' each series or \code{group}, equal to all the time series. If vector is
+#' provided here, then it is used by the model.
 #' @param initial Can be either character or a vector / matrix of initial states.
 #' If it is character, then it can be \code{"optimal"}, meaning that the initial
 #' states are optimised, or \code{"backcasting"}, meaning that the initials are

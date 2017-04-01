@@ -13,11 +13,11 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' Function estimates ETS in a form of the Single Source of Error State-space
 #' model of the following type:
 #'
-#' \eqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}
+#' \deqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}
 #'
-#' \eqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
+#' \deqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
 #'
-#' \eqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
+#' \deqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
 #'
 #' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
 #' normal data it equals to 1 for all observations), \eqn{v_{t}} is the state
