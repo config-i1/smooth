@@ -2062,14 +2062,14 @@ ssForecaster <- function(...){
 
                 y.for <- c(pt.for)*y.for;
                 if(Etype=="A"){
-                    if(any(iprob!=1)){
-                        y.high <- ceiling(c(y.for) + quantvalues$upper);
-                        y.low <- floor(c(y.for) + quantvalues$lower);
-                    }
-                    else{
-                        y.high <- c(y.for) + quantvalues$upper;
-                        y.low <- c(y.for) + quantvalues$lower;
-                    }
+                    # if(any(iprob!=1)){
+                    #     y.high <- ceiling(c(y.for) + quantvalues$upper);
+                    #     y.low <- floor(c(y.for) + quantvalues$lower);
+                    # }
+                    # else{
+                    y.high <- c(y.for) + quantvalues$upper;
+                    y.low <- c(y.for) + quantvalues$lower;
+                    # }
                     y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
                 }
@@ -2082,14 +2082,14 @@ ssForecaster <- function(...){
                         quantvalues$upper <- quantvalues$upper * y.for/c(pt.for);
                         quantvalues$lower <- quantvalues$lower * y.for/c(pt.for);
                     }
-                    if(any(iprob!=1)){
-                        y.high <- ceiling(quantvalues$upper);
-                        y.low <- floor(quantvalues$lower);
-                    }
-                    else{
-                        y.high <- quantvalues$upper;
-                        y.low <- quantvalues$lower;
-                    }
+                    # if(any(iprob!=1)){
+                    #     y.high <- ceiling(quantvalues$upper);
+                    #     y.low <- floor(quantvalues$lower);
+                    # }
+                    # else{
+                    y.high <- quantvalues$upper;
+                    y.low <- quantvalues$lower;
+                    # }
                     y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
                     y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
                 }
