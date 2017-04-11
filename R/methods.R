@@ -596,10 +596,11 @@ print.smooth <- function(x, ...){
         x$initialType <- "b";
         x$intermittent <- "n";
     }
-
+    else if(gregexpr("ETS",x$model)!=-1){
     # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
-    if(cumulative & substr(model.type(x),1,1)=="M"){
-        intervalsType <- "p";
+        if(cumulative & substr(model.type(x),1,1)=="M"){
+            intervalsType <- "p";
+        }
     }
     else{
         intervalsType <- x$intervals;
