@@ -1272,6 +1272,9 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### data #####
+    if(class(data)=="smooth.sim"){
+        data <- data$data;
+    }
     if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
@@ -1291,6 +1294,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     obsAll <- length(data) + (1 - holdout)*h;
 
     y <- data[1:obsInsample];
+    datafreq <- frequency(data);
 
 # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
     if(obsInsample < 4){
@@ -1471,6 +1475,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("intermittent",intermittent,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("data",data,ParentEnvironment);
+    assign("datafreq",datafreq,ParentEnvironment);
     assign("xregDo",xregDo,ParentEnvironment);
 }
 
