@@ -601,6 +601,9 @@ print.smooth <- function(x, ...){
         if(cumulative & substr(model.type(x),1,1)=="M"){
             intervalsType <- "p";
         }
+        else{
+            intervalsType <- x$intervals;
+        }
     }
     else{
         intervalsType <- x$intervals;
