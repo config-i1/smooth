@@ -591,6 +591,8 @@ print.smooth <- function(x, ...){
         insideintervals <- NULL;
     }
 
+    intervalsType <- x$intervals;
+
     if(gregexpr("SMA",x$model)!=-1){
         x$iprob <- 1;
         x$initialType <- "b";
@@ -601,12 +603,6 @@ print.smooth <- function(x, ...){
         if(cumulative & substr(model.type(x),1,1)=="M"){
             intervalsType <- "p";
         }
-        else{
-            intervalsType <- x$intervals;
-        }
-    }
-    else{
-        intervalsType <- x$intervals;
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
