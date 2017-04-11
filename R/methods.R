@@ -577,13 +577,15 @@ plot.iss <- function(x, ...){
 print.smooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
     intervals <- any(!is.na(x$lower));
+    cumulative <- x$cumulative;
+
     if(all(holdout,intervals)){
-        # if(x$intermittent=="none"){
-        insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
-        # }
-        # else{
-        #     insideintervals <- sum((cumsum(x$holdout) <= cumsum(x$upper)) & (cumsum(x$holdout) >= cumsum(x$lower))) / length(x$forecast) * 100;
-        # }
+        if(!cumulative){
+            insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
+        }
+        else{
+            insideintervals <- NULL;
+        }
     }
     else{
         insideintervals <- NULL;
@@ -595,11 +597,19 @@ print.smooth <- function(x, ...){
         x$intermittent <- "n";
     }
 
+    # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
+    if(cumulative & substr(model.type(x),1,1)=="M"){
+        intervalsType <- "p";
+    }
+    else{
+        intervalsType <- x$intervals;
+    }
+
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
              phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, A=x$A, B=x$B,initialType=x$initialType,
              nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$updateX,
-             cfType=x$cfType, cfObjective=x$cf, intervals=intervals,
-             intervalsType=x$intervals, level=x$level, ICs=x$ICs,
+             cfType=x$cfType, cfObjective=x$cf, intervals=intervals, cumulative=cumulative,
+             intervalsType=intervalsType, level=x$level, ICs=x$ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
              intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
 }

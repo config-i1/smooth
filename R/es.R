@@ -117,6 +117,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 #' \item \code{intervals} - type of intervals asked by user.
 #' \item \code{level} - confidence level for intervals.
+#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
 #' \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
@@ -157,6 +158,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
 #' \item \code{intervals},
 #' \item \code{level},
+#' \item \code{cumulative},
 #' \item \code{actuals},
 #' \item \code{holdout},
 #' \item \code{iprob},
@@ -1633,7 +1635,13 @@ CreatorES <- function(silent=FALSE,...){
 ##### Now let's deal with holdout #####
     if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
-        errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        if(cumulative){
+            errormeasures <- errorMeasurer(sum(y.holdout),y.for,y);
+        }
+        else{
+            errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        }
+
 
 # Add PLS
         errormeasuresNames <- names(errormeasures);
@@ -1696,7 +1704,7 @@ CreatorES <- function(silent=FALSE,...){
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=nParam,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                      errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
+                      errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                       ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
@@ -1707,6 +1715,7 @@ CreatorES <- function(silent=FALSE,...){
                       initialType=initialType,
                       fitted=y.fit,forecast=y.for,
                       lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervalsType,level=level,
+                      cumulative=cumulative,
                       actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
                       xreg=xreg,updateX=updateX,
                       ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);

@@ -52,6 +52,7 @@
 #' account).
 #' \item \code{intervals} - type of intervals asked by user.
 #' \item \code{level} - confidence level for intervals.
+#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC,
@@ -232,7 +233,12 @@ CreatorSMA <- function(silentText=FALSE,...){
 
     if(holdout==T){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
-        errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        if(cumulative){
+            errormeasures <- errorMeasurer(sum(y.holdout),y.for,y);
+        }
+        else{
+            errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        }
     }
     else{
         y.holdout <- NA;
@@ -258,7 +264,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   states=matvt,transition=matF,persistence=vecg,
                   order=order, initialType=initialType, nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
-                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
+                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,intermittent="none",
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));
