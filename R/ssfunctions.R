@@ -1711,6 +1711,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     }
                 }
                 else{
+                    #This is wrong. And there's not way to make it right.
                     varVec <- sum(rowSums(log(1+errors))^2,na.rm=T)/df;
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
@@ -1776,6 +1777,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 lower <- A[1]*c(1:nVariables)^A[2];
             }
             else{
+                #This is wrong. And there's not way to make it right.
                 upper <- quantile(rowSums(ye),(1+level)/2);
                 lower <- quantile(rowSums(ye),(1-level)/2);
             }
@@ -2062,39 +2064,39 @@ ssForecaster <- function(...){
                 if(all(c(Etype,Stype,Ttype)!="M") |
                    all(c(Etype,Stype,Ttype)!="A") |
                    (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
-                    simulateint <- FALSE;
+                    simulateIntervals <- FALSE;
                 }
                 else{
-                    simulateint <- TRUE;
+                    simulateIntervals <- TRUE;
                 }
             }
             else{
-                simulateint <- FALSE;
+                simulateIntervals <- FALSE;
             }
 
             if(cumulative & Etype=="M"){
                # & intervalsType=="p"){ <--- this is temporary. We do not know what cumulative means for multiplicative models.
-                simulateint <- TRUE;
+                simulateIntervals <- TRUE;
             }
 
-            if(simulateint==TRUE){
-                n.samples <- 10000;
-                matg <- matrix(vecg,nComponents,n.samples);
-                arrvt <- array(NA,c(h+maxlag,nComponents,n.samples));
-                arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],n.samples);
-                materrors <- matrix(rnorm(h*n.samples,0,sqrt(s2)),h,n.samples);
+            if(simulateIntervals==TRUE){
+                nSamples <- 10000;
+                matg <- matrix(vecg,nComponents,nSamples);
+                arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
+                arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],nSamples);
+                materrors <- matrix(rnorm(h*nSamples,0,sqrt(s2)),h,nSamples);
 
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
                 if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(h*n.samples,1,iprob),h,n.samples);
+                    matot <- matrix(rbinom(h*nSamples,1,iprob),h,nSamples);
                 }
                 else{
-                    matot <- matrix(1,h,n.samples);
+                    matot <- matrix(1,h,nSamples);
                 }
 
-                y.simulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),n.samples)),matw,matg,
+                y.simulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
                                              Etype,Ttype,Stype,modellags)$matyt;
                 if(!is.null(xreg)){
                     y.exo.for <- c(y.for) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
@@ -2528,7 +2530,7 @@ ICFunction <- function(nParam=nParam,C,Etype=Etype){
 ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                      phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
-                     cfType="MSE", cfObjective=NULL, intervals=FALSE,
+                     cfType="MSE", cfObjective=NULL, intervals=FALSE, cumulative=FALSE,
                      intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
                      intermittent="n", iprob=1){
@@ -2692,6 +2694,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         else if(intervalsType=="a"){
             intervalsType <- "asymmetric";
+        }
+        if(cumulative){
+            intervalsType <- paste0("cumulative ",intervalsType);
         }
         cat(paste0(level*100,"% ",intervalsType," prediction intervals were constructed\n"));
     }
