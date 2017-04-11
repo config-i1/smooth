@@ -4,6 +4,7 @@ smooth v2.0.0 (Release data: 2017-04-18)
 Changes:
 * New function - ves() - Vector Exponential Smoothing. Currently under construction.
 * New parameter - cumulative - which makes functions return aggregated over the forecast horizon values (point and interval forecasts).
+* graphmaker() now treats cumulative forecasts.
 
 Bugfixes:
 * auto functions now also accept smooth.sim objects as data.
