@@ -1687,17 +1687,28 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Make a plot #####
     if(!silentGraph){
+        y.for.new <- y.for;
+        y.high.new <- y.high;
+        y.low.new <- y.low;
+        if(cumulative){
+            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            if(intervals){
+                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+            }
+        }
+
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       level=level,legend=!silentLegend,main=modelname);
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    level=level,legend=!silentLegend,main=modelname);
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 
-    ##### Return values #####
+##### Return values #####
     if(modelDo!="combine"){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,

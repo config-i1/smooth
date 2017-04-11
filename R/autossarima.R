@@ -318,7 +318,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         cat("\b\b\b\bDone!\n");
         bestModel <- ssarima(data,orders=list(ar=ar.best,i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=TRUE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,
+                             h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
                              intermittent=intermittent,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -352,7 +352,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             nParamOriginal <- 1;
             testModel <- ssarima(data,orders=list(ar=0,i=i.orders[d,],ma=0),lags=lags,
                                  constant=TRUE,initial=initialType,cfType=cfType,
-                                 h=h,holdout=holdout,
+                                 h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
                                  intermittent=intermittent,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -542,7 +542,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     if(any(c(ar.best,i.best,ma.best)!=0)){
         testModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=FALSE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,
+                             h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
                              intermittent=intermittent,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -593,14 +593,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testFittedNew[,i] <- testFitted[,j] + testFitted[,k] + testFitted[,i];
             }
         }
-        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=frequency(testModel$forecast));
-        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=frequency(testModel$lower));
-        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=frequency(testModel$upper));
-        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=frequency(testModel$fitted));
+        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=datafreq);
+        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=datafreq);
+        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=datafreq);
+        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=datafreq);
         modelname <- "ARIMA combined";
 
         errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=frequency(testModel$forecast));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
         s2 <- mean(errors^2);
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
         ICs <- c(t(testICs) %*% icWeights);
@@ -622,7 +622,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             #### Reestimate the best model in order to get rid of bias ####
             bestModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                                  constant=TRUE,initial=initialType,cfType=cfType,
-                                 h=h,holdout=holdout,
+                                 h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
                                  intermittent=intermittent,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -642,15 +642,26 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         cat("... Done! \n");
     }
 
-    # Make plot
-    if(silentGraph==FALSE){
-        if(intervals==TRUE){
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       level=level,legend=!silentLegend,main=modelname);
+##### Make a plot #####
+    if(!silentGraph){
+        y.for.new <- y.for;
+        y.high.new <- y.high;
+        y.low.new <- y.low;
+        if(cumulative){
+            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            if(intervals){
+                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+            }
+        }
+
+        if(intervals){
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                       level=level,legend=!silentLegend,main=modelname);
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 
