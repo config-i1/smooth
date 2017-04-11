@@ -57,7 +57,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 auto.ces <- function(data, models=c("none","simple","full"),
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                h=10, holdout=FALSE,
+                h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),

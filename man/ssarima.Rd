@@ -7,7 +7,7 @@
 ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
   "optimal"), ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM",
-  "MLSTFE", "MSTFE", "MSEh"), h = 10, holdout = FALSE,
+  "MLSTFE", "MSTFE", "MSEh"), h = 10, holdout = FALSE, cumulative = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, intermittent = c("none", "auto", "fixed", "croston", "tsb",
   "sba"), bounds = c("admissible", "none"), silent = c("none", "all",
@@ -66,6 +66,10 @@ of small samples.}
 
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
+
+\item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
+intervals are produced instead of the normal ones. This is useful for
+inventory control systems.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 

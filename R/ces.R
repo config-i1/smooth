@@ -140,7 +140,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 ces <- function(data, seasonality=c("none","simple","partial","full"),
                 initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                h=10, holdout=FALSE,
+                h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),

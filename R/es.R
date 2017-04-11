@@ -228,7 +228,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-               h=10, holdout=FALSE,
+               h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                intermittent=c("none","auto","fixed","croston","tsb","sba"),
                bounds=c("usual","admissible","none"),
@@ -1581,16 +1581,16 @@ CreatorES <- function(silent=FALSE,...){
         forecasts.list <- forecasts.list[,!badStuff];
         icWeights <- icWeights[!badStuff];
         model.current <- model.current[!badStuff];
-        y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=frequency(data));
-        y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=frequency(data));
-        errors <- ts(c(y) - y.fit,start=start(data),frequency=frequency(data));
+        y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=datafreq);
+        y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+        errors <- ts(c(y) - y.fit,start=start(data),frequency=datafreq);
         s2 <- mean(errors^2);
         names(icWeights) <- model.current;
         if(intervals){
             lowerList <- lowerList[,!badStuff];
             upperList <- upperList[,!badStuff];
-            y.low <- ts(lowerList %*% icWeights,start=start(y.for),frequency=frequency(data));
-            y.high <- ts(upperList %*% icWeights,start=start(y.for),frequency=frequency(data));
+            y.low <- ts(lowerList %*% icWeights,start=start(y.for),frequency=datafreq);
+            y.high <- ts(upperList %*% icWeights,start=start(y.for),frequency=datafreq);
         }
         else{
             y.low <- NA;
@@ -1632,7 +1632,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Now let's deal with holdout #####
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
 
 # Add PLS

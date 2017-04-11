@@ -1,7 +1,7 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
-                         "constant","AR","MA","data","y.fit"));
+                         "constant","AR","MA","data","y.fit","cumulative"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -1520,7 +1520,7 @@ ssFitter <- function(...){
 ##### *State-space intervals* #####
 ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
-                        modellags=NULL, states=NULL,
+                        modellags=NULL, states=NULL, cumulative=FALSE,
                         y.for=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
                         iprob=1, ivar=1){
 # Function constructs intervals based on the provided random variable.
@@ -1662,23 +1662,35 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 ##### If they want us to produce several steps ahead #####
     if(is.matrix(errors) | is.data.frame(errors)){
-        n.var <- ncol(errors);
-        obs <- nrow(errors);
-        if(length(ev)!=n.var & length(ev)!=1){
-            stop("Provided expected value doesn't correspond to the dimension of errors.", call.=FALSE);
+        if(!cumulative){
+            nVariables <- ncol(errors);
         }
-        else if(length(ev)==1){
-            ev <- rep(ev,n.var);
+        else{
+            nVariables <- 1;
+        }
+        obs <- nrow(errors);
+        # if(length(ev)!=nVariables & length(ev)!=1){
+        #     stop("Provided expected value doesn't correspond to the dimension of errors.", call.=FALSE);
+        # }
+        # else
+        if(length(ev)==1){
+            ev <- rep(ev,nVariables);
         }
 
-        upper <- rep(NA,n.var);
-        lower <- rep(NA,n.var);
+        upper <- rep(NA,nVariables);
+        lower <- rep(NA,nVariables);
 
 #### Asymmetric intervals using HM ####
         if(intervalsType=="a"){
-            for(i in 1:n.var){
-                upper[i] <- ev[i] + upperquant / hsmN^2 * Re(hm(errors[,i],ev[i]))^2;
-                lower[i] <- ev[i] + lowerquant / hsmN^2 * Im(hm(errors[,i],ev[i]))^2;
+            if(!cumulative){
+                for(i in 1:nVariables){
+                    upper[i] <- ev[i] + upperquant / hsmN^2 * Re(hm(errors[,i],ev[i]))^2;
+                    lower[i] <- ev[i] + lowerquant / hsmN^2 * Im(hm(errors[,i],ev[i]))^2;
+                }
+            }
+            else{
+                upper <- ev + upperquant / hsmN^2 * Re(hm(rowSums(errors),sum(ev)))^2;
+                lower <- ev + lowerquant / hsmN^2 * Im(hm(rowSums(errors),sum(ev)))^2;
             }
         }
 
@@ -1686,40 +1698,58 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         else if(intervalsType=="sp"){
             if(Etype=="M"){
                 errors[errors < -1] <- -0.999;
-                varVec <- colSums(log(1+errors)^2,na.rm=T)/df;
-                if(any(iprob!=1)){
-                    quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
-                    upper <- quants$upper;
-                    lower <- quants$lower;
+                if(!cumulative){
+                    varVec <- colSums(log(1+errors)^2,na.rm=T)/df;
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
+                        upper <- quants$upper;
+                        lower <- quants$lower;
+                    }
+                    else{
+                        upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
+                        lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                    }
                 }
                 else{
-                    upper <- qlnorm((1+level)/2,rep(0,n.var),sqrt(varVec));
-                    lower <- qlnorm((1-level)/2,rep(0,n.var),sqrt(varVec));
-                    # meanVec <- 1;
-                    # Return to normal values
-                    # varVec <- (exp(varVec) - 1) * exp(varVec);
-                    # Standartise quantiles
-                    # upperquant <- (upperquant - meanVec) / sqrt(varVec);
-                    # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
-                    # Take intermittent data into account
-                    # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
-                    # Write down quantiles with new variances
-                    # upper <- upperquant * sqrt(varVec);
-                    # lower <- lowerquant * sqrt(varVec);
+                    varVec <- sum(rowSums(log(1+errors))^2,na.rm=T)/df;
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
+                        upper <- quants$upper;
+                        lower <- quants$lower;
+                    }
+                    else{
+                        upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
+                        lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                    }
                 }
             }
             else{
-                errors <- errors - matrix(ev,nrow=obs,ncol=n.var,byrow=T);
-                varVec <- colSums(errors^2,na.rm=T)/df;
-                if(any(iprob!=1)){
-                    quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
-                    upper <- ev + quants$upper;
-                    lower <- ev + quants$lower;
+                if(!cumulative){
+                    errors <- errors - matrix(ev,nrow=obs,ncol=nVariables,byrow=T);
+                    varVec <- colSums(errors^2,na.rm=T)/df;
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
+                        upper <- ev + quants$upper;
+                        lower <- ev + quants$lower;
+                    }
+                    else{
+                        upper <- ev + upperquant * sqrt(varVec);
+                        lower <- ev + lowerquant * sqrt(varVec);
+                    }
                 }
                 else{
-                    # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
-                    upper <- ev + upperquant * sqrt(varVec);
-                    lower <- ev + lowerquant * sqrt(varVec);
+                    errors <- errors - matrix(ev,nrow=obs,ncol=ncol(errors),byrow=T);
+                    varVec <- sum(rowSums(errors,na.rm=T)^2,na.rm=T)/df;
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=sum(ev), sdVec=sqrt(varVec), Etype="A");
+                        upper <- sum(ev) + quants$upper;
+                        lower <- sum(ev) + quants$lower;
+                    }
+                    else{
+                        upper <- sum(ev) + upperquant * sqrt(varVec);
+                        lower <- sum(ev) + lowerquant * sqrt(varVec);
+                    }
+
                 }
             }
         }
@@ -1730,36 +1760,45 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             if(Etype=="M"){
                 ye <- 1 + ye;
             }
-            xe <- matrix(c(1:n.var),byrow=TRUE,ncol=n.var,nrow=nrow(errors));
-            xe <- xe[!is.na(ye)];
-            ye <- ye[!is.na(ye)];
+            if(!cumulative){
+                xe <- matrix(c(1:nVariables),byrow=TRUE,ncol=nVariables,nrow=nrow(errors));
+                xe <- xe[!is.na(errors)];
+                ye <- ye[!is.na(ye)];
 
-            A <- rep(1,2);
-            quant <- (1+level)/2;
-            A <- nlminb(A,quantfunc)$par;
-            upper <- A[1]*c(1:n.var)^A[2];
+                A <- rep(1,2);
+                quant <- (1+level)/2;
+                A <- nlminb(A,quantfunc)$par;
+                upper <- A[1]*c(1:nVariables)^A[2];
 
-            A <- rep(1,2);
-            quant <- (1-level)/2;
-            A <- nlminb(A,quantfunc)$par;
-            lower <- A[1]*c(1:n.var)^A[2];
+                A <- rep(1,2);
+                quant <- (1-level)/2;
+                A <- nlminb(A,quantfunc)$par;
+                lower <- A[1]*c(1:nVariables)^A[2];
+            }
+            else{
+                upper <- quantile(rowSums(ye),(1+level)/2);
+                lower <- quantile(rowSums(ye),(1-level)/2);
+            }
         }
 
 #### Parametric intervals ####
         else if(intervalsType=="p"){
             nComponents <- nrow(transition);
             maxlag <- max(modellags);
-            h <- n.var;
+            h <- length(y.for);
 
             # Vector of final variances
             varVec <- rep(NA,h);
+            if(cumulative){
+                covarVec <- rep(0,h);
+            }
 
 #### Pure multiplicative models ####
             if(Etype=="M"){
                 # Array of variance of states
-                mat.var.states <- array(0,c(nComponents,nComponents,h+maxlag));
-                mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
-                mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
+                matrixOfVarianceOfStates <- array(0,c(nComponents,nComponents,h+maxlag));
+                matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% t(persistence) * s2;
+                matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
 
                 # New transition and measurement for the internal use
                 transitionnew <- matrix(0,nComponents,nComponents);
@@ -1781,6 +1820,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
                 newelements <- modellags<=(chuncksofhorizon[1]);
                 measurementnew[,newelements] <- measurement[,newelements];
+                # This is needed for the first observations, where we do not care about the transition equation
                 varVec[1:min(h,maxlag)] <- s2;
 
                 for(j in 1:chunkslength){
@@ -1795,36 +1835,44 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         selectionmat[modellags>chuncksofhorizon[j],] <- i;
                         selectionmat[,modellags>chuncksofhorizon[j]] <- i;
 
-                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:nComponents),each=nComponents),
-                                                                                               rep(c(1:nComponents),nComponents),
-                                                                                               i - c(selectionmat))];
+                        matrixOfVarianceOfStatesLagged[newelements,newelements] <- matrixOfVarianceOfStates[cbind(rep(c(1:nComponents),each=nComponents),
+                                                                                                                  rep(c(1:nComponents),nComponents),
+                                                                                                                  i - c(selectionmat))];
 
-                        mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + s2g;
-                        varVec[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
+                        matrixOfVarianceOfStates[,,i] <- transitionnew %*% matrixOfVarianceOfStatesLagged %*% t(transitionnew) + s2g;
+                        varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
+                        if(cumulative){
+                            # This is just an approximation!
+                            covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                        }
                     }
                 }
-                if(any(iprob!=1)){
-                    quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
-                    # quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(y.for)), sdVec=sqrt(varVec), Etype="M");
-                    upper <- quants$upper;
-                    lower <- quants$lower;
+
+                ### Cumulative variance is different.
+                if(cumulative){
+                    varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
+                        upper <- quants$upper;
+                        lower <- quants$lower;
+                    }
+                    else{
+                        # Produce quantiles for log-normal dist with the specified variance
+                        upper <- sum(y.for)*qlnorm((1+level)/2,0,sqrt(varVec));
+                        lower <- sum(y.for)*qlnorm((1-level)/2,0,sqrt(varVec));
+                    }
                 }
                 else{
-                    # Produce quantiles for log-normal dist with the specified variance
-                    upper <- y.for*qlnorm((1+level)/2,0,sqrt(varVec));
-                    lower <- y.for*qlnorm((1-level)/2,0,sqrt(varVec));
-                    # Use median instead of mean and forget about the whole thing
-                    # meanVec <- 1;
-                    # Calculate variance for log-normal distribution
-                    # varVec <- (exp(varVec) - 1) * exp(varVec);
-                    # Standartise quantiles
-                    # upperquant <- (upperquant - meanVec) / sqrt(varVec);
-                    # lowerquant <- (lowerquant - meanVec) / sqrt(varVec);
-                    # Take intermittent data into account
-                    # varVec <- varVec * ivar + meanVec^2 * ivar + iprob^2 * varVec;
-                    # Write down quantiles with new variances
-                    # upper <- upperquant * sqrt(varVec);
-                    # lower <- lowerquant * sqrt(varVec);
+                    if(any(iprob!=1)){
+                        quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
+                        upper <- quants$upper;
+                        lower <- quants$lower;
+                    }
+                    else{
+                        # Produce quantiles for log-normal dist with the specified variance
+                        upper <- y.for*qlnorm((1+level)/2,0,sqrt(varVec));
+                        lower <- y.for*qlnorm((1-level)/2,0,sqrt(varVec));
+                    }
                 }
             }
 #### Multiplicative error and additive trend / seasonality
@@ -1837,9 +1885,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Pure Additive models ####
             else{
                 # Array of variance of states
-                mat.var.states <- array(0,c(nComponents,nComponents,h+maxlag));
-                mat.var.states[,,1:maxlag] <- persistence %*% t(persistence) * s2;
-                mat.var.states.lagged <- as.matrix(mat.var.states[,,1]);
+                matrixOfVarianceOfStates <- array(0,c(nComponents,nComponents,h+maxlag));
+                matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% t(persistence) * s2;
+                matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
 
                 # New transition and measurement for the internal use
                 transitionnew <- matrix(0,nComponents,nComponents);
@@ -1861,6 +1909,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
                 newelements <- modellags<=(chuncksofhorizon[1]);
                 measurementnew[,newelements] <- measurement[,newelements];
+                # This is needed for the first observations, where we do not care about the transition equation
                 varVec[1:min(h,maxlag)] <- s2;
 
                 for(j in 1:chunkslength){
@@ -1875,13 +1924,21 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         selectionmat[modellags>chuncksofhorizon[j],] <- i;
                         selectionmat[,modellags>chuncksofhorizon[j]] <- i;
 
-                        mat.var.states.lagged[newelements,newelements] <- mat.var.states[cbind(rep(c(1:nComponents),each=nComponents),
-                                                                                               rep(c(1:nComponents),nComponents),
-                                                                                               i - c(selectionmat))];
+                        matrixOfVarianceOfStatesLagged[newelements,newelements] <- matrixOfVarianceOfStates[cbind(rep(c(1:nComponents),each=nComponents),
+                                                                                                                  rep(c(1:nComponents),nComponents),
+                                                                                                                  i - c(selectionmat))];
 
-                        mat.var.states[,,i] <- transitionnew %*% mat.var.states.lagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
-                        varVec[i] <- measurementnew %*% mat.var.states.lagged %*% t(measurementnew) + s2;
+                        matrixOfVarianceOfStates[,,i] <- transitionnew %*% matrixOfVarianceOfStatesLagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
+                        varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
+                        if(cumulative){
+                            covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                        }
                     }
+                }
+
+                ### Cumulative variance is different.
+                if(cumulative){
+                    varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
                 }
 
                 if(any(iprob!=1)){
@@ -1891,7 +1948,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 }
                 else{
                     # Take intermittent data into account
-                    # varVec <- varVec * ivar + c(y.for)^2 * ivar + iprob^2 * varVec;
                     upper <- upperquant * sqrt(varVec);
                     lower <- lowerquant * sqrt(varVec);
                 }
@@ -1918,20 +1974,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 else{
                     upperquant <- y.for*qlnorm((1+level)/2,0,sqrt(s2));
                     lowerquant <- y.for*qlnorm((1-level)/2,0,sqrt(s2));
-                    # Return to normal values
-                    # s2 <- (exp(s2) - 1) * exp(s2);
-                    # Standartise quantiles
-                    # upperquant <- (upperquant - 1) / sqrt(s2);
-                    # lowerquant <- (lowerquant - 1) / sqrt(s2);
-                    # Take intermittent data into account
-                    # s2 <- s2 * ivar + ivar + iprob^2 * s2;
-                    # Write down quantiles with new variances
-                    # upper <- upperquant * sqrt(s2);
-                    # lower <- lowerquant * sqrt(s2);
                 }
             }
             else{
-                # s2 <- s2 * ivar + c(y.for)^2 * ivar + iprob^2 * s2;
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(s2), Etype="A");
                     upper <- quants$upper;
@@ -1988,6 +2033,7 @@ ssForecaster <- function(...){
                                    matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX),
                     start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
 
+        y.forStart <- start(y.for);
         if(Etype=="M" & any(y.for<0)){
             warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
                            "Please, use another model."),call.=FALSE);
@@ -2012,16 +2058,26 @@ ssForecaster <- function(...){
 
             # We don't simulate pure additive models, pure multiplicative and
             # additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
-            if(all(c(Etype,Stype,Ttype)!="M") |
-               all(c(Etype,Stype,Ttype)!="A") |
-               (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
-                simulateint <- FALSE;
+            if(intervalsType=="p"){
+                if(all(c(Etype,Stype,Ttype)!="M") |
+                   all(c(Etype,Stype,Ttype)!="A") |
+                   (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
+                    simulateint <- FALSE;
+                }
+                else{
+                    simulateint <- TRUE;
+                }
             }
             else{
+                simulateint <- FALSE;
+            }
+
+            if(cumulative & Etype=="M"){
+               # & intervalsType=="p"){ <--- this is temporary. We do not know what cumulative means for multiplicative models.
                 simulateint <- TRUE;
             }
 
-            if(intervalsType=="p" & simulateint==TRUE){
+            if(simulateint==TRUE){
                 n.samples <- 10000;
                 matg <- matrix(vecg,nComponents,n.samples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,n.samples));
@@ -2050,48 +2106,64 @@ ssForecaster <- function(...){
                 }
 
                 y.for <- c(pt.for)*y.for;
-                y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
-                y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=frequency(data));
+
+                if(cumulative){
+                    y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
+                    y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2) + sum(y.exo.for),start=start(y.for),frequency=datafreq);
+                    y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2) + sum(y.exo.for),start=start(y.for),frequency=datafreq);
+                }
+                else{
+                    y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=datafreq);
+                    y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=datafreq);
+                }
             }
             else{
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
+                                           cumulative=cumulative,
                                            y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                            iprob=iprob, ivar=ivar);
 
-                y.for <- c(pt.for)*y.for;
+                if(!(intervalsType=="sp" & Etype=="M")){
+                    y.for <- c(pt.for)*y.for;
+                }
+
+                if(cumulative){
+                    y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
+                }
+
                 if(Etype=="A"){
-                    if(any(iprob!=1)){
-                        y.high <- ceiling(c(y.for) + quantvalues$upper);
-                        y.low <- floor(c(y.for) + quantvalues$lower);
-                    }
-                    else{
+                    # if(any(iprob!=1)){
+                    #     y.high <- ceiling(c(y.for) + quantvalues$upper);
+                    #     y.low <- floor(c(y.for) + quantvalues$lower);
+                    # }
+                    # else{
                         y.high <- c(y.for) + quantvalues$upper;
                         y.low <- c(y.for) + quantvalues$lower;
-                    }
-                    y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
+                    # }
+                    y.low <- ts(y.low,start=start(y.for),frequency=datafreq);
+                    y.high <- ts(y.high,start=start(y.for),frequency=datafreq);
                 }
                 else{
                     if(intervalsType=="np"){
-                        quantvalues$upper <- quantvalues$upper*y.for;
-                        quantvalues$lower <- quantvalues$lower*y.for;
+                        quantvalues$upper <- quantvalues$upper * y.for;
+                        quantvalues$lower <- quantvalues$lower * y.for;
                     }
                     else if(intervalsType=="sp"){
-                        quantvalues$upper <- quantvalues$upper * y.for/c(pt.for);
-                        quantvalues$lower <- quantvalues$lower * y.for/c(pt.for);
+                        quantvalues$upper <- quantvalues$upper * y.for;
+                        quantvalues$lower <- quantvalues$lower * y.for;
                     }
-                    if(any(iprob!=1)){
-                        y.high <- ceiling(quantvalues$upper);
-                        y.low <- floor(quantvalues$lower);
-                    }
-                    else{
+                    # if(any(iprob!=1)){
+                    #     y.high <- ceiling(quantvalues$upper);
+                    #     y.low <- floor(quantvalues$lower);
+                    # }
+                    # else{
                         y.high <- quantvalues$upper;
                         y.low <- quantvalues$lower;
-                    }
-                    y.low <- ts(y.low,start=start(y.for),frequency=frequency(data));
-                    y.high <- ts(y.high,start=start(y.for),frequency=frequency(data));
+                    # }
+                    y.low <- ts(y.low,start=start(y.for),frequency=datafreq);
+                    y.high <- ts(y.high,start=start(y.for),frequency=datafreq);
                 }
             }
         }
