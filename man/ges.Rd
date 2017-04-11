@@ -177,6 +177,7 @@ smoothing parameters live.
 into account).
 \item \code{intervals} - type of intervals asked by user.
 \item \code{level} - confidence level for intervals.
+\item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
 \item \code{iprob} - fitted and forecasted values of the probability of demand

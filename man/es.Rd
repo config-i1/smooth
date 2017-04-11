@@ -202,6 +202,7 @@ it is returned just for the information.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 \item \code{intervals} - type of intervals asked by user.
 \item \code{level} - confidence level for intervals.
+\item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
 \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
@@ -242,6 +243,7 @@ shorter list of values is returned:
 \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
 \item \code{intervals},
 \item \code{level},
+\item \code{cumulative},
 \item \code{actuals},
 \item \code{holdout},
 \item \code{iprob},

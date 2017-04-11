@@ -89,6 +89,7 @@ smoothing parameters live.
 account).
 \item \code{intervals} - type of intervals asked by user.
 \item \code{level} - confidence level for intervals.
+\item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{ICs} - values of information criteria of the model. Includes AIC,
