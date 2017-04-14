@@ -5,9 +5,10 @@ Changes:
 * New function - ves() - Vector Exponential Smoothing. Currently under construction.
 * New parameter - cumulative - which makes functions return aggregated over the forecast horizon values (point and interval forecasts).
 * graphmaker() now treats cumulative forecasts.
+* Error measures take the possible cumulative nature of forecasts into account.
+* auto() functions now also accept smooth.sim objects as data.
 
 Bugfixes:
-* auto functions now also accept smooth.sim objects as data.
 * datafreq is now used in all the functions.
 
 
