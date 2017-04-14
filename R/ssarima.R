@@ -820,7 +820,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(holdout==T){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
         if(cumulative){
-            errormeasures <- errorMeasurer(sum(y.holdout),y.for,y);
+            errormeasures <- errorMeasurer(sum(y.holdout),y.for,h*y);
         }
         else{
             errormeasures <- errorMeasurer(y.holdout,y.for,y);
