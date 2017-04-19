@@ -48,8 +48,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \dots, v_{m,t}),}
 #' where \eqn{v_{i,t}} is vector of components for i-th time series.
 #' \deqn{\mathbf{W}' = (w_{1}, \dots , 0;
-#' \vdots & \ddots & \vdots;
-#' 0 & \vdots & w_{m})}{W' = (w_{1}, ... , 0;
+#' \vdots , \ddots , \vdots;
+#' 0 , \vdots , w_{m})}{W' = (w_{1}, ... , 0;
 #' ... , ... , ...;
 #' 0 , ... , w_{m})} is matrix of measurement vectors.
 #'
