@@ -350,6 +350,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 cat(paste0(round((m)/nModels,2)*100,"%"));
             }
             nParamOriginal <- 1;
+            if(silent[1]=="d"){
+                cat("I: ");cat(i.orders[d,]);cat(", ");
+            }
             testModel <- ssarima(data,orders=list(ar=0,i=i.orders[d,],ma=0),lags=lags,
                                  constant=TRUE,initial=initialType,cfType=cfType,
                                  h=h,holdout=holdout,cumulative=cumulative,
@@ -371,7 +374,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testPersistence[[m]] <- testModel$persistence;
             }
             if(silent[1]=="d"){
-                cat("I: ");cat(i.orders[d,]);cat(", ");
                 cat(ICValue); cat("\n");
             }
             if(m==1){
@@ -414,6 +416,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                             nParamMA <- sum(ma.test);
                             nParamNew <- nParamOriginal + nParamMA;
 
+                            if(silent[1]=="d"){
+                                cat("MA: ");cat(ma.test);cat(", ");
+                            }
                             testModel <- ssarima(dataI,orders=list(ar=0,i=0,ma=ma.test),lags=lags,
                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                  h=h,holdout=FALSE,
@@ -435,7 +440,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                 testPersistence[[m]] <- testModel$persistence;
                             }
                             if(silent[1]=="d"){
-                                cat("MA: ");cat(ma.test);cat(", ");
                                 cat(ICValue); cat("\n");
                             }
                             if(ICValue < bestICMA){
@@ -477,6 +481,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                             nParamAR <- sum(ar.test);
                                             nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
+                                            if(silent[1]=="d"){
+                                                cat("AR: ");cat(ar.test);cat(", ");
+                                            }
                                             testModel <- ssarima(dataMA,orders=list(ar=ar.test,i=0,ma=0),lags=lags,
                                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                                  h=h,holdout=FALSE,
@@ -498,7 +505,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                 testPersistence[[m]] <- testModel$persistence;
                                             }
                                             if(silent[1]=="d"){
-                                                cat("AR: ");cat(ar.test);cat(", ");
                                                 cat(ICValue); cat("\n");
                                             }
                                             if(ICValue < bestICAR){
