@@ -320,7 +320,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                              constant=TRUE,initial=initialType,cfType=cfType,
                              h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
-                             intermittent=intermittent,silent=TRUE,
+                             intermittent=intermittent,bounds=bounds,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         return(bestModel);
@@ -354,7 +354,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                  constant=TRUE,initial=initialType,cfType=cfType,
                                  h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
-                                 intermittent=intermittent,silent=TRUE,
+                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
             ICValue <- testModel$ICs[ic];
@@ -418,7 +418,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                  h=h,holdout=FALSE,
                                                  intervals=intervals,level=level,
-                                                 intermittent=intermittent,silent=TRUE,
+                                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                                  xreg=NULL, xregDo="use", initialX=initialX,
                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
@@ -481,7 +481,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                                  h=h,holdout=FALSE,
                                                                  intervals=intervals,level=level,
-                                                                 intermittent=intermittent,silent=TRUE,
+                                                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                                                  xreg=NULL, xregDo="use", initialX=initialX,
                                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
@@ -544,7 +544,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                              constant=FALSE,initial=initialType,cfType=cfType,
                              h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
-                             intermittent=intermittent,silent=TRUE,
+                             intermittent=intermittent,bounds=bounds,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         ICValue <- testModel$ICs[ic];
@@ -624,7 +624,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                  constant=TRUE,initial=initialType,cfType=cfType,
                                  h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
-                                 intermittent=intermittent,silent=TRUE,
+                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         }
