@@ -301,22 +301,22 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 # Cost function for SSARIMA
 CF <- function(C){
 
-    # cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
-    #                        ARValue, MAValue, constantValue, C,
-    #                        matvt, matF, matw, y, vecg,
-    #                        h, modellags, Etype, Ttype, Stype,
-    #                        multisteps, cfType, normalizer, initialType,
-    #                        nExovars, matxt, matat, matFX, vecgX, ot,
-    #                        AREstimate, MAEstimate, constantRequired, constantEstimate,
-    #                        xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
-    #                        bounds);
+    cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
+                           ARValue, MAValue, constantValue, C,
+                           matvt, matF, matw, y, vecg,
+                           h, modellags, Etype, Ttype, Stype,
+                           multisteps, cfType, normalizer, initialType,
+                           nExovars, matxt, matat, matFX, vecgX, ot,
+                           AREstimate, MAEstimate, constantRequired, constantEstimate,
+                           xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
+                           bounds);
 
-    elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
-                            ARValue, MAValue, constantValue, C,
-                            matvt, vecg, matF,
-                            initialType, nExovars, matat, matFX, vecgX,
-                            AREstimate, MAEstimate, constantRequired, constantEstimate,
-                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
+    # elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
+    #                         ARValue, MAValue, constantValue, C,
+    #                         matvt, vecg, matF,
+    #                         initialType, nExovars, matat, matFX, vecgX,
+    #                         AREstimate, MAEstimate, constantRequired, constantEstimate,
+    #                         xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
     # matF <- elements$matF;
     # vecg <- elements$vecg;
     # matvt[,] <- elements$matvt;
@@ -324,24 +324,25 @@ CF <- function(C){
     # matat[,] <- elements$matat;
     # matFX <- elements$matFX;
     # vecgX <- elements$vecgX;
-    polysos.ar <- elements$arPolynomial;
-    polysos.ma <- elements$maPolynomial;
 
-    if(bounds=="a" & (nComponents > 0)){
-        arroots <- abs(polyroot(polysos.ar));
-        if(any(arroots<1)){
-            return(max(arroots)*1E+100);
-        }
-        maroots <- abs(polyroot(polysos.ma));
-        if(any(maroots<1)){
-            return(max(maroots)*1E+100);
-        }
-    }
-
-    cfRes <- optimizerwrap(elements$matvt, elements$matF, matw, y, elements$vecg,
-                           h, modellags, Etype, Ttype, Stype,
-                           multisteps, cfType, normalizer, initialType,
-                           matxt, elements$matat, elements$matFX, elements$vecgX, ot);
+    # polysos.ar <- elements$arPolynomial;
+    # polysos.ma <- elements$maPolynomial;
+    #
+    # if(bounds=="a" & (nComponents > 0)){
+    #     arRoots <- abs(polyroot(polysos.ar));
+    #     if(any(arRoots<1)){
+    #         return(max(arRoots)*1E+100);
+    #     }
+    #     maRoots <- abs(polyroot(polysos.ma));
+    #     if(any(maRoots<1)){
+    #         return(max(maRoots)*1E+100);
+    #     }
+    # }
+    #
+    # cfRes <- optimizerwrap(elements$matvt, elements$matF, matw, y, elements$vecg,
+    #                        h, modellags, Etype, Ttype, Stype,
+    #                        multisteps, cfType, normalizer, initialType,
+    #                        matxt, elements$matat, elements$matFX, elements$vecgX, ot);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -636,8 +637,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         vecgX <- elements$vecgX;
         polysos.ar <- elements$arPolynomial;
         polysos.ma <- elements$maPolynomial;
-        arroots <- abs(polyroot(polysos.ar));
-        maroots <- abs(polyroot(polysos.ma));
+        # Need to remove polyroot() here as well and find a better substitution
+        arRoots <- abs(polyroot(polysos.ar));
+        maRoots <- abs(polyroot(polysos.ma));
 
         ssFitter(ParentEnvironment=environment());
 
@@ -698,8 +700,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     vecgX <- elements$vecgX;
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
-    arroots <- abs(polyroot(polysos.ar));
-    maroots <- abs(polyroot(polysos.ma));
+    # Need to remove polyroot() here as well and find a better substitution
+    arRoots <- polyroot(polysos.ar);
+    maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
     # Write down Fisher Information if needed
@@ -878,7 +881,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
 ##### Print warnings #####
-    if(any(maroots<1)){
+    if(any(abs(maRoots)<1)){
         if(bounds!="a"){
             warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
         }
@@ -887,7 +890,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                     ,call.=FALSE);
         }
     }
-    if(any(arroots<1)){
+    arRoots <<- arRoots;
+    if(any(abs(arRoots)<1)){
         if(bounds!="a"){
             warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
                     ,call.=FALSE);
