@@ -1685,179 +1685,179 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
 
 /* # This is a costfunction for SSARIMA. It initialises ARIMA, checks conditions and then fits the model */
-// // [[Rcpp::export]]
-// RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp,
-//                               SEXP AR, SEXP MA, SEXP constant, SEXP Cvalues,
-//                               SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
-//                               SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-//                               SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP fittertype,
-//                               SEXP nexovars, SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
-//                               SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst,
-//                               SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX,
-//                               SEXP bounds) {
-//
-//     IntegerVector ARorders_n(ARorders);
-//     arma::uvec arOrders = as<arma::uvec>(ARorders_n);
-//
-//     IntegerVector MAorders_n(MAorders);
-//     arma::uvec maOrders = as<arma::uvec>(MAorders_n);
-//
-//     IntegerVector Iorders_n(Iorders);
-//     arma::uvec iOrders = as<arma::uvec>(Iorders_n);
-//
-//     IntegerVector ARIMAlags_n(ARIMAlags);
-//     arma::uvec lagsARIMA = as<arma::uvec>(ARIMAlags_n);
-//
-//     int nComponents = as<int>(nComp);
-//
-//     NumericVector AR_n;
-//     if(!Rf_isNull(AR)){
-//         AR_n = as<NumericVector>(AR);
-//     }
-//     arma::vec arValues(AR_n.begin(), AR_n.size(), false);
-//
-//     NumericVector MA_n;
-//     if(!Rf_isNull(MA)){
-//         MA_n = as<NumericVector>(MA);
-//     }
-//     arma::vec maValues(MA_n.begin(), MA_n.size(), false);
-//
-//     double constValue;
-//     if(!Rf_isNull(constant)){
-//         constValue = as<double>(constant);
-//     }
-//
-//     NumericVector Cvalues_n;
-//     if(!Rf_isNull(Cvalues)){
-//         Cvalues_n = as<NumericVector>(Cvalues);
-//     }
-//     arma::vec C(Cvalues_n.begin(), Cvalues_n.size(), false);
-//
-//     NumericMatrix matvt_n(matvt);
-//     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
-//
-//     NumericMatrix vecg_n(vecg);
-//     arma::vec vecG(vecg_n.begin(), vecg_n.nrow());
-//
-//     NumericMatrix matF_n(matF);
-//     arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol());
-//
-//     char fitterType = as<char>(fittertype);
-//
-//     int nexo = as<int>(nexovars);
-//
-//     NumericMatrix matat_n(matat);
-//     arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
-//
-//     NumericMatrix matFX_n(matFX);
-//     arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol());
-//
-//     NumericMatrix vecgX_n(vecgX);
-//     arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow());
-//
-//     bool arEstimate = as<bool>(estimAR);
-//     bool maEstimate = as<bool>(estimMA);
-//     bool constRequired = as<bool>(requireConst);
-//     bool constEstimate = as<bool>(estimConst);
-//     bool initialEstimate = (fitterType=='o');
-//     bool xregEstimate = as<bool>(estimxreg);
-//     bool wild = as<bool>(gowild);
-//     bool fXEstimate = as<bool>(estimFX);
-//     bool gXEstimate = as<bool>(estimgX);
-//     bool initialXEstimate = as<bool>(estiminitX);
-//
-// // Initialise ARIMA
-//     List polynomials = polysos(arOrders, maOrders, iOrders, lagsARIMA, nComponents,
-//                                arValues, maValues, constValue, C,
-//                                matrixVt, vecG, matrixF,
-//                                fitterType, nexo, matrixAt, matrixFX, vecGX,
-//                                arEstimate, maEstimate, constRequired, constEstimate,
-//                                xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate);
-//
-//     matvt_n = as<NumericMatrix>(polynomials["matvt"]);
-//     matrixVt = as<arma::mat>(matvt_n);
-//
-//     matF_n = as<NumericMatrix>(polynomials["matF"]);
-//     matrixF = as<arma::mat>(matF_n);
-//
-//     NumericMatrix matw_n(matw);
-//     arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
-//
-//     NumericMatrix yt_n(yt);
-//     arma::vec vecYt(yt_n.begin(), yt_n.nrow(), false);
-//
-//     vecg_n = as<NumericMatrix>(polynomials["vecg"]);
-//     vecG = as<arma::mat>(vecg_n);
-//
-//     int hor = as<int>(h);
-//
-//     IntegerVector modellags_n(modellags);
-//     arma::uvec lags = as<arma::uvec>(modellags_n);
-//
-//     char E = as<char>(Etype);
-//     char T = as<char>(Ttype);
-//     char S = as<char>(Stype);
-//
-//     bool multi = as<bool>(multisteps);
-//
-//     std::string CFtype = as<std::string>(CFt);
-//
-//     double normalize = as<double>(normalizer);
-//
-//     NumericMatrix matxt_n(matxt);
-//     arma::mat matrixXt(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
-//
-//     matat_n = as<NumericMatrix>(polynomials["matat"]);
-//     matrixAt = as<arma::mat>(matat_n);
-//
-//     matFX_n = as<NumericMatrix>(polynomials["matFX"]);
-//     matrixFX = as<arma::mat>(matFX_n);
-//
-//     vecgX_n = as<NumericMatrix>(polynomials["vecgX"]);
-//     vecGX = as<arma::mat>(vecgX_n);
-//
-//     NumericVector ot_n(ot);
-//     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
-//
-//     char boundtype = as<char>(bounds);
-//
-//     if((nComponents>0) & (boundtype=='a')){
-//         arma::cx_vec eigval;
-//
-// // Check stability condition
-//         if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
-//             if(max(abs(eigval))> (1 + 1E-50)){
-//                 return wrap(max(abs(eigval))*1E+100);
-//             }
-//         }
-//         else{
-//             return wrap(1E+300);
-//         }
-//
-// // Check stationarity condition
-//         if(as_scalar(arOrders.t() * lagsARIMA) > 0){
-//             NumericMatrix arPolynom = as<NumericMatrix>(polynomials["arPolynomial"]);
-//             arma::mat arPolynomial = as<arma::mat>(arPolynom);
-//
-//             arma::mat arMatrixF = matrixF.submat(0,0,arPolynomial.n_elem-2,arPolynomial.n_elem-2);
-//             arMatrixF.submat(0,0,arMatrixF.n_rows-1,0) = arPolynomial.rows(1,arPolynomial.n_elem-1);
-//
-//             if(arma::eig_gen(eigval, arMatrixF)){
-//                 if(max(abs(eigval))> 1){
-//                     return wrap(max(abs(eigval))*1E+100);
-//                 }
-//             }
-//             else{
-//                 return wrap(1E+300);
-//             }
-//         }
-//     }
-//
-//     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
-//                           hor, lags, E, T, S,
-//                           multi, CFtype, normalize, fitterType,
-//                           matrixXt, matrixAt, matrixFX, vecGX, vecOt));
-// }
+// [[Rcpp::export]]
+RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp,
+                              SEXP AR, SEXP MA, SEXP constant, SEXP Cvalues,
+                              SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
+                              SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
+                              SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP fittertype,
+                              SEXP nexovars, SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
+                              SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst,
+                              SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX,
+                              SEXP bounds) {
+
+    IntegerVector ARorders_n(ARorders);
+    arma::uvec arOrders = as<arma::uvec>(ARorders_n);
+
+    IntegerVector MAorders_n(MAorders);
+    arma::uvec maOrders = as<arma::uvec>(MAorders_n);
+
+    IntegerVector Iorders_n(Iorders);
+    arma::uvec iOrders = as<arma::uvec>(Iorders_n);
+
+    IntegerVector ARIMAlags_n(ARIMAlags);
+    arma::uvec lagsARIMA = as<arma::uvec>(ARIMAlags_n);
+
+    int nComponents = as<int>(nComp);
+
+    NumericVector AR_n;
+    if(!Rf_isNull(AR)){
+        AR_n = as<NumericVector>(AR);
+    }
+    arma::vec arValues(AR_n.begin(), AR_n.size(), false);
+
+    NumericVector MA_n;
+    if(!Rf_isNull(MA)){
+        MA_n = as<NumericVector>(MA);
+    }
+    arma::vec maValues(MA_n.begin(), MA_n.size(), false);
+
+    double constValue;
+    if(!Rf_isNull(constant)){
+        constValue = as<double>(constant);
+    }
+
+    NumericVector Cvalues_n;
+    if(!Rf_isNull(Cvalues)){
+        Cvalues_n = as<NumericVector>(Cvalues);
+    }
+    arma::vec C(Cvalues_n.begin(), Cvalues_n.size(), false);
+
+    NumericMatrix matvt_n(matvt);
+    arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
+
+    NumericMatrix vecg_n(vecg);
+    arma::vec vecG(vecg_n.begin(), vecg_n.nrow());
+
+    NumericMatrix matF_n(matF);
+    arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol());
+
+    char fitterType = as<char>(fittertype);
+
+    int nexo = as<int>(nexovars);
+
+    NumericMatrix matat_n(matat);
+    arma::mat matrixAt(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
+
+    NumericMatrix matFX_n(matFX);
+    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol());
+
+    NumericMatrix vecgX_n(vecgX);
+    arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow());
+
+    bool arEstimate = as<bool>(estimAR);
+    bool maEstimate = as<bool>(estimMA);
+    bool constRequired = as<bool>(requireConst);
+    bool constEstimate = as<bool>(estimConst);
+    bool initialEstimate = (fitterType=='o');
+    bool xregEstimate = as<bool>(estimxreg);
+    bool wild = as<bool>(gowild);
+    bool fXEstimate = as<bool>(estimFX);
+    bool gXEstimate = as<bool>(estimgX);
+    bool initialXEstimate = as<bool>(estiminitX);
+
+// Initialise ARIMA
+    List polynomials = polysos(arOrders, maOrders, iOrders, lagsARIMA, nComponents,
+                               arValues, maValues, constValue, C,
+                               matrixVt, vecG, matrixF,
+                               fitterType, nexo, matrixAt, matrixFX, vecGX,
+                               arEstimate, maEstimate, constRequired, constEstimate,
+                               xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate);
+
+    matvt_n = as<NumericMatrix>(polynomials["matvt"]);
+    matrixVt = as<arma::mat>(matvt_n);
+
+    matF_n = as<NumericMatrix>(polynomials["matF"]);
+    matrixF = as<arma::mat>(matF_n);
+
+    NumericMatrix matw_n(matw);
+    arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
+
+    NumericMatrix yt_n(yt);
+    arma::vec vecYt(yt_n.begin(), yt_n.nrow(), false);
+
+    vecg_n = as<NumericMatrix>(polynomials["vecg"]);
+    vecG = as<arma::mat>(vecg_n);
+
+    int hor = as<int>(h);
+
+    IntegerVector modellags_n(modellags);
+    arma::uvec lags = as<arma::uvec>(modellags_n);
+
+    char E = as<char>(Etype);
+    char T = as<char>(Ttype);
+    char S = as<char>(Stype);
+
+    bool multi = as<bool>(multisteps);
+
+    std::string CFtype = as<std::string>(CFt);
+
+    double normalize = as<double>(normalizer);
+
+    NumericMatrix matxt_n(matxt);
+    arma::mat matrixXt(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+
+    matat_n = as<NumericMatrix>(polynomials["matat"]);
+    matrixAt = as<arma::mat>(matat_n);
+
+    matFX_n = as<NumericMatrix>(polynomials["matFX"]);
+    matrixFX = as<arma::mat>(matFX_n);
+
+    vecgX_n = as<NumericMatrix>(polynomials["vecgX"]);
+    vecGX = as<arma::mat>(vecgX_n);
+
+    NumericVector ot_n(ot);
+    arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
+
+    char boundtype = as<char>(bounds);
+
+    if((nComponents>0) & (boundtype=='a')){
+        arma::cx_vec eigval;
+
+// Check stability condition
+        if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
+            if(max(abs(eigval))> (1 + 1E-50)){
+                return wrap(max(abs(eigval))*1E+100);
+            }
+        }
+        else{
+            return wrap(1E+300);
+        }
+
+// Check stationarity condition
+        if(as_scalar(arOrders.t() * lagsARIMA) > 0){
+            NumericMatrix arPolynom = as<NumericMatrix>(polynomials["arPolynomial"]);
+            arma::mat arPolynomial = as<arma::mat>(arPolynom);
+
+            arma::mat arMatrixF = matrixF.submat(0,0,arPolynomial.n_elem-2,arPolynomial.n_elem-2);
+            arMatrixF.submat(0,0,arMatrixF.n_rows-1,0) = arPolynomial.rows(1,arPolynomial.n_elem-1);
+
+            if(arma::eig_gen(eigval, arMatrixF)){
+                if(max(abs(eigval))> 1){
+                    return wrap(max(abs(eigval))*1E+100);
+                }
+            }
+            else{
+                return wrap(1E+300);
+            }
+        }
+    }
+
+    return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
+                          hor, lags, E, T, S,
+                          multi, CFtype, normalize, fitterType,
+                          matrixXt, matrixAt, matrixFX, vecGX, vecOt));
+}
 
 /*
 # autoets - function estimates all the necessary ETS models and returns the one with the smallest chosen IC.
