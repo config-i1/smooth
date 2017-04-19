@@ -7,6 +7,7 @@ Changes:
 * graphmaker() now treats cumulative forecasts.
 * Error measures take the possible cumulative nature of forecasts into account.
 * auto() functions now also accept smooth.sim objects as data.
+* polyroot() was working badly for multiple seasonal ARIMAs, so I had to ditch it in favour for my Rcpp function. SSARIMA now works even slower. Will need to optimise it somehow.
 
 Bugfixes:
 * datafreq is now used in all the functions.
