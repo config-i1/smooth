@@ -881,26 +881,26 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
 ##### Print warnings #####
-    if(any(abs(maRoots)<1)){
-        if(bounds!="a"){
-            warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
-        }
-        else{
-            warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
-                    ,call.=FALSE);
-        }
-    }
-    arRoots <<- arRoots;
-    if(any(abs(arRoots)<1)){
-        if(bounds!="a"){
-            warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
-                    ,call.=FALSE);
-        }
-        else{
-            warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
-                    ,call.=FALSE);
-        }
-    }
+    # if(any(abs(maRoots)<1)){
+    #     if(bounds!="a"){
+    #         warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
+    #     }
+    #     else{
+    #         warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
+    #                 ,call.=FALSE);
+    #     }
+    # }
+    #
+    # if(any(abs(arRoots)<1)){
+    #     if(bounds!="a"){
+    #         warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
+    #                 ,call.=FALSE);
+    #     }
+    #     else{
+    #         warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
+    #                 ,call.=FALSE);
+    #     }
+    # }
 
 ##### Make a plot #####
     if(!silentGraph){
