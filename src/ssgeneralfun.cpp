@@ -10,7 +10,7 @@ arma::mat matrixPower(arma::mat A, int power){
     arma::mat B(A.n_rows, A.n_rows, arma::fill::eye);
 
     if(power!=0){
-        for(int i=0; i<power; i++){
+        for(int i=0; i<power; ++i){
             B = B * A;
         }
     }
@@ -35,8 +35,8 @@ arma::vec polyMult(arma::vec poly1, arma::vec poly2){
 
     arma::vec poly3(poly1Nonzero + poly2Nonzero + 1, arma::fill::zeros);
 
-    for(int i = 0; i <= poly1Nonzero; i++){
-        for(int j = 0; j <= poly2Nonzero; j++){
+    for(int i = 0; i <= poly1Nonzero; ++i){
+        for(int j = 0; j <= poly2Nonzero; ++j){
             poly3(i+j) += poly1(i) * poly2(j);
         }
     }
@@ -676,9 +676,9 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
     int nParam = 0;
     int arnParam = 0;
     int manParam = 0;
-    for(unsigned int i=0; i<lags.n_rows; i++){
+    for(unsigned int i=0; i<lags.n_rows; ++i){
         if(arOrders(i) * lags(i) != 0){
-            for(unsigned int j=0; j<arOrders(i); j++){
+            for(unsigned int j=0; j<arOrders(i); ++j){
                 if(arEstimate){
                     arParameters((j+1)*lags(i),i) = -C(nParam);
                     nParam += 1;
@@ -695,7 +695,7 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
         }
 
         if(maOrders(i) * lags(i) != 0){
-            for(unsigned int j=0; j<maOrders(i); j++){
+            for(unsigned int j=0; j<maOrders(i); ++j){
                 if(maEstimate){
                     maParameters((j+1)*lags(i),i) = C(nParam);
                     nParam += 1;
@@ -719,7 +719,7 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
     iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
     maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
 
-    for(unsigned int i=0; i<lags.n_rows; i++){
+    for(unsigned int i=0; i<lags.n_rows; ++i){
 // Form polynomials
         if(i!=0){
             buferPolynomial = polyMult(arPolynomial, arParameters.col(i));
@@ -732,7 +732,7 @@ List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma:
             iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
         }
         if(iOrders(i)>1){
-            for(unsigned int j=1; j<iOrders(i); j++){
+            for(unsigned int j=1; j<iOrders(i); ++j){
                 buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
                 iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
             }
@@ -1380,18 +1380,18 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
 
     if(CFtypeswitch(CFtype)>7){
 // Form vector for basic values and matrix Mu
-        for(unsigned int i=1; i<hor; i++){
+        for(unsigned int i=1; i<hor; ++i){
             veccij(i) = as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
         }
 
 // Fill in the diagonal of Sigma matrix
-        for(unsigned int i=1; i<hor; i++){
+        for(unsigned int i=1; i<hor; ++i){
             matrixSigma(i,i) = matrixSigma(i-1,i-1) + pow(veccij(i),2);
         }
 
         if(CFtype=="aTFL"){
-            for(unsigned int i=0; i<hor; i++){
-                for(unsigned int j=0; j<hor; j++){
+            for(unsigned int i=0; i<hor; ++i){
+                for(unsigned int j=0; j<hor; ++j){
                     if(i>=j){
                         continue;
                     }
