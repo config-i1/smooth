@@ -1,4 +1,4 @@
-smooth v2.0.0 (Release data: 2017-04-18)
+smooth v2.0.0 (Release data: 2017-04-28)
 ==============
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * auto() functions now also accept smooth.sim objects as data.
 * polyroot() was working badly for multiple seasonal ARIMAs, so I had to ditch it in favour for my Rcpp function. SSARIMA now works even slower. Will need to optimise it somehow.
 * Updated vignettes, showing how multiple seasonal ARIMA can be estimated.
+* Renamed MLSTFE into GMSTFE - Geometric Mean Squared Trace Forecast Error. This is slightly easier to remember.
 
 Bugfixes:
 * datafreq is now used in all the functions.

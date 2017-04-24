@@ -7,7 +7,7 @@
 ges(data, orders = c(1, 1), lags = c(1, frequency(data)),
   persistence = NULL, transition = NULL, measurement = NULL,
   initial = c("optimal", "backcasting"), ic = c("AICc", "AIC", "BIC"),
-  cfType = c("MSE", "MAE", "HAM", "MLSTFE", "MSTFE", "MSEh"), h = 10,
+  cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
   "auto", "fixed", "croston", "tsb", "sba"), bounds = c("admissible", "none"),

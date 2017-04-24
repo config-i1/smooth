@@ -7,7 +7,7 @@
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(data)), combine = FALSE, workFast = TRUE,
   initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
-  cfType = c("MSE", "MAE", "HAM", "MLSTFE", "MSTFE", "MSEh"), h = 10,
+  cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
   "auto", "fixed", "croston", "tsb", "sba"), bounds = c("admissible", "none"),

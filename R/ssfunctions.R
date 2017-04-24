@@ -636,7 +636,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("MLSTFE","MSTFE","TFL","MSEh","aMLSTFE","aMSTFE","aTFL","aMSEh"))){
+    if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
         multisteps <- TRUE;
     }
     else if(any(cfType==c("MSE","MAE","HAM"))){
@@ -1092,12 +1092,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
+    if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aGMSTFE"))){
         warning(paste0("Do you seriously think that you can use ",cfType,
                        " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
-    else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aMLSTFE"))){
+    else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aGMSTFE"))){
         warning(paste0("Number of observations is really low for a multisteps cost function! ",
                        "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
@@ -1343,7 +1343,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("MLSTFE","MSTFE","TFL","MSEh","aMLSTFE","aMSTFE","aTFL","aMSEh"))){
+    if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
         multisteps <- TRUE;
     }
     else if(any(cfType==c("MSE","MAE","HAM"))){

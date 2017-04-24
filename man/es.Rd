@@ -6,7 +6,7 @@
 \usage{
 es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), initialSeason = NULL,
-  ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "MLSTFE",
+  ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "GMSTFE",
   "MSTFE", "MSEh"), h = 10, holdout = FALSE, cumulative = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, intermittent = c("none", "auto", "fixed", "croston", "tsb",

@@ -1305,14 +1305,14 @@ RcppExport SEXP errorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt,
 
 int CFtypeswitch (std::string const& CFtype) {
     if (CFtype == "TFL") return 1;
-    if (CFtype == "MLSTFE") return 2;
+    if (CFtype == "GMSTFE") return 2;
     if (CFtype == "MSTFE") return 3;
     if (CFtype == "MSEh") return 4;
     if (CFtype == "MAE") return 5;
     if (CFtype == "HAM") return 6;
     if (CFtype == "MSE") return 7;
     if (CFtype == "aTFL") return 8;
-    if (CFtype == "aMLSTFE") return 9;
+    if (CFtype == "aGMSTFE") return 9;
     if (CFtype == "aMSTFE") return 10;
     if (CFtype == "aMSEh") return 11;
     else return 7;
