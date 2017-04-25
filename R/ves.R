@@ -48,8 +48,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \dots, v_{m,t}),}
 #' where \eqn{v_{i,t}} is vector of components for i-th time series.
 #' \deqn{\mathbf{W}' = (w_{1}, \dots , 0;
-#' \vdots & \ddots & \vdots;
-#' 0 & \vdots & w_{m})}{W' = (w_{1}, ... , 0;
+#' \vdots , \ddots , \vdots;
+#' 0 , \vdots , w_{m})}{W' = (w_{1}, ... , 0;
 #' ... , ... , ...;
 #' 0 , ... , w_{m})} is matrix of measurement vectors.
 #'
@@ -117,7 +117,7 @@ ves <- function(data, model="ANN", persistence=c("individual","group"),
                 transition=c("individual","group"), measurement=c("individual","group"),
                 phi=c("individual","group"), initial=c("optimal","backcasting"),
                 initialSeason=c("individual","group"), ic=c("AICc","AIC","BIC"),
-                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
+                cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                 h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),

@@ -76,8 +76,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(data)),
                          combine=FALSE, workFast=TRUE,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
-                         cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                         h=10, holdout=FALSE,
+                         cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
+                         h=10, holdout=FALSE, cumulative=FALSE,
                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                          intermittent=c("none","auto","fixed","croston","tsb","sba"),
                          bounds=c("admissible","none"),
@@ -318,9 +318,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         cat("\b\b\b\bDone!\n");
         bestModel <- ssarima(data,orders=list(ar=ar.best,i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=TRUE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,
+                             h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
-                             intermittent=intermittent,silent=TRUE,
+                             intermittent=intermittent,bounds=bounds,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         return(bestModel);
@@ -350,11 +350,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 cat(paste0(round((m)/nModels,2)*100,"%"));
             }
             nParamOriginal <- 1;
+            if(silent[1]=="d"){
+                cat("I: ");cat(i.orders[d,]);cat(", ");
+            }
             testModel <- ssarima(data,orders=list(ar=0,i=i.orders[d,],ma=0),lags=lags,
                                  constant=TRUE,initial=initialType,cfType=cfType,
-                                 h=h,holdout=holdout,
+                                 h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
-                                 intermittent=intermittent,silent=TRUE,
+                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
             ICValue <- testModel$ICs[ic];
@@ -371,7 +374,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testPersistence[[m]] <- testModel$persistence;
             }
             if(silent[1]=="d"){
-                cat("I: ");cat(i.orders[d,]);cat(", ");
                 cat(ICValue); cat("\n");
             }
             if(m==1){
@@ -414,11 +416,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                             nParamMA <- sum(ma.test);
                             nParamNew <- nParamOriginal + nParamMA;
 
+                            if(silent[1]=="d"){
+                                cat("MA: ");cat(ma.test);cat(", ");
+                            }
                             testModel <- ssarima(dataI,orders=list(ar=0,i=0,ma=ma.test),lags=lags,
                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                  h=h,holdout=FALSE,
                                                  intervals=intervals,level=level,
-                                                 intermittent=intermittent,silent=TRUE,
+                                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                                  xreg=NULL, xregDo="use", initialX=initialX,
                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
@@ -435,7 +440,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                 testPersistence[[m]] <- testModel$persistence;
                             }
                             if(silent[1]=="d"){
-                                cat("MA: ");cat(ma.test);cat(", ");
                                 cat(ICValue); cat("\n");
                             }
                             if(ICValue < bestICMA){
@@ -477,11 +481,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                             nParamAR <- sum(ar.test);
                                             nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
+                                            if(silent[1]=="d"){
+                                                cat("AR: ");cat(ar.test);cat(", ");
+                                            }
                                             testModel <- ssarima(dataMA,orders=list(ar=ar.test,i=0,ma=0),lags=lags,
                                                                  constant=FALSE,initial=initialType,cfType=cfType,
                                                                  h=h,holdout=FALSE,
                                                                  intervals=intervals,level=level,
-                                                                 intermittent=intermittent,silent=TRUE,
+                                                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                                                  xreg=NULL, xregDo="use", initialX=initialX,
                                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
                                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
@@ -498,7 +505,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                 testPersistence[[m]] <- testModel$persistence;
                                             }
                                             if(silent[1]=="d"){
-                                                cat("AR: ");cat(ar.test);cat(", ");
                                                 cat(ICValue); cat("\n");
                                             }
                                             if(ICValue < bestICAR){
@@ -542,9 +548,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     if(any(c(ar.best,i.best,ma.best)!=0)){
         testModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                              constant=FALSE,initial=initialType,cfType=cfType,
-                             h=h,holdout=holdout,
+                             h=h,holdout=holdout,cumulative=cumulative,
                              intervals=intervals,level=level,
-                             intermittent=intermittent,silent=TRUE,
+                             intermittent=intermittent,bounds=bounds,silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         ICValue <- testModel$ICs[ic];
@@ -593,14 +599,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testFittedNew[,i] <- testFitted[,j] + testFitted[,k] + testFitted[,i];
             }
         }
-        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=frequency(testModel$forecast));
-        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=frequency(testModel$lower));
-        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=frequency(testModel$upper));
-        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=frequency(testModel$fitted));
+        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=datafreq);
+        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=datafreq);
+        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=datafreq);
+        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=datafreq);
         modelname <- "ARIMA combined";
 
         errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=frequency(testModel$forecast));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
         s2 <- mean(errors^2);
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
         ICs <- c(t(testICs) %*% icWeights);
@@ -622,9 +628,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             #### Reestimate the best model in order to get rid of bias ####
             bestModel <- ssarima(data,orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)),lags=(lags),
                                  constant=TRUE,initial=initialType,cfType=cfType,
-                                 h=h,holdout=holdout,
+                                 h=h,holdout=holdout,cumulative=cumulative,
                                  intervals=intervals,level=level,
-                                 intermittent=intermittent,silent=TRUE,
+                                 intermittent=intermittent,bounds=bounds,silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
         }
@@ -642,15 +648,26 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         cat("... Done! \n");
     }
 
-    # Make plot
-    if(silentGraph==FALSE){
-        if(intervals==TRUE){
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       level=level,legend=!silentLegend,main=modelname);
+##### Make a plot #####
+    if(!silentGraph){
+        y.for.new <- y.for;
+        y.high.new <- y.high;
+        y.low.new <- y.low;
+        if(cumulative){
+            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            if(intervals){
+                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+            }
+        }
+
+        if(intervals){
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                       level=level,legend=!silentLegend,main=modelname);
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 

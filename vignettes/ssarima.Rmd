@@ -50,6 +50,12 @@ auto.ssarima(M3$N1683$x, h=18, initial="optimal")
 
 As can be seen from the second graph, ssarima with optimal initial does not select seasonal model and reverts to ARIMA(0,0,3) with constant. In theory this can be due to implemented order selection algorithm, however if we estimate all the model in the pool separately, we will see that this model is optimal for this time series when this type of initials is used.
 
+A power of `ssarima()` function is that it can estimate SARIMA models with multiple seasonalities. For example, SARIMA(0,1,1)(0,0,1)_6(1,0,1)_12 model can be estimated the following way:
+```{r ssarima_N2457_orders_multiple_seasonalities}
+ssarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)),lags=c(1,6,12),h=18)
+```
+It probably does not make much sense for this type of data, it would make more sense on high frequency data (for example, `taylor` series from `forecast` package). However, keep in mind that multiple seasonal ARIMAs are very slow in estimation and are very capricious. So it is really hard to obtain an appropriate and efficient multiple seasonal ARIMA model.
+
 Now let's introduce some artificial exogenous variables:
 ```{r es_N2457_xreg_create}
 x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))

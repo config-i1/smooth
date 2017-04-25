@@ -5,9 +5,9 @@
 \title{Simple Moving Average}
 \usage{
 sma(data, order = NULL, ic = c("AICc", "AIC", "BIC"), h = 10,
-  holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, silent = c("none", "all", "graph",
-  "legend", "output"), ...)
+  holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
+  "semiparametric", "nonparametric"), level = 0.95, silent = c("none",
+  "all", "graph", "legend", "output"), ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -21,6 +21,10 @@ selected automatically using information criteria.}
 
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
+
+\item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
+intervals are produced instead of the normal ones. This is useful for
+inventory control systems.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 
@@ -85,6 +89,7 @@ smoothing parameters live.
 account).
 \item \code{intervals} - type of intervals asked by user.
 \item \code{level} - confidence level for intervals.
+\item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{ICs} - values of information criteria of the model. Includes AIC,

@@ -7,10 +7,10 @@
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(data)), combine = FALSE, workFast = TRUE,
   initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
-  cfType = c("MSE", "MAE", "HAM", "MLSTFE", "MSTFE", "MSEh"), h = 10,
-  holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "croston", "tsb", "sba"), bounds = c("admissible", "none"),
+  cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10,
+  holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
+  "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
+  "auto", "fixed", "croston", "tsb", "sba"), bounds = c("admissible", "none"),
   silent = c("none", "all", "graph", "legend", "output"), xreg = NULL,
   xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
   persistenceX = NULL, transitionX = NULL, ...)
@@ -43,20 +43,25 @@ produced using backcasting procedure.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
-\code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace
+\code{HAM} (Half Absolute Moment), \code{GMSTFE} - Mean Log Squared Trace
 Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and
-\code{MSEh} - optimisation using only h-steps ahead error. If
-\code{cfType!="MSE"}, then likelihood and model selection is done based on
-equivalent \code{MSE}. Model selection in this cases becomes not optimal.
+\code{MSEh} - optimisation using only h-steps ahead error, \code{TFL} -
+trace forecast likelihood. If \code{cfType!="MSE"}, then likelihood and
+model selection is done based on equivalent \code{MSE}. Model selection in
+this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
-\code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
+\code{aMSEh}, \code{aMSTFE} and \code{aGMSTFE}. These can be useful in cases
 of small samples.}
 
 \item{h}{Length of forecasting horizon.}
 
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
+
+\item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
+intervals are produced instead of the normal ones. This is useful for
+inventory control systems.}
 
 \item{intervals}{Type of intervals to construct. This can be:
 

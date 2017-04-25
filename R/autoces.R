@@ -56,8 +56,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @export auto.ces
 auto.ces <- function(data, models=c("none","simple","full"),
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
-                cfType=c("MSE","MAE","HAM","MLSTFE","MSTFE","MSEh"),
-                h=10, holdout=FALSE,
+                cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
+                h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("admissible","none"),
@@ -157,7 +157,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         CESModel <- ces(data, seasonality="n",
                         initial=initialType, ic=ic,
                         cfType=cfType,
-                        h=h, holdout=holdout,
+                        h=h, holdout=holdout,cumulative=cumulative,
                         intervals=intervals, level=level,
                         intermittent=intermittent,
                         bounds=bounds, silent=silent,
@@ -198,7 +198,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         CESModel[[j]] <- ces(data, seasonality=i,
                              initial=initialType, ic=ic,
                              cfType=cfType,
-                             h=h, holdout=holdout,
+                             h=h, holdout=holdout,cumulative=cumulative,
                              intervals=intervals, level=level,
                              intermittent=intermittent,
                              bounds=bounds, silent=TRUE,
@@ -222,15 +222,26 @@ auto.ces <- function(data, models=c("none","simple","full"),
         cat(paste0('The best model is with seasonality = "',best.seasonality,'"\n'));
     }
 
-# Make plot
-    if(silentGraph==FALSE){
-        if(intervals==TRUE){
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-                       level=level,legend=!silentLegend,main=modelname);
+##### Make a plot #####
+    if(!silentGraph){
+        y.for.new <- y.for;
+        y.high.new <- y.high;
+        y.low.new <- y.low;
+        if(cumulative){
+            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            if(intervals){
+                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+            }
+        }
+
+        if(intervals){
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-                    level=level,legend=!silentLegend,main=modelname);
+            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 

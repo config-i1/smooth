@@ -1,12 +1,12 @@
 #' Linear graph construction function
-#' 
+#'
 #' The function makes a standard linear graph using at least actuals and
 #' forecasts.
-#' 
+#'
 #' Function uses the provided data to construct a linear graph. It is strongly
 #' adviced to use \code{ts} function to define the start of each of the
 #' vectors. Otherwise the data may be plotted in a wrong way.
-#' 
+#'
 #' @param actuals The vector of actual series.
 #' @param forecast The vector of forecasts. Should be ts object that start at
 #' the end of \code{fitted} values.
@@ -18,28 +18,30 @@
 #' @param level The width of the prediction interval.
 #' @param legend If \code{TRUE}, the legend is drawn.
 #' @param main The title of the produced plot.
+#' @param cumulative If \code{TRUE}, then the forecast is treated as
+#' cumulative and value per period is plotted.
 #' @return Function does not return anything.
 #' @author Ivan Svetunkov
 #' @seealso \code{\link[stats]{ts}}
 #' @keywords plots linear graph
 #' @examples
-#' 
+#'
 #' x <- rnorm(100,0,1)
 #' values <- es(x,model="ANN",silent=TRUE,intervals=TRUE,level=0.95)
-#' 
+#'
 #' graphmaker(x,values$forecast,values$fitted)
 #' graphmaker(x,values$forecast,values$fitted,legend=FALSE)
 #' graphmaker(x,values$forecast,values$fitted,values$lower,values$upper,level=0.95)
 #' graphmaker(x,values$forecast,values$fitted,values$lower,values$upper,level=0.95,legend=FALSE)
-#' 
+#'
 #' actuals <- c(1:10)
 #' forecast <- ts(c(11:15),start=end(actuals)[1]+end(actuals)[2]*deltat(actuals),
 #'                frequency=frequency(actuals))
 #' graphmaker(actuals,forecast)
-#' 
+#'
 #' @export graphmaker
 graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
-                       level=NULL,legend=TRUE,main=NULL){
+                       level=NULL,legend=TRUE,main=NULL,cumulative=FALSE){
 # Function constructs the universal linear graph for any model
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
@@ -62,6 +64,14 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
     if(all(is.na(forecast))){
         h <- 0;
     }
+
+    if(cumulative){
+        pointForecastLabel <- "Point forecast per period";
+    }
+    else{
+        pointForecastLabel <- "Point forecast";
+    }
+
 # Write down the default values of par
     parDefault <- par(no.readonly = TRUE);
 
@@ -89,6 +99,10 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
+    if(!is.null(main) & cumulative){
+        main <- paste0(main,", cumulative forecast");
+    }
+
     plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[max(h,1)]),
          ylim=plot.range,xlab="", ylab="", main=main);
     if(any(!is.na(fitted))){
@@ -111,7 +125,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast",paste0(level*100,"% prediction interval"),"Forecast origin"),
+                       legend=c("Series","Fitted values",pointForecastLabel,paste0(level*100,"% prediction interval"),"Forecast origin"),
                        col=c("black","purple","blue","darkgrey","red"),
                        lwd=c(1,2,2,3,2),
                        lty=c(1,2,1,2,1),ncol=3);
@@ -126,7 +140,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast",paste0(level*100,"% prediction interval"),"Forecast origin"),
+                       legend=c("Series","Fitted values",pointForecastLabel,paste0(level*100,"% prediction interval"),"Forecast origin"),
                        col=c("black","purple","blue","darkgrey","red"),
                        lwd=c(1,2,2,3,2),
                        lty=c(1,2,NA,NA,1),
@@ -142,7 +156,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast","Forecast origin"),
+                       legend=c("Series","Fitted values",pointForecastLabel,"Forecast origin"),
                        col=c("black","purple","blue","red"),
                        lwd=c(1,2,2,2),
                        lty=c(1,2,1,1),ncol=2);
@@ -154,7 +168,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
                 par(cex=0.75,mar=rep(0.1,4),bty="n",xaxt="n",yaxt="n")
                 plot(0,0,col="white")
                 legend(x="bottom",
-                       legend=c("Series","Fitted values","Point forecast","Forecast origin"),
+                       legend=c("Series","Fitted values",pointForecastLabel,"Forecast origin"),
                        col=c("black","purple","blue","red"),
                        lwd=c(1,2,2,2),
                        lty=c(1,2,NA,1),
