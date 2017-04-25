@@ -189,41 +189,45 @@ vssInput <- function(modelType=c("ves"),...){
     }
 
     ##### initials ####
-    # initial type can be: "o" - optimal, "b" - backcasting, "p" - provided.
+    # initial type can be: "i" - individual, "g" - group.
     initialValue <- initial;
     if(is.character(initialValue)){
         initialValue <- substring(initialValue[1],1,1);
-        if(all(initialValue!=c("o","b","p"))){
-            warning("You asked for a strange initial value. We don't do that here. Switching to optimal.",
+        if(all(initialValue!=c("i","g"))){
+            warning("You asked for a strange initial value. We don't do that here. Switching to individual.",
                     call.=FALSE);
-            initialType <- "o";
+            initialType <- "i";
         }
         else{
             initialType <- initialValue;
         }
         initialValue <- NULL;
+        initialEstimate <- TRUE;
     }
     else if(is.null(initialValue)){
         if(silentText){
-            message("Initial value is not selected. Switching to optimal.");
+            message("Initial value is not selected. Switching to individual.");
         }
-        initialType <- "o";
+        initialType <- "i";
+        initialEstimate <- TRUE;
     }
     else if(!is.null(initialValue)){
         if(!is.numeric(initialValue)){
             warning(paste0("Initial vector is not numeric!\n",
                            "Values of initial vector will be estimated."),call.=FALSE);
             initialValue <- NULL;
-            initialType <- "o";
+            initialType <- "i";
+            initialEstimate <- TRUE;
         }
         else{
-            if(modelType=="es"){
+            if(modelType=="ves"){
                 if(length(initialValue)>2*nSeries){
                     warning(paste0("Length of initial vector is wrong! It should not be greater than",
                                    2*nSeries,"\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
                     initialValue <- NULL;
-                    initialType <- "o";
+                    initialType <- "i";
+                    initialEstimate <- TRUE;
                 }
                 else{
                     if(length(initialValue) != (1*(Ttype!="N") + 1) * nSeries){
@@ -232,11 +236,13 @@ vssInput <- function(modelType=c("ves"),...){
                                        " instead of ",length(initialValue),".\n",
                                        "Values of initial vector will be estimated."),call.=FALSE);
                         initialValue <- NULL;
-                        initialType <- "o";
+                        initialType <- "i";
+                        initialEstimate <- TRUE;
                     }
                     else{
                         initialType <- "p";
                         initialValue <- initial;
+                        initialEstimate <- FALSE;
                     }
                 }
             }
@@ -248,17 +254,77 @@ vssInput <- function(modelType=c("ves"),...){
     # if length(initialSeason) == datafreq*nSeries, then ok
     # if length(initialSeason) == datafreq, then use it for all nSeries
     initialSeasonValue <- initialSeason;
-    if(!is.null(initialSeasonValue)){
+    if(is.character(initialSeasonValue)){
+        initialSeasonValue <- substring(initialSeasonValue[1],1,1);
+        if(all(initialSeasonValue!=c("i","g"))){
+            warning("You asked for a strange initial value. We don't do that here. Switching to individual.",
+                    call.=FALSE);
+            initialSeasonType <- "i";
+        }
+        else{
+            initialSeasonType <- initialSeasonValue;
+        }
+        initialSeasonValue <- NULL;
+        initialSeasonEstimate <- TRUE;
+    }
+    else if(is.null(initialSeasonValue)){
+        if(silentText){
+            message("Initial value is not selected. Switching to individual.");
+        }
+        initialSeasonType <- "i";
+        initialSeasonEstimate <- TRUE;
+    }
+    else if(!is.null(initialSeasonValue)){
         if(!is.numeric(initialSeasonValue)){
-            warning(paste0("InitialSeason vector is not numeric!\n",
-                           "Values of initialSeason vector will be estimated."),call.=FALSE);
+            warning(paste0("Initial vector is not numeric!\n",
+                           "Values of initial vector will be estimated."),call.=FALSE);
             initialSeasonValue <- NULL;
+            initialSeasonType <- "i";
             initialSeasonEstimate <- TRUE;
         }
         else{
+            if(modelType=="ves"){
+                if(length(initialSeasonValue)>2*nSeries){
+                    warning(paste0("Length of initial vector is wrong! It should not be greater than",
+                                   2*nSeries,"\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
+                    initialSeasonValue <- NULL;
+                    initialSeasonType <- "i";
+                    initialSeasonEstimate <- TRUE;
+                }
+                else{
+                    if(length(initialSeasonValue) != (1*(Ttype!="N") + 1) * nSeries){
+                        warning(paste0("Length of initial vector is wrong! It should be ",
+                                       (1*(Ttype!="N") + 1)*nSeries,
+                                       " instead of ",length(initialSeasonValue),".\n",
+                                       "Values of initial vector will be estimated."),call.=FALSE);
+                        initialSeasonValue <- NULL;
+                        initialSeasonType <- "i";
+                        initialSeasonEstimate <- TRUE;
+                    }
+                    else{
+                        initialSeasonType <- "p";
+                        initialSeasonValue <- initial;
+                        initialSeasonEstimate <- FALSE;
+                    }
+                }
+            }
+        }
+    }
+
+
+    if(!is.null(initialSeasonValue)){
+        if(!is.numeric(initialSeasonValue)){
+            warning(paste0("InitialSeason is not numeric!\n",
+                           "Values of initialSeason will be estimated."),call.=FALSE);
+            initialSeasonValue <- NULL;
+            initialSeasonEstimate <- TRUE;
+            initialSeasonType <- "i";
+        }
+        else{
             if(all(length(initialSeasonValue)!=c(datafreq,datafreq*nSeries))){
-                warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.",
-                               "Values of initialSeason vector will be estimated."),call.=FALSE);
+                warning(paste0("The length of initialSeason is wrong! It should correspond to the frequency of the data.",
+                               "Values of initialSeason will be estimated."),call.=FALSE);
                 initialSeasonValue <- NULL;
                 initialSeasonEstimate <- TRUE
             }

@@ -82,13 +82,14 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' each series or \code{group}, equal to all the time series. If vector is
 #' provided here, then it is used by the model.
 #' @param initial Can be either character or a vector / matrix of initial states.
-#' If it is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (advised for data with high frequency).
-#' If character, then \code{initialSeason} will be estimated in the way defined
-#' by \code{initial}.
-#' @param initialSeason Vector of initial values for seasonal components. If
-#' \code{NULL}, they are estimated during optimisation.
+#' If it is character, then it can be \code{"individual"}, individual values of
+#' the intial non-seasonal components are udes, or \code{"group"}, meaning that
+#' the initials for all the time series are set to be equal to the same value.
+#' If vector of states is provided, then it is automatically transformed into
+#' a matrix, assuming that these values are provided for the whole group.
+#' @param initialSeason Can be either character or a vector / matrix of initial
+#' states. Treated the same way as \code{initial}. This means that different time
+#' series may share the same initial seasonal component.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
@@ -115,7 +116,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' @export ves
 ves <- function(data, model="ANN", persistence=c("individual","group"),
                 transition=c("individual","group"), measurement=c("individual","group"),
-                phi=c("individual","group"), initial=c("optimal","backcasting"),
+                phi=c("individual","group"), initial=c("individual","group"),
                 initialSeason=c("individual","group"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                 h=10, holdout=FALSE,
