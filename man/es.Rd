@@ -7,7 +7,7 @@
 es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), initialSeason = NULL,
   ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "GMSTFE",
-  "MSTFE", "MSEh"), h = 10, holdout = FALSE, cumulative = FALSE,
+  "MSTFE", "MSEh", "TFL"), h = 10, holdout = FALSE, cumulative = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, intermittent = c("none", "auto", "fixed", "croston", "tsb",
   "sba"), bounds = c("usual", "admissible", "none"), silent = c("none",
@@ -66,14 +66,15 @@ by \code{initial}.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
-\code{HAM} (Half Absolute Moment), \code{MLSTFE} - Mean Log Squared Trace
+\code{HAM} (Half Absolute Moment), \code{GMSTFE} - Mean Log Squared Trace
 Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and
-\code{MSEh} - optimisation using only h-steps ahead error. If
-\code{cfType!="MSE"}, then likelihood and model selection is done based on
-equivalent \code{MSE}. Model selection in this cases becomes not optimal.
+\code{MSEh} - optimisation using only h-steps ahead error, \code{TFL} -
+trace forecast likelihood. If \code{cfType!="MSE"}, then likelihood and
+model selection is done based on equivalent \code{MSE}. Model selection in
+this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
-\code{aMSEh}, \code{aMSTFE} and \code{aMLSTFE}. These can be useful in cases
+\code{aMSEh}, \code{aMSTFE} and \code{aGMSTFE}. These can be useful in cases
 of small samples.}
 
 \item{h}{Length of forecasting horizon.}
