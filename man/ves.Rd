@@ -6,15 +6,15 @@
 \usage{
 ves(data, model = "ANN", persistence = c("individual", "group"),
   transition = c("individual", "group"), measurement = c("individual",
-  "group"), phi = c("individual", "group"), initial = c("optimal",
-  "backcasting"), initialSeason = c("individual", "group"), ic = c("AICc",
-  "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh",
-  "TFL"), h = 10, holdout = FALSE, intervals = c("none", "parametric",
-  "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
-  "auto", "fixed", "croston", "tsb", "sba"), bounds = c("usual", "admissible",
-  "none"), silent = c("none", "all", "graph", "legend", "output"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
-  updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
+  "group"), initial = c("individual", "group"),
+  initialSeason = c("individual", "group"), cfType = c("MSE", "MAE", "HAM",
+  "GMSTFE", "MSTFE", "MSEh", "TFL"), ic = c("AICc", "AIC", "BIC"), h = 10,
+  holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
+  "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
+  "croston", "tsb", "sba"), bounds = c("usual", "admissible", "none"),
+  silent = c("none", "all", "graph", "legend", "output"), xreg = NULL,
+  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
+  persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{is the matrix with data, where series are in columns and
@@ -26,7 +26,7 @@ observations are in rows.}
 information criteria type. ATTENTION! NO MODEL SELECTION IS AVAILABLE AT
 THIS STAGE!
 
-Also \code{model} can accept a previously estimated ES model and use all its
+Also \code{model} can accept a previously estimated VES model and use all its
 parameters.
 
 Keep in mind that model selection with "Z" components uses Branch and Bound
@@ -45,21 +45,16 @@ is provided here, then it is used by the model.}
 each series or \code{group}, equal to all the time series. If vector is provided
 here, then it is used by the model.}
 
-\item{phi}{Value of damping parameter. Can either be \code{individual} for
-each series or \code{group}, equal to all the time series. If vector is
-provided here, then it is used by the model.}
-
 \item{initial}{Can be either character or a vector / matrix of initial states.
-If it is character, then it can be \code{"optimal"}, meaning that the initial
-states are optimised, or \code{"backcasting"}, meaning that the initials are
-produced using backcasting procedure (advised for data with high frequency).
-If character, then \code{initialSeason} will be estimated in the way defined
-by \code{initial}.}
+If it is character, then it can be \code{"individual"}, individual values of
+the intial non-seasonal components are udes, or \code{"group"}, meaning that
+the initials for all the time series are set to be equal to the same value.
+If vector of states is provided, then it is automatically transformed into
+a matrix, assuming that these values are provided for the whole group.}
 
-\item{initialSeason}{Vector of initial values for seasonal components. If
-\code{NULL}, they are estimated during optimisation.}
-
-\item{ic}{The information criterion used in the model selection procedure.}
+\item{initialSeason}{Can be either character or a vector / matrix of initial
+states. Treated the same way as \code{initial}. This means that different time
+series may share the same initial seasonal component.}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
@@ -73,6 +68,8 @@ this cases becomes not optimal.
 There are also available analytical approximations for multistep functions:
 \code{aMSEh}, \code{aMSTFE} and \code{aGMSTFE}. These can be useful in cases
 of small samples.}
+
+\item{ic}{The information criterion used in the model selection procedure.}
 
 \item{h}{Length of forecasting horizon.}
 
@@ -110,9 +107,8 @@ criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
 
-\item{bounds}{What type of bounds to use for smoothing parameters
-("admissible" or "usual"). The first letter can be used instead of the whole
-word.}
+\item{bounds}{What type of bounds to use in the model estimation. The first
+letter can be used instead of the whole word.}
 
 \item{silent}{If \code{silent="none"}, then nothing is silent, everything is
 printed out and drawn. \code{silent="all"} means that nothing is produced or
@@ -165,6 +161,10 @@ sets the initial values before the optimisation, \code{CLower} and
 \code{CUpper} define lower and upper bounds for the search inside of the
 specified \code{bounds}. These values should have exactly the length equal
 to the number of parameters to estimate.}
+
+\item{phi}{Value of damping parameter. Can either be \code{individual} for
+each series or \code{group}, equal to all the time series. If vector is
+provided here, then it is used by the model.}
 }
 \value{
 Object of class "smooth" is returned. It contains a list of

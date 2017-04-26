@@ -71,7 +71,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' information criteria type. ATTENTION! NO MODEL SELECTION IS AVAILABLE AT
 #' THIS STAGE!
 #'
-#' Also \code{model} can accept a previously estimated ES model and use all its
+#' Also \code{model} can accept a previously estimated VES model and use all its
 #' parameters.
 #'
 #' Keep in mind that model selection with "Z" components uses Branch and Bound
@@ -116,10 +116,9 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' @export ves
 ves <- function(data, model="ANN", persistence=c("individual","group"),
                 transition=c("individual","group"), measurement=c("individual","group"),
-                phi=c("individual","group"), initial=c("individual","group"),
-                initialSeason=c("individual","group"), ic=c("AICc","AIC","BIC"),
+                initial=c("individual","group"), initialSeason=c("individual","group"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
-                h=10, holdout=FALSE,
+                ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","croston","tsb","sba"),
                 bounds=c("usual","admissible","none"),
@@ -130,7 +129,7 @@ ves <- function(data, model="ANN", persistence=c("individual","group"),
 
 ### This should be done as expanded es() function with matrix of states (rows - time, cols - states),
 ### large transition matrix and a persistence matrix. The returned value of the fit is vector.
-### So the vfitter can be based on slightly amended version fitter.
+### So the vfitter can be based on amended version fitter.
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
@@ -147,6 +146,8 @@ ves <- function(data, model="ANN", persistence=c("individual","group"),
             intermittent <- "a";
         }
         persistence <- model$persistence;
+        transition <- model$transition;
+        measurement <- model$measurement;
         initial <- model$initial;
         initialSeason <- model$initialSeason;
         if(is.null(xreg)){
@@ -155,7 +156,6 @@ ves <- function(data, model="ANN", persistence=c("individual","group"),
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        phi <- model$phi;
         if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
@@ -169,11 +169,15 @@ ves <- function(data, model="ANN", persistence=c("individual","group"),
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
-##### Set environment for ssInput and make all the checks #####
-    environment(ssInput) <- environment();
+##### Set environment for vssInput and make all the checks #####
+    environment(vssInput) <- environment();
     vssInput(modelType="ves",ParentEnvironment=environment());
 
-##### Cost Function for ES #####
+
+
+
+
+##### Cost Function for VES #####
 CF <- function(C){
     elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), nComponents,
                             modellags, initialType, Ttype, Stype, nExovars, matat,
