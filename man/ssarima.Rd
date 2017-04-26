@@ -103,9 +103,8 @@ criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
 
-\item{bounds}{What type of bounds to use for smoothing parameters
-("admissible" or "usual"). The first letter can be used instead of the whole
-word.}
+\item{bounds}{What type of bounds to use in the model estimation. The first
+letter can be used instead of the whole word.}
 
 \item{silent}{If \code{silent="none"}, then nothing is silent, everything is
 printed out and drawn. \code{silent="all"} means that nothing is produced or
