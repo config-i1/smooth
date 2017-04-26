@@ -10,9 +10,8 @@
 #' There are also available analytical approximations for multistep functions:
 #' \code{aMSEh}, \code{aMSTFE} and \code{aGMSTFE}. These can be useful in cases
 #' of small samples.
-#' @param bounds What type of bounds to use for smoothing parameters
-#' ("admissible" or "usual"). The first letter can be used instead of the whole
-#' word.
+#' @param bounds What type of bounds to use in the model estimation. The first
+#' letter can be used instead of the whole word.
 #' @param intermittent Defines type of intermittent model used. Can be: 1.
 #' \code{none}, meaning that the data should be considered as non-intermittent;
 #' 2. \code{fixed}, taking into account constant Bernoulli distribution of
