@@ -78,9 +78,6 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' algorithm and may skip some models that could have slightly smaller
 #' information criteria.
 
-#' @param phi Value of damping parameter. Can either be \code{individual} for
-#' each series or \code{group}, equal to all the time series. If vector is
-#' provided here, then it is used by the model.
 #' @param initial Can be either character or a vector / matrix of initial states.
 #' If it is character, then it can be \code{"individual"}, individual values of
 #' the intial non-seasonal components are udes, or \code{"group"}, meaning that
