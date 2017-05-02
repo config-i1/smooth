@@ -5,7 +5,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
                          "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend"));
 
-#' Vector Exponential Smoothing in SSOE state-space model
+#' NOT AVAILABLE YET: Vector Exponential Smoothing in SSOE state-space model
 #'
 #' Function constructs vector ETS model and returns forecast, fitted values, errors
 #' and matrix of states along with other useful variables. THIS IS CURRENTLY UNDER CONSTRUCTION!
@@ -113,7 +113,6 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE)}
 #'
 #'
-#' @export ves
 ves <- function(data, model="ANN", persistence=c("individual","group"),
                 transition=c("individual","group"), measurement=c("individual","group"),
                 initial=c("individual","group"), initialSeason=c("individual","group"),

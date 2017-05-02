@@ -2,7 +2,7 @@
 % Please edit documentation in R/ves.R
 \name{ves}
 \alias{ves}
-\title{Vector Exponential Smoothing in SSOE state-space model}
+\title{NOT AVAILABLE YET: Vector Exponential Smoothing in SSOE state-space model}
 \usage{
 ves(data, model = "ANN", persistence = c("individual", "group"),
   transition = c("individual", "group"), measurement = c("individual",
