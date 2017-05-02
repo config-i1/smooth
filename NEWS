@@ -1,8 +1,7 @@
-smooth v2.0.0 (Release data: 2017-04-28)
+smooth v1.9.9 (Release data: 2017-05-03)
 ==============
 
 Changes:
-* New function - ves() - Vector Exponential Smoothing. Currently under construction.
 * New parameter - cumulative - which makes functions return aggregated over the forecast horizon values (point and interval forecasts).
 * graphmaker() now treats cumulative forecasts.
 * Error measures take the possible cumulative nature of forecasts into account.
@@ -11,6 +10,7 @@ Changes:
 * Updated vignettes, showing how multiple seasonal ARIMA can be estimated.
 * Renamed MLSTFE into GMSTFE - Geometric Mean Squared Trace Forecast Error. This is slightly easier to remember.
 * Trace Forecast Likelihood is once again available as estimator.
+* Started work on a new function - ves() - Vector Exponential Smoothing. It will be released in 2.0.0.
 
 Bugfixes:
 * datafreq is now used in all the functions.
