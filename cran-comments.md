@@ -8,7 +8,7 @@ output: html_document
 This is ``smooth`` package, v1.9.9
 
 ## Test environments
-* local ubuntu 17.04, R 3.3.3
+* local ubuntu 17.04, R 3.3.4
 * ubuntu 12.04.5 (on travis-ci), R 3.3.2
 * win-builder (devel and release)
 
@@ -18,9 +18,9 @@ R CMD check results
 
 Status: 1 NOTE  
 checking installed package size ... NOTE  
-  installed size is  7.5Mb  
+  installed size is  7.6Mb  
   sub-directories of 1Mb or more:  
-    doc    2.2Mb  
+    doc    2.3Mb  
     libs   4.9Mb
 
 ## Downstream dependencies
