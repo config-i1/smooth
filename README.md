@@ -22,10 +22,11 @@ Here is the list of included functions:
 
 Future works:
 
-13. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
+13. ves - Vector Exponential Smoothing. This is similar to es, but for multivariate data rather than univariate.
 14. auto.ges - Automatic selection of the most appropriate GES model.
-15. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
-16. sofa.ts - Survival of the fittest algorithm applied to state-space models.
+15. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
+16. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
+17. sofa.ts - Survival of the fittest algorithm applied to state-space models.
 
 ## Installation
 
