@@ -2115,13 +2115,25 @@ ssForecaster <- function(...){
                 y.for <- c(pt.for)*y.for;
 
                 if(cumulative){
-                    y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
-                    y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2) + sum(y.exo.for),start=start(y.for),frequency=datafreq);
-                    y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2) + sum(y.exo.for),start=start(y.for),frequency=datafreq);
+                    if(Etype=="M"){
+                        y.for <- ts(median(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
+                    }
+                    else{
+                        y.for <- ts(mean(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
+                    }
+                    # y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
+                    y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2) + sum(y.exo.for),start=y.forStart,frequency=datafreq);
+                    y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2) + sum(y.exo.for),start=y.forStart,frequency=datafreq);
                 }
                 else{
-                    y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=datafreq);
-                    y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=start(y.for),frequency=datafreq);
+                    # if(Etype=="M"){
+                    #     y.for <- ts(apply(y.simulated,1,median,na.rm=T),start=y.forStart + y.exo.for,frequency=datafreq);
+                    # }
+                    # else{
+                    y.for <- ts(rowMeans(y.simulated,na.rm=T),start=y.forStart + y.exo.for,frequency=datafreq);
+                    # }
+                    y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T) + y.exo.for,start=y.forStart,frequency=datafreq);
+                    y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T) + y.exo.for,start=y.forStart,frequency=datafreq);
                 }
             }
             else{
@@ -2178,6 +2190,12 @@ ssForecaster <- function(...){
             y.low <- NA;
             y.high <- NA;
             y.for <- c(pt.for)*y.for;
+            if(cumulative){
+                y.for <- ts(sum(y.for),start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+            }
+            else{
+                y.for <- ts(y.for,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+            }
         }
     }
     else{
