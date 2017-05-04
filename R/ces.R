@@ -774,7 +774,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
         else{
             graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
-                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
+                       legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 

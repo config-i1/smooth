@@ -667,7 +667,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
         else{
             graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
-                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
+                       legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
 
