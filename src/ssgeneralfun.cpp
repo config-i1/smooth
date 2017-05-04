@@ -1759,7 +1759,6 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
     bool maEstimate = as<bool>(estimMA);
     bool constRequired = as<bool>(requireConst);
     bool constEstimate = as<bool>(estimConst);
-    bool initialEstimate = (fitterType=='o');
     bool xregEstimate = as<bool>(estimxreg);
     bool wild = as<bool>(gowild);
     bool fXEstimate = as<bool>(estimFX);

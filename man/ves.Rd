@@ -161,10 +161,6 @@ sets the initial values before the optimisation, \code{CLower} and
 \code{CUpper} define lower and upper bounds for the search inside of the
 specified \code{bounds}. These values should have exactly the length equal
 to the number of parameters to estimate.}
-
-\item{phi}{Value of damping parameter. Can either be \code{individual} for
-each series or \code{group}, equal to all the time series. If vector is
-provided here, then it is used by the model.}
 }
 \value{
 Object of class "smooth" is returned. It contains a list of
