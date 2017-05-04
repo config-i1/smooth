@@ -301,13 +301,16 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 # If the persistence is NULL or was of the wrong length, generate the values
     if(is.null(persistence)){
 ### For the case of "usual" bounds make restrictions on the generated smoothing parameters so the ETS can be "averaging" model.
+
+### First generate the first smoothing parameter.
         if(bounds=="u"){
-            matg[,] <- runif(persistenceLength*nsim,0,1);
+            matg[1,] <- runif(nsim,0,1);
         }
 ### These restrictions are even touhger
         else if(bounds=="r"){
-            matg[,] <- runif(persistenceLength*nsim,0,0.3);
+            matg[1,] <- runif(nsim,0,0.3);
         }
+
 ### Fill in the other smoothing parameters
         if(bounds!="a"){
             if(Ttype!="N"){
