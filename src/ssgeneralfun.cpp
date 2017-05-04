@@ -1906,7 +1906,8 @@ List simulator(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
                 matrixVt(j,matrixVt.n_cols-1) = arma::as_scalar(trans(matrixVt(lagrows.row(matrixVt.n_cols-1))));
             }
             if(T=='M'){
-                if(matrixVt(j,1) <= 0){
+                if((matrixVt(j,0) <= 0) | (matrixVt(j,1) <= 0)){
+                    matrixVt(j,0) = arma::as_scalar(trans(matrixVt(lagrows.row(0))));
                     matrixVt(j,1) = arma::as_scalar(trans(matrixVt(lagrows.row(1))));
                 }
             }
