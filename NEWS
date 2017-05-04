@@ -4,6 +4,9 @@ smooth v2.0.0 (Release data: 2017-06-01)
 Changes:
 * Point forecasts in case of simulated data are now based on the simulation rather than analytical expression.
 
+Bugfixes:
+* simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.
+
 
 smooth v1.9.9 (Release data: 2017-05-03)
 ==============
