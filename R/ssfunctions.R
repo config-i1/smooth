@@ -2115,13 +2115,13 @@ ssForecaster <- function(...){
                 y.for <- c(pt.for)*y.for;
 
                 if(cumulative){
-                    if(Etype=="M"){
-                        y.for <- ts(median(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
-                    }
-                    else{
-                        y.for <- ts(mean(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
-                    }
-                    # y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
+                    # if(Etype=="M"){
+                    #     y.for <- ts(median(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
+                    # }
+                    # else{
+                    #     y.for <- ts(mean(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
+                    # }
+                    y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
                     y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2) + sum(y.exo.for),start=y.forStart,frequency=datafreq);
                     y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2) + sum(y.exo.for),start=y.forStart,frequency=datafreq);
                 }
