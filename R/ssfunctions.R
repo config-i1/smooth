@@ -65,7 +65,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### data #####
-    if(class(data)=="smooth.sim"){
+    if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
     if(!is.numeric(data)){
@@ -1272,7 +1272,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### data #####
-    if(class(data)=="smooth.sim"){
+    if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
     if(!is.numeric(data)){
