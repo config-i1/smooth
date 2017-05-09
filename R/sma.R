@@ -208,7 +208,8 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(ssFitter) <- environment();
 
     if(is.null(order)){
-        maxOrder <- min(36,obsInsample/2);
+        # maxOrder <- min(36,obsInsample/2);
+        maxOrder <- obsInsample;
         ICs <- rep(NA,maxOrder);
         smaValuesAll <- list(NA);
         for(i in 1:maxOrder){
