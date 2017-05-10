@@ -56,6 +56,30 @@ RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
     return wrap(polyMult(poly1, poly2));
 }
 
+/* # Function returns value of CDF-based likelihood function for the whole series */
+double cdf(arma::vec vecYt, arma::vec vecYfit, arma::vec matErrors, char E){
+
+    double errorSD = arma::as_scalar(sqrt(mean(pow(matErrors,2))));
+    double CF;
+    int obs = vecYt.n_rows;
+    if(E=='A'){
+        for(int i=0; i<obs; ++i){
+            CF += log(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) - R::pnorm(ceil(vecYt(i))-1, vecYfit(i), errorSD, 1, 0));
+
+            // if(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0)>1){
+            //     std::cout << R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) << ", ";
+            // }
+        }
+    }
+    else{
+        for(int i=0; i<obs; ++i){
+            CF += log(R::plnorm(ceil(vecYt(i)), log(vecYfit(i)), errorSD, 1, 0) - R::plnorm(ceil(vecYt(i))-1, log(vecYfit(i)), errorSD, 1, 0));
+        }
+    }
+
+    return CF;
+}
+
 /* # Function returns multiplicative or additive error for scalar */
 double errorf(double yact, double yfit, char Etype){
     if(Etype=='A'){
@@ -91,7 +115,7 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
               arma::rowvec rowvecXt, arma::vec vecAt){
 // vecVt is a vector here!
     double yfit = 0;
-    arma::mat matyfit;
+    arma::mat vecYfit;
 
     switch(S){
 // ZZN
@@ -99,10 +123,10 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
         switch(T){
         case 'N':
         case 'A':
-            matyfit = rowvecW * vecVt;
+            vecYfit = rowvecW * vecVt;
         break;
         case 'M':
-            matyfit = exp(rowvecW * log(vecVt));
+            vecYfit = exp(rowvecW * log(vecVt));
         break;
         }
     break;
@@ -111,10 +135,10 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
         switch(T){
         case 'N':
         case 'A':
-            matyfit = rowvecW * vecVt;
+            vecYfit = rowvecW * vecVt;
         break;
         case 'M':
-            matyfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + vecVt(2);
+            vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + vecVt(2);
         break;
         }
     break;
@@ -123,10 +147,10 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
         switch(T){
         case 'N':
         case 'M':
-            matyfit = exp(rowvecW * log(vecVt));
+            vecYfit = exp(rowvecW * log(vecVt));
         break;
         case 'A':
-            matyfit = rowvecW.cols(0,1) * vecVt.rows(0,1) * vecVt(2);
+            vecYfit = rowvecW.cols(0,1) * vecVt.rows(0,1) * vecVt(2);
         break;
         }
     break;
@@ -134,10 +158,10 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
 
     switch(E){
         case 'A':
-            yfit = as_scalar(matyfit + rowvecXt * vecAt);
+            yfit = as_scalar(vecYfit + rowvecXt * vecAt);
         break;
         case 'M':
-            yfit = real(exp(log(std::complex<double>(as_scalar(matyfit))) + as_scalar(rowvecXt * vecAt)));
+            yfit = real(exp(log(std::complex<double>(as_scalar(vecYfit))) + as_scalar(rowvecXt * vecAt)));
         break;
     }
 
@@ -924,21 +948,21 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
 
-    arma::vec matyfit(obs, arma::fill::zeros);
-    arma::vec materrors(obs, arma::fill::zeros);
+    arma::vec vecYfit(obs, arma::fill::zeros);
+    arma::vec matErrors(obs, arma::fill::zeros);
     arma::vec bufferforat(vecGX.n_rows);
 
     for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
         lagrows = i * nComponents - lags + nComponents - 1;
 
 /* # Measurement equation and the error term */
-        matyfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+        vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                          matrixXt.row(i-maxlag), matrixAt.col(i-1));
-        materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
+        matErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
-                          gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag);
+                          gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * matErrors(i-maxlag);
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
         if(!matrixVt.col(i).is_finite()){
@@ -962,7 +986,7 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         }
 
 /* # Transition equation for xreg */
-        bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+        bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, matErrors.row(i-maxlag), E);
         matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
     }
 
@@ -975,8 +999,8 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
 
-    return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
-                        Named("errors") = materrors, Named("matat") = matrixAt);
+    return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit,
+                        Named("errors") = matErrors, Named("matat") = matrixAt);
 }
 
 List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
@@ -1011,8 +1035,8 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
 
-    arma::vec matyfit(obs, arma::fill::zeros);
-    arma::vec materrors(obs, arma::fill::zeros);
+    arma::vec vecYfit(obs, arma::fill::zeros);
+    arma::vec matErrors(obs, arma::fill::zeros);
     arma::vec bufferforat(vecGX.n_rows);
 
     for(int j=0; j<=nloops; j=j+1){
@@ -1021,13 +1045,13 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             lagrows = i * nComponents - (lags + lagsModifier) + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            matyfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i-1));
-            materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
+            matErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
-                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag);
+                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * matErrors(i-maxlag);
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.col(i).is_finite()){
@@ -1051,7 +1075,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             }
 
 /* # Transition equation for xreg */
-            bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+            bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, matErrors.row(i-maxlag), E);
             matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
         }
 
@@ -1071,13 +1095,13 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
             lagrows = i * nComponents + lags - lagsModifier + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            matyfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i+1));
-            materrors(i-maxlag) = errorf(vecYt(i-maxlag), matyfit(i-maxlag), E);
+            matErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
-                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * materrors(i-maxlag);
+                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * matErrors(i-maxlag);
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.col(i).is_finite()){
@@ -1096,7 +1120,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 /* Skipping renormalisation of components in backcasting */
 
 /* # Transition equation for xreg */
-            bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, materrors.row(i-maxlag), E);
+            bufferforat = gXvalue(matrixXtTrans.col(i-maxlag), vecGX, matErrors.row(i-maxlag), E);
             matrixAt.col(i) = matrixFX * matrixAt.col(i+1) + bufferforat;
         }
 /* # Fill in the head of the matrices */
@@ -1110,8 +1134,8 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
 
-    return List::create(Named("matvt") = matrixVt, Named("yfit") = matyfit,
-                        Named("errors") = materrors, Named("matat") = matrixAt);
+    return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit,
+                        Named("errors") = matErrors, Named("matat") = matrixAt);
 }
 
 /* # Wrapper for fitter */
@@ -1243,22 +1267,22 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
                   arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecOt){
     int obs = vecYt.n_rows;
     int hh = 0;
-    arma::mat materrors(obs+hor-1, hor, arma::fill::zeros);
+    arma::mat matErrors(obs+hor-1, hor, arma::fill::zeros);
     unsigned int maxlag = max(lags);
 
     for(int i = 0; i < obs; i=i+1){
         hh = std::min(hor, obs-i);
-        materrors.submat(hor-1+i, 0, hor-1+i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
+        matErrors.submat(hor-1+i, 0, hor-1+i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
             forecaster(matrixVt.rows(i,i+maxlag-1), matrixF, rowvecW, hh, E, T, S, lags, matrixXt.rows(i, i+hh-1),
                 matrixAt.rows(i, i+hh-1), matrixFX), E));
     }
 
 // Fix for GV in order to perform better in the sides of the series
     for(int i=0; i<(hor-1); i=i+1){
-        materrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = materrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(1.0+i);
+        matErrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = matErrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(1.0+i);
     }
 
-    return materrors;
+    return matErrors;
 }
 
 /* # Wrapper for errorer */
@@ -1315,6 +1339,7 @@ int CFtypeswitch (std::string const& CFtype) {
     if (CFtype == "aGMSTFE") return 9;
     if (CFtype == "aMSTFE") return 10;
     if (CFtype == "aMSEh") return 11;
+    if (CFtype == "Rounded") return 12;
     else return 7;
 }
 
@@ -1354,31 +1379,31 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     NumericMatrix matrixAtfromfit = as<NumericMatrix>(fitting["matat"]);
     matrixAt = as<arma::mat>(matrixAtfromfit);
 
-    arma::mat materrors;
+    arma::mat matErrors;
 
     arma::vec veccij(hor, arma::fill::ones);
     arma::mat matrixSigma(hor, hor, arma::fill::eye);
 
     if((multi==true) & (CFtypeswitch(CFtype)<=7)){
-        materrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
+        matErrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
         if(E=='M'){
-            materrors = log(1 + materrors);
-            materrors.elem(arma::find_nonfinite(materrors)).fill(1e10);
+            matErrors = log(1 + matErrors);
+            matErrors.elem(arma::find_nonfinite(matErrors)).fill(1e10);
 
 // This correction is needed in order to take the correct number of observations in the error matrix
             yactsum = yactsum / obs * matobs;
         }
     }
     else{
-        arma::mat materrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-        materrors = materrorsfromfit;
-        materrors = materrors.elem(nonzeroes);
+        arma::mat matErrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+        matErrors = matErrorsfromfit;
+        matErrors = matErrors.elem(nonzeroes);
         if(E=='M'){
-            materrors = log(1 + materrors);
+            matErrors = log(1 + matErrors);
         }
     }
 
-    if(CFtypeswitch(CFtype)>7){
+    if((CFtypeswitch(CFtype)>7) & (CFtypeswitch(CFtype)<12)){
 // Form vector for basic values and matrix Mu
         for(unsigned int i=1; i<hor; ++i){
             veccij(i) = as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
@@ -1407,111 +1432,122 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
         }
     }
 
+    // Thes lines are needed for Rounded CF
+    arma::vec vecYfit;
+    if(CFtypeswitch(CFtype)==12){
+        NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
+        vecYfit = as<arma::vec>(yfitfromfit);
+    }
+
     switch(E){
     case 'M':
         switch(CFtypeswitch(CFtype)){
         case 1:
             try{
-                CFres = double(log(arma::prod(eig_sym(trans(materrors) * (materrors) / matobs))));
+                CFres = double(log(arma::prod(eig_sym(trans(matErrors) * (matErrors) / matobs))));
             }
             catch(const std::runtime_error){
-                CFres = double(log(arma::det(arma::trans(materrors) * materrors / double(matobs))));
+                CFres = double(log(arma::det(arma::trans(matErrors) * matErrors / double(matobs))));
             }
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 2:
-            CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1))
+            CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1))
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
 // no exp is the temporary fix for very strange behaviour of MAM type models
         case 3:
-            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1)
+            CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(matobs), 1)
                         + (2 / double(obs)) * double(hor) * yactsum);
         break;
         case 4:
-            CFres = arma::as_scalar(exp(log(sum(pow(materrors.col(hor-1),2)) / double(matobs))
+            CFres = arma::as_scalar(exp(log(sum(pow(matErrors.col(hor-1),2)) / double(matobs))
                                         + (2 / double(obs)) * yactsum));
         break;
         case 5:
-            CFres = arma::as_scalar(exp(log(mean(abs(materrors))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(mean(abs(matErrors))) + (2 / double(obs)) * yactsum));
         break;
         case 6:
-            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(materrors)))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(matErrors)))) + (2 / double(obs)) * yactsum));
         break;
         case 7:
-            CFres = arma::as_scalar(exp(log(mean(pow(materrors,2))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(mean(pow(matErrors,2))) + (2 / double(obs)) * yactsum));
         break;
         case 8:
         case 9:
             try{
-                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
             }
             catch(const std::runtime_error){
-                CFres = log(arma::det(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+                CFres = log(arma::det(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                           )) + hor*log(pow(normalize,2));
             }
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 10:
-            CFres = arma::trace(as_scalar(mean(pow(materrors,2))) * matrixSigma
+            CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma
                                     );
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 11:
-            CFres = (as_scalar(mean(pow(materrors,2))) * matrixSigma(hor-1,hor-1)
-                                        );
+            CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+        break;
+        case 12:
+            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
         }
     break;
     case 'A':
         switch(CFtypeswitch(CFtype)){
         case 1:
             try{
-                CFres = double(log(arma::prod(eig_sym(trans(materrors / normalize) * (materrors / normalize) / matobs))) +
+                CFres = double(log(arma::prod(eig_sym(trans(matErrors / normalize) * (matErrors / normalize) / matobs))) +
                     hor * log(pow(normalize,2)));
             }
             catch(const std::runtime_error){
-                CFres = double(log(arma::det(arma::trans(materrors / normalize) * (materrors / normalize) / matobs)) +
+                CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / matobs)) +
                     hor * log(pow(normalize,2)));
             }
         break;
         case 2:
-            CFres = arma::as_scalar(sum(log(sum(pow(materrors,2)) / double(matobs)), 1));
+            CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1));
         break;
         case 3:
-            CFres = arma::as_scalar(sum(sum(pow(materrors,2)) / double(matobs), 1));
+            CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(matobs), 1));
         break;
         case 4:
-            CFres = arma::as_scalar(sum(pow(materrors.col(hor-1),2)) / double(matobs));
+            CFres = arma::as_scalar(sum(pow(matErrors.col(hor-1),2)) / double(matobs));
         break;
         case 5:
-            CFres = arma::as_scalar(mean(abs(materrors)));
+            CFres = arma::as_scalar(mean(abs(matErrors)));
         break;
         case 6:
-            CFres = arma::as_scalar(mean(sqrt(abs(materrors))));
+            CFres = arma::as_scalar(mean(sqrt(abs(matErrors))));
         break;
         case 7:
-            CFres = arma::as_scalar(mean(pow(materrors,2)));
+            CFres = arma::as_scalar(mean(pow(matErrors,2)));
         break;
         case 8:
         case 9:
             try{
-                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+                CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
             }
             catch(const std::runtime_error){
-                CFres = log(arma::det(as_scalar(mean(pow(materrors / normalize,2))) * matrixSigma
+                CFres = log(arma::det(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                           )) + hor*log(pow(normalize,2));
             }
         break;
         case 10:
-            CFres = arma::trace(as_scalar(mean(pow(materrors,2))) * matrixSigma
+            CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma
                                     );
         break;
         case 11:
-            CFres = (as_scalar(mean(pow(materrors,2))) * matrixSigma(hor-1,hor-1)
-                                        );
+            CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
+        break;
+        case 12:
+            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
         }
     }
     return CFres;
@@ -1920,7 +1956,7 @@ List simulator(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
 
 /* # Wrapper for simulator */
 // [[Rcpp::export]]
-RcppExport SEXP simulatorwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
+RcppExport SEXP simulatorwrap(SEXP arrvt, SEXP matErrors, SEXP matot, SEXP matF, SEXP matw, SEXP matg,
                                 SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags) {
 
 // ### arrvt should contain array of obs x ncomponents x nseries elements.
@@ -1928,8 +1964,8 @@ RcppExport SEXP simulatorwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF,
     IntegerVector arrvt_dim = arrvt_n.attr("dim");
     arma::cube arrayVt(arrvt_n.begin(),arrvt_dim[0], arrvt_dim[1], arrvt_dim[2], false);
 
-    NumericMatrix materrors_n(materrors);
-    arma::mat matrixerrors(materrors_n.begin(), materrors_n.nrow(), materrors_n.ncol(), false);
+    NumericMatrix matErrors_n(matErrors);
+    arma::mat matrixerrors(matErrors_n.begin(), matErrors_n.nrow(), matErrors_n.ncol(), false);
 
     NumericMatrix matot_n(matot);
     arma::mat matrixot(matot_n.begin(), matot_n.nrow(), matot_n.ncol(), false);
@@ -1945,8 +1981,8 @@ RcppExport SEXP simulatorwrap(SEXP arrvt, SEXP materrors, SEXP matot, SEXP matF,
     NumericMatrix matg_n(matg);
     arma::mat matrixG(matg_n.begin(), matg_n.nrow(), matg_n.ncol(), false);
 
-    unsigned int obs = materrors_n.nrow();
-    unsigned int nseries = materrors_n.ncol();
+    unsigned int obs = matErrors_n.nrow();
+    unsigned int nseries = matErrors_n.ncol();
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
     char S = as<char>(Stype);

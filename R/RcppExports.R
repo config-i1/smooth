@@ -45,7 +45,7 @@ costfuncARIMA <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA,
     .Call('smooth_costfuncARIMA', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds)
 }
 
-simulatorwrap <- function(arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags) {
-    .Call('smooth_simulatorwrap', PACKAGE = 'smooth', arrvt, materrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
+simulatorwrap <- function(arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags) {
+    .Call('smooth_simulatorwrap', PACKAGE = 'smooth', arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
 }
 

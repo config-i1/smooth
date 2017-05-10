@@ -1,7 +1,7 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
-                         "constant","AR","MA","data","y.fit","cumulative"));
+                         "constant","AR","MA","data","y.fit","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
@@ -604,20 +604,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     # Define the number of rows that should be in the matvt
     obsStates <- max(obsAll + maxlag, obsInsample + 2*maxlag);
 
-    ##### Fisher Information #####
-    if(!exists("FI")){
-        FI <- FALSE;
-    }
-    else{
-        if(!is.logical(FI)){
-            FI <- FALSE;
-        }
-        if(!requireNamespace("numDeriv",quietly=TRUE) & FI){
-            warning("Sorry, but you don't have 'numDeriv' package, which is required in order to produce Fisher Information.",call.=FALSE);
-            FI <- FALSE;
-        }
-    }
-
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
     if(bounds!="u" & bounds!="a" & bounds!="n"){
@@ -1120,6 +1106,36 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         xregDo <- "u";
     }
 
+    ##### Fisher Information #####
+    if(!exists("FI")){
+        FI <- FALSE;
+    }
+    else{
+        if(!is.logical(FI)){
+            FI <- FALSE;
+        }
+        if(!requireNamespace("numDeriv",quietly=TRUE) & FI){
+            warning("Sorry, but you don't have 'numDeriv' package, which is required in order to produce Fisher Information.",call.=FALSE);
+            FI <- FALSE;
+        }
+    }
+
+    ##### Rounded up values #####
+    if(!exists("rounded")){
+        rounded <- FALSE;
+    }
+    else{
+        if(!is.logical(rounded)){
+            rounded <- FALSE;
+        }
+        else{
+            if(rounded){
+                cfType <- "Rounded";
+                cfTypeOriginal <- cfType;
+            }
+        }
+    }
+
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
@@ -1132,7 +1148,6 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("datafreq",datafreq,ParentEnvironment);
-    assign("FI",FI,ParentEnvironment);
     assign("bounds",bounds,ParentEnvironment);
     assign("cfType",cfType,ParentEnvironment);
     assign("cfTypeOriginal",cfTypeOriginal,ParentEnvironment);
@@ -1151,6 +1166,8 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("normalizer",normalizer,ParentEnvironment);
     assign("nParamMax",nParamMax,ParentEnvironment);
     assign("xregDo",xregDo,ParentEnvironment);
+    assign("FI",FI,ParentEnvironment);
+    assign("rounded",rounded,ParentEnvironment);
 
     if(modelType=="es"){
         assign("model",model,ParentEnvironment);
@@ -2517,6 +2534,9 @@ likelihoodFunction <- function(C){
             else{
                 return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
             }
+        }
+        if(rounded){
+            return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])) - CF(C));
         }
         if(cfType=="TFL" | cfType=="aTFL"){
             return(sum(log(pt[ot==1]))*h
