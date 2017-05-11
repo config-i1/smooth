@@ -1660,6 +1660,10 @@ CreatorES <- function(silent=FALSE,...){
                                                                    sigma=sigma, trace=multisteps, iprob=pt[obsInsample+c(1:h)])));
         }
         names(errormeasures) <- c(errormeasuresNames,"PLS");
+
+        if(cumulative){
+            y.holdout <- ts(sum(y.holdout),start=start(y.for),frequency=datafreq);
+        }
     }
     else{
         y.holdout <- NA;

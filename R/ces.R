@@ -736,6 +736,10 @@ CreatorCES <- function(silentText=FALSE,...){
         else{
             errormeasures <- errorMeasurer(y.holdout,y.for,y);
         }
+
+        if(cumulative){
+            y.holdout <- ts(sum(y.holdout),start=start(y.for),frequency=datafreq);
+        }
     }
     else{
         y.holdout <- NA;
