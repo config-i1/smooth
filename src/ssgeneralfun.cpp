@@ -65,10 +65,6 @@ double cdf(arma::vec vecYt, arma::vec vecYfit, arma::vec matErrors, char E){
     if(E=='A'){
         for(int i=0; i<obs; ++i){
             CF += log(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) - R::pnorm(ceil(vecYt(i))-1, vecYfit(i), errorSD, 1, 0));
-
-            // if(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0)>1){
-            //     std::cout << R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) << ", ";
-            // }
         }
     }
     else{
