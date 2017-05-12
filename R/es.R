@@ -501,6 +501,9 @@ EstimatorES <- function(...){
         CUpper <- Cs$CUpeer;
     }
 
+    if(rounded){
+        cfType <- "MSE";
+    }
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
@@ -538,10 +541,14 @@ EstimatorES <- function(...){
         C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
     }
 
+    if(rounded){
+        cfType <- "Rounded";
+    }
     res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
+
     # This condition is needed in order to make sure that we did not make the solution worse
-    if(res2$objective <= res$objective){
+    if((res2$objective <= res$objective) | rounded){
         res <- res2;
     }
     C <- res$solution;
