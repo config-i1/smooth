@@ -1525,7 +1525,7 @@ ssFitter <- function(...){
         errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
                                      h, Etype, Ttype, Stype, modellags,
                                      matxt, matat, matFX, ot),
-                         start=start(data),frequency=frequency(data));
+                         start=(time(data)[1] - deltat(data)*(h-1)),frequency=datafreq);
         colnames(errors.mat) <- paste0("Error",c(1:h));
     }
     else{
