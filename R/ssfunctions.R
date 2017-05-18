@@ -1714,6 +1714,10 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 upper <- ev + upperquant / hsmN^2 * Re(hm(rowSums(errors),sum(ev)))^2;
                 lower <- ev + lowerquant / hsmN^2 * Im(hm(rowSums(errors),sum(ev)))^2;
             }
+            if(Etype=="M"){
+                upper <- 1 + upper;
+                lower <- 1 + lower;
+            }
         }
 
 #### Semiparametric intervals using the variance of errors ####
@@ -2182,11 +2186,7 @@ ssForecaster <- function(...){
                     y.high <- ts(y.high,start=y.forStart,frequency=datafreq);
                 }
                 else{
-                    if(intervalsType=="np"){
-                        quantvalues$upper <- quantvalues$upper * y.for;
-                        quantvalues$lower <- quantvalues$lower * y.for;
-                    }
-                    else if(intervalsType=="sp"){
+                    if(any(intervalsType==c("np","sp","a"))){
                         quantvalues$upper <- quantvalues$upper * y.for;
                         quantvalues$lower <- quantvalues$lower * y.for;
                     }
