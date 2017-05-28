@@ -1135,8 +1135,8 @@ CreatorES <- function(silent=FALSE,...){
                            "Updating pool of models."));
         }
 
-        # We have enough observations for local level model
         if(obsNonzero > (3 + nParamExo) & is.null(modelsPool)){
+            # We have enough observations for local level model
             modelsPool <- c("ANN");
             if(allowMultiplicative){
                 modelsPool <- c(modelsPool,"MNN");
@@ -1181,6 +1181,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
             else{
+                modelDo <- "select"
                 model <- "ZZZ";
             }
         }
@@ -1222,6 +1223,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
             else{
+                modelDo <- "select"
                 model <- "ZZZ";
             }
         }
