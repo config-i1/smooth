@@ -453,6 +453,12 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             modellags <- rbind(modellags,1);
         }
         maxlag <- 1;
+
+        if(obsInsample < nComponents){
+            warning(paste0("In-sample size is ",obsInsample,", while number of components is ",nComponents,
+                           ". Cannot fit the model."),call.=FALSE)
+            stop("Not enough observations for such a complicated model.",call.=FALSE);
+        }
     }
     else if(modelType=="ces"){
         # If the user typed wrong seasonality, use the "Full" instead
