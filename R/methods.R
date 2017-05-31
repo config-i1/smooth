@@ -295,11 +295,11 @@ forecast.smooth <- function(object, h=10,
 
 #' @export
 getResponse.smooth <- function(object, ...){
-    return(object$actuals);
+    return(window(object$actuals,start(object$actuals),end(object$fitted)));
 }
 #' @export
 getResponse.smooth.forecast <- function(object, ...){
-    return(object$model$actuals);
+    return(window(object$model$actuals,start(object$model$actuals),end(object$model$fitted)));
 }
 
 #### Function extracts lags of provided model ####
@@ -570,6 +570,68 @@ plot.iss <- function(x, ...){
         intermittent <- "None";
     }
     graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent));
+}
+
+#### Point likelihood ####
+#' Point likelihood values
+#'
+#' This function returns a vector of logarithms of likelihoods for each observation
+#'
+#' Instead of taking the expected log-likelihood for the whole series, this function
+#' calculates the individual value for each separate observation. Note that these
+#' values are biased, so you would possibly need to take number of degrees of freedom
+#' into account in order to have an unbiased estimator.
+#'
+#' @aliases pointLik pointLik.default
+#' @param object Time series model.
+#' @param ...  Some stuff.
+#' @return This function returns a vector.
+#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @seealso \link[stats]{AIC}, \link[stats]{BIC}
+#' @keywords information criteria information criterion
+#' @examples
+#'
+#' ourModel <- ces(rnorm(100,0,1),h=10)
+#'
+#' pointLik(ourModel,h=10)
+#'
+#' # Bias correction
+#' pointLik(ourModel,h=10) - ourModel$nParam
+#'
+#' # Bias correction in AIC style
+#' 2*(ourModel$nParam - pointLik(ourModel,h=10))
+#'
+#' # BIC calculation based on pointLik
+#' log(nobs(ourModel))*ourModel$nParam - 2*sum(pointLik(ourModel,h=10)))
+#'
+#' @export pointLik
+pointLik <- function(object, ...) UseMethod("pointLik")
+
+#' @importFrom stats window
+#' @export
+pointLik.default <- function(object, ...){
+    if(!any(class(object)=="smooth")){
+        stop("Sorry, but we do not support this class yet.",call.=FALSE);
+    }
+
+    obs <- nobs(object);
+
+    errors <- object$residuals;
+    s2 <- object$s2;
+    likValues <- vector("numeric",obs);
+
+    if(gregexpr("ETS",object$model)!=-1){
+        if(substr(model.type(object),1,1)=="A"){
+            likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
+        }
+        else{
+            likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2 - log(getResponse(object));
+        }
+    }
+    else{
+        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
+    }
+    return(likValues);
 }
 
 #### Prints of smooth ####
