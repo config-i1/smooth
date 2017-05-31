@@ -19,13 +19,25 @@ This function returns a vector.
 This function returns a vector of logarithms of likelihoods for each observation
 }
 \details{
-Instead of taking the expected log-likelihood for the whole series, this function calculates the individual value for each separate observation.
+Instead of taking the expected log-likelihood for the whole series, this function
+calculates the individual value for each separate observation. Note that these
+values are biased, so you would possibly need to take number of degrees of freedom
+into account in order to have an unbiased estimator.
 }
 \examples{
 
 ourModel <- ces(rnorm(100,0,1),h=10)
 
-pointLik(ourModel,h=10)
+pointLik(ourModel)
+
+# Bias correction
+pointLik(ourModel) - nParam(ourModel)
+
+# Bias correction in AIC style
+2*(nParam(ourModel) - pointLik(ourModel))
+
+# BIC calculation based on pointLik
+log(nobs(ourModel))*nParam(ourModel) - 2*sum(pointLik(ourModel))
 
 }
 \seealso{
@@ -34,6 +46,4 @@ pointLik(ourModel,h=10)
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{criteria}
-\keyword{criterion}
-\keyword{information}
+\keyword{htest}

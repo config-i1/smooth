@@ -38,6 +38,4 @@ and Multimodel Inference. Springer Science & Business Media.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{criteria}
-\keyword{criterion}
-\keyword{information}
+\keyword{htest}

@@ -66,4 +66,5 @@ sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$cons
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{forecasting}
+\keyword{htest}
+\keyword{ts}

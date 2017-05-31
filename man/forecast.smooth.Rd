@@ -68,4 +68,5 @@ Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{forecast}
+\keyword{ts}
+\keyword{univar}
