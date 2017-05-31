@@ -207,10 +207,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                                  "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
                 if(datafreq==1 & Stype!="N"){
                     if(!silentText){
-                        message("The provided data has frequency of 1. Only non-seasonal models are available.");
+                        warning("The provided data has frequency of 1. Only non-seasonal models are available.",call.=FALSE);
                     }
                     Stype <- "N";
                     substr(model,nchar(model),nchar(model)) <- "N";
+                }
+
+                if((obsInsample < datafreq*2) & Stype!="N"){
+                    warning("Sorry, but we don't have enough data for the seasonal model. Switching to non-seasonal.",call.=FALSE);
+                    Stype <- "N";
                 }
                 # Restrict error types in the pool
                 if(Etype=="X"){

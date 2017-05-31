@@ -10,6 +10,7 @@ Changes:
 Bugfixes:
 * simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.
 * ssarima() now checks if the number of observations is enough for the model and stops if it is not.
+* es() didn't work in some cases of seasonal models, when number of in-sample observations was less than twice frequency of data. The seasonal model should not be used there in the first place.
 
 
 smooth v1.9.9 (Release data: 2017-05-03)
