@@ -733,7 +733,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
     else{
         ### iprob values
-        if(!exists("iprob")){
+        if(!exists("iprob",inherits=FALSE)){
             iprobProvided <- FALSE;
             iprob <- NULL;
         }
@@ -1118,7 +1118,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Define xregDo #####
-    if(!exists("xregDo")){
+    if(!exists("xregDo",inherits=FALSE)){
         xregDo <- "u";
     }
     else{
@@ -1134,7 +1134,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Fisher Information #####
-    if(!exists("FI")){
+    if(!exists("FI",inherits=FALSE)){
         FI <- FALSE;
     }
     else{
@@ -1148,7 +1148,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Rounded up values #####
-    if(!exists("rounded")){
+    if(!exists("rounded",inherits=FALSE)){
         rounded <- FALSE;
     }
     else{
@@ -1312,7 +1312,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### Fisher Information #####
-    if(!exists("FI")){
+    if(!exists("FI",inherits=FALSE)){
         FI <- FALSE;
     }
 
@@ -1485,7 +1485,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### Define xregDo #####
-    if(!exists("xregDo")){
+    if(!exists("xregDo",inherits=FALSE)){
         xregDo <- "u";
     }
     else{
