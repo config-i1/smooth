@@ -703,32 +703,48 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             yot <- matrix(y[y!=0],obsNonzero,1);
             pt <- matrix(mean(ot),obsInsample,1);
             pt.for <- matrix(1,h,1);
-        }
-
-        if(any(intermittent<0,intermittent>1)){
-            warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
-                           "Converting to appropriate vector."),call.=FALSE);
-            intermittent <- (intermittent!=0)*1;
-        }
-
-        ot <- (y!=0)*1;
-        obsNonzero <- sum(ot);
-        yot <- matrix(y[y!=0],obsNonzero,1);
-        if(length(intermittent)==obsAll){
-            pt <- intermittent[1:obsInsample];
-            pt.for <- intermittent[(obsInsample+1):(obsInsample+h)];
+            nParamIntermittent <- 1;
         }
         else{
-            pt <- matrix(ot,obsInsample,1);
-            pt.for <- matrix(intermittent,h,1);
-        }
+            if(any(intermittent<0,intermittent>1)){
+                warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
+                               "Converting to appropriate vector."),call.=FALSE);
+                intermittent <- (intermittent!=0)*1;
+            }
 
-        iprob <- pt.for[1];
-        # "p" stand for "provided", meaning that we have been provided the future data
-        intermittent <- "p";
-        nParamIntermittent <- 0;
+            ot <- (y!=0)*1;
+            obsNonzero <- sum(ot);
+            yot <- matrix(y[y!=0],obsNonzero,1);
+            if(length(intermittent)==obsAll){
+                pt <- intermittent[1:obsInsample];
+                pt.for <- intermittent[(obsInsample+1):(obsInsample+h)];
+            }
+            else{
+                pt <- matrix(ot,obsInsample,1);
+                pt.for <- matrix(intermittent,h,1);
+            }
+
+            iprob <- pt.for[1];
+            # "p" stand for "provided", meaning that we have been provided the future data
+            intermittent <- "p";
+            nParamIntermittent <- 0;
+        }
+        iprobProvided <- FALSE;
     }
     else{
+        ### iprob values
+        if(!exists("iprob")){
+            iprobProvided <- FALSE;
+            iprob <- NULL;
+        }
+        else{
+            if(is.null(iprob)){
+                iprobProvided <- FALSE;
+            }
+            else{
+                iprobProvided <- TRUE;
+            }
+        }
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
@@ -1172,6 +1188,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("pt.for",pt.for,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
+    assign("iprobProvided",iprobProvided,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);

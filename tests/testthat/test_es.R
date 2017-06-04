@@ -68,3 +68,10 @@ testModel <- es(x, "MNN", intermittent="a", silent=TRUE, ic="AIC");
 test_that("Test ETS selection on N1234$x", {
     expect_match(testModel$model, "iETS");
 })
+
+# Use simulated data in the model
+test_that("Simulate data and then apply ETS", {
+    x <- sim.es("MNN",iprob=0.2,obs=100);
+    testModel <- es(x);
+    expect_equal(testModel$initial, x$initial);
+})

@@ -71,6 +71,10 @@ columns, time is in rows.
 \item \code{persistence} - Vector (or matrix if \code{nsim>1}) of smoothing
 parameters used in the simulation.
 \item \code{phi} - Value of damping parameter used in time series generation.
+\item \code{initial} - Vector (or matrix) of initial values.
+\item \code{initialSeason} - Vector (or matrix) of initial seasonal coefficients.
+\item \code{iprob} - vector of probabilities used in the simulation.
+\item \code{intermittent} - type of the intermittent model used.
 \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 depending on \code{nsim}.
 \item \code{occurrences} - Values of occurrence variable. Once again, can be either

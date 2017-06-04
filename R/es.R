@@ -242,6 +242,18 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    #This overrides the similar thing in ssfunctions.R but only for data generated from sim.es()
+    if(class(data)=="smooth.sim"){
+        if(gregexpr("ETS",data$model)!=-1){
+            model <- data;
+            data <- data$data;
+        }
+    }
+    else if(class(data)=="smooth"){
+        model <- data;
+        data <- data$actuals;
+    }
+
 # If a previous model provided as a model, write down the variables
     if(is.list(model)){
         if(gregexpr("ETS",model$model)==-1){
@@ -253,16 +265,26 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             warning("Switching to intermittent='auto'.",call.=FALSE);
             intermittent <- "a";
         }
-        persistence <- model$persistence;
-        initial <- model$initial;
-        initialSeason <- model$initialSeason;
+        if(class(model)=="smooth.sim" & !is.null(dim(model$data))){
+            warning("The provided model has several submodels. Choosing a random one.",call.=FALSE);
+            i <- round(runif(1,1:length(model$persistence)));
+            persistence <- model$persistence[,i];
+            initial <- model$initial[,i];
+            initialSeason <- model$initialSeason[,i];
+        }
+        else{
+            persistence <- model$persistence;
+            initial <- model$initial;
+            initialSeason <- model$initialSeason;
+        }
+        phi <- model$phi;
+        iprob <- model$iprob;
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
-        phi <- model$phi;
         if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }

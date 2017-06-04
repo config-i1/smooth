@@ -47,6 +47,10 @@
 #' \item \code{persistence} - Vector (or matrix if \code{nsim>1}) of smoothing
 #' parameters used in the simulation.
 #' \item \code{phi} - Value of damping parameter used in time series generation.
+#' \item \code{initial} - Vector (or matrix) of initial values.
+#' \item \code{initialSeason} - Vector (or matrix) of initial seasonal coefficients.
+#' \item \code{iprob} - vector of probabilities used in the simulation.
+#' \item \code{intermittent} - type of the intermittent model used.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 #' depending on \code{nsim}.
 #' \item \code{occurrences} - Values of occurrence variable. Once again, can be either
@@ -289,6 +293,22 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
                 }
             }
         }
+        else{
+            iprob <- iprob[1];
+        }
+    }
+
+# Check the probabilities and try to assign the type of intermittent model
+    if(length(iprob)==1){
+        intermittent <- "f";
+    }
+    else{
+        # This is a strong assumption!
+        intermittent <- "t";
+    }
+
+    if(all(iprob==1)){
+        intermittent <- "n";
     }
 
 ##### Let's make sum fun #####
@@ -379,9 +399,11 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
             arrvt[1:maxlag,1,] <- runif(nsim,500,5000);
             arrvt[1:maxlag,2,] <- 1;
         }
+        initial <- matrix(arrvt[1,1:componentsNumber,],ncol=nsim);
     }
     else{
         arrvt[,1:componentsNumber,] <- rep(rep(initial,each=(obs+maxlag)),nsim);
+        initial <- matrix(arrvt[1,1:componentsNumber,],ncol=nsim);
     }
 
 # Generate seasonal states if they were not supplied
@@ -399,10 +421,12 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
                 arrvt[1:maxlag,componentsNumber+1,i] <- arrvt[1:maxlag,componentsNumber+1,i] / exp(mean(log(arrvt[1:maxlag,componentsNumber+1,i])));
             }
         }
+        initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else if(componentSeasonal==TRUE & !is.null(initialSeason)){
         arrvt[1:maxlag,componentsNumber+1,] <- rep(initialSeason,nsim);
+        initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
     }
 
 # Check if any argument was passed in dots
@@ -507,6 +531,7 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
     }
 
     model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
+                  initial=initial, initialSeason=initialSeason, iprob=iprob, intermittent=intermittent,
                   residuals=materrors, occurrences=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

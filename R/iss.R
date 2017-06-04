@@ -1,4 +1,4 @@
-utils::globalVariables(c("y","obs"))
+utils::globalVariables(c("y","obs","iprobProvided"))
 
 intermittentParametersSetter <- function(intermittent="n",...){
 # Function returns basic parameters based on intermittent type
@@ -19,8 +19,34 @@ intermittentParametersSetter <- function(intermittent="n",...){
 #            nParamIntermittent <- nParamIntermittent + 3;
 #         }
         yot <- matrix(y[y!=0],obsNonzero,1);
-        pt <- matrix(mean(ot),obsInsample,1);
-        pt.for <- matrix(1,h,1);
+        if(is.null(iprob)){
+            pt <- matrix(mean(ot),obsInsample,1);
+            pt.for <- matrix(1,h,1);
+        }
+        else{
+            if(length(iprob)==1){
+                pt <- matrix(iprob,obsInsample,1);
+                pt.for <- matrix(iprob,h,1);
+            }
+            else if(length(iprob)==obsInsample){
+                pt <- matrix(iprob,obsInsample,1);
+                pt.for <- matrix(iprob[length(iprob)],h,1);
+            }
+            else if(length(iprob)==obsAll){
+                pt <- matrix(iprob[1:obsInsample],obsInsample,1);
+                pt.for <- matrix(iprob[(obsInsample+1):obsAll],h,1);
+            }
+            else if(all(length(iprob)!=c(1,obsInsample,obsAll))){
+                if(length(iprob) < obsAll){
+                    iprob <- c(iprob,rep(iprob,obsAll-length(iprob)));
+                }
+                else{
+                    iprob <- iprob[1:obsAll];
+                }
+                pt <- matrix(iprob[1:obsInsample],obsInsample,1);
+                pt.for <- matrix(iprob[(obsInsample+1):obsAll],h,1);
+            }
+        }
     }
     else{
         obsNonzero <- obsInsample;
@@ -61,11 +87,13 @@ intermittentMaker <- function(intermittent="n",...){
 
 ##### If intermittent is not auto, then work normally #####
     if(all(intermittent!=c("n","p","a"))){
-        intermittent_model <- iss(y,intermittent=intermittent,h=h);
-        pt[,] <- intermittent_model$fitted;
-        pt.for <- intermittent_model$forecast;
-        iprob <- pt.for[1];
-        ivar <- intermittent_model$variance;
+        if(!iprobProvided){
+            intermittent_model <- iss(y,intermittent=intermittent,h=h);
+            pt[,] <- intermittent_model$fitted;
+            pt.for <- intermittent_model$forecast;
+            iprob <- pt.for[1];
+            ivar <- intermittent_model$variance;
+        }
     }
     else{
         ivar <- 1;

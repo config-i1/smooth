@@ -1,4 +1,4 @@
-smooth v2.0.0 (Release data: 2017-06-01)
+smooth v2.0.0 (Release data: 2017-07-01)
 ==============
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * Introduced a hidden parameter, rounded, which determines whether the rounded up value of demand sizes is assumed in the model. This influences the cost function and leads to a different results in case of intermittent model.
 * If cumulative==TRUE, then we now return cumulative holdout values as well.
 * New method pointLik() for smooth class. It returns the vector of log-likelihoods for each separate observation.
+* Better integration of sim.es() objects and es() function. Now you can do something like this to fit the "true" model: x <- sim.es("MNN"); es(x$data,model=x).
 
 Bugfixes:
 * simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.
