@@ -744,6 +744,9 @@ print.smooth.sim <- function(x, ...){
             if(x$phi!=1){
                 cat(paste0("Phi: ",x$phi,"\n"));
             }
+            if(x$intermittent!="n"){
+                cat(paste0("Intermittence type: ",x$intermittent,"\n"));
+            }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
         else if(gregexpr("ARIMA",x$model)!=-1){

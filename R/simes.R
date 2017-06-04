@@ -300,15 +300,15 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 
 # Check the probabilities and try to assign the type of intermittent model
     if(length(iprob)==1){
-        intermittent <- "f";
+        intermittent <- "fixed";
     }
     else{
         # This is a strong assumption!
-        intermittent <- "t";
+        intermittent <- "tsb";
     }
 
     if(all(iprob==1)){
-        intermittent <- "n";
+        intermittent <- "none";
     }
 
 ##### Let's make sum fun #####
@@ -497,12 +497,12 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,modellags);
 
-    if(all(iprob == 1)){
+    # if(all(iprob == 1)){
         matyt <- simulateddata$matyt;
-    }
-    else{
-        matyt <- round(simulateddata$matyt,0);
-    }
+    # }
+    # else{
+        # matyt <- round(simulateddata$matyt,0);
+    # }
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);
 
