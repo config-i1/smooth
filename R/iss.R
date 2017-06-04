@@ -19,7 +19,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
 #            nParamIntermittent <- nParamIntermittent + 3;
 #         }
         yot <- matrix(y[y!=0],obsNonzero,1);
-        if(is.null(iprob)){
+        if(!iprobProvided){
             pt <- matrix(mean(ot),obsInsample,1);
             pt.for <- matrix(1,h,1);
         }
