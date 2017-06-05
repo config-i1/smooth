@@ -8,6 +8,7 @@ Changes:
 * If cumulative==TRUE, then we now return cumulative holdout values as well.
 * New method pointLik() for smooth class. It returns the vector of log-likelihoods for each separate observation.
 * Better integration of sim.es() objects and es() function. Now you can do something like this to fit the "true" model: x <- sim.es("MNN"); es(x$data,model=x).
+* es() now also returns transition matrix.
 
 Bugfixes:
 * simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.

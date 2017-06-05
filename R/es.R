@@ -100,7 +100,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{persistence} - persistence vector. This is the place, where
 #' smoothing parameters live.
 #' \item \code{phi} - value of damping parameter.
-#' \item \code{initialType} - Type of initial values used.
+#' \item \code{transition} - transition matrix of the model.
+#' \item \code{initialType} - type of the initial values used.
 #' \item \code{initial} - intial values of the state vector (non-seasonal).
 #' \item \code{initialSeason} - intial values of the seasonal part of state vector.
 #' \item \code{nParam} - number of estimated parameters.
@@ -1746,7 +1747,7 @@ CreatorES <- function(silent=FALSE,...){
 ##### Return values #####
     if(modelDo!="combine"){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
-                      states=matvt,persistence=persistence,phi=phi,
+                      states=matvt,persistence=persistence,phi=phi,transition=matF,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=nParam,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
