@@ -2673,7 +2673,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             }
         }
         if(!is.null(phi)){
-            if(phi!=1){
+            if(gregexpr("d",modelname)!=-1){
                 cat(paste0("Damping parameter: ", round(phi,3),"\n"));
             }
         }
