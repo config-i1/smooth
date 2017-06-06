@@ -453,11 +453,20 @@ CreatorGES <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(!silentText){
-            message(paste0("Number of non-zero observations is ",obsNonzero,
-                           ", while the number of parameters to estimate is ", nParamMax,"."));
+        if(xregDo=="select"){
+            if(obsNonzero <= (nParamMax - nParamExo)){
+                stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                            nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
+            }
+            else{
+                warning(paste0("The potential number of exogenous variables is higher than the number of observations. ",
+                               "This may cause problems in the estimation."),call.=FALSE);
+            }
         }
-        stop("Not enough observations. Can't fit the model you ask.",call.=FALSE);
+        else{
+            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                        nParamMax," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
+        }
     }
 
 ##### Preset values of matvt ######
