@@ -9,6 +9,7 @@ Changes:
 * New method pointLik() for smooth class. It returns the vector of log-likelihoods for each separate observation.
 * Better integration of sim.es() objects and es() function. Now you can do something like this to fit the "true" model: x <- sim.es("MNN"); es(x$data,model=x).
 * es() now also returns transition matrix.
+* Optimised C++ code, which should result in the growth of computational speed for ~25%.
 
 Bugfixes:
 * simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.
@@ -16,6 +17,7 @@ Bugfixes:
 * es() didn't work in some cases of seasonal models, when number of in-sample observations was less than twice frequency of data. The seasonal model should not be used there in the first place.
 * getResponse() function now returns the in-sample actuals.
 * exists() functions in the code would look into the parent environments. Now they don't.
+* sim.ssarima() returned state vector with wrong names in case of constant.
 
 
 smooth v1.9.9 (Release data: 2017-05-03)
