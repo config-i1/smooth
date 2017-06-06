@@ -185,7 +185,8 @@ components of es() and exogenous variables.
 \item \code{persistence} - persistence vector. This is the place, where
 smoothing parameters live.
 \item \code{phi} - value of damping parameter.
-\item \code{initialType} - Type of initial values used.
+\item \code{transition} - transition matrix of the model.
+\item \code{initialType} - type of the initial values used.
 \item \code{initial} - intial values of the state vector (non-seasonal).
 \item \code{initialSeason} - intial values of the seasonal part of state vector.
 \item \code{nParam} - number of estimated parameters.
