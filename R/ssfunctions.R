@@ -2149,7 +2149,7 @@ ssForecaster <- function(...){
                     materrors <- exp(materrors) - 1;
                 }
                 if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(h*nSamples,1,iprob),h,nSamples);
+                    matot <- matrix(rbinom(h*nSamples,1,pt.for),h,nSamples);
                 }
                 else{
                     matot <- matrix(1,h,nSamples);
@@ -2167,39 +2167,25 @@ ssForecaster <- function(...){
                 }
 
                 if(rounded){
-                    y.simulated <- ceiling(y.simulated);
+                    y.simulated <- ceiling(y.simulated + matrix(y.exo.for,nrow=h,ncol=nSamples));
                     quantileType <- 1;
+                    for(i in 1:h){
+                        y.for[i] <- median(y.simulated[i,y.simulated[i,]!=0]);
+                    }
                 }
                 else{
+                    y.simulated <- y.simulated + matrix(y.exo.for,nrow=h,ncol=nSamples);
                     quantileType <- 7;
                 }
-
-                # if(rounded){
-                #     for(i in 1:h){
-                #         y.for[i] <- mean(y.simulated[y.simulated[,i]!=0,i]);
-                #     }
-                #     y.for <- apply(y.simulated,1,sum)/apply(y.simulated!=0,1,sum);
-                # }
                 y.for <- c(pt.for)*y.for;
 
                 if(cumulative){
-                    # if(Etype=="M"){
-                    #     y.for <- ts(median(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
-                    # }
-                    # else{
-                    #     y.for <- ts(mean(colSums(y.simulated,na.rm=T)),start=y.forStart + y.exo.for,frequency=datafreq);
-                    # }
                     y.for <- ts(sum(y.for),start=y.forStart,frequency=datafreq);
-                    y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2 + sum(y.exo.for),type=quantileType),start=y.forStart,frequency=datafreq);
-                    y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2 + sum(y.exo.for),type=quantileType),start=y.forStart,frequency=datafreq);
+                    y.low <- ts(quantile(colSums(y.simulated,na.rm=T),(1-level)/2,type=quantileType),start=y.forStart,frequency=datafreq);
+                    y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2,type=quantileType),start=y.forStart,frequency=datafreq);
                 }
                 else{
-                    # if(Etype=="M"){
-                    #     y.for <- ts(apply(y.simulated,1,median,na.rm=T),start=y.forStart + y.exo.for,frequency=datafreq);
-                    # }
-                    # else{
-                    y.for <- ts(rowMeans(y.simulated,na.rm=T),start=y.forStart + y.exo.for,frequency=datafreq);
-                    # }
+                    y.for <- ts(y.for,start=y.forStart + y.exo.for,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=y.forStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=y.forStart,frequency=datafreq);
                 }
@@ -2221,32 +2207,16 @@ ssForecaster <- function(...){
                 }
 
                 if(Etype=="A"){
-                    # if(any(iprob!=1)){
-                    #     y.high <- ceiling(c(y.for) + quantvalues$upper);
-                    #     y.low <- floor(c(y.for) + quantvalues$lower);
-                    # }
-                    # else{
-                        y.high <- c(y.for) + quantvalues$upper;
-                        y.low <- c(y.for) + quantvalues$lower;
-                    # }
-                    y.low <- ts(y.low,start=y.forStart,frequency=datafreq);
-                    y.high <- ts(y.high,start=y.forStart,frequency=datafreq);
+                    y.low <- ts(c(y.for) + quantvalues$lower,start=y.forStart,frequency=datafreq);
+                    y.high <- ts(c(y.for) + quantvalues$upper,start=y.forStart,frequency=datafreq);
                 }
                 else{
                     if(any(intervalsType==c("np","sp","a"))){
                         quantvalues$upper <- quantvalues$upper * y.for;
                         quantvalues$lower <- quantvalues$lower * y.for;
                     }
-                    # if(any(iprob!=1)){
-                    #     y.high <- ceiling(quantvalues$upper);
-                    #     y.low <- floor(quantvalues$lower);
-                    # }
-                    # else{
-                        y.high <- quantvalues$upper;
-                        y.low <- quantvalues$lower;
-                    # }
-                    y.low <- ts(y.low,start=y.forStart,frequency=datafreq);
-                    y.high <- ts(y.high,start=y.forStart,frequency=datafreq);
+                    y.low <- ts(quantvalues$lower,start=y.forStart,frequency=datafreq);
+                    y.high <- ts(quantvalues$upper,start=y.forStart,frequency=datafreq);
                 }
             }
         }
