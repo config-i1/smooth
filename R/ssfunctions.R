@@ -733,7 +733,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
     else{
         ### iprob values
-        if(!exists("iprob",inherits=FALSE)){
+        if(!exists("iprob",envir=ParentEnvironment,inherits=FALSE)){
             iprobProvided <- FALSE;
             iprob <- NULL;
         }
@@ -1118,7 +1118,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Define xregDo #####
-    if(!exists("xregDo",inherits=FALSE)){
+    if(!exists("xregDo",envir=ParentEnvironment,inherits=FALSE)){
         xregDo <- "u";
     }
     else{
@@ -1134,7 +1134,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Fisher Information #####
-    if(!exists("FI",inherits=FALSE)){
+    if(!exists("FI",envir=ParentEnvironment,inherits=FALSE)){
         FI <- FALSE;
     }
     else{
@@ -1148,7 +1148,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Rounded up values #####
-    if(!exists("rounded",inherits=FALSE)){
+    if(!exists("rounded",envir=ParentEnvironment,inherits=FALSE)){
         rounded <- FALSE;
     }
     else{
@@ -1312,7 +1312,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### Fisher Information #####
-    if(!exists("FI",inherits=FALSE)){
+    if(!exists("FI",envir=ParentEnvironment,inherits=FALSE)){
         FI <- FALSE;
     }
 
@@ -1485,7 +1485,7 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### Define xregDo #####
-    if(!exists("xregDo",inherits=FALSE)){
+    if(!exists("xregDo",envir=ParentEnvironment,inherits=FALSE)){
         xregDo <- "u";
     }
     else{
@@ -2174,13 +2174,13 @@ ssForecaster <- function(...){
                     quantileType <- 7;
                 }
 
-                if(rounded){
-                    y.simulated <- ceiling(y.simulated);
-                    y.for <- apply(y.simulated,1,mean);
-                }
-                else{
-                    y.for <- c(pt.for)*y.for;
-                }
+                # if(rounded){
+                #     for(i in 1:h){
+                #         y.for[i] <- mean(y.simulated[y.simulated[,i]!=0,i]);
+                #     }
+                #     y.for <- apply(y.simulated,1,sum)/apply(y.simulated!=0,1,sum);
+                # }
+                y.for <- c(pt.for)*y.for;
 
                 if(cumulative){
                     # if(Etype=="M"){
@@ -2349,8 +2349,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
                     colnames(matxt) <- "x";
                 }
                 else{
-                    colnames(matat) <- names(xreg);
-                    colnames(matxt) <- names(xreg);
+                    xregNames <- gsub(" ", "_", names(xreg), fixed = TRUE);
+                    colnames(matat) <- xregNames;
+                    colnames(matxt) <- xregNames;
                 }
             }
         }
@@ -2449,8 +2450,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
                     colnames(matxt) <- paste0("x",c(1:nExovars));
                 }
                 else{
-                    colnames(matat) <- colnames(xreg);
-                    colnames(matxt) <- colnames(xreg);
+                    xregNames <- gsub(" ", "_", colnames(xreg), fixed = TRUE);
+                    colnames(matat) <- xregNames;
+                    colnames(matxt) <- xregNames;
                 }
             }
         }
