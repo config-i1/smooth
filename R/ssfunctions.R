@@ -2173,7 +2173,14 @@ ssForecaster <- function(...){
                 else{
                     quantileType <- 7;
                 }
-                y.for <- c(pt.for)*y.for;
+
+                if(rounded){
+                    y.simulated <- ceiling(y.simulated);
+                    y.for <- apply(y.simulated,1,mean);
+                }
+                else{
+                    y.for <- c(pt.for)*y.for;
+                }
 
                 if(cumulative){
                     # if(Etype=="M"){
