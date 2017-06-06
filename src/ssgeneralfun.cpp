@@ -6,7 +6,7 @@
 using namespace Rcpp;
 
 /* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
-arma::mat matrixPower(arma::mat A, int power){
+arma::mat matrixPower(arma::mat const &A, int const &power){
     arma::mat B(A.n_rows, A.n_rows, arma::fill::eye);
 
     if(power!=0){
@@ -28,7 +28,7 @@ RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power){
 }
 
 /* # Function allows to multiply polinomails */
-arma::vec polyMult(arma::vec poly1, arma::vec poly2){
+arma::vec polyMult(arma::vec const &poly1, arma::vec const &poly2){
 
     int poly1Nonzero = arma::as_scalar(find(poly1,1,"last"));
     int poly2Nonzero = arma::as_scalar(find(poly2,1,"last"));
@@ -57,7 +57,7 @@ RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
 }
 
 /* # Function returns value of CDF-based likelihood function for the whole series */
-double cdf(arma::vec vecYt, arma::vec vecYfit, arma::vec matErrors, char E){
+double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, arma::vec const &matErrors, char const &E){
 
     double errorSD = arma::as_scalar(sqrt(mean(pow(matErrors,2))));
     double CF;
@@ -77,8 +77,8 @@ double cdf(arma::vec vecYt, arma::vec vecYfit, arma::vec matErrors, char E){
 }
 
 /* # Function returns multiplicative or additive error for scalar */
-double errorf(double yact, double yfit, char Etype){
-    if(Etype=='A'){
+double errorf(double const &yact, double &yfit, char const &E){
+    if(E=='A'){
         return yact - yfit;
     }
     else{
@@ -95,8 +95,8 @@ double errorf(double yact, double yfit, char Etype){
 }
 
 /* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
-arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
-    if(Etype=='A'){
+arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
+    if(E=='A'){
         return yact - yfit;
     }
     else{
@@ -107,8 +107,8 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char Etype){
 
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 // !!! Add matrixAt and xreg as arguments passed here and implement additive / multiplicative xreg!!!
-double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
-              arma::rowvec rowvecXt, arma::vec vecAt){
+double wvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E, char const &T, char const &S,
+              arma::rowvec const &rowvecXt, arma::vec const &vecAt){
 // vecVt is a vector here!
     double yfit = 0;
     arma::mat vecYfit;
@@ -166,8 +166,8 @@ double wvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
 
 /* # Function returns value of r() -- additive or multiplicative error -- used in the error term of measurement equation.
      This is mainly needed by sim.ets */
-double rvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
-              arma::rowvec rowvecXt, arma::vec vecAt){
+double rvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E, char const &T, char const &S,
+              arma::rowvec const &rowvecXt, arma::vec const &vecAt){
 
     switch(E){
 // MZZ
@@ -182,7 +182,7 @@ double rvalue(arma::vec vecVt, arma::rowvec rowvecW, char E, char T, char S,
 }
 
 /* # Function returns value of f() -- new states without the update -- used in the transition equation */
-arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
+arma::vec fvalue(arma::vec const &matrixVt, arma::mat const &matrixF, char const T, char const S){
     arma::vec matrixVtnew = matrixVt;
 
     switch(S){
@@ -229,7 +229,7 @@ arma::vec fvalue(arma::vec matrixVt, arma::mat matrixF, char T, char S){
 }
 
 /* # Function returns value of g() -- the update of states -- used in components estimation for the persistence */
-arma::vec gvalue(arma::vec matrixVt, arma::mat matrixF, arma::mat rowvecW, char E, char T, char S){
+arma::vec gvalue(arma::vec const &matrixVt, arma::mat const &matrixF, arma::mat const &rowvecW, char const &E, char const &T, char const &S){
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
 // AZZ
@@ -325,7 +325,7 @@ arma::vec gvalue(arma::vec matrixVt, arma::mat matrixF, arma::mat rowvecW, char 
 
 /* # Function is needed for the proper xreg update in additive / multiplicative models.*/
 // Make sure that the provided vecXt is already in logs or whatever!
-arma::vec gXvalue(arma::vec vecXt, arma::vec vecGX, arma::vec error, char E){
+arma::vec gXvalue(arma::vec const &vecXt, arma::vec const &vecGX, arma::vec const &error, char const &E){
     arma::vec bufferforat(vecGX.n_rows);
 
     switch(E){
@@ -342,7 +342,7 @@ arma::vec gXvalue(arma::vec vecXt, arma::vec vecGX, arma::vec error, char E){
 }
 
 /* # Function is needed for the renormalisation of seasonal components. It should be done seasonal-wise.*/
-arma::mat normaliser(arma::mat Vt, int obsall, unsigned int maxlag, char S, char T){
+arma::mat normaliser(arma::mat Vt, int &obsall, unsigned int &maxlag, char const &S, char const &T){
 
     unsigned int nComponents = Vt.n_rows;
     double meanseason = 0;
@@ -677,12 +677,12 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 # and then in matF and other things.
 # Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
 */
-List polysos(arma::uvec arOrders, arma::uvec maOrders, arma::uvec iOrders, arma::uvec lags, unsigned int nComponents,
-             arma::vec arValues, arma::vec maValues, double constValue, arma::vec C,
-             arma::mat matrixVt, arma::vec vecG, arma::mat matrixF,
-             char fitterType, int nexo, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX,
-             bool arEstimate, bool maEstimate, bool constRequired, bool constEstimate,
-             bool xregEstimate, bool wild, bool fXEstimate, bool gXEstimate, bool initialXEstimate){
+List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec const &iOrders, arma::uvec const &lags, unsigned int const &nComponents,
+             arma::vec const &arValues, arma::vec const &maValues, double const &constValue, arma::vec const &C,
+             arma::mat &matrixVt, arma::vec &vecG, arma::mat &matrixF,
+             char const &fitterType, int const &nexo, arma::mat &matrixAt, arma::mat &matrixFX, arma::vec &vecGX,
+             bool const &arEstimate, bool const &maEstimate, bool const &constRequired, bool const &constEstimate,
+             bool const &xregEstimate, bool const &wild, bool const &fXEstimate, bool const &gXEstimate, bool const &initialXEstimate){
 
 // Form matrices with parameters, that are then used for polynomial multiplication
     arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
@@ -914,10 +914,90 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
                         xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate));
 }
 
+// Fitter for vector models
+// List vfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
+//              arma::uvec lags, char E, char T, char S,
+//              arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
+//     /* # matrixVt should have a length of obs + maxlag.
+//     * # rowvecW should have 1 row.
+//     * # matgt should be a vector
+//     * # lags is a vector of lags
+//     * # matrixXt is the matrix with the exogenous variables
+//     * # matrixAt is the matrix with the parameters for the exogenous
+//     */
+//
+//     // arma::mat matrixXtTrans = matrixXt.t();
+//
+//     int obs = vecYt.n_rows;
+//     int obsall = matrixVt.n_cols;
+//     unsigned int nComponents = matrixVt.n_rows;
+//     unsigned int maxlag = max(lags);
+//     int lagslength = lags.n_rows;
+//
+//     lags = lags * nComponents;
+//
+//     for(int i=0; i<lagslength; i=i+1){
+//         lags(i) = lags(i) + (lagslength - i - 1);
+//     }
+//
+//     arma::uvec lagrows(lagslength, arma::fill::zeros);
+//
+//     arma::vec vecYfit(obs, arma::fill::zeros);
+//     arma::vec matErrors(obs, arma::fill::zeros);
+//     arma::vec bufferforat(vecGX.n_rows);
+//
+//     for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
+//         lagrows = i * nComponents - lags + nComponents - 1;
+//
+// /* # Measurement equation and the error term */
+//         vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+//                                                          matrixXt.row(i-maxlag), matrixAt.col(i-1));
+//         matErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+//
+// /* # Transition equation */
+//         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
+//                           gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * matErrors(i-maxlag);
+//
+// /* Failsafe for cases when unreasonable value for state vector was produced */
+//         if(!matrixVt.col(i).is_finite()){
+//             matrixVt.col(i) = matrixVt(lagrows);
+//         }
+//         if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+//             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
+//         }
+//         if(T=='M'){
+//             if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+//                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
+//                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
+//             }
+//         }
+//
+// /* Renormalise components if the seasonal model is chosen */
+//         if(S!='N'){
+//             if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
+//                 matrixVt.cols(i-maxlag+1,i) = normaliser(matrixVt.cols(i-maxlag+1,i), obsall, maxlag, S, T);
+//             }
+//         }
+//
+// /* # Transition equation for xreg */
+//         bufferforat = gXvalue(matrixXt.col(i-maxlag), vecGX, matErrors.row(i-maxlag), E);
+//         matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
+//     }
+//
+//     for (int i=obs+maxlag; i<obsall; i=i+1) {
+//         lagrows = i * nComponents - lags + nComponents - 1;
+//         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
+//         matrixAt.col(i) = matrixFX * matrixAt.col(i-1);
+//     }
+//
+//     return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
+//                         Named("errors") = matErrors, Named("matat") = matrixAt.t());
+// }
 
-List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
-             arma::uvec lags, char E, char T, char S,
-             arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
+// # Fitter for univariate models
+List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecYt, arma::vec const &vecG,
+            arma::uvec &lags, char const &E, char const &T, char const &S,
+            arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt){
     /* # matrixVt should have a length of obs + maxlag.
     * # rowvecW should have 1 row.
     * # matgt should be a vector
@@ -992,16 +1072,17 @@ List fitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::v
         matrixAt.col(i) = matrixFX * matrixAt.col(i-1);
     }
 
-    matrixVt = matrixVt.t();
-    matrixAt = matrixAt.t();
+    // matrixVt = matrixVt.t();
+    // matrixAt = matrixAt.t();
 
-    return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit,
-                        Named("errors") = matErrors, Named("matat") = matrixAt);
+    return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
+                        Named("errors") = matErrors, Named("matat") = matrixAt.t());
 }
 
-List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
-                arma::uvec lags, char E, char T, char S,
-                arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
+// # Backfitter for univariate models
+List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecYt, arma::vec const &vecG,
+                arma::uvec &lags, char const &E, char const &T, char const &S,
+                arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt){
     /* # matrixVt should have a length of obs + maxlag.
     * # rowvecW should have 1 row.
     * # matgt should be a vector
@@ -1015,6 +1096,17 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
     arma::mat matrixXtTrans = matrixXt.t();
+
+    // Inverse transition matrix for backcasting
+    // arma::mat matrixFInv;
+    // if(!arma::inv(matrixFInv,matrixF)){
+    //     matrixFInv = matrixF.t();
+    //     matrixFInv(0,0) = 0;
+    //     matrixFInv.col(matrixFInv.n_cols-1) = flipud(matrixF.col(0));
+    //     // matrixFInv.col(matrixFInv.n_cols-1) = matrixF.col(0);
+    // }
+    // // arma::vec vecGInv = vecG - matrixF.col(0) + matrixFInv.col(0);
+    // arma::rowvec rowvecWInv = rowvecW * matrixFInv * matrixFInv;
 
     int obs = vecYt.n_rows;
     int obsall = matrixVt.n_cols;
@@ -1127,11 +1219,11 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
         }
     }
 
-    matrixVt = matrixVt.t();
-    matrixAt = matrixAt.t();
+    // matrixVt = matrixVt.t();
+    // matrixAt = matrixAt.t();
 
-    return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit,
-                        Named("errors") = matErrors, Named("matat") = matrixAt);
+    return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
+                        Named("errors") = matErrors, Named("matat") = matrixAt.t());
 }
 
 /* # Wrapper for fitter */
@@ -1139,6 +1231,7 @@ List backfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arm
 RcppExport SEXP fitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
                             SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP fittertype,
                             SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot) {
+
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
 
@@ -1191,9 +1284,9 @@ RcppExport SEXP fitterwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 }
 
 /* # Function produces the point forecasts for the specified model */
-arma::mat forecaster(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW,
-                     unsigned int hor, char E, char T, char S, arma::uvec lags,
-                     arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX) {
+arma::mat forecaster(arma::mat matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW,
+                     unsigned int const &hor, char const &E, char const &T, char const &S, arma::uvec lags,
+                     arma::mat matrixXt, arma::mat matrixAt, arma::mat const &matrixFX){
     int lagslength = lags.n_rows;
     unsigned int maxlag = max(lags);
     unsigned int hh = hor + maxlag;
@@ -1258,9 +1351,9 @@ RcppExport SEXP forecasterwrap(SEXP matvt, SEXP matF, SEXP matw,
 }
 
 /* # Function produces matrix of errors based on multisteps forecast */
-arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma::mat vecYt,
-                  int hor, char E, char T, char S, arma::uvec lags,
-                  arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecOt){
+arma::mat errorer(arma::mat const &matrixVt, arma::mat const &matrixF, arma::mat const &rowvecW, arma::mat const &vecYt,
+                  int const &hor, char const &E, char const &T, char const &S, arma::uvec const &lags,
+                  arma::mat const &matrixXt, arma::mat const &matrixAt, arma::mat const &matrixFX, arma::vec const &vecOt){
     int obs = vecYt.n_rows;
     int hh = 0;
     arma::mat matErrors(obs+hor-1, hor, arma::fill::zeros);
@@ -1268,7 +1361,7 @@ arma::mat errorer(arma::mat matrixVt, arma::mat matrixF, arma::mat rowvecW, arma
 
     for(int i = 0; i < obs; i=i+1){
         hh = std::min(hor, obs-i);
-        matErrors.submat(hor-1+i, 0, hor-1+i, hh-1) = trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
+        matErrors.submat(hor-1+i, 0, hor-1+i, hh-1) = arma::trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
             forecaster(matrixVt.rows(i,i+maxlag-1), matrixF, rowvecW, hh, E, T, S, lags, matrixXt.rows(i, i+hh-1),
                 matrixAt.rows(i, i+hh-1), matrixFX), E));
     }
@@ -1340,10 +1433,10 @@ int CFtypeswitch (std::string const& CFtype) {
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
-double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
-                 unsigned int hor, arma::uvec lags, char E, char T, char S,
-                 bool multi, std::string CFtype, double normalize, char fitterType,
-                 arma::mat  matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt){
+double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecYt, arma::vec const &vecG,
+                 unsigned int const &hor, arma::uvec &lags, char const &E, char const &T, char const &S,
+                 bool const &multi, std::string const &CFtype, double const &normalize, char const &fitterType,
+                 arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
@@ -1402,7 +1495,7 @@ double optimizer(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, ar
     if((CFtypeswitch(CFtype)>7) & (CFtypeswitch(CFtype)<12)){
 // Form vector for basic values and matrix Mu
         for(unsigned int i=1; i<hor; ++i){
-            veccij(i) = as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
+            veccij(i) = arma::as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
         }
 
 // Fill in the diagonal of Sigma matrix
@@ -1895,10 +1988,10 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
 */
 
 // ##### Script for simulate functions
-List simulator(arma::cube arrayVt, arma::mat matrixerrors, arma::mat matrixot,
-                 arma::cube arrayF, arma::rowvec rowvecW, arma::mat matrixG,
-                 unsigned int obs, unsigned int nseries,
-                 char E, char T, char S, arma::uvec lags) {
+List simulator(arma::cube &arrayVt, arma::mat const &matrixerrors, arma::mat const &matrixot,
+                 arma::cube const &arrayF, arma::rowvec const &rowvecW, arma::mat const &matrixG,
+                 unsigned int const &obs, unsigned int const &nseries,
+                 char const &E, char const &T, char const &S, arma::uvec &lags) {
 
     arma::mat matY(obs, nseries);
     arma::rowvec rowvecXt(1, arma::fill::zeros);
