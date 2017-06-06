@@ -606,7 +606,12 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
 
     if(initialGenerate){
-        matInitialValue[,] <- arrvt[burnInPeriod+1,,];
+        if(constantRequired){
+            matInitialValue[,] <- arrvt[burnInPeriod+1,-persistenceLength,];
+        }
+        else{
+            matInitialValue[,] <- arrvt[burnInPeriod+1,,];
+        }
         arrvtDim <- dim(arrvt);
         arrvtDim[1] <- arrvtDim[1] - burnInPeriod;
         arrvt <- array(arrvt[-c(1:burnInPeriod),,],arrvtDim);
