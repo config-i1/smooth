@@ -914,86 +914,6 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
                         xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate));
 }
 
-// Fitter for vector models
-// List vfitter(arma::mat matrixVt, arma::mat matrixF, arma::rowvec rowvecW, arma::vec vecYt, arma::vec vecG,
-//              arma::uvec lags, char E, char T, char S,
-//              arma::mat matrixXt, arma::mat matrixAt, arma::mat matrixFX, arma::vec vecGX, arma::vec vecOt) {
-//     /* # matrixVt should have a length of obs + maxlag.
-//     * # rowvecW should have 1 row.
-//     * # matgt should be a vector
-//     * # lags is a vector of lags
-//     * # matrixXt is the matrix with the exogenous variables
-//     * # matrixAt is the matrix with the parameters for the exogenous
-//     */
-//
-//     // arma::mat matrixXtTrans = matrixXt.t();
-//
-//     int obs = vecYt.n_rows;
-//     int obsall = matrixVt.n_cols;
-//     unsigned int nComponents = matrixVt.n_rows;
-//     unsigned int maxlag = max(lags);
-//     int lagslength = lags.n_rows;
-//
-//     lags = lags * nComponents;
-//
-//     for(int i=0; i<lagslength; i=i+1){
-//         lags(i) = lags(i) + (lagslength - i - 1);
-//     }
-//
-//     arma::uvec lagrows(lagslength, arma::fill::zeros);
-//
-//     arma::vec vecYfit(obs, arma::fill::zeros);
-//     arma::vec matErrors(obs, arma::fill::zeros);
-//     arma::vec bufferforat(vecGX.n_rows);
-//
-//     for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
-//         lagrows = i * nComponents - lags + nComponents - 1;
-//
-// /* # Measurement equation and the error term */
-//         vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
-//                                                          matrixXt.row(i-maxlag), matrixAt.col(i-1));
-//         matErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
-//
-// /* # Transition equation */
-//         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
-//                           gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * matErrors(i-maxlag);
-//
-// /* Failsafe for cases when unreasonable value for state vector was produced */
-//         if(!matrixVt.col(i).is_finite()){
-//             matrixVt.col(i) = matrixVt(lagrows);
-//         }
-//         if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
-//             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
-//         }
-//         if(T=='M'){
-//             if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
-//                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
-//                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
-//             }
-//         }
-//
-// /* Renormalise components if the seasonal model is chosen */
-//         if(S!='N'){
-//             if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
-//                 matrixVt.cols(i-maxlag+1,i) = normaliser(matrixVt.cols(i-maxlag+1,i), obsall, maxlag, S, T);
-//             }
-//         }
-//
-// /* # Transition equation for xreg */
-//         bufferforat = gXvalue(matrixXt.col(i-maxlag), vecGX, matErrors.row(i-maxlag), E);
-//         matrixAt.col(i) = matrixFX * matrixAt.col(i-1) + bufferforat;
-//     }
-//
-//     for (int i=obs+maxlag; i<obsall; i=i+1) {
-//         lagrows = i * nComponents - lags + nComponents - 1;
-//         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
-//         matrixAt.col(i) = matrixFX * matrixAt.col(i-1);
-//     }
-//
-//     return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
-//                         Named("errors") = matErrors, Named("matat") = matrixAt.t());
-// }
-
 // # Fitter for univariate models
 List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecYt, arma::vec const &vecG,
             arma::uvec &lags, char const &E, char const &T, char const &S,
@@ -1761,7 +1681,6 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
 // Values needed for eigenvalues calculation
     arma::cx_vec eigval;
-    arma::mat matrixD = matrixF;
 
     if(boundtype=='u'){
 // alpha in (0,1)

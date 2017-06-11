@@ -49,3 +49,15 @@ simulatorwrap <- function(arrvt, matErrors, matot, matF, matw, matg, Etype, Ttyp
     .Call('smooth_simulatorwrap', PACKAGE = 'smooth', arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
 }
 
+vFitterWrap <- function(matvt, matF, matw, yt, matG, modellags, Etype, Ttype, Stype, matxt, matat, matFX, matGX, ot) {
+    .Call('smooth_vFitterWrap', PACKAGE = 'smooth', matvt, matF, matw, yt, matG, modellags, Etype, Ttype, Stype, matxt, matat, matFX, matGX, ot)
+}
+
+vForecasterWrap <- function(matvt, matF, matw, series, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX) {
+    .Call('smooth_vForecasterWrap', PACKAGE = 'smooth', matvt, matF, matw, series, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX)
+}
+
+vOptimiserWrap <- function(matvt, matF, matw, yt, matG, h, modellags, Etype, Ttype, Stype, normalizer, matxt, matat, matFX, matGX, ot) {
+    .Call('smooth_vOptimiserWrap', PACKAGE = 'smooth', matvt, matF, matw, yt, matG, h, modellags, Etype, Ttype, Stype, normalizer, matxt, matat, matFX, matGX, ot)
+}
+
