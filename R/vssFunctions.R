@@ -1,4 +1,4 @@
-utils::globalVariables(c("initialSeason","persistence","modelsPool","modelDo"));
+utils::globalVariables(c("initialSeason","persistence"));
 
 ##### *Checker of input of vector functions* #####
 vssInput <- function(modelType=c("ves"),...){
@@ -176,6 +176,10 @@ vssInput <- function(modelType=c("ves"),...){
                                "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
             }
             Stype <- "N";
+        }
+
+        if(Stype=="N"){
+            initialSeason <- NULL;
         }
 
         if(any(c(Etype,Ttype,Stype)=="Z")){
@@ -568,12 +572,11 @@ vssInput <- function(modelType=c("ves"),...){
     if(modelType=="ves"){
         # 1 - 3: persitence vector;
         # 1 - 2: initials;
-        # 1 - 1 phi value;
         # datafreq: datafreq initials for seasonal component;
         # 1: estimation of variance;
         nParamMax <- (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
-            (1 + (Ttype!="N"))*(initialType=="o") +
-            phiEstimate*damped + datafreq*(Stype!="N")*initialSeasonEstimate*(initialType=="o") + 1;
+            (1 + (Ttype!="N"))*initialEstimate + damped +
+            datafreq*(Stype!="N")*initialSeasonEstimate + 1;
     }
 
     ##### Fisher Information #####
@@ -604,12 +607,12 @@ vssInput <- function(modelType=c("ves"),...){
     assign("datafreq",datafreq,ParentEnvironment);
 
     assign("model",model,ParentEnvironment);
-    assign("modelsPool",modelsPool,ParentEnvironment);
+    # assign("modelsPool",modelsPool,ParentEnvironment);
     assign("Etype",Etype,ParentEnvironment);
     assign("Ttype",Ttype,ParentEnvironment);
     assign("Stype",Stype,ParentEnvironment);
     assign("damped",damped,ParentEnvironment);
-    assign("modelDo",modelDo,ParentEnvironment);
+    # assign("modelDo",modelDo,ParentEnvironment);
     assign("nComponents",nComponents,ParentEnvironment);
     assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
 

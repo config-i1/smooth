@@ -154,13 +154,7 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 \item{...}{Other non-documented parameters. For example \code{FI=TRUE} will
 make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
-the model.
-Parameters \code{C}, \code{CLower} and \code{CUpper} can be passed via
-ellipsis as well. In this case they will be used for optimisation. \code{C}
-sets the initial values before the optimisation, \code{CLower} and
-\code{CUpper} define lower and upper bounds for the search inside of the
-specified \code{bounds}. These values should have exactly the length equal
-to the number of parameters to estimate.}
+the model.}
 }
 \value{
 Object of class "smooth" is returned. It contains a list of
