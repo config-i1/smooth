@@ -1,5 +1,5 @@
 utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","datafreq","initialType",
-                         "yot","maxlag","silent","allowMultiplicative","current.model",
+                         "yot","maxlag","silent","allowMultiplicative","modelCurrent",
                          "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
                          "persistenceEstimate","initial","multisteps","ot",
@@ -578,7 +578,7 @@ EstimatorES <- function(...){
 
     if(all(C==Cs$C) & (initialType!="b")){
         if(any(persistenceEstimate,gXEstimate,FXEstimate)){
-            warning(paste0("Failed to optimise the model ETS(", current.model,
+            warning(paste0("Failed to optimise the model ETS(", modelCurrent,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                            "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
                     call.=FALSE);
@@ -759,21 +759,21 @@ PoolPreparerES <- function(...){
 #### Branch and bound is here ####
             while(check){
                 i <- i + 1;
-                current.model <- small.pool[j];
+                modelCurrent <- small.pool[j];
                 if(!silent){
-                    cat(paste0(current.model,", "));
+                    cat(paste0(modelCurrent,", "));
                 }
-                Etype <- substring(current.model,1,1);
-                Ttype <- substring(current.model,2,2);
-                if(nchar(current.model)==4){
+                Etype <- substring(modelCurrent,1,1);
+                Ttype <- substring(modelCurrent,2,2);
+                if(nchar(modelCurrent)==4){
                     damped <- TRUE;
                     phi <- NULL;
-                    Stype <- substring(current.model,4,4);
+                    Stype <- substring(modelCurrent,4,4);
                 }
                 else{
                     damped <- FALSE;
                     phi <- 1;
-                    Stype <- substring(current.model,3,3);
+                    Stype <- substring(modelCurrent,3,3);
                 }
                 if(Stype!="N"){
                     initialSeasonEstimate <- TRUE;
@@ -794,13 +794,13 @@ PoolPreparerES <- function(...){
                 }
                 results[[i]] <- listToReturn;
 
-                tested.model <- c(tested.model,current.model);
+                tested.model <- c(tested.model,modelCurrent);
 
                 if(j>1){
 # If the first is better than the second, then choose first
                     if(results[[besti]]$ICs[ic] <= results[[i]]$ICs[ic]){
 # If Ttype is the same, then we checked seasonality
-                        if(substring(current.model,2,2) == substring(small.pool[bestj],2,2)){
+                        if(substring(modelCurrent,2,2) == substring(small.pool[bestj],2,2)){
                             season.pool <- results[[besti]]$Stype;
                             check.S <- FALSE;
                             j <- which(small.pool!=small.pool[bestj] &
@@ -813,7 +813,7 @@ PoolPreparerES <- function(...){
                         }
                     }
                     else{
-                        if(substring(current.model,2,2) == substring(small.pool[besti],2,2)){
+                        if(substring(modelCurrent,2,2) == substring(small.pool[besti],2,2)){
                             season.pool <- season.pool[season.pool!=results[[besti]]$Stype];
                             if(length(season.pool)>1){
 # Select another seasonal model, that is not from the previous iteration and not the current one
@@ -825,7 +825,7 @@ PoolPreparerES <- function(...){
                                 bestj <- j;
                                 besti <- i;
                                 j <- which(substring(small.pool,nchar(small.pool),nchar(small.pool))==season.pool &
-                                          substring(small.pool,2,2)!=substring(current.model,2,2));
+                                          substring(small.pool,2,2)!=substring(modelCurrent,2,2));
                                 check.S <- FALSE;
                             }
                         }
@@ -904,18 +904,18 @@ PoolEstimatorES <- function(silent=FALSE,...){
             cat(paste0(round(j/modelsNumber,2)*100,"%"));
         }
 
-        current.model <- modelsPool[j];
-        Etype <- substring(current.model,1,1);
-        Ttype <- substring(current.model,2,2);
-        if(nchar(current.model)==4){
+        modelCurrent <- modelsPool[j];
+        Etype <- substring(modelCurrent,1,1);
+        Ttype <- substring(modelCurrent,2,2);
+        if(nchar(modelCurrent)==4){
             damped <- TRUE;
             phi <- NULL;
-            Stype <- substring(current.model,4,4);
+            Stype <- substring(modelCurrent,4,4);
         }
         else{
             damped <- FALSE;
             phi <- 1;
-            Stype <- substring(current.model,3,3);
+            Stype <- substring(modelCurrent,3,3);
         }
         if(Stype!="N"){
             initialSeasonEstimate <- TRUE;
@@ -1260,7 +1260,7 @@ CreatorES <- function(silent=FALSE,...){
            phiEstimate, FXEstimate, gXEstimate, initialXEstimate)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
-            current.model <- model;
+            modelCurrent <- model;
         }
     }
     else{
