@@ -26,10 +26,6 @@
 #' zero).
 #' \item provided by user as a vector or as a matrix. The value is used by the model.
 #' }
-#' @param damped In cases of damped trend this parameter defines whether the \eqn{phi}
-#' should be estimated separately for each series (\code{individual}) or for the whole
-#' set (\code{group}). If vector or a value is provided here, then it is used by the
-#' model.
 #' @param h Length of forecasting horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.

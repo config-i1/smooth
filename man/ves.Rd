@@ -6,7 +6,7 @@
 \usage{
 ves(data, model = "ANN", persistence = c("group", "independent",
   "dependent"), transition = c("group", "independent", "dependent"),
-  damped = c("group", "individual"), initial = c("group", "individual"),
+  phi = c("group", "individual"), initial = c("group", "individual"),
   initialSeason = c("group", "individual"), cfType = c("likelihood",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC"), h = 10,
   holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
@@ -59,7 +59,7 @@ zero).
 \item provided by user as a vector or as a matrix. The value is used by the model.
 }}
 
-\item{damped}{In cases of damped trend this parameter defines whether the \eqn{phi}
+\item{phi}{In cases of damped trend this parameter defines whether the \eqn{phi}
 should be estimated separately for each series (\code{individual}) or for the whole
 set (\code{group}). If vector or a value is provided here, then it is used by the
 model.}
