@@ -481,7 +481,8 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
     return(list(C=C,CLower=CLower,CUpper=CUpper));
 }
 
-##### Basic parameter propagator #####
+##### Basic parameter creator #####
+# This function creates all the necessary matrices
 BasicMakerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -491,7 +492,8 @@ BasicMakerES <- function(...){
     list2env(basicparams,ParentEnvironment);
 }
 
-##### Basic parameter propagator #####
+##### Basic parameter initialiser #####
+# This function fills in all the necessary matrices
 BasicInitialiserES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
