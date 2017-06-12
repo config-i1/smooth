@@ -197,13 +197,13 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
 ##### Elements of CES #####
 ElementsCES <- function(C){
     vt <- matrix(matvt[1:maxlag,],maxlag);
-    n.coef <- 0;
+    nCoefficients <- 0;
     # No seasonality or Simple seasonality, lagged CES
     if(A$estimate){
         matF[1,2] <- C[2]-1;
         matF[2,2] <- 1-C[1];
         vecg[1:2,] <- c(C[1]-C[2],C[1]+C[2]);
-        n.coef <- n.coef + 2;
+        nCoefficients <- nCoefficients + 2;
     }
     else{
         matF[1,2] <- Im(A$value)-1;
@@ -214,8 +214,8 @@ ElementsCES <- function(C){
     if(seasonality=="p"){
     # Partial seasonality with a real part only
         if(B$estimate){
-            vecg[3,] <- C[n.coef+1];
-            n.coef <- n.coef + 1;
+            vecg[3,] <- C[nCoefficients+1];
+            nCoefficients <- nCoefficients + 1;
         }
         else{
             vecg[3,] <- B$value;
@@ -224,10 +224,10 @@ ElementsCES <- function(C){
     else if(seasonality=="f"){
     # Full seasonality with both real and imaginary parts
         if(B$estimate){
-            matF[3,4] <- C[n.coef+2]-1;
-            matF[4,4] <- 1-C[n.coef+1];
-            vecg[3:4,] <- c(C[n.coef+1]-C[n.coef+2],C[n.coef+1]+C[n.coef+2]);
-            n.coef <- n.coef + 2;
+            matF[3,4] <- C[nCoefficients+2]-1;
+            matF[4,4] <- 1-C[nCoefficients+1];
+            vecg[3:4,] <- c(C[nCoefficients+1]-C[nCoefficients+2],C[nCoefficients+1]+C[nCoefficients+2]);
+            nCoefficients <- nCoefficients + 2;
         }
         else{
             matF[3,4] <- Im(B$value)-1;
@@ -238,20 +238,20 @@ ElementsCES <- function(C){
 
     if(initialType=="o"){
         if(any(seasonality==c("n","s"))){
-            vt[1:maxlag,] <- C[n.coef+(1:(2*maxlag))];
-            n.coef <- n.coef + maxlag*2;
+            vt[1:maxlag,] <- C[nCoefficients+(1:(2*maxlag))];
+            nCoefficients <- nCoefficients + maxlag*2;
         }
         else if(seasonality=="p"){
-            vt[,1:2] <- rep(C[n.coef+(1:2)],each=maxlag);
-            n.coef <- n.coef + 2;
-            vt[1:maxlag,3] <- C[n.coef+(1:maxlag)];
-            n.coef <- n.coef + maxlag;
+            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=maxlag);
+            nCoefficients <- nCoefficients + 2;
+            vt[1:maxlag,3] <- C[nCoefficients+(1:maxlag)];
+            nCoefficients <- nCoefficients + maxlag;
         }
         else if(seasonality=="f"){
-            vt[,1:2] <- rep(C[n.coef+(1:2)],each=maxlag);
-            n.coef <- n.coef + 2;
-            vt[1:maxlag,3:4] <- C[n.coef+(1:(maxlag*2))];
-            n.coef <- n.coef + maxlag*2;
+            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=maxlag);
+            nCoefficients <- nCoefficients + 2;
+            vt[1:maxlag,3:4] <- C[nCoefficients+(1:(maxlag*2))];
+            nCoefficients <- nCoefficients + maxlag*2;
         }
     }
     else if(initialType=="b"){
@@ -265,21 +265,21 @@ ElementsCES <- function(C){
     if(xregEstimate){
         at <- matrix(NA,maxlag,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[n.coef+(1:nExovars)],each=maxlag);
-            n.coef <- n.coef + nExovars;
+            at[,] <- rep(C[nCoefficients+(1:nExovars)],each=maxlag);
+            nCoefficients <- nCoefficients + nExovars;
         }
         else{
             at <- matat[1:maxlag,];
         }
         if(updateX){
             if(FXEstimate){
-                matFX <- matrix(C[n.coef+(1:(nExovars^2))],nExovars,nExovars);
-                n.coef <- n.coef + nExovars^2;
+                matFX <- matrix(C[nCoefficients+(1:(nExovars^2))],nExovars,nExovars);
+                nCoefficients <- nCoefficients + nExovars^2;
             }
 
             if(gXEstimate){
-                vecgX <- matrix(C[n.coef+(1:nExovars)],nExovars,1);
-                n.coef <- n.coef + nExovars;
+                vecgX <- matrix(C[nCoefficients+(1:nExovars)],nExovars,1);
+                nCoefficients <- nCoefficients + nExovars;
             }
         }
     }
@@ -706,20 +706,20 @@ CreatorCES <- function(silentText=FALSE,...){
     }
 
 # Right down the smoothing parameters
-    n.coef <- 0;
+    nCoefficients <- 0;
     if(A$estimate){
         A$value <- complex(real=C[1],imaginary=C[2]);
-        n.coef <- 2;
+        nCoefficients <- 2;
     }
 
     names(A$value) <- "a0+ia1";
 
     if(B$estimate){
         if(seasonality=="p"){
-            B$value <- C[n.coef+1];
+            B$value <- C[nCoefficients+1];
         }
         else if(seasonality=="f"){
-            B$value <- complex(real=C[n.coef+1],imaginary=C[n.coef+2]);
+            B$value <- complex(real=C[nCoefficients+1],imaginary=C[nCoefficients+2]);
         }
     }
     if(B$number!=0){
