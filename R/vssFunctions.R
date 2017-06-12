@@ -94,8 +94,8 @@ vssInput <- function(modelType=c("ves"),...){
     if(obsInsample<=0){
         stop("Not enough observations in sample.", call.=FALSE);
     }
-    # Define the actual values
-    y <- matrix(data[1:obsInsample,],obsInsample,nSeries);
+    # Define the actual values. Transpose the matrix!
+    y <- matrix(data[1:obsInsample,],nSeries,obsInsample,byrow=TRUE);
     datafreq <- frequency(data);
 
     ##### model for VES #####
@@ -194,23 +194,26 @@ vssInput <- function(modelType=c("ves"),...){
         nComponents <- 1 + (Ttype!="N")*1 + (Stype!="N")*1;
     }
 
+    #This is the estimation of covariance matrix
+    nParamMax <- nSeries^2;
+
     ##### persistence ####
-    # persistence type can be: "i" - individual, "g" - group.
+    # persistence type can be: "i" - independent, "d" - dependent, "g" - group.
     persistenceValue <- persistence;
     if(is.null(persistenceValue)){
         if(silentText){
-            message("persistence value is not selected. Switching to individual.");
+            message("persistence value is not selected. Switching to group.");
         }
-        persistenceType <- "i";
+        persistenceType <- "g";
         persistenceEstimate <- TRUE;
     }
     else{
         if(is.character(persistenceValue)){
             persistenceValue <- substring(persistenceValue[1],1,1);
-            if(all(persistenceValue!=c("i","g"))){
-                warning("You asked for a strange persistence value. We don't do that here. Switching to individual.",
+            if(all(persistenceValue!=c("g","i","d"))){
+                warning("You asked for a strange persistence value. We don't do that here. Switching to group",
                         call.=FALSE);
-                persistenceType <- "i";
+                persistenceType <- "g";
             }
             else{
                 persistenceType <- persistenceValue;
@@ -219,28 +222,37 @@ vssInput <- function(modelType=c("ves"),...){
             persistenceEstimate <- TRUE;
         }
         else if(is.numeric(persistenceValue)){
-            if(length(persistenceValue) != nSeries^2){
+            if(length(persistenceValue) != (nSeries*nComponents)^2){
                 warning(paste0("Length of persistence matrix is wrong! It should be ",
-                               nSeries^2,
-                               " instead of ",length(persistenceValue),".\n",
-                               "Values of persistence matrix will be estimated."),call.=FALSE);
+                               (nSeries*nComponents)^2, " instead of ",length(persistenceValue),".\n",
+                               "Values of persistence matrix will be estimated as group."),call.=FALSE);
                 persistenceValue <- NULL;
-                persistenceType <- "i";
+                persistenceType <- "g";
                 persistenceEstimate <- TRUE;
             }
             else{
                 persistenceType <- "p";
-                persistenceValue <- matrix(persistence,nSeries,nSeries);
+                persistenceValue <- matrix(persistence,nSeries*nComponents,nSeries*nComponents);
                 persistenceEstimate <- FALSE;
             }
         }
         else if(!is.numeric(persistenceValue)){
             warning(paste0("persistence matrix is not numeric!\n",
-                           "Values of persistence matrix will be estimated."),call.=FALSE);
+                           "Values of persistence matrix will be estimated as group."),call.=FALSE);
             persistenceValue <- NULL;
-            persistenceType <- "i";
+            persistenceType <- "g";
             persistenceEstimate <- TRUE;
         }
+    }
+
+    if(persistenceType=="g"){
+        nParamMax <- nParamMax + nComponents;
+    }
+    else if(persistenceType=="i"){
+        nParamMax <- nParamMax + nComponents*nSeries;
+    }
+    else if(persistenceType=="d"){
+        nParamMax <- nParamMax + (nComponents*nSeries)^2;
     }
 
     ##### transition ####
@@ -292,52 +304,52 @@ vssInput <- function(modelType=c("ves"),...){
         }
     }
 
-    ##### measurement ####
-    # measurement type can be: "i" - individual, "g" - group.
-    measurementValue <- measurement;
-    if(is.null(measurementValue)){
+    ##### damped ####
+    # damped type can be: "i" - individual, "g" - group.
+    dampedValue <- damped;
+    if(is.null(dampedValue)){
         if(silentText){
-            message("measurement value is not selected. Switching to individual.");
+            message("damped value is not selected. Switching to individual.");
         }
-        measurementType <- "i";
-        measurementEstimate <- TRUE;
+        dampedType <- "i";
+        dampedEstimate <- TRUE;
     }
     else{
-        if(is.character(measurementValue)){
-            measurementValue <- substring(measurementValue[1],1,1);
-            if(all(measurementValue!=c("i","g"))){
-                warning("You asked for a strange measurement value. We don't do that here. Switching to individual.",
+        if(is.character(dampedValue)){
+            dampedValue <- substring(dampedValue[1],1,1);
+            if(all(dampedValue!=c("i","g"))){
+                warning("You asked for a strange damped value. We don't do that here. Switching to individual.",
                         call.=FALSE);
-                measurementType <- "i";
+                dampedType <- "i";
             }
             else{
-                measurementType <- measurementValue;
+                dampedType <- dampedValue;
             }
-            measurementValue <- NULL;
-            measurementEstimate <- TRUE;
+            dampedValue <- NULL;
+            dampedEstimate <- TRUE;
         }
-        else if(is.numeric(measurementValue)){
-            if(length(measurementValue) != nSeries * (nSeries*nComponents)){
-                warning(paste0("Length of measurement matrix is wrong! It should be ",
-                               nSeries * (nSeries*nComponents),
-                               " instead of ",length(measurementValue),".\n",
-                               "Values of measurement matrix will be estimated."),call.=FALSE);
-                measurementValue <- NULL;
-                measurementType <- "i";
-                measurementEstimate <- TRUE;
+        else if(is.numeric(dampedValue)){
+            if((length(dampedValue) != nSeries) & (length(dampedValue)!= 1)){
+                warning(paste0("Length of damped vector is wrong! It should be ",
+                               nSeries,
+                               " instead of ",length(dampedValue),".\n",
+                               "Values of damped vector will be estimated."),call.=FALSE);
+                dampedValue <- NULL;
+                dampedType <- "i";
+                dampedEstimate <- TRUE;
             }
             else{
-                measurementType <- "p";
-                measurementValue <- matrix(measurement,nSeries,nSeries*nComponents);
-                measurementEstimate <- FALSE;
+                dampedType <- "p";
+                dampedValue <- matrix(damped,nSeries,1);
+                dampedEstimate <- FALSE;
             }
         }
-        else if(!is.numeric(measurementValue)){
-            warning(paste0("measurement vector is not numeric!\n",
-                           "Values of measurement vector will be estimated."),call.=FALSE);
-            measurementValue <- NULL;
-            measurementType <- "i";
-            measurementEstimate <- TRUE;
+        else if(!is.numeric(dampedValue)){
+            warning(paste0("damped vector is not numeric!\n",
+                           "Values of damped vector will be estimated."),call.=FALSE);
+            dampedValue <- NULL;
+            dampedType <- "i";
+            dampedEstimate <- TRUE;
         }
     }
 
@@ -575,7 +587,7 @@ vssInput <- function(modelType=c("ves"),...){
         # datafreq: datafreq initials for seasonal component;
         # 1: estimation of variance;
         nParamMax <- (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
-            (1 + (Ttype!="N"))*initialEstimate + damped +
+            (1 + (Ttype!="N"))*initialEstimate + dampedEstimate +
             datafreq*(Stype!="N")*initialSeasonEstimate + 1;
     }
 
@@ -611,7 +623,6 @@ vssInput <- function(modelType=c("ves"),...){
     assign("Etype",Etype,ParentEnvironment);
     assign("Ttype",Ttype,ParentEnvironment);
     assign("Stype",Stype,ParentEnvironment);
-    assign("damped",damped,ParentEnvironment);
     # assign("modelDo",modelDo,ParentEnvironment);
     assign("nComponents",nComponents,ParentEnvironment);
     assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
@@ -624,9 +635,9 @@ vssInput <- function(modelType=c("ves"),...){
     assign("transitionType",transitionType,ParentEnvironment);
     assign("transitionEstimate",transitionEstimate,ParentEnvironment);
 
-    assign("measurementValue",measurementValue,ParentEnvironment);
-    assign("measurementType",measurementType,ParentEnvironment);
-    assign("measurementEstimate",measurementEstimate,ParentEnvironment);
+    assign("dampedValue",dampedValue,ParentEnvironment);
+    assign("dampedType",dampedType,ParentEnvironment);
+    assign("dampedEstimate",dampedEstimate,ParentEnvironment);
 
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);

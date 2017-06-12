@@ -1,14 +1,35 @@
 #' @param data is the matrix with data, where series are in columns and
 #' observations are in rows.
-#' @param persistence Persistence vector \eqn{g}, containing smoothing
-#' parameters. Can either be \code{individual} for each series or \code{group},
-#' equal to all the time series. If a value is provided, then it is used by the model.
-#' @param transition Transition matrix \eqn{F}. Can either be \code{individual} for
-#' each series or \code{group}, equal to all the time series. If vector or a matrix
-#' is provided here, then it is used by the model.
-#' @param measurement Measurement vector \eqn{w}. Can either be \code{individual} for
-#' each series or \code{group}, equal to all the time series. If vector is provided
-#' here, then it is used by the model.
+#' @param persistence Persistence matrix \eqn{G}, containing smoothing
+#' parameters. Can be:
+#' \itemize{
+#' \item \code{independent} - each series has its own smoothing parameters
+#' and no interactions are modelled (all the other values in the matrix are set
+#' to zero);
+#' \item \code{dependent} - each series has its own smoothing parameters, but
+#' interactions between the series are modelled (the whole matrix is estimated);
+#' \item \code{group} each series has the same smoothing parameters for respective
+#' components (the values of smoothing parameters are repeated, all the other values
+#' in the matrix are set to zero).
+#' \item provided by user as a vector or as a matrix. The value is used by the model.
+#' }
+#' @param transition Transition matrix \eqn{F}. Can be:
+#' \itemize{
+#' \item \code{independent} - each series has its own preset transition matrix
+#' and no interactions are modelled (all the other values in the matrix are set
+#' to zero);
+#' \item \code{dependent} - each series has its own transition matrix, but
+#' interactions between the series are modelled (the whole matrix is estimated). The
+#' estimated model behaves similar to VAR in this case;
+#' \item \code{group} each series has the same transition matrix for respective
+#' components (the values are repeated, all the other values in the matrix are set to
+#' zero).
+#' \item provided by user as a vector or as a matrix. The value is used by the model.
+#' }
+#' @param damped In cases of damped trend this parameter defines whether the \eqn{phi}
+#' should be estimated separately for each series (\code{individual}) or for the whole
+#' set (\code{group}). If vector or a value is provided here, then it is used by the
+#' model.
 #' @param h Length of forecasting horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
@@ -21,15 +42,9 @@
 #' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 #' case of mixed models this is done using simulations, which may take longer
 #' time than for the pure additive and pure multiplicative models.
-#' \item \code{semiparametric}, \code{sp} - intervals based on covariance
-#' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-#' distribution (depending on error type).
-#' \item \code{nonparametric}, \code{np} - intervals based on values from a
-#' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-#' used in this process is e[j] = a j^b, where j=1,..,h.
 #' }
-#' The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
-#' parametric intervals are constructed, while latter is equivalent to
+#' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
+#' parametric intervals are constructed, while the latter is equivalent to
 #' \code{none}.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is

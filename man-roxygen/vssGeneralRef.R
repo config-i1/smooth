@@ -1,0 +1,8 @@
+#' @references \itemize{
+#' \item de Silva A,, Hyndman R.J. and Snyder, R.D. (2010). The vector
+#' innovations structural time series framework: a simple approach to
+#' multivariate forecasting. Statistical Modelling, 10 (4), pp.353-374
+#' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
+#' Forecasting with exponential smoothing: the state space approach,
+#' Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+#' }

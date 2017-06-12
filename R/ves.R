@@ -52,14 +52,11 @@ utils::globalVariables(c("damped","matG","initialEstimate","initialSeasonEstimat
 #' For the details see Hyndman et al. (2008), chapter 17.
 #'
 #' @template vssBasicParam
-#' @template ssAdvancedParam
+#' @template vssAdvancedParam
 #' @template ssAuthor
-#' @template ssKeywords
+#' @template vssKeywords
 #'
-#' @template ssGeneralRef
-#' @template ssIntermittentRef
-#' @template ssETSRef
-#' @template ssIntervalsRef
+#' @template vssGeneralRef
 #'
 #' @param model The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
 #' \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
@@ -100,17 +97,15 @@ utils::globalVariables(c("damped","matG","initialEstimate","initialSeasonEstimat
 #' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE)}
 #'
 #'
-ves <- function(data, model="ANN", persistence=c("individual","group"),
-                transition=c("individual","group"), measurement=c("individual","group"),
-                initial=c("individual","group"), initialSeason=c("individual","group"),
-                cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
+ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
+                transition=c("group","independent","dependent"), damped=c("group","individual"),
+                initial=c("group","individual"), initialSeason=c("group","individual"),
+                cfType=c("likelihood","diagonal","trace"),
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb","sba"),
-                bounds=c("usual","admissible","none"),
-                silent=c("none","all","graph","legend","output"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                intermittent=c("none","auto","fixed","tsb"),
+                bounds=c("admissible","usual","none"),
+                silent=c("none","all","graph","legend","output"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
 ### This should be done as expanded es() function with matrix of states (rows - time, cols - states),
@@ -513,7 +508,7 @@ CreatorVES <- function(silent=FALSE,...){
     }
 
 ##### Define modelDo #####
-    if(any(persistenceEstimate, transitionEstimate, measurementEstimate, initialEstimate, initialSeasonEstimate,
+    if(any(persistenceEstimate, transitionEstimate, dampedEstimate, initialEstimate, initialSeasonEstimate,
            FXEstimate, gXEstimate, initialXEstimate)){
         modelDo <- "estimate";
         modelCurrent <- model;
