@@ -1118,14 +1118,9 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Define xregDo #####
-    if(!exists("xregDo",envir=ParentEnvironment,inherits=FALSE)){
-        xregDo <- "u";
-    }
-    else{
-        if(!any(xregDo==c("use","select","u","s"))){
-            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
-            xregDo <- "select";
-        }
+    if(!any(xregDo==c("use","select","u","s"))){
+        warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
+        xregDo <- "select";
     }
     xregDo <- substr(xregDo[1],1,1);
 
@@ -1485,14 +1480,9 @@ ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
     }
 
     ##### Define xregDo #####
-    if(!exists("xregDo",envir=ParentEnvironment,inherits=FALSE)){
-        xregDo <- "u";
-    }
-    else{
-        if(!any(xregDo==c("use","select","u","s"))){
-            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
-            xregDo <- "select";
-        }
+    if(!any(xregDo==c("use","select","u","s"))){
+        warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
+        xregDo <- "select";
     }
     xregDo <- substr(xregDo[1],1,1);
 
