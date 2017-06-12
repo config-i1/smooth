@@ -21,8 +21,8 @@
 #' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 #' used in this process is e[j] = a j^b, where j=1,..,h.
 #' }
-#' The parameter also accepts \code{TRUE} and \code{FALSE}. Former means that
-#' parametric intervals are constructed, while latter is equivalent to
+#' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
+#' parametric intervals are constructed, while the latter is equivalent to
 #' \code{none}.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
