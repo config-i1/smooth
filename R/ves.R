@@ -507,14 +507,15 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
 
 
 
-##### Basic estimation function for es() #####
+##### Basic estimation function for ves() #####
 EstimatorVES <- function(...){
     environment(BasicMakerVES) <- environment();
     environment(AValues) <- environment();
     # environment(likelihoodFunction) <- environment();
     # environment(ICFunction) <- environment();
     environment(CF) <- environment();
-    BasicMakerVES(ParentEnvironment=environment());
+    elements <- BasicMakerVES();
+    list2env(elements,environment());
 
     AList <- AValues(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSeries);
     A <- AList$A
