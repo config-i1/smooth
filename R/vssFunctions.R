@@ -183,7 +183,7 @@ vssInput <- function(modelType=c("ves"),...){
             modelIsSeasonal <- FALSE;
         }
         else{
-            modelIsSeasonal <- FALSE;
+            modelIsSeasonal <- TRUE;
         }
 
         if(any(c(Etype,Ttype,Stype)=="Z")){
@@ -619,9 +619,9 @@ vssInput <- function(modelType=c("ves"),...){
 
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
-    if(bounds!="u" & bounds!="a" & bounds!="n"){
-        warning("Strange bounds are defined. Switching to 'usual'.",call.=FALSE);
-        bounds <- "u";
+    if(all(bounds!=c("u","a","n"))){
+        warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
+        bounds <- "a";
     }
 
     ##### Check number of observations vs number of max parameters #####
@@ -728,10 +728,10 @@ vICFunction <- function(nParam=nParam,A,Etype=Etype){
 
     llikelihood <- vLikelihoodFunction(A);
 
-    AIC.coef <- 2*nParam*nSeries - 2*llikelihood;
+    AIC.coef <- 2*nParam - 2*llikelihood;
     # max here is needed in order to take into account cases with higher number of parameters than observations
-    AICc.coef <- AIC.coef + 2 * nParam*nSeries * (nParam + 1) / max(obsInSample - nParam - 1,0);
-    BIC.coef <- log(obsInSample)*nParam*nSeries - 2*llikelihood;
+    AICc.coef <- AIC.coef + 2 * nParam * (nParam + 1) / max(obsInSample - nParam - 1,0);
+    BIC.coef <- log(obsInSample)*nParam - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");
@@ -769,7 +769,7 @@ vssForecaster <- function(...){
     }
     # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
-        Sigma <- sum(errors %*% t(errors)) / df;
+        Sigma <- (errors %*% t(errors)) / df;
     }
 
     if((obsInSample - nParam)<=0){
