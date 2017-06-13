@@ -214,14 +214,13 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     // arma::mat matrixSigma(hor, hor, arma::fill::eye);
 
     try{
-        CFres = double(log(arma::prod(eig_sym((matErrors / normalize) * arma::trans(matErrors / normalize) / obs))) +
+        CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
             nSeries * log(pow(normalize,2)));
     }
     catch(const std::runtime_error){
-        CFres = double(log(arma::det((matErrors / normalize) * arma::trans(matErrors / normalize) / obs)) +
+        CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
             nSeries * log(pow(normalize,2)));
     }
-
     return CFres;
 }
 
