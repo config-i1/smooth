@@ -85,17 +85,17 @@ vssInput <- function(modelType=c("ves"),...){
     }
 
     # Define obs, the number of observations of in-sample
-    obsInsample <- nrow(data) - holdout*h;
+    obsInSample <- nrow(data) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
     obsAll <- nrow(data) + (1 - holdout)*h;
 
-    # If obsInsample is negative, this means that we can't do anything...
-    if(obsInsample<=0){
+    # If obsInSample is negative, this means that we can't do anything...
+    if(obsInSample<=0){
         stop("Not enough observations in sample.", call.=FALSE);
     }
     # Define the actual values. Transpose the matrix!
-    y <- matrix(data[1:obsInsample,],nSeries,obsInsample,byrow=TRUE);
+    y <- matrix(data[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
     datafreq <- frequency(data);
 
     ##### model for VES #####
@@ -193,7 +193,7 @@ vssInput <- function(modelType=c("ves"),...){
         maxlag <- datafreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
 
         # Define the number of rows that should be in the matvt
-        obsStates <- max(obsAll + maxlag, obsInsample + 2*maxlag);
+        obsStates <- max(obsAll + maxlag, obsInSample + 2*maxlag);
 
         nComponentsNonSeasonal <- 1 + (Ttype!="N")*1;
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
@@ -202,7 +202,7 @@ vssInput <- function(modelType=c("ves"),...){
     #This is the estimation of covariance matrix
     nParamMax <- 1;
 
-    ##### persistence ####
+    ##### Persistence matrix ####
     # persistence type can be: "i" - independent, "d" - dependent, "g" - group.
     persistenceValue <- persistence;
     if(is.null(persistenceValue)){
@@ -269,7 +269,7 @@ vssInput <- function(modelType=c("ves"),...){
         nParamMax <- nParamMax + nComponentsAll*nSeries;
     }
 
-    ##### transition ####
+    ##### Transition matrix ####
     # transition type can be: "i" - independent, "d" - dependent, "g" - group.
     transitionValue <- transition;
     if(is.null(transitionValue)){
@@ -337,56 +337,70 @@ vssInput <- function(modelType=c("ves"),...){
     ##### Damping parameter ####
     # phi type can be: "i" - individual, "g" - group.
     dampedValue <- phi;
-    if(is.null(dampedValue)){
-        if(silentText){
-            message("phi value is not selected. Switching to group");
-        }
-        dampedType <- "g";
-        dampedEstimate <- TRUE;
-    }
-    else{
-        if(is.character(dampedValue)){
-            dampedValue <- substring(dampedValue[1],1,1);
-            if(all(dampedValue!=c("i","g"))){
-                warning("You asked for a strange phi value. We don't do that here. Switching to group.",
-                        call.=FALSE);
-                dampedType <- "g";
-            }
-            else{
-                dampedType <- dampedValue;
-            }
-            dampedValue <- NULL;
-            dampedEstimate <- TRUE;
-        }
-        else if(is.numeric(dampedValue)){
-            if((length(dampedValue) != nSeries) & (length(dampedValue)!= 1)){
-                warning(paste0("Length of phi vector is wrong! It should be ",
-                               nSeries,
-                               " instead of ",length(dampedValue),".\n",
-                               "Values of phi vector will be estimated as a group."),call.=FALSE);
-                dampedValue <- NULL;
+    if((transitionType!="p")){
+        if(damped){
+            if(is.null(dampedValue)){
+                if(silentText){
+                    message("phi value is not selected. Switching to group");
+                }
                 dampedType <- "g";
                 dampedEstimate <- TRUE;
             }
             else{
-                dampedType <- "p";
-                dampedValue <- matrix(dampedValue,nSeries,1);
-                dampedEstimate <- FALSE;
+                if(is.character(dampedValue)){
+                    dampedValue <- substring(dampedValue[1],1,1);
+                    if(all(dampedValue!=c("i","g"))){
+                        warning("You asked for a strange phi value. We don't do that here. Switching to group.",
+                                call.=FALSE);
+                        dampedType <- "g";
+                    }
+                    else{
+                        dampedType <- dampedValue;
+                    }
+                    dampedValue <- matrix(1,nSeries,1);
+                    dampedEstimate <- TRUE;
+                }
+                else if(is.numeric(dampedValue)){
+                    if((length(dampedValue) != nSeries) & (length(dampedValue)!= 1)){
+                        warning(paste0("Length of phi vector is wrong! It should be ",
+                                       nSeries,
+                                       " instead of ",length(dampedValue),".\n",
+                                       "Values of phi vector will be estimated as a group."),call.=FALSE);
+                        dampedValue <- matrix(1,nSeries,1);
+                        dampedType <- "g";
+                        dampedEstimate <- TRUE;
+                    }
+                    else{
+                        dampedType <- "p";
+                        dampedValue <- matrix(dampedValue,nSeries,1);
+                        dampedEstimate <- FALSE;
+                    }
+                }
+                else if(!is.numeric(dampedValue)){
+                    warning(paste0("phi vector is not numeric!\n",
+                                   "Values of phi vector will be estimated as a group."),call.=FALSE);
+                    dampedValue <- matrix(1,nSeries,1);
+                    dampedType <- "g";
+                    dampedEstimate <- TRUE;
+                }
+            }
+
+            if(any(dampedType==c("g","i"))){
+                dampedValue <- matrix(1,nSeries,1);
+                # Whether group or individual the effect on df is the same.
+                nParamMax <- nParamMax + 1;
             }
         }
-        else if(!is.numeric(dampedValue)){
-            warning(paste0("phi vector is not numeric!\n",
-                           "Values of phi vector will be estimated as a group."),call.=FALSE);
-            dampedValue <- NULL;
+        else{
+            dampedValue <- matrix(1,nSeries,1);
             dampedType <- "g";
-            dampedEstimate <- TRUE;
+            dampedEstimate <- FALSE;
         }
     }
-
-    if(any(dampedType==c("g","i"))){
+    else{
         dampedValue <- matrix(1,nSeries,1);
-        # Whether group or individual the effect on df is the same.
-        nParamMax <- nParamMax + 1;
+        dampedType <- "g";
+        dampedEstimate <- FALSE;
     }
 
     ##### initials ####
@@ -459,74 +473,74 @@ vssInput <- function(modelType=c("ves"),...){
     # Here we should check if initialSeason is character or not...
     # if length(initialSeason) == datafreq*nSeries, then ok
     # if length(initialSeason) == datafreq, then use it for all nSeries
-        initialSeasonValue <- initialSeason;
-        if(is.null(initialSeasonValue)){
-            if(silentText){
-                message("Initial value is not selected. Switching to group.");
-            }
-            initialSeasonType <- "g";
-            initialSeasonEstimate <- TRUE;
-        }
-        else{
-            if(is.character(initialSeasonValue)){
-                initialSeasonValue <- substring(initialSeasonValue[1],1,1);
-                if(all(initialSeasonValue!=c("i","g"))){
-                    warning("You asked for a strange initialSeason value. We don't do that here. Switching to group.",
-                            call.=FALSE);
-                    initialSeasonType <- "g";
+        if(Stype!="N"){
+            initialSeasonValue <- initialSeason;
+            if(is.null(initialSeasonValue)){
+                if(silentText){
+                    message("Initial value is not selected. Switching to group.");
                 }
-                else{
-                    initialSeasonType <- initialSeasonValue;
-                }
-                initialSeasonValue <- NULL;
-                initialSeasonEstimate <- TRUE;
-            }
-            else if(is.numeric(initialSeasonValue)){
-                if(modelType=="ves"){
-                    if(all(length(initialSeasonValue)!=c(datafreq,datafreq*nSeries))){
-                        warning(paste0("The length of initialSeason is wrong! It should correspond to the frequency of the data.",
-                                       "Values of initialSeason will be estimated as a group."),call.=FALSE);
-                        initialSeasonValue <- NULL;
-                        initialSeasonType <- "g";
-                        initialSeasonEstimate <- TRUE;
-                    }
-                    else{
-                        initialSeasonValue <- matrix(initialSeasonValue,nSeries,datafreq);
-                        initialSeasonType <- "p";
-                        initialSeasonEstimate <- FALSE;
-                    }
-                }
-            }
-            else if(!is.numeric(initialSeasonValue)){
-                warning(paste0("Initial vector is not numeric!\n",
-                               "Values of initialSeason vector will be estimated as a group."),call.=FALSE);
-                initialSeasonValue <- NULL;
                 initialSeasonType <- "g";
                 initialSeasonEstimate <- TRUE;
             }
-        }
+            else{
+                if(is.character(initialSeasonValue)){
+                    initialSeasonValue <- substring(initialSeasonValue[1],1,1);
+                    if(all(initialSeasonValue!=c("i","g"))){
+                        warning("You asked for a strange initialSeason value. We don't do that here. Switching to group.",
+                                call.=FALSE);
+                        initialSeasonType <- "g";
+                    }
+                    else{
+                        initialSeasonType <- initialSeasonValue;
+                    }
+                    initialSeasonValue <- NULL;
+                    initialSeasonEstimate <- TRUE;
+                }
+                else if(is.numeric(initialSeasonValue)){
+                    if(modelType=="ves"){
+                        if(all(length(initialSeasonValue)!=c(datafreq,datafreq*nSeries))){
+                            warning(paste0("The length of initialSeason is wrong! It should correspond to the frequency of the data.",
+                                           "Values of initialSeason will be estimated as a group."),call.=FALSE);
+                            initialSeasonValue <- NULL;
+                            initialSeasonType <- "g";
+                            initialSeasonEstimate <- TRUE;
+                        }
+                        else{
+                            initialSeasonValue <- matrix(initialSeasonValue,nSeries,datafreq);
+                            initialSeasonType <- "p";
+                            initialSeasonEstimate <- FALSE;
+                        }
+                    }
+                }
+                else if(!is.numeric(initialSeasonValue)){
+                    warning(paste0("Initial vector is not numeric!\n",
+                                   "Values of initialSeason vector will be estimated as a group."),call.=FALSE);
+                    initialSeasonValue <- NULL;
+                    initialSeasonType <- "g";
+                    initialSeasonEstimate <- TRUE;
+                }
+            }
 
-        if(any(initialSeasonType==c("g","i"))){
-            nParamMax <- nParamMax + datafreq;
+            if(any(initialSeasonType==c("g","i"))){
+                nParamMax <- nParamMax + datafreq;
+            }
+        }
+        else{
+            initialSeasonValue <- NULL;
+            initialSeasonType <- "g";
+            initialSeasonEstimate <- FALSE;
         }
     }
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
-        multisteps <- TRUE;
-    }
-    else if(any(cfType==c("MSE","MAE","HAM"))){
-        multisteps <- FALSE;
-    }
-    else{
-        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
-        cfType <- "MSE";
-        multisteps <- FALSE;
+    if(!any(cfType==c("likelihood","diagonal","trace"))){
+        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'likelihood'."),call.=FALSE);
+        cfType <- "likelihood";
     }
     cfTypeOriginal <- cfType;
 
-    normalizer <- sum(colMeans(abs(diff(c(y))),na.rm=TRUE));
+    normalizer <- sum(colMeans(abs(diff(t(y))),na.rm=TRUE));
 
     ##### Information Criteria #####
     ic <- ic[1];
@@ -580,6 +594,7 @@ vssInput <- function(modelType=c("ves"),...){
     ##### intermittent #####
     ##### !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
     intermittent <- substring(intermittent[1],1,1);
+    ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
 
     ##### Check if multiplicative is applicable #####
     if(any(modelType==c("ves"))){
@@ -610,9 +625,9 @@ vssInput <- function(modelType=c("ves"),...){
     }
 
     ##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= nParamMax){
+    if(obsInSample <= nParamMax){
         stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                    nParamMax," while the number of observations is ",obsNonzero,"."),call.=FALSE);
+                    nParamMax," while the number of observations is ",obsInSample,"."),call.=FALSE);
     }
 
     ##### Fisher Information #####
@@ -634,10 +649,9 @@ vssInput <- function(modelType=c("ves"),...){
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
-    assign("obsInsample",obsInsample,ParentEnvironment);
+    assign("obsInSample",obsInSample,ParentEnvironment);
     assign("obsAll",obsAll,ParentEnvironment);
     assign("obsStates",obsStates,ParentEnvironment);
-    assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("nSeries",nSeries,ParentEnvironment);
     assign("nParamMax",nParamMax,ParentEnvironment);
     assign("data",data,ParentEnvironment);
@@ -678,7 +692,6 @@ vssInput <- function(modelType=c("ves"),...){
 
     assign("cfType",cfType,ParentEnvironment);
     assign("cfTypeOriginal",cfTypeOriginal,ParentEnvironment);
-    assign("multisteps",multisteps,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
 
     assign("ic",ic,ParentEnvironment);
@@ -688,7 +701,7 @@ vssInput <- function(modelType=c("ves"),...){
 
     assign("intermittent",intermittent,ParentEnvironment);
     # !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
-    # assign("ot",ot,ParentEnvironment);
+    assign("ot",ot,ParentEnvironment);
     # assign("yot",yot,ParentEnvironment);
     # assign("pt",pt,ParentEnvironment);
     # assign("pt.for",pt.for,ParentEnvironment);
@@ -700,4 +713,94 @@ vssInput <- function(modelType=c("ves"),...){
     assign("nParamMax",nParamMax,ParentEnvironment);
 
     assign("FI",FI,ParentEnvironment);
+}
+
+##### *Likelihood function* #####
+vLikelihoodFunction <- function(A){
+    return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
+}
+
+##### *Function calculates ICs* #####
+vICFunction <- function(nParam=nParam,A,Etype=Etype){
+    # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
+    # And it is based on the mean of the sum squared residuals either than sum.
+    # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
+
+    llikelihood <- vLikelihoodFunction(A);
+
+    AIC.coef <- 2*nParam*nSeries - 2*llikelihood;
+    # max here is needed in order to take into account cases with higher number of parameters than observations
+    AICc.coef <- AIC.coef + 2 * nParam*nSeries * (nParam + 1) / max(obsInSample - nParam - 1,0);
+    BIC.coef <- log(obsInSample)*nParam*nSeries - 2*llikelihood;
+
+    ICs <- c(AIC.coef, AICc.coef, BIC.coef);
+    names(ICs) <- c("AIC", "AICc", "BIC");
+
+    return(list(llikelihood=llikelihood,ICs=ICs));
+}
+
+##### *vssFitter function* #####
+vssFitter <- function(...){
+    ellipsis <- list(...);
+    ParentEnvironment <- ellipsis[['ParentEnvironment']];
+
+    fitting <- vFitterWrap(y, matvt, matF, matW, matG,
+                           modelLags, Etype, Ttype, Stype, ot);
+    statesNames <- rownames(matvt);
+    matvt <- fitting$matvt;
+    rownames(matvt) <- statesNames;
+    yFitted <- fitting$yfit;
+    errors <- fitting$errors;
+
+    assign("matvt",matvt,ParentEnvironment);
+    assign("yFitted",yFitted,ParentEnvironment);
+    assign("errors",errors,ParentEnvironment);
+}
+
+##### *Forecaster of state-space functions* #####
+vssForecaster <- function(...){
+    ellipsis <- list(...);
+    ParentEnvironment <- ellipsis[['ParentEnvironment']];
+
+    df <- (obsInSample - nParam);
+    if(df<=0){
+        warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
+        df <- obsInSample;
+    }
+    # If error additive, estimate as normal. Otherwise - lognormal
+    if(Etype=="A"){
+        Sigma <- sum(errors %*% t(errors)) / df;
+    }
+
+    if((obsInSample - nParam)<=0){
+        df <- 0;
+    }
+
+    if(h>0){
+        yForecast <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+maxlag)],ncol=maxlag),
+                                     matF, matW, nSeries, h, Etype, Ttype, Stype, modelLags);
+
+        if(Etype=="M" & any(yForecast<0)){
+            warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
+                           "Please, use another model."),call.=FALSE);
+        }
+
+        yLower <- NA;
+        yUpper <- NA;
+    }
+    else{
+        yLower <- NA;
+        yUpper <- NA;
+        yForecast[,] <- NA;
+    }
+
+    if(any(is.na(yFitted),all(is.na(yForecast),h>0))){
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
+    }
+
+    assign("Sigma",Sigma,ParentEnvironment);
+    assign("yForecast",yForecast,ParentEnvironment);
+    assign("yLower",yLower,ParentEnvironment);
+    assign("yUpper",yUpper,ParentEnvironment);
 }

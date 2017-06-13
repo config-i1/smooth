@@ -38,36 +38,11 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
         lagrows = (i+1) * lagslength - lags - 1;
 
         /* # Measurement equation and the error term */
-        matrixYfit.row(i-maxlag) = matrixO(i-maxlag) * (matrixW * matrixV(lagrows));
-        matrixE(i-maxlag) = (matrixY(i-maxlag) - matrixYfit(i-maxlag));
+        matrixYfit.col(i-maxlag) = matrixO.col(i-maxlag) % (matrixW * matrixV(lagrows));
+        matrixE.col(i-maxlag) = (matrixY.col(i-maxlag) - matrixYfit.col(i-maxlag));
 
         /* # Transition equation */
-        matrixV.col(i) = matrixF * matrixV(lagrows) + matrixG * matrixE(i-maxlag);
-
-        /* Failsafe for cases when unreasonable value for state vector was produced */
-        //         if(!matrixV.col(i).is_finite()){
-        //             matrixV.col(i) = matrixV(lagrows);
-        //         }
-        //         if((S=='M') & (matrixV(matrixV.n_rows-1,i) <= 0)){
-        //             matrixV(matrixV.n_rows-1,i) = arma::as_scalar(matrixV(lagrows.row(matrixV.n_rows-1)));
-        //         }
-        //         if(T=='M'){
-        //             if((matrixV(0,i) <= 0) | (matrixV(1,i) <= 0)){
-        //                 matrixV(0,i) = arma::as_scalar(matrixV(lagrows.row(0)));
-        //                 matrixV(1,i) = arma::as_scalar(matrixV(lagrows.row(1)));
-        //             }
-        //         }
-        //
-        // /* Renormalise components if the seasonal model is chosen */
-        //         if(S!='N'){
-        //             if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
-        //                 matrixV.cols(i-maxlag+1,i) = normaliser(matrixV.cols(i-maxlag+1,i), obsall, maxlag, S, T);
-        //             }
-        //         }
-
-        /* # Transition equation for xreg */
-        // bufferforat = gXvalue(matrixX.col(i-maxlag), matrixGX, matrixE.row(i-maxlag), E);
-        // matrixA.col(i) = matrixFX * matrixA.col(i-1) + bufferforat;
+        matrixV.col(i) = matrixF * matrixV(lagrows) + matrixG * matrixE.col(i-maxlag);
     }
 
     for (int i=obs+maxlag; i<obsall; i=i+1) {
@@ -137,7 +112,7 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
 
     arma::uvec lagrows(lagslength, arma::fill::zeros);
     arma::mat matYfor(nSeries, hor, arma::fill::zeros);
-    arma::mat matrixVnew(hh, matrixV.n_cols, arma::fill::zeros);
+    arma::mat matrixVnew(matrixV.n_rows, hh, arma::fill::zeros);
     // arma::mat matrixAnew(hh, matrixA.n_cols, arma::fill::zeros);
 
     lags = lags * lagslength;
@@ -146,11 +121,11 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
         lags(i) = lags(i) + (lagslength - i - 1);
     }
 
-    matrixVnew.submat(0,0,matrixVnew.n_cols-1,maxlag-1) = matrixV.submat(0,0,matrixVnew.n_cols-1,maxlag-1);
+    matrixVnew.submat(0,0,matrixVnew.n_rows-1,maxlag-1) = matrixV.submat(0,0,matrixVnew.n_rows-1,maxlag-1);
     // matrixAnew.submat(0,0,maxlag-1,matrixAnew.n_cols-1) = matrixAnew.submat(0,0,maxlag-1,matrixAnew.n_cols-1);
 
     /* # Fill in the new xt matrix using F. Do the forecasts. */
-    for (unsigned int i=maxlag; i<(hor+maxlag); i=i+1) {
+    for (unsigned int i=maxlag; i<hh; i=i+1) {
         lagrows = (i+1) * lagslength - lags - 1;
 
         /* # Transition equation */
@@ -213,7 +188,8 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     arma::uvec nonzeroes = find(matrixO>0);
     int obs = nonzeroes.n_rows;
     double CFres = 0;
-    int matobs = obs + hor - 1;
+
+    int nSeries = matrixY.n_rows;
 
     // yactsum is needed for multiplicative error models
     // double yactsum = arma::as_scalar(sum(log(matrixY.elem(nonzeroes))));
@@ -238,12 +214,12 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     // arma::mat matrixSigma(hor, hor, arma::fill::eye);
 
     try{
-        CFres = double(log(arma::prod(eig_sym(trans(matErrors / normalize) * (matErrors / normalize) / matobs))) +
-            hor * log(pow(normalize,2)));
+        CFres = double(log(arma::prod(eig_sym((matErrors / normalize) * arma::trans(matErrors / normalize) / obs))) +
+            nSeries * log(pow(normalize,2)));
     }
     catch(const std::runtime_error){
-        CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / matobs)) +
-            hor * log(pow(normalize,2)));
+        CFres = double(log(arma::det((matErrors / normalize) * arma::trans(matErrors / normalize) / obs)) +
+            nSeries * log(pow(normalize,2)));
     }
 
     return CFres;
