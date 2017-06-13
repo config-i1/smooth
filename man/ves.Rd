@@ -2,7 +2,7 @@
 % Please edit documentation in R/ves.R
 \name{ves}
 \alias{ves}
-\title{NOT AVAILABLE YET: Vector Exponential Smoothing in SSOE state-space model}
+\title{Vector Exponential Smoothing in SSOE state-space model}
 \usage{
 ves(data, model = "ANN", persistence = c("group", "independent",
   "dependent"), transition = c("group", "independent", "dependent"),
@@ -21,8 +21,8 @@ observations are in rows.}
 \item{model}{The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
 \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
 \code{ZZZ} means that the model will be selected based on the chosen
-information criteria type. ATTENTION! NO MODEL SELECTION IS AVAILABLE AT
-THIS STAGE!
+information criteria type. ATTENTION! ONLY PURE ADDITIVE MODELS ARE CURRENTLY
+AVAILABLE + NO MODEL SELECTION IS AVAILABLE AT THIS STAGE!
 
 Also \code{model} can accept a previously estimated VES model and use all its
 parameters.
@@ -175,7 +175,7 @@ for the number of degrees of freedom);
 }
 \description{
 Function constructs vector ETS model and returns forecast, fitted values, errors
-and matrix of states along with other useful variables. THIS IS CURRENTLY UNDER CONSTRUCTION!
+and matrix of states along with other useful variables.
 }
 \details{
 Function estimates vector ETS in a form of the Single Source of Error State-space
@@ -233,7 +233,6 @@ ves(Y,model="ANN",h=10,holdout=TRUE)
 # Damped trend model with the dependent persistence
 ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 
-
 }
 \references{
 \itemize{
@@ -246,8 +245,7 @@ Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
 }
 }
 \seealso{
-\code{\link[smooth]{es}, \link[forecast]{ets},
-\link[forecast]{forecast}}
+\code{\link[smooth]{es}, \link[forecast]{ets}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

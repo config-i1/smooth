@@ -1,12 +1,12 @@
 utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal","obsInSample","obsAll",
-                         "persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
+                         "modelLags","persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
                          "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "matG","matW","A"));
+                         "matG","matW","A","Sigma","yFitted","yLower","yUpper"));
 
-#' NOT AVAILABLE YET: Vector Exponential Smoothing in SSOE state-space model
+#' Vector Exponential Smoothing in SSOE state-space model
 #'
 #' Function constructs vector ETS model and returns forecast, fitted values, errors
-#' and matrix of states along with other useful variables. THIS IS CURRENTLY UNDER CONSTRUCTION!
+#' and matrix of states along with other useful variables.
 #'
 #' Function estimates vector ETS in a form of the Single Source of Error State-space
 #' model of the following type:
@@ -63,8 +63,8 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' @param model The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
 #' \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
 #' \code{ZZZ} means that the model will be selected based on the chosen
-#' information criteria type. ATTENTION! NO MODEL SELECTION IS AVAILABLE AT
-#' THIS STAGE!
+#' information criteria type. ATTENTION! ONLY PURE ADDITIVE MODELS ARE CURRENTLY
+#' AVAILABLE + NO MODEL SELECTION IS AVAILABLE AT THIS STAGE!
 #'
 #' Also \code{model} can accept a previously estimated VES model and use all its
 #' parameters.
@@ -121,8 +121,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{cfType} - The type of the used cost function;
 #' \item \code{accuracy} - the values of the error measures. Currently not available.
 #' }
-#' @seealso \code{\link[smooth]{es}, \link[forecast]{ets},
-#' \link[forecast]{forecast}}
+#' @seealso \code{\link[smooth]{es}, \link[forecast]{ets}}
 #'
 #' @examples
 #'
@@ -134,7 +133,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' # Damped trend model with the dependent persistence
 #' ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 #'
-#'
+#' @export
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
                 transition=c("group","independent","dependent"), phi=c("group","individual"),
                 initial=c("individual","group"), initialSeason=c("group","individual"),
