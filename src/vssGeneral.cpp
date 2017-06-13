@@ -6,9 +6,8 @@
 using namespace Rcpp;
 
 // Fitter for vector models
-List vFitter(arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixY, arma::mat const &matrixG,
-             arma::uvec &lags, char const &E, char const &T, char const &S,
-             arma::mat const &matrixX, arma::mat &matrixA, arma::mat const &matrixFX, arma::mat const &matrixGX, arma::mat const &matrixO) {
+List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
+             arma::uvec &lags, char const &E, char const &T, char const &S, arma::mat const &matrixO) {
     /* matrixY has nrow = nSeries, ncol = obs
      * matrixV has nrow = nSeries * nComponents, ncol = obs + maxlag
      * matrixW, matrixF, matrixG are nSeries * nComponents x nSeries * nComponents.
@@ -77,15 +76,18 @@ List vFitter(arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matr
         // matrixA.col(i) = matrixFX * matrixA.col(i-1);
     }
 
+    // , Named("matat") = matrixA
     return List::create(Named("matvt") = matrixV, Named("yfit") = matrixYfit,
-                        Named("errors") = matrixE, Named("matat") = matrixA);
+                        Named("errors") = matrixE);
 }
 
 /* # Wrapper for fitter */
 // [[Rcpp::export]]
-RcppExport SEXP vFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP matG,
-                            SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-                            SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX, SEXP ot) {
+RcppExport SEXP vFitterWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG,
+                            SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP ot) {
+// SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX,
+    NumericMatrix yt_n(yt);
+    arma::mat matrixY(yt_n.begin(), yt_n.nrow(), yt_n.ncol(), false);
 
     NumericMatrix matvt_n(matvt);
     arma::mat matrixV(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -95,9 +97,6 @@ RcppExport SEXP vFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP matG
 
     NumericMatrix matw_n(matw);
     arma::mat matrixW(matw_n.begin(), matw_n.nrow(), matw_n.ncol(), false);
-
-    NumericMatrix yt_n(yt);
-    arma::mat matrixY(yt_n.begin(), yt_n.nrow(), yt_n.ncol(), false);
 
     NumericMatrix matG_n(matG);
     arma::mat matrixG(matG_n.begin(), matG_n.nrow(), matG_n.ncol(), false);
@@ -109,30 +108,29 @@ RcppExport SEXP vFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP matG
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
 
-    NumericMatrix matxt_n(matxt);
-    arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
-
-    NumericMatrix matat_n(matat);
-    arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
-
-    NumericMatrix matFX_n(matFX);
-    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
-
-    NumericMatrix matGX_n(matGX);
-    arma::mat matrixGX(matGX_n.begin(), matGX_n.nrow(), matGX_n.ncol(), false);
+    // NumericMatrix matxt_n(matxt);
+    // arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+    //
+    // NumericMatrix matat_n(matat);
+    // arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
+    //
+    // NumericMatrix matFX_n(matFX);
+    // arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
+    //
+    // NumericMatrix matGX_n(matGX);
+    // arma::mat matrixGX(matGX_n.begin(), matGX_n.nrow(), matGX_n.ncol(), false);
 
     NumericMatrix ot_n(ot);
     arma::mat matrixO(ot_n.begin(), ot_n.nrow(), ot_n.ncol(), false);
 
-    return wrap(vFitter(matrixV, matrixF, matrixW, matrixY, matrixG, lags, E, T, S,
-                        matrixX, matrixA, matrixFX, matrixGX, matrixO));
+    return wrap(vFitter(matrixY, matrixV, matrixF, matrixW, matrixG, lags, E, T, S, matrixO));
 }
 
 
 /* # Function produces the point forecasts for the specified model */
 arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma::mat const &matrixW,
-                      unsigned int const &nSeries, unsigned int const &hor, char const &E, char const &T, char const &S, arma::uvec lags,
-                      arma::mat const &matrixX, arma::mat const &matrixA, arma::mat const &matrixFX){
+                      unsigned int const &nSeries, unsigned int const &hor, char const &E, char const &T, char const &S, arma::uvec lags){
+                      // arma::mat const &matrixX, arma::mat const &matrixA, arma::mat const &matrixFX
     int lagslength = lags.n_rows;
     unsigned int maxlag = max(lags);
     unsigned int hh = hor + maxlag;
@@ -168,8 +166,8 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
 /* # Wrapper for forecaster */
 // [[Rcpp::export]]
 RcppExport SEXP vForecasterWrap(SEXP matvt, SEXP matF, SEXP matw,
-                                SEXP series, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags,
-                                SEXP matxt, SEXP matat, SEXP matFX){
+                                SEXP series, SEXP h, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP modellags){
+    // SEXP matxt, SEXP matat, SEXP matFX
 
     NumericMatrix matvt_n(matvt);
     arma::mat matrixV(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol(), false);
@@ -189,25 +187,25 @@ RcppExport SEXP vForecasterWrap(SEXP matvt, SEXP matF, SEXP matw,
     IntegerVector modellags_n(modellags);
     arma::uvec lags = as<arma::uvec>(modellags_n);
 
-    NumericMatrix matxt_n(matxt);
-    arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+    // NumericMatrix matxt_n(matxt);
+    // arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+    //
+    // NumericMatrix matat_n(matat);
+    // arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
+    //
+    // NumericMatrix matFX_n(matFX);
+    // arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
 
-    NumericMatrix matat_n(matat);
-    arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
-
-    NumericMatrix matFX_n(matFX);
-    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
-
-    return wrap(vForecaster(matrixV, matrixF, matrixW, nSeries, hor, E, T, S, lags, matrixX, matrixA, matrixFX));
+    return wrap(vForecaster(matrixV, matrixF, matrixW, nSeries, hor, E, T, S, lags));
 }
 
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
-double vOptimiser(arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixY, arma::mat const &matrixG,
+double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
                   unsigned int const &hor, arma::uvec &lags, char const &E, char const &T, char const &S,
-                  double const &normalize,
-                  arma::mat const &matrixX, arma::mat &matrixA, arma::mat const &matrixFX, arma::mat const &matrixGX, arma::mat const &matrixO){
+                  double const &normalize, arma::mat const &matrixO){
     // bool const &multi, std::string const &CFtype, char const &fitterType,
+    // arma::mat const &matrixX, arma::mat &matrixA, arma::mat const &matrixFX, arma::mat const &matrixGX,
     // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_stream_err2(nullstream);
@@ -220,8 +218,7 @@ double vOptimiser(arma::mat &matrixV, arma::mat const &matrixF, arma::mat const 
     // yactsum is needed for multiplicative error models
     // double yactsum = arma::as_scalar(sum(log(matrixY.elem(nonzeroes))));
 
-    List fitting = vFitter(matrixV, matrixF, matrixW, matrixY, matrixG, lags, E, T, S,
-                      matrixX, matrixA, matrixFX, matrixGX, matrixO);
+    List fitting = vFitter(matrixY, matrixV, matrixF, matrixW, matrixG, lags, E, T, S, matrixO);
 
     NumericMatrix mvtfromfit = as<NumericMatrix>(fitting["matvt"]);
     matrixV = as<arma::mat>(mvtfromfit);
@@ -255,12 +252,15 @@ double vOptimiser(arma::mat &matrixV, arma::mat const &matrixF, arma::mat const 
 
 /* # This is a wrapper for optimizer, which currently uses admissible bounds */
 // [[Rcpp::export]]
-RcppExport SEXP vOptimiserWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP matG,
+RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG,
                                SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-                               SEXP normalizer,
-                               SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX, SEXP ot) {
-    // SEXP multisteps, SEXP CFt, SEXP fittertype, SEXP bounds
+                               SEXP normalizer, SEXP ot) {
+    // SEXP multisteps, SEXP CFt, SEXP fittertype, SEXP bounds,
+    // SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX
     /* Function is needed to implement admissible constrains on smoothing parameters */
+    NumericMatrix yt_n(yt);
+    arma::mat matrixY(yt_n.begin(), yt_n.nrow(), yt_n.ncol(), false);
+
     NumericMatrix matvt_n(matvt);
     arma::mat matrixV(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
 
@@ -269,9 +269,6 @@ RcppExport SEXP vOptimiserWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP m
 
     NumericMatrix matw_n(matw);
     arma::mat matrixW(matw_n.begin(), matw_n.nrow(), matw_n.ncol(), false);
-
-    NumericMatrix yt_n(yt);
-    arma::mat matrixY(yt_n.begin(), yt_n.nrow(), yt_n.ncol(), false);
 
     NumericMatrix matG_n(matG);
     arma::mat matrixG(matG_n.begin(), matG_n.nrow(), matG_n.ncol(), false);
@@ -295,17 +292,17 @@ RcppExport SEXP vOptimiserWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP m
 
     double normalize = as<double>(normalizer);
 
-    NumericMatrix matxt_n(matxt);
-    arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
-
-    NumericMatrix matat_n(matat);
-    arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
-
-    NumericMatrix matFX_n(matFX);
-    arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
-
-    NumericMatrix matGX_n(matGX);
-    arma::mat matrixGX(matGX_n.begin(), matGX_n.nrow(), matGX_n.ncol(), false);
+    // NumericMatrix matxt_n(matxt);
+    // arma::mat matrixX(matxt_n.begin(), matxt_n.nrow(), matxt_n.ncol(), false);
+    //
+    // NumericMatrix matat_n(matat);
+    // arma::mat matrixA(matat_n.begin(), matat_n.nrow(), matat_n.ncol());
+    //
+    // NumericMatrix matFX_n(matFX);
+    // arma::mat matrixFX(matFX_n.begin(), matFX_n.nrow(), matFX_n.ncol(), false);
+    //
+    // NumericMatrix matGX_n(matGX);
+    // arma::mat matrixGX(matGX_n.begin(), matGX_n.nrow(), matGX_n.ncol(), false);
 
     NumericMatrix ot_n(ot);
     arma::mat matrixO(ot_n.begin(), ot_n.nrow(), ot_n.ncol(), false);
@@ -353,8 +350,6 @@ RcppExport SEXP vOptimiserWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP m
     // }
 
     // multi, CFtype, fitterType,
-    return wrap(vOptimiser(matrixV, matrixF, matrixW, matrixY, matrixG,
-                           hor, lags, E, T, S,
-                           normalize,
-                           matrixX, matrixA, matrixFX, matrixGX, matrixO));
+    return wrap(vOptimiser(matrixY, matrixV, matrixF, matrixW, matrixG,
+                           hor, lags, E, T, S, normalize, matrixO));
 }
