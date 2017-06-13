@@ -1,4 +1,4 @@
-utils::globalVariables(c("initialSeason","persistence"));
+utils::globalVariables(c("initialSeason","persistence","phi"));
 
 ##### *Checker of input of vector functions* #####
 vssInput <- function(modelType=c("ves"),...){

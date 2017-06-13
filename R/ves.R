@@ -1,5 +1,7 @@
-utils::globalVariables(c("damped","matG","initialEstimate","initialSeasonEstimate","xregEstimate","persistenceEstimate","phi",
-                         "FXEstimate","gXEstimate","initialXEstimate","matGX","nParamMax"));
+utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal","obsInSample","obsAll",
+                         "persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
+                         "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
+                         "matG","matW","A"));
 
 #' NOT AVAILABLE YET: Vector Exponential Smoothing in SSOE state-space model
 #'
@@ -160,16 +162,10 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
 
 ##### Cost Function for VES #####
 CF <- function(A){
-    # The following function should be done in R in BasicInitialiserVES
-    elements <- etsmatrices(matvt, matG, matrix(A,nrow=1), nComponentsAll,
-                            modellags, initialType, Ttype, Stype, nExovars, matat,
-                            persistenceEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
-                            matFX, matGX, updateX, FXEstimate, gXEstimate, initialXEstimate);
+    elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
 
-    cfRes <- vOptimiserWrap(elements$matvt, elements$matF, elements$matw, y, elements$matG,
-                      h, modellags, Etype, Ttype, Stype,
-                      normalizer,
-                      matxt, elements$matat, elements$matFX, elements$matGX, ot);
+    cfRes <- vOptimiserWrap(y, elements$matvt, elements$matF, elements$matW, elements$matG,
+                            h, modellags, Etype, Ttype, Stype, normalizer, ot);
     # multisteps, cfType, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -270,7 +266,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
     return(list(A=A,ALower=ALower,AUpper=AUpper));
 }
 
-##### Basic matrices initialiser #####
+##### Basic matrices creator #####
 # This thing returns matvt, matF, matG, matW, dampedValue, initialValue and initialSeasonValue if they are not provided + modellags
 BasicMakerVES <- function(...){
     # ellipsis <- list(...);
@@ -371,12 +367,12 @@ BasicMakerVES <- function(...){
             matvt[initialPlaces,1:maxlag] <- initialSeasonValue;
         }
         else{
-            XValues <- matrix(rep(diag(maxlag),ceiling(obsInsSample/maxlag)),maxlag)[,1:obsInsSample];
+            XValues <- matrix(rep(diag(maxlag),ceiling(obsInSample/maxlag)),maxlag)[,1:obsInSample];
             if(Stype=="A"){
-                initialSeasonValue <- (Y-rowMeans(Y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+                initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             }
             else{
-                initialSeasonValue <- (log(Y)-rowMeans(log(Y))) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+                initialSeasonValue <- (log(y)-rowMeans(log(y))) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             }
             if(initialType=="g"){
                 initialSeasonValue <- colMeans(initialSeasonValue);
@@ -403,9 +399,7 @@ BasicMakerVES <- function(...){
     #          ParentEnvironment);
 }
 
-
-
-##### Basic parameter propagator #####
+##### Basic matrices filler #####
 # This thing fills in matvt, matF, matG and matW with values from A and returns the corrected values
 BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
 
@@ -522,39 +516,13 @@ EstimatorVES <- function(...){
     environment(CF) <- environment();
     BasicMakerVES(ParentEnvironment=environment());
 
-    AList <- AValues(bounds,Ttype,Stype,matG,matvt,maxlag,nComponents,matat);
+    AList <- AValues(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSeries);
+    A <- AList$A
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
-    res <- nloptr(AList$A, CF, lb=AList$ALower, ub=AList$AUpper,
+    res <- nloptr(A, CF, lb=AList$ALower, ub=AList$AUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
     A <- res$solution;
-
-    # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
-    if(any(A==AList$A)){
-        if(A[1]==AList$A[1]){
-            A[1] <- 0;
-        }
-        if(Ttype!="N"){
-            if(A[2]==AList$A[2]){
-                A[2] <- 0;
-            }
-            if(Stype!="N"){
-                if(A[3]==AList$A[3]){
-                    A[3] <- 0;
-                }
-            }
-        }
-        else{
-            if(Stype!="N"){
-                if(A[2]==AList$A[2]){
-                    A[2] <- 0;
-                }
-            }
-        }
-        res <- nloptr(A, CF, lb=AList$ALower, ub=AList$AUpper,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
-        A <- res$solution;
-    }
 
     if(any((A>=AList$AUpper),(A<=AList$ALower))){
         A[A>=AList$AUpper] <- AList$AUpper[A>=AList$AUpper] * 0.999 - 0.001;
@@ -570,7 +538,7 @@ EstimatorVES <- function(...){
     A <- res$solution;
 
     if(all(A==AList$A) & (initialType!="b")){
-        if(any(persistenceEstimate,gXEstimate,FXEstimate)){
+        if(persistenceEstimate){
             warning(paste0("Failed to optimise the model ETS(", modelCurrent,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
                            "If you did your best, but the optimiser still fails, report this to the maintainer, please."),
@@ -578,7 +546,7 @@ EstimatorVES <- function(...){
         }
     }
 
-    nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * initialEstimate + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);
+    nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * initialEstimate;
 
     # Change cfType for model selection
     if(multisteps){
@@ -593,7 +561,7 @@ EstimatorVES <- function(...){
         cfType <- "MSE";
     }
 
-    IAValues <- ICFunction(nParam=nParam+nParamIntermittent,A=res$solution,Etype=Etype);
+    IAValues <- ICFunction(nParam=nParam+nParamIntermittent,C=res$solution,Etype=Etype);
     ICs <- IAValues$ICs;
     logLik <- IAValues$llikelihood;
 
@@ -609,8 +577,7 @@ CreatorVES <- function(silent=FALSE,...){
         res <- EstimatorVES(ParentEnvironment=environment());
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=res$objective,A=res$A,ICs=res$ICs,icBest=res$ICs[ic],
-                             nParam=res$nParam,FI=FI,logLik=res$logLik,xreg=xreg,
-                             matFX=matFX,matGX=matGX,nExovars=nExovars);
+                             nParam=res$nParam,FI=FI,logLik=res$logLik);
         # if(xregDo!="u"){
         #     listToReturn <- XregSelector(listToReturn=listToReturn);
         # }
@@ -629,17 +596,11 @@ CreatorVES <- function(silent=FALSE,...){
         #     A <- c(A,phi);
         # }
         A <- c(A,initialValue,initialSeason);
-        if(xregEstimate){
-            A <- c(A,initialX);
-            if(updateX){
-                A <- c(A,transitionX,persistenceX);
-            }
-        }
 
         cfObjective <- CF(A);
 
         # Number of parameters
-        nParam <- 1 + nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
+        nParam <- 1 + nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b");
 
 # Change cfType for model selection
         if(multisteps){
@@ -654,17 +615,16 @@ CreatorVES <- function(silent=FALSE,...){
             cfType <- "MSE";
         }
 
-        IAValues <- ICFunction(nParam=nParam+nParamIntermittent,A=A,Etype=Etype);
-        logLik <- IAValues$llikelihood;
-        ICs <- IAValues$ICs;
+        ICValues <- ICFunction(nParam=nParam+nParamIntermittent,A=A,Etype=Etype);
+        logLik <- ICValues$llikelihood;
+        ICs <- ICValues$ICs;
         icBest <- ICs[ic];
         # Change back
         cfType <- cfTypeOriginal;
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=cfObjective,A=A,ICs=ICs,icBest=icBest,
-                             nParam=nParam,FI=FI,logLik=logLik,xreg=xreg,
-                             matFX=matFX,matGX=matGX,nExovars=nExovars);
+                             nParam=nParam,FI=FI,logLik=logLik);
         return(listToReturn);
     }
 }
@@ -732,8 +692,8 @@ CreatorVES <- function(silent=FALSE,...){
                               damped, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Define modelDo #####
-    if(any(persistenceEstimate, transitionEstimate, dampedEstimate, initialEstimate, initialSeasonEstimate,
-           FXEstimate, gXEstimate, initialXEstimate)){
+    if(any(persistenceEstimate, transitionEstimate, dampedEstimate, initialEstimate, initialSeasonEstimate)){
+           # FXEstimate, gXEstimate, initialXEstimate)){
         modelDo <- "estimate";
         modelCurrent <- model;
     }
@@ -882,10 +842,10 @@ CreatorVES <- function(silent=FALSE,...){
             initialValue <- matvt[maxlag,1:(nComponents - (Stype!="N"))];
         }
 
-        if(initialXEstimate){
-            initialX <- matat[1,];
-            names(initialX) <- colnames(matat);
-        }
+        # if(initialXEstimate){
+        #     initialX <- matat[1,];
+        #     names(initialX) <- colnames(matat);
+        # }
 
         if(initialSeasonEstimate){
             if(Stype!="N"){
@@ -1003,7 +963,7 @@ CreatorVES <- function(silent=FALSE,...){
 
 ##### Print output #####
     if(!silentText){
-        if(any(abs(eigen(matF - matG %*% matw)$values)>(1 + 1E-10))){
+        if(any(abs(eigen(matF - matG %*% matW)$values)>(1 + 1E-10))){
             warning(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"),
                     call.=FALSE);
         }
@@ -1029,7 +989,6 @@ CreatorVES <- function(silent=FALSE,...){
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,
                   actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=matGX,transitionX=matFX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }
