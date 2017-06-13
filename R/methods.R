@@ -235,7 +235,7 @@ sigma.smooth <- function(object, ...){
 ##### IC functions #####
 #' @export
 AICc.default <- function(object, ...){
-        obs <- nobs(object);
+    obs <- nobs(object);
 
     llikelihood <- logLik(object);
     nParam <- attributes(llikelihood)$df;
@@ -256,7 +256,7 @@ coef.smooth <- function(object, ...)
     else if(gregexpr("ETS",object$model)!=-1){
         if(any(unlist(gregexpr("C",object$model))==-1)){
             # If this was normal ETS, return values
-            parameters <- c(object$persistence,object$initial,object$initial.season,object$initialX);
+            parameters <- c(object$persistence,object$initial,object$initialSeason,object$initialX);
         }
         else{
             # If we did combinations, we cannot return anything
