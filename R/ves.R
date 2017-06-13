@@ -90,27 +90,59 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
 #' the model.
-#' @return Object of class "smooth" is returned. It contains a list of
-#' values.
-#'
+#' @return Object of class "vsmooth" is returned. It contains the following list of
+#' values:
+#' \itemize{
+#' \item \code{model} - The name of the fitted model;
+#' \item \code{timeElapsed} - The time elapsed for the construction of the model;
+#' \item \code{states} - The matrix of states with components in columns and time in rows;
+#' \item \code{persistence} - The persistence matrix;
+#' \item \code{transition} - The transition matrix;
+#' \item \code{measurement} - The measurement matrix;
+#' \item \code{phi} - The damping parameter value;
+#' \item \code{coefficients} - The vector of all the estimated coefficients;
+#' \item \code{initial} - The initial values of the non-seasonal components;
+#' \item \code{initialSeason} - The initial values of the seasonal components;
+#' \item \code{nParam} - The number of estimated parameters;
+#' \item \code{actuals} - The matrix with the original data;
+#' \item \code{fitted} - The matrix of the fitted values;
+#' \item \code{holdout} - The matrix with the holdoud values (if \code{holdout=TRUE} in
+#' the estimation);
+#' \item \code{residuals} - The matrix of the residuals of the model;
+#' \item \code{Sigma} - The covariance matrix of the errors (estimated with the correction
+#' for the number of degrees of freedom);
+#' \item \code{forecast} - The matrix of point forecasts;
+#' \item \code{lower} and \code{upper} - The bounds of the prediction intervals;
+#' \item \code{intervals} - The type of the constructed prediction intervals;
+#' \item \code{level} - The level of the confidence for the prediction intervals;
+#' \item \code{ICs} - The values of the information criteria;
+#' \item \code{logLik} - The log-likelihood function;
+#' \item \code{cf} - The value of the cost function;
+#' \item \code{cfType} - The type of the used cost function;
+#' \item \code{accuracy} - the values of the error measures. Currently not available.
+#' }
 #' @seealso \code{\link[smooth]{es}, \link[forecast]{ets},
 #' \link[forecast]{forecast}}
 #'
 #' @examples
 #'
-#' library(Mcomp)
+#' Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)))
 #'
-#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE)}
+#' # The simplest model applied to the data with the default values
+#' ves(Y,model="ANN",h=10,holdout=TRUE)
+#'
+#' # Damped trend model with the dependent persistence
+#' ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 #'
 #'
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
                 transition=c("group","independent","dependent"), phi=c("group","individual"),
-                initial=c("group","individual"), initialSeason=c("group","individual"),
+                initial=c("individual","group"), initialSeason=c("group","individual"),
                 cfType=c("likelihood","diagonal","trace"),
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","tsb"),
-                bounds=c("admissible","usual","none"),
+                bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
@@ -182,6 +214,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
     A <- NA;
     ALower <- NA;
     AUpper <- NA;
+    ANames <- NA;
 
     ### Persistence matrix
     if(persistenceEstimate){
@@ -197,6 +230,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         A <- c(A,rep(0.1,persistenceLength));
         ALower <- c(ALower,rep(-5,persistenceLength));
         AUpper <- c(AUpper,rep(5,persistenceLength));
+        ANames <- c(ANames,paste0("Persistence",c(1:persistenceLength)));
     }
 
     ### Damping parameter
@@ -210,16 +244,18 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         A <- c(A,rep(0.95,dampedLength));
         ALower <- c(ALower,rep(0,dampedLength));
         AUpper <- c(AUpper,rep(1,dampedLength));
+        ANames <- c(ANames,paste0("phi",c(1:dampedLength)));
     }
 
     ### Transition matrix
     if(transitionEstimate){
         if(transitionType=="d"){
-             transitionLength <- (nSeries*nComponentsAll - nComponentsAll^2)*nSeries;
+             transitionLength <- ((nSeries-1)*nComponentsAll^2)*nSeries;
         }
         A <- c(A,rep(0.1,transitionLength));
         ALower <- c(ALower,rep(-1,transitionLength));
         AUpper <- c(AUpper,rep(1,transitionLength));
+        ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
     }
 
     ### Vector of initials
@@ -231,6 +267,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
             initialLength <- nComponentsNonSeasonal*nSeries;
         }
         A <- c(A,initialValue);
+        ANames <- c(ANames,paste0("initial",c(1:initialLength)));
         if(Ttype!="M"){
             ALower <- c(ALower,rep(-Inf,initialLength));
             AUpper <- c(AUpper,rep(Inf,initialLength));
@@ -243,13 +280,14 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
 
     ### Vector of initial seasonals
     if(initialSeasonEstimate){
-        if(initialType=="g"){
+        if(initialSeasonType=="g"){
             initialSeasonLength <- maxlag;
         }
         else{
             initialSeasonLength <- maxlag*nSeries;
         }
         A <- c(A,initialSeasonValue);
+        ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
         if(Stype=="A"){
             ALower <- c(ALower,rep(-Inf,initialSeasonLength));
             AUpper <- c(AUpper,rep(Inf,initialSeasonLength));
@@ -263,8 +301,9 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
     A <- A[!is.na(A)];
     ALower <- ALower[!is.na(ALower)];
     AUpper <- AUpper[!is.na(AUpper)];
+    ANames <- ANames[!is.na(ANames)];
 
-    return(list(A=A,ALower=ALower,AUpper=AUpper));
+    return(list(A=A,ALower=ALower,AUpper=AUpper,ANames=ANames));
 }
 
 ##### Basic VES initialiser #####
@@ -336,9 +375,16 @@ BasicMakerVES <- function(...){
     }
 
     ### Vector of states
+    statesNames <- "level";
+    if(Ttype!="N"){
+        statesNames <- c(statesNames,"trend");
+    }
+    if(Stype!="N"){
+        statesNames <- c(statesNames,"seasonal");
+    }
     matvt <- matrix(NA, nComponentsAll*nSeries, obsStates,
-                    dimnames=list(paste0(paste0("Component",c(1:nComponentsAll)),
-                                         paste0("Series",rep(c(1:nSeries),each=nComponentsAll))),NULL));
+                    dimnames=list(paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)),
+                                         ", ",statesNames),NULL));
     ## Deal with non-seasonal part of the vector of states
     if(!initialEstimate){
         initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
@@ -370,7 +416,7 @@ BasicMakerVES <- function(...){
     ## Deal with seasonal part of the vector of states
     if(modelIsSeasonal){
         if(initialSeasonType=="p"){
-            initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+3;
+            initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
             matvt[initialPlaces,1:maxlag] <- initialSeasonValue;
         }
         else{
@@ -381,13 +427,12 @@ BasicMakerVES <- function(...){
             else{
                 initialSeasonValue <- (log(y)-rowMeans(log(y))) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             }
-            if(initialType=="g"){
-                initialSeasonValue <- colMeans(initialSeasonValue);
+            if(initialSeasonType=="g"){
+                initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,maxlag);
             }
             else{
-                initialSeasonValue <- as.vector(t(initialSeasonValue));
+                initialSeasonValue <- matrix(as.vector(t(initialSeasonValue)),nSeries,maxlag);
             }
-            initialSeasonValue <- matrix(initialSeasonValue,nSeries,maxlag);
         }
     }
 
@@ -457,9 +502,10 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
     if(transitionType=="d"){
         # Fill in the other values of F with some values
         nCoefficientsBuffer <- (nSeries-1)*nComponentsAll^2;
+
         for(i in 1:nSeries){
             matF[c(1:nComponentsAll)+nComponentsAll*(i-1),
-                            setdiff(c(1:nSeries*nComponentsAll),
+                            setdiff(c(1:(nSeries*nComponentsAll)),
                                     c(1:nComponentsAll)+nComponentsAll*(i-1))] <- A[nCoefficients+c(1:nCoefficientsBuffer)];
             nCoefficients <- nCoefficients + nCoefficientsBuffer;
         }
@@ -493,13 +539,13 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
 
     ## Deal with seasonal part of the vector of states
     if(modelIsSeasonal & initialSeasonEstimate){
-        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+3;
+        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
         if(initialSeasonType=="i"){
             matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],nSeries,maxlag);
             nCoefficients <- nCoefficients + nSeries*maxlag;
         }
         else if(initialSeasonType=="g"){
-            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],nSeries,maxlag);
+            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],1,maxlag);
             nCoefficients <- nCoefficients + maxlag;
         }
     }
@@ -546,11 +592,12 @@ EstimatorVES <- function(...){
                     call.=FALSE);
         }
     }
+    names(A) <- AList$ANames;
 
     # First nSeries is for the covariance matrix
     nParam <- nSeries + length(A);
 
-    IAValues <- vICFunction(nParam=nParam,A=res$solution,Etype=Etype);
+    IAValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
     ICs <- IAValues$ICs;
     logLik <- IAValues$llikelihood;
 
@@ -647,13 +694,25 @@ CreatorVES <- function(silent=FALSE,...){
 
     ##### Write down persistence, transition, initials etc #####
 # Write down the persistenceValue, transitionValue, initialValue, initialSeasonValue
-# dampedValue is already exported via BasicInitialiserVES
+
     if(persistenceEstimate){
+        persistenceNames <- "level";
+        if(Ttype!="N"){
+            persistenceNames <- c(persistenceNames,"trend");
+        }
+        if(Stype!="N"){
+            persistenceNames <- c(persistenceNames,"seasonal");
+        }
         persistenceValue <- matG;
+        rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", persistenceNames);
     }
 
 # This is needed anyway for the reusability of the model
     transitionValue <- matF;
+
+    if(damped){
+        rownames(dampedValue) <- paste0("Series",c(1:nSeries));
+    }
 
     if(initialEstimate){
         initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
@@ -664,14 +723,14 @@ CreatorVES <- function(silent=FALSE,...){
             initialNames <- c(initialNames,"trend");
         }
         initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
-        rownames(initialValue) <- paste0(paste0("Series ",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
+        rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
     }
 
     if(initialSeasonEstimate){
-        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+3;
+        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
         initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
-        rownames(initialSeasonValue) <- paste0("Series ",c(1:nSeries));
-        colnames(initialSeasonValue) <- paste0("Seasonal ",c(1:maxlag));
+        rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
+        colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     }
 
     matvt <- ts(t(matvt),start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
@@ -701,26 +760,29 @@ CreatorVES <- function(silent=FALSE,...){
     }
 
 ##### Make a plot #####
-    # if(!silentGraph){
-    #     if(intervals){
-    #         graphmaker(actuals=data,forecast=y.for,fitted=y.fit, lower=y.low,upper=y.high,
-    #                    level=level,legend=!silentLegend,main=modelname);
-    #     }
-    #     else{
-    #         graphmaker(actuals=data,forecast=y.for,fitted=y.fit,
-    #                 level=level,legend=!silentLegend,main=modelname);
-    #     }
-    # }
+    # This is a temporary solution
+    if(!silentGraph){
+        pages <- ceiling(nSeries / 5);
+        for(j in 1:pages){
+            par(mfcol=c(min(5,floor(nSeries/j)),1));
+            for(i in 1:nSeries){
+                plot(data[,i],main=paste0(modelname,", series ", i),ylab="Y");
+                lines(yForecast[,i],col="blue",lwd=2);
+                lines(yFitted[,i],col="purple",lwd=2,lty=2);
+                abline(v=deltat(yForecast)*(start(yForecast)[2]-2)+start(yForecast)[1],col="red",lwd=2);
+            }
+            par(mfcol=c(1,1));
+        }
+    }
 
     ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
-                  measurement=matW,
+                  measurement=matW, phi=dampedValue, coefficients=A,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
                   nParam=nParam,
-                  fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
-                  Sigma=Sigma,intervals=intervalsType,level=level,
-                  actuals=data,holdout=yHoldout,
+                  actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
+                  forecast=yForecast,lower=yLower,upper=yUpper,intervals=intervalsType,level=level,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
-    return(structure(model,class="vsmooth"));
+    return(structure(model,class=c("vsmooth","smooth")));
 }

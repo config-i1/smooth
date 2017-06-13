@@ -6,13 +6,13 @@
 \usage{
 ves(data, model = "ANN", persistence = c("group", "independent",
   "dependent"), transition = c("group", "independent", "dependent"),
-  phi = c("group", "individual"), initial = c("group", "individual"),
+  phi = c("group", "individual"), initial = c("individual", "group"),
   initialSeason = c("group", "individual"), cfType = c("likelihood",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC"), h = 10,
   holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "tsb"), bounds = c("admissible", "usual", "none"), silent = c("none",
-  "all", "graph", "legend", "output"), ...)
+  "tsb"), bounds = c("admissible", "none"), silent = c("none", "all",
+  "graph", "legend", "output"), ...)
 }
 \arguments{
 \item{data}{is the matrix with data, where series are in columns and
@@ -141,8 +141,37 @@ used to calculated variances of smoothing parameters and initial states of
 the model.}
 }
 \value{
-Object of class "smooth" is returned. It contains a list of
-values.
+Object of class "vsmooth" is returned. It contains the following list of
+values:
+\itemize{
+\item \code{model} - The name of the fitted model;
+\item \code{timeElapsed} - The time elapsed for the construction of the model;
+\item \code{states} - The matrix of states with components in columns and time in rows;
+\item \code{persistence} - The persistence matrix;
+\item \code{transition} - The transition matrix;
+\item \code{measurement} - The measurement matrix;
+\item \code{phi} - The damping parameter value;
+\item \code{coefficients} - The vector of all the estimated coefficients;
+\item \code{initial} - The initial values of the non-seasonal components;
+\item \code{initialSeason} - The initial values of the seasonal components;
+\item \code{nParam} - The number of estimated parameters;
+\item \code{actuals} - The matrix with the original data;
+\item \code{fitted} - The matrix of the fitted values;
+\item \code{holdout} - The matrix with the holdoud values (if \code{holdout=TRUE} in
+the estimation);
+\item \code{residuals} - The matrix of the residuals of the model;
+\item \code{Sigma} - The covariance matrix of the errors (estimated with the correction
+for the number of degrees of freedom);
+\item \code{forecast} - The matrix of point forecasts;
+\item \code{lower} and \code{upper} - The bounds of the prediction intervals;
+\item \code{intervals} - The type of the constructed prediction intervals;
+\item \code{level} - The level of the confidence for the prediction intervals;
+\item \code{ICs} - The values of the information criteria;
+\item \code{logLik} - The log-likelihood function;
+\item \code{cf} - The value of the cost function;
+\item \code{cfType} - The type of the used cost function;
+\item \code{accuracy} - the values of the error measures. Currently not available.
+}
 }
 \description{
 Function constructs vector ETS model and returns forecast, fitted values, errors
@@ -196,9 +225,13 @@ For the details see Hyndman et al. (2008), chapter 17.
 }
 \examples{
 
-library(Mcomp)
+Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)))
 
-\dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE)}
+# The simplest model applied to the data with the default values
+ves(Y,model="ANN",h=10,holdout=TRUE)
+
+# Damped trend model with the dependent persistence
+ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 
 
 }
