@@ -1118,11 +1118,13 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Define xregDo #####
-    if(!any(xregDo==c("use","select","u","s"))){
-        warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
-        xregDo <- "select";
+    if(modelType!="sma"){
+        if(!any(xregDo==c("use","select","u","s"))){
+            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
+            xregDo <- "select";
+        }
+        xregDo <- substr(xregDo[1],1,1);
     }
-    xregDo <- substr(xregDo[1],1,1);
 
     if(is.null(xreg)){
         xregDo <- "u";
