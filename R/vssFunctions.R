@@ -539,11 +539,12 @@ vssInput <- function(modelType=c("ves"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(!any(cfType==c("likelihood","diagonal","trace"))){
+    if(!any(cfType==c("likelihood","diagonal","trace","l","d","t"))){
         warning(paste0("Strange cost function specified: ",cfType,". Switching to 'likelihood'."),call.=FALSE);
         cfType <- "likelihood";
     }
     cfTypeOriginal <- cfType;
+    cfType <- substr(cfType,1,1);
 
     normalizer <- sum(colMeans(abs(diff(t(y))),na.rm=TRUE));
 

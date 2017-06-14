@@ -196,10 +196,9 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
 CF <- function(A){
     elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
 
-    ##### !!!!! h is not needed here !!!!! #####
     cfRes <- vOptimiserWrap(y, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            h, modelLags, Etype, Ttype, Stype, normalizer, ot);
-    # multisteps, cfType, initialType, bounds,
+                            modelLags, Etype, Ttype, Stype, cfType, normalizer, ot);
+    # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -783,6 +782,6 @@ CreatorVES <- function(silent=FALSE,...){
                   nParam=nParam,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,lower=yLower,upper=yUpper,intervals=intervalsType,level=level,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfTypeOriginal,accuracy=errormeasures);
     return(structure(model,class=c("vsmooth","smooth")));
 }

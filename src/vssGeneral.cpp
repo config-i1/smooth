@@ -174,11 +174,10 @@ RcppExport SEXP vForecasterWrap(SEXP matvt, SEXP matF, SEXP matw,
     return wrap(vForecaster(matrixV, matrixF, matrixW, nSeries, hor, E, T, S, lags));
 }
 
-
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
-                  unsigned int const &hor, arma::uvec &lags, char const &E, char const &T, char const &S,
-                  double const &normalize, arma::mat const &matrixO){
+                  arma::uvec &lags, char const &E, char const &T, char const &S,
+                  char const& CFtype, double const &normalize, arma::mat const &matrixO){
     // bool const &multi, std::string const &CFtype, char const &fitterType,
     // arma::mat const &matrixX, arma::mat &matrixA, arma::mat const &matrixFX, arma::mat const &matrixGX,
     // # Make decomposition functions shut up!
@@ -213,13 +212,21 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     // arma::vec veccij(hor, arma::fill::ones);
     // arma::mat matrixSigma(hor, hor, arma::fill::eye);
 
-    try{
-        CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
-            nSeries * log(pow(normalize,2)));
+    if(CFtype=='l'){
+        try{
+            CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
+                nSeries * log(pow(normalize,2)));
+        }
+        catch(const std::runtime_error){
+            CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
+                nSeries * log(pow(normalize,2)));
+        }
     }
-    catch(const std::runtime_error){
-        CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
-            nSeries * log(pow(normalize,2)));
+    else if(CFtype=='d'){
+        CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(obs)), 1));
+    }
+    else{
+        CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(obs), 1));
     }
     return CFres;
 }
@@ -228,8 +235,8 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
 /* # This is a wrapper for optimizer, which currently uses admissible bounds */
 // [[Rcpp::export]]
 RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG,
-                               SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-                               SEXP normalizer, SEXP ot) {
+                               SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
+                               SEXP cfType, SEXP normalizer, SEXP ot) {
     // SEXP multisteps, SEXP CFt, SEXP fittertype, SEXP bounds,
     // SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX
     /* Function is needed to implement admissible constrains on smoothing parameters */
@@ -248,8 +255,6 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
     NumericMatrix matG_n(matG);
     arma::mat matrixG(matG_n.begin(), matG_n.nrow(), matG_n.ncol(), false);
 
-    int hor = as<int>(h);
-
     IntegerVector modellags_n(modellags);
     arma::uvec lags = as<arma::uvec>(modellags_n);
 
@@ -257,9 +262,7 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
 
-    // bool multi = as<bool>(multisteps);
-
-    // std::string CFtype = as<std::string>(CFt);
+    char CFtype = as<char>(cfType);
 
     // char fitterType = as<char>(fittertype);
 
@@ -326,5 +329,5 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
 
     // multi, CFtype, fitterType,
     return wrap(vOptimiser(matrixY, matrixV, matrixF, matrixW, matrixG,
-                           hor, lags, E, T, S, normalize, matrixO));
+                           lags, E, T, S, CFtype, normalize, matrixO));
 }
