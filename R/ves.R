@@ -61,10 +61,12 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' @template vssGeneralRef
 #'
 #' @param model The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
-#' \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
+#' \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MMdM} etc.
 #' \code{ZZZ} means that the model will be selected based on the chosen
-#' information criteria type. ATTENTION! ONLY PURE ADDITIVE MODELS ARE CURRENTLY
+#' information criteria type.
+#' ATTENTION! ONLY PURE ADDITIVE AND PURE MULTIPLICATIVE MODELS ARE CURRENTLY
 #' AVAILABLE + NO MODEL SELECTION IS AVAILABLE AT THIS STAGE!
+#' Pure multiplicative models are done as additive model applied to log(data).
 #'
 #' Also \code{model} can accept a previously estimated VES model and use all its
 #' parameters.
@@ -132,6 +134,9 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #'
 #' # Damped trend model with the dependent persistence
 #' ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
+#'
+#' # Multiplicative damped trend model with individual phi
+#' ves(Y,model="MMdN",persistence="d",h=10,holdout=TRUE,phi="i")
 #'
 #' @export
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
@@ -267,14 +272,14 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         }
         A <- c(A,initialValue);
         ANames <- c(ANames,paste0("initial",c(1:initialLength)));
-        if(Ttype!="M"){
+        # if(Ttype!="M"){
             ALower <- c(ALower,rep(-Inf,initialLength));
             AUpper <- c(AUpper,rep(Inf,initialLength));
-        }
-        else{
-            ALower <- c(ALower,rep(c(0.1,0.01),initialLength/2));
-            AUpper <- c(AUpper,rep(c(Inf,3),initialLength/2));
-        }
+        # }
+        # else{
+        #     ALower <- c(ALower,rep(c(0.1,0.01),initialLength/2));
+        #     AUpper <- c(AUpper,rep(c(Inf,3),initialLength/2));
+        # }
     }
 
     ### Vector of initial seasonals
@@ -287,14 +292,14 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         }
         A <- c(A,initialSeasonValue);
         ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
-        if(Stype=="A"){
+        # if(Stype=="A"){
             ALower <- c(ALower,rep(-Inf,initialSeasonLength));
             AUpper <- c(AUpper,rep(Inf,initialSeasonLength));
-        }
-        else{
-            ALower <- c(ALower,rep(-0.0001,initialSeasonLength));
-            AUpper <- c(AUpper,rep(20,initialSeasonLength));
-        }
+        # }
+        # else{
+        #     ALower <- c(ALower,rep(-0.0001,initialSeasonLength));
+        #     AUpper <- c(AUpper,rep(20,initialSeasonLength));
+        # }
     }
 
     A <- A[!is.na(A)];
@@ -395,12 +400,12 @@ BasicMakerVES <- function(...){
     }
     else{
         XValues <- rbind(rep(1,obsInSample),c(1:obsInSample));
-        if(Ttype!="M"){
+        # if(Ttype!="M"){
             initialValue <- y %*% t(XValues) %*% solve(XValues %*% t(XValues));
-        }
-        else{
-            initialValue <- log(y) %*% t(XValues) %*% solve(XValues %*% t(XValues));
-        }
+        # }
+        # else{
+        #     initialValue <- log(y) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+        # }
         if(Ttype=="N"){
             initialValue <- matrix(initialValue[,-2],nSeries,1);
         }
@@ -737,6 +742,21 @@ CreatorVES <- function(silent=FALSE,...){
     errors <- ts(t(errors),start=start(data),frequency=datafreq);
     yForecast <- ts(t(yForecast),start=time(data)[obsInSample]+deltat(data),frequency=datafreq);
 
+    if(modelIsMultiplicative){
+        yFitted <- exp(yFitted);
+        yForecast <- exp(yForecast);
+    }
+
+    if(cfType=="l"){
+        cfType <- "likelihood";
+    }
+    else if(cfType=="d"){
+        cfType <- "diagonal";
+    }
+    else{
+        cfType <- "trace";
+    }
+
 ##### Now let's deal with the holdout #####
     if(holdout){
         yHoldout <- ts(data[(obsInSample+1):obsAll,],start=start(yForecast),frequency=datafreq);
@@ -782,6 +802,6 @@ CreatorVES <- function(silent=FALSE,...){
                   nParam=nParam,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,lower=yLower,upper=yUpper,intervals=intervalsType,level=level,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfTypeOriginal,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class=c("vsmooth","smooth")));
 }

@@ -19,10 +19,12 @@ ves(data, model = "ANN", persistence = c("group", "independent",
 observations are in rows.}
 
 \item{model}{The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
-\code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
+\code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MMdM} etc.
 \code{ZZZ} means that the model will be selected based on the chosen
-information criteria type. ATTENTION! ONLY PURE ADDITIVE MODELS ARE CURRENTLY
+information criteria type.
+ATTENTION! ONLY PURE ADDITIVE AND PURE MULTIPLICATIVE MODELS ARE CURRENTLY
 AVAILABLE + NO MODEL SELECTION IS AVAILABLE AT THIS STAGE!
+Pure multiplicative models are done as additive model applied to log(data).
 
 Also \code{model} can accept a previously estimated VES model and use all its
 parameters.
@@ -232,6 +234,9 @@ ves(Y,model="ANN",h=10,holdout=TRUE)
 
 # Damped trend model with the dependent persistence
 ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
+
+# Multiplicative damped trend model with individual phi
+ves(Y,model="MMdN",persistence="d",h=10,holdout=TRUE,phi="i")
 
 }
 \references{

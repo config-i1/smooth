@@ -204,6 +204,17 @@ vssInput <- function(modelType=c("ves"),...){
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
     }
 
+    if(any(c(Etype,Ttype,Stype)=="M") & all(y>0)){
+        y <- log(y);
+        Etype <- "M";
+        Ttype <- ifelse(Ttype=="A","M",Ttype);
+        Stype <- ifelse(Stype=="A","M",Stype);
+        modelIsMultiplicative <- TRUE;
+    }
+    else{
+        modelIsMultiplicative <- FALSE;
+    }
+
     #This is the estimation of covariance matrix
     nParamMax <- 1;
 
@@ -543,7 +554,6 @@ vssInput <- function(modelType=c("ves"),...){
         warning(paste0("Strange cost function specified: ",cfType,". Switching to 'likelihood'."),call.=FALSE);
         cfType <- "likelihood";
     }
-    cfTypeOriginal <- cfType;
     cfType <- substr(cfType,1,1);
 
     normalizer <- sum(colMeans(abs(diff(t(y))),na.rm=TRUE));
@@ -671,6 +681,7 @@ vssInput <- function(modelType=c("ves"),...){
     assign("Stype",Stype,ParentEnvironment);
     assign("maxlag",maxlag,ParentEnvironment);
     assign("modelIsSeasonal",modelIsSeasonal,ParentEnvironment);
+    assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     assign("nComponentsAll",nComponentsAll,ParentEnvironment);
     assign("nComponentsNonSeasonal",nComponentsNonSeasonal,ParentEnvironment);
     assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
@@ -697,7 +708,6 @@ vssInput <- function(modelType=c("ves"),...){
     assign("initialSeasonEstimate",initialSeasonEstimate,ParentEnvironment);
 
     assign("cfType",cfType,ParentEnvironment);
-    assign("cfTypeOriginal",cfTypeOriginal,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
 
     assign("ic",ic,ParentEnvironment);
@@ -723,7 +733,13 @@ vssInput <- function(modelType=c("ves"),...){
 
 ##### *Likelihood function* #####
 vLikelihoodFunction <- function(A){
-    return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
+    if(Etype=="A"){
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
+    }
+    else{
+        ### This is sort of an approximation of the correct likelihood. Need to check it.
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)) - sum(y));
+    }
 }
 
 ##### *Function calculates ICs* #####
@@ -774,9 +790,7 @@ vssForecaster <- function(...){
         df <- obsInSample;
     }
     # If error additive, estimate as normal. Otherwise - lognormal
-    if(Etype=="A"){
-        Sigma <- (errors %*% t(errors)) / df;
-    }
+    Sigma <- (errors %*% t(errors)) / df;
 
     if((obsInSample - nParam)<=0){
         df <- 0;
