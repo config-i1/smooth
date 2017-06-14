@@ -63,6 +63,11 @@ vssInput <- function(modelType=c("ves"),...){
     if(!is.numeric(data)){
         stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
     }
+
+    if(is.null(dim(data))){
+        stop("The provided data is not a matrix or a data.frame! If it is a vector, please use es() function instead.", call.=FALSE);
+    }
+
     if(is.data.frame(data)){
         data <- as.matrix(data);
     }
