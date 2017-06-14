@@ -45,7 +45,7 @@ print.vsmooth <- function(x, ...){
 
     intervalsType <- x$intervals;
 
-    cat(paste0("Time elapsed: ",round(as.numeric(x$timeelapsed,units="secs"),2)," seconds\n"));
+    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
     if(!is.null(x$nParam)){
         if(x$nParam==1){
@@ -57,8 +57,8 @@ print.vsmooth <- function(x, ...){
     }
 
     cat(paste0("Cost function type: ",x$cfType))
-    if(!is.null(x$cfObjective)){
-        cat(paste0("; Cost function value: ",round(x$cfObjective,3),"\n"));
+    if(!is.null(x$cf)){
+        cat(paste0("; Cost function value: ",round(x$cf,3),"\n"));
     }
     else{
         cat("\n");
