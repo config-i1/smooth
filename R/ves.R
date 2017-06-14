@@ -153,36 +153,37 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
     startTime <- Sys.time();
 
 # If a previous model provided as a model, write down the variables
-    # if(is.list(model)){
-    #     if(gregexpr("ETS",model$model)==-1){
-    #         stop("The provided model is not ETS.",call.=FALSE);
-    #     }
-    #     intermittent <- model$intermittent;
-    #     if(any(intermittent==c("p","provided"))){
-    #         warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
-    #         warning("Switching to intermittent='auto'.",call.=FALSE);
-    #         intermittent <- "a";
-    #     }
-    #     persistence <- model$persistence;
-    #     transition <- model$transition;
-    #     measurement <- model$measurement;
-    #     initial <- model$initial;
-    #     initialSeason <- model$initialSeason;
-    #     if(is.null(xreg)){
-    #         xreg <- model$xreg;
-    #     }
-    #     initialX <- model$initialX;
-    #     persistenceX <- model$persistenceX;
-    #     transitionX <- model$transitionX;
-    #     if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
-    #         updateX <- TRUE;
-    #     }
-    #     model <- model$model;
-    #     model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
-    #     if(any(unlist(gregexpr("C",model))!=-1)){
-    #         initial <- "o";
-    #     }
-    # }
+    if(any(class(model)=="vsmooth")){
+        if(gregexpr("VES",model$model)==-1){
+            stop("The provided model is not VES.",call.=FALSE);
+        }
+        # intermittent <- model$intermittent;
+        # if(any(intermittent==c("p","provided"))){
+        #     warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
+        #     warning("Switching to intermittent='auto'.",call.=FALSE);
+        #     intermittent <- "a";
+        # }
+        persistence <- model$persistence;
+        transition <- model$transition;
+        phi <- model$phi;
+        measurement <- model$measurement;
+        initial <- model$initial;
+        initialSeason <- model$initialSeason;
+        nParamOriginal <- model$nParam;
+        # if(is.null(xreg)){
+        #     xreg <- model$xreg;
+        # }
+        # initialX <- model$initialX;
+        # persistenceX <- model$persistenceX;
+        # transitionX <- model$transitionX;
+        # if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
+        #     updateX <- TRUE;
+        # }
+        model <- model.type(model);
+    }
+    else{
+        nParamOriginal <- NULL;
+    }
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -639,16 +640,16 @@ CreatorVES <- function(silent=FALSE,...){
         cfObjective <- CF(A);
 
         # Number of parameters
-        nParam <- nSeries + length(A);
+        # nParam <- nSeries + length(A);
 
-        ICValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
+        ICValues <- vICFunction(nParam=nParamOriginal,A=A,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=cfObjective,A=A,ICs=ICs,icBest=icBest,
-                             nParam=nParam,logLik=logLik);
+                             nParam=nParamOriginal,logLik=logLik);
         return(listToReturn);
     }
 }
