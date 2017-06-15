@@ -2242,7 +2242,7 @@ ssForecaster <- function(...){
 }
 
 ##### *Check and initialisation of xreg* #####
-ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
+ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obsInsample, obsAll, obsStates, maxlag=1, h=1, silent=FALSE){
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
@@ -2300,10 +2300,11 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="A"){
-                        matat[1:maxlag,] <- cov(data[1:obsInsample],xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                        matat[1:maxlag,] <- cov(data[1:obsInsample][ot==1],xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
                     }
                     else{
-                        matat[1:maxlag,] <- cov(log(data[1:obsInsample]),xreg[1:obsInsample])/var(xreg[1:obsInsample]);
+                        matat[1:maxlag,] <- cov(log(data[1:obsInsample][ot==1]),
+                                                xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
                     }
                 }
                 if(is.null(names(xreg))){
@@ -2397,13 +2398,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE,
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="A"){
-                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,]) %*% data[1:obsInsample])[2:(nExovars+1)],
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% data[1:obsInsample][ot==1])[2:(nExovars+1)],
                                                 each=maxlag);
                     }
                     else{
-                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,]) %*% mat.x[1:obsInsample,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,]) %*% log(data[1:obsInsample]))[2:(nExovars+1)],
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% log(data[1:obsInsample][ot==1]))[2:(nExovars+1)],
                                                 each=maxlag);
                     }
                 }
