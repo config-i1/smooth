@@ -344,13 +344,21 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
+                if(Etype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
                 }
                 else{
-                    CLower <- c(CLower,0.1,0.01);
-                    CUpper <- c(CUpper,Inf,3);
+                    CLower <- c(CLower,0.1);
+                    CUpper <- c(CUpper,Inf);
+                }
+                if(Ttype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
+                }
+                else if(Ttype=="M"){
+                    CLower <- c(CLower,0.01);
+                    CUpper <- c(CUpper,3);
                 }
             }
             if(Stype!="N"){
@@ -382,13 +390,21 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
+                if(Etype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
                 }
                 else{
-                    CLower <- c(CLower,0.1,0.01);
-                    CUpper <- c(CUpper,Inf,3);
+                    CLower <- c(CLower,0.1);
+                    CUpper <- c(CUpper,Inf);
+                }
+                if(Ttype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
+                }
+                else if(Ttype=="M"){
+                    CLower <- c(CLower,0.01);
+                    CUpper <- c(CUpper,3);
                 }
             }
             if(Stype!="N"){
@@ -420,13 +436,21 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
-                if(Ttype!="M"){
-                    CLower <- c(CLower,rep(-Inf,(nComponents - (Stype!="N"))));
-                    CUpper <- c(CUpper,rep(Inf,(nComponents - (Stype!="N"))));
+                if(Etype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
                 }
                 else{
-                    CLower <- c(CLower,-Inf,-Inf);
-                    CUpper <- c(CUpper,Inf,Inf);
+                    CLower <- c(CLower,0.1);
+                    CUpper <- c(CUpper,Inf);
+                }
+                if(Ttype=="A"){
+                    CLower <- c(CLower,-Inf);
+                    CUpper <- c(CUpper,Inf);
+                }
+                else if(Ttype=="M"){
+                    CLower <- c(CLower,0.01);
+                    CUpper <- c(CUpper,3);
                 }
             }
             if(Stype!="N"){
@@ -1115,9 +1139,10 @@ CreatorES <- function(silent=FALSE,...){
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX,
+    xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=basicparams$maxlag, h=h, silent=silentText);
+                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       maxlag=basicparams$maxlag, h=h, silent=silentText);
 
     if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
