@@ -157,7 +157,7 @@ double wvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E
             yfit = as_scalar(vecYfit + rowvecXt * vecAt);
         break;
         case 'M':
-            yfit = real(exp(log(std::complex<double>(as_scalar(vecYfit))) + as_scalar(rowvecXt * vecAt)));
+            yfit = as_scalar(vecYfit * exp(rowvecXt * vecAt));
         break;
     }
 
