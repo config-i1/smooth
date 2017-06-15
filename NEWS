@@ -20,6 +20,7 @@ Bugfixes:
 * exists() functions in the code would look into the parent environments. Now they don't.
 * sim.ssarima() returned state vector with wrong names in case of constant.
 * When coef() was applied to es() objects, the initialSeason parameters were not returned because of the old name of the variable.
+* Corrected a problem with initials of iETSX models.
 
 
 smooth v1.9.9 (Release data: 2017-05-03)
