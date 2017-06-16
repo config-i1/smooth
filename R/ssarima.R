@@ -502,7 +502,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX,
+    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
 
