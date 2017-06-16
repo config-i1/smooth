@@ -22,6 +22,7 @@ included in the package:
 \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
 \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
 \item \link[smooth]{sma} - Simple Moving Average in state-space form.
+\item \link[smooth]{ves} - Vector Exponential Smoothing.
 \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
 \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
