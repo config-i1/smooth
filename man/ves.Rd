@@ -223,7 +223,11 @@ where \eqn{v_{i,t}} is vector of components for i-th time series.
 ... , ... , ...;
 0 , ... , w_{m})} is matrix of measurement vectors.
 
-For the details see Hyndman et al. (2008), chapter 17.
+For the details on the additive model see Hyndman et al. (2008),
+chapter 17.
+
+In case of multiplicative model, instead of the vector y_t we use its logarithms.
+As a result the multiplicative model is much easier to work with.
 }
 \examples{
 
