@@ -151,7 +151,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","tsb"),
                 bounds=c("admissible","none"),
-                silent=c("none","all","graph","legend","output"), ...){
+                silent=c("none","all","graph","output"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
 ### This should be done as expanded es() function with matrix of states (rows - time, cols - states),
@@ -206,7 +206,7 @@ CF <- function(A){
     elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
 
     cfRes <- vOptimiserWrap(y, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            modelLags, Etype, Ttype, Stype, cfType, normalizer, ot);
+                            modelLags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot);
     # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){

@@ -236,7 +236,7 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
 // [[Rcpp::export]]
 RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG,
                                SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-                               SEXP cfType, SEXP normalizer, SEXP ot) {
+                               SEXP cfType, SEXP normalizer, SEXP bounds, SEXP ot) {
     // SEXP multisteps, SEXP CFt, SEXP fittertype, SEXP bounds,
     // SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX
     /* Function is needed to implement admissible constrains on smoothing parameters */
@@ -266,7 +266,7 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
 
     // char fitterType = as<char>(fittertype);
 
-    // char boundtype = as<char>(bounds);
+    char boundtype = as<char>(bounds);
 
     double normalize = as<double>(normalizer);
 
@@ -288,44 +288,16 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
     // Values needed for eigenvalues calculation
     arma::cx_vec eigval;
 
-    //     if(boundtype=='u'){
-    // // alpha in (0,1)
-    //         if((vecG(0)>1) || (vecG(0)<0)){
-    //             vecG.zeros();
-    //             matrixVt.zeros();
-    //         }
-    //         if(T!='N'){
-    // // beta in (0,alpha)
-    //             if((vecG(1)>vecG(0)) || (vecG(1)<0)){
-    //                 vecG.zeros();
-    //                 matrixVt.zeros();
-    //             }
-    //             if(S!='N'){
-    // // gamma in (0,1-alpha)
-    //                 if((vecG(2)>(1-vecG(0))) || (vecG(2)<0)){
-    //                     vecG.zeros();
-    //                     matrixVt.zeros();
-    //                 }
-    //             }
-    //         }
-    //         if(S!='N'){
-    // // gamma in (0,1-alpha)
-    //             if((vecG(1)>(1-vecG(0))) || (vecG(1)<0)){
-    //                 vecG.zeros();
-    //                 matrixVt.zeros();
-    //             }
-    //         }
-    //     }
-    // else if(boundtype=='a'){
-    if(arma::eig_gen(eigval, matrixF - matrixG * matrixW)){
-        if(max(abs(eigval)) > (1 + 1E-50)){
-            return wrap(max(abs(eigval))*1E+100);
+    if(boundtype=='a'){
+        if(arma::eig_gen(eigval, matrixF - matrixG * matrixW)){
+            if(max(abs(eigval)) > (1 + 1E-50)){
+                return wrap(max(abs(eigval))*1E+100);
+            }
+        }
+        else{
+            return wrap(1E+300);
         }
     }
-    else{
-        return wrap(1E+300);
-    }
-    // }
 
     // multi, CFtype, fitterType,
     return wrap(vOptimiser(matrixY, matrixV, matrixF, matrixW, matrixG,
