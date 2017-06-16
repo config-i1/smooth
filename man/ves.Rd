@@ -12,7 +12,7 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   holdout = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
   "tsb"), bounds = c("admissible", "none"), silent = c("none", "all",
-  "graph", "legend", "output"), ...)
+  "graph", "output"), ...)
 }
 \arguments{
 \item{data}{is the matrix with data, where series are in columns and
