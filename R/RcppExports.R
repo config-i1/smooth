@@ -57,7 +57,7 @@ vForecasterWrap <- function(matvt, matF, matw, series, h, Etype, Ttype, Stype, m
     .Call('smooth_vForecasterWrap', PACKAGE = 'smooth', matvt, matF, matw, series, h, Etype, Ttype, Stype, modellags)
 }
 
-vOptimiserWrap <- function(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, ot) {
-    .Call('smooth_vOptimiserWrap', PACKAGE = 'smooth', yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, ot)
+vOptimiserWrap <- function(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot) {
+    .Call('smooth_vOptimiserWrap', PACKAGE = 'smooth', yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot)
 }
 
