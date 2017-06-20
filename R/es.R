@@ -343,12 +343,13 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Etype=="A"){
+                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
                 else{
+                    C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
                     CLower <- c(CLower,0.1);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -1175,7 +1176,8 @@ CreatorES <- function(silent=FALSE,...){
     initialXEstimate <- xregdata$initialXEstimate;
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
+    nParamIntermittent <- (intermittent!="n")*1;
+    nParamMax <- nParamMax + nParamExo + nParamIntermittent;
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
@@ -1185,21 +1187,21 @@ CreatorES <- function(silent=FALSE,...){
                            "Updating pool of models."));
         }
 
-        if(obsNonzero > (3 + nParamExo) & is.null(modelsPool)){
+        if(obsNonzero > (3 + nParamExo + nParamIntermittent) & is.null(modelsPool)){
             # We have enough observations for local level model
             modelsPool <- c("ANN");
             if(allowMultiplicative){
                 modelsPool <- c(modelsPool,"MNN");
             }
             # We have enough observations for trend model
-            if(obsNonzero > (5 + nParamExo)){
+            if(obsNonzero > (5 + nParamExo + nParamIntermittent)){
                 modelsPool <- c(modelsPool,"AAN");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AMN","MAN","MMN");
                 }
             }
             # We have enough observations for damped trend model
-            if(obsNonzero > (6 + nParamExo)){
+            if(obsNonzero > (6 + nParamExo + nParamIntermittent)){
                 modelsPool <- c(modelsPool,"AAdN");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
@@ -1213,7 +1215,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
             # We have enough observations for seasonal model with trend
-            if((obsNonzero > (6 + datafreq + nParamExo)) & (obsNonzero > 2*datafreq) & datafreq!=1){
+            if((obsNonzero > (6 + datafreq + nParamExo + nParamIntermittent)) & (obsNonzero > 2*datafreq) & datafreq!=1){
                 modelsPool <- c(modelsPool,"AAA");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
@@ -1235,17 +1237,17 @@ CreatorES <- function(silent=FALSE,...){
                 model <- "ZZZ";
             }
         }
-        else if(obsNonzero > (3 + nParamExo) & !is.null(modelsPool)){
+        else if(obsNonzero > (3 + nParamExo + nParamIntermittent) & !is.null(modelsPool)){
             modelsPool.new <- modelsPool;
             # We don't have enough observations for seasonal models with damped trend
-            if((obsNonzero <= (6 + datafreq + 1 + nParamExo))){
+            if((obsNonzero <= (6 + datafreq + 1 + nParamExo + nParamIntermittent))){
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A")];
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M")];
             }
             # We don't have enough observations for seasonal models with trend
-            if((obsNonzero <= (5 + datafreq + 1 + nParamExo))){
+            if((obsNonzero <= (5 + datafreq + 1 + nParamExo + nParamIntermittent))){
                 modelsPool <- modelsPool[!(substr(modelsPool,2,2)!="N" &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
             }
@@ -1254,11 +1256,11 @@ CreatorES <- function(silent=FALSE,...){
                 modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
             }
             # We don't have enough observations for damped trend
-            if(obsNonzero <= (6 + nParamExo)){
+            if(obsNonzero <= (6 + nParamExo + nParamIntermittent)){
                 modelsPool <- modelsPool[nchar(modelsPool)!=4];
             }
             # We don't have enough observations for any trend
-            if(obsNonzero <= (5 + nParamExo)){
+            if(obsNonzero <= (5 + nParamExo + nParamIntermittent)){
                 modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
