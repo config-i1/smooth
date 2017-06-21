@@ -60,16 +60,25 @@ RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
 double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, arma::vec const &matErrors, char const &E){
 
     double errorSD = arma::as_scalar(sqrt(mean(pow(matErrors,2))));
-    double CF;
+    double CF = 0.0;
+    double CFbuffer;
     int obs = vecYt.n_rows;
     if(E=='A'){
         for(int i=0; i<obs; ++i){
-            CF += log(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) - R::pnorm(ceil(vecYt(i))-1, vecYfit(i), errorSD, 1, 0));
+            CFbuffer = log(R::pnorm(ceil(vecYt(i)), vecYfit(i), errorSD, 1, 0) - R::pnorm(ceil(vecYt(i))-1, vecYfit(i), errorSD, 1, 0));
+            // If CF is infinite, then this means that P(x<X)=1 for both cases.
+            // This is automatically transfered into log(1)
+            if(arma::is_finite(CFbuffer)){
+                CF += CFbuffer;
+            }
         }
     }
     else{
         for(int i=0; i<obs; ++i){
-            CF += log(R::plnorm(ceil(vecYt(i)), log(vecYfit(i)), errorSD, 1, 0) - R::plnorm(ceil(vecYt(i))-1, log(vecYfit(i)), errorSD, 1, 0));
+            CFbuffer = log(R::plnorm(ceil(vecYt(i)), log(vecYfit(i)), errorSD, 1, 0) - R::plnorm(ceil(vecYt(i))-1, log(vecYfit(i)), errorSD, 1, 0));
+            if(arma::is_finite(CFbuffer)){
+                CF += CFbuffer;
+            }
         }
     }
 
