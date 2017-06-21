@@ -350,7 +350,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 }
                 else{
                     C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
-                    CLower <- c(CLower,0.1);
+                    CLower <- c(CLower,1E-10);
                     CUpper <- c(CUpper,Inf);
                 }
                 if(Ttype=="A"){
@@ -358,7 +358,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                     CUpper <- c(CUpper,Inf);
                 }
                 else if(Ttype=="M"){
-                    CLower <- c(CLower,0.01);
+                    CLower <- c(CLower,1E-20);
                     CUpper <- c(CUpper,3);
                 }
             }
@@ -554,6 +554,16 @@ EstimatorES <- function(...){
     if(rounded){
         cfType <- "MSE";
     }
+
+    if(any(is.infinite(C))){
+        C[is.infinite(C)] <- 0.1;
+    }
+
+    # Change C if it is out of the bounds
+    if(any((C>=CUpper),(C<=CLower))){
+        C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
+        C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
+    }
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
@@ -586,6 +596,7 @@ EstimatorES <- function(...){
         C <- res$solution;
     }
 
+    # Change C if it is out of the bounds
     if(any((C>=CUpper),(C<=CLower))){
         C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
         C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
