@@ -574,6 +574,11 @@ EstimatorVES <- function(...){
     AList <- AValues(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSeries);
     A <- AList$A;
 
+    if(any((A>=AList$AUpper),(A<=AList$ALower))){
+        A[A>=AList$AUpper] <- AList$AUpper[A>=AList$AUpper] * 0.999 - 0.001;
+        A[A<=AList$ALower] <- AList$ALower[A<=AList$ALower] * 1.001 + 0.001;
+    }
+
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(A, CF, lb=AList$ALower, ub=AList$AUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
@@ -602,8 +607,16 @@ EstimatorVES <- function(...){
     }
     names(A) <- AList$ANames;
 
-    # First nSeries is for the covariance matrix
-    nParam <- nSeries + length(A);
+    # First part is for the covariance matrix
+    if(cfType=="l"){
+        nParam <- nSeries * (nSeries + 1) + length(A);
+    }
+    else if(cfType=="d"){
+        nParam <- nSeries + length(A);
+    }
+    else{
+        nParam <- nSeries + length(A);
+    }
 
     IAValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
     ICs <- IAValues$ICs;
@@ -689,6 +702,10 @@ CreatorVES <- function(silent=FALSE,...){
     list2env(vesValues,environment());
     list2env(BasicMakerVES(),environment());
     list2env(BasicInitialiserVES(matvt,matF,matG,matW,A),environment());
+
+    if(Etype=="M"){
+        cfObjective <- exp(cfObjective);
+    }
 
     if(damped){
         model <- paste0(Etype,Ttype,"d",Stype);
