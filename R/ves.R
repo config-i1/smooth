@@ -720,17 +720,17 @@ CreatorVES <- function(silent=FALSE,...){
     ##### Write down persistence, transition, initials etc #####
 # Write down the persistenceValue, transitionValue, initialValue, initialSeasonValue
 
-    if(persistenceEstimate){
-        persistenceNames <- "level";
-        if(Ttype!="N"){
-            persistenceNames <- c(persistenceNames,"trend");
-        }
-        if(Stype!="N"){
-            persistenceNames <- c(persistenceNames,"seasonal");
-        }
-        persistenceValue <- matG;
-        rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)), ", ", persistenceNames);
+    persistenceNames <- "level";
+    if(Ttype!="N"){
+        persistenceNames <- c(persistenceNames,"trend");
     }
+    if(Stype!="N"){
+        persistenceNames <- c(persistenceNames,"seasonal");
+    }
+    if(persistenceEstimate){
+        persistenceValue <- matG;
+    }
+    rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)), ", ", persistenceNames);
 
 # This is needed anyway for the reusability of the model
     transitionValue <- matF;
@@ -739,24 +739,24 @@ CreatorVES <- function(silent=FALSE,...){
         rownames(dampedValue) <- paste0("Series",c(1:nSeries));
     }
 
-    if(initialEstimate){
-        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
-        initialNames <- "level";
-        if(Ttype!="N"){
-            initialPlaces <- c(initialPlaces,nComponentsAll*(c(1:nSeries)-1)+2);
-            initialPlaces <- sort(initialPlaces);
-            initialNames <- c(initialNames,"trend");
-        }
-        initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
-        rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
+    initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
+    initialNames <- "level";
+    if(Ttype!="N"){
+        initialPlaces <- c(initialPlaces,nComponentsAll*(c(1:nSeries)-1)+2);
+        initialPlaces <- sort(initialPlaces);
+        initialNames <- c(initialNames,"trend");
     }
+    if(initialEstimate){
+        initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
+    }
+    rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
 
     if(initialSeasonEstimate){
         initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
         initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
-        rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
-        colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     }
+    rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
+    colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
 
     matvt <- ts(t(matvt),start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
     yFitted <- ts(t(yFitted),start=start(data),frequency=datafreq);
