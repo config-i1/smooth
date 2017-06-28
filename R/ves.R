@@ -140,7 +140,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 #'
 #' # Multiplicative damped trend model with individual phi
-#' ves(Y,model="MMdM",persistence="g",h=10,holdout=TRUE,initialSeason="g")
+#' ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="g")
 #'
 #' @export
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
