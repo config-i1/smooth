@@ -114,7 +114,7 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
             if(lagsLength!=0){
             # Produce reversed forecasts for lags
                 if(leadsLength!=0){
-                    xregModel <- suppressWarnings(es(rev(xregData),model=model.type(xregModel),persistence=xregModel$persistence,
+                    xregModel <- suppressWarnings(es(rev(xregData),model=modelType(xregModel),persistence=xregModel$persistence,
                                                      intermittent=xregModel$intermittent,h=maxLag,silent=TRUE));
                 }
                 else{
