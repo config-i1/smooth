@@ -22,8 +22,9 @@ The package includes the following functions:
 2. [ssarima() - State-Space ARIMA](ssarima.html), also known as Several Seasonalities ARIMA;
 3. [ces() - Complex Exponential Smoothing](ces.html);
 4. [ges() - Generalised Exponential Smoothing](ges.html);
-5. [sma() - Simple Moving Average in state-space form](sma.html);
-6. [sim.es() and simulate() - simulation functions for Exponential Smoothing](simulate.html).
+5. [ves() - Vector Exponential Smoothing](ves.html);
+6. [sma() - Simple Moving Average in state-space form](sma.html);
+7. [sim.es() and simulate() - simulation functions for Exponential Smoothing](simulate.html).
 
 This funcions (except for the last one) return object of class "smooth", which uses several methods.
 
@@ -40,4 +41,13 @@ There are several functions that can be used together with `es()`, `ces()`, `ssa
 7. `simulate(ourModel)` -- produces data simulated from provided model. Currently only available for ETS via `simulate(es(...))`;
 8. `summary(forecast(ourModel))` -- prints point and interval forecasts;
 9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and intervals using `graphmaker()` function.
-
+10. `logLik(ourModel)` -- returns log-likelihood of the model;
+11. `nobs(ourModel)` -- returns number of observations in-sample we had;
+12. `nParam(ourModel)` -- number of estimated parameters;
+13. `pointLik(ourModel)` -- likelihood values for each separate observation;
+14. `sigma(ourModel)` -- variance of the residuals of the model;
+15. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `ges()`);
+16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()` and `ges()`);
+17. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()` and `ets()`.
+18. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model.
+19. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with.
