@@ -779,6 +779,28 @@ vssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
+##### *State-space intervals* #####
+# This is not implemented yet
+vssIntervals <- function(level=0.95, intervalsType=c("p","sp","np"), df=NULL, Sigma=NULL,
+                         measurement=NULL, transition=NULL, persistence=NULL, states=NULL,
+                         modellags=NULL, cumulative=FALSE, nComponents=1, nSeries=1, Etype="A",
+                         iprob=1, yForecast=rep(0,nrow(errors),ncol(errors))){
+    if(intervalsType=="p"){
+        nComponents <- nrow(transition);
+        maxlag <- max(modellags);
+        h <- nrow(yForecast);
+
+        # Vector of final variances
+        varVec <- rep(NA,h);
+        if(Etype=="M"){
+            matrixOfVarianceOfStates <- array(0,c(nComponents*nSeries,nComponents*nSeries,h+maxlag));
+            # This multiplication does not make sense
+            matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% Sigma %*% t(persistence);
+            matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
+        }
+    }
+}
+
 ##### *Forecaster of state-space functions* #####
 vssForecaster <- function(...){
     ellipsis <- list(...);

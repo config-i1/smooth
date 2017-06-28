@@ -30,7 +30,9 @@
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
 #' @param ic The information criterion used in the model selection procedure.
-#' @param intervals Type of intervals to construct. This can be:
+#' @param intervals Type of intervals to construct. NOT AVAILABLE YET!
+#'
+#' This can be:
 #'
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
