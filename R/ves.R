@@ -751,12 +751,14 @@ CreatorVES <- function(silent=FALSE,...){
     }
     rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
 
-    if(initialSeasonEstimate){
-        initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
-        initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
+    if(modelIsSeasonal){
+        if(initialSeasonEstimate){
+            initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
+            initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
+        }
+        rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
+        colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     }
-    rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
-    colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
 
     matvt <- ts(t(matvt),start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
     yFitted <- ts(t(yFitted),start=start(data),frequency=datafreq);
