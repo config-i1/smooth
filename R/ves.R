@@ -131,7 +131,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #'
 #' @examples
 #'
-#' Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)))
+#' Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)),frequency=12)
 #'
 #' # The simplest model applied to the data with the default values
 #' ves(Y,model="ANN",h=10,holdout=TRUE)
@@ -140,7 +140,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 #'
 #' # Multiplicative damped trend model with individual phi
-#' ves(Y,model="MMdN",persistence="d",h=10,holdout=TRUE,phi="i")
+#' ves(Y,model="MMdM",persistence="g",h=10,holdout=TRUE,initialSeason="g")
 #'
 #' @export
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
@@ -549,11 +549,11 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
     if(modelIsSeasonal & initialSeasonEstimate){
         initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
         if(initialSeasonType=="i"){
-            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],nSeries,maxlag);
+            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],nSeries,maxlag,byrow=TRUE);
             nCoefficients <- nCoefficients + nSeries*maxlag;
         }
         else if(initialSeasonType=="g"){
-            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],1,maxlag);
+            matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],nSeries,maxlag,byrow=TRUE);
             nCoefficients <- nCoefficients + maxlag;
         }
     }
@@ -806,7 +806,10 @@ CreatorVES <- function(silent=FALSE,...){
         for(j in 1:pages){
             par(mfcol=c(min(5,floor(nSeries/j)),1));
             for(i in 1:nSeries){
-                plot(data[,i],main=paste0(modelname,", series ", i),ylab="Y");
+                plot(data[,i],main=paste0(modelname,", series ", i),ylab="Y",
+                     ylim=range(min(data[,i],yForecast[,i],yFitted[,i]),
+                                max(data[,i],yForecast[,i],yFitted[,i])),
+                     xlim=range(time(data[,i])[1],time(yForecast)[max(h,1)]));
                 lines(yForecast[,i],col="blue",lwd=2);
                 lines(yFitted[,i],col="purple",lwd=2,lty=2);
                 abline(v=deltat(yForecast)*(start(yForecast)[2]-2)+start(yForecast)[1],col="red",lwd=2);
