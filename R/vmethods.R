@@ -5,7 +5,7 @@ nobs.vsmooth <- function(object, ...){
 
 #' @export
 sigma.vsmooth <- function(object, ...){
-    return(sqrt(object$Sigma));
+    return(object$Sigma);
 }
 
 #### Extraction of parameters of models ####
@@ -18,7 +18,7 @@ coef.vsmooth <- function(object, ...){
 }
 
 #' @export
-model.type.vsmooth <- function(object, ...){
+modelType.vsmooth <- function(object, ...){
     model <- object$model;
     modelType <- NA;
     if(!is.null(model)){

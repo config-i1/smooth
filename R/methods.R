@@ -33,7 +33,7 @@ AICc <- function(object, ...) UseMethod("AICc")
 #'
 #' \code{orders()} and \code{lags()} are usefull only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 #' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
-#' \code{model.type()} is usefull only for ETS and CES. They return \code{NA} for other functions.
+#' \code{modelType()} is usefull only for ETS and CES. They return \code{NA} for other functions.
 #' This can also be applied to \code{ets()} function from forecast package.
 #'
 #' @aliases orders orders.default
@@ -53,16 +53,16 @@ AICc <- function(object, ...) UseMethod("AICc")
 #'
 #' x <- rnorm(100,0,1)
 #'
-#' # Just as example. orders and lags do not return anything for ces() and es(). But model.type does.
+#' # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 #' ourModel <- ces(x, h=10)
 #' orders(ourModel)
 #' lags(ourModel)
-#' model.type(ourModel)
+#' modelType(ourModel)
 #' # And as another example it does the opposite for ges() and ssarima()
 #' ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 #' orders(ourModel)
 #' lags(ourModel)
-#' model.type(ourModel)
+#' modelType(ourModel)
 #'
 #' # Finally these values can be used for simulate functions or original functions.
 #' ourModel <- auto.ssarima(x)
@@ -78,10 +78,19 @@ orders <- function(object, ...) UseMethod("orders")
 #' @export lags
 lags <- function(object, ...) UseMethod("lags")
 
-#' @aliases model.type.default
+#' @aliases modelType.default
+#' @rdname orders
+#' @export modelType
+modelType <-  function(object, ...) UseMethod("modelType")
+
+##### model.type() is depricated function. Will be removed later #####
+#' @aliases model.type
 #' @rdname orders
 #' @export model.type
-model.type <-  function(object, ...) UseMethod("model.type")
+model.type <- function(object, ...){
+    warning("This function is depricated. Please, use modelType() instead.",call.=FALSE);
+    modelType(object, ...);
+}
 
 ##### Likelihood function and stuff #####
 #' @importFrom stats logLik
@@ -213,7 +222,7 @@ pointLik.smooth <- function(object, ...){
     likValues <- vector("numeric",obs);
 
     if(gregexpr("ETS",object$model)!=-1){
-        if(substr(model.type(object),1,1)=="A"){
+        if(substr(modelType(object),1,1)=="A"){
             likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
         }
         else{
@@ -457,7 +466,7 @@ lags.Arima <- function(object, ...){
 
 #### Function extracts type of model. For example "AAN" from ets ####
 #' @export
-model.type.default <- function(object, ...){
+modelType.default <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
         if(gregexpr("ETS",model)!=-1){
@@ -709,7 +718,7 @@ print.smooth <- function(x, ...){
     }
     else if(gregexpr("ETS",x$model)!=-1){
     # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
-        if(cumulative & substr(model.type(x),1,1)=="M"){
+        if(cumulative & substr(modelType(x),1,1)=="M"){
             intervalsType <- "p";
         }
     }

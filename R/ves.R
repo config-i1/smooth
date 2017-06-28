@@ -188,7 +188,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
         # if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
         #     updateX <- TRUE;
         # }
-        model <- model.type(model);
+        model <- modelType(model);
     }
     else{
         nParamOriginal <- NULL;
