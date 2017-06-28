@@ -10,7 +10,7 @@ test_that("Test VES(MMdM)", {
 
 # Reuse previous VES
 test_that("Reuse VES", {
-    expect_equal(ves(Y, model=testModel, silent=TRUE)$cf, testModel$cf);
+    expect_equal(ves(Y, model=testModel, silent=TRUE)$persistence, testModel$persistence);
 })
 
 # Test VES with individual seasonality and persistence
