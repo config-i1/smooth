@@ -205,6 +205,9 @@ vssInput <- function(modelType=c("ves"),...){
     }
 
     if(any(c(Etype,Ttype,Stype)=="M") & all(y>0)){
+        if(any(c(Etype,Ttype,Stype)=="M")){
+            warning("Mixed models are not available. Switching to pure multiplicative.",call.=FALSE);
+        }
         y <- log(y);
         Etype <- "M";
         Ttype <- ifelse(Ttype=="A","M",Ttype);

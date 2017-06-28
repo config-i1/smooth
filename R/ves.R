@@ -729,7 +729,7 @@ CreatorVES <- function(silent=FALSE,...){
             persistenceNames <- c(persistenceNames,"seasonal");
         }
         persistenceValue <- matG;
-        rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", persistenceNames);
+        rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)), ", ", persistenceNames);
     }
 
 # This is needed anyway for the reusability of the model
