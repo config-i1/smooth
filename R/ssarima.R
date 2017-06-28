@@ -296,7 +296,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput(modelType="ssarima",ParentEnvironment=environment());
+    ssInput("ssarima",ParentEnvironment=environment());
 
 # Cost function for SSARIMA
 CF <- function(C){

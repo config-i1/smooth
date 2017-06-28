@@ -203,7 +203,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput(modelType="ges",ParentEnvironment=environment());
+    ssInput("ges",ParentEnvironment=environment());
 
 ##### Initialise ges #####
 ElementsGES <- function(C){

@@ -143,7 +143,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
-    ssAutoInput(modelType="ssarima",ParentEnvironment=environment());
+    ssAutoInput("auto.ssarima",ParentEnvironment=environment());
 
     if(any(is.complex(c(ar.max,i.max,ma.max,lags)))){
         stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);

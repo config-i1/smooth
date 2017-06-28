@@ -4,10 +4,10 @@ utils::globalVariables(c("h","holdout","orders","lags","transition","measurement
                          "constant","AR","MA","data","y.fit","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
-ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
+ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     # This is universal function needed in order to check the passed arguments to es(), ges(), ces() and ssarima()
 
-    modelType <- modelType[1];
+    smoothType <- smoothType[1];
 
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -98,7 +98,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     y <- matrix(data[1:obsInsample],obsInsample,1);
     datafreq <- frequency(data);
 
-    if(modelType=="es"){
+    if(smoothType=="es"){
         ##### model for ES #####
         if(!is.character(model)){
             stop(paste0("Something strange is provided instead of character object in model: ",
@@ -289,7 +289,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             Ttype <- "Z";
         }
     }
-    else if(modelType=="ssarima"){
+    else if(smoothType=="ssarima"){
         ##### Orders and lags for ssarima #####
         if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
             stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
@@ -465,7 +465,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             stop("Not enough observations for such a complicated model.",call.=FALSE);
         }
     }
-    else if(modelType=="ces"){
+    else if(smoothType=="ces"){
         # If the user typed wrong seasonality, use the "Full" instead
         if(all(seasonality!=c("n","s","p","f","none","simple","partial","full"))){
             warning(paste0("Wrong seasonality type: '",seasonality, "'. Changing to 'full'"), call.=FALSE);
@@ -474,7 +474,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         seasonality <- substring(seasonality[1],1,1);
     }
 
-    if(modelType=="es"){
+    if(smoothType=="es"){
         # Check if the data is ts-object
         if(!is.ts(data) & Stype!="N"){
             if(!silentText){
@@ -503,7 +503,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             Stype <- "N";
         }
     }
-    else if(modelType=="sma"){
+    else if(smoothType=="sma"){
         maxlag <- 1;
         if(is.null(order)){
             nParamMax <- obsInsample;
@@ -514,7 +514,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Lags and components for GES #####
-    if(modelType=="ges"){
+    if(smoothType=="ges"){
         if(any(is.complex(c(orders,lags)))){
             stop("Complex values? Right! Come on! Be real!",call.=FALSE);
         }
@@ -555,10 +555,10 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         maxlag <- max(modellags);
         nComponents <- sum(orders);
     }
-    else if(modelType=="es"){
+    else if(smoothType=="es"){
         maxlag <- datafreq * (Stype!="N") + 1 * (Stype=="N");
     }
-    else if(modelType=="ces"){
+    else if(smoothType=="ces"){
         A <- list(value=A);
         B <- list(value=B);
 
@@ -622,7 +622,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         bounds <- "u";
     }
 
-    if(any(modelType==c("es","ges","ces"))){
+    if(any(smoothType==c("es","ges","ces"))){
         ##### Information Criteria #####
         ic <- ic[1];
         if(all(ic!=c("AICc","AIC","BIC"))){
@@ -777,7 +777,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         intermittent <- "n";
     }
 
-    if(any(modelType==c("es"))){
+    if(any(smoothType==c("es"))){
         # Check if multiplicative models can be fitted
         allowMultiplicative <- !((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0)));
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
@@ -797,7 +797,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
     }
 
-    if(any(modelType==c("es","ges"))){
+    if(any(smoothType==c("es","ges"))){
         ##### persistence for ES & GES #####
         if(!is.null(persistence)){
             if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
@@ -807,7 +807,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                 persistenceEstimate <- TRUE;
             }
             else{
-                if(modelType=="es"){
+                if(smoothType=="es"){
                     if(modelDo!="estimate"){
                         warning(paste0("Predefined persistence vector can only be used with preselected ETS model.\n",
                                        "Changing to estimation of persistence vector values."),call.=FALSE);
@@ -836,7 +836,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                         }
                     }
                 }
-                else if(modelType=="ges"){
+                else if(smoothType=="ges"){
                     if(length(persistence) != nComponents){
                         warning(paste0("Wrong length of persistence vector. Should be ",nComponents,
                                        " instead of ",length(persistence),".\n",
@@ -884,7 +884,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             initialType <- "o";
         }
         else{
-            if(modelType=="es"){
+            if(smoothType=="es"){
                 if(length(initialValue)>2){
                     warning(paste0("Length of initial vector is wrong! It should not be greater than 2.\n",
                                    "Values of initial vector will be estimated."),call.=FALSE);
@@ -905,7 +905,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     }
                 }
             }
-            else if(modelType=="ges"){
+            else if(smoothType=="ges"){
                 if(length(initialValue) != (nComponents*max(lags))){
                     warning(paste0("Wrong length of initial vector. Should be ",orders %*% lags,
                                    " instead of ",length(initial),".\n",
@@ -918,7 +918,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     initialValue <- initial;
                 }
             }
-            else if(modelType=="ssarima"){
+            else if(smoothType=="ssarima"){
                 if(length(initialValue) != nComponents){
                     warning(paste0("Wrong length of initial vector. Should be ",nComponents,
                                    " instead of ",length(initial),".\n",
@@ -931,7 +931,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
                     initialValue <- initial;
                 }
             }
-            else if(modelType=="ces"){
+            else if(smoothType=="ces"){
                 if(length(initialValue) != maxlag*nComponents){
                     warning(paste0("Wrong length of initial vector. Should be ",maxlag*nComponents,
                                    " instead of ",length(initial),".\n",
@@ -947,7 +947,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
     }
 
-    if(any(modelType==c("es"))){
+    if(any(smoothType==c("es"))){
         # If model selection is chosen, forget about the initial values and persistence
         if(any(Etype=="Z",Ttype=="Z",Stype=="Z")){
             if(any(!is.null(initialValue),!is.null(initialSeason),!is.null(persistence),!is.null(phi))){
@@ -1027,7 +1027,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
     }
 
-    if(modelType=="ges"){
+    if(smoothType=="ges"){
         ##### transition for GES #####
         # Check the provided vector of initials: length and provided values.
         if(!is.null(transition)){
@@ -1072,7 +1072,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         }
     }
 
-    if(modelType=="ssarima"){
+    if(smoothType=="ssarima"){
         if((nComponents==0) & (constantRequired==FALSE)){
             warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
             constantRequired <- TRUE;
@@ -1082,7 +1082,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     }
 
     ##### Calculate nParamMax for checks #####
-    if(modelType=="es"){
+    if(smoothType=="es"){
         # 1 - 3: persitence vector;
         # 1 - 2: initials;
         # 1 - 1 phi value;
@@ -1092,15 +1092,15 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
             (1 + (Ttype!="N"))*(initialType=="o") +
             phiEstimate*damped + datafreq*(Stype!="N")*initialSeasonEstimate*(initialType=="o") + 1;
     }
-    else if(modelType=="ges"){
+    else if(smoothType=="ges"){
         nParamMax <- nComponents*measurementEstimate + nComponents*(initialType=="o") +
             transitionEstimate*nComponents^2 + (orders %*% lags)*persistenceEstimate + 1;
     }
-    else if(modelType=="ssarima"){
+    else if(smoothType=="ssarima"){
         nParamMax <- nComponents*(initialType=="o") + sum(ar.orders)*ARRequired +
             sum(ma.orders)*MARequired + constantRequired + 1;
     }
-    else if(modelType=="ces"){
+    else if(smoothType=="ces"){
         nParamMax <- sum(modellags)*(initialType=="o") + A$number + B$number + 1;
     }
 
@@ -1118,7 +1118,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     normalizer <- mean(abs(diff(c(y))));
 
     ##### Define xregDo #####
-    if(modelType!="sma"){
+    if(smoothType!="sma"){
         if(!any(xregDo==c("use","select","u","s"))){
             warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
             xregDo <- "select";
@@ -1194,7 +1194,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
     assign("FI",FI,ParentEnvironment);
     assign("rounded",rounded,ParentEnvironment);
 
-    if(modelType=="es"){
+    if(smoothType=="es"){
         assign("model",model,ParentEnvironment);
         assign("modelsPool",modelsPool,ParentEnvironment);
         assign("Etype",Etype,ParentEnvironment);
@@ -1208,14 +1208,14 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
         assign("ic",ic,ParentEnvironment);
     }
-    else if(modelType=="ges"){
+    else if(smoothType=="ges"){
         assign("transitionEstimate",transitionEstimate,ParentEnvironment);
         assign("measurementEstimate",measurementEstimate,ParentEnvironment);
         assign("orders",orders,ParentEnvironment);
         assign("lags",lags,ParentEnvironment);
         assign("ic",ic,ParentEnvironment);
     }
-    else if(modelType=="ssarima"){
+    else if(smoothType=="ssarima"){
         assign("ar.orders",ar.orders,ParentEnvironment);
         assign("i.orders",i.orders,ParentEnvironment);
         assign("ma.orders",ma.orders,ParentEnvironment);
@@ -1230,19 +1230,19 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
         assign("constantEstimate",constantEstimate,ParentEnvironment);
         assign("constantRequired",constantRequired,ParentEnvironment);
     }
-    else if(modelType=="ces"){
+    else if(smoothType=="ces"){
         assign("seasonality",seasonality,ParentEnvironment);
         assign("A",A,ParentEnvironment);
         assign("B",B,ParentEnvironment);
         assign("ic",ic,ParentEnvironment);
     }
 
-    if(any(modelType==c("es","ges"))){
+    if(any(smoothType==c("es","ges"))){
         assign("persistence",persistence,ParentEnvironment);
         assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
     }
 
-    if(any(modelType==c("ges","ssarima","ces"))){
+    if(any(smoothType==c("ges","ssarima","ces"))){
         assign("nComponents",nComponents,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
@@ -1250,7 +1250,7 @@ ssInput <- function(modelType=c("es","ges","ces","ssarima"),...){
 }
 
 ##### *Checker for auto. functions* #####
-ssAutoInput <- function(modelType=c("auto.ces","auto.ges","auto.ssarima"),...){
+ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     # This is universal function needed in order to check the passed arguments to auto.ces(), auto.ges() and auto.ssarima()
 
     ellipsis <- list(...);

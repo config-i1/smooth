@@ -301,7 +301,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput(modelType="es",ParentEnvironment=environment());
+    ssInput("es",ParentEnvironment=environment());
 
 ##### Cost Function for ES #####
 CF <- function(C){

@@ -79,7 +79,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
-    ssAutoInput(modelType="ces",ParentEnvironment=environment());
+    ssAutoInput("auto.ces",ParentEnvironment=environment());
 
 # If the pool of models is wrong, fall back to default
     if(length(models)!=1){

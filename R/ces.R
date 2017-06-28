@@ -192,7 +192,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput(modelType="ces",ParentEnvironment=environment());
+    ssInput("ces",ParentEnvironment=environment());
 
 ##### Elements of CES #####
 ElementsCES <- function(C){

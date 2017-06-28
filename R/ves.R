@@ -199,7 +199,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
 
 ##### Set environment for vssInput and make all the checks #####
     environment(vssInput) <- environment();
-    vssInput(modelType="ves",ParentEnvironment=environment());
+    vssInput("ves",ParentEnvironment=environment());
 
 ##### Cost Function for VES #####
 CF <- function(A){

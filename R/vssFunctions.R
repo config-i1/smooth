@@ -1,8 +1,8 @@
 utils::globalVariables(c("initialSeason","persistence","phi"));
 
 ##### *Checker of input of vector functions* #####
-vssInput <- function(modelType=c("ves"),...){
-    modelType <- modelType[1];
+vssInput <- function(smoothType=c("ves"),...){
+    smoothType <- smoothType[1];
 
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -104,7 +104,7 @@ vssInput <- function(modelType=c("ves"),...){
     datafreq <- frequency(data);
 
     ##### model for VES #####
-    if(modelType=="ves"){
+    if(smoothType=="ves"){
         if(!is.character(model)){
             stop(paste0("Something strange is provided instead of character object in model: ",
                         paste0(model,collapse=",")),call.=FALSE);
@@ -447,7 +447,7 @@ vssInput <- function(modelType=c("ves"),...){
             initialEstimate <- TRUE;
         }
         else if(is.numeric(initialValue)){
-            if(modelType=="ves"){
+            if(smoothType=="ves"){
                 if(length(initialValue)>2*nSeries){
                     warning(paste0("Length of initial vector is wrong! It should not be greater than",
                                    2*nSeries,"\n",
@@ -487,7 +487,7 @@ vssInput <- function(modelType=c("ves"),...){
         nParamMax <- nParamMax + nComponentsNonSeasonal;
     }
 
-    if(modelType=="ves"){
+    if(smoothType=="ves"){
     ##### initialSeason for VES #####
     # Here we should check if initialSeason is character or not...
     # if length(initialSeason) == datafreq*nSeries, then ok
@@ -516,7 +516,7 @@ vssInput <- function(modelType=c("ves"),...){
                     initialSeasonEstimate <- TRUE;
                 }
                 else if(is.numeric(initialSeasonValue)){
-                    if(modelType=="ves"){
+                    if(smoothType=="ves"){
                         if(all(length(initialSeasonValue)!=c(datafreq,datafreq*nSeries))){
                             warning(paste0("The length of initialSeason is wrong! It should correspond to the frequency of the data.",
                                            "Values of initialSeason will be estimated as a group."),call.=FALSE);
@@ -616,7 +616,7 @@ vssInput <- function(modelType=c("ves"),...){
     ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
 
     ##### Check if multiplicative is applicable #####
-    if(any(modelType==c("ves"))){
+    if(any(smoothType==c("ves"))){
         # Check if multiplicative models can be fitted
         allowMultiplicative <- !((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0)));
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models

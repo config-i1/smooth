@@ -122,7 +122,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput(modelType="sma",ParentEnvironment=environment());
+    ssInput("sma",ParentEnvironment=environment());
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
     y.fit <- rep(NA,obsInsample);
