@@ -97,7 +97,9 @@ is minimised in this case.
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{intervals}{Type of intervals to construct. NOT AVAILABLE YET!
+
+This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
@@ -231,7 +233,7 @@ As a result the multiplicative model is much easier to work with.
 }
 \examples{
 
-Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)))
+Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)),frequency=12)
 
 # The simplest model applied to the data with the default values
 ves(Y,model="ANN",h=10,holdout=TRUE)
@@ -240,7 +242,7 @@ ves(Y,model="ANN",h=10,holdout=TRUE)
 ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 
 # Multiplicative damped trend model with individual phi
-ves(Y,model="MMdN",persistence="d",h=10,holdout=TRUE,phi="i")
+ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="g")
 
 }
 \references{
