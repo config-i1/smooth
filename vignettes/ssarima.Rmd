@@ -16,7 +16,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
 
 SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both names show what happens in the heart of the function: it constructs ARIMA in a state-space form and allows to model several (actually more than several) seasonalities. `ssarima()` is a function included in [smooth package](smooth.html). This vignette covers `ssarima()` and `auto.ssarima()` functions. 
 
-As usual, we will use data from `Mcomp` package, so it is adviced to install it.
+As usual, we will use data from `Mcomp` package, so it is advised to install it.
 
 Let's load the necessary packages:
 

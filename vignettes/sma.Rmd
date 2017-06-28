@@ -16,7 +16,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
 
 Simple Moving Average is a method of time series smoothing and is actually a very basic forecasting technique. It does not need estimation of parameters, but rather is based on order selection. It is a part of [smooth package](smooth.html).
 
-In this vignette we will use data from `Mcomp` package, so it is adviced to install it.
+In this vignette we will use data from `Mcomp` package, so it is advised to install it.
 
 Let's load the necessary packages:
 ```{r load_libraries, message=FALSE, warning=FALSE}
