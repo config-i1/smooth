@@ -541,7 +541,6 @@ CreatorGES <- function(silentText=FALSE,...){
         }
         if(iBest!=1){
             intermittent <- intermittentModelsPool[iBest];
-            intermittentModel <- intermittentModelsList[[iBest]];
             gesValues <- intermittentModelsList[[iBest]];
         }
         else{

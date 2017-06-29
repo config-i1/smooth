@@ -1,4 +1,4 @@
-utils::globalVariables(c("y","obs","imodelProvided"))
+utils::globalVariables(c("y","obs","imodelProvided","intermittentModel","imodel"))
 
 intermittentParametersSetter <- function(intermittent="n",...){
 # Function returns basic parameters based on intermittent type
