@@ -714,13 +714,19 @@ print.smooth <- function(x, ...){
     if(gregexpr("SMA",x$model)!=-1){
         x$iprob <- 1;
         x$initialType <- "b";
-        x$intermittent <- "n";
+        intermittent <- "n";
     }
     else if(gregexpr("ETS",x$model)!=-1){
     # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
         if(cumulative & substr(modelType(x),1,1)=="M"){
             intervalsType <- "p";
         }
+    }
+    if(class(x$imodel)!="iss"){
+        intermittent <- "n";
+    }
+    else{
+        intermittent <- x$imodel$intermittent;
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
@@ -729,7 +735,7 @@ print.smooth <- function(x, ...){
              cfType=x$cfType, cfObjective=x$cf, intervals=intervals, cumulative=cumulative,
              intervalsType=intervalsType, level=x$level, ICs=x$ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
-             intermittent=x$intermittent, iprob=x$iprob[length(x$iprob)]);
+             intermittent=intermittent);
 }
 
 #' @export
@@ -872,12 +878,14 @@ print.iss <- function(x, ...){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));
     }
     if(!is.null(x$persistence)){
-        cat(paste0("Smoothing parameter: ",round(x$persistence,3),"\n"));
+        cat("Smoothing parameters:\n");
+        print(round(x$persistence,3));
     }
     if(!is.null(x$initial)){
-        cat(paste0("Initial value: ",round(x$initial,3),"\n"));
+        cat("Vector of initials:\n");
+        print(round(x$initial,3));
     }
-    cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
+    # cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
     cat("Information criteria: \n");
     print(ICs);
 }
