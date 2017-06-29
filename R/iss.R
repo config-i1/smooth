@@ -69,7 +69,6 @@ intermittentParametersSetter <- function(intermittent="n",...){
         nParamIntermittent <- 0;
     }
     iprob <- pt[1];
-    ivar <- iprob * (1-iprob);
 
     assign("ot",ot,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
@@ -78,7 +77,6 @@ intermittentParametersSetter <- function(intermittent="n",...){
     assign("pt.for",pt.for,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
-    assign("ivar",ivar,ParentEnvironment);
 }
 
 intermittentMaker <- function(intermittent="n",...){
@@ -92,22 +90,22 @@ intermittentMaker <- function(intermittent="n",...){
             imodel <- iss(y,intermittent=intermittent,h=h);
         }
         else{
-            imodel <- iss(y,intermittent=intermittent,h=h);
+            imodel <- iss(y,intermittent=intermittent,h=h,
+                          model=imodel,persistence=ipersistence,
+                          initial=iinitial);
         }
         pt[,] <- imodel$fitted;
         pt.for <- imodel$forecast;
         iprob <- pt.for[1];
-        ivar <- imodel$variance;
     }
     else{
-        ivar <- 1;
         imodel <- NULL;
     }
 
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
-    assign("ivar",ivar,ParentEnvironment);
+    assign("imodel",imodel,ParentEnvironment);
 }
 
 
