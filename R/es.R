@@ -992,7 +992,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
 ##### Function selects the best es() based on IC #####
 CreatorES <- function(silent=FALSE,...){
     if(modelDo=="select"){
-        if(cfType!="MSE"){
+        if(all(cfType!=c("MSE","Rounded"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
         }
         environment(PoolEstimatorES) <- environment();
