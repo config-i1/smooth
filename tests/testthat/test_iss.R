@@ -21,5 +21,5 @@ test_that("Test ISS with TSB probability", {
 # ISS with Croston's probability and ETS(MMN)
 testModel <- iss(rpois(100,0.2), intermittent="c", model="MMN");
 test_that("Test ISS with Croston's probability and underlying ETS(MMN)", {
-    expect_equal(length(testModel$C), 4);
+    expect_equal(length(testModel$persistence), 2);
 })

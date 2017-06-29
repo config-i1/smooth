@@ -868,8 +868,15 @@ print.iss <- function(x, ...){
     ICs <- round(c(AIC(x),AICc(x),BIC(x)),4);
     names(ICs) <- c("AIC","AICc","BIC");
     cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
-    cat(paste0("Smoothing parameter: ",round(x$C[1],3),"\n"));
-    cat(paste0("Initial value: ",round(x$states[1],3),"\n"));
+    if(!is.null(x$model)){
+        cat(paste0("Underlying ETS model: ",x$model,"\n"));
+    }
+    if(!is.null(x$persistence)){
+        cat(paste0("Smoothing parameter: ",round(x$persistence,3),"\n"));
+    }
+    if(!is.null(x$initial)){
+        cat(paste0("Initial value: ",round(x$initial,3),"\n"));
+    }
     cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
     cat("Information criteria: \n");
     print(ICs);

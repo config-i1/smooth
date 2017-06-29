@@ -46,6 +46,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
                 pt <- matrix(iprob[1:obsInsample],obsInsample,1);
                 pt.for <- matrix(iprob[(obsInsample+1):obsAll],h,1);
             }
+            iprob <- c(pt,pt.for);
         }
     }
     else{
@@ -88,15 +89,19 @@ intermittentMaker <- function(intermittent="n",...){
 ##### If intermittent is not auto, then work normally #####
     if(all(intermittent!=c("n","p","a"))){
         if(!iprobProvided){
-            intermittent_model <- iss(y,intermittent=intermittent,h=h);
-            pt[,] <- intermittent_model$fitted;
-            pt.for <- intermittent_model$forecast;
-            iprob <- pt.for[1];
-            ivar <- intermittent_model$variance;
+            imodel <- iss(y,intermittent=intermittent,h=h);
         }
+        else{
+            imodel <- iss(y,intermittent=intermittent,h=h);
+        }
+        pt[,] <- imodel$fitted;
+        pt.for <- imodel$forecast;
+        iprob <- pt.for[1];
+        ivar <- imodel$variance;
     }
     else{
         ivar <- 1;
+        imodel <- NULL;
     }
 
     assign("pt",pt,ParentEnvironment);
@@ -132,19 +137,22 @@ intermittentMaker <- function(intermittent="n",...){
 #' @param model Type of ETS model used for the estimation. Normally this should
 #' be either \code{"ANN"} or \code{"MNN"}.
 #' @param persistence Persistence vector. If \code{NULL}, then it is estimated.
+#' @param initial Initial vector. If \code{NULL}, then it is estimated.
 #' @return The object of class "iss" is returned. It contains following list of
 #' values:
 #'
 #' \itemize{
+#' \item \code{model} - the type of the estimated ETS model;
 #' \item \code{fitted} - fitted values of the constructed model;
-#' \item \code{states} - values of states (currently level only);
 #' \item \code{forecast} - forecast for \code{h} observations ahead;
+#' \item \code{states} - values of states (currently level only);
 #' \item \code{variance} - conditional variance of the forecast;
 #' \item \code{logLik} - likelihood value for the model
 #' \item \code{nParam} - number of parameters used in the model;
 #' \item \code{residuals} - residuals of the model;
-#' \item \code{C} - vector of all the parameters.
 #' \item \code{actuals} - actual values of probabilities (zeroes and ones).
+#' \item \code{persistence} - the vector of smoothing parameters;
+#' \item \code{initial} - initial values of the state vector;
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[smooth]{es}}
@@ -159,7 +167,7 @@ intermittentMaker <- function(intermittent="n",...){
 #'
 #' @export iss
 iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
-                h=10, holdout=FALSE, model=NULL, persistence=NULL){
+                h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","c","t","s"))){
@@ -215,18 +223,35 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         Stype <- "N";
     }
 
+    if(Stype!="N"){
+        Stype <- "N";
+        substr(model,nchar(model),nchar(model)) <- "N";
+        warning("Sorry, but we do not deal with seasonal models in iss yet.",call.=FALSE);
+    }
+
 #### Fixed probability ####
     if(intermittent=="f"){
-        pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
-        pt.for <- ts(rep(iprob,h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
+        if(!is.null(initial)){
+            pt <- ts(matrix(rep(initial,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
+        }
+        else{
+            initial <- iprob;
+            pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
+        }
+        pt.for <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
         errors <- ts(ot-iprob, start=start(y), frequency=frequency(y));
         logLik <- structure((sum(log(pt[ot==1])) + sum(log((1-pt[ot==0])))),df=1,class="logLik");
 
-        output <- list(fitted=pt,forecast=pt.for,states=pt,variance=pt.for*(1-pt.for),
-                      logLik=logLik,nParam=1,residuals=errors,C=c(0,iprob),actuals=otAll)
+        output <- list(model=model, fitted=pt, forecast=pt.for, states=pt,
+                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=1,
+                       residuals=errors, actuals=otAll,
+                       persistence=NULL, initial=initial);
     }
 #### Croston's method ####
     else if(intermittent=="c"){
+        if(is.null(initial)){
+            initial <- "o";
+        }
 # Define the matrix of states
         ivt <- matrix(rep(iprob,obsInsample+1),obsInsample+1,1);
 # Define the matrix of actuals as intervals between demands
@@ -240,7 +265,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         newh <- which(y!=0)
         newh <- newh[length(newh)];
         newh <- obsInsample - newh + h
-        crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,persistence=persistence);
+        crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,
+                           persistence=persistence,initial=initial);
 
         zeroes[length(zeroes)] <- zeroes[length(zeroes)];
         pt <- rep((crostonModel$fitted),zeroes);
@@ -262,12 +288,11 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         }
 
         logLik <- logLik(crostonModel);
-        C <- c(crostonModel$persistence,crostonModel$states[1,]);
-        names(C) <- c(paste0("persistence ",c(1:length(crostonModel$persistence))),
-                      paste0("state ",c(1:length(crostonModel$states[1,]))))
 
-        output <- list(fitted=pt,forecast=pt.for,states=states,variance=pt.for*(1-pt.for),
-                      logLik=logLik,nParam=crostonModel$nParam,residuals=crostonModel$residuals,C=C,actuals=otAll);
+        output <- list(model=model, fitted=pt, forecast=pt.for, states=states,
+                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=crostonModel$nParam,
+                       residuals=crostonModel$residuals, actuals=otAll,
+                       persistence=crostonModel$persistence, initial=crostonModel$initial);
     }
 #### TSB method ####
     else if(intermittent=="t"){
@@ -287,7 +312,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
 
         if(!is.null(persistence)){
             if(length(persistence)!=1){
-                warning("Only one smoothing parameter is currently supported for TSB. Using the first value.", call.=FALSE);
+                warning("Only one smoothing parameter is currently supported for TSB. Using the first value.",
+                        call.=FALSE);
                 persistence <- persistence[1];
             }
             persistenceEstimate <- FALSE;
@@ -335,13 +361,13 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         ivt[1,] <- res$solution[1];
         if(persistenceEstimate){
             vecg[,] <- res$solution[2];
-            C <- c(rev(res$solution));
+            # C <- c(rev(res$solution));
         }
-        else{
-            C <- c(persistence,res$solution);
-        }
+        # else{
+            # C <- c(persistence,res$solution);
+        # }
 
-        names(C) <- c("persistence","initial");
+        # names(C) <- c("persistence","initial");
         logLik <- structure(-res$objective,df=3,class="logLik");
 
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
@@ -360,16 +386,20 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         iyt.fit <- (iyt.fit - kappa) / (1 - 2*kappa);
         iyt.for <- (iyt.for - kappa) / (1 - 2*kappa);
 
-        output <- list(fitted=iyt.fit,states=ivt,forecast=iyt.for,variance=iyt.for*(1-iyt.for),
-                      logLik=logLik,nParam=3,residuals=errors,C=C,actuals=otAll);
+        output <- list(model=model, fitted=iyt.fit, forecast=iyt.for, states=ivt,
+                       variance=iyt.for*(1-iyt.for), logLik=logLik, nParam=3,
+                       residuals=errors, actuals=otAll,
+                       persistence=vecg, initial=ivt[1,]);
     }
 #### None ####
     else{
         pt <- ts(rep(1,obsAll),start=start(y),frequency=frequency(y));
         pt.for <- ts(rep(1,h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
         errors <- ts(rep(0,obsInsample), start=start(y), frequency=frequency(y));
-        output <- list(fitted=pt,states=pt,forecast=pt.for,variance=rep(0,h),
-                      logLik=NA,nParam=0,residuals=errors,C=c(0,1),actuals=pt);
+        output <- list(model=NULL, fitted=pt, forecast=pt.for, states=pt,
+                       variance=rep(0,h), logLik=NA, nParam=0,
+                       residuals=errors, actuals=pt,
+                       persistence=NULL, initial=NULL);
     }
     output$intermittent <- intermittent;
     return(structure(output,class="iss"));

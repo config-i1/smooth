@@ -5,7 +5,8 @@
 \title{Intermittent State Space}
 \usage{
 iss(data, intermittent = c("none", "fixed", "croston", "tsb", "sba"),
-  h = 10, holdout = FALSE, model = NULL, persistence = NULL)
+  h = 10, holdout = FALSE, model = NULL, persistence = NULL,
+  initial = NULL)
 }
 \arguments{
 \item{data}{Either numeric vector or time series vector.}
@@ -26,21 +27,25 @@ the end of the data.}
 be either \code{"ANN"} or \code{"MNN"}.}
 
 \item{persistence}{Persistence vector. If \code{NULL}, then it is estimated.}
+
+\item{initial}{Initial vector. If \code{NULL}, then it is estimated.}
 }
 \value{
 The object of class "iss" is returned. It contains following list of
 values:
 
 \itemize{
+\item \code{model} - the type of the estimated ETS model;
 \item \code{fitted} - fitted values of the constructed model;
-\item \code{states} - values of states (currently level only);
 \item \code{forecast} - forecast for \code{h} observations ahead;
+\item \code{states} - values of states (currently level only);
 \item \code{variance} - conditional variance of the forecast;
 \item \code{logLik} - likelihood value for the model
 \item \code{nParam} - number of parameters used in the model;
 \item \code{residuals} - residuals of the model;
-\item \code{C} - vector of all the parameters.
 \item \code{actuals} - actual values of probabilities (zeroes and ones).
+\item \code{persistence} - the vector of smoothing parameters;
+\item \code{initial} - initial values of the state vector;
 }
 }
 \description{
