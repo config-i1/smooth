@@ -59,7 +59,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb","sba"),
+                intermittent=c("none","auto","fixed","croston","tsb","sba"), imodel="MNN",
                 bounds=c("admissible","none"),
                 silent=c("none","all","graph","legend","output"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -96,16 +96,6 @@ auto.ces <- function(data, models=c("none","simple","full"),
     models <- substr(models,1,1);
 
     datafreq <- frequency(data);
-    # if(any(is.na(data))){
-    #     if(silentText==FALSE){
-    #         message("Data contains NAs. These observations will be excluded.")
-    #     }
-    #     datanew <- data[!is.na(data)];
-    #     if(is.ts(data)){
-    #         datanew <- ts(datanew,start=start(data),frequency=datafreq);
-    #     }
-    #     data <- datanew;
-    # }
 
     # Define maximum needed number of parameters
     if(any(models=="n")){
@@ -159,7 +149,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
                         cfType=cfType,
                         h=h, holdout=holdout,cumulative=cumulative,
                         intervals=intervals, level=level,
-                        intermittent=intermittent,
+                        intermittent=intermittent, imodel=imodel,
                         bounds=bounds, silent=silent,
                         xreg=xreg, xregDo=xregDo, initialX=initialX,
                         updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
@@ -200,7 +190,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
                              cfType=cfType,
                              h=h, holdout=holdout,cumulative=cumulative,
                              intervals=intervals, level=level,
-                             intermittent=intermittent,
+                             intermittent=intermittent, imodel=imodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);

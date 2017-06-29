@@ -1,4 +1,4 @@
-utils::globalVariables(c("y","obs","iprobProvided"))
+utils::globalVariables(c("y","obs","imodelProvided"))
 
 intermittentParametersSetter <- function(intermittent="n",...){
 # Function returns basic parameters based on intermittent type
@@ -19,33 +19,13 @@ intermittentParametersSetter <- function(intermittent="n",...){
 #            nParamIntermittent <- nParamIntermittent + 3;
 #         }
         yot <- matrix(y[y!=0],obsNonzero,1);
-        if(!iprobProvided){
+        if(!imodelProvided){
             pt <- matrix(mean(ot),obsInsample,1);
             pt.for <- matrix(1,h,1);
         }
         else{
-            if(length(iprob)==1){
-                pt <- matrix(iprob,obsInsample,1);
-                pt.for <- matrix(iprob,h,1);
-            }
-            else if(length(iprob)==obsInsample){
-                pt <- matrix(iprob,obsInsample,1);
-                pt.for <- matrix(iprob[length(iprob)],h,1);
-            }
-            else if(length(iprob)==obsAll){
-                pt <- matrix(iprob[1:obsInsample],obsInsample,1);
-                pt.for <- matrix(iprob[(obsInsample+1):obsAll],h,1);
-            }
-            else if(all(length(iprob)!=c(1,obsInsample,obsAll))){
-                if(length(iprob) < obsAll){
-                    iprob <- c(iprob,rep(iprob,obsAll-length(iprob)));
-                }
-                else{
-                    iprob <- iprob[1:obsAll];
-                }
-                pt <- matrix(iprob[1:obsInsample],obsInsample,1);
-                pt.for <- matrix(iprob[(obsInsample+1):obsAll],h,1);
-            }
+            pt <- matrix(imodel$fitted,obsInsample,1);
+            pt.for <- matrix(imodel$forecast,h,1);
             iprob <- c(pt,pt.for);
         }
     }
@@ -86,13 +66,12 @@ intermittentMaker <- function(intermittent="n",...){
 
 ##### If intermittent is not auto, then work normally #####
     if(all(intermittent!=c("n","p","a"))){
-        if(!iprobProvided){
-            imodel <- iss(y,intermittent=intermittent,h=h);
+        if(!imodelProvided){
+            imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h);
         }
         else{
-            imodel <- iss(y,intermittent=intermittent,h=h,
-                          model=imodel,persistence=ipersistence,
-                          initial=iinitial);
+            imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h,
+                          persistence=imodel$persistence, initial=imodel$initial);
         }
         pt[,] <- imodel$fitted;
         pt.for <- imodel$forecast;
@@ -359,13 +338,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         ivt[1,] <- res$solution[1];
         if(persistenceEstimate){
             vecg[,] <- res$solution[2];
-            # C <- c(rev(res$solution));
         }
-        # else{
-            # C <- c(persistence,res$solution);
-        # }
 
-        # names(C) <- c("persistence","initial");
         logLik <- structure(-res$objective,df=3,class="logLik");
 
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;

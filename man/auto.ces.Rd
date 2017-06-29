@@ -9,10 +9,10 @@ auto.ces(data, models = c("none", "simple", "full"), initial = c("optimal",
   "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10, holdout = FALSE,
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "croston", "tsb", "sba"), bounds = c("admissible", "none"),
-  silent = c("none", "all", "graph", "legend", "output"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  "croston", "tsb", "sba"), imodel = "MNN", bounds = c("admissible",
+  "none"), silent = c("none", "all", "graph", "legend", "output"),
+  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -80,6 +80,10 @@ SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
 criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
+
+\item{imodel}{Type of ETS model used for the modelling of the time varying
+probability. Object of the class "iss" can be provided here, and its parameters
+would be used in iETS model.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}

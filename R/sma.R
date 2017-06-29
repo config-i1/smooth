@@ -114,6 +114,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
 
     initial <- "backcasting";
     intermittent <- "none";
+    imodel <- NULL;
     bounds <- "admissible";
     cfType <- "MSE";
     xreg <- NULL;
@@ -281,7 +282,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   order=order, initialType=initialType, nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=y.holdout,intermittent="none",
+                  actuals=data,holdout=y.holdout,imodel=NULL,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

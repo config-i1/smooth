@@ -689,6 +689,18 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         level <- level / 100;
     }
 
+    ##### imodel #####
+    if(class(imodel)!="iss"){
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
+    }
+    else{
+        intermittentModel <- imodel$model;
+        intermittent <- imodel$intermittent;
+        imodelProvided <- TRUE;
+    }
+
     ##### intermittent #####
     if(is.numeric(intermittent)){
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
@@ -729,22 +741,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             intermittent <- "p";
             nParamIntermittent <- 0;
         }
-        iprobProvided <- FALSE;
     }
     else{
-        ### iprob values
-        if(!exists("iprob",envir=ParentEnvironment,inherits=FALSE)){
-            iprobProvided <- FALSE;
-            iprob <- NULL;
-        }
-        else{
-            if(is.null(iprob)){
-                iprobProvided <- FALSE;
-            }
-            else{
-                iprobProvided <- TRUE;
-            }
-        }
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
@@ -775,6 +773,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
     if(all(pt==1) & all(intermittent!=c("n","p"))){
         intermittent <- "n";
+        imodelProvided <- FALSE;
     }
 
     if(any(smoothType==c("es"))){
@@ -1179,13 +1178,15 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intervals",intervals,ParentEnvironment);
     assign("intermittent",intermittent,ParentEnvironment);
+    assign("intermittentModel",intermittentModel,ParentEnvironment);
+    assign("imodel",imodel,ParentEnvironment);
     assign("ot",ot,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
-    assign("iprobProvided",iprobProvided,ParentEnvironment);
+    assign("imodelProvided",imodelProvided,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
@@ -2588,7 +2589,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      cfType="MSE", cfObjective=NULL, intervals=FALSE, cumulative=FALSE,
                      intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
-                     intermittent="n", iprob=1){
+                     intermittent="n"){
 # Function forms the generic output for State-space models.
     if(gregexpr("ETS",modelname)!=-1){
         model <- "ETS";
@@ -2622,12 +2623,12 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             intermittent <- "Croston with SBA";
         }
         cat(paste0("Intermittent model type: ",intermittent));
-        if(iprob!=1){
-            cat(paste0(", ",round(iprob,3),"\n"));
-        }
-        else{
+        # if(iprob!=1){
+        #     cat(paste0(", ",round(iprob,3),"\n"));
+        # }
+        # else{
             cat("\n");
-        }
+        # }
     }
     else if(any(intermittent==c("p","provided"))){
         cat(paste0("Intermittent data provided for holdout.\n"));

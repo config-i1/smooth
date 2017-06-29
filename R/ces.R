@@ -71,9 +71,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{iprob} - the fitted and forecasted values of the probability
-#' of demand occurrence.
-#' \item \code{intermittent} - type of intermittent model fitted to the data.
+#' \item \code{imodel} - model of the class "iss" if intermittent model was estimated.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
 #' variables.
@@ -143,7 +141,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb","sba"),
+                intermittent=c("none","auto","fixed","croston","tsb","sba"), imodel="MNN",
                 bounds=c("admissible","none"), silent=c("none","all","graph","legend","output"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -168,11 +166,8 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
         else if(gregexpr("ES",model$model)==-1){
             stop("The provided model is not CES.",call.=FALSE);
         }
-        intermittent <- model$intermittent;
-        if(any(intermittent==c("p","provided"))){
-            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
-            warning("Switching to intermittent='auto'.",call.=FALSE);
-            intermittent <- "a";
+        if(!is.null(model$imodel)){
+            imodel <- model$imodel;
         }
         initial <- model$initial;
         A <- model$A;
@@ -804,7 +799,7 @@ CreatorCES <- function(silentText=FALSE,...){
                   nParam=nParam,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                  actuals=data,holdout=y.holdout,imodel=imodel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));

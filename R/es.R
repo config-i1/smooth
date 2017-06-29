@@ -121,8 +121,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{iprob} - fitted and forecasted values of the probability of demand occurrence.
-#' \item \code{intermittent} - type of intermittent model fitted to the data.
+#' \item \code{imodel} - model of the class "iss" if intermittent model was estimated.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
 #' then this value will contain only selected exogenous variables.
 #' \item \code{updateX} - boolean, defining, if the states of exogenous variables were
@@ -162,8 +161,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{cumulative},
 #' \item \code{actuals},
 #' \item \code{holdout},
-#' \item \code{iprob},
-#' \item \code{intermittent},
+#' \item \code{imodel},
 #' \item \code{ICs} - combined ic,
 #' \item \code{ICw} - ic weights used in the combination,
 #' \item \code{cfType},
@@ -233,7 +231,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-               intermittent=c("none","auto","fixed","croston","tsb","sba"),
+               intermittent=c("none","auto","fixed","croston","tsb","sba"), imodel="MNN",
                bounds=c("usual","admissible","none"),
                silent=c("none","all","graph","legend","output"),
                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -256,15 +254,12 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # If a previous model provided as a model, write down the variables
-    if(is.list(model)){
+    if(any(class(model)=="smooth")){
         if(gregexpr("ETS",model$model)==-1){
             stop("The provided model is not ETS.",call.=FALSE);
         }
-        intermittent <- model$intermittent;
-        if(any(intermittent==c("p","provided"))){
-            warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
-            warning("Switching to intermittent='auto'.",call.=FALSE);
-            intermittent <- "a";
+        if(!is.null(model$imodel)){
+            imodel <- model$imodel;
         }
         if(class(model)=="smooth.sim" & !is.null(dim(model$data))){
             warning("The provided model has several submodels. Choosing a random one.",call.=FALSE);
@@ -279,7 +274,6 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             initialSeason <- model$initialSeason;
         }
         phi <- model$phi;
-        iprob <- model$iprob;
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
@@ -1021,7 +1015,7 @@ CreatorES <- function(silent=FALSE,...){
         icSelection <- icSelection/(h^multisteps);
         icWeights <- exp(-0.5*(icSelection-icBest))/sum(exp(-0.5*(icSelection-icBest)));
         ICs <- sum(icSelection * icWeights);
-        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results));
+        return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results,cfObjective=NA));
     }
     else if(modelDo=="estimate"){
         environment(EstimatorES) <- environment();
@@ -1412,11 +1406,10 @@ CreatorES <- function(silent=FALSE,...){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","c","t","s");
+        intermittentModelsPool <- c("n","f","c","t");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs[1] <- esValues$icBest;
-        intermittentCFs[1] <- esValues$cfObjective;
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
@@ -1440,7 +1433,6 @@ CreatorES <- function(silent=FALSE,...){
         }
         if(iBest!=1){
             intermittent <- intermittentModelsPool[iBest];
-            intermittentModel <- intermittentModelsList[[iBest]];
             esValues <- intermittentModelsList[[iBest]];
         }
         else{
@@ -1792,7 +1784,7 @@ CreatorES <- function(silent=FALSE,...){
                       nParam=nParam,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                      actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                      actuals=data,holdout=y.holdout,imodel=imodel,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
                       ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
@@ -1803,7 +1795,7 @@ CreatorES <- function(silent=FALSE,...){
                       fitted=y.fit,forecast=y.for,
                       lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervalsType,level=level,
                       cumulative=cumulative,
-                      actuals=data,holdout=y.holdout,iprob=pt,intermittent=intermittent,
+                      actuals=data,holdout=y.holdout,imodel=imodel,
                       xreg=xreg,updateX=updateX,
                       ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
         return(structure(model,class="smooth"));

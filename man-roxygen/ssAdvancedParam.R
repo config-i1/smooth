@@ -21,6 +21,9 @@
 #' criteria. The first letter can be used instead. 6. \code{"sba"} -
 #' Syntetos-Boylan Approximation for Croston's method (bias correction)
 #' discussed in Syntetos and Boylan, 2005.
+#' @param imodel Type of ETS model used for the modelling of the time varying
+#' probability. Object of the class "iss" can be provided here, and its parameters
+#' would be used in iETS model.
 #' @param xreg Vector (either numeric or time series) or matrix (or data.frame)
 #' of exogenous variables that should be included in the model. If matrix
 #' included than columns should contain variables and rows - observations. Note

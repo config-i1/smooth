@@ -10,10 +10,10 @@ ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10, holdout = FALSE,
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "croston", "tsb", "sba"), bounds = c("admissible", "none"),
-  silent = c("none", "all", "graph", "legend", "output"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  "croston", "tsb", "sba"), imodel = "MNN", bounds = c("admissible",
+  "none"), silent = c("none", "all", "graph", "legend", "output"),
+  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -102,6 +102,10 @@ SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
 criteria. The first letter can be used instead. 6. \code{"sba"} -
 Syntetos-Boylan Approximation for Croston's method (bias correction)
 discussed in Syntetos and Boylan, 2005.}
+
+\item{imodel}{Type of ETS model used for the modelling of the time varying
+probability. Object of the class "iss" can be provided here, and its parameters
+would be used in iETS model.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
@@ -193,9 +197,7 @@ account).
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
-\item \code{iprob} - the fitted and forecasted values of the probability of
-demand occurrence.
-\item \code{intermittent} - type of intermittent model fitted to the data.
+\item \code{imodel} - model of the class "iss" if intermittent model was estimated.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If
 \code{xregDo="s"}, then this value will contain only selected exogenous
 variables.
