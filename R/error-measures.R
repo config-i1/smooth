@@ -318,7 +318,7 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' x <- rnorm(100,0,1)
 #' ourModel <- es(x, h=10, holdout=TRUE)
 #' sigma <- t(ourModel$errors) %*% (ourModel$errors) / length(ourModel$residuals)
-#' Etype <- substr(model.type(ourModel),1,1)
+#' Etype <- substr(modelType(ourModel),1,1)
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 #'     sigma=sigma, trace=TRUE)
 #'
@@ -326,8 +326,8 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' # intermittent state-space models
 #' x <- rpois(100,0.4)
 #' ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
-#' Etype <- substr(model.type(ourModel),1,1)
-#' iprob <- window(ourModel$iprob,start(ourModel$holdout))
+#' Etype <- substr(modelType(ourModel),1,1)
+#' iprob <- ourModel$imodel$fitted
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 #'     sigma=ourModel$s2, trace=FALSE, iprob=iprob)
 #'

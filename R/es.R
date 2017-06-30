@@ -254,7 +254,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     }
 
 # If a previous model provided as a model, write down the variables
-    if(any(class(model)=="smooth")){
+    if(any(class(model)=="smooth") | any(class(model)=="smooth.sim")){
         if(gregexpr("ETS",model$model)==-1){
             stop("The provided model is not ETS.",call.=FALSE);
         }
@@ -267,11 +267,17 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             persistence <- model$persistence[,i];
             initial <- model$initial[,i];
             initialSeason <- model$initialSeason[,i];
+            if(any(model$iprob!=1)){
+                intermittent <- "a";
+            }
         }
         else{
             persistence <- model$persistence;
             initial <- model$initial;
             initialSeason <- model$initialSeason;
+            if(any(model$iprob!=1)){
+                intermittent <- "a";
+            }
         }
         phi <- model$phi;
         if(is.null(xreg)){
@@ -283,8 +289,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
             updateX <- TRUE;
         }
-        model <- model$model;
-        model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        model <- modelType(model);
         if(any(unlist(gregexpr("C",model))!=-1)){
             initial <- "o";
         }
