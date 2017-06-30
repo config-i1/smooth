@@ -3,6 +3,7 @@ smooth v2.0.0 (Release data: 2017-07-01)
 
 Changes:
 * New function - ves(). Currently the basic features of all the pure additive and pure multiplicative models are implemented. No prediction intervals, no intermittence, no automatic model selection.
+* New parameter - imodel, which determines the type of model for probability in case of iSS models. Can also accept models previously estimated using iss() function.
 * Point forecasts in case of simulated data are now based on the simulation rather than analytical expression.
 * Max order of SMA is now equal to obsInSample.
 * Introduced a hidden parameter, rounded, which determines whether the rounded up value of demand sizes is assumed in the model. This influences the cost function and leads to a different results in case of intermittent model.
