@@ -2165,6 +2165,8 @@ ssForecaster <- function(...){
                     for(i in 1:h){
                         y.for[i] <- median(y.simulated[i,y.simulated[i,]!=0]);
                     }
+                    # NA means that there were no non-zero demands
+                    y.for[is.na(y.for)] <- 0;
                 }
                 else{
                     y.simulated <- y.simulated + matrix(y.exo.for,nrow=h,ncol=nSamples);
