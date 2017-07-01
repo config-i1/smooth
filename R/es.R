@@ -1138,7 +1138,12 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         # smoothingParameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
-        smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.1,0.05,0.01));
+        if(intermittent=="n"){
+            smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.1,0.05,0.01));
+        }
+        else{
+            smoothingParameters <- cbind(c(0.1,0.05,0.1),c(0.05,0.01,0.01));
+        }
     }
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
@@ -1710,7 +1715,6 @@ CreatorES <- function(silent=FALSE,...){
         else{
             errormeasures <- errorMeasurer(y.holdout,y.for,y);
         }
-
 
 # Add PLS
         errormeasuresNames <- names(errormeasures);
