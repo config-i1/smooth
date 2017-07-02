@@ -1721,7 +1721,7 @@ CreatorES <- function(silent=FALSE,...){
         errormeasuresNames <- names(errormeasures);
         if(all(intermittent!=c("n","none"))){
             errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
-                                                                   sigma=s2, trace=FALSE, iprob=pt[obsInsample+c(1:h)])));
+                                                                   sigma=s2, trace=FALSE, iprob=pt[obsInsample+c(1:h)], rounded=rounded)));
         }
         else{
             if(multisteps){
@@ -1731,7 +1731,7 @@ CreatorES <- function(silent=FALSE,...){
                 sigma <- s2;
             }
             errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
-                                                                   sigma=sigma, trace=multisteps, iprob=pt[obsInsample+c(1:h)])));
+                                                                   sigma=sigma, trace=multisteps, iprob=pt[obsInsample+c(1:h)], rounded=rounded)));
         }
         names(errormeasures) <- c(errormeasuresNames,"PLS");
 

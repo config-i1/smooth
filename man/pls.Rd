@@ -5,7 +5,7 @@
 \title{Prediction Likelihood Score}
 \usage{
 pls(actuals, forecasts, Etype = c("A", "M"), sigma, trace = TRUE,
-  iprob = 1, digits = 5, ...)
+  iprob = 1, digits = 5, rounded = FALSE, ...)
 }
 \arguments{
 \item{actuals}{Actual values from the holdout.}
@@ -25,6 +25,8 @@ forecasts (multiple steps ahead), Trace Forecast Likelihood is used in this case
 for intermittent models).}
 
 \item{digits}{Number of digits for rounding.}
+
+\item{rounded}{Defines if the rounded up value is used for demand sizes.}
 
 \item{...}{Other parameters passed to mean function.}
 }
