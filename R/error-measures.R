@@ -332,6 +332,8 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 #'     sigma=ourModel$s2, trace=FALSE, iprob=iprob)
 #'
+#' @importFrom stats dlnorm
+#' @importFrom stats dnorm
 #' @export pls
 pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
                 iprob=1, digits=5, rounded=FALSE, ...){
