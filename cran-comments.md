@@ -8,7 +8,7 @@ output: html_document
 This is ``smooth`` package, v2.0.0
 
 ## Test environments
-* local ubuntu 17.04, R 3.4.0
+* local ubuntu 17.04, R 3.4.1
 * ubuntu 12.04.5 (on travis-ci), R 3.3.2
 * win-builder (devel and release)
 
