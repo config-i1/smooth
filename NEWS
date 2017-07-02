@@ -12,6 +12,7 @@ Changes:
 * Better integration of sim.es() objects and es() function. Now you can do something like this to fit the "true" model: x <- sim.es("MNN"); es(x$data,model=x).
 * es() now also returns transition matrix.
 * Optimised C++ code, which should result in the growth of computational speed for ~25%.
+* es() now returns PLS value in the accuracy for all the types of models.
 
 Bugfixes:
 * simulator function in Rcpp did not cover the cases, when level could become negative. This is now fixed.
