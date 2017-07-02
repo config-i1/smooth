@@ -547,7 +547,7 @@ EstimatorES <- function(...){
         CLower <- Cs$CLower;
     }
     if(is.null(providedCUpper)){
-        CUpper <- Cs$CUpeer;
+        CUpper <- Cs$CUpper;
     }
 
     if(rounded){
@@ -563,6 +563,7 @@ EstimatorES <- function(...){
         C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
         C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
     }
+
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
