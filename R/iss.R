@@ -24,7 +24,17 @@ intermittentParametersSetter <- function(intermittent="n",...){
             pt.for <- matrix(1,h,1);
         }
         else{
-            pt <- matrix(imodel$fitted,obsInsample,1);
+            if(length(imodel$fitted)>obsInsample){
+                pt <- matrix(imodel$fitted[1:obsInsample],obsInsample,1);
+            }
+            else if(length(imodel$fitted)<obsInsample){
+                pt <- matrix(c(imodel$fitted,
+                               rep(imodel$fitted[length(imodel$fitted)],obsInsample-length(imodel$fitted))),
+                             obsInsample,1);
+            }
+            else{
+                pt <- matrix(imodel$fitted,obsInsample,1);
+            }
             pt.for <- matrix(imodel$forecast,h,1);
             iprob <- c(pt,pt.for);
         }
