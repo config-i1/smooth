@@ -2127,9 +2127,9 @@ ssForecaster <- function(...){
             }
 
             #If this is integer-valued model, then do simulations
-            if(rounded){
-                simulateIntervals <- TRUE;
-            }
+            # if(rounded){
+            #     simulateIntervals <- TRUE;
+            # }
 
             if(simulateIntervals==TRUE){
                 nSamples <- 10000;
@@ -2193,6 +2193,10 @@ ssForecaster <- function(...){
                                            y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                            iprob=iprob, ivar=ivar);
 
+                if(rounded){
+                    y.for <- ceiling(y.for);
+                }
+
                 if(!(intervalsType=="sp" & Etype=="M")){
                     y.for <- c(pt.for)*y.for;
                 }
@@ -2212,6 +2216,11 @@ ssForecaster <- function(...){
                     }
                     y.low <- ts(quantvalues$lower,start=y.forStart,frequency=datafreq);
                     y.high <- ts(quantvalues$upper,start=y.forStart,frequency=datafreq);
+                }
+
+                if(rounded){
+                    y.low <- ceiling(y.low);
+                    y.high <- ceiling(y.high);
                 }
             }
         }

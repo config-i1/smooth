@@ -2,7 +2,7 @@ smooth v2.0.1 (Release data: 2017-08-31)
 ==============
 
 Changes:
-*
+* Forecasts and prediction intervals of the rounded values are now produced analytically.
 
 Bugfixes:
 * Provided imodel sometimes would not be used correctly in the initialisation.
