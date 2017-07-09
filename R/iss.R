@@ -10,14 +10,15 @@ intermittentParametersSetter <- function(intermittent="n",...){
         obsNonzero <- sum(ot);
         # 1 parameter for estimating initial probability
         nParamIntermittent <- 1;
-#         if(intermittent=="c"){
-#             # In Croston we also need to estimate smoothing parameter and variance
-#            nParamIntermittent <- nParamIntermittent + 2;
-#         }
-#         else if(any(intermittent==c("t","a"))){
-#             # In TSB we also need to estimate smoothing parameter and two parameters of distribution...
-#            nParamIntermittent <- nParamIntermittent + 3;
-#         }
+        if(intermittent=="c"){
+            # In Croston we also need to estimate smoothing parameter and variance
+           nParamIntermittent <- nParamIntermittent + 2;
+        }
+        else if(any(intermittent==c("t","a"))){
+            # In TSB we only need to estimate smoothing parameter - we do not
+            # estimate any parameters of the Beta distribution.
+           nParamIntermittent <- nParamIntermittent + 1;
+        }
         yot <- matrix(y[y!=0],obsNonzero,1);
         if(!imodelProvided){
             pt <- matrix(mean(ot),obsInsample,1);
@@ -83,17 +84,20 @@ intermittentMaker <- function(intermittent="n",...){
             imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h,
                           persistence=imodel$persistence, initial=imodel$initial);
         }
+        nParamIntermittent <- imodel$nParam;
         pt[,] <- imodel$fitted;
         pt.for <- imodel$forecast;
         iprob <- pt.for[1];
     }
     else{
         imodel <- NULL;
+        nParamIntermittent <- 0;
     }
 
     assign("pt",pt,ParentEnvironment);
     assign("pt.for",pt.for,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
+    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("imodel",imodel,ParentEnvironment);
 }
 
@@ -359,6 +363,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
                               matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
 
         ivt <- ts(fitting$matvt,start=(time(y)[1] - deltat(y)),frequency=frequency(y));
+        colnames(ivt) <- "level";
         iyt.fit <- ts(fitting$yfit,start=start(y),frequency=frequency(y));
         errors <- ts(fitting$errors,start=start(y),frequency=frequency(y));
         iyt.for <- ts(rep(iyt.fit[obsInsample],h),
@@ -368,8 +373,11 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         iyt.fit <- (iyt.fit - kappa) / (1 - 2*kappa);
         iyt.for <- (iyt.for - kappa) / (1 - 2*kappa);
 
+        vecg <- c(vecg);
+        names(vecg) <- "alpha";
+
         output <- list(model=model, fitted=iyt.fit, forecast=iyt.for, states=ivt,
-                       variance=iyt.for*(1-iyt.for), logLik=logLik, nParam=3,
+                       variance=iyt.for*(1-iyt.for), logLik=logLik, nParam=2,
                        residuals=errors, actuals=otAll,
                        persistence=vecg, initial=ivt[1,]);
     }
