@@ -302,6 +302,7 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' @param iprob Vector of probabilities of occurrences for the holdout (only needed
 #' for intermittent models).
 #' @param digits Number of digits for rounding.
+#' @param varVec Vector of 1 to h steps ahead analytical variance. Needed mainly for Etype=="M".
 #' @param rounded Defines if the rounded up value is used for demand sizes.
 #' @param ...  Other parameters passed to mean function.
 #'
@@ -315,9 +316,12 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' }
 #' @examples
 #'
+#' # pls() function now works correctly only when varVec is provided
+#' # And varVec is not provided by any function, but is generated inside them.
+#'
 #' # Generate data, apply es() with the holdout parameter and calculate PLS
 #' x <- rnorm(100,0,1)
-#' ourModel <- es(x, h=10, holdout=TRUE)
+#' ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
 #' sigma <- t(ourModel$errors) %*% (ourModel$errors) / length(ourModel$residuals)
 #' Etype <- substr(modelType(ourModel),1,1)
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
@@ -326,7 +330,7 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' # Do the same with intermittent data. Trace is not available yet for
 #' # intermittent state-space models
 #' x <- rpois(100,0.4)
-#' ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
+#' ourModel <- es(x, h=10, holdout=TRUE, intermittent='a', intervals=TRUE)
 #' Etype <- substr(modelType(ourModel),1,1)
 #' iprob <- ourModel$imodel$fitted
 #' pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
@@ -336,7 +340,7 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' @importFrom stats dnorm
 #' @export pls
 pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
-                iprob=1, digits=5, rounded=FALSE, ...){
+                iprob=1, digits=5, varVec=NULL, rounded=FALSE, ...){
     # This function calculates half moment
     if(length(actuals)!=length(forecasts)){
         warning("Length of actuals and forecasts differs. Using the shortest of the two.", call.=FALSE);
@@ -369,6 +373,10 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
     }
     if(all(sigma==0)){
         return(NA);
+    }
+
+    if(is.null(varVec)){
+        varVec <- sigma;
     }
 
     if(all(iprob==1) & length(iprob)>1){
@@ -420,11 +428,11 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
             }
             else{
                 if(Etype=="A"){
-                    pls <- sum(log(dnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma))));
+                    pls <- sum(log(dnorm(actuals[ot],forecasts[ot],sqrt(varVec))));
                     # pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma));
                 }
                 else{
-                    pls <- sum(log(dlnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma))));
+                    pls <- sum(log(dlnorm(actuals[ot],log(forecasts[ot]),sqrt(varVec))));
                     # pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals)));
                 }
             }
@@ -441,12 +449,12 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
                 }
                 else{
                     if(Etype=="A"){
-                        pls <- (sum(log(dnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma)))) +
+                        pls <- (sum(log(dnorm(actuals[ot],forecasts[ot],sqrt(varVec[ot])))) +
                                     sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
                         # pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma)) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
                     }
                     else{
-                        pls <- (sum(log(dlnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma)))) +
+                        pls <- (sum(log(dlnorm(actuals[ot],log(forecasts[ot]),sqrt(varVec[ot])))) +
                                     sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
                         # pls <- -(obsNonZero/2 * log(2*pi*sigma) + sum(errors^2) / (2*sigma) + sum(log(actuals[ot]))) + sum(log(iprob[ot])) + sum(log(1-iprob[!ot]));
                     }
@@ -463,19 +471,19 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
                 pls <- sum(log(pnorm(ceiling(actuals),forecasts,sqrt(sigma))-pnorm(ceiling(actuals)-1,forecasts,sqrt(sigma))));
             }
             else{
-                pls <- sum(log(plnorm(ceiling(actuals),forecasts,sqrt(sigma)) - pnorm(ceiling(actuals)-1,forecasts,sqrt(sigma))));
+                pls <- sum(log(plnorm(ceiling(actuals),log(forecasts),sqrt(sigma)) - pnorm(ceiling(actuals)-1,log(forecasts),sqrt(sigma))));
             }
         }
         else{
             if(any(!ot)){
                 if(Etype=="A"){
-                    pls <- (sum(log(pnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma)) -
-                                   pnorm(ceiling(actuals[ot])-1,forecasts[ot],sqrt(sigma)))) +
+                    pls <- (sum(log(pnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(varVec[ot])) -
+                                   pnorm(ceiling(actuals[ot])-1,forecasts[ot],sqrt(varVec[ot])))) +
                             sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
                 }
                 else{
-                    pls <- (sum(log(plnorm(ceiling(actuals[ot]),forecasts[ot],sqrt(sigma)) -
-                                    plnorm(ceiling(actuals[ot])-1,forecasts[ot],sqrt(sigma)))) +
+                    pls <- (sum(log(plnorm(ceiling(actuals[ot]),log(forecasts[ot]),sqrt(varVec[ot])) -
+                                    plnorm(ceiling(actuals[ot])-1,log(forecasts[ot]),sqrt(varVec[ot])))) +
                             sum(log(iprob[ot])) + sum(log(1-iprob[!ot])));
                 }
             }

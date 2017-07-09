@@ -1739,6 +1739,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 upper <- 1 + upper;
                 lower <- 1 + lower;
             }
+            varVec <- NULL;
         }
 
 #### Semiparametric intervals using the variance of errors ####
@@ -1828,6 +1829,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 upper <- quantile(rowSums(ye),(1+level)/2);
                 lower <- quantile(rowSums(ye),(1-level)/2);
             }
+            varVec <- NULL;
         }
 
 #### Parametric intervals ####
@@ -2044,12 +2046,13 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             upper <- quantile(errors,(1+level)/2);
             lower <- quantile(errors,(1-level)/2);
         }
+        varVec <- NULL;
     }
     else{
         stop("The provided data is not either vector or matrix. Can't do anything with it!", call.=FALSE);
     }
 
-    return(list(upper=upper,lower=lower));
+    return(list(upper=upper,lower=lower,variance=varVec));
 }
 
 ##### *Forecaster of state-space functions* #####
@@ -2184,6 +2187,8 @@ ssForecaster <- function(...){
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=y.forStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=y.forStart,frequency=datafreq);
                 }
+                # For now we leave it as NULL
+                varVec <- NULL;
             }
             else{
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
@@ -2222,6 +2227,7 @@ ssForecaster <- function(...){
                     y.low <- ceiling(y.low);
                     y.high <- ceiling(y.high);
                 }
+                varVec <- quantvalues$variance;
             }
         }
         else{
@@ -2234,12 +2240,15 @@ ssForecaster <- function(...){
             else{
                 y.for <- ts(y.for,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
             }
+            varVec <- NULL;
         }
     }
     else{
         y.low <- NA;
         y.high <- NA;
         y.for <- ts(NA,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
+        # For now we leave it as NULL, because this thing is estimated in ssIntervals()
+        varVec <- NULL;
     }
 
     if(any(is.na(y.fit),all(is.na(y.for),h>0))){
@@ -2251,6 +2260,7 @@ ssForecaster <- function(...){
     assign("y.for",y.for,ParentEnvironment);
     assign("y.low",y.low,ParentEnvironment);
     assign("y.high",y.high,ParentEnvironment);
+    assign("varVec",varVec,ParentEnvironment);
 }
 
 ##### *Check and initialisation of xreg* #####

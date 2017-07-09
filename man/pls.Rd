@@ -5,7 +5,7 @@
 \title{Prediction Likelihood Score}
 \usage{
 pls(actuals, forecasts, Etype = c("A", "M"), sigma, trace = TRUE,
-  iprob = 1, digits = 5, rounded = FALSE, ...)
+  iprob = 1, digits = 5, varVec = NULL, rounded = FALSE, ...)
 }
 \arguments{
 \item{actuals}{Actual values from the holdout.}
@@ -26,6 +26,8 @@ for intermittent models).}
 
 \item{digits}{Number of digits for rounding.}
 
+\item{varVec}{Vector of 1 to h steps ahead analytical variance. Needed mainly for Etype=="M".}
+
 \item{rounded}{Defines if the rounded up value is used for demand sizes.}
 
 \item{...}{Other parameters passed to mean function.}
@@ -45,9 +47,12 @@ that the data was "produced" by the estimated model. %In case of trace forecasts
 }
 \examples{
 
+# pls() function now works correctly only when varVec is provided
+# And varVec is not provided by any function, but is generated inside them.
+
 # Generate data, apply es() with the holdout parameter and calculate PLS
 x <- rnorm(100,0,1)
-ourModel <- es(x, h=10, holdout=TRUE)
+ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
 sigma <- t(ourModel$errors) \%*\% (ourModel$errors) / length(ourModel$residuals)
 Etype <- substr(modelType(ourModel),1,1)
 pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
@@ -56,7 +61,7 @@ pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
 # Do the same with intermittent data. Trace is not available yet for
 # intermittent state-space models
 x <- rpois(100,0.4)
-ourModel <- es(x, h=10, holdout=TRUE, intermittent='a')
+ourModel <- es(x, h=10, holdout=TRUE, intermittent='a', intervals=TRUE)
 Etype <- substr(modelType(ourModel),1,1)
 iprob <- ourModel$imodel$fitted
 pls(actuals=ourModel$holdout, forecasts=ourModel$forecast, Etype=Etype,
