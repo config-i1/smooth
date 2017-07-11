@@ -2266,7 +2266,7 @@ ssForecaster <- function(...){
 ##### *Check and initialisation of xreg* #####
 ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
-                   obsInsample, obsAll, obsStates, maxlag=1, h=1, silent=FALSE){
+                   obsInsample, obsAll, obsStates, maxlag=1, h=1, xregDo="u", silent=FALSE){
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
 
     if(!is.null(xreg)){
@@ -2413,6 +2413,19 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                         nExovars <- ncol(xreg)
                         warning("Some exogenous variables were perfectly correlated. We've dropped them out.",
                                 call.=FALSE);
+                    }
+                    # Check multiple correlations. This is needed for cases with dummy variables.
+                    # In case with xregDo="select" some of the perfectly correlated things, will be dropped out automatically.
+                    if(nExovars>1 & (xregDo=="u")){
+                        corMulti <- rep(NA,nExovars);
+                        for(i in 1:nExovars){
+                            corMulti[i] <- 1 - det(corMatrix) / det(corMatrix[-i,-i]);
+                        }
+                        if(any(corMulti>=0.999)){
+                            stop(paste0("Some combinations of exogenous variables are perfectly correlated. \n",
+                                        "If you use sets of dummy variables, don't forget to drop some of them."),
+                                call.=FALSE);
+                        }
                     }
                 }
             }

@@ -1161,7 +1161,7 @@ CreatorES <- function(silent=FALSE,...){
     xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=basicparams$maxlag, h=h, silent=silentText);
+                       maxlag=basicparams$maxlag, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
