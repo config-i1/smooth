@@ -2416,15 +2416,23 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     }
                     # Check multiple correlations. This is needed for cases with dummy variables.
                     # In case with xregDo="select" some of the perfectly correlated things, will be dropped out automatically.
-                    if(nExovars>1 & (xregDo=="u")){
+                    if(nExovars>2 & (xregDo=="u")){
+                        corMatrix <- cor(xreg);
                         corMulti <- rep(NA,nExovars);
-                        for(i in 1:nExovars){
-                            corMulti[i] <- 1 - det(corMatrix) / det(corMatrix[-i,-i]);
+                        if(det(corMatrix)!=0){
+                            for(i in 1:nExovars){
+                                corMulti[i] <- 1 - det(corMatrix) / det(corMatrix[-i,-i]);
+                            }
+                            if(any(corMulti>=0.999)){
+                                stop(paste0("Some combinations of exogenous variables are perfectly correlated. \n",
+                                            "If you use sets of dummy variables, don't forget to drop some of them."),
+                                     call.=FALSE);
+                            }
                         }
-                        if(any(corMulti>=0.999)){
+                        else{
                             stop(paste0("Some combinations of exogenous variables are perfectly correlated. \n",
                                         "If you use sets of dummy variables, don't forget to drop some of them."),
-                                call.=FALSE);
+                                 call.=FALSE);
                         }
                     }
                 }
