@@ -477,7 +477,9 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 vecat <- colSums(vecat,na.rm=T);
             }
             else{
-                vecat <- matat[maxlag,];
+                vecat <- t(solve(t(cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,]) %*%
+                                     cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,],tol=1e-50) %*%
+                               t(cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,]) %*% log(y[1:obsInsample][ot==1]))[2:(nExovars+1)]
             }
 
             C <- c(C,vecat);

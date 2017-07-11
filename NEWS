@@ -4,6 +4,7 @@ smooth v2.0.1 (Release data: 2017-08-31)
 Changes:
 * Forecasts and prediction intervals of the rounded values are now produced analytically.
 * PLS now needs vector of variances, which is produced only when intervals==TRUE. In all the other cases its value can be incorrect.
+* New initials for the exogenous variables in case of multiplicative models + stricter check of correlations between the regressors.
 
 Bugfixes:
 * Provided imodel sometimes would not be used correctly in the initialisation.
