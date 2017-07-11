@@ -2400,10 +2400,17 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 if(!is.null(xreg)){
 # Check for multicollinearity and drop something if there is a perfect one
                     corMatrix <- cor(xreg);
-                    corCheck <- upper.tri(corMatrix) & corMatrix==1;
+                    corCheck <- upper.tri(corMatrix) & abs(corMatrix)>=0.999;
                     if(any(corCheck)){
                         removexreg <- unique(which(corCheck,arr.ind=TRUE)[,1]);
-                        xreg <- matrix(xreg[,-removexreg],ncol=ncol(xreg)-length(removexreg));
+                        if(ncol(xreg)-length(removexreg)>1){
+                            xreg <- xreg[,-removexreg];
+                        }
+                        else{
+                            xreg <- matrix(xreg[,-removexreg],ncol=ncol(xreg)-length(removexreg),
+                                           dimnames=list(NULL,c(colnames(xreg)[-removexreg])));
+                        }
+                        nExovars <- ncol(xreg)
                         warning("Some exogenous variables were perfectly correlated. We've dropped them out.",
                                 call.=FALSE);
                     }
