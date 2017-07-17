@@ -2233,6 +2233,9 @@ ssForecaster <- function(...){
         else{
             y.low <- NA;
             y.high <- NA;
+            if(rounded){
+                y.for <- ceiling(y.for);
+            }
             y.for <- c(pt.for)*y.for;
             if(cumulative){
                 y.for <- ts(sum(y.for),start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
