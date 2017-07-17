@@ -253,13 +253,12 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         zeroes <- diff(zeroes);
 # Number of intervals in Croston
         iyt <- matrix(zeroes,length(zeroes),1);
-        newh <- which(y!=0)
+        newh <- which(y!=0);
         newh <- newh[length(newh)];
-        newh <- obsInsample - newh + h
+        newh <- obsInsample - newh + h;
         crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,
                            persistence=persistence,initial=initial);
 
-        zeroes[length(zeroes)] <- zeroes[length(zeroes)];
         pt <- rep((crostonModel$fitted),zeroes);
         tailNumber <- obsInsample - length(pt);
         if(tailNumber>0){
