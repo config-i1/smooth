@@ -11,7 +11,7 @@ ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
   "croston", "tsb", "sba"), imodel = "MNN", bounds = c("admissible",
-  "none"), silent = c("none", "all", "graph", "legend", "output"),
+  "none"), silent = c("all", "graph", "legend", "output", "none"),
   xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
   updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 }

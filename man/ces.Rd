@@ -11,7 +11,7 @@ ces(data, seasonality = c("none", "simple", "partial", "full"),
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, intermittent = c("none", "auto", "fixed", "croston", "tsb",
   "sba"), imodel = "MNN", bounds = c("admissible", "none"),
-  silent = c("none", "all", "graph", "legend", "output"), xreg = NULL,
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
   xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
   persistenceX = NULL, transitionX = NULL, ...)
 }

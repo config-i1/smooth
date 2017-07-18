@@ -6,8 +6,8 @@
 \usage{
 sma(data, order = NULL, ic = c("AICc", "AIC", "BIC"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
-  "semiparametric", "nonparametric"), level = 0.95, silent = c("none",
-  "all", "graph", "legend", "output"), ...)
+  "semiparametric", "nonparametric"), level = 0.95, silent = c("all",
+  "graph", "legend", "output", "none"), ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}

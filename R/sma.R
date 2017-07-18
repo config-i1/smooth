@@ -88,7 +88,8 @@
 sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                silent=c("none","all","graph","legend","output"), ...){
+                silent=c("all","graph","legend","output","none"),
+                ...){
 # Function constructs simple moving average in state-space model
 
 #    Copyright (C) 2016  Ivan Svetunkov

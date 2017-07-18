@@ -6,6 +6,7 @@ Changes:
 * PLS now needs vector of variances, which is produced only when intervals==TRUE. In all the other cases its value can be incorrect.
 * New initials for the exogenous variables in case of multiplicative models + stricter check of correlations between the regressors.
 * We also now check multiple correlations for exogenous variables.
+* silent="all" is now the default value.
 
 Bugfixes:
 * Provided imodel sometimes would not be used correctly in the initialisation.
