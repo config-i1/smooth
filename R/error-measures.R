@@ -395,7 +395,7 @@ pls <- function(actuals, forecasts, Etype=c("A","M"), sigma, trace=TRUE,
             }
         }
         ot <- (actuals!=0);
-        forecasts <- forecasts / iprob;
+        forecasts <- c(forecasts) / c(iprob);
         if(trace){
             warning("We cannot yet do trace and intermittent models.",call.=FALSE);
             trace <- FALSE;
