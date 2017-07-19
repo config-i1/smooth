@@ -5,8 +5,8 @@
 \title{Intermittent State Space}
 \usage{
 iss(data, intermittent = c("none", "fixed", "croston", "tsb", "sba"),
-  h = 10, holdout = FALSE, model = NULL, persistence = NULL,
-  initial = NULL)
+  ic = c("AICc", "AIC", "BIC"), h = 10, holdout = FALSE, model = NULL,
+  persistence = NULL, initial = NULL, xreg = NULL)
 }
 \arguments{
 \item{data}{Either numeric vector or time series vector.}
@@ -17,6 +17,8 @@ iss(data, intermittent = c("none", "fixed", "croston", "tsb", "sba"),
 Teunter et al., 2011 method., \code{"sba"} - Syntetos-Boylan Approximation
 for Croston's method (bias correction) discussed in Syntetos and Boylan,
 2005.}
+
+\item{ic}{Information criteria to use in case of model selection.}
 
 \item{h}{Forecast horizon.}
 
@@ -29,6 +31,9 @@ be either \code{"ANN"} or \code{"MNN"}.}
 \item{persistence}{Persistence vector. If \code{NULL}, then it is estimated.}
 
 \item{initial}{Initial vector. If \code{NULL}, then it is estimated.}
+
+\item{xreg}{Vector of matrix of exogenous variables, explaining some parts
+of occurrence variable (probability).}
 }
 \value{
 The object of class "iss" is returned. It contains following list of

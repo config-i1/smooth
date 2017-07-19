@@ -636,7 +636,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM"))){
+    else if(any(cfType==c("MSE","MAE","HAM","TSB"))){
         multisteps <- FALSE;
     }
     else{

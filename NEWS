@@ -7,6 +7,8 @@ Changes:
 * New initials for the exogenous variables in case of multiplicative models + stricter check of correlations between the regressors.
 * We also now check multiple correlations for exogenous variables.
 * silent="all" is now the default value.
+* Occurrence part of TSB model now accepts ETS models. So you can have trends / seasonality in probability.
+* Both Croston and TSB in iss() can now also accept exogenous variables.
 
 Bugfixes:
 * Provided imodel sometimes would not be used correctly in the initialisation.

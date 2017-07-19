@@ -122,6 +122,7 @@ intermittentMaker <- function(intermittent="n",...){
 #' Teunter et al., 2011 method., \code{"sba"} - Syntetos-Boylan Approximation
 #' for Croston's method (bias correction) discussed in Syntetos and Boylan,
 #' 2005.
+#' @param ic Information criteria to use in case of model selection.
 #' @param h Forecast horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
@@ -129,6 +130,8 @@ intermittentMaker <- function(intermittent="n",...){
 #' be either \code{"ANN"} or \code{"MNN"}.
 #' @param persistence Persistence vector. If \code{NULL}, then it is estimated.
 #' @param initial Initial vector. If \code{NULL}, then it is estimated.
+#' @param xreg Vector of matrix of exogenous variables, explaining some parts
+#' of occurrence variable (probability).
 #' @return The object of class "iss" is returned. It contains following list of
 #' values:
 #'
@@ -157,8 +160,8 @@ intermittentMaker <- function(intermittent="n",...){
 #'     iss(y, intermittent="c", persistence=0.1)
 #'
 #' @export iss
-iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
-                h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL){
+iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c("AICc","AIC","BIC"),
+                h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","c","t","s"))){
@@ -257,7 +260,8 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
         newh <- newh[length(newh)];
         newh <- obsInsample - newh + h;
         crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,
-                           persistence=persistence,initial=initial);
+                           persistence=persistence,initial=initial,
+                           ic=ic,xreg=xreg);
 
         pt <- rep((crostonModel$fitted),zeroes);
         tailNumber <- obsInsample - length(pt);
@@ -286,99 +290,30 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),
     }
 #### TSB method ####
     else if(intermittent=="t"){
-        ivt <- matrix(rep(iprob,obsInsample+1),obsInsample+1,1);
+        if(is.null(model)){
+            model <- "YYY";
+        }
+        if(is.null(initial)){
+            initial <- "o";
+        }
+
         iyt <- matrix(ot,obsInsample,1);
-        modellags <- matw <- matF <- matrix(1,1,1);
-
-        if(!is.null(model)){
-            if(model!="MNN"){
-                warning("Sorry, but currently TSB can only use ETS(M,N,N) model.", call.=FALSE);
-                model <- "MNN";
-                Etype <- "M";
-                Ttype <- "N";
-                Stype <- "N";
-            }
-        }
-
-        if(!is.null(persistence)){
-            if(length(persistence)!=1){
-                warning("Only one smoothing parameter is currently supported for TSB. Using the first value.",
-                        call.=FALSE);
-                persistence <- persistence[1];
-            }
-            persistenceEstimate <- FALSE;
-            vecg <- matrix(persistence,1,1);
-            C <- c(ivt[1]);
-            CLower <- c(0);
-            CUpper <- c(1);
-        }
-        else{
-            persistenceEstimate <- TRUE;
-            vecg <- matrix(0.1,1,1);
-            C <- c(ivt[1],vecg[1]);
-            CLower <- c(0,0);
-            CUpper <- c(1,1);
-        }
-
-        errors <- matrix(NA,obsInsample,1);
-        iyt.fit <- matrix(NA,obsInsample,1);
-
-#### CF for initial and persistence ####
-        CF <- function(C){
-            ivt[1,] <- C[1];
-            if(persistenceEstimate){
-                vecg[,] <- C[2];
-            }
-
-            fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
-                                  modellags, Etype, Ttype, Stype, "o",
-                                  matrix(0,obsInsample,1), matrix(0,obsInsample+1,1),
-                                  matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
-
-            iyt.fit <- fitting$yfit;
-
-            CF.res <- -(sum(log(iyt.fit[ot==1])) + sum(log((1-iyt.fit[ot==0]))));
-            return(CF.res);
-        }
+        iyt <- ts(iyt,frequency=frequency(data));
 
         kappa <- 1E-5;
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
 
-        # Another run, now to define persistence and initial
-        res <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-6, "maxeval"=100));
-
-        ivt[1,] <- res$solution[1];
-        if(persistenceEstimate){
-            vecg[,] <- res$solution[2];
-        }
-
-        logLik <- structure(-res$objective,df=3,class="logLik");
-
-        iy_kappa <- iyt*(1 - 2*kappa) + kappa;
-        fitting <- fitterwrap(ivt, matF, matw, iy_kappa, vecg,
-                              modellags, Etype, Ttype, Stype, "o",
-                              matrix(0,obsInsample,1), matrix(0,obsInsample+1,1),
-                              matrix(1,1,1), matrix(1,1,1), matrix(1,obsInsample,1));
-
-        ivt <- ts(fitting$matvt,start=(time(y)[1] - deltat(y)),frequency=frequency(y));
-        colnames(ivt) <- "level";
-        iyt.fit <- ts(fitting$yfit,start=start(y),frequency=frequency(y));
-        errors <- ts(fitting$errors,start=start(y),frequency=frequency(y));
-        iyt.for <- ts(rep(iyt.fit[obsInsample],h),
-                     start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+        tsbModel <- es(iy_kappa,model,persistence=persistence,initial=initial,
+                       ic=ic,silent=TRUE,h=h,cfType="TSB",xreg=xreg);
 
         # Correction so we can return from those iy_kappa values
-        iyt.fit <- (iyt.fit - kappa) / (1 - 2*kappa);
-        iyt.for <- (iyt.for - kappa) / (1 - 2*kappa);
+        tsbModel$fitted <- (tsbModel$fitted - kappa) / (1 - 2*kappa);
+        tsbModel$forecast <- (tsbModel$forecast - kappa) / (1 - 2*kappa);
 
-        vecg <- c(vecg);
-        names(vecg) <- "alpha";
-
-        output <- list(model=model, fitted=iyt.fit, forecast=iyt.for, states=ivt,
-                       variance=iyt.for*(1-iyt.for), logLik=logLik, nParam=2,
-                       residuals=errors, actuals=otAll,
-                       persistence=vecg, initial=ivt[1,]);
+        output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
+                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel),
+                       residuals=tsbModel$residuals, actuals=otAll,
+                       persistence=tsbModel$persistence, initial=tsbModel$initial);
     }
 #### None ####
     else{

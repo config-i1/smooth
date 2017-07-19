@@ -994,7 +994,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
 ##### Function selects the best es() based on IC #####
 CreatorES <- function(silent=FALSE,...){
     if(modelDo=="select"){
-        if(all(cfType!=c("MSE","Rounded"))){
+        if(all(cfType!=c("MSE","Rounded","TSB"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
         }
         environment(PoolEstimatorES) <- environment();
@@ -1011,7 +1011,7 @@ CreatorES <- function(silent=FALSE,...){
         return(listToReturn);
     }
     else if(modelDo=="combine"){
-        if(all(cfType!=c("MSE","Rounded"))){
+        if(all(cfType!=c("MSE","Rounded","TSB"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The produced combinations weights may be wrong."),call.=FALSE);
         }
         environment(PoolEstimatorES) <- environment();
@@ -1412,7 +1412,7 @@ CreatorES <- function(silent=FALSE,...){
         Etype <- EtypeOriginal;
         Ttype <- TtypeOriginal;
         Stype <- StypeOriginal;
-        if(all(cfType!=c("MSE","Rounded"))){
+        if(all(cfType!=c("MSE","Rounded","TSB"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
         }
         if(!silentText){
