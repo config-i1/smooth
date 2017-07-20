@@ -1,9 +1,10 @@
-smooth v2.1.0 (Release data: 2017-07-19)
+smooth v2.1.0 (Release data: 2017-07-20)
 ==============
 
 Changes:
 * Occurrence part of TSB model now accepts ETS models. So you can have trends / seasonality in probability.
 * Both Croston and TSB in iss() can now also accept exogenous variables.
+* Probability in TSB is now restricted with [0, 1] region.
 
 
 smooth v2.0.1 (Release data: 2017-07-01)

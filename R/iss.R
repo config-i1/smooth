@@ -310,6 +310,22 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c(
         tsbModel$fitted <- (tsbModel$fitted - kappa) / (1 - 2*kappa);
         tsbModel$forecast <- (tsbModel$forecast - kappa) / (1 - 2*kappa);
 
+        # If bt>1, then at = 0 and pt = bt / (at + bt) = 1
+        if(any(tsbModel$fitted>1)){
+            tsbModel$fitted[tsbModel$fitted>1] <- 1;
+        }
+        if(any(tsbModel$forecast>1)){
+            tsbModel$forecast[tsbModel$forecast>1] <- 1;
+        }
+
+        # If at>1, then bt = 0 and pt = bt / (at + bt) = 0
+        if(any(tsbModel$fitted<0)){
+            tsbModel$fitted[tsbModel$fitted<0] <- 0;
+        }
+        if(any(tsbModel$forecast<0)){
+            tsbModel$forecast[tsbModel$forecast<0] <- 0;
+        }
+
         output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
                        variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel),
                        residuals=tsbModel$residuals, actuals=otAll,
