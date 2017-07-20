@@ -10,14 +10,14 @@ intermittentParametersSetter <- function(intermittent="n",...){
         obsNonzero <- sum(ot);
         # 1 parameter for estimating initial probability
         nParamIntermittent <- 1;
-        if(intermittent=="c"){
-            # In Croston we also need to estimate smoothing parameter and variance
-           nParamIntermittent <- nParamIntermittent + 2;
-        }
-        else if(any(intermittent==c("t","a"))){
+        if(intermittent=="t"){
             # In TSB we only need to estimate smoothing parameter - we do not
             # estimate any parameters of the Beta distribution.
-           nParamIntermittent <- nParamIntermittent + 1;
+            nParamIntermittent <- nParamIntermittent + 1;
+        }
+        else if(any(intermittent==c("c","a"))){
+            # In Croston we also need to estimate smoothing parameter and variance
+            nParamIntermittent <- nParamIntermittent + 2;
         }
         yot <- matrix(y[y!=0],obsNonzero,1);
         if(!imodelProvided){
