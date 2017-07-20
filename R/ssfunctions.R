@@ -793,6 +793,17 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
                 warning("Can't apply multiplicative model to non-positive data. Switching seasonality type to 'A'", call.=FALSE);
                 Stype <- "A";
             }
+
+            if(!is.null(modelsPool)){
+                if(any(c(substr(modelsPool,1,1),
+                         substr(modelsPool,2,2),
+                         substr(modelsPool,nchar(modelsPool),nchar(modelsPool)))=="M")){
+                    warning("Can't apply multiplicative model to non-positive data. Switching to additive.", call.=FALSE);
+                    substr(modelsPool,1,1)[substr(modelsPool,1,1)=="M"] <- "A";
+                    substr(modelsPool,2,2)[substr(modelsPool,2,2)=="M"] <- "A";
+                    substr(modelsPool,nchar(modelsPool),nchar(modelsPool))[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M"] <- "A";
+                }
+            }
         }
     }
 
