@@ -6,6 +6,9 @@ Changes:
 * Both Croston and TSB in iss() can now also accept exogenous variables.
 * Probability in TSB is now restricted with [0, 1] region.
 
+Bugfixes:
+* Parameteric prediction intervals for cases of h=1 did not work for some models.
+
 
 smooth v2.0.1 (Release data: 2017-07-01)
 ==============

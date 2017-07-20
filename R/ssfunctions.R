@@ -2023,8 +2023,8 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     lower <- quants$lower;
                 }
                 else{
-                    upperquant <- y.for*qlnorm((1+level)/2,0,sqrt(s2));
-                    lowerquant <- y.for*qlnorm((1-level)/2,0,sqrt(s2));
+                    upper <- y.for*qlnorm((1+level)/2,0,sqrt(s2));
+                    lower <- y.for*qlnorm((1-level)/2,0,sqrt(s2));
                 }
             }
             else{
