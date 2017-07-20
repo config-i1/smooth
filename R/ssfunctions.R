@@ -2266,8 +2266,8 @@ ssForecaster <- function(...){
     }
 
     if(any(is.na(y.fit),all(is.na(y.for),h>0))){
-        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
-        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
+        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE);
+        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE);
     }
 
     assign("s2",s2,ParentEnvironment);

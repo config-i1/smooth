@@ -1284,7 +1284,7 @@ CreatorES <- function(silent=FALSE,...){
                 modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
-            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE,immediate.=TRUE);
+            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
                 if(length(modelsPool)>2){
