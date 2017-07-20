@@ -2353,6 +2353,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     colnames(matxt) <- xregNames;
                 }
             }
+            xreg <- as.matrix(xreg);
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
