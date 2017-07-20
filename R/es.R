@@ -625,7 +625,8 @@ EstimatorES <- function(...){
         }
     }
 
-    nParam <- 1 + nComponents + damped + (nComponents + (maxlag - 1) * (Stype!="N")) * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);
+    nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+               + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
     # Change cfType for model selection
     if(multisteps){
@@ -1060,7 +1061,8 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        nParam <- 1 + nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
+        nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+                   + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
 # Change cfType for model selection
         if(multisteps){
@@ -1297,6 +1299,15 @@ CreatorES <- function(silent=FALSE,...){
                 model <- "ZZZ";
             }
         }
+        else if(obsNonzero==3){
+            modelsPool <- c("ANN");
+            if(allowMultiplicative){
+                modelsPool <- c(modelsPool,"MNN");
+            }
+            persistence <- 0;
+            persistenceEstimate <- FALSE
+            warning("We did not have enough observations, so persistence value was set to zero.",call.=FALSE);
+        }
         else{
             stop("Not enough observations... Even for fitting of ETS('ANN')!",call.=FALSE);
         }
@@ -1325,7 +1336,8 @@ CreatorES <- function(silent=FALSE,...){
             BasicMakerES(ParentEnvironment=environment());
 
             # Number of parameters
-            nParam <- nComponents + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b") + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars);
+            nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+                       + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
             if(!is.null(providedC)){
                 if(nParam!=length(providedC)){
                     warning(paste0("Number of parameters to optimise differes from the length of C:",nParam," vs ",length(providedC),".\n",

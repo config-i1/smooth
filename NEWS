@@ -5,6 +5,7 @@ Changes:
 * Occurrence part of TSB model now accepts ETS models. So you can have trends / seasonality in probability.
 * Both Croston and TSB in iss() can now also accept exogenous variables.
 * Probability in TSB is now restricted with [0, 1] region.
+* We can now fit es() even on 3 observations, but with persistence forced to be equal to zero. Don't expect a good model, though...
 
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.
