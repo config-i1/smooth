@@ -2600,9 +2600,18 @@ likelihoodFunction <- function(C){
     else{
         #Failsafe for exceptional cases when the probability is equal to zero / one, when it should not have been.
         if(any(c(1-pt[ot==0]==0,pt[ot==1]==0))){
-            return(-Inf);
+            # return(-Inf);
+            ptNew <- pt[(pt!=0) & (pt!=1)];
+            otNew <- ot[(pt!=0) & (pt!=1)];
+            if(length(ptNew)==0){
+                return(-obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            }
+            else{
+                return(sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]))
+                       - obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            }
         }
-        #Failsage for cases, when data has no variability when ot==1.
+        #Failsafe for cases, when data has no variability when ot==1.
         if(CF(C)==0){
             if(cfType=="TFL" | cfType=="aTFL"){
                 return(sum(log(pt[ot==1]))*h + sum(log(1-pt[ot==0]))*h);

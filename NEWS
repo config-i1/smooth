@@ -10,6 +10,7 @@ Changes:
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.
 * Fixed model selection on non-positive data, when model="YYY", intermittent!="n", but we don't have enough non-zero observations.
+* Models with boundary probabilities returned -Inf as likelihood value, which is incorrect.
 
 
 smooth v2.0.1 (Release data: 2017-07-01)
