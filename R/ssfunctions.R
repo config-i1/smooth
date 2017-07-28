@@ -1448,6 +1448,18 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
         intervals <- TRUE;
     }
 
+    ##### imodel #####
+    if(class(imodel)!="iss"){
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
+    }
+    else{
+        intermittentModel <- imodel$model;
+        intermittent <- imodel$intermittent;
+        imodelProvided <- TRUE;
+    }
+
     ##### intermittent #####
     if(is.numeric(intermittent)){
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
@@ -1491,6 +1503,12 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
                 intermittentParametersSetter(intermittent,ParentEnvironment=environment());
             }
         }
+    }
+
+    # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
+    if(all(pt==1) & all(intermittent!=c("n","p"))){
+        intermittent <- "n";
+        imodelProvided <- FALSE;
     }
 
     ##### Define xregDo #####
