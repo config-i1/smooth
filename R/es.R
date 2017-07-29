@@ -471,7 +471,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
 
     if(xregEstimate){
         if(initialXEstimate){
-            if(Etype=="A" & modelDo!="estimate"){
+            if(Etype=="A"){
                 vecat <- matrix(y[2:obsInsample],nrow=obsInsample-1,ncol=ncol(matxt)) / diff(matxt[1:obsInsample,]);
                 vecat[is.infinite(vecat)] <- NA;
                 vecat <- colSums(vecat,na.rm=T);

@@ -1,4 +1,4 @@
-smooth v2.1.0 (Release data: 2017-07-28)
+smooth v2.1.0 (Release data: 2017-07-29)
 ==============
 
 Changes:
@@ -13,9 +13,11 @@ Bugfixes:
 * Models with boundary probabilities returned -Inf as likelihood value, which is incorrect.
 * xregDo now works with only one variable as well.
 * intermittent="a" did not work with auto.ssarima() and auto.ces() functions.
+* initials of xreg did not work correctly when Etype="A".
+* Now we force the provided xreg to become a matrix.
 
 
-smooth v2.0.1 (Release data: 2017-07-01)
+smooth v2.0.1 (Release data: 2017-07-05)
 ==============
 
 Changes:

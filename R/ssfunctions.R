@@ -2375,9 +2375,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
-            if(!is.matrix(xreg)){
-                xreg <- as.matrix(xreg);
-            }
+            # if(!is.matrix(xreg)){
+            xreg <- as.matrix(xreg);
+            # }
 
             nExovars <- ncol(xreg);
             if(nrow(xreg) < obsAll){
