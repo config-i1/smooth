@@ -2495,6 +2495,11 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 }
                 else{
                     xregNames <- gsub(" ", "_", colnames(xreg), fixed = TRUE);
+                    if(xregDo=="s" & any(grepl('[^[:alnum:]]', xregNames))){
+                        warning(paste0("There were some special characters in names of ",
+                                       "xreg variables. We had to remove them."),call.=FALSE);
+                        xregNames <- gsub("[^[:alnum:]]", "", xregNames);
+                    }
                     colnames(matat) <- xregNames;
                     colnames(matxt) <- xregNames;
                 }
