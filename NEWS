@@ -6,6 +6,7 @@ Changes:
 * Both Croston and TSB in iss() can now also accept exogenous variables.
 * Probability in TSB is now restricted with [0, 1] region.
 * We can now fit es() even on 3 observations, but with persistence forced to be equal to zero. Don't expect a good model, though...
+* auto.ssarima() now allows defining whether if constant is needed or not. By default it will check this automatically.
 
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.

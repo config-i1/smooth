@@ -6,15 +6,15 @@
 \usage{
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(data)), combine = FALSE, workFast = TRUE,
-  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
-  cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10,
-  holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
-  "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
-  "auto", "fixed", "croston", "tsb", "sba"), imodel = "MNN",
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
-  initialX = NULL, updateX = FALSE, persistenceX = NULL,
-  transitionX = NULL, ...)
+  constant = NULL, initial = c("backcasting", "optimal"), ic = c("AICc",
+  "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh",
+  "TFL"), h = 10, holdout = FALSE, cumulative = FALSE,
+  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  level = 0.95, intermittent = c("none", "auto", "fixed", "croston", "tsb",
+  "sba"), imodel = "MNN", bounds = c("admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
+  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
+  persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -34,6 +34,10 @@ weights.}
 
 \item{workFast}{If \code{TRUE}, then some of the orders of ARIMA are
 skipped. This is not advised for models with \code{lags} greater than 12.}
+
+\item{constant}{If \code{NULL}, then the function will check if constant is
+needed. if \code{TRUE}, then constant is forced in the model. Otherwise
+constant is not used.}
 
 \item{initial}{Can be either character or a vector of initial states. If it
 is character, then it can be \code{"optimal"}, meaning that the initial
