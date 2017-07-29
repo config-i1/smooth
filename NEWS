@@ -15,6 +15,7 @@ Bugfixes:
 * intermittent="a" did not work with auto.ssarima() and auto.ces() functions.
 * initials of xreg did not work correctly when Etype="A".
 * Now we force the provided xreg to become a matrix.
+* xreg did not work well with zoo, when xreg contained NAs. Now it should work.
 
 
 smooth v2.0.1 (Release data: 2017-07-05)

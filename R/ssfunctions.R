@@ -2302,6 +2302,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
 
     if(!is.null(xreg)){
+        xreg <- as.matrix(xreg);
         if(any(is.na(xreg))){
             warning("The exogenous variables contain NAs! This may lead to problems during estimation and in forecasting.\nSubstituting them with 0.",
                     call.=FALSE);
@@ -2319,7 +2320,6 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
 # Check if xreg contains something meaningful
-
             if(is.null(initialX)){
                 if(all(xreg[1:obsInsample]==xreg[1])){
                     warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
@@ -2375,10 +2375,6 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         }
 ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
-            # if(!is.matrix(xreg)){
-            xreg <- as.matrix(xreg);
-            # }
-
             nExovars <- ncol(xreg);
             if(nrow(xreg) < obsAll){
                 warning("xreg did not contain values for the holdout, so we had to predict missing values.", call.=FALSE);
