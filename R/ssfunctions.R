@@ -1084,7 +1084,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     if(smoothType=="ssarima"){
         if((nComponents==0) & (constantRequired==FALSE)){
-            warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
+            if(!silentText){
+                warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
+            }
             constantRequired <- TRUE;
             constantValue <- 0;
             initialType <- "p";
