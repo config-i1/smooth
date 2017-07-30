@@ -294,7 +294,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             initial <- "o";
         }
     }
-    else if(class(model)=="ets"){
+    else if(any(class(model)=="ets")){
         # Extract smoothing parameters
         i <- 1;
         persistence <- coef(model)[i];
@@ -337,6 +337,13 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             }
         }
         model <- modelType(model);
+    }
+    else if(any(class(model)=="character")){
+        # Everything is okay
+    }
+    else{
+        warning("A model of an unknown class was provided. Switching to 'ZZZ'",call.=FALSE);
+        model <- "ZZZ";
     }
 
 # Add all the variables in ellipsis to current environment
