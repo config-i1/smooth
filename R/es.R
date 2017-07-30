@@ -63,8 +63,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
 #' estimate only two models and select the best of them.
 #'
-#' Also \code{model} can accept a previously estimated ES model and use all its
-#' parameters.
+#' Also \code{model} can accept a previously estimated ES or ETS (from forecast
+#' package) model and use all its parameters.
 #'
 #' Keep in mind that model selection with "Z" components uses Branch and Bound
 #' algorithm and may skip some models that could have slightly smaller
@@ -293,6 +293,50 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(any(unlist(gregexpr("C",model))!=-1)){
             initial <- "o";
         }
+    }
+    else if(class(model)=="ets"){
+        # Extract smoothing parameters
+        i <- 1;
+        persistence <- coef(model)[i];
+        if(model$components[2]!="N"){
+            i <- i+1;
+            persistence <- c(persistence,coef(model)[i]);
+            if(model$components[3]!="N"){
+                i <- i+1;
+                persistence <- c(persistence,coef(model)[i]);
+            }
+        }
+        else{
+            if(model$components[3]!="N"){
+                i <- i+1;
+                persistence <- c(persistence,coef(model)[i]);
+            }
+        }
+
+        # Damping parameter
+        if(model$components[4]=="TRUE"){
+            i <- i+1;
+            phi <- coef(model)[i];
+        }
+
+        # Initials
+        i <- i+1;
+        initial <- coef(model)[i];
+        if(model$components[2]!="N"){
+            i <- i+1;
+            initial <- c(initial,coef(model)[i]);
+        }
+
+        # Initials of seasonal component
+        if(model$components[3]!="N"){
+            if(model$components[2]!="N"){
+                initialSeason <- rev(test$states[1,-c(1:2)]);
+            }
+            else{
+                initialSeason <- rev(test$states[1,-c(1)]);
+            }
+        }
+        model <- modelType(model);
     }
 
 # Add all the variables in ellipsis to current environment
