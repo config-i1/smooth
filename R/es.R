@@ -342,7 +342,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         # Everything is okay
     }
     else{
-        warning("A model of an unknown class was provided. Switching to 'ZZZ'",call.=FALSE);
+        warning("A model of an unknown class was provided. Switching to 'ZZZ'.",call.=FALSE);
         model <- "ZZZ";
     }
 
