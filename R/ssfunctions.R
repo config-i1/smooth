@@ -981,7 +981,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             }
             else{
                 if(length(initialSeason)!=datafreq){
-                warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.",
+                warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.\n",
                                "Values of initialSeason vector will be estimated."),call.=FALSE);
                     initialSeason <- NULL;
                     initialSeasonEstimate <- TRUE
