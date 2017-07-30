@@ -330,10 +330,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         # Initials of seasonal component
         if(model$components[3]!="N"){
             if(model$components[2]!="N"){
-                initialSeason <- rev(test$states[1,-c(1:2)]);
+                initialSeason <- rev(model$states[1,-c(1:2)]);
             }
             else{
-                initialSeason <- rev(test$states[1,-c(1)]);
+                initialSeason <- rev(model$states[1,-c(1)]);
             }
         }
         model <- modelType(model);
