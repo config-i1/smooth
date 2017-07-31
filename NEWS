@@ -1,4 +1,4 @@
-smooth v2.1.0 (Release data: 2017-07-30)
+smooth v2.1.0 (Release data: 2017-07-31)
 ==============
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * Probability in TSB is now restricted with [0, 1] region.
 * We can now fit es() even on 3 observations, but with persistence forced to be equal to zero. Don't expect a good model, though...
 * auto.ssarima() now allows defining whether if constant is needed or not. By default it will check this automatically.
+* Initials of xreg before the optimisation are now based on OLS estimates.
 
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.

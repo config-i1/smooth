@@ -522,18 +522,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
 
     if(xregEstimate){
         if(initialXEstimate){
-            if(Etype=="A"){
-                vecat <- matrix(y[2:obsInsample],nrow=obsInsample-1,ncol=ncol(matxt)) / diff(matxt[1:obsInsample,]);
-                vecat[is.infinite(vecat)] <- NA;
-                vecat <- colSums(vecat,na.rm=T);
-            }
-            else{
-                vecat <- t(solve(t(cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,]) %*%
-                                     cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,],tol=1e-50) %*%
-                               t(cbind(rep(1,obsInsample),matxt[1:obsInsample,])[ot==1,]) %*% log(y[1:obsInsample][ot==1]))[2:(nExovars+1)]
-            }
-
-            C <- c(C,vecat);
+            C <- c(C,matatOriginal[1,xregNames]);
             CLower <- c(CLower,rep(-Inf,nExovars));
             CUpper <- c(CUpper,rep(Inf,nExovars));
         }
