@@ -20,6 +20,7 @@ Bugfixes:
 * xreg did not work well with zoo, when xreg contained NAs. Now it should work.
 * auto.ssarima() did not allow selecting the best model between AR models only. Now it does.
 * Fixed xreg selection in cases of xreg having special characters in names.
+* Centering of errors in sim.es() is now done automatically only for runif.
 
 
 smooth v2.0.1 (Release data: 2017-07-05)

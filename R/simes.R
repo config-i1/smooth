@@ -445,8 +445,10 @@ sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
         }
 
         if(randomizer!="rlnorm"){
-# Center errors just in case
-            materrors <- materrors - colMeans(materrors);
+            if(randomizer=="runif"){
+                # Center errors just in case
+                materrors <- materrors - colMeans(materrors);
+            }
 # If the error is multiplicative, scale it!
             if(Etype=="M"){
 # Errors will be lognormal, decrease variance, so it behaves better
