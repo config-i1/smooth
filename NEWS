@@ -9,6 +9,7 @@ Changes:
 * We can now fit es() even on 3 observations, but with persistence forced to be equal to zero. Don't expect a good model, though...
 * auto.ssarima() now allows defining whether if constant is needed or not. By default it will check this automatically.
 * Initials of xreg before the optimisation are now based on OLS estimates.
+* In case of updateX=TRUE, we now check a very basic forecastability condition.
 
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.

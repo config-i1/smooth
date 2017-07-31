@@ -1737,6 +1737,18 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
         }
     }
 
+    if(matrixAt(0,0)!=0){
+        arma::rowvec rowvecWX(matFX_n.nrow(), arma::fill::ones);
+        if(arma::eig_gen(eigval, matrixFX - vecGX * rowvecWX)){
+            if(max(abs(eigval))> (1 + 1E-50)){
+                return wrap(max(abs(eigval))*1E+100);
+            }
+        }
+        else{
+            return wrap(1E+300);
+        }
+    }
+
     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
                           hor, lags, E, T, S,
                           multi, CFtype, normalize, fitterType,
