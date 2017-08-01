@@ -25,8 +25,9 @@ The package includes the following functions:
 5. [ves() - Vector Exponential Smoothing](ves.html);
 6. [sma() - Simple Moving Average in state-space form](sma.html);
 7. [sim.es() and simulate() - simulation functions for Exponential Smoothing](simulate.html).
-8. `xregExpander()` -- function that creates lags and leads of the provided exogenous variables (either vector or matrix). This thing returns the matrix.
-9. `stepwise()` -- the function that implements stepwise based on information criteria and partial correlations. Easier to use and works faster than `step()` from ``stats'' package.
+8. `iss()` -- function that estimates probability of occurrence of variable using one of the following: 1. Fixed probability; 2. Croston's probability; 3. SBA; 4. TSB probability. The model produced by `iss()` can then be used in any forecasting function as input variable for `imodel` parameter.
+9. `xregExpander()` -- function that creates lags and leads of the provided exogenous variables (either vector or matrix). This thing returns the matrix.
+10. `stepwise()` -- the function that implements stepwise based on information criteria and partial correlations. Easier to use and works faster than `step()` from ``stats'' package.
 
 This funcions (except for the last one) return object of class ``smooth'', which uses several methods.
 

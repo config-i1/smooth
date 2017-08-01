@@ -1,4 +1,4 @@
-smooth v2.1.0 (Release data: 2017-07-31)
+smooth v2.1.0 (Release data: 2017-08-01)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * auto.ssarima() now allows defining whether if constant is needed or not. By default it will check this automatically.
 * Initials of xreg before the optimisation are now based on OLS estimates.
 * In case of updateX=TRUE, we now check a very basic forecastability condition.
+* A couple of new examples in vignettes.
 
 Bugfixes:
 * Parameteric prediction intervals for cases of h=1 did not work for some models.

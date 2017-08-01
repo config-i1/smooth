@@ -126,3 +126,14 @@ If we are confused about the type of estimated model, the function `formula()` w
 ```{r es_N2457_xreg_formula}
 formula(ourModel)
 ```
+
+A feature available since 2.1.0 is fitting `ets()` model and then using its parameters in `es()`:
+```{r ets_es, message=FALSE, warning=FALSE}
+etsModel <- forecast::ets(M3$N2457$x)
+esModel <- es(M3$N2457$x, model=etsModel, h=18)
+```
+The point forecasts in the majority of cases should the same, but the prediction intervals may be different (especially if error term is multiplicative):
+```{r ets_es_forecast, message=FALSE, warning=FALSE}
+forecast(etsModel,h=18,level=0.95)
+forecast(esModel,h=18,level=0.95)
+```
