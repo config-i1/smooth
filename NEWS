@@ -1,3 +1,14 @@
+smooth v2.1.1 (Release data: 2017-08-01)
+==============
+
+Changes:
+* initials for parameters of AR now take into account the number of parameters. Should simplify optimisation of AR.
+
+Bugfixes:
+* auto.ssarima() had a bug with dataMA.
+* auto.ssarima() did not calculate correctly number of iterations for AR models.
+
+
 smooth v2.1.0 (Release data: 2017-08-01)
 ==============
 
@@ -7,7 +18,7 @@ Changes:
 * es() now accepts model estimated using ets() function from forecast package.
 * Probability in TSB is now restricted with [0, 1] region.
 * We can now fit es() even on 3 observations, but with persistence forced to be equal to zero. Don't expect a good model, though...
-* auto.ssarima() now allows defining whether if constant is needed or not. By default it will check this automatically.
+* auto.ssarima() now allows defining whether constant is needed or not. By default it will check this automatically.
 * Initials of xreg before the optimisation are now based on OLS estimates.
 * In case of updateX=TRUE, we now check a very basic forecastability condition.
 * A couple of new examples in vignettes.

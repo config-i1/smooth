@@ -361,10 +361,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(nComponents > 0){
 # ar terms, ma terms from season to season...
             if(AREstimate){
-                C <- c(C,rep(0.1,sum(ar.orders)));
+                # C <- c(C,rep(0.1,sum(ar.orders)));
+                C <- c(C,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
             }
             if(MAEstimate){
                 C <- c(C,rep(0.1,sum(ma.orders)));
+                # C <- c(C,c(1:sum(ma.orders))/sum(sum(ma.orders):1));
             }
 
 # initial values of state vector and the constant term
