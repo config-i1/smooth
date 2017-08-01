@@ -329,7 +329,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c(
         }
 
         output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
-                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel),
+                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel)-1,
                        residuals=tsbModel$residuals, actuals=otAll,
                        persistence=tsbModel$persistence, initial=tsbModel$initial);
     }

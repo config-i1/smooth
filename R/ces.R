@@ -797,7 +797,7 @@ CreatorCES <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,A=A$value,B=B$value,
                   initialType=initialType,initial=initialValue,
-                  nParam=nParam,
+                  nParam=nParam+nParamExo+nParamIntermittent,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=imodel,

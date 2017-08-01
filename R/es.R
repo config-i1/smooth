@@ -665,7 +665,7 @@ EstimatorES <- function(...){
         }
     }
 
-    nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+    nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
                + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
     # Change cfType for model selection
@@ -1101,7 +1101,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+        nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
                    + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
 # Change cfType for model selection
@@ -1851,7 +1851,7 @@ CreatorES <- function(silent=FALSE,...){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,transition=matF,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
-                      nParam=nParam,
+                      nParam=nParam+nParamExo+nParamIntermittent,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                       actuals=data,holdout=y.holdout,imodel=imodel,
