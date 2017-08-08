@@ -477,7 +477,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             persistenceValue <- persistenceBuffer;
         }
         # Dependent values
-        else{
+        else if(persistenceType=="d"){
             persistenceValue <- A[1:(nComponentsAll*nSeries^2)];
             nCoefficients <- nComponentsAll*nSeries^2;
         }
@@ -516,7 +516,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
     }
 
     ### Measurement matrix
-    if(dampedEstimate){
+    # Needs to be filled in with dampedValue even if dampedValue has been provided by a user
+    if(damped){
         for(i in 1:nSeries){
             matW[i,nComponentsNonSeasonal+nComponentsAll*(i-1)] <- dampedValue[i];
         }
@@ -652,7 +653,7 @@ CreatorVES <- function(silent=FALSE,...){
             }
         }
         A <- c(A,initialValue);
-        A <- c(A,initialSeason);
+        A <- c(A,initialSeasonValue);
 
         cfObjective <- CF(A);
 
@@ -693,6 +694,7 @@ CreatorVES <- function(silent=FALSE,...){
     else{
         modelDo <- "nothing";
         modelCurrent <- model;
+        bounds <- "n";
     }
 
 ##### Now do estimation and model selection #####
@@ -738,7 +740,7 @@ CreatorVES <- function(silent=FALSE,...){
             parametersNumber[1,1] <- parametersNumber[1,1] + nComponentsAll;
         }
         else if(persistenceType=="i"){
-            parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
+            parametersNumber[1,1] <- parametersNumber[1,1] + nSeries*nComponentsAll;
         }
         else{
             parametersNumber[1,1] <- parametersNumber[1,1] + length(matG);

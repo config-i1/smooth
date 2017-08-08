@@ -385,10 +385,15 @@ vssInput <- function(smoothType=c("ves"),...){
                         # If phi is grouped, add one parameter
                         if(transitionValue[2,2]==transitionValue[2+nComponentsAll,2+nComponentsAll]){
                             parametersNumber[2,1] <- parametersNumber[2,1] + 1;
+                            phi <- transitionValue[2,2];
                         }
                         # Else phi is individual
                         else{
                             parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                            phi <- rep(NA,nSeries);
+                            for(i in 1:nSeries){
+                                phi[i] <- transitionValue[2+(i-1)*nComponentsAll,2+(i-1)*nComponentsAll];
+                            }
                         }
                     }
                 }
@@ -416,15 +421,15 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     if(transitionType=="d"){
+        ## !!! Each separate transition matrix is not evaluated, but the left spaces are...
         transitionEstimate <- TRUE;
-        # Each separate transition matrix is not evaluated, but the left spaces are...
         nParamMax <- nParamMax + nSeries*nComponentsAll - nComponentsAll^2;
     }
 
     ##### Damping parameter ####
     # phi type can be: "i" - individual, "g" - group.
     dampedValue <- phi;
-    if((transitionType!="p")){
+    if(transitionType!="p"){
         if(damped){
             if(is.null(dampedValue)){
                 if(silentText){
@@ -486,7 +491,6 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
     else{
-        dampedValue <- matrix(1,nSeries,1);
         dampedType <- "g";
         dampedEstimate <- FALSE;
     }
