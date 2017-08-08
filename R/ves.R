@@ -154,10 +154,6 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 silent=c("none","all","graph","output"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
-### This should be done as expanded es() function with matrix of states (rows - time, cols - states),
-### large transition matrix and a persistence matrix. The returned value of the fit is vector.
-### So the vfitter can be based on amended version fitter.
-
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
@@ -178,7 +174,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
         measurement <- model$measurement;
         initial <- model$initial;
         initialSeason <- model$initialSeason;
-        nParamOriginal <- model$nParam;
+        # nParamOriginal <- model$nParam;
         # if(is.null(xreg)){
         #     xreg <- model$xreg;
         # }
@@ -190,9 +186,9 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
         # }
         model <- modelType(model);
     }
-    else{
-        nParamOriginal <- NULL;
-    }
+    # else{
+        # nParamOriginal <- NULL;
+    # }
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -609,7 +605,7 @@ EstimatorVES <- function(...){
 
     # First part is for the covariance matrix
     if(cfType=="l"){
-        nParam <- nSeries * (nSeries + 1) + length(A);
+        nParam <- nSeries * (nSeries + 1) / 2 + length(A);
     }
     else if(cfType=="d"){
         nParam <- nSeries + length(A);
@@ -661,16 +657,25 @@ CreatorVES <- function(silent=FALSE,...){
         cfObjective <- CF(A);
 
         # Number of parameters
-        # nParam <- nSeries + length(A);
+        # First part is for the covariance matrix
+        if(cfType=="l"){
+            nParam <- nSeries * (nSeries + 1) / 2;
+        }
+        else if(cfType=="d"){
+            nParam <- nSeries;
+        }
+        else{
+            nParam <- nSeries;
+        }
 
-        ICValues <- vICFunction(nParam=nParamOriginal,A=A,Etype=Etype);
+        ICValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=cfObjective,A=A,ICs=ICs,icBest=icBest,
-                             nParam=nParamOriginal,logLik=logLik);
+                             nParam=nParam,logLik=logLik);
         return(listToReturn);
     }
 }
@@ -729,14 +734,29 @@ CreatorVES <- function(silent=FALSE,...){
     }
     if(persistenceEstimate){
         persistenceValue <- matG;
+        if(persistenceType=="g"){
+            parametersNumber[1,1] <- parametersNumber[1,1] + nComponentsAll;
+        }
+        else if(persistenceType=="i"){
+            parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
+        }
+        else{
+            parametersNumber[1,1] <- parametersNumber[1,1] + length(matG);
+        }
     }
     rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)), ", ", persistenceNames);
 
 # This is needed anyway for the reusability of the model
     transitionValue <- matF;
+    if(transitionEstimate){
+        parametersNumber[1,1] <- parametersNumber[1,1] + length(transitionValue);
+    }
 
     if(damped){
         rownames(dampedValue) <- paste0("Series",c(1:nSeries));
+        if(dampedEstimate){
+            parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(dampedValue)));
+        }
     }
 
     initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
@@ -748,6 +768,7 @@ CreatorVES <- function(silent=FALSE,...){
     }
     if(initialEstimate){
         initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
+        parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialValue)));
     }
     rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
 
@@ -755,6 +776,7 @@ CreatorVES <- function(silent=FALSE,...){
         if(initialSeasonEstimate){
             initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
             initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
+            parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialSeasonValue)));
         }
         rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
         colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
@@ -772,13 +794,24 @@ CreatorVES <- function(silent=FALSE,...){
 
     if(cfType=="l"){
         cfType <- "likelihood";
+        parametersNumber[1,1] <- parametersNumber[1,1] + nSeries * (nSeries + 1) / 2;
     }
     else if(cfType=="d"){
         cfType <- "diagonal";
+        parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
     }
     else{
         cfType <- "trace";
+        parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
     }
+
+    # if(is.null(nParamOriginal)){
+        parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+        parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+    # }
+    # else{
+        # parametersNumber <- nParamOriginal;
+    # }
 
 ##### Now let's deal with the holdout #####
     if(holdout){
@@ -825,7 +858,7 @@ CreatorVES <- function(silent=FALSE,...){
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
                   measurement=matW, phi=dampedValue, coefficients=A,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
-                  nParam=nParam,
+                  nParam=parametersNumber,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,lower=yLower,upper=yUpper,intervals=intervalsType,level=level,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);

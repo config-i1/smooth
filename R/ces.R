@@ -1,7 +1,5 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
-
-
 #' Complex Exponential Smoothing
 #'
 #' Function estimates CES in state-space form with information potential equal
@@ -55,7 +53,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' in a form b0 + ib1.
 #' \item \code{initialType} - Typetof initial values used.
 #' \item \code{initial} - the intial values of the state vector (non-seasonal).
-#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
 #' \item \code{fitted} - the fitted values of CES.
 #' \item \code{forecast} - the point forecast of CES.
 #' \item \code{lower} - the lower bound of prediction interval. When
@@ -314,7 +314,9 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    nParam <- sum(modellags)*(initialType!="b") + A$number + B$number + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars) + 1;
+    nParam <- (1 + sum(modellags)*(initialType=="o") + A$number + B$number +
+                   (!is.null(xreg)) * (nExovars * initialXEstimate +
+                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
 
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         C <- NULL;
@@ -499,7 +501,16 @@ CreatorCES <- function(silentText=FALSE,...){
 
     # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
+    nParamIntermittent <- all(intermittent!=c("n","p"))*1;
+    nParamMax <- nParamMax + nParamExo + nParamIntermittent;
+
+    if(xregDo=="u"){
+        parametersNumber[1,2] <- nParamExo;
+        # If transition is provided and not identity, and other things are provided, write them as "provided"
+        parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
+                                      nrow(vecgX)*(!is.null(persistenceX)) +
+                                      ncol(matat)*(!is.null(initialX)) - nParamExo);
+    }
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
@@ -557,9 +568,6 @@ CreatorCES <- function(silentText=FALSE,...){
             intermittentModelsList[[i]] <- CreatorCES(silentText=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC;
             intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
-            # if(intermittentICs[i]>intermittentICs[i-1]){
-            #     break;
-            # }
         }
         intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
         intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
@@ -569,7 +577,7 @@ CreatorCES <- function(silentText=FALSE,...){
                 intermittentICs[1] <- Inf;
             }
         }
-        iBest <- which(intermittentICs==min(intermittentICs));
+        iBest <- which(intermittentICs==min(intermittentICs))[1];
 
         if(!silentText){
             cat("Done!\n");
@@ -668,13 +676,33 @@ CreatorCES <- function(silentText=FALSE,...){
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
         initialValue <- matvt[1:maxlag,];
+        if(initialType!="b"){
+            parametersNumber[1,1] <- (parametersNumber[1,1] + 2*(seasonality!="s") +
+                                      maxlag*(seasonality!="n") + maxlag*any(seasonality==c("f","s")));
+        }
     }
     if(initialXEstimate){
         initialX <- matat[1,];
     }
 
+    if(gXEstimate){
+        persistenceX <- vecgX;
+    }
+
+    if(FXEstimate){
+        transitionX <- matFX;
+    }
+
+    # Add variance estimation
+    parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+
     # Write down the probabilities from intermittent models
     pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    # Write down the number of parameters of imodel
+    if(all(intermittent!=c("n","p")) & !imodelProvided){
+        parametersNumber[1,3] <- imodel$nParam;
+    }
+    # Make nice names for intermittent
     if(intermittent=="f"){
         intermittent <- "fixed";
     }
@@ -706,6 +734,7 @@ CreatorCES <- function(silentText=FALSE,...){
     if(A$estimate){
         A$value <- complex(real=C[1],imaginary=C[2]);
         nCoefficients <- 2;
+        parametersNumber[1,1] <- parametersNumber[1,1] + 2;
     }
 
     names(A$value) <- "a0+ia1";
@@ -713,9 +742,11 @@ CreatorCES <- function(silentText=FALSE,...){
     if(B$estimate){
         if(seasonality=="p"){
             B$value <- C[nCoefficients+1];
+            parametersNumber[1,1] <- parametersNumber[1,1] + 1;
         }
         else if(seasonality=="f"){
             B$value <- complex(real=C[nCoefficients+1],imaginary=C[nCoefficients+2]);
+            parametersNumber[1,1] <- parametersNumber[1,1] + 2;
         }
     }
     if(B$number!=0){
@@ -738,6 +769,9 @@ CreatorCES <- function(silentText=FALSE,...){
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);
     }
+
+    parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+    parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
     if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
@@ -797,11 +831,11 @@ CreatorCES <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,A=A$value,B=B$value,
                   initialType=initialType,initial=initialValue,
-                  nParam=nParam+nParamExo+nParamIntermittent,
+                  nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=imodel,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

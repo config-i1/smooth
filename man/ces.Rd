@@ -166,7 +166,9 @@ be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 in a form b0 + ib1.
 \item \code{initialType} - Typetof initial values used.
 \item \code{initial} - the intial values of the state vector (non-seasonal).
-\item \code{nParam} - number of estimated parameters.
+\item \code{nParam} - table with the number of estimated / provided parameters.
+If a previous model was reused, then its initials are reused and the number of
+provided parameters will take this into account.
 \item \code{fitted} - the fitted values of CES.
 \item \code{forecast} - the point forecast of CES.
 \item \code{lower} - the lower bound of prediction interval. When

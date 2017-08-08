@@ -286,7 +286,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c(
         logLik <- logLik(crostonModel);
 
         output <- list(model=model, fitted=pt, forecast=pt.for, states=states,
-                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=crostonModel$nParam,
+                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=nParam(crostonModel),
                        residuals=crostonModel$residuals, actuals=otAll,
                        persistence=crostonModel$persistence, initial=crostonModel$initial);
     }

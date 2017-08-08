@@ -48,11 +48,18 @@ print.vsmooth <- function(x, ...){
     cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
     if(!is.null(x$nParam)){
-        if(x$nParam==1){
-            cat(paste0(x$nParam," parameter was estimated in the process\n"));
+        if(x$nParam[1,4]==1){
+            cat(paste0(x$nParam[1,4]," parameter was estimated in the process\n"));
         }
         else{
-            cat(paste0(x$nParam," parameters were estimated in the process\n"));
+            cat(paste0(x$nParam[1,4]," parameters were estimated in the process\n"));
+        }
+
+        if(x$nParam[2,4]>1){
+            cat(paste0(x$nParam[2,4]," parameters were provided\n"));
+        }
+        else if(x$nParam[2,4]>0){
+            cat(paste0(x$nParam[2,4]," parameter was provided\n"));
         }
     }
 

@@ -104,7 +104,9 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{initialType} - type of the initial values used.
 #' \item \code{initial} - intial values of the state vector (non-seasonal).
 #' \item \code{initialSeason} - intial values of the seasonal part of state vector.
-#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
 #' \item \code{fitted} - fitted values of ETS.
 #' \item \code{forecast} - point forecast of ETS.
 #' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
@@ -665,7 +667,7 @@ EstimatorES <- function(...){
         }
     }
 
-    nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+    nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
                + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
     # Change cfType for model selection
@@ -1101,7 +1103,7 @@ CreatorES <- function(silent=FALSE,...){
         cfObjective <- CF(C);
 
         # Number of parameters
-        nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+        nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
                    + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
 
 # Change cfType for model selection
@@ -1236,8 +1238,16 @@ CreatorES <- function(silent=FALSE,...){
     initialXEstimate <- xregdata$initialXEstimate;
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamIntermittent <- (intermittent!="n")*1;
+    nParamIntermittent <- all(intermittent!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamIntermittent;
+
+    if(xregDo=="u"){
+        parametersNumber[1,2] <- nParamExo;
+        # If transition is provided and not identity, and other things are provided, write them as "provided"
+        parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
+                                      nrow(vecgX)*(!is.null(persistenceX)) +
+                                      ncol(matat)*(!is.null(initialX)) - nParamExo);
+    }
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
@@ -1376,7 +1386,7 @@ CreatorES <- function(silent=FALSE,...){
             BasicMakerES(ParentEnvironment=environment());
 
             # Number of parameters
-            nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * (initialType!="b")
+            nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
                        + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
             if(!is.null(providedC)){
                 if(nParam!=length(providedC)){
@@ -1568,6 +1578,7 @@ CreatorES <- function(silent=FALSE,...){
 # Write down the initials. Done especially for Nikos and issue #10
         if(persistenceEstimate){
             persistence <- as.vector(vecg);
+            parametersNumber[1,1] <- parametersNumber[1,1] + length(vecg);
         }
         if(Ttype!="N"){
             names(persistence) <- c("alpha","beta","gamma")[1:nComponents];
@@ -1578,6 +1589,9 @@ CreatorES <- function(silent=FALSE,...){
 
         if(initialType!="p"){
             initialValue <- matvt[maxlag,1:(nComponents - (Stype!="N"))];
+            if(initialType!="b"){
+                parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
+            }
         }
 
         if(initialXEstimate){
@@ -1585,12 +1599,28 @@ CreatorES <- function(silent=FALSE,...){
             names(initialX) <- colnames(matat);
         }
 
+        if(gXEstimate){
+            persistenceX <- vecgX;
+        }
+
+        if(FXEstimate){
+            transitionX <- matFX;
+        }
+
         if(initialSeasonEstimate){
             if(Stype!="N"){
                 initialSeason <- matvt[1:maxlag,nComponents];
                 names(initialSeason) <- paste0("s",1:maxlag);
+                parametersNumber[1,1] <- parametersNumber[1,1] + length(initialSeason);
             }
         }
+
+        if(phiEstimate & phi!=1){
+            parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+        }
+
+        # Add variance estimation
+        parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
 # Write down the formula of ETS
         esFormula <- "l[t-1]";
@@ -1745,6 +1775,11 @@ CreatorES <- function(silent=FALSE,...){
 
     # Write down the probabilities from intermittent models
     pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    # Write down the number of parameters of imodel
+    if(all(intermittent!=c("n","p")) & !imodelProvided){
+        parametersNumber[1,3] <- imodel$nParam;
+    }
+    # Make nice names for intermittent
     if(intermittent=="f"){
         intermittent <- "fixed";
     }
@@ -1760,6 +1795,13 @@ CreatorES <- function(silent=FALSE,...){
     else if(intermittent=="p"){
         intermittent <- "provided";
     }
+
+    if(!is.null(xregNames)){
+        parametersNumber[1,2] <- nParamExo;
+    }
+
+    parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+    parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
 ##### Now let's deal with holdout #####
     if(holdout){
@@ -1851,11 +1893,11 @@ CreatorES <- function(silent=FALSE,...){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,transition=matF,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
-                      nParam=nParam+nParamExo+nParamIntermittent,
+                      nParam=parametersNumber,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                       actuals=data,holdout=y.holdout,imodel=imodel,
-                      xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                      xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                       ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }

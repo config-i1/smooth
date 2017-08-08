@@ -97,7 +97,7 @@ model.type <- function(object, ...){
 #' @export
 logLik.smooth <- function(object,...){
     obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
+    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
 }
 #' @export
 logLik.smooth.sim <- function(object,...){
@@ -107,7 +107,7 @@ logLik.smooth.sim <- function(object,...){
 #' @export
 logLik.iss <- function(object,...){
     obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=object$nParam,class="logLik");
+    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
 }
 
 #' @importFrom stats nobs
@@ -134,7 +134,7 @@ nobs.iss <- function(object, ...){
 
 #' Number of parameters in the model
 #'
-#' This function returns the number of parameters in the estimated model
+#' This function returns the number of estimated parameters in the model
 #'
 #' This is a very basic and a simple function which does what it says:
 #' extracts number of parameters in the estimated model.
@@ -162,8 +162,18 @@ nParam.default <- function(object, ...){
     return(length(coefficients(object))+1);
 }
 
+#' @method nParam smooth
+#' @export
 nParam.smooth <- function(object, ...){
-    return(object$nParam);
+    nParamReturn <- object$nParam[1,4];
+    return(nParamReturn);
+}
+
+#' @method nParam iss
+#' @export
+nParam.iss <- function(object, ...){
+    nParamReturn <- object$nParam;
+    return(nParamReturn);
 }
 
 #' Point likelihood values

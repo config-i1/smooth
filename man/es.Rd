@@ -193,7 +193,9 @@ smoothing parameters live.
 \item \code{initialType} - type of the initial values used.
 \item \code{initial} - intial values of the state vector (non-seasonal).
 \item \code{initialSeason} - intial values of the seasonal part of state vector.
-\item \code{nParam} - number of estimated parameters.
+\item \code{nParam} - table with the number of estimated / provided parameters.
+If a previous model was reused, then its initials are reused and the number of
+provided parameters will take this into account.
 \item \code{fitted} - fitted values of ETS.
 \item \code{forecast} - point forecast of ETS.
 \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}

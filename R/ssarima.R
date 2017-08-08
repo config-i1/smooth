@@ -98,7 +98,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{initialType} - Typetof initial values used.
 #' \item \code{initial} - the initial values of the state vector (extracted
 #' from \code{states}).
-#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
 #' \item \code{fitted} - the fitted values of ETS.
 #' \item \code{forecast} - the point forecast of ETS.
 #' \item \code{lower} - the lower bound of prediction interval. When
@@ -351,11 +353,14 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    nParam <- 1 + nComponents*(initialType!="b") + sum(ar.orders)*ARRequired + sum(ma.orders)*MARequired + constantRequired + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars);
+    nParam <- (1 + nComponents*(initialType=="o") + sum(ar.orders)*(ARRequired * AREstimate) +
+                   sum(ma.orders)*(MARequired * MAEstimate) + 1*(constantRequired * constantEstimate) +
+                   (!is.null(xreg)) * (nExovars * initialXEstimate +
+                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
 
     # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(AREstimate),(MAEstimate),
-           (xregEstimate),(FXEstimate),(gXEstimate),(constantEstimate))){
+           (initialXEstimate),(FXEstimate),(gXEstimate),(constantEstimate))){
 
         C <- NULL;
         if(nComponents > 0){
@@ -541,7 +546,16 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
+    nParamIntermittent <- all(intermittent!=c("n","p"))*1;
+    nParamMax <- nParamMax + nParamExo + nParamIntermittent;
+
+    if(xregDo=="u"){
+        parametersNumber[1,2] <- nParamExo;
+        # If transition is provided and not identity, and other things are provided, write them as "provided"
+        parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
+                                      nrow(vecgX)*(!is.null(persistenceX)) +
+                                      ncol(matat)*(!is.null(initialX)) - nParamExo);
+    }
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
@@ -611,7 +625,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                 intermittentICs[1] <- Inf;
             }
         }
-        iBest <- which(intermittentICs==min(intermittentICs));
+        iBest <- which(intermittentICs==min(intermittentICs))[1];
 
         if(!silentText){
             cat("Done!\n");
@@ -734,13 +748,32 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         else{
             initialValue <- matvt[1,];
         }
+        if(initialType!="b"){
+            parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
+        }
     }
     if(initialXEstimate){
         initialX <- matat[1,];
     }
 
+    if(gXEstimate){
+        persistenceX <- vecgX;
+    }
+
+    if(FXEstimate){
+        transitionX <- matFX;
+    }
+
+    # Add variance estimation
+    parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+
     # Write down the probabilities from intermittent models
     pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    # Write down the number of parameters of imodel
+    if(all(intermittent!=c("n","p")) & !imodelProvided){
+        parametersNumber[1,3] <- imodel$nParam;
+    }
+    # Make nice names for intermittent
     if(intermittent=="f"){
         intermittent <- "fixed";
     }
@@ -809,6 +842,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             if(AREstimate){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
                 n.coef <- n.coef + ar.orders[i];
+                parametersNumber[1,1] <- parametersNumber[1,1] + ar.orders[i];
             }
             else{
                 ARterms[1:ar.orders[i],ar.i] <- ARValue[ar.coef+(1:ar.orders[i])];
@@ -820,6 +854,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             if(MAEstimate){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
                 n.coef <- n.coef + ma.orders[i];
+                parametersNumber[1,1] <- parametersNumber[1,1] + ma.orders[i];
             }
             else{
                 MAterms[1:ma.orders[i],ma.i] <- MAValue[ma.coef+(1:ma.orders[i])];
@@ -878,6 +913,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(constantRequired){
         if(constantEstimate){
             constantValue <- matvt[1,nComponents];
+            parametersNumber[1,1] <- parametersNumber[1,1] + 1;
         }
         const <- constantValue;
 
@@ -893,27 +929,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         constantValue <- NULL;
     }
 
-##### Print warnings #####
-    # if(any(abs(maRoots)<1)){
-    #     if(bounds!="a"){
-    #         warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
-    #     }
-    #     else{
-    #         warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer."
-    #                 ,call.=FALSE);
-    #     }
-    # }
-    #
-    # if(any(abs(arRoots)<1)){
-    #     if(bounds!="a"){
-    #         warning("Non-stationary model was estimated! Beware of explosions! Use bounds='admissible' to address this issue!"
-    #                 ,call.=FALSE);
-    #     }
-    #     else{
-    #         warning("Something went wrong in optimiser - non-stationary model was estimated! Please report this error to the maintainer."
-    #                 ,call.=FALSE);
-    #     }
-    # }
+    parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+    parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
 ##### Make a plot #####
     if(!silentGraph){
@@ -943,11 +960,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   states=matvt,transition=matF,persistence=vecg,
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
                   initialType=initialType,initial=initialValue,
-                  nParam=nParam+nParamExo+nParamIntermittent,
+                  nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=imodel,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

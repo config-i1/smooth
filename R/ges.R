@@ -65,7 +65,9 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{initialType} - Typetof initial values used.
 #' \item \code{initial} - initial values of state vector (extracted from
 #' \code{states}).
-#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
 #' \item \code{measurement} - matrix w.
 #' \item \code{transition} - matrix F.
 #' \item \code{persistence} - persistence vector. This is the place, where
@@ -303,11 +305,13 @@ CreatorGES <- function(silentText=FALSE,...){
     environment(ICFunction) <- environment();
 
 # 1 stands for the variance
-    nParam <- 2*nComponents + nComponents^2 + orders %*% lags * (initialType!="b") + (!is.null(xreg)) * nExovars + (updateX)*(nExovars^2 + nExovars) + 1;
+    nParam <- (1 + 2*nComponents + nComponents^2 + orders %*% lags * (initialType=="o") +
+                   (!is.null(xreg)) * (nExovars * initialXEstimate +
+                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
 
 # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(measurementEstimate),(transitionEstimate),(persistenceEstimate),
-       (xregEstimate),(FXEstimate),(gXEstimate))){
+       (initialXEstimate),(FXEstimate),(gXEstimate))){
 
         C <- NULL;
 # matw, matF, vecg, vt
@@ -445,7 +449,16 @@ CreatorGES <- function(silentText=FALSE,...){
 
 # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamMax <- nParamMax + nParamExo + (intermittent!="n");
+    nParamIntermittent <- all(intermittent!=c("n","p"))*1;
+    nParamMax <- nParamMax + nParamExo + nParamIntermittent;
+
+    if(xregDo=="u"){
+        parametersNumber[1,2] <- nParamExo;
+        # If transition is provided and not identity, and other things are provided, write them as "provided"
+        parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
+                                      nrow(vecgX)*(!is.null(persistenceX)) +
+                                      ncol(matat)*(!is.null(initialX)) - nParamExo);
+    }
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
@@ -535,7 +548,7 @@ CreatorGES <- function(silentText=FALSE,...){
                 intermittentICs[1] <- Inf;
             }
         }
-        iBest <- which(intermittentICs==min(intermittentICs));
+        iBest <- which(intermittentICs==min(intermittentICs))[1];
 
         if(!silentText){
             cat("Done!\n");
@@ -634,13 +647,32 @@ CreatorGES <- function(silentText=FALSE,...){
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
         initialValue <- matvt[1:maxlag,];
+        if(initialType!="b"){
+            parametersNumber[1,1] <- parametersNumber[1,1] + orders %*% lags;
+        }
     }
     if(initialXEstimate){
         initialX <- matat[1,];
     }
 
+    if(gXEstimate){
+        persistenceX <- vecgX;
+    }
+
+    if(FXEstimate){
+        transitionX <- matFX;
+    }
+
+    # Add variance estimation
+    parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+
     # Write down the probabilities from intermittent models
     pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    # Write down the number of parameters of imodel
+    if(all(intermittent!=c("n","p")) & !imodelProvided){
+        parametersNumber[1,3] <- imodel$nParam;
+    }
+    # Make nice names for intermittent
     if(intermittent=="f"){
         intermittent <- "fixed";
     }
@@ -670,6 +702,9 @@ CreatorGES <- function(silentText=FALSE,...){
     else{
         colnames(matvt) <- paste0("Component ",c(1:nComponents));
     }
+
+    parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+    parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
     if(holdout==T){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
@@ -741,11 +776,11 @@ CreatorGES <- function(silentText=FALSE,...){
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,measurement=matw,transition=matF,persistence=vecg,
                   initialType=initialType,initial=initialValue,
-                  nParam=nParam+nParamExo+nParamIntermittent,
+                  nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=imodel,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=vecgX,transitionX=matFX,
+                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

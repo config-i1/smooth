@@ -165,7 +165,9 @@ correspond to time and \code{cols} to states.
 \item \code{initialType} - Typetof initial values used.
 \item \code{initial} - initial values of state vector (extracted from
 \code{states}).
-\item \code{nParam} - number of estimated parameters.
+\item \code{nParam} - table with the number of estimated / provided parameters.
+If a previous model was reused, then its initials are reused and the number of
+provided parameters will take this into account.
 \item \code{measurement} - matrix w.
 \item \code{transition} - matrix F.
 \item \code{persistence} - persistence vector. This is the place, where

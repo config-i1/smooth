@@ -39,7 +39,9 @@
 #' smoothing parameters live.
 #' \item \code{order} - order of moving average.
 #' \item \code{initialType} - Type of initial values used.
-#' \item \code{nParam} - number of estimated parameters.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
 #' \item \code{fitted} - the fitted values of ETS.
 #' \item \code{forecast} - the point forecast of ETS.
 #' \item \code{lower} - the lower bound of prediction interval. When
@@ -232,6 +234,9 @@ CreatorSMA <- function(silentText=FALSE,...){
     ssFitter(ParentEnvironment=environment());
     ssForecaster(ParentEnvironment=environment());
 
+    parametersNumber[1,1] <- 2;
+    parametersNumber[1,4] <- 2;
+
 ##### Do final check and make some preparations for output #####
 
     if(holdout==T){
@@ -280,7 +285,7 @@ CreatorSMA <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
-                  order=order, initialType=initialType, nParam=nParam,
+                  order=order, initialType=initialType, nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=NULL,

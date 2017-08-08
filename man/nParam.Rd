@@ -16,7 +16,7 @@ nParam(object, ...)
 This function returns a numeric value.
 }
 \description{
-This function returns the number of parameters in the estimated model
+This function returns the number of estimated parameters in the model
 }
 \details{
 This is a very basic and a simple function which does what it says:

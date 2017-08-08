@@ -103,6 +103,11 @@ vssInput <- function(smoothType=c("ves"),...){
     y <- matrix(data[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
     datafreq <- frequency(data);
 
+    # Number of parameters to estimate / provided
+    parametersNumber <- matrix(0,2,4,
+                               dimnames=list(c("Estimated","Provided"),
+                                             c("nParamInternal","nParamXreg","nParamIntermittent","nParamAll")));
+
     ##### model for VES #####
     if(smoothType=="ves"){
         if(!is.character(model)){
@@ -258,6 +263,23 @@ vssInput <- function(smoothType=c("ves"),...){
             else{
                 persistenceType <- "p";
                 persistenceEstimate <- FALSE;
+                ### Check the persistence matrix in order to decide number of parameters
+                persistencePartial <- matrix(persistenceValue[1:nComponentsAll,1:nSeries],
+                                            nComponentsAll,nSeries);
+                # Check if persistence is dependent
+                if(all(persistencePartial[,nSeries]==0)){
+                    # Check if persistence is grouped
+                    if(persistenceValue[1,1]==persistenceValue[1+nComponentsAll,nSeries]){
+                        parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                    }
+                    else{
+                        parametersNumber[2,1] <- parametersNumber[2,1] + nSeries*nComponentsAll;
+                    }
+                }
+                else{
+                    parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(persistenceValue)));
+                }
+
                 if(length(persistenceValue)==nComponentsAll){
                     persistenceBuffer <- matrix(0,nSeries*nComponentsAll,nSeries);
                     for(i in 1:nSeries){
@@ -325,6 +347,52 @@ vssInput <- function(smoothType=c("ves"),...){
             else{
                 transitionType <- "p";
                 transitionEstimate <- FALSE;
+                ### Check the transition matrix in order to decide number of parameters
+                transitionPartial <- matrix(transitionValue[1:nComponentsAll,1:nComponentsAll],
+                                            nComponentsAll,nComponentsAll);
+                transitionIsStandard <- FALSE;
+                transitionContainsPhi <- FALSE;
+                if(ncol(transitionPartial)==3){
+                    if(all(transitionPartial[,c(1,3)]==matrix(c(1,0,0,1,1,0,0,0,1),3,3)[,c(1,3)])){
+                        transitionIsStandard <- TRUE;
+                        if(transitionPartial[2,2]!=1){
+                            # If there is phi in the matrix, add it
+                            transitionContainsPhi <- TRUE;
+                        }
+                    }
+                }
+                else if(ncol(transitionPartial)==2){
+                    if(all(transitionPartial[,1]==c(1,0))){
+                        transitionIsStandard <- TRUE;
+                        if(transitionPartial[2,2]!=1){
+                            # If there is phi in the matrix, add it
+                            transitionContainsPhi <- TRUE;
+                        }
+                    }
+                }
+                else{
+                    if(transitionPartial[1,1]==1){
+                        transitionIsStandard <- TRUE;
+                    }
+                }
+                # If transition is not standard, take unique values from it.
+                if(!transitionIsStandard){
+                    parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(transitionValue)));
+                }
+                else{
+                    # If there is phi, check if it is grouped
+                    if(transitionContainsPhi){
+                        # If phi is grouped, add one parameter
+                        if(transitionValue[2,2]==transitionValue[2+nComponentsAll,2+nComponentsAll]){
+                            parametersNumber[2,1] <- parametersNumber[2,1] + 1;
+                        }
+                        # Else phi is individual
+                        else{
+                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                        }
+                    }
+                }
+
                 if(length(transitionValue) == nComponentsAll^2){
                     transitionValue <- matrix(transitionValue,nComponentsAll,nComponentsAll);
                     transitionBuffer <- diag(nSeries*nComponentsAll);
@@ -393,6 +461,7 @@ vssInput <- function(smoothType=c("ves"),...){
                         dampedType <- "p";
                         dampedValue <- matrix(dampedValue,nSeries,1);
                         dampedEstimate <- FALSE;
+                        parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(dampedValue)));
                     }
                 }
                 else if(!is.numeric(dampedValue)){
@@ -470,6 +539,7 @@ vssInput <- function(smoothType=c("ves"),...){
                         initialType <- "p";
                         initialValue <- matrix(initialValue,nComponentsNonSeasonal * nSeries,1);
                         initialEstimate <- FALSE;
+                        parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(initialValue)));
                     }
                 }
             }
@@ -528,6 +598,7 @@ vssInput <- function(smoothType=c("ves"),...){
                             initialSeasonValue <- matrix(initialSeasonValue,nSeries,datafreq);
                             initialSeasonType <- "p";
                             initialSeasonEstimate <- FALSE;
+                            parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(initialSeasonValue)));
                         }
                     }
                 }
@@ -676,6 +747,7 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("datafreq",datafreq,ParentEnvironment);
+    assign("parametersNumber",parametersNumber,ParentEnvironment);
 
     assign("model",model,ParentEnvironment);
     # assign("modelsPool",modelsPool,ParentEnvironment);

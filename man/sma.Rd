@@ -76,7 +76,9 @@ following values:
 smoothing parameters live.
 \item \code{order} - order of moving average.
 \item \code{initialType} - Type of initial values used.
-\item \code{nParam} - number of estimated parameters.
+\item \code{nParam} - table with the number of estimated / provided parameters.
+If a previous model was reused, then its initials are reused and the number of
+provided parameters will take this into account.
 \item \code{fitted} - the fitted values of ETS.
 \item \code{forecast} - the point forecast of ETS.
 \item \code{lower} - the lower bound of prediction interval. When
