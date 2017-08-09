@@ -151,7 +151,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","tsb"),
                 bounds=c("admissible","none"),
-                silent=c("none","all","graph","output"), ...){
+                silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
