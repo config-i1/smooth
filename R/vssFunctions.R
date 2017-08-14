@@ -102,6 +102,7 @@ vssInput <- function(smoothType=c("ves"),...){
     # Define the actual values. Transpose the matrix!
     y <- matrix(data[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
     datafreq <- frequency(data);
+    dataDeltat <- deltat(data);
 
     # Number of parameters to estimate / provided
     parametersNumber <- matrix(0,2,4,
@@ -402,7 +403,8 @@ vssInput <- function(smoothType=c("ves"),...){
                     transitionValue <- matrix(transitionValue,nComponentsAll,nComponentsAll);
                     transitionBuffer <- diag(nSeries*nComponentsAll);
                     for(i in 1:nSeries){
-                        transitionBuffer[c(1:nComponentsAll)+nComponentsAll*(i-1),c(1:nComponentsAll)+nComponentsAll*(i-1)] <- transitionValue;
+                        transitionBuffer[c(1:nComponentsAll)+nComponentsAll*(i-1),
+                                         c(1:nComponentsAll)+nComponentsAll*(i-1)] <- transitionValue;
                     }
                     transitionValue <- transitionBuffer;
                 }
@@ -649,32 +651,32 @@ vssInput <- function(smoothType=c("ves"),...){
 
     if(is.logical(intervalsType)){
         if(intervalsType){
-            intervalsType <- "p";
+            intervalsType <- "c";
         }
         else{
             intervalsType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
-        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
-        intervalsType <- "p";
+    if(all(intervalsType!=c("c","u","i","n","none","conditional","unconditional","independent"))){
+        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'conditional'."),call.=FALSE);
+        intervalsType <- "c";
     }
 
     if(intervalsType=="none"){
         intervalsType <- "n";
         intervals <- FALSE;
     }
-    else if(intervalsType=="parametric"){
-        intervalsType <- "p";
+    else if(intervalsType=="conditional"){
+        intervalsType <- "c";
         intervals <- TRUE;
     }
-    else if(intervalsType=="semiparametric"){
-        intervalsType <- "sp";
+    else if(intervalsType=="unconditional"){
+        intervalsType <- "u";
         intervals <- TRUE;
     }
-    else if(intervalsType=="nonparametric"){
-        intervalsType <- "np";
+    else if(intervalsType=="independent"){
+        intervalsType <- "i";
         intervals <- TRUE;
     }
     else{
@@ -733,7 +735,8 @@ vssInput <- function(smoothType=c("ves"),...){
             FI <- FALSE;
         }
         if(!requireNamespace("numDeriv",quietly=TRUE) & FI){
-            warning("Sorry, but you don't have 'numDeriv' package, which is required in order to produce Fisher Information.",call.=FALSE);
+            warning(paste0("Sorry, but you don't have 'numDeriv' package, ",
+                           "which is required in order to produce Fisher Information.",call.=FALSE));
             FI <- FALSE;
         }
     }
@@ -751,6 +754,7 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("datafreq",datafreq,ParentEnvironment);
+    assign("dataDeltat",dataDeltat,ParentEnvironment);
     assign("parametersNumber",parametersNumber,ParentEnvironment);
 
     assign("model",model,ParentEnvironment);
@@ -853,6 +857,10 @@ vssFitter <- function(...){
     yFitted <- fitting$yfit;
     errors <- fitting$errors;
 
+    if(modelIsMultiplicative){
+        yFitted <- exp(yFitted);
+    }
+
     assign("matvt",matvt,ParentEnvironment);
     assign("yFitted",yFitted,ParentEnvironment);
     assign("errors",errors,ParentEnvironment);
@@ -860,24 +868,129 @@ vssFitter <- function(...){
 
 ##### *State-space intervals* #####
 # This is not implemented yet
-vssIntervals <- function(level=0.95, intervalsType=c("p","sp","np"), df=NULL, Sigma=NULL,
-                         measurement=NULL, transition=NULL, persistence=NULL, states=NULL,
-                         modellags=NULL, cumulative=FALSE, nComponents=1, nSeries=1, Etype="A",
-                         iprob=1, yForecast=rep(0,nrow(errors),ncol(errors))){
-    if(intervalsType=="p"){
-        nComponents <- nrow(transition);
-        maxlag <- max(modellags);
-        h <- nrow(yForecast);
+#' @importFrom stats qchisq
+vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
+                         measurement=NULL, transition=NULL, persistence=NULL,
+                         modelLags=NULL, cumulative=FALSE, df=0,
+                         nComponents=1, nSeries=1, h=1){
 
-        # Vector of final variances
-        varVec <- rep(NA,h);
-        if(Etype=="M"){
-            matrixOfVarianceOfStates <- array(0,c(nComponents*nSeries,nComponents*nSeries,h+maxlag));
-            # This multiplication does not make sense
-            matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% Sigma %*% t(persistence);
-            matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
+    maxlag <- max(modelLags);
+    nElements <- nComponents*nSeries;
+
+    # In case of independent we use either t distribution or Chebyshev inequality
+    if(intervalsType=="i"){
+        if(df>0){
+            quantUpper <- qt((1+level)/2,df=df);
+            quantLower <- qt((1-level)/2,df=df);
+        }
+        else{
+            quantUpper <- sqrt(1/((1-level)/2));
+            quantLower <- -quantUpper;
         }
     }
+    # In case of conditional / unconditional, we use Chi-squared distribution
+    else{
+        quant <- qchisq(level,df=nSeries);
+    }
+
+    if(intervalsType=="c"){
+        # Nuber of points in the ellipse
+        nPoints <- 1000;
+        PI <- array(NA, c(nPoints^nSeries,nSeries*2-1,h),
+                    dimnames=list(NULL,
+                                  c(paste0("Series_",rep(c(1:(nSeries-1)),each=2),c("_lower","_upper")),
+                                    paste0("Series_",nSeries)),
+                                  paste0("h",c(1:h))));
+    }
+    else{
+        PI <- matrix(NA, nrow=h, ncol=nSeries*2,
+                     dimnames=list(paste0("h",c(1:h)),
+                                   paste0("Series_",rep(c(1:nSeries),each=2),c("_lower","_upper"))));
+    }
+
+    # Array of final variance matrices
+    varVec <- array(NA,c(h,nSeries,nSeries));
+    # This is needed for the first observations, where we do not care about the transition equation
+    for(i in 1:min(h,maxlag)){
+        varVec[i,,] <- Sigma;
+    }
+
+    if(h>1){
+        if(cumulative){
+            covarVec <- array(NA,c(h,nSeries,nSeries));
+        }
+
+        matrixOfVarianceOfStates <- array(0,c(nElements,nElements,h+maxlag));
+        # This multiplication does not make sense
+        matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% Sigma %*% t(persistence);
+        matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
+
+        # New transition and measurement for the internal use
+        transitionNew <- matrix(0,nElements,nElements);
+        measurementNew <- matrix(0,nSeries,nElements);
+
+        # selectionMat is needed for the correct selection of lagged variables in the array
+        # elementsNew are needed for the correct fill in of all the previous matrices
+        selectionMat <- transitionNew;
+        elementsNew <- rep(FALSE,nElements);
+
+        # Define chunks, which correspond to the lags with h being the final one
+        chuncksOfHorizon <- c(1,unique(modelLags),h);
+        chuncksOfHorizon <- sort(chuncksOfHorizon);
+        chuncksOfHorizon <- chuncksOfHorizon[chuncksOfHorizon<=h];
+        chuncksOfHorizon <- unique(chuncksOfHorizon);
+
+        # Length of the vector, excluding the h at the end
+        chunksLength <- length(chuncksOfHorizon) - 1;
+
+        elementsNew <- modelLags<=(chuncksOfHorizon[1]);
+        measurementNew[,elementsNew] <- measurement[,elementsNew];
+
+        for(j in 1:chunksLength){
+            selectionMat[modelLags==chuncksOfHorizon[j],] <- chuncksOfHorizon[j];
+            selectionMat[,modelLags==chuncksOfHorizon[j]] <- chuncksOfHorizon[j];
+
+            elementsNew <- modelLags < (chuncksOfHorizon[j]+1);
+            transitionNew[elementsNew,elementsNew] <- transition[elementsNew,elementsNew];
+            measurementNew[,elementsNew] <- measurement[,elementsNew];
+
+            for(i in (chuncksOfHorizon[j]+1):chuncksOfHorizon[j+1]){
+                selectionMat[modelLags>chuncksOfHorizon[j],] <- i;
+                selectionMat[,modelLags>chuncksOfHorizon[j]] <- i;
+
+                matrixOfVarianceOfStatesLagged[elementsNew,
+                                               elementsNew] <- matrixOfVarianceOfStates[cbind(rep(c(1:nElements),each=nElements),
+                                                                                              rep(c(1:nElements),nElements),
+                                                                                              i - c(selectionMat))];
+
+                matrixOfVarianceOfStates[,,i] <- (transitionNew %*% matrixOfVarianceOfStatesLagged %*% t(transitionNew) +
+                                                      persistence %*% Sigma %*% t(persistence));
+                varVec[i,,] <- measurementNew %*% matrixOfVarianceOfStatesLagged %*% t(measurementNew) + Sigma;
+                if(cumulative){
+                    covarVec[i] <- measurementNew %*% transitionNew %*% persistence;
+                }
+            }
+        }
+
+        if(cumulative){
+            varVec <- apply(varVec,c(2,3),sum) + 2*Sigma %*% apply(covarVec*array(c(0,h:2),c(h,nSeries,nSeries)),
+                                                                   c(2,3),sum);
+        }
+    }
+
+    # varVec <<- varVec;
+    # Produce PI matrix
+    if(any(intervalsType==c("c","u"))){
+    }
+    else if(intervalsType=="i"){
+        variances <- apply(varVec,1,diag);
+        for(i in 1:nSeries){
+            PI[,2*i-1] <- quantLower * sqrt(variances[i,]);
+            PI[,2*i] <- quantUpper * sqrt(variances[i,]);
+        }
+    }
+
+    return(PI);
 }
 
 ##### *Forecaster of state-space functions* #####
@@ -897,21 +1010,31 @@ vssForecaster <- function(...){
         df <- 0;
     }
 
+    PI <- NA;
+
     if(h>0){
         yForecast <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+maxlag)],ncol=maxlag),
                                      matF, matW, nSeries, h, Etype, Ttype, Stype, modelLags);
 
-        if(Etype=="M" & any(yForecast<0)){
-            warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
-                           "Please, use another model."),call.=FALSE);
+        if(cumulative){
+            yForecast <- rowSums(yForecast);
         }
 
-        yLower <- NA;
-        yUpper <- NA;
+        if(intervals){
+            PI <- vssIntervals(level=level, intervalsType=intervalsType, Sigma=Sigma,
+                               measurement=matW, transition=matF, persistence=matG,
+                               modelLags=modelLags, cumulative=cumulative, df=df,
+                               nComponents=nComponentsAll, nSeries=nSeries, h=h);
+
+            if(any(intervalsType==c("i","u"))){
+                for(i in 1:nSeries){
+                    PI[,i*2-1] <- PI[,i*2-1] + yForecast[i,];
+                    PI[,i*2] <- PI[,i*2] + yForecast[i,];
+                }
+            }
+        }
     }
     else{
-        yLower <- NA;
-        yUpper <- NA;
         yForecast[,] <- NA;
     }
 
@@ -920,8 +1043,11 @@ vssForecaster <- function(...){
         warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
     }
 
+    if(modelIsMultiplicative){
+        yForecast <- exp(yForecast);
+    }
+
     assign("Sigma",Sigma,ParentEnvironment);
     assign("yForecast",yForecast,ParentEnvironment);
-    assign("yLower",yLower,ParentEnvironment);
-    assign("yUpper",yUpper,ParentEnvironment);
+    assign("PI",PI,ParentEnvironment);
 }

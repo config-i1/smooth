@@ -37,14 +37,24 @@
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
 #' intervals.
-#' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
-#' case of mixed models this is done using simulations, which may take longer
-#' time than for the pure additive and pure multiplicative models.
+#' \item \code{conditional}, \code{c} - produces multidimensional elliptic
+#' intervals for each step ahead forecast.
+#' \item \code{unconditional}, \code{u} - produces separate bounds for each series
+#' based on ellipses for each step ahead. These bounds correspond to min and max
+#' values of the ellipse assuming that all the other series but one take values in
+#' the centre of the ellipse. This leads to less accurate estimates of bounds
+#' (wider intervals than needed), but these could still be useful.
+#' \item \code{independent}, \code{i} - produces intervals based on variances of
+#' each separate series. This does not take vector structure into account.
 #' }
 #' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-#' parametric intervals are constructed, while the latter is equivalent to
+#' conditional intervals are constructed, while the latter is equivalent to
 #' \code{none}.
+#'
 #' @param level Confidence level. Defines width of prediction interval.
+#' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
+#' intervals are produced instead of the normal ones. This is useful for
+#' inventory control systems.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
 #' printed out and drawn. \code{silent="all"} means that nothing is produced or
 #' drawn (except for warnings). In case of \code{silent="graph"}, no graph is

@@ -34,14 +34,14 @@ modelType.vsmooth <- function(object, ...){
 #' @export
 print.vsmooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
-    intervals <- any(!is.na(x$lower));
+    intervals <- any(!is.na(x$PI));
 
-    if(all(holdout,intervals)){
-        insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
-    }
-    else{
-        insideintervals <- NULL;
-    }
+    # if(all(holdout,intervals)){
+    #     insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
+    # }
+    # else{
+    #     insideintervals <- NULL;
+    # }
 
     intervalsType <- x$intervals;
 
@@ -75,17 +75,14 @@ print.vsmooth <- function(x, ...){
     print(x$ICs);
 
     if(intervals){
-        if(x$intervals=="p"){
-            intervalsType <- "parametric";
+        if(x$intervals=="c"){
+            intervalsType <- "conditional";
         }
-        else if(x$intervals=="sp"){
-            intervalsType <- "semiparametric";
+        else if(x$intervals=="u"){
+            intervalsType <- "unconditional";
         }
-        else if(x$intervals=="np"){
-            intervalsType <- "nonparametric";
-        }
-        else if(x$intervals=="a"){
-            intervalsType <- "asymmetric";
+        else if(x$intervals=="i"){
+            intervalsType <- "independent";
         }
         cat(paste0(x$level*100,"% ",intervalsType," prediction intervals were constructed\n"));
     }

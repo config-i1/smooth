@@ -1,10 +1,11 @@
-smooth v2.1.1 (Release data: 2017-08-14)
+smooth v2.1.1 (Release data: 2017-08-15)
 ==============
 
 Changes:
 * initials for parameters of AR now take into account the number of parameters. Should simplify optimisation of AR.
 * Number of parameters in univariate models now consists of the part "estimated" and "provided". Each model now returns a table as nParam with a detailed info about what was estimated/provided. If something was provided, then it is no longer taken into account in calculation of statistics (i.e. AIC, sigma etc).
 * Similar thing is now implemented for ves().
+* ves() now can produce "independent" prediction intervals (when covariances for time series are ignored).
 
 Bugfixes:
 * auto.ssarima() had a bug with dataMA.
