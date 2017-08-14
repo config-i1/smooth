@@ -1376,9 +1376,25 @@ CreatorES <- function(silent=FALSE,...){
     }
 
     ellipsis <- list(...);
-    providedC <- ellipsis$C;
-    providedCLower <- ellipsis$CLower;
-    providedCUpper <- ellipsis$CUpper;
+    if(any(names(ellipsis)=="C")){
+        providedC <- ellipsis$C;
+    }
+    else{
+        providedC <- NULL;
+    }
+    if(any(names(ellipsis)=="CLower")){
+        providedCLower <- ellipsis$CLower;
+    }
+    else{
+        providedCLower <- NULL;
+    }
+    if(any(names(ellipsis)=="CUpper")){
+        providedCUpper <- ellipsis$CUpper;
+    }
+    else{
+        providedCUpper <- NULL;
+    }
+
 ##### Initials for optimiser #####
     if(!all(c(is.null(providedC),is.null(providedCLower),is.null(providedCUpper)))){
         if((modelDo==c("estimate")) & (xregDo==c("u"))){
@@ -1386,25 +1402,26 @@ CreatorES <- function(silent=FALSE,...){
             BasicMakerES(ParentEnvironment=environment());
 
             # Number of parameters
-            nParam <- (nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
-                       + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
+            nParam <- (nComponents*persistenceEstimate + damped +
+                           (nComponents + maxlag * (Stype!="N")) * all(initialType!=c("b","p")) +
+                           !is.null(xreg) * (initialXEstimate * nExovars + updateX*((nExovars^2)*FXEstimate + nExovars*gXEstimate)));
             if(!is.null(providedC)){
                 if(nParam!=length(providedC)){
-                    warning(paste0("Number of parameters to optimise differes from the length of C:",nParam," vs ",length(providedC),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of C: ",nParam," vs ",length(providedC),".\n",
                                    "We will have to drop parameter C."),call.=FALSE);
                     providedC <- NULL;
                 }
             }
             if(!is.null(providedCLower)){
                 if(nParam!=length(providedCLower)){
-                    warning(paste0("Number of parameters to optimise differes from the length of CLower:",nParam," vs ",length(providedCLower),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of CLower: ",nParam," vs ",length(providedCLower),".\n",
                                    "We will have to drop parameter CLower."),call.=FALSE);
                     providedCLower <- NULL;
                 }
             }
             if(!is.null(providedCUpper)){
                 if(nParam!=length(providedCUpper)){
-                    warning(paste0("Number of parameters to optimise differes from the length of CUpper:",nParam," vs ",length(providedCUpper),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of CUpper: ",nParam," vs ",length(providedCUpper),".\n",
                                    "We will have to drop parameter CUpper."),call.=FALSE);
                     providedCUpper <- NULL;
                 }

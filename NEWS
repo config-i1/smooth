@@ -1,4 +1,4 @@
-smooth v2.1.1 (Release data: 2017-08-08)
+smooth v2.1.1 (Release data: 2017-08-14)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Bugfixes:
 * auto.ssarima() had a bug with dataMA.
 * auto.ssarima() did not calculate correctly number of iterations for AR models.
 * Several minor bugfixes in ges() and ssarima() functions (bugs with provided values).
+* Because of R's unique feature of working with names of variables, the situation when CUpper is provided, but C is not, was not handled well.
 
 smooth v2.1.0 (Release data: 2017-08-01)
 ==============
