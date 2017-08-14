@@ -1762,7 +1762,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             lowerquant <- qt((1-level)/2,df=df);
         }
         else{
-            upperquant <- sqrt(1/((1-level)/2))
+            upperquant <- sqrt(1/((1-level)/2));
             lowerquant <- -upperquant;
         }
     }
@@ -2024,6 +2024,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
                 newelements <- modellags<=(chuncksofhorizon[1]);
                 measurementnew[,newelements] <- measurement[,newelements];
+
                 # This is needed for the first observations, where we do not care about the transition equation
                 varVec[1:min(h,maxlag)] <- s2;
 
