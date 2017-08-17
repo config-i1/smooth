@@ -1127,25 +1127,25 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Calculate nParamMax for checks #####
     if(smoothType=="es"){
+        # 1: estimation of variance;
         # 1 - 3: persitence vector;
         # 1 - 2: initials;
         # 1 - 1 phi value;
         # datafreq: datafreq initials for seasonal component;
-        # 1: estimation of variance;
-        nParamMax <- (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
-            (1 + (Ttype!="N"))*(initialType=="o") +
-            phiEstimate*damped + datafreq*(Stype!="N")*initialSeasonEstimate*(initialType=="o") + 1;
+        nParamMax <- (1 + (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
+                          (1 + (Ttype!="N"))*(initialType=="o") + phiEstimate*damped +
+                          datafreq*(Stype!="N")*initialSeasonEstimate*(initialType!="b"));
     }
     else if(smoothType=="ges"){
-        nParamMax <- nComponents*measurementEstimate + nComponents*(initialType=="o") +
-            transitionEstimate*nComponents^2 + (orders %*% lags)*persistenceEstimate + 1;
+        nParamMax <- (1 + nComponents*measurementEstimate + nComponents*persistenceEstimate +
+                          (nComponents^2)*transitionEstimate + (orders %*% lags)*(initialType=="o"));
     }
     else if(smoothType=="ssarima"){
-        nParamMax <- nComponents*(initialType=="o") + sum(ar.orders)*ARRequired +
-            sum(ma.orders)*MARequired + constantRequired + 1;
+        nParamMax <- (1 + nComponents*(initialType=="o") + sum(ar.orders)*ARRequired*AREstimate +
+                          sum(ma.orders)*MARequired*MAEstimate + constantRequired*constantEstimate);
     }
     else if(smoothType=="ces"){
-        nParamMax <- sum(modellags)*(initialType=="o") + A$number + B$number + 1;
+        nParamMax <- (1 + sum(modellags)*(initialType=="o") + A$number*A$estimate + B$number*B$estimate);
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -2583,7 +2583,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
     }
 
 # Now check transition and persistence of exogenous variables
-    if(xregEstimate==TRUE & updateX==TRUE){
+    if(xregEstimate & updateX){
 # First - transition matrix
         if(!is.null(transitionX)){
             if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
@@ -2625,7 +2625,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             gXEstimate <- TRUE;
         }
     }
-    else if(xregEstimate==TRUE & updateX==FALSE){
+    else if(xregEstimate & !updateX){
         matFX <- diag(nExovars);
         FXEstimate <- FALSE;
 

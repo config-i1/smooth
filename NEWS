@@ -1,4 +1,4 @@
-smooth v2.1.1 (Release data: 2017-08-15)
+smooth v2.1.1 (Release data: 2017-08-17)
 ==============
 
 Changes:
@@ -6,12 +6,14 @@ Changes:
 * Number of parameters in univariate models now consists of the part "estimated" and "provided". Each model now returns a table as nParam with a detailed info about what was estimated/provided. If something was provided, then it is no longer taken into account in calculation of statistics (i.e. AIC, sigma etc).
 * Similar thing is now implemented for ves().
 * ves() now can produce "independent" prediction intervals (when covariances for time series are ignored).
+* Yet another change in the number of parameters to estimate in es(), ges() and ces(), taking that some values could be provided, while the others - left for optimisation.
 
 Bugfixes:
 * auto.ssarima() had a bug with dataMA.
 * auto.ssarima() did not calculate correctly number of iterations for AR models.
 * Several minor bugfixes in ges() and ssarima() functions (bugs with provided values).
 * Because of R's unique feature of working with names of variables, the situation when CUpper is provided, but C is not, was not handled well.
+* Check of maximum number of parameters to estimate did not take into account some of the provided values.
 
 smooth v2.1.0 (Release data: 2017-08-01)
 ==============
