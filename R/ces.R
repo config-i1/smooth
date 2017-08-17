@@ -314,9 +314,9 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    nParam <- (1 + sum(modellags)*(initialType=="o") + A$number + B$number +
-                   (!is.null(xreg)) * (nExovars * initialXEstimate +
-                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
+    nParam <- (1 + sum(modellags)*(initialType=="o") + A$number*A$estimate + B$number*B$estimate +
+                   nExovars * initialXEstimate +
+                   (updateX)*((nExovars^2)*FXEstimate + nExovars*gXEstimate));
 
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         C <- NULL;

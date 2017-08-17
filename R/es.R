@@ -667,8 +667,16 @@ EstimatorES <- function(...){
         }
     }
 
-    nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
-               + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
+    # 1 variance, nComponents smoothing parameters, phi,
+    # level and trend initials if we optimise them,
+    # maxlag seasonal initials if we do not backcast and they need to be estimated
+    # intiials of xreg if they need to be estimated
+    # updateX with transitionX and persistenceX
+    nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
+                   (nComponents-1) * (initialType=="o") +
+                   maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
+                   nExovars * initialXEstimate +
+                   (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
 
     # Change cfType for model selection
     if(multisteps){
@@ -1102,9 +1110,16 @@ CreatorES <- function(silent=FALSE,...){
 
         cfObjective <- CF(C);
 
-        # Number of parameters
-        nParam <- (1 + nComponents*persistenceEstimate + damped + (nComponents + (maxlag-1) * (Stype!="N")) * all(initialType!=c("b","p"))
-                   + !is.null(xreg) * nExovars + (updateX)*(nExovars^2 + nExovars));
+        # 1 variance, nComponents smoothing parameters, phi,
+        # level and trend initials if we optimise them,
+        # maxlag seasonal initials if we do not backcast and they need to be estimated
+        # intiials of xreg if they need to be estimated
+        # updateX with transitionX and persistenceX
+        nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
+                       (nComponents-1) * (initialType=="o") +
+                       maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
+                       nExovars * initialXEstimate +
+                       (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
 
 # Change cfType for model selection
         if(multisteps){
@@ -1401,10 +1416,18 @@ CreatorES <- function(silent=FALSE,...){
             environment(BasicMakerES) <- environment();
             BasicMakerES(ParentEnvironment=environment());
 
-            # Number of parameters
-            nParam <- (nComponents*persistenceEstimate + damped +
-                           (nComponents + maxlag * (Stype!="N")) * all(initialType!=c("b","p")) +
-                           !is.null(xreg) * (initialXEstimate * nExovars + updateX*((nExovars^2)*FXEstimate + nExovars*gXEstimate)));
+            # Variance is not needed here, because we do not optimise it
+            # nComponents smoothing parameters, phi,
+            # level and trend initials if we optimise them,
+            # maxlag seasonal initials if we do not backcast and they need to be estimated
+            # intiials of xreg if they need to be estimated
+            # updateX with transitionX and persistenceX
+            nParam <- (nComponents*persistenceEstimate + phiEstimate*damped +
+                           (nComponents-1) * (initialType=="o") +
+                           maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
+                           nExovars * initialXEstimate +
+                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
+
             if(!is.null(providedC)){
                 if(nParam!=length(providedC)){
                     warning(paste0("Number of parameters to optimise differes from the length of C: ",nParam," vs ",length(providedC),".\n",

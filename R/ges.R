@@ -304,10 +304,12 @@ CreatorGES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-# 1 stands for the variance
-    nParam <- (1 + 2*nComponents + nComponents^2 + orders %*% lags * (initialType=="o") +
-                   (!is.null(xreg)) * (nExovars * initialXEstimate +
-                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
+    # 1 stands for the variance
+    nParam <- (1 + nComponents*measurementEstimate + nComponents*persistenceEstimate +
+                   (nComponents^2)*transitionEstimate +
+                   orders %*% lags * (initialType=="o") +
+                   nExovars * initialXEstimate +
+                   (updateX)*((nExovars^2)*FXEstimate + nExovars*gXEstimate));
 
 # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(measurementEstimate),(transitionEstimate),(persistenceEstimate),

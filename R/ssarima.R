@@ -355,8 +355,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     nParam <- (1 + nComponents*(initialType=="o") + sum(ar.orders)*(ARRequired * AREstimate) +
                    sum(ma.orders)*(MARequired * MAEstimate) + 1*(constantRequired * constantEstimate) +
-                   (!is.null(xreg)) * (nExovars * initialXEstimate +
-                                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate)));
+                   nExovars * initialXEstimate +
+                   (updateX)*((nExovars^2)*FXEstimate + nExovars*gXEstimate));
 
     # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(AREstimate),(MAEstimate),
