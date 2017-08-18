@@ -673,7 +673,7 @@ EstimatorES <- function(...){
     # intiials of xreg if they need to be estimated
     # updateX with transitionX and persistenceX
     nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
-                   (nComponents-1) * (initialType=="o") +
+                   (nComponents - (Stype!="N")) * (initialType=="o") +
                    maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
                    nExovars * initialXEstimate +
                    (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
@@ -1116,7 +1116,7 @@ CreatorES <- function(silent=FALSE,...){
         # intiials of xreg if they need to be estimated
         # updateX with transitionX and persistenceX
         nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
-                       (nComponents-1) * (initialType=="o") +
+                       (nComponents - (Stype!="N")) * (initialType=="o") +
                        maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
                        nExovars * initialXEstimate +
                        (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
@@ -1423,7 +1423,7 @@ CreatorES <- function(silent=FALSE,...){
             # intiials of xreg if they need to be estimated
             # updateX with transitionX and persistenceX
             nParam <- (nComponents*persistenceEstimate + phiEstimate*damped +
-                           (nComponents-1) * (initialType=="o") +
+                           (nComponents - (Stype!="N")) * (initialType=="o") +
                            maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
                            nExovars * initialXEstimate +
                            (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
