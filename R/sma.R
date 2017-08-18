@@ -143,6 +143,24 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
         if(obsInsample < order){
             stop("Sorry, but we don't have enough observations for that order.",call.=FALSE);
         }
+
+        if(!is.numeric(order)){
+            stop("The provided order is not numeric.",call.=FALSE);
+        }
+        else{
+            if(length(order)!=1){
+                warning("The order should be a scalar. Using the first provided value.",call.=FALSE);
+                order <- order[1];
+            }
+
+            if(order<1){
+                stop("The order of the model must be a positive number.",call.=FALSE);
+            }
+        }
+        orderSelect <- FALSE;
+    }
+    else{
+        orderSelect <- TRUE;
     }
 
 # sd of residuals + a parameter... nComponents not included.
@@ -211,9 +229,8 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(ssForecaster) <- environment();
     environment(ssFitter) <- environment();
 
-    if(is.null(order)){
-        # maxOrder <- min(36,obsInsample/2);
-        maxOrder <- obsInsample;
+    if(orderSelect){
+        maxOrder <- min(200,obsInsample);
         ICs <- rep(NA,maxOrder);
         smaValuesAll <- list(NA);
         for(i in 1:maxOrder){
