@@ -251,7 +251,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     if(!is.null(ARValue)){
         if((!is.numeric(ARValue) | !is.vector(ARValue)) & !is.matrix(ARValue)){
             warning(paste0("AR should be either vector or matrix. You have provided something strange...\n",
-                           "AR will be estimated."),call.=FALSE);
+                           "AR will be generated."),call.=FALSE);
             ARRequired <- ARGenerate <- TRUE;
             ARValue <- NULL;
         }
@@ -259,7 +259,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
             if(sum(ar.orders)!=length(ARValue[ARValue!=0])){
                 warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
                                " instead of ",length(ARValue[ARValue!=0]),".\n",
-                               "AR will be estimated."),call.=FALSE);
+                               "AR will be generated."),call.=FALSE);
                 ARRequired <- ARGenerate <- TRUE;
                 ARValue <- NULL;
             }
@@ -291,7 +291,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     if(!is.null(MAValue)){
         if((!is.numeric(MAValue) | !is.vector(MAValue)) & !is.matrix(MAValue)){
             warning(paste0("MA should be either vector or matrix. You have provided something strange...\n",
-                           "MA will be estimated."),call.=FALSE);
+                           "MA will be generated."),call.=FALSE);
             MARequired <- MAGenerate <- TRUE;
             MAValue <- NULL;
         }
@@ -299,7 +299,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
             if(sum(ma.orders)!=length(MAValue[MAValue!=0])){
                 warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
                                " instead of ",length(MAValue[MAValue!=0]),".\n",
-                               "MA will be estimated."),call.=FALSE);
+                               "MA will be generated."),call.=FALSE);
                 MARequired <- MAGenerate <- TRUE;
                 MAValue <- NULL;
             }
