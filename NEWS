@@ -1,4 +1,4 @@
-smooth v2.1.1 (Release data: 2017-08-18)
+smooth v2.1.1 (Release data: 2017-08-19)
 ==============
 
 Changes:
@@ -16,6 +16,7 @@ Bugfixes:
 * Because of R's unique feature of working with names of variables, the situation when CUpper is provided, but C is not, was not handled well.
 * Check of maximum number of parameters to estimate did not take into account some of the provided values.
 * sma() wasn't checking what is provided as order. Now it does.
+* auto.ssarima() did not estimated percentage of estimated models correctly in cases of constant!=NULL.
 
 smooth v2.1.0 (Release data: 2017-08-01)
 ==============

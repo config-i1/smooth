@@ -232,7 +232,8 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     lags <- sort(lags,decreasing=FALSE);
 
 # 1 stands for constant, the other one stands for variance
-    nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + constantCheck + 1;
+    nParamMax <- (1 + max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags)
+                  + sum(ar.max) + sum(ma.max) + constantCheck);
 
 # Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
 # Don't try to fix anything if the number of seasonalities is greater than 2
@@ -635,14 +636,14 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
     }
 
-    m <- m + 1;
-    if(silentText==FALSE){
-        cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
-        cat(paste0(round((m)/nModels,2)*100,"%"));
-    }
-
 #### Test the constant ####
     if(constantCheck){
+        m <- m + 1;
+        if(silentText==FALSE){
+            cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
+            cat(paste0(round((m)/nModels,2)*100,"%"));
+        }
+
         if(any(c(ar.best,i.best,ma.best)!=0)){
             testModel <- ssarima(data, orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)), lags=(lags),
                                  constant=FALSE, initial=initialType, cfType=cfType,
