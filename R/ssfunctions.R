@@ -1965,7 +1965,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
                 ### Cumulative variance is different.
                 if(cumulative){
-                    varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
+                    # varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
+                    varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
+
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
@@ -2054,7 +2056,10 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
                 ### Cumulative variance is different.
                 if(cumulative){
-                    varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
+                    #c(0,h:2) - here 0 is needed to exclude the h=1, where there's no autocovariance.
+                    # varVec <- sum(varVec) + (1 + 2*sum(covarVec*c(0,h:2)) +
+                    #                              sum((c(0,h:2)^2-1)*covarVec^2))*s2;
+                    varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
                 }
 
                 if(any(iprob!=1)){
