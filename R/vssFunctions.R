@@ -877,6 +877,11 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
     maxlag <- max(modelLags);
     nElements <- nComponents*nSeries;
 
+    # This is a temporary solution, needed while we work on other types.
+    if(intervalsType!="i"){
+        intervalsType <- "i";
+    }
+
     # In case of independent we use either t distribution or Chebyshev inequality
     if(intervalsType=="i"){
         if(df>0){
@@ -893,14 +898,12 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
         quant <- qchisq(level,df=nSeries);
     }
 
+    nPoints <- 100;
     if(intervalsType=="c"){
         # Nuber of points in the ellipse
-        nPoints <- 1000;
-        PI <- array(NA, c(nPoints^nSeries,nSeries*2-1,h),
-                    dimnames=list(NULL,
-                                  c(paste0("Series_",rep(c(1:(nSeries-1)),each=2),c("_lower","_upper")),
-                                    paste0("Series_",nSeries)),
-                                  paste0("h",c(1:h))));
+        PI <- array(NA, c(h,2*nPoints^(nSeries-1),nSeries),
+                    dimnames=list(paste0("h",c(1:h)), NULL,
+                                  paste0("Series_",1:nSeries)));
     }
     else{
         PI <- matrix(NA, nrow=h, ncol=nSeries*2,
@@ -951,7 +954,7 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
             selectionMat[,modelLags==chuncksOfHorizon[j]] <- chuncksOfHorizon[j];
 
             elementsNew <- modelLags < (chuncksOfHorizon[j]+1);
-            transitionNew[elementsNew,elementsNew] <- transition[elementsNew,elementsNew];
+            transitionNew[,elementsNew] <- transition[,elementsNew];
             measurementNew[,elementsNew] <- measurement[,elementsNew];
 
             for(i in (chuncksOfHorizon[j]+1):chuncksOfHorizon[j+1]){
@@ -978,9 +981,24 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
         }
     }
 
-    # varVec <<- varVec;
     # Produce PI matrix
     if(any(intervalsType==c("c","u"))){
+        # eigensList contains eigenvalues and eigenvectors of the covariance matrix
+        eigensList <- apply(varVec,1,eigen);
+        # eigenLimits specify the lowest and highest ellipse points in all dimensions
+        eigenLimits <- matrix(NA,nSeries,2);
+        # ellipsePoints contains coordinates of the ellipse on the eigenvectors basis
+        ellipsePoints <- array(NA, c(h, 2*nPoints^(nSeries-1), nSeries));
+        for(i in 1:h){
+            eigenLimits[,2] <- sqrt(quant / eigensList[[i]]$value);
+            eigenLimits[,1] <- -eigenLimits[,2];
+            ellipsePoints[i,,nSeries] <- rep(seq(eigenLimits[nSeries,1],
+                                                      eigenLimits[nSeries,2],
+                                                      length.out=nPoints),nSeries);
+            for(j in (nSeries-1):1){
+                ellipsePoints[i,,nSeries];
+            }
+        }
     }
     else if(intervalsType=="i"){
         variances <- apply(varVec,1,diag);

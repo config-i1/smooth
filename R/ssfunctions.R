@@ -1943,7 +1943,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
 
                     newelements <- modellags<(chuncksofhorizon[j]+1);
-                    transitionnew[newelements,newelements] <- transition[newelements,newelements];
+                    transitionnew[,newelements] <- transition[,newelements];
                     measurementnew[,newelements] <- measurement[,newelements];
 
                     for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
@@ -2035,7 +2035,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
 
                     newelements <- modellags<(chuncksofhorizon[j]+1);
-                    transitionnew[newelements,newelements] <- transition[newelements,newelements];
+                    transitionnew[,newelements] <- transition[,newelements];
                     measurementnew[,newelements] <- measurement[,newelements];
 
                     for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){

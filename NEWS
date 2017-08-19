@@ -18,6 +18,7 @@ Bugfixes:
 * sma() wasn't checking what is provided as order. Now it does.
 * auto.ssarima() did not estimated percentage of estimated models correctly in cases of constant!=NULL.
 * cumulative variance was calculated incorrectly. Now the non-seasonal case is fixed. Still problems with seasonal ones.
+* Found bug in variance calculation for some seasonal models, which caused intervals for SSARIMA, GES and CES to be narrower than needed.
 
 smooth v2.1.0 (Release data: 2017-08-01)
 ==============
