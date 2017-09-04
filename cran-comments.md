@@ -1,11 +1,11 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "01 August 2017"
+date: "04 September 2017"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.1.0
+This is ``smooth`` package, v2.1.1
 
 ## Test environments
 * local ubuntu 17.04, R 3.4.1
@@ -15,9 +15,9 @@ This is ``smooth`` package, v2.1.0
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-  installed size is  7.7Mb
+  installed size is  7.6Mb
   sub-directories of 1Mb or more:
-    doc    1.1Mb
+    doc    1.0Mb
     libs   6.2Mb
 0 errors | 0 warnings | 1 note
 
