@@ -95,7 +95,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{I} - the matrix of coefficients of I terms.
 #' \item \code{MA} - the matrix of coefficients of MA terms.
 #' \item \code{constant} - the value of the constant term.
-#' \item \code{initialType} - Typetof initial values used.
+#' \item \code{initialType} - Type of the initial values used.
 #' \item \code{initial} - the initial values of the state vector (extracted
 #' from \code{states}).
 #' \item \code{nParam} - table with the number of estimated / provided parameters.

@@ -7,8 +7,8 @@
 #' of a variable influence the dependent variable. Can be used together
 #' with \code{xregDo="select"} in \link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{ges} and \link[smooth]{ssarima}. All the missing values
-#' in the beginning and at the end of laged series are substituted by
-#' mean forecats produced using \link[smooth]{es}.
+#' in the beginning and at the end of lagged series are substituted by
+#' mean forecasts produced using \link[smooth]{es}.
 #'
 #' @param xreg Vector / matrix / data.frame, containing variables that need
 #' to be expanded. In case of vector / matrix it is recommended to provide

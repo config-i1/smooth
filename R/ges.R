@@ -62,7 +62,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{timeElapsed} - time elapsed for the construction of the model.
 #' \item \code{states} - matrix of fuzzy components of GES, where \code{rows}
 #' correspond to time and \code{cols} to states.
-#' \item \code{initialType} - Typetof initial values used.
+#' \item \code{initialType} - Type of the initial values used.
 #' \item \code{initial} - initial values of state vector (extracted from
 #' \code{states}).
 #' \item \code{nParam} - table with the number of estimated / provided parameters.

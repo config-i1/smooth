@@ -107,10 +107,10 @@ intermittentMaker <- function(intermittent="n",...){
 
 #' Intermittent State Space
 #'
-#' Functin calculates the probability for intermittent state space model. This
+#' Function calculates the probability for intermittent state space model. This
 #' is needed in order to forecast intermittent demand using other functions.
 #'
-#' The function estimates probability of demand occurance, using one of the ETS
+#' The function estimates probability of demand occurrence, using one of the ETS
 #' state-space models.
 #'
 #' @template ssIntermittentRef
@@ -146,7 +146,7 @@ intermittentMaker <- function(intermittent="n",...){
 #' \item \code{logLik} - likelihood value for the model
 #' \item \code{nParam} - number of parameters used in the model;
 #' \item \code{residuals} - residuals of the model;
-#' \item \code{actuals} - actual values of probabilities (zeroes and ones).
+#' \item \code{actuals} - actual values of probabilities (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{initial} - initial values of the state vector;
 #' }

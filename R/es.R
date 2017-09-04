@@ -56,8 +56,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' 2011). This can also be regulated. For example, \code{model="CCN"} will
 #' combine forecasts of all non-seasonal models and \code{model="CXY"} will
 #' combine forecasts of all the models with non-multiplicative trend and
-#' non-additive seasonality with either additive or multiplicative error. not
-#' sure why anyone whould need this thing, but it is available.
+#' non-additive seasonality with either additive or multiplicative error. Not
+#' sure why anyone would need this thing, but it is available.
 #'
 #' The parameter \code{model} can also be a vector of names of models for a
 #' finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
@@ -89,11 +89,11 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' specified \code{bounds}. These values should have exactly the length equal
 #' to the number of parameters to estimate.
 #' @return Object of class "smooth" is returned. It contains the list of the
-#' following values for clasical ETS models:
+#' following values for classical ETS models:
 #'
 #' \itemize{
 #' \item \code{model} - type of constructed model.
-#' \item \code{formula} - mathematical formula, describing interations between
+#' \item \code{formula} - mathematical formula, describing interactions between
 #' components of es() and exogenous variables.
 #' \item \code{timeElapsed} - time elapsed for the construction of the model.
 #' \item \code{states} - matrix of the components of ETS.
@@ -102,8 +102,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{phi} - value of damping parameter.
 #' \item \code{transition} - transition matrix of the model.
 #' \item \code{initialType} - type of the initial values used.
-#' \item \code{initial} - intial values of the state vector (non-seasonal).
-#' \item \code{initialSeason} - intial values of the seasonal part of state vector.
+#' \item \code{initial} - initial values of the state vector (non-seasonal).
+#' \item \code{initialSeason} - initial values of the seasonal part of state vector.
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
 #' provided parameters will take this into account.

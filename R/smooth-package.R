@@ -21,7 +21,7 @@
 #' \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
 #' % \item \link[smooth]{sim.ges} - simulate time series using GES as a model.
 #' \item \link[smooth]{iss} - intermittent data state-space model. This
-#' function models the part with data occurances using one of three methods.
+#' function models the part with data occurrences using one of three methods.
 #' }
 #' There are also several methods implemented in the package for the classes
 #' "smooth" and "smooth.sim":

@@ -37,9 +37,9 @@ These functions allow extracting orders and lags for \code{ssarima()}, \code{ges
 and type of model from \code{es()} and \code{ces()}.
 }
 \details{
-\code{orders()} and \code{lags()} are usefull only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
+\code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
-\code{modelType()} is usefull only for ETS and CES. They return \code{NA} for other functions.
+\code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
 This can also be applied to \code{ets()} function from forecast package.
 }
 \examples{

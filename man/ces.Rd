@@ -90,7 +90,7 @@ parametric intervals are constructed, while the latter is equivalent to
 \item{intermittent}{Defines type of intermittent model used. Can be: 1.
 \code{none}, meaning that the data should be considered as non-intermittent;
 2. \code{fixed}, taking into account constant Bernoulli distribution of
-demand occurancies; 3. \code{croston}, based on Croston, 1972 method with
+demand occurrences; 3. \code{croston}, based on Croston, 1972 method with
 SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
 \code{auto} - automatic selection of intermittency type based on information
 criteria. The first letter can be used instead. 6. \code{"sba"} -
@@ -124,7 +124,7 @@ in-sample or to the whole series. If the number of observations in
 produced using \link[smooth]{es} function.}
 
 \item{xregDo}{Variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, whilie
+\code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
@@ -132,7 +132,7 @@ produced using \link[smooth]{es} function.}
 Ignored if \code{xreg} is NULL.}
 
 \item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interractions between parameters.
+estimated, introducing non-linear interactions between parameters.
 Prerequisite - non-NULL \code{xreg}.}
 
 \item{persistenceX}{Persistence vector \eqn{g_X}, containing smoothing
@@ -164,8 +164,8 @@ estimated coefficients for the exogenous variables are also included.
 \item \code{B} - smoothing parameter for the seasonal component. Can either
 be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 in a form b0 + ib1.
-\item \code{initialType} - Typetof initial values used.
-\item \code{initial} - the intial values of the state vector (non-seasonal).
+\item \code{initialType} - Type of the initial values used.
+\item \code{initial} - the initial values of the state vector (non-seasonal).
 \item \code{nParam} - table with the number of estimated / provided parameters.
 If a previous model was reused, then its initials are reused and the number of
 provided parameters will take this into account.

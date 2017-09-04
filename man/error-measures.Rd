@@ -50,7 +50,7 @@ All the functions return the scalar value.
 Functions allow to calculate different types of errors: \enumerate{ \item MPE
 - Mean Percentage Error, \item MAPE - Mean Absolute Percentage Error,
 \item SMAPE - Symmetric Mean Absolute Percentage Error, \item MASE - Mean
-Absolute Scaled Error, \item RelMAE - Average Rellative Mean Absolute Error,
+Absolute Scaled Error, \item RelMAE - Average Relative Mean Absolute Error,
 \item sMSE - Scaled Mean Squared Error, \item sPIS- Scaled Periods-In-Stock,
 \item sCE - Scaled Cumulative Error.  }
 }

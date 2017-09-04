@@ -5,8 +5,8 @@
 #' of the covariance matrix of errors between the series. This implies that the
 #' series could be correlated;
 #' \item \code{diagonal} - the covariance matrix is assumed to be diagonal with
-#' zeroes off the diagonal. The determinant of this matrix is just a product of
-#' variances. This thing is minimised in this siduation in logs.
+#' zeros off the diagonal. The determinant of this matrix is just a product of
+#' variances. This thing is minimised in this situation in logs.
 #' \item \code{trace} - the trace of the covariance matrix. The sum of variances
 #' is minimised in this case.
 #' }
@@ -17,7 +17,7 @@
 #' \itemize{
 #' \item \code{none}, meaning that the data should be considered as non-intermittent;
 #' \item \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurancies;
+#' demand occurrences;
 #' \item \code{tsb}, based on Teunter et al., 2011 method.
 #' \item \code{auto} - automatic selection of intermittency type based on information
 #' criteria. The first letter can be used instead.

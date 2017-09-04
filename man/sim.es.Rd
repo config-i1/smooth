@@ -30,7 +30,7 @@ length is 2. If \code{NULL}, values are generated.}
 
 \item{initialSeason}{Vector of initial states for seasonal coefficients.
 Should have length equal to \code{frequency} parameter. If \code{NULL},
-valuesare generated.}
+values are generated.}
 
 \item{bounds}{Type of bounds to use for persistence vector if values are
 generated. \code{"usual"} - bounds from p.156 by Hyndman et. al., 2008.
@@ -41,7 +41,7 @@ bounds are also used for multiplicative models, so be careful!}
 
 \item{obs}{Number of observations in each generated time series.}
 
-\item{nsim}{Number of series to generate (numeber of simulations to do).}
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But

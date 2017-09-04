@@ -51,8 +51,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{B} - smoothing parameter for the seasonal component. Can either
 #' be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 #' in a form b0 + ib1.
-#' \item \code{initialType} - Typetof initial values used.
-#' \item \code{initial} - the intial values of the state vector (non-seasonal).
+#' \item \code{initialType} - Type of the initial values used.
+#' \item \code{initial} - the initial values of the state vector (non-seasonal).
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
 #' provided parameters will take this into account.

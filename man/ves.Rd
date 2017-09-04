@@ -68,7 +68,7 @@ model.}
 
 \item{initial}{Can be either character or a vector / matrix of initial states.
 If it is character, then it can be \code{"individual"}, individual values of
-the intial non-seasonal components are udes, or \code{"group"}, meaning that
+the initial non-seasonal components are used, or \code{"group"}, meaning that
 the initials for all the time series are set to be equal to the same value.
 If vector of states is provided, then it is automatically transformed into
 a matrix, assuming that these values are provided for the whole group.}
@@ -84,8 +84,8 @@ be:
 of the covariance matrix of errors between the series. This implies that the
 series could be correlated;
 \item \code{diagonal} - the covariance matrix is assumed to be diagonal with
-zeroes off the diagonal. The determinant of this matrix is just a product of
-variances. This thing is minimised in this siduation in logs.
+zeros off the diagonal. The determinant of this matrix is just a product of
+variances. This thing is minimised in this situation in logs.
 \item \code{trace} - the trace of the covariance matrix. The sum of variances
 is minimised in this case.
 }}
@@ -128,7 +128,7 @@ inventory control systems.}
 \itemize{
 \item \code{none}, meaning that the data should be considered as non-intermittent;
 \item \code{fixed}, taking into account constant Bernoulli distribution of
-demand occurancies;
+demand occurrences;
 \item \code{tsb}, based on Teunter et al., 2011 method.
 \item \code{auto} - automatic selection of intermittency type based on information
 criteria. The first letter can be used instead.
@@ -171,7 +171,7 @@ values:
 \item \code{nParam} - The number of estimated parameters;
 \item \code{actuals} - The matrix with the original data;
 \item \code{fitted} - The matrix of the fitted values;
-\item \code{holdout} - The matrix with the holdoud values (if \code{holdout=TRUE} in
+\item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
 the estimation);
 \item \code{residuals} - The matrix of the residuals of the model;
 \item \code{Sigma} - The covariance matrix of the errors (estimated with the correction

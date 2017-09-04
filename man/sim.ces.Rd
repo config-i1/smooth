@@ -38,7 +38,7 @@ should contain initial values for non-seasonal components, repeated
 
 \item{obs}{Number of observations in each generated time series.}
 
-\item{nsim}{Number of series to generate (numeber of simulations to do).}
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But

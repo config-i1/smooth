@@ -33,8 +33,8 @@ and combination of their forecasts using AIC weights is produced (Kolassa,
 2011). This can also be regulated. For example, \code{model="CCN"} will
 combine forecasts of all non-seasonal models and \code{model="CXY"} will
 combine forecasts of all the models with non-multiplicative trend and
-non-additive seasonality with either additive or multiplicative error. not
-sure why anyone whould need this thing, but it is available.
+non-additive seasonality with either additive or multiplicative error. Not
+sure why anyone would need this thing, but it is available.
 
 The parameter \code{model} can also be a vector of names of models for a
 finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
@@ -110,7 +110,7 @@ parametric intervals are constructed, while the latter is equivalent to
 \item{intermittent}{Defines type of intermittent model used. Can be: 1.
 \code{none}, meaning that the data should be considered as non-intermittent;
 2. \code{fixed}, taking into account constant Bernoulli distribution of
-demand occurancies; 3. \code{croston}, based on Croston, 1972 method with
+demand occurrences; 3. \code{croston}, based on Croston, 1972 method with
 SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
 \code{auto} - automatic selection of intermittency type based on information
 criteria. The first letter can be used instead. 6. \code{"sba"} -
@@ -144,7 +144,7 @@ in-sample or to the whole series. If the number of observations in
 produced using \link[smooth]{es} function.}
 
 \item{xregDo}{Variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, whilie
+\code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
@@ -152,7 +152,7 @@ produced using \link[smooth]{es} function.}
 Ignored if \code{xreg} is NULL.}
 
 \item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interractions between parameters.
+estimated, introducing non-linear interactions between parameters.
 Prerequisite - non-NULL \code{xreg}.}
 
 \item{persistenceX}{Persistence vector \eqn{g_X}, containing smoothing
@@ -178,11 +178,11 @@ to the number of parameters to estimate.}
 }
 \value{
 Object of class "smooth" is returned. It contains the list of the
-following values for clasical ETS models:
+following values for classical ETS models:
 
 \itemize{
 \item \code{model} - type of constructed model.
-\item \code{formula} - mathematical formula, describing interations between
+\item \code{formula} - mathematical formula, describing interactions between
 components of es() and exogenous variables.
 \item \code{timeElapsed} - time elapsed for the construction of the model.
 \item \code{states} - matrix of the components of ETS.
@@ -191,8 +191,8 @@ smoothing parameters live.
 \item \code{phi} - value of damping parameter.
 \item \code{transition} - transition matrix of the model.
 \item \code{initialType} - type of the initial values used.
-\item \code{initial} - intial values of the state vector (non-seasonal).
-\item \code{initialSeason} - intial values of the seasonal part of state vector.
+\item \code{initial} - initial values of the state vector (non-seasonal).
+\item \code{initialSeason} - initial values of the seasonal part of state vector.
 \item \code{nParam} - table with the number of estimated / provided parameters.
 If a previous model was reused, then its initials are reused and the number of
 provided parameters will take this into account.

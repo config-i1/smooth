@@ -23,7 +23,7 @@
 #' length is 2. If \code{NULL}, values are generated.
 #' @param initialSeason Vector of initial states for seasonal coefficients.
 #' Should have length equal to \code{frequency} parameter. If \code{NULL},
-#' valuesare generated.
+#' values are generated.
 #' @param bounds Type of bounds to use for persistence vector if values are
 #' generated. \code{"usual"} - bounds from p.156 by Hyndman et. al., 2008.
 #' \code{"restricted"} - similar to \code{"usual"} but with upper bound equal

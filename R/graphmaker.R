@@ -4,7 +4,7 @@
 #' forecasts.
 #'
 #' Function uses the provided data to construct a linear graph. It is strongly
-#' adviced to use \code{ts} function to define the start of each of the
+#' advised to use \code{ts} function to define the start of each of the
 #' vectors. Otherwise the data may be plotted in a wrong way.
 #'
 #' @param actuals The vector of actual series.
