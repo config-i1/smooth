@@ -1,3 +1,12 @@
+smooth v2.1.2 (Release data: 2017-09-19)
+==============
+
+Changes:
+* Changed the order of parameters in the sim-functions, so that the number of observations and number of simulations follow the very first parameter. This should simplify things.
+
+Bugfixes:
+*
+
 smooth v2.1.1 (Release data: 2017-09-04)
 ==============
 

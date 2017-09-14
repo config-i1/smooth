@@ -4,8 +4,8 @@
 \alias{sim.ces}
 \title{Simulate Complex Exponential Smoothing}
 \usage{
-sim.ces(seasonality = c("none", "simple", "partial", "full"), frequency = 1,
-  A = NULL, B = NULL, initial = NULL, obs = 10, nsim = 1,
+sim.ces(seasonality = c("none", "simple", "partial", "full"), obs = 10,
+  nsim = 1, frequency = 1, A = NULL, B = NULL, initial = NULL,
   randomizer = c("rnorm", "runif", "rbeta", "rt"), iprob = 1, ...)
 }
 \arguments{
@@ -18,6 +18,10 @@ complex seasonal components (can do both multiplicative and additive
 seasonality, depending on the data). First letter can be used instead of
 full words.  Any seasonal CES can only be constructed for time series
 vectors.}
+
+\item{obs}{Number of observations in each generated time series.}
+
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
@@ -35,10 +39,6 @@ complex number.}
 \code{seasonality="partial"} and \code{seasonality="full"} first two columns
 should contain initial values for non-seasonal components, repeated
 \code{frequency} times.}
-
-\item{obs}{Number of observations in each generated time series.}
-
-\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But
