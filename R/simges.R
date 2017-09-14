@@ -69,9 +69,10 @@
 #' simulate(ourModel,nsim=10)
 #'
 #' @export sim.ges
-sim.ges <- function(orders=c(1), lags=c(1), frequency=1, measurement=NULL,
-                    transition=NULL, persistence=NULL, initial=NULL,
+sim.ges <- function(orders=c(1), lags=c(1),
                     obs=10, nsim=1,
+                    frequency=1, measurement=NULL,
+                    transition=NULL, persistence=NULL, initial=NULL,
                     randomizer=c("rnorm","runif","rbeta","rt"),
                     iprob=1, ...){
 

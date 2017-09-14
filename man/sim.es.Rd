@@ -4,15 +4,19 @@
 \alias{sim.es}
 \title{Simulate Exponential Smoothing}
 \usage{
-sim.es(model = "ANN", frequency = 1, persistence = NULL, phi = 1,
-  initial = NULL, initialSeason = NULL, bounds = c("usual", "admissible",
-  "restricted"), obs = 10, nsim = 1, randomizer = c("rnorm", "rlnorm",
-  "runif", "rbeta", "rt"), iprob = 1, ...)
+sim.es(model = "ANN", obs = 10, nsim = 1, frequency = 1,
+  persistence = NULL, phi = 1, initial = NULL, initialSeason = NULL,
+  bounds = c("usual", "admissible", "restricted"), randomizer = c("rnorm",
+  "rlnorm", "runif", "rbeta", "rt"), iprob = 1, ...)
 }
 \arguments{
 \item{model}{Type of ETS model according to [Hyndman et. al., 2008]
 taxonomy. Can consist of 3 or 4 chars: \code{ANN}, \code{AAN}, \code{AAdN},
 \code{AAA}, \code{AAdA}, \code{MAdM} etc.}
+
+\item{obs}{Number of observations in each generated time series.}
+
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
@@ -38,10 +42,6 @@ generated. \code{"usual"} - bounds from p.156 by Hyndman et. al., 2008.
 to 0.3. \code{"admissible"} - bounds from tables 10.1 and 10.2 of Hyndman
 et. al., 2008. Using first letter of the type of bounds also works. These
 bounds are also used for multiplicative models, so be careful!}
-
-\item{obs}{Number of observations in each generated time series.}
-
-\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But

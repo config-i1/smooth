@@ -102,10 +102,10 @@
 #'
 #' @importFrom stats optim
 #' @export sim.es
-sim.es <- function(model="ANN", frequency=1, persistence=NULL, phi=1,
+sim.es <- function(model="ANN", obs=10, nsim=1,
+                   frequency=1, persistence=NULL, phi=1,
                    initial=NULL, initialSeason=NULL,
                    bounds=c("usual","admissible","restricted"),
-                   obs=10, nsim=1,
                    randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
                    iprob=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.

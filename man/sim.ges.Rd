@@ -4,10 +4,10 @@
 \alias{sim.ges}
 \title{Simulate Generalised Exponential Smoothing}
 \usage{
-sim.ges(orders = c(1), lags = c(1), frequency = 1, measurement = NULL,
-  transition = NULL, persistence = NULL, initial = NULL, obs = 10,
-  nsim = 1, randomizer = c("rnorm", "runif", "rbeta", "rt"), iprob = 1,
-  ...)
+sim.ges(orders = c(1), lags = c(1), obs = 10, nsim = 1, frequency = 1,
+  measurement = NULL, transition = NULL, persistence = NULL,
+  initial = NULL, randomizer = c("rnorm", "runif", "rbeta", "rt"),
+  iprob = 1, ...)
 }
 \arguments{
 \item{orders}{Order of the model. Specified as vector of number of states
@@ -19,6 +19,10 @@ two states: one of the first lag type, the second of the second type.}
 model will have two states: the first will have lag 1 and the second will
 have lag 12. The length of \code{lags} must correspond to the length of
 \code{orders}.}
+
+\item{obs}{Number of observations in each generated time series.}
+
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
@@ -37,10 +41,6 @@ parameters. If \code{NULL}, then estimated.}
 \item{initial}{Vector of initial values for state matrix. If \code{NULL},
 then generated using advanced, sophisticated technique - uniform
 distribution.}
-
-\item{obs}{Number of observations in each generated time series.}
-
-\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But

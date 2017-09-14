@@ -73,9 +73,9 @@
 #'
 #' @export sim.ces
 sim.ces <- function(seasonality=c("none","simple","partial","full"),
+                    obs=10, nsim=1,
                     frequency=1, A=NULL, B=NULL,
                     initial=NULL,
-                    obs=10, nsim=1,
                     randomizer=c("rnorm","runif","rbeta","rt"),
                     iprob=1, ...){
 # Function simulates the data using CES state-space framework

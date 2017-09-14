@@ -307,7 +307,7 @@ vssInput <- function(smoothType=c("ves"),...){
         nParamMax <- nParamMax + nComponentsAll;
     }
     else if(persistenceType=="d"){
-        # In case with "dependent" the whol matrix needs to be estimated
+        # In case with "dependent" the whole matrix needs to be estimated
         nParamMax <- nParamMax + nComponentsAll*nSeries;
     }
 
@@ -808,8 +808,6 @@ vssInput <- function(smoothType=c("ves"),...){
     # assign("iprob",iprob,ParentEnvironment);
 
     assign("bounds",bounds,ParentEnvironment);
-
-    assign("nParamMax",nParamMax,ParentEnvironment);
 
     assign("FI",FI,ParentEnvironment);
 }

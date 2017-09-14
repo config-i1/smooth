@@ -4,9 +4,9 @@
 \alias{sim.ssarima}
 \title{Simulate SSARIMA}
 \usage{
-sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, frequency = 1,
-  AR = NULL, MA = NULL, constant = FALSE, initial = NULL,
-  bounds = c("admissible", "none"), obs = 10, nsim = 1,
+sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, obs = 10,
+  nsim = 1, frequency = 1, AR = NULL, MA = NULL, constant = FALSE,
+  initial = NULL, bounds = c("admissible", "none"),
   randomizer = c("rnorm", "runif", "rbeta", "rt"), iprob = 1, ...)
 }
 \arguments{
@@ -21,6 +21,10 @@ The length of \code{lags} must correspond to the length of either
 \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no
 restrictions on the length of \code{lags} vector. It is recommended to order
 \code{lags} ascending.}
+
+\item{obs}{Number of observations in each generated time series.}
+
+\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
@@ -47,10 +51,6 @@ distribution.}
 SSARIMA. \code{"none"} - we generate something, but do not guarantee
 stationarity and stability. Using first letter of the type of bounds also
 works.}
-
-\item{obs}{Number of observations in each generated time series.}
-
-\item{nsim}{Number of series to generate (number of simulations to do).}
 
 \item{randomizer}{Type of random number generator function used for error
 term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But

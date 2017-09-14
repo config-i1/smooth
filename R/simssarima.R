@@ -88,9 +88,9 @@
 #'
 #' @export sim.ssarima
 sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
+                        obs=10, nsim=1,
                         frequency=1, AR=NULL, MA=NULL, constant=FALSE,
                         initial=NULL, bounds=c("admissible","none"),
-                        obs=10, nsim=1,
                         randomizer=c("rnorm","runif","rbeta","rt"),
                         iprob=1, ...){
 # Function generates data using SSARIMA in Single Source of Error as a data generating process.
