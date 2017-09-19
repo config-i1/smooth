@@ -2,7 +2,6 @@
 % Please edit documentation in R/methods.R
 \name{AICc}
 \alias{AICc}
-\alias{AICc.default}
 \title{Corrected Akaike's Information Criterion}
 \usage{
 AICc(object, ...)

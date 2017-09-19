@@ -2,12 +2,8 @@
 % Please edit documentation in R/methods.R
 \name{orders}
 \alias{orders}
-\alias{orders.default}
 \alias{lags}
-\alias{lags.default}
 \alias{modelType}
-\alias{modelType.default}
-\alias{model.type}
 \title{Functions that extract values from the fitted model}
 \usage{
 orders(object, ...)
@@ -15,8 +11,6 @@ orders(object, ...)
 lags(object, ...)
 
 modelType(object, ...)
-
-model.type(object, ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
