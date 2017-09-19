@@ -1,7 +1,7 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using Smoothing Functions
-Version: 2.1.2.41001
+Version: 2.1.2.41002
 Date: 2017-09-19
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Research Associate at Lancaster Centre for Forecasting, UK")

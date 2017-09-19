@@ -2,7 +2,6 @@
 % Please edit documentation in R/methods.R
 \name{nParam}
 \alias{nParam}
-\alias{nParam.default}
 \title{Number of parameters in the model}
 \usage{
 nParam(object, ...)

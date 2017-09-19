@@ -26,7 +26,7 @@ included in the package:
 \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
 \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
-% \item \link[smooth]{sim.ges} - simulate time series using GES as a model.
+\item \link[smooth]{sim.ges} - simulate time series using GES as a model.
 \item \link[smooth]{iss} - intermittent data state-space model. This
 function models the part with data occurrences using one of three methods.
 }
@@ -35,9 +35,9 @@ There are also several methods implemented in the package for the classes
 \itemize{
 \item \link[smooth]{orders} - extracts orders of the fitted model.
 \item \link[smooth]{lags} - extracts lags of the fitted model.
-\item \link[smooth]{model.type} - extracts type of the fitted model.
+\item \link[smooth]{modelType} - extracts type of the fitted model.
 \item \link[smooth]{AICc} - extracts AICc of the fitted model.
-\item forecast - produces forecast using provided model.
+\item \link[smooth]{forecast} - produces forecast using provided model.
 \item fitted - extracts fitted values from provided model.
 \item getResponse - returns actual values from the provided model.
 \item residuals - extracts residuals of provided model.

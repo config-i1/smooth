@@ -7,7 +7,7 @@
 #'
 #' AICc was proposed by Nariaki Sugiura in 1978 and is used on small samples.
 #'
-#' @aliases AICc AICc.default
+#' @aliases AICc
 #' @param object Time series model.
 #' @param ...  Some stuff.
 #' @return This function returns numeric value.
@@ -36,7 +36,7 @@ AICc <- function(object, ...) UseMethod("AICc")
 #' \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
 #' This can also be applied to \code{ets()} function from forecast package.
 #'
-#' @aliases orders orders.default
+#' @aliases orders
 #' @param object Model estimated using one of the functions of smooth package.
 #' @param ... Currently nothing is accepted via ellipsis.
 #' @return     Either vector or list with values is returned.
@@ -73,24 +73,15 @@ AICc <- function(object, ...) UseMethod("AICc")
 #' @export orders
 orders <- function(object, ...) UseMethod("orders")
 
-#' @aliases lags.default
+#' @aliases lags
 #' @rdname orders
 #' @export lags
 lags <- function(object, ...) UseMethod("lags")
 
-#' @aliases modelType.default
+#' @aliases modelType
 #' @rdname orders
 #' @export modelType
 modelType <-  function(object, ...) UseMethod("modelType")
-
-##### model.type() is depricated function. Will be removed later #####
-#' @aliases model.type
-#' @rdname orders
-#' @export model.type
-model.type <- function(object, ...){
-    warning("This function is depricated. Please, use modelType() instead.",call.=FALSE);
-    modelType(object, ...);
-}
 
 ##### Likelihood function and stuff #####
 #' @importFrom stats logLik
@@ -139,7 +130,7 @@ nobs.iss <- function(object, ...){
 #' This is a very basic and a simple function which does what it says:
 #' extracts number of parameters in the estimated model.
 #'
-#' @aliases nParam nParam.default
+#' @aliases nParam
 #' @param object Time series model.
 #' @param ... Some other parameters passed to the method.
 #' @return This function returns a numeric value.
@@ -185,7 +176,7 @@ nParam.iss <- function(object, ...){
 #' values are biased, so you would possibly need to take number of degrees of freedom
 #' into account in order to have an unbiased estimator.
 #'
-#' @aliases pointLik pointLik.default
+#' @aliases pointLik
 #' @param object Time series model.
 #' @param ...  Some stuff.
 #' @return This function returns a vector.

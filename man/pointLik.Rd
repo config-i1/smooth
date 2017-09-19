@@ -2,7 +2,6 @@
 % Please edit documentation in R/methods.R
 \name{pointLik}
 \alias{pointLik}
-\alias{pointLik.default}
 \title{Point likelihood values}
 \usage{
 pointLik(object, ...)
