@@ -13,6 +13,10 @@
 #' @param order Order of the modelled series. If omitted, then a random order from 1 to 100 is selected.
 #' @param initial Vector of initial states for the model. If \code{NULL},
 #' values are generated.
+#' @param ...  Additional parameters passed to the chosen randomizer. All the
+#' parameters should be passed in the order they are used in chosen randomizer.
+#' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
+#' to the call \code{rnorm(obs, mean=0.5, sd=1)}.
 #'
 #' @return List of the following values is returned:
 #' \itemize{

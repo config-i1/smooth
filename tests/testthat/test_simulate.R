@@ -61,5 +61,5 @@ test_that("GES(1[1]) with intermittent data", {
 
 #### SMA ####
 test_that("SMA(10) with intermittent data", {
-    expect_match(10,sim.sma(nsim=10,obs=100,iprob=0.2)$model, "iSMA");
+    expect_match(sim.sma(10,nsim=10,obs=100,iprob=0.2)$model, "iSMA");
 })

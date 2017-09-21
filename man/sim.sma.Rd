@@ -30,6 +30,11 @@ appropriate parameters are passed. For example \code{rpois} with
 \item{iprob}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time
 (in TSB or Croston style).}
+
+\item{...}{Additional parameters passed to the chosen randomizer. All the
+parameters should be passed in the order they are used in chosen randomizer.
+For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
+to the call \code{rnorm(obs, mean=0.5, sd=1)}.}
 }
 \value{
 List of the following values is returned:
