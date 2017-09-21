@@ -915,24 +915,32 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         }
         else{
             if(smoothType=="es"){
-                if(length(initialValue)>2){
-                    warning(paste0("Length of initial vector is wrong! It should not be greater than 2.\n",
-                                   "Values of initial vector will be estimated."),call.=FALSE);
+                if(modelDo!="estimate"){
+                    warning(paste0("Predefined initials vector can only be used with preselected ETS model.\n",
+                                   "Changing to estimation of initials."),call.=FALSE);
                     initialValue <- NULL;
                     initialType <- "o";
                 }
                 else{
-                    if(length(initialValue) != (1*(Ttype!="N") + 1)){
-                        warning(paste0("Length of initial vector is wrong! It should be ",(1*(Ttype!="N") + 1),
-                                       " instead of ",length(initialValue),".\n",
+                    if(length(initialValue)>2){
+                        warning(paste0("Length of initial vector is wrong! It should not be greater than 2.\n",
                                        "Values of initial vector will be estimated."),call.=FALSE);
                         initialValue <- NULL;
                         initialType <- "o";
                     }
                     else{
-                        initialType <- "p";
-                        initialValue <- initial;
-                        parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
+                        if(length(initialValue) != (1*(Ttype!="N") + 1)){
+                            warning(paste0("Length of initial vector is wrong! It should be ",(1*(Ttype!="N") + 1),
+                                           " instead of ",length(initialValue),".\n",
+                                           "Values of initial vector will be estimated."),call.=FALSE);
+                            initialValue <- NULL;
+                            initialType <- "o";
+                        }
+                        else{
+                            initialType <- "p";
+                            initialValue <- initial;
+                            parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
+                        }
                     }
                 }
             }
@@ -1905,7 +1913,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             # Vector of final variances
             varVec <- rep(NA,h);
             if(cumulative){
-                covarVec <- rep(0,h);
+                # covarVec <- rep(0,h);
+                cumVarVec <- rep(0,h);
+                cumVarVec[1:min(h,maxlag)] <- s2 * (h - 1:min(h,maxlag) + 1);
             }
 
 #### Pure multiplicative models ####
@@ -1958,7 +1968,9 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
                         if(cumulative){
                             # This is just an approximation!
-                            covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                            # covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                            cumVarVec[i] <- ((measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew)) + s2) * m;
+                            m <- m-1;
                         }
                     }
                 }
@@ -1966,7 +1978,8 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 ### Cumulative variance is different.
                 if(cumulative){
                     # varVec <- sum(varVec) + 2*s2*sum(covarVec*c(0,h:2));
-                    varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
+                    # varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
+                    varVec <- sum(cumVarVec);
 
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
@@ -2030,6 +2043,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 # This is needed for the first observations, where we do not care about the transition equation
                 varVec[1:min(h,maxlag)] <- s2;
 
+                m <- h-1;
                 for(j in 1:chunkslength){
                     selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
                     selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
@@ -2049,18 +2063,27 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         matrixOfVarianceOfStates[,,i] <- transitionnew %*% matrixOfVarianceOfStatesLagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
                         varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
                         if(cumulative){
-                            covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                            # covarVec[i] <- measurementnew %*% transitionnew %*% persistence;
+                            cumVarVec[i] <- ((measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew)) + s2) * m;
+                            m <- m-1;
                         }
                     }
                 }
+                # print(s2*3)
+                # print((1 + (measurementnew %*% transitionnew %*% persistence)^2)*s2*2)
+                # print((1 + (measurementnew %*% transitionnew %*% transitionnew %*% persistence)^2)*s2)
 
                 ### Cumulative variance is different.
                 if(cumulative){
                     #c(0,h:2) - here 0 is needed to exclude the h=1, where there's no autocovariance.
                     # varVec <- sum(varVec) + (1 + 2*sum(covarVec*c(0,h:2)) +
                     #                              sum((c(0,h:2)^2-1)*covarVec^2))*s2;
-                    varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
+                    # varVec <- (1 + sum((1 + c((h-1):1)*covarVec[2:h])^2))*s2;
+                    # print((c(1,1 + c((h-1):1)*covarVec[2:h])^2)*s2);
+                    varVec <- sum(cumVarVec);
+                    # print(cumVarVec);
                 }
+                # print(varVec)
 
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
