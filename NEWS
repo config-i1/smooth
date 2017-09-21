@@ -1,12 +1,14 @@
-smooth v2.1.2 (Release data: 2017-09-19)
+smooth v2.1.2 (Release data: 2017-09-21)
 ==============
 
 Changes:
 * Changed the order of parameters in the sim-functions, so that the number of observations and number of simulations follow the very first parameter. This should simplify things.
 * Removed some of the redundant alliases in documentation and model.type() function. Use modelType() instead.
+* Variance in cases of seasonal models and cumulative=TRUE, should now be correct.
+* New function - sim.sma() - generate data from SMA model.
 
 Bugfixes:
-*
+* Check of initials when model is not selected in es().
 
 smooth v2.1.1 (Release data: 2017-09-04)
 ==============

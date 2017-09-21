@@ -838,6 +838,9 @@ print.smooth.sim <- function(x, ...){
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
+        else if(gregexpr("SMA",x$model)!=-1){
+            cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
+        }
     }
 }
 
@@ -956,6 +959,14 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
                                  obs=obs, nsim=nsim,
                                  iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
 
+    }
+    else if(gregexpr("SMA",object$model)!=-1){
+        orders <- orders(object);
+        randomizer <- "rnorm";
+        simulatedData <- sim.sma(order=orders,
+                                 frequency=frequency(object$actuals),
+                                 initial=object$initial, obs=obs, nsim=nsim,
+                                 iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
     }
     else{
         model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
