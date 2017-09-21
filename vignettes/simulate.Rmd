@@ -222,3 +222,19 @@ par(mfcol=c(1,1))
 ```
 
 Note that GES is still an ongoing research and its properties are currently understudied.
+
+## Simple Moving Average
+Now that there is a model underlying simple moving averages, we can simulate the data for it. Here how it can be done:
+```{r sim_sma_(10)}
+ourSimulation <- sim.sma(10,frequency=12, obs=240, nsim=1)
+plot(ourSimulation)
+```
+
+As usual, you can use simulate function as well:
+```{r simulate_smooth_sma}
+x <- ts(rnorm(100,100,5), frequency=12)
+ourModel <- sma(x)
+ourData <- simulate(ourModel, nsim=50, obs=1000)
+plot(ourData)
+```
+
