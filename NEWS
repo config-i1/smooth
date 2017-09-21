@@ -9,6 +9,7 @@ Changes:
 
 Bugfixes:
 * Check of initials when model is not selected in es().
+* sim.ssarima() did not take correctly into account the provided initials.
 
 smooth v2.1.1 (Release data: 2017-09-04)
 ==============

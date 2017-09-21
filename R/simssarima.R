@@ -466,11 +466,12 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     if(componentsNumber>0){
         if(initialGenerate){
             matInitialValue[1:componentsNumber,] <- runif(componentsNumber*nsim,0,1000);
+            arrvt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
         }
         else{
             matInitialValue[1:componentsNumber,] <- rep(initialValue,nsim);
+            arrvt[1,1:componentsNumber,] <- matInitialValue[1:componentsNumber,];
         }
-        arrvt[1,1:componentsNumber,] <- matInitialValue[1:componentsNumber,];
     }
 
     if(ARRequired){
