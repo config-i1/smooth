@@ -470,7 +470,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         else{
             matInitialValue[1:componentsNumber,] <- rep(initialValue,nsim);
         }
-        arrvt[1:componentsNumber,1,] <- matInitialValue[1:componentsNumber,];
+        arrvt[1,1:componentsNumber,] <- matInitialValue[1:componentsNumber,];
     }
 
     if(ARRequired){
@@ -525,11 +525,15 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 
         arrF[,,i] <- elements$matF;
         matg[,i] <- elements$vecg;
-        arrvt[,,i] <- elements$matvt;
 
 # A correction in order to make sense out of generated initial components
         if(initialGenerate){
+            arrvt[,,i] <- elements$matvt;
             arrvt[1,,i] <- matrixPowerWrap(as.matrix(arrF[,,i]),componentsNumber+1) %*% arrvt[1,,i];
+        }
+
+        if(constantRequired){
+            arrvt[1,persistenceLength,i] <- elements$matvt[1,persistenceLength];
         }
     }
 
