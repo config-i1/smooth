@@ -38,6 +38,7 @@
 #' \item \code{persistence} - the persistence vector. This is the place, where
 #' smoothing parameters live.
 #' \item \code{order} - order of moving average.
+#' \item \code{initial} - Initial state vector values.
 #' \item \code{initialType} - Type of initial values used.
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
@@ -302,7 +303,7 @@ CreatorSMA <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
-                  order=order, initialType=initialType, nParam=parametersNumber,
+                  order=order, initial=matvt[1,], initialType=initialType, nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=NULL,

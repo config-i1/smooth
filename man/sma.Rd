@@ -75,6 +75,7 @@ following values:
 \item \code{persistence} - the persistence vector. This is the place, where
 smoothing parameters live.
 \item \code{order} - order of moving average.
+\item \code{initial} - Initial state vector values.
 \item \code{initialType} - Type of initial values used.
 \item \code{nParam} - table with the number of estimated / provided parameters.
 If a previous model was reused, then its initials are reused and the number of
