@@ -2241,7 +2241,8 @@ ssForecaster <- function(...){
                 simulateIntervals <- FALSE;
             }
 
-            if(cumulative & Etype=="M"){
+            if(cumulative){
+               # & Etype=="M"){
                # & intervalsType=="p"){ <--- this is temporary. We do not know what cumulative means for multiplicative models.
                 simulateIntervals <- TRUE;
             }
