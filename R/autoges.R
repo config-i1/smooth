@@ -170,7 +170,6 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
     icsBest <- min(ics);
     ics <- array(c(1:(orderMax^length(lagsBest))),rep(orderMax,length(lagsBest)));
     ics[1] <- icsBest;
-    print(lagsBest)
     for(i in 1:length(ics)){
         if(silentText==FALSE){
             cat("\b");
@@ -187,7 +186,6 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
             ics[i] <- NA;
         }
         else{
-            print(ordersTest)
             gesModel <- ges(data,orders=ordersTest,lags=lagsBest,
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
