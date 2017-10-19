@@ -6,6 +6,7 @@ Changes:
 
 Bugfixes:
 * Number of parameters in ges() was not calculated correctly.
+* ges() could not be initialised in cases of small samples and models with large orders.
 
 smooth v2.1.2 (Release data: 2017-09-21)
 ==============

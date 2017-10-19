@@ -492,7 +492,14 @@ CreatorGES <- function(silentText=FALSE,...){
         vtvalues <- c(vtvalues,slope);
     }
     if((orders %*% lags)>2){
-        vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+        if(orders %*% lags-2 > obsInsample){
+            vtTail <- orders %*% lags-2 - obsInsample;
+            vtvalues <- c(vtvalues,yot[1:obsInsample,]);
+            vtvalues <- c(vtvalues,rep(yot[obsInsample],vtTail));
+        }
+        else{
+            vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
+        }
     }
 
     vt <- matrix(NA,maxlag,nComponents);
