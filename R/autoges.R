@@ -91,7 +91,8 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
     ics <- rep(NA,lagMax);
     lagsBest <- NULL
 
-    # Preliminary loop, checking all the models with lag from 1 to lagMax
+    #### Preliminary loop ####
+    #Checking all the models with lag from 1 to lagMax
     if(silentText==FALSE){
         progressBar <- c("/","\u2014","\\","|");
         if(lagMax>12){
@@ -127,7 +128,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
         }
     }
 
-    # Searching for all the possible lags
+    ##### Checking all the possible lags ####
     if(silentText==FALSE){
         cat(". Done.\n");
         cat("Searching for appropriate lags:  ");
@@ -160,7 +161,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
         icsBest <- min(ics);
     }
 
-    # Searching for all the possible lags
+    #### Checking all the possible orders ####
     if(silentText==FALSE){
         cat("\b");
         cat("We found them!\n");
@@ -169,6 +170,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
     icsBest <- min(ics);
     ics <- array(c(1:(orderMax^length(lagsBest))),rep(orderMax,length(lagsBest)));
     ics[1] <- icsBest;
+    print(lagsBest)
     for(i in 1:length(ics)){
         if(silentText==FALSE){
             cat("\b");
@@ -185,6 +187,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
             ics[i] <- NA;
         }
         else{
+            print(ordersTest)
             gesModel <- ges(data,orders=ordersTest,lags=lagsBest,
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
