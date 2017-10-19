@@ -198,6 +198,9 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
     }
 
+    orders <- orders[order(lags)];
+    lags <- sort(lags);
+
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
     ssInput("ges",ParentEnvironment=environment());
@@ -647,6 +650,11 @@ CreatorGES <- function(silentText=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
 # Write down initials of states vector and exogenous
+    parametersNumber[1,1] <- (nComponents*measurementEstimate + nComponents*persistenceEstimate +
+        (nComponents^2)*transitionEstimate);
+    # parametersNumber[2,1] <- (nComponents*(!measurementEstimate) + nComponents*(!persistenceEstimate) +
+    #                               (nComponents^2)*(!transitionEstimate));
+
     if(initialType!="p"){
         initialValue <- matvt[1:maxlag,];
         if(initialType!="b"){

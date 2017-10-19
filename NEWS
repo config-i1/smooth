@@ -1,10 +1,19 @@
+smooth v2.2.0 (Release data: 2017-10-19)
+==============
+
+Changes:
+* New function - auto.ges(). It's not fast, but it's pretty efficient.
+
+Bugfixes:
+* Number of parameters in ges() was not calculated correctly.
+
 smooth v2.1.2 (Release data: 2017-09-21)
 ==============
 
 Changes:
 * Changed the order of parameters in the sim-functions, so that the number of observations and number of simulations follow the very first parameter. This should simplify things.
 * Removed some of the redundant alliases in documentation and model.type() function. Use modelType() instead.
-* Variance in cases of seasonal models and cumulative=TRUE, should now be correct.
+* Variance in cases of seasonal models and cumulative=TRUE, are now produced using simulations.
 * New function - sim.sma() - generate data from SMA model.
 
 Bugfixes:

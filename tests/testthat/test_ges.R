@@ -39,3 +39,8 @@ testModel <- ges(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregD
 test_that("Select exogenous variables for GESX on N1457 with selection", {
     expect_null(suppressWarnings(testModel$xreg));
 })
+
+# Use automatic GES
+test_that("Use automatic GES on N1234$x", {
+    expect_equal(auto.ges(Mcomp::M3$N1234$x, silent=TRUE)$model, "GES(1[1])");
+})
