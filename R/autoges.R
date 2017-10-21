@@ -144,7 +144,16 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
             if(any(i==lagsBest)){
                 next;
             }
-            gesModel <- ges(data,orders=rep(1,length(lagsBest)+1),lags=c(i,lagsBest),
+            ordersTest <- rep(1,length(lagsBest)+1);
+            lagsTest <- c(i,lagsBest);
+            nComponents <- sum(ordersTest);
+            nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
+                          + (ordersTest %*% lagsTest)*(initialType=="o"));
+            if(obsInsample<=nParamMax){
+                ics[i] <- 1E100;
+                next;
+            }
+            gesModel <- ges(data,orders=ordersTest,lags=lagsTest,
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
@@ -184,19 +193,18 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
                       + (ordersTest %*% lagsBest)*(initialType=="o"));
         if(obsInsample<=nParamMax){
             ics[i] <- NA;
+            next;
         }
-        else{
-            gesModel <- ges(data,orders=ordersTest,lags=lagsBest,
-                            silent=TRUE,h=h,holdout=holdout,
-                            initial=initial,cfType=cfType,
-                            cumulative=cumulative,
-                            intervals=intervals, level=level,
-                            intermittent=intermittent, imodel=imodel,
-                            bounds=bounds,
-                            xreg=xreg, xregDo=xregDo, initialX=initialX,
-                            updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-            ics[i] <- gesModel$ICs[ic];
-        }
+        gesModel <- ges(data,orders=ordersTest,lags=lagsBest,
+                        silent=TRUE,h=h,holdout=holdout,
+                        initial=initial,cfType=cfType,
+                        cumulative=cumulative,
+                        intervals=intervals, level=level,
+                        intermittent=intermittent, imodel=imodel,
+                        bounds=bounds,
+                        xreg=xreg, xregDo=xregDo, initialX=initialX,
+                        updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+        ics[i] <- gesModel$ICs[ic];
     }
     ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE)
     if(silentText==FALSE){
