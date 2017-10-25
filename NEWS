@@ -1,4 +1,4 @@
-smooth v2.2.0 (Release data: 2017-10-21)
+smooth v2.2.0 (Release data: 2017-10-25)
 ==============
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 Bugfixes:
 * Number of parameters in ges() was not calculated correctly.
 * ges() could not be initialised in cases of small samples and models with large orders.
+* Fixed a bug in SSARIMA with multiple steps ahead cost functions.
 
 smooth v2.1.2 (Release data: 2017-09-21)
 ==============
