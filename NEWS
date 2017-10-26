@@ -1,4 +1,4 @@
-smooth v2.2.0 (Release data: 2017-10-25)
+smooth v2.2.0 (Release data: 2017-10-26)
 ==============
 
 Changes:
@@ -8,6 +8,8 @@ Bugfixes:
 * Number of parameters in ges() was not calculated correctly.
 * ges() could not be initialised in cases of small samples and models with large orders.
 * Fixed a bug in SSARIMA with multiple steps ahead cost functions.
+* es() sometimes returned smoothing parameters values that did not satisfy the usual constrains.
+* New initialisation of smoothing parameters in es() in case of cfType="HAM".
 
 smooth v2.1.2 (Release data: 2017-09-21)
 ==============

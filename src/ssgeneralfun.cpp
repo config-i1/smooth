@@ -1702,28 +1702,32 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
     if(boundtype=='u'){
 // alpha in (0,1)
         if((vecG(0)>1) || (vecG(0)<0)){
-            vecG.zeros();
-            matrixVt.zeros();
+            // vecG.zeros();
+            // matrixVt.zeros();
+            return wrap(1E+300);
         }
         if(T!='N'){
 // beta in (0,alpha)
             if((vecG(1)>vecG(0)) || (vecG(1)<0)){
-                vecG.zeros();
-                matrixVt.zeros();
+                // vecG.zeros();
+                // matrixVt.zeros();
+                return wrap(1E+300);
             }
             if(S!='N'){
 // gamma in (0,1-alpha)
                 if((vecG(2)>(1-vecG(0))) || (vecG(2)<0)){
-                    vecG.zeros();
-                    matrixVt.zeros();
+                    // vecG.zeros();
+                    // matrixVt.zeros();
+                    return wrap(1E+300);
                 }
             }
         }
         if(S!='N'){
 // gamma in (0,1-alpha)
             if((vecG(1)>(1-vecG(0))) || (vecG(1)<0)){
-                vecG.zeros();
-                matrixVt.zeros();
+                // vecG.zeros();
+                // matrixVt.zeros();
+                return wrap(1E+300);
             }
         }
     }

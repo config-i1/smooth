@@ -1206,6 +1206,10 @@ CreatorES <- function(silent=FALSE,...){
         else{
             smoothingParameters <- cbind(c(0.1,0.05,0.1),c(0.05,0.01,0.01));
         }
+
+        if(cfType=="HAM"){
+            smoothingParameters <- cbind(rep(0,3),rep(0,3));
+        }
     }
 
 ##### Preset y.fit, y.for, errors and basic parameters #####
