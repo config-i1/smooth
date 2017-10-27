@@ -1370,7 +1370,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                  arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
-    arma::set_stream_err2(nullstream);
+    arma::set_cerr_stream(nullstream);
 
     arma::uvec nonzeroes = find(vecOt>0);
     int obs = nonzeroes.n_rows;
