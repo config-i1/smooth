@@ -27,6 +27,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' increasing number of parameters in the models with higher orders.
 #' @param lagMax The value of the maximum lag to check. This should usually be
 #' a maximum frequency of the data.
+#' @param type Type of model. Can either be \code{"Additive"} or
+#' \code{"Multiplicative"}. The latter means that the GES is fitted on
+#' log-transformed data. If \code{"Z"}, then this is selected automatically,
+#' which may slow down things twice.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of parameters of the model.
@@ -48,7 +52,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #'
 #' @export auto.ges
-auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
+auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z"),
                      initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
                      cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                      h=10, holdout=FALSE, cumulative=FALSE,
@@ -88,13 +92,16 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
         stop("Sorry, but we cannot construct GES model with zero lags / orders.",call.=FALSE);
     }
 
-    ics <- rep(NA,lagMax);
-    lagsBest <- NULL
+    type <- substr(type[1],1,1);
+    if(type=="Z"){
+        type <- c("A","M");
+    }
 
-    #### Preliminary loop ####
-    #Checking all the models with lag from 1 to lagMax
-    if(silentText==FALSE){
-        progressBar <- c("/","\u2014","\\","|");
+    icsFinal <- rep(NA,length(type));
+    lagsFinal <- list(NA);
+    ordersFinal <- list(NA);
+
+    if(!silentText){
         if(lagMax>12){
             message(paste0("You have large lagMax: ",lagMax,". So, the calculation may take some time."));
             if(lagMax<24){
@@ -108,52 +115,108 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
             message(paste0("Beware that you have specified large orderMax: ",orderMax,
                            ". This means that the calculations may take a lot of time.\n"));
         }
-        cat("Starting preliminary loop: ");
-        cat(paste0(rep(" ",9+nchar(lagMax)),collapse=""));
-    }
-    for(i in 1:lagMax){
-        gesModel <- ges(data,orders=c(1),lags=c(i),
-                        silent=TRUE,h=h,holdout=holdout,
-                        initial=initial,cfType=cfType,
-                        cumulative=cumulative,
-                        intervals=intervals, level=level,
-                        intermittent=intermittent, imodel=imodel,
-                        bounds=bounds,
-                        xreg=xreg, xregDo=xregDo, initialX=initialX,
-                        updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-        ics[i] <- gesModel$ICs[ic];
-        if(silentText==FALSE){
-            cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lagMax))),collapse=""));
-            cat(paste0(i," out of ",lagMax));
-        }
     }
 
-    ##### Checking all the possible lags ####
-    if(silentText==FALSE){
-        cat(". Done.\n");
-        cat("Searching for appropriate lags:  ");
-    }
-    lagsBest <- c(which(ics==min(ics)),lagsBest);
-    icsBest <- 1E100;
-    while(min(ics)<icsBest){
+    for(t in 1:length(type)){
+        ics <- rep(NA,lagMax);
+        lagsBest <- NULL
+
+        if((!silentText) & length(type)!=1){
+            cat(paste0("Checking model with a type=\"",type[t],"\".\n"));
+        }
+
+    #### Preliminary loop ####
+        #Checking all the models with lag from 1 to lagMax
+        if(!silentText){
+            progressBar <- c("/","\u2014","\\","|");
+            cat("Starting preliminary loop: ");
+            cat(paste0(rep(" ",9+nchar(lagMax)),collapse=""));
+        }
         for(i in 1:lagMax){
-            if(silentText==FALSE){
+            gesModel <- ges(data,orders=c(1),lags=c(i),type=type[t],
+                            silent=TRUE,h=h,holdout=holdout,
+                            initial=initial,cfType=cfType,
+                            cumulative=cumulative,
+                            intervals=intervals, level=level,
+                            intermittent=intermittent, imodel=imodel,
+                            bounds=bounds,
+                            xreg=xreg, xregDo=xregDo, initialX=initialX,
+                            updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+            ics[i] <- gesModel$ICs[ic];
+            if(!silentText){
+                cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lagMax))),collapse=""));
+                cat(paste0(i," out of ",lagMax));
+            }
+        }
+
+        ##### Checking all the possible lags ####
+        if(!silentText){
+            cat(". Done.\n");
+            cat("Searching for appropriate lags:  ");
+        }
+        lagsBest <- c(which(ics==min(ics)),lagsBest);
+        icsBest <- 1E100;
+        while(min(ics)<icsBest){
+            for(i in 1:lagMax){
+                if(!silentText){
+                    cat("\b");
+                    cat(progressBar[(i/4-floor(i/4))*4+1]);
+                }
+                if(any(i==lagsBest)){
+                    next;
+                }
+                ordersTest <- rep(1,length(lagsBest)+1);
+                lagsTest <- c(i,lagsBest);
+                nComponents <- sum(ordersTest);
+                nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
+                              + (ordersTest %*% lagsTest)*(initialType=="o"));
+                if(obsInsample<=nParamMax){
+                    ics[i] <- 1E100;
+                    next;
+                }
+                gesModel <- ges(data,orders=ordersTest,lags=lagsTest,type=type[t],
+                                silent=TRUE,h=h,holdout=holdout,
+                                initial=initial,cfType=cfType,
+                                cumulative=cumulative,
+                                intervals=intervals, level=level,
+                                intermittent=intermittent, imodel=imodel,
+                                bounds=bounds,
+                                xreg=xreg, xregDo=xregDo, initialX=initialX,
+                                updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+                ics[i] <- gesModel$ICs[ic];
+            }
+            if(!any(which(ics==min(ics))==lagsBest)){
+                lagsBest <- c(which(ics==min(ics)),lagsBest);
+            }
+            icsBest <- min(ics);
+        }
+
+        #### Checking all the possible orders ####
+        if(!silentText){
+            cat("\b");
+            cat("We found them!\n");
+            cat("Searching for appropriate orders:  ");
+        }
+        icsBest <- min(ics);
+        ics <- array(c(1:(orderMax^length(lagsBest))),rep(orderMax,length(lagsBest)));
+        ics[1] <- icsBest;
+        for(i in 1:length(ics)){
+            if(!silentText){
                 cat("\b");
                 cat(progressBar[(i/4-floor(i/4))*4+1]);
             }
-            if(any(i==lagsBest)){
+            if(i==1){
                 next;
             }
-            ordersTest <- rep(1,length(lagsBest)+1);
-            lagsTest <- c(i,lagsBest);
+            ordersTest <- which(ics==ics[i],arr.ind=TRUE);
             nComponents <- sum(ordersTest);
             nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
-                          + (ordersTest %*% lagsTest)*(initialType=="o"));
+                          + (ordersTest %*% lagsBest)*(initialType=="o"));
             if(obsInsample<=nParamMax){
-                ics[i] <- 1E100;
+                ics[i] <- NA;
                 next;
             }
-            gesModel <- ges(data,orders=ordersTest,lags=lagsTest,
+            gesModel <- ges(data,orders=ordersTest,lags=lagsBest,type=type[t],
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
@@ -164,56 +227,23 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data),
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
             ics[i] <- gesModel$ICs[ic];
         }
-        if(!any(which(ics==min(ics))==lagsBest)){
-            lagsBest <- c(which(ics==min(ics)),lagsBest);
-        }
-        icsBest <- min(ics);
-    }
-
-    #### Checking all the possible orders ####
-    if(silentText==FALSE){
-        cat("\b");
-        cat("We found them!\n");
-        cat("Searching for appropriate orders:  ");
-    }
-    icsBest <- min(ics);
-    ics <- array(c(1:(orderMax^length(lagsBest))),rep(orderMax,length(lagsBest)));
-    ics[1] <- icsBest;
-    for(i in 1:length(ics)){
-        if(silentText==FALSE){
+        ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE)
+        if(!silentText){
             cat("\b");
-            cat(progressBar[(i/4-floor(i/4))*4+1]);
+            cat("Orders found.\n");
         }
-        if(i==1){
-            next;
-        }
-        ordersTest <- which(ics==ics[i],arr.ind=TRUE);
-        nComponents <- sum(ordersTest);
-        nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
-                      + (ordersTest %*% lagsBest)*(initialType=="o"));
-        if(obsInsample<=nParamMax){
-            ics[i] <- NA;
-            next;
-        }
-        gesModel <- ges(data,orders=ordersTest,lags=lagsBest,
-                        silent=TRUE,h=h,holdout=holdout,
-                        initial=initial,cfType=cfType,
-                        cumulative=cumulative,
-                        intervals=intervals, level=level,
-                        intermittent=intermittent, imodel=imodel,
-                        bounds=bounds,
-                        xreg=xreg, xregDo=xregDo, initialX=initialX,
-                        updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-        ics[i] <- gesModel$ICs[ic];
+
+        icsFinal[t] <- min(ics);
+        lagsFinal[[t]] <- lagsBest;
+        ordersFinal[[t]] <- ordersBest;
     }
-    ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE)
-    if(silentText==FALSE){
-        cat("\b");
-        cat("Orders found.\n");
+    t <- which(icsFinal==min(icsFinal));
+
+    if(!silentText){
         cat("Reestimating the model. ");
     }
 
-    bestModel <- ges(data,orders=ordersBest,lags=lagsBest,
+    bestModel <- ges(data,orders=ordersFinal[[t]],lags=lagsFinal[[t]],type=type[t],
                      silent=TRUE,h=h,holdout=holdout,
                      initial=initial,cfType=cfType,
                      cumulative=cumulative,

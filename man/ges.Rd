@@ -4,8 +4,8 @@
 \alias{ges}
 \title{General Exponential Smoothing}
 \usage{
-ges(data, orders = c(1, 1), lags = c(1, frequency(data)),
-  persistence = NULL, transition = NULL, measurement = NULL,
+ges(data, orders = c(1, 1), lags = c(1, frequency(data)), type = c("A",
+  "M"), persistence = NULL, transition = NULL, measurement = NULL,
   initial = c("optimal", "backcasting"), ic = c("AICc", "AIC", "BIC"),
   cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
@@ -28,6 +28,10 @@ two states: one of the first lag type, the second of the second type.}
 model will have two states: the first will have lag 1 and the second will
 have lag 12. The length of \code{lags} must correspond to the length of
 \code{orders}.}
+
+\item{type}{Type of model. Can either be \code{"A"} - additive - or
+\code{"M"} - multiplicative. The latter means that the GES is fitted on
+log-transformed data.}
 
 \item{persistence}{Persistence vector \eqn{g}, containing smoothing
 parameters. If \code{NULL}, then estimated.}

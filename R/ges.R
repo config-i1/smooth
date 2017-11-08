@@ -44,6 +44,9 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' model will have two states: the first will have lag 1 and the second will
 #' have lag 12. The length of \code{lags} must correspond to the length of
 #' \code{orders}.
+#' @param type Type of model. Can either be \code{"A"} - additive - or
+#' \code{"M"} - multiplicative. The latter means that the GES is fitted on
+#' log-transformed data.
 #' @param transition Transition matrix \eqn{F}. Can be provided as a vector.
 #' Matrix will be formed using the default \code{matrix(transition,nc,nc)},
 #' where \code{nc} is the number of components in state vector. If \code{NULL},
@@ -148,7 +151,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' plot(forecast(ourModel))}
 #'
 #' @export ges
-ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
+ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
                 persistence=NULL, transition=NULL, measurement=NULL,
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
@@ -161,7 +164,7 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
 # General Exponential Smoothing function. Crazy thing...
 #
-#    Copyright (C) 2016  Ivan Svetunkov
+#    Copyright (C) 2016 - Inf Ivan Svetunkov
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
@@ -177,6 +180,11 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)),
         else if(gregexpr("GES",model$model)==-1){
             stop("The provided model is not GES.",call.=FALSE);
         }
+
+        if(gregexpr("MGES",model$model)!=-1){
+            type <- "M";
+        }
+
         if(!is.null(model$imodel)){
             imodel <- model$imodel;
         }
@@ -677,6 +685,21 @@ CreatorGES <- function(silentText=FALSE,...){
     ssFitter(ParentEnvironment=environment());
     ssForecaster(ParentEnvironment=environment());
 
+    if(modelIsMultiplicative){
+        y <- exp(y);
+        y.fit <- exp(y.fit);
+        y.for <- exp(y.for);
+        y.low <- exp(y.low);
+        y.high <- exp(y.high);
+
+        environment(likelihoodFunction) <- environment();
+        environment(ICFunction) <- environment();
+
+        ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype="M");
+        ICs <- ICValues$ICs;
+        logLik <- ICValues$llikelihood;
+    }
+
 ##### Do final check and make some preparations for output #####
 
 # Write down initials of states vector and exogenous
@@ -773,6 +796,10 @@ CreatorGES <- function(silentText=FALSE,...){
     modelname <- paste0(modelname,"(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
     if(all(intermittent!=c("n","none"))){
         modelname <- paste0("i",modelname);
+    }
+
+    if(modelIsMultiplicative){
+        modelname <- paste0("M",modelname);
     }
 
 ##### Print output #####

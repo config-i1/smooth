@@ -562,6 +562,15 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         modellags <- matrix(rep(lags,times=orders),ncol=1);
         maxlag <- max(modellags);
         nComponents <- sum(orders);
+
+        type <- substr(type[1],1,1);
+        if(type=="M"){
+            y <- log(y);
+            modelIsMultiplicative <- TRUE;
+        }
+        else{
+            modelIsMultiplicative <- FALSE;
+        }
     }
     else if(smoothType=="es"){
         maxlag <- datafreq * (Stype!="N") + 1 * (Stype=="N");
@@ -1268,7 +1277,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         assign("measurementEstimate",measurementEstimate,ParentEnvironment);
         assign("orders",orders,ParentEnvironment);
         assign("lags",lags,ParentEnvironment);
-        assign("ic",ic,ParentEnvironment);
+        assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     }
     else if(smoothType=="ssarima"){
         assign("ar.orders",ar.orders,ParentEnvironment);
@@ -1289,7 +1298,6 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         assign("seasonality",seasonality,ParentEnvironment);
         assign("A",A,ParentEnvironment);
         assign("B",B,ParentEnvironment);
-        assign("ic",ic,ParentEnvironment);
     }
 
     if(any(smoothType==c("es","ges"))){

@@ -4,8 +4,8 @@
 \alias{auto.ges}
 \title{Automatic GES}
 \usage{
-auto.ges(data, orderMax = 3, lagMax = frequency(data),
-  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
+auto.ges(data, orderMax = 3, lagMax = frequency(data), type = c("A", "M",
+  "Z"), initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
   cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
@@ -24,6 +24,11 @@ increasing number of parameters in the models with higher orders.}
 
 \item{lagMax}{The value of the maximum lag to check. This should usually be
 a maximum frequency of the data.}
+
+\item{type}{Type of model. Can either be \code{"Additive"} or
+\code{"Multiplicative"}. The latter means that the GES is fitted on
+log-transformed data. If \code{"Z"}, then this is selected automatically,
+which may slow down things twice.}
 
 \item{initial}{Can be either character or a vector of initial states. If it
 is character, then it can be \code{"optimal"}, meaning that the initial
