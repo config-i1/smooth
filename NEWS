@@ -1,3 +1,11 @@
+smooth v2.2.1 (Release data: 2017-11-08)
+==============
+
+Changes:
+* GES now has a multiplicative form. And auto.ges() allows selecting between additive and multiplicative models.
+
+
+
 smooth v2.2.0 (Release data: 2017-10-26)
 ==============
 
