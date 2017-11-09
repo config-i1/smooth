@@ -770,7 +770,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     else{
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
-            ##### !!!! This stuff should be removed by 2.5.0 #####
+            ##### !!! This stuff should be removed by 2.5.0 #####
             if(any(intermittent==c("c","croston"))){
                 warning(paste0("You are using the old value of intermittent parameter.",
                                "Please, use 'i' instead of '",intermittent,"'."),
