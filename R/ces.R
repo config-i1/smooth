@@ -141,7 +141,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
                 cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","croston","tsb","sba"), imodel="MNN",
+                intermittent=c("none","auto","fixed","interval","probability","sba"), imodel="MNN",
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -501,7 +501,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamIntermittent <- all(intermittent!=c("n","p"))*1;
+    nParamIntermittent <- all(intermittent!=c("n","provided"))*1;
     nParamMax <- nParamMax + nParamExo + nParamIntermittent;
 
     if(xregDo=="u"){
@@ -556,7 +556,7 @@ CreatorCES <- function(silentText=FALSE,...){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","c","t","s");
+        intermittentModelsPool <- c("n","f","i","p","s");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs[1] <- cesValues$bestIC;
@@ -699,24 +699,21 @@ CreatorCES <- function(silentText=FALSE,...){
     # Write down the probabilities from intermittent models
     pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
     # Write down the number of parameters of imodel
-    if(all(intermittent!=c("n","p")) & !imodelProvided){
+    if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;
     }
     # Make nice names for intermittent
     if(intermittent=="f"){
         intermittent <- "fixed";
     }
-    else if(intermittent=="c"){
-        intermittent <- "croston";
+    else if(intermittent=="i"){
+        intermittent <- "interval";
     }
-    else if(intermittent=="t"){
-        intermittent <- "tsb";
+    else if(intermittent=="p"){
+        intermittent <- "probability";
     }
     else if(intermittent=="n"){
         intermittent <- "none";
-    }
-    else if(intermittent=="p"){
-        intermittent <- "provided";
     }
 
     if(!is.null(xreg)){

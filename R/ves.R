@@ -150,7 +150,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 intervals=c("none","conditional","unconditional","independent"), level=0.95,
                 cumulative=FALSE,
-                intermittent=c("none","auto","fixed","tsb"),
+                intermittent=c("none","auto","fixed","probability"),
                 bounds=c("admissible","none"),
                 silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov

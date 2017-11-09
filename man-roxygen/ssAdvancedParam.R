@@ -15,12 +15,12 @@
 #' @param intermittent Defines type of intermittent model used. Can be: 1.
 #' \code{none}, meaning that the data should be considered as non-intermittent;
 #' 2. \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurrences; 3. \code{croston}, based on Croston, 1972 method with
-#' SBA correction; 4. \code{tsb}, based on Teunter et al., 2011 method. 5.
-#' \code{auto} - automatic selection of intermittency type based on information
-#' criteria. The first letter can be used instead. 6. \code{"sba"} -
-#' Syntetos-Boylan Approximation for Croston's method (bias correction)
-#' discussed in Syntetos and Boylan, 2005.
+#' demand occurrences; 3. \code{interval}, Interval-based model, underlying
+#' Croston, 1972 method; 4. \code{probability}, Probability-based model,
+#' underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
+#' of intermittency type based on information criteria. The first letter can be
+#' used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
+#' method (bias correction) discussed in Syntetos and Boylan, 2005.
 #' @param imodel Type of ETS model used for the modelling of the time varying
 #' probability. Object of the class "iss" can be provided here, and its parameters
 #' would be used in iETS model.

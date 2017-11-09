@@ -11,8 +11,9 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC"), h = 10,
   holdout = FALSE, intervals = c("none", "conditional", "unconditional",
   "independent"), level = 0.95, cumulative = FALSE,
-  intermittent = c("none", "auto", "fixed", "tsb"), bounds = c("admissible",
-  "none"), silent = c("all", "graph", "output", "none"), ...)
+  intermittent = c("none", "auto", "fixed", "probability"),
+  bounds = c("admissible", "none"), silent = c("all", "graph", "output",
+  "none"), ...)
 }
 \arguments{
 \item{data}{is the matrix with data, where series are in columns and

@@ -1347,6 +1347,7 @@ RcppExport SEXP errorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt,
 }
 
 int CFtypeswitch (std::string const& CFtype) {
+    // MSE, MAE, HAM, MSEh, TMSE, GTMSE, aMSEh, aTMSE, aGTMSE, MAEh, TMAE, GTMAE, HAMh, THAM, GTHAM, TFL, aTFL, Rounded, TSB
     if (CFtype == "TFL") return 1;
     if (CFtype == "GMSTFE") return 2;
     if (CFtype == "MSTFE") return 3;

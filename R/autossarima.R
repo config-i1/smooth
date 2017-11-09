@@ -80,7 +80,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                          cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
                          h=10, holdout=FALSE, cumulative=FALSE,
                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                         intermittent=c("none","auto","fixed","croston","tsb","sba"), imodel="MNN",
+                         intermittent=c("none","auto","fixed","interval","probability","sba"), imodel="MNN",
                          bounds=c("admissible","none"),
                          silent=c("all","graph","legend","output","none"),
                          xreg=NULL, xregDo=c("use","select"), initialX=NULL,

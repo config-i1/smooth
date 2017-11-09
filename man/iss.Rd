@@ -64,13 +64,16 @@ state-space models.
 \examples{
 
     y <- rpois(100,0.1)
-    iss(y, intermittent="t")
+    iss(y, intermittent="p")
 
-    iss(y, intermittent="c", persistence=0.1)
+    iss(y, intermittent="i", persistence=0.1)
 
 }
 \references{
 \itemize{
+\item Svetunkov Ivan and Boylan John E. (2017). Multiplicative
+State-Space Models for Intermittent Time Series. Working Paper of
+Department of Management Science, Lancaster University, 2017:4 , 1-43.
 \item Teunter R., Syntetos A., Babai Z. (2011). Intermittent demand:
 Linking forecasting to inventory obsolescence. European Journal of
 Operational Research, 214, 606-615.
