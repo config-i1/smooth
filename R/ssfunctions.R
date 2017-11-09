@@ -656,6 +656,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
+    # if(any(cfType==c("GTMSE","TMSE","TFL","MSEh","aGTMSE","aTMSE","aTFL","aMSEh",
+    # MAEh, TMAE, GTMAE, HAMh, THAM, GTHAM))){
     if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
         multisteps <- TRUE;
     }
@@ -767,10 +769,25 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     }
     else{
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
-            warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
-                    call.=FALSE);
-            intermittent <- "f";
+        if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
+            ##### !!!! This stuff should be removed by 2.5.0 #####
+            if(any(intermittent==c("c","croston"))){
+                warning(paste0("You are using the old value of intermittent parameter.",
+                               "Please, use 'i' instead of '",intermittent,"'."),
+                        call.=FALSE);
+                intermittent <- "i";
+            }
+            else if(any(intermittent==c("t","tsb"))){
+                warning(paste0("You are using the old value of intermittent parameter.",
+                               "Please, use 'p' instead of '",intermittent,"'."),
+                        call.=FALSE);
+                intermittent <- "p";
+            }
+            else{
+                warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
+                        call.=FALSE);
+                intermittent <- "f";
+            }
         }
         intermittent <- substring(intermittent[1],1,1);
 
@@ -1531,7 +1548,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     else{
         obsNonzero <- sum((y!=0)*1);
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","c","t","a","s","none","fixed","croston","tsb","auto","sba"))){
+        if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE);
             intermittent <- "f";
@@ -2798,28 +2815,23 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
-    if(all(intermittent!=c("n","p","none","provided"))){
+    if(all(intermittent!=c("n","none","provided"))){
         if(any(intermittent==c("f","fixed"))){
             intermittent <- "Fixed probability";
         }
-        else if(any(intermittent==c("c","croston"))){
-            intermittent <- "Croston";
+        else if(any(intermittent==c("i","interval"))){
+            intermittent <- "Interval-based";
         }
-        else if(any(intermittent==c("t","tsb"))){
-            intermittent <- "TSB";
+        else if(any(intermittent==c("p","probability"))){
+            intermittent <- "Probability-based";
         }
         else if(any(intermittent==c("s","sba"))){
-            intermittent <- "Croston with SBA";
+            intermittent <- "SBA";
         }
         cat(paste0("Intermittent model type: ",intermittent));
-        # if(iprob!=1){
-        #     cat(paste0(", ",round(iprob,3),"\n"));
-        # }
-        # else{
-            cat("\n");
-        # }
+        cat("\n");
     }
-    else if(any(intermittent==c("p","provided"))){
+    else if(any(intermittent==c("provided"))){
         cat(paste0("Intermittent data provided for holdout.\n"));
     }
 

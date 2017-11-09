@@ -64,10 +64,8 @@
 #' \item \code{cf} - Cost function value.
 #' \item \code{cfType} - Type of cost function used in the estimation.
 #' \item \code{accuracy} - vector of accuracy measures for the
-#' holdout sample. In case of non-intermittent data includes: MPE, MAPE, SMAPE,
-#' MASE, sMAE, RelMAE, sMSE and Bias coefficient (based on complex numbers). In
-#' case of intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
+#' holdout sample. Includes: MPE, MAPE, SMAPE, MASE, sMAE, RelMAE, sMSE and
+#' Bias coefficient (based on complex numbers). This is available only when
 #' \code{holdout=TRUE}.
 #' }
 #'

@@ -5,17 +5,17 @@ intermittentParametersSetter <- function(intermittent="n",...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(all(intermittent!=c("n","p"))){
+    if(all(intermittent!=c("n","provided"))){
         ot <- (y!=0)*1;
         obsNonzero <- sum(ot);
         # 1 parameter for estimating initial probability
         nParamIntermittent <- 1;
-        if(intermittent=="t"){
+        if(intermittent=="p"){
             # In TSB we only need to estimate smoothing parameter - we do not
             # estimate any parameters of the Beta distribution.
             nParamIntermittent <- nParamIntermittent + 1;
         }
-        else if(any(intermittent==c("c","a"))){
+        else if(any(intermittent==c("i","a"))){
             # In Croston we also need to estimate smoothing parameter and variance
             nParamIntermittent <- nParamIntermittent + 2;
         }
@@ -78,7 +78,7 @@ intermittentMaker <- function(intermittent="n",...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
 ##### If intermittent is not auto, then work normally #####
-    if(all(intermittent!=c("n","p","a"))){
+    if(all(intermittent!=c("n","provided","a"))){
         if(!imodelProvided){
             imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h);
         }
@@ -157,20 +157,20 @@ intermittentMaker <- function(intermittent="n",...){
 #' @examples
 #'
 #'     y <- rpois(100,0.1)
-#'     iss(y, intermittent="t")
+#'     iss(y, intermittent="p")
 #'
-#'     iss(y, intermittent="c", persistence=0.1)
+#'     iss(y, intermittent="i", persistence=0.1)
 #'
 #' @export iss
 iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c("AICc","AIC","BIC"),
                 h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
-    if(all(intermittent!=c("n","f","c","t","s"))){
+    if(all(intermittent!=c("n","f","i","p","s"))){
         intermittent <- "f";
     }
     if(intermittent=="s"){
-        intermittent <- "c";
+        intermittent <- "i";
         sbaCorrection <- TRUE;
     }
     else{
@@ -244,7 +244,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c(
                        persistence=NULL, initial=initial);
     }
 #### Croston's method ####
-    else if(intermittent=="c"){
+    else if(intermittent=="i"){
         if(is.null(initial)){
             initial <- "o";
         }
@@ -291,7 +291,7 @@ iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c(
                        persistence=crostonModel$persistence, initial=crostonModel$initial);
     }
 #### TSB method ####
-    else if(intermittent=="t"){
+    else if(intermittent=="p"){
         if(is.null(model)){
             model <- "YYY";
         }

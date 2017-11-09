@@ -676,11 +676,11 @@ plot.smooth.forecast <- function(x, ...){
 #' @export
 plot.iss <- function(x, ...){
     intermittent <- x$intermittent
-    if(intermittent=="c"){
-        intermittent <- "Croston";
+    if(intermittent=="i"){
+        intermittent <- "Interval-based";
     }
-    else if(intermittent=="t"){
-        intermittent <- "TSB";
+    else if(intermittent=="p"){
+        intermittent <- "Probability-based";
     }
     else if(intermittent=="f"){
         intermittent <- "Fixed probability";
@@ -863,11 +863,11 @@ print.smooth.forecast <- function(x, ...){
 #' @export
 print.iss <- function(x, ...){
     intermittent <- x$intermittent
-    if(intermittent=="c"){
-        intermittent <- "Croston";
+    if(intermittent=="i"){
+        intermittent <- "Interval-based";
     }
-    else if(intermittent=="t"){
-        intermittent <- "TSB";
+    else if(intermittent=="p"){
+        intermittent <- "Probability-based";
     }
     else if(intermittent=="f"){
         intermittent <- "Fixed probability";

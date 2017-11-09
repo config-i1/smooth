@@ -1,8 +1,9 @@
-smooth v2.2.1 (Release data: 2017-11-08)
+smooth v2.2.1 (Release data: 2017-11-09)
 ==============
 
 Changes:
 * GES now has a multiplicative form. And auto.ges() allows selecting between additive and multiplicative models.
+* intermittent now has "i" and "p" values instead of "c" and "t" respectively. This aligns with the recently published working paper on the subject.
 
 
 
