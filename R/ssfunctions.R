@@ -763,7 +763,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
             iprob <- pt.for[1];
             # "p" stand for "provided", meaning that we have been provided the future data
-            intermittent <- "p";
+            intermittent <- "provided";
             nParamIntermittent <- 0;
         }
     }
