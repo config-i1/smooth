@@ -1530,6 +1530,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### intermittent #####
     if(is.numeric(intermittent)){
+        obsNonzero <- sum((y!=0)*1);
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
         if(all(length(c(intermittent))!=c(h,obsAll))){
             warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
@@ -1553,23 +1554,29 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
                     call.=FALSE);
             intermittent <- "f";
         }
-        intermittent <- substring(intermittent[1],1,1);
-        environment(intermittentParametersSetter) <- environment();
-        intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+        intermittent <- substring(intermittent,1,1);
+        if(any(intermittent!="n")){
+            obsNonzero <- sum((y!=0)*1);
+            environment(intermittentParametersSetter) <- environment();
+            intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
-        if(obsNonzero <= nParamIntermittent){
-            warning(paste0("Not enough observations for estimation of occurence probability.\n",
-                           "Switching to simpler model."),
-                    call.=FALSE);
-            if(obsNonzero > 1){
-                intermittent <- "f";
-                nParamIntermittent <- 1;
-                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+            if(obsNonzero <= nParamIntermittent){
+                warning(paste0("Not enough observations for estimation of occurence probability.\n",
+                               "Switching to simpler model."),
+                        call.=FALSE);
+                if(obsNonzero > 1){
+                    intermittent <- "f";
+                    nParamIntermittent <- 1;
+                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+                }
+                else{
+                    intermittent <- "n";
+                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+                }
             }
-            else{
-                intermittent <- "n";
-                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-            }
+        }
+        else{
+            obsNonzero <- obsInsample;
         }
     }
 
@@ -1593,6 +1600,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("FI",FI,ParentEnvironment);
     assign("obsInsample",obsInsample,ParentEnvironment);
     assign("obsAll",obsAll,ParentEnvironment);
+    assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("ic",ic,ParentEnvironment);

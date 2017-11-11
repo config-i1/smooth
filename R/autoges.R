@@ -170,7 +170,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                 nComponents <- sum(ordersTest);
                 nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
                               + (ordersTest %*% lagsTest)*(initialType=="o"));
-                if(obsInsample<=nParamMax){
+                if(obsNonzero<=nParamMax){
                     ics[i] <- 1E100;
                     next;
                 }
@@ -212,7 +212,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             nComponents <- sum(ordersTest);
             nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
                           + (ordersTest %*% lagsBest)*(initialType=="o"));
-            if(obsInsample<=nParamMax){
+            if(obsNonzero<=nParamMax){
                 ics[i] <- NA;
                 next;
             }
@@ -233,7 +233,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             cat("Orders found.\n");
         }
 
-        icsFinal[t] <- min(ics);
+        icsFinal[t] <- min(ics,na.rm=TRUE);
         lagsFinal[[t]] <- lagsBest;
         ordersFinal[[t]] <- ordersBest;
     }
