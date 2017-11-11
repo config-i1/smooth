@@ -1376,6 +1376,8 @@ CreatorES <- function(silent=FALSE,...){
             persistence <- 0;
             persistenceEstimate <- FALSE
             warning("We did not have enough observations, so persistence value was set to zero.",call.=FALSE);
+            modelDo <- "select"
+            model <- "ZZZ";
         }
         else{
             stop("Not enough observations... Even for fitting of ETS('ANN')!",call.=FALSE);
