@@ -104,7 +104,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(initialType=="o"){
             nParamMax <- nParamMax + 2;
         }
-        if(obsInsample <= nParamMax){
+        if(obsNonzero <= nParamMax){
             stop(paste0("The sample is too small. We need at least ",nParamMax + 1," observations."),call.=FALSE);
         }
     }
@@ -113,7 +113,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(initialType=="o"){
             nParamMax <- nParamMax + 2 + datafreq;
         }
-        if(obsInsample <= nParamMax){
+        if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use partial seasonal model.",call.=FALSE);
             models <- models[models!="p"];
         }
@@ -123,7 +123,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(initialType=="o"){
             nParamMax <- nParamMax + 2*datafreq;
         }
-        if(obsInsample <= nParamMax){
+        if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use simple seasonal model.",call.=FALSE);
             models <- models[models!="s"];
         }
@@ -133,7 +133,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(initialType=="o"){
             nParamMax <- nParamMax + 2 + 2*datafreq;
         }
-        if(obsInsample <= nParamMax){
+        if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use full seasonal model.",call.=FALSE);
             models <- models[models!="f"];
         }
@@ -161,17 +161,17 @@ auto.ces <- function(data, models=c("none","simple","full"),
     }
 
 # Check the number of observations and number of parameters.
-    if(any(models=="F") & (obsInsample <= datafreq*2 + 2 + 4 + 1)){
-        warning("Sorry, but you don't have enough observations for CES(F).",call.=FALSE);
-        models <- models[models!="F"];
+    if(any(models=="f") & (obsNonzero <= datafreq*2 + 2 + 4 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(f).",call.=FALSE);
+        models <- models[models!="f"];
     }
-    if(any(models=="P") & (obsInsample <= datafreq + 2 + 3 + 1)){
-        warning("Sorry, but you don't have enough observations for CES(P).",call.=FALSE);
-        models <- models[models!="P"];
+    if(any(models=="p") & (obsNonzero <= datafreq + 2 + 3 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(p).",call.=FALSE);
+        models <- models[models!="p"];
     }
-    if(any(models=="S") & (obsInsample <= datafreq*2 + 2 + 1)){
-        warning("Sorry, but you don't have enough observations for CES(S).",call.=FALSE);
-        models <- models[models!="S"];
+    if(any(models=="s") & (obsNonzero <= datafreq*2 + 2 + 1)){
+        warning("Sorry, but you don't have enough observations for CES(s).",call.=FALSE);
+        models <- models[models!="s"];
     }
 
     CESModel <- as.list(models);

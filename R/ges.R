@@ -477,7 +477,7 @@ CreatorGES <- function(silentText=FALSE,...){
         if(xregDo=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                            nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
+                            nParamMax + nParamExo," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
             }
             else{
                 warning(paste0("The potential number of exogenous variables is higher than the number of observations. ",

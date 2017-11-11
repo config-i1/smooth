@@ -238,13 +238,13 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 # Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
 # Don't try to fix anything if the number of seasonalities is greater than 2
     if(length(lags)<=2){
-        if(obsInsample <= nParamMax){
+        if(obsNonzero <= nParamMax){
             arma.length <- length(ar.max);
-            while(obsInsample <= nParamMax){
+            while(obsNonzero <= nParamMax){
                 if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
                     ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
                     nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                    if(obsInsample <= nParamMax){
+                    if(obsNonzero <= nParamMax){
                         ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
                         nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
@@ -253,7 +253,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                     if(arma.length==2){
                         ar.max[1] <- ar.max[1] - 1;
                         nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
-                        if(obsInsample <= nParamMax){
+                        if(obsNonzero <= nParamMax){
                             ma.max[1] <- ma.max[1] - 1;
                             nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
@@ -268,7 +268,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                         nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                     }
                     else if(i.max[1]>0){
-                        if(obsInsample <= nParamMax){
+                        if(obsNonzero <= nParamMax){
                             i.max[1] <- max(0,i.max[1] - 1);
                             nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
                         }
@@ -283,9 +283,9 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
     }
 
-    if(obsInsample <= nParamMax){
+    if(obsNonzero <= nParamMax){
         message(paste0("Not enough observations for the reasonable fit. Number of possible parameters is ",
-                        nParamMax," while the number of observations is ",obsInsample,"!"));
+                        nParamMax," while the number of observations is ",obsNonzero,"!"));
         stop("Redefine maximum orders and try again.",call.=FALSE)
     }
 
@@ -316,18 +316,18 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     ar.best.local <- ma.best.local <- i.best.local <- ar.best;
 
 #### Function corrects IC taking number of parameters on previous step ####
-    icCorrector <- function(icValue, nParam, obsInsample, nParamNew){
+    icCorrector <- function(icValue, nParam, obsNonzero, nParamNew){
         if(ic=="AIC"){
             llikelihood <- (2*nParam - icValue)/2;
             correction <- 2*nParamNew - 2*llikelihood;
         }
         else if(ic=="AICc"){
-            llikelihood <- (2*nParam*obsInsample/(obsInsample-nParam-1) - icValue)/2;
-            correction <- 2*nParamNew*obsInsample/(obsInsample-nParamNew-1) - 2*llikelihood;
+            llikelihood <- (2*nParam*obsNonzero/(obsNonzero-nParam-1) - icValue)/2;
+            correction <- 2*nParamNew*obsNonzero/(obsNonzero-nParamNew-1) - 2*llikelihood;
         }
         else if(ic=="BIC"){
-            llikelihood <- (nParam*log(obsInsample) - icValue)/2;
-            correction <- nParamNew*log(obsInsample) - 2*llikelihood;
+            llikelihood <- (nParam*log(obsNonzero) - icValue)/2;
+            correction <- nParamNew*log(obsNonzero) - 2*llikelihood;
         }
 
         return(correction);
@@ -454,7 +454,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                              bounds=bounds, silent=TRUE,
                                              xreg=NULL, xregDo="use", initialX=initialX,
                                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
-                        ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsInsample, nParamNew);
+                        ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsNonzero, nParamNew);
                         if(combine){
                             testForecasts[[m]] <- matrix(NA,h,3);
                             testForecasts[[m]][,1] <- testModel$forecast;
@@ -520,7 +520,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                              bounds=bounds, silent=TRUE,
                                                              xreg=NULL, xregDo="use", initialX=initialX,
                                                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
-                                        ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
+                                        ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
                                         if(combine){
                                             testForecasts[[m]] <- matrix(NA,h,3);
                                             testForecasts[[m]][,1] <- testModel$forecast;
@@ -593,7 +593,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                                  bounds=bounds, silent=TRUE,
                                                  xreg=NULL, xregDo="use", initialX=initialX,
                                                  updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
-                            ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsInsample, nParamNew);
+                            ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
                             if(combine){
                                 testForecasts[[m]] <- matrix(NA,h,3);
                                 testForecasts[[m]][,1] <- testModel$forecast;
@@ -707,7 +707,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         modelname <- "ARIMA combined";
 
         errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
+        y.holdout <- ts(data[(obsNonzero+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
         s2 <- mean(errors^2);
         errormeasures <- errorMeasurer(y.holdout,y.for,y);
         ICs <- c(t(testICs) %*% icWeights);
