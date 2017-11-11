@@ -499,10 +499,10 @@ CreatorGES <- function(silentText=FALSE,...){
         vtvalues <- c(vtvalues,slope);
     }
     if((orders %*% lags)>2){
-        if(orders %*% lags-2 > obsInsample){
-            vtTail <- orders %*% lags-2 - obsInsample;
-            vtvalues <- c(vtvalues,yot[1:obsInsample,]);
-            vtvalues <- c(vtvalues,rep(yot[obsInsample],vtTail));
+        if(orders %*% lags-2 > obsNonzero){
+            vtTail <- orders %*% lags-2 - obsNonzero;
+            vtvalues <- c(vtvalues,yot[1:obsNonzero,]);
+            vtvalues <- c(vtvalues,rep(yot[obsNonzero],vtTail));
         }
         else{
             vtvalues <- c(vtvalues,yot[1:(orders %*% lags-2),]);
