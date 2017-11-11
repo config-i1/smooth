@@ -1573,12 +1573,6 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
         }
     }
 
-    # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(all(pt==1) & all(intermittent!=c("n","p"))){
-        intermittent <- "n";
-        imodelProvided <- FALSE;
-    }
-
     ##### Define xregDo #####
     if(!any(xregDo==c("use","select","u","s"))){
         warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
@@ -1599,7 +1593,6 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     assign("FI",FI,ParentEnvironment);
     assign("obsInsample",obsInsample,ParentEnvironment);
     assign("obsAll",obsAll,ParentEnvironment);
-    assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("ic",ic,ParentEnvironment);
