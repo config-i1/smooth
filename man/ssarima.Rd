@@ -7,14 +7,13 @@
 ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
   "optimal"), ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM",
-  "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10, holdout = FALSE,
-  cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "interval", "probability", "sba"), imodel = "MNN",
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
-  initialX = NULL, updateX = FALSE, persistenceX = NULL,
-  transitionX = NULL, ...)
+  "MSEh", "TMSE", "GTMSE"), h = 10, holdout = FALSE, cumulative = FALSE,
+  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  level = 0.95, intermittent = c("none", "auto", "fixed", "interval",
+  "probability", "sba"), imodel = "MNN", bounds = c("admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
+  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
+  persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -292,8 +291,8 @@ ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
         h=10,holdout=TRUE)}
 
 # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="MSTFE")
-ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aMSTFE")}
+\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
+ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")}
 
 # SARIMA(0,1,1) with exogenous variables
 ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))

@@ -179,7 +179,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #'
 #' # See how holdout and trace parameters influence the forecast
 #' es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="MSE")
-#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="MSTFE")}
+#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="TMSE")}
 #'
 #' # Model selection example
 #' es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
@@ -206,7 +206,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' # Exogenous variables in ETS example
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 #' y <- ts(c(M3$N1457$x,M3$N1457$xx),frequency=12)
-#' es(y,h=18,holdout=TRUE,xreg=x,cfType="aMSTFE",intervals="np")
+#' es(y,h=18,holdout=TRUE,xreg=x,cfType="aTMSE",intervals="np")
 #' ourModel <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
 #'
 #' # This will be the same model as in previous line but estimated on new portion of data
@@ -230,7 +230,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' @export es
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
-               cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
+               cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                intermittent=c("none","auto","fixed","interval","probability","sba"), imodel="MNN",

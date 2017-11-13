@@ -6,7 +6,7 @@
 \usage{
 auto.ges(data, orderMax = 3, lagMax = frequency(data), type = c("A", "M",
   "Z"), initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC"),
-  cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10,
+  cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
   "auto", "fixed", "interval", "probability", "sba"), imodel = "MNN",

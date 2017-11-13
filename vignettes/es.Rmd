@@ -81,7 +81,7 @@ es(M3$N2457$x, model=modelType(ourModel), h=18, holdout=FALSE, initial=1500, sil
 
 Using some other parameters may lead to completely different model and forecasts:
 ```{r es_N2457_aMSTFE}
-es(M3$N2457$x, h=18, holdout=TRUE, cfType="aMSTFE", bounds="a", ic="BIC", intervals=TRUE)
+es(M3$N2457$x, h=18, holdout=TRUE, cfType="aTMSE", bounds="a", ic="BIC", intervals=TRUE)
 ```
 
 You can play around with all the available parameters to see what's their effect on final model.

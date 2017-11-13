@@ -117,7 +117,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 #' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-#'     intervals="np",xreg=x,cfType="MSTFE")}
+#'     intervals="np",xreg=x,cfType="TMSE")}
 #'
 #' # Exogenous variables in CES
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
@@ -138,7 +138,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @export ces
 ces <- function(data, seasonality=c("none","simple","partial","full"),
                 initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
-                cfType=c("MSE","MAE","HAM","GMSTFE","MSTFE","MSEh","TFL"),
+                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","interval","probability","sba"), imodel="MNN",

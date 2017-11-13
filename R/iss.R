@@ -162,7 +162,7 @@ intermittentMaker <- function(intermittent="n",...){
 #'     iss(y, intermittent="i", persistence=0.1)
 #'
 #' @export iss
-iss <- function(data, intermittent=c("none","fixed","croston","tsb","sba"),ic=c("AICc","AIC","BIC"),
+iss <- function(data, intermittent=c("none","fixed","interval","probability","sba"),ic=c("AICc","AIC","BIC"),
                 h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);

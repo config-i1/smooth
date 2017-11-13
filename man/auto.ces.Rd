@@ -6,7 +6,7 @@
 \usage{
 auto.ces(data, models = c("none", "simple", "full"), initial = c("optimal",
   "backcasting"), ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE",
-  "HAM", "GMSTFE", "MSTFE", "MSEh", "TFL"), h = 10, holdout = FALSE,
+  "HAM", "MSEh", "TMSE", "GTMSE"), h = 10, holdout = FALSE,
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
   "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
   "interval", "probability", "sba"), imodel = "MNN",

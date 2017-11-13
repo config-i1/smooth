@@ -7,14 +7,14 @@
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(data)), combine = FALSE, workFast = TRUE,
   constant = NULL, initial = c("backcasting", "optimal"), ic = c("AICc",
-  "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "GMSTFE", "MSTFE", "MSEh",
-  "TFL"), h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
-  level = 0.95, intermittent = c("none", "auto", "fixed", "interval",
-  "probability", "sba"), imodel = "MNN", bounds = c("admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE"),
+  h = 10, holdout = FALSE, cumulative = FALSE, intervals = c("none",
+  "parametric", "semiparametric", "nonparametric"), level = 0.95,
+  intermittent = c("none", "auto", "fixed", "interval", "probability", "sba"),
+  imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
+  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
+  transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}

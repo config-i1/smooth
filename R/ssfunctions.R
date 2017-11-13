@@ -656,12 +656,11 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    # if(any(cfType==c("GTMSE","TMSE","TFL","MSEh","aGTMSE","aTMSE","aTFL","aMSEh",
-    # MAEh, TMAE, GTMAE, HAMh, THAM, GTHAM))){
-    if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
+    if(any(cfType==c("MSEh","TMSE","GTMSE","MAEh","TMAE","GTMAE","HAMh","THAM","GTHAM",
+                     "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM","TSB"))){
+    else if(any(cfType==c("MSE","MAE","HAM","TSB","Rounded"))){
         multisteps <- FALSE;
     }
     else{
@@ -772,13 +771,13 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
             ##### !!! This stuff should be removed by 2.5.0 #####
             if(any(intermittent==c("c","croston"))){
-                warning(paste0("You are using the old value of intermittent parameter.",
+                warning(paste0("You are using the old value of intermittent parameter. ",
                                "Please, use 'i' instead of '",intermittent,"'."),
                         call.=FALSE);
                 intermittent <- "i";
             }
             else if(any(intermittent==c("t","tsb"))){
-                warning(paste0("You are using the old value of intermittent parameter.",
+                warning(paste0("You are using the old value of intermittent parameter. ",
                                "Please, use 'p' instead of '",intermittent,"'."),
                         call.=FALSE);
                 intermittent <- "p";
@@ -1183,12 +1182,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aGMSTFE"))){
+    if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
         warning(paste0("Do you seriously think that you can use ",cfType,
                        " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
-    else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTFL","aMSTFE","aGMSTFE"))){
+    else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
         warning(paste0("Number of observations is really low for a multisteps cost function! ",
                        "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
@@ -1465,7 +1464,8 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("GMSTFE","MSTFE","TFL","MSEh","aGMSTFE","aMSTFE","aTFL","aMSEh"))){
+    if(any(cfType==c("MSEh","TMSE","GTMSE","MAEh","TMAE","GTMAE","HAMh","THAM","GTHAM",
+                     "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
     else if(any(cfType==c("MSE","MAE","HAM"))){
