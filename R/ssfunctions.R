@@ -664,9 +664,35 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         multisteps <- FALSE;
     }
     else{
-        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
-        cfType <- "MSE";
-        multisteps <- FALSE;
+        if(cfType=="MSTFE"){
+            warning(paste0("This estimator has recently been renamed from \"MSTFE\" to \"TMSE\". ",
+                           "Please, use the new name."),call.=FALSE);
+            multisteps <- TRUE;
+            cfType <- "TMSE";
+        }
+        else if(cfType=="GMSTFE"){
+            warning(paste0("This estimator has recently been renamed from \"GMSTFE\" to \"GTMSE\". ",
+                           "Please, use the new name."),call.=FALSE);
+            multisteps <- TRUE;
+            cfType <- "GTMSE";
+        }
+        else if(cfType=="aMSTFE"){
+            warning(paste0("This estimator has recently been renamed from \"aMSTFE\" to \"aTMSE\". ",
+                           "Please, use the new name."),call.=FALSE);
+            multisteps <- TRUE;
+            cfType <- "aTMSE";
+        }
+        else if(cfType=="aGMSTFE"){
+            warning(paste0("This estimator has recently been renamed from \"aGMSTFE\" to \"aGTMSE\". ",
+                           "Please, use the new name."),call.=FALSE);
+            multisteps <- TRUE;
+            cfType <- "aGTMSE";
+        }
+        else{
+            warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
+            cfType <- "MSE";
+            multisteps <- FALSE;
+        }
     }
     cfTypeOriginal <- cfType;
 
