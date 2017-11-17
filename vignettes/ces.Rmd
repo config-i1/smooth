@@ -27,14 +27,14 @@ require(Mcomp)
 
 For the same series from M3 dataset `ces()` can be constructed using:
 ```{r ces_N2457}
-ces(M3$N2457$x, h=18, holdout=TRUE)
+ces(M3$N2457$x, h=18, holdout=TRUE, silent=FALSE)
 ```
 
 This output is very similar to ones printed out by `es()` function. The only difference is complex smoothing parameter values which are printed out instead of persistence vector in `es()`.
 
 If we want automatic model selection, then we use `auto.ces()` function:
 ```{r auto_ces_N2457}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, intervals="p")
+auto.ces(M3$N2457$x, h=18, holdout=TRUE, intervals="p", silent=FALSE)
 ```
 
 Note that prediction intervals are too narrow and do not include 95% of values. This is because CES is pure additive model and it cannot take into account possible heteroscedasticity.

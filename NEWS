@@ -3,6 +3,7 @@ smooth v2.2.2 (Release data: 2017-11-17)
 
 Changes:
 * For the convenience if the provided data is of class "Mdata", then the smooth functions will take all the values and form the holdout sample according to the data.
+* Updated vignettes.
 
 
 smooth v2.2.1 (Release data: 2017-11-15)

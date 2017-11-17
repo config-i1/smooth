@@ -29,7 +29,7 @@ You may note that `Mcomp` depends on `forecast` package and if you load both `fo
 The simplest call of this function is:
 
 ```{r es_N2457}
-es(M3$N2457$x, h=18, holdout=TRUE)
+es(M3$N2457$x, h=18, holdout=TRUE, silent=FALSE)
 ```
 
 In this case function uses branch and bound algorithm to form a pool of models to check and after that constructs a model with the lowest information criterion. As we can see, it also produces an output with brief information about the model, which contains:
@@ -48,7 +48,7 @@ The function has also produced a graph with actuals, fitted values and point for
 
 If we need prediction intervals, then we run:
 ```{r es_N2457_with_intervals}
-es(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE)
+es(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE, silent=FALSE)
 ```
 
 Due to multiplicative nature of error term in the model, the intervals are asymmetric. This is the expected behaviour. The other thing to note is that the output now also provides the theoretical width of prediction intervals and its actual coverage.
@@ -137,3 +137,9 @@ The point forecasts in the majority of cases should the same, but the prediction
 forecast(etsModel,h=18,level=0.95)
 forecast(esModel,h=18,level=0.95)
 ```
+
+Finally, if you work with M or M3 data, and need to test a function on a specific time series, you can use the following simplified call:
+```{r es_N2457_M3}
+es(M3$N2457, intervals=TRUE, silent=FALSE)
+```
+This command has taken the data, split it into in-sample and holdout and produced the forecast of appropriate length to the holdout.
