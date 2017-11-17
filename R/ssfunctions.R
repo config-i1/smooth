@@ -68,6 +68,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
+    else if(class(data)=="Mdata"){
+        h <- data$h;
+        holdout <- TRUE;
+        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+    }
+
     if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't construct any model!", call.=FALSE);
     }
@@ -1265,6 +1271,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
+    assign("holdout",holdout,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
@@ -1422,6 +1429,12 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
+    else if(class(data)=="Mdata"){
+        h <- data$h;
+        holdout <- TRUE;
+        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+    }
+
     if(!is.numeric(data)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
@@ -1619,6 +1632,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
+    assign("holdout",holdout,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
