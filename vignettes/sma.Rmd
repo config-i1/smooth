@@ -29,7 +29,7 @@ You may note that `Mcomp` depends on `forecast` package and if you load both `fo
 
 By default SMA does order selection based on AICc and returns the model with the lowest value:
 ```{r sma_N2457}
-sma(M3$N2457$x, h=18)
+sma(M3$N2457$x, h=18, silent=FALSE)
 ```
 
 It appears that SMA(13) is the optimal model for this time series, which is not obvious. Note also that the forecast trajectory of SMA(13) is not just a straight line. This is because the actual values are used in construction of point forecasts up to h=13.

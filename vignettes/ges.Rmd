@@ -39,12 +39,10 @@ But some different orders and lags can be specified. For example:
 ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
 ```
 
-Function `auto.ges()` is not yet implemented in `smooth`, but manual selection allows to conclude that GES$(1^1)$ has the lowest AIC amongst other possible GES models:
-```{r ges_N2457_1[1]}
-ges(M3$N2457$x, h=18, holdout=TRUE, orders=c(1), lags=c(1), intervals=TRUE)
+Function `auto.ges()` is now implemented in `smooth`, but it works slowly as it needs to check a large number of models:
+```{r Autoges_N2457_1[1]}
+auto.ges(M3$N2457$x, h=18, holdout=TRUE, intervals=TRUE, silent=FALSE)
 ```
-
-In theory inclusion of more orders and lags should lead to decrease of MSE. However this is not the case in our implementation, because currently we use linear programming optimisers, which may leave us with suboptimal values in cases when parameter space is wide.
 
 In addition to standard values that other functions accept, GES accepts predefined values for transition matrix, measurement and persistence vectors. For example, something more common can be passed to the function:
 ```{r ges_N2457_predefined}
