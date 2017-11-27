@@ -2764,7 +2764,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 ##### *Likelihood function* #####
 likelihoodFunction <- function(C){
 # This block is needed in order to make R CMD to shut up about "no visible binding..."
-    if(any(intermittent==c("n","p"))){
+    if(any(intermittent==c("n","provided"))){
         if(cfType=="TFL" | cfType=="aTFL"){
             return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
         }
