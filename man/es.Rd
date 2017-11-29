@@ -10,9 +10,9 @@ es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   "TMSE", "GTMSE"), h = 10, holdout = FALSE, cumulative = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, intermittent = c("none", "auto", "fixed", "interval",
-  "probability", "sba"), imodel = "MNN", bounds = c("usual", "admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  "probability", "sba", "logistic"), imodel = "MNN", bounds = c("usual",
+  "admissible", "none"), silent = c("all", "graph", "legend", "output",
+  "none"), xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
   updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
@@ -115,7 +115,9 @@ Croston, 1972 method; 4. \code{probability}, Probability-based model,
 underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
 of intermittency type based on information criteria. The first letter can be
 used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
-method (bias correction) discussed in Syntetos and Boylan, 2005.}
+method (bias correction) discussed in Syntetos and Boylan, 2005. 7.
+\code{"logistic"} - the probability is estimated based on logistic regression
+model principles.}
 
 \item{imodel}{Type of ETS model used for the modelling of the time varying
 probability. Object of the class "iss" can be provided here, and its parameters

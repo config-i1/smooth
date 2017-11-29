@@ -233,7 +233,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-               intermittent=c("none","auto","fixed","interval","probability","sba"), imodel="MNN",
+               intermittent=c("none","auto","fixed","interval","probability","sba","logistic"), imodel="MNN",
                bounds=c("usual","admissible","none"),
                silent=c("all","graph","legend","output","none"),
                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -361,6 +361,7 @@ CF <- function(C){
                             modellags, initialType, Ttype, Stype, nExovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
+
 
     cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
                       h, modellags, Etype, Ttype, Stype,
@@ -688,7 +689,12 @@ EstimatorES <- function(...){
         }
     }
     else{
-        cfType <- "MSE";
+        if(any(cfType==c("LogisticL","LogisticD"))){
+            cfType <- "TSB";
+        }
+        else{
+            cfType <- "MSE";
+        }
     }
 
     ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=res$solution,Etype=Etype);
@@ -1158,8 +1164,16 @@ CreatorES <- function(silent=FALSE,...){
             initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
             initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * mean(c(1:min(12,obsNonzero)));
             if(allowMultiplicative){
-                initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));
-                initialstates[1,3] <- exp(mean(log(yot[1:min(12,obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(12,obsNonzero))));
+                if(any(cfType=="LogisticL")){
+                    initialstates[1,3] <- mean(yot[1:min(12,obsNonzero)]);
+                    initialstates[1,3] <- initialstates[1,3] / (1 - initialstates[1,3]);
+                    initialstates[1,4] <- (1+mean(diff(yot[1:min(12,obsNonzero)])))/2;
+                    initialstates[1,4] <- initialstates[1,4] / (1 - initialstates[1,4]);
+                }
+                else{
+                    initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));
+                    initialstates[1,3] <- exp(mean(log(yot[1:min(12,obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(12,obsNonzero))));
+                }
             }
         }
         else{
@@ -1520,14 +1534,14 @@ CreatorES <- function(silent=FALSE,...){
         Etype <- EtypeOriginal;
         Ttype <- TtypeOriginal;
         Stype <- StypeOriginal;
-        if(all(cfType!=c("MSE","Rounded","TSB"))){
+        if(all(cfType!=c("MSE","Rounded","TSB","LogisticL","LogisticD"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
         }
         if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","i","p");
+        intermittentModelsPool <- c("n","f","i","p","l");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs[1] <- esValues$icBest;
@@ -1834,6 +1848,9 @@ CreatorES <- function(silent=FALSE,...){
     }
     else if(intermittent=="p"){
         intermittent <- "probability";
+    }
+    else if(intermittent=="l"){
+        intermittent <- "logistic";
     }
     else if(intermittent=="n"){
         intermittent <- "none";

@@ -800,7 +800,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     }
     else{
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
+        if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
             ##### !!! This stuff should be removed by 2.5.0 #####
             if(any(intermittent==c("c","croston"))){
                 warning(paste0("You are using the old value of intermittent parameter. ",
@@ -1591,7 +1591,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     else{
         obsNonzero <- sum((y!=0)*1);
         intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","i","p","a","s","none","fixed","interval","probability","auto","sba"))){
+        if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                     call.=FALSE);
             intermittent <- "f";
@@ -2893,6 +2893,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         else if(any(intermittent==c("s","sba"))){
             intermittent <- "SBA";
+        }
+        else if(any(intermittent==c("l","logistic"))){
+            intermittent <- "Logistic";
         }
         cat(paste0("Intermittent model type: ",intermittent));
         cat("\n");

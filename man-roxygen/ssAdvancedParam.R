@@ -20,7 +20,9 @@
 #' underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
 #' of intermittency type based on information criteria. The first letter can be
 #' used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
-#' method (bias correction) discussed in Syntetos and Boylan, 2005.
+#' method (bias correction) discussed in Syntetos and Boylan, 2005. 7.
+#' \code{"logistic"} - the probability is estimated based on logistic regression
+#' model principles.
 #' @param imodel Type of ETS model used for the modelling of the time varying
 #' probability. Object of the class "iss" can be provided here, and its parameters
 #' would be used in iETS model.

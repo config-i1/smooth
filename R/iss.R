@@ -354,9 +354,9 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         else{
             cfType <- "LogisticD";
         }
+        ##### Need to introduce also the one with ZZZ #####
 
-        iyt <- matrix(ot,obsInsample,1);
-        iyt <- ts(iyt,frequency=frequency(data));
+        iyt <- ts(matrix(ot,obsInsample,1),frequency=frequency(data));
 
         logisticModel <- es(iyt,model,persistence=persistence,initial=initial,
                             ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
