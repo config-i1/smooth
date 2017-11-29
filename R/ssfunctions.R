@@ -666,7 +666,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM","TSB","Rounded"))){
+    else if(any(cfType==c("MSE","MAE","HAM","TSB","Rounded","LogisticD","LogisticL"))){
         multisteps <- FALSE;
     }
     else{
@@ -854,6 +854,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     if(any(smoothType==c("es"))){
         # Check if multiplicative models can be fitted
         allowMultiplicative <- !((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0)));
+        if(any(cfType==c("LogisticL","LogisticD"))){
+            allowMultiplicative <- TRUE;
+        }
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
         if(!allowMultiplicative){
             if(Etype=="M"){
@@ -1507,7 +1510,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM"))){
+    else if(any(cfType==c("MSE","MAE","HAM","Rounded","TSB","LogisticD","LogisticL"))){
         multisteps <- FALSE;
     }
     else{
@@ -1660,8 +1663,18 @@ ssFitter <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
+    if(cfType=="LogisticL"){
+        EtypeNew <- "L";
+    }
+    else if(cfType=="LogisticD"){
+        EtypeNew <- "D";
+    }
+    else{
+        EtypeNew <- Etype;
+    }
+
     fitting <- fitterwrap(matvt, matF, matw, y, vecg,
-                          modellags, Etype, Ttype, Stype, initialType,
+                          modellags, EtypeNew, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
     statesNames <- colnames(matvt);
     matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=datafreq);
@@ -1669,7 +1682,7 @@ ssFitter <- function(...){
     y.fit <- ts(fitting$yfit,start=start(data),frequency=datafreq);
     errors <- ts(fitting$errors,start=start(data),frequency=datafreq);
 
-    if(Etype=="M" & any(matvt[,1]<0)){
+    if(EtypeNew=="M" & any(matvt[,1]<0)){
         matvt[matvt[,1]<0,1] <- 0.001;
         warning(paste0("Negative values produced in the level of state vector of model ",model,".\n",
                        "We had to substitute them by low values. Please, use a different model."),call.=FALSE);
@@ -2248,6 +2261,7 @@ ssForecaster <- function(...){
         warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
         df <- obsNonzero;
     }
+
 # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
         s2 <- as.vector(sum((errors*ot)^2)/df);
@@ -2441,6 +2455,17 @@ ssForecaster <- function(...){
     if(any(is.na(y.fit),all(is.na(y.for),h>0))){
         warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE);
         warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE);
+    }
+
+    if(cfType=="LogisticL"){
+        y.for <- y.for / (1 + y.for);
+        y.low <- y.low / (1 + y.low);
+        y.high <- y.high / (1 + y.high);
+    }
+    else if(cfType=="LogisticD"){
+        y.for <- exp(y.for) / (1 + exp(y.for));
+        y.low <- exp(y.low) / (1 + exp(y.low));
+        y.high <- exp(y.high) / (1 + exp(y.high));
     }
 
     assign("s2",s2,ParentEnvironment);

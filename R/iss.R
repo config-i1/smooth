@@ -162,11 +162,11 @@ intermittentMaker <- function(intermittent="n",...){
 #'     iss(y, intermittent="i", persistence=0.1)
 #'
 #' @export iss
-iss <- function(data, intermittent=c("none","fixed","interval","probability","sba"),ic=c("AICc","AIC","BIC"),
+iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),ic=c("AICc","AIC","BIC"),
                 h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
-    if(all(intermittent!=c("n","f","i","p","s"))){
+    if(all(intermittent!=c("n","f","i","p","s","l"))){
         intermittent <- "f";
     }
     if(intermittent=="s"){
@@ -332,6 +332,39 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                        variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel)-1,
                        residuals=tsbModel$residuals, actuals=otAll,
                        persistence=tsbModel$persistence, initial=tsbModel$initial);
+    }
+#### Logistic ####
+    else if(intermittent=="l"){
+        if(is.null(model)){
+            model <- "YYY";
+        }
+        if(is.null(initial)){
+            initial <- "o";
+        }
+
+        # If the underlying model is pure multiplicative, use error "L", otherwise use "D"
+        if(all(c(substr(model,1,1)!="A", substr(model,2,2)!="A"),
+                 substr(model,nchar(model),nchar(model))!="A") &
+           all(c(substr(model,1,1)!="X", substr(model,2,2)!="X"),
+                 substr(model,nchar(model),nchar(model))!="X") &
+           all(c(substr(model,1,1)!="Z", substr(model,2,2)!="Z"),
+                 substr(model,nchar(model),nchar(model))!="Z")){
+            cfType <- "LogisticL";
+        }
+        else{
+            cfType <- "LogisticD";
+        }
+
+        iyt <- matrix(ot,obsInsample,1);
+        iyt <- ts(iyt,frequency=frequency(data));
+
+        logisticModel <- es(iyt,model,persistence=persistence,initial=initial,
+                            ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+
+        output <- list(model=logisticModel$model, fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
+                       variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=logLik(logisticModel), nParam=nParam(logisticModel),
+                       residuals=logisticModel$residuals, actuals=otAll,
+                       persistence=logisticModel$persistence, initial=logisticModel$initial);
     }
 #### None ####
     else{

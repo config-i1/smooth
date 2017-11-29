@@ -4,9 +4,9 @@
 \alias{iss}
 \title{Intermittent State Space}
 \usage{
-iss(data, intermittent = c("none", "fixed", "interval", "probability", "sba"),
-  ic = c("AICc", "AIC", "BIC"), h = 10, holdout = FALSE, model = NULL,
-  persistence = NULL, initial = NULL, xreg = NULL)
+iss(data, intermittent = c("none", "fixed", "interval", "probability", "sba",
+  "logistic"), ic = c("AICc", "AIC", "BIC"), h = 10, holdout = FALSE,
+  model = NULL, persistence = NULL, initial = NULL, xreg = NULL)
 }
 \arguments{
 \item{data}{Either numeric vector or time series vector.}

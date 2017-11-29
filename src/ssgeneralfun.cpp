@@ -90,6 +90,16 @@ double errorf(double const &yact, double &yfit, char const &E){
     if(E=='A'){
         return yact - yfit;
     }
+    else if(E=='D'){
+        // This is a logistic additive error
+        double yProb = exp(yfit) / (1 + exp(yfit));
+        return log((1 + yact - yProb)/(1 - yact + yProb));
+    }
+    else if(E=='L'){
+        // This is a logistic multiplicative error
+        double yProb = yfit / (1 + yfit);
+        return (1 + yact - yProb)/(1 - yact + yProb);
+    }
     else{
         if((yact==0) & (yfit==0)){
             return 0;
@@ -107,6 +117,16 @@ double errorf(double const &yact, double &yfit, char const &E){
 arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
     if(E=='A'){
         return yact - yfit;
+    }
+    else if(E=='D'){
+        // This is an additive logistic error
+        yfit = exp(yfit) / (1 + exp(yfit));
+        return log((1 + yact - yfit)/(1 - yact + yfit));
+    }
+    else if(E=='L'){
+        // This is a multiplicative logistic error
+        yfit = yfit / (1 + yfit);
+        return (1 + yact - yfit)/(1 - yact + yfit);
     }
     else{
         yfit.elem(find(yfit==0)).fill(1e-100);
@@ -162,9 +182,11 @@ double wvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E
 
     switch(E){
         case 'A':
+        case 'D':
             yfit = as_scalar(vecYfit + rowvecXt * vecAt);
         break;
         case 'M':
+        case 'L':
             yfit = as_scalar(vecYfit * exp(rowvecXt * vecAt));
         break;
     }
@@ -243,6 +265,7 @@ arma::vec gvalue(arma::vec const &matrixVt, arma::mat const &matrixF, arma::mat 
 // AZZ
     switch(E){
     case 'A':
+    case 'D':
 // ANZ
         switch(T){
         case 'N':
@@ -280,6 +303,7 @@ arma::vec gvalue(arma::vec const &matrixVt, arma::mat const &matrixF, arma::mat 
     break;
 // MZZ
     case 'M':
+    case 'L':
 // MNZ
         switch(T){
         case 'N':
@@ -338,9 +362,11 @@ arma::vec gXvalue(arma::vec const &vecXt, arma::vec const &vecGX, arma::vec cons
 
     switch(E){
     case 'A':
+    case 'D':
         bufferforat = vecGX / vecXt * error;
     break;
     case 'M':
+    case 'L':
         bufferforat = vecGX / vecXt * log(1 + error);
     break;
     }
@@ -1004,6 +1030,15 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
     // matrixVt = matrixVt.t();
     // matrixAt = matrixAt.t();
 
+    if(E=='D'){
+        // This is a logistic additive error
+        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
+    }
+    else if(E=='L'){
+        // This is a logistic multiplicative error
+        vecYfit = vecYfit / (1 + vecYfit);
+    }
+
     return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
                         Named("errors") = vecErrors, Named("matat") = matrixAt.t());
 }
@@ -1151,6 +1186,15 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
     // matrixVt = matrixVt.t();
     // matrixAt = matrixAt.t();
+
+    if(E=='D'){
+        // This is a logistic additive error
+        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
+    }
+    else if(E=='L'){
+        // This is a logistic multiplicative error
+        vecYfit = vecYfit / (1 + vecYfit);
+    }
 
     return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
                         Named("errors") = vecErrors, Named("matat") = matrixAt.t());
@@ -1393,7 +1437,21 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_cerr_stream(nullstream);
-    int CFSwitch = CFtypeswitch(CFtype);
+
+    // These lines of code are needed for logistic probability:
+    // We define E as 'L' or 'D' in this case and use TSB CF.
+    char ENew = E;
+    std::string CFtypeNew = CFtype;
+    if(CFtype=="LogisticD"){
+        ENew = 'D';
+        CFtypeNew = "TSB";
+    }
+    else if(CFtype=="LogisticL"){
+        ENew = 'L';
+        CFtypeNew = "TSB";
+    }
+
+    int CFSwitch = CFtypeswitch(CFtypeNew);
 
     arma::uvec nonzeroes = find(vecOt>0);
     int obs = nonzeroes.n_rows;
@@ -1407,12 +1465,12 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
 
     switch(fitterType){
         case 'b':
-        fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+        fitting = backfitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, ENew, T, S,
                              matrixXt, matrixAt, matrixFX, vecGX, vecOt);
         break;
         case 'o':
         default:
-        fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, E, T, S,
+        fitting = fitter(matrixVt, matrixF, rowvecW, vecYt, vecG, lags, ENew, T, S,
                          matrixXt, matrixAt, matrixFX, vecGX, vecOt);
     }
 
