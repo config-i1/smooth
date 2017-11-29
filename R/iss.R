@@ -219,7 +219,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         Stype <- "N";
     }
 
-    if(Stype!="N"){
+    if(Stype!="N" & intermittent!="l"){
         Stype <- "N";
         substr(model,nchar(model),nchar(model)) <- "N";
         warning("Sorry, but we do not deal with seasonal models in iss yet.",call.=FALSE);
