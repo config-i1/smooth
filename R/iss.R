@@ -36,7 +36,15 @@ intermittentParametersSetter <- function(intermittent="n",...){
             else{
                 pt <- matrix(imodel$fitted,obsInsample,1);
             }
-            pt.for <- matrix(imodel$forecast,h,1);
+
+            if(length(imodel$forecast)>=h){
+                pt.for <- matrix(imodel$forecast[1:h],h,1);
+            }
+            else{
+                pt.for <- matrix(c(imodel$forecast,
+                                   rep(imodel$forecast[1],h-length(imodel$forecast))),h,1);
+            }
+
             iprob <- c(pt,pt.for);
         }
     }
@@ -389,7 +397,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
         }
 
-        output <- list(model=logisticModel$model, fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
+        output <- list(model=modelType(logisticModel), fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
                        variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=logLik(logisticModel), nParam=nParam(logisticModel),
                        residuals=logisticModel$residuals, actuals=otAll,
                        persistence=logisticModel$persistence, initial=logisticModel$initial);
