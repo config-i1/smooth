@@ -177,6 +177,8 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         sbaCorrection <- FALSE;
     }
 
+    ic <- ic[1];
+
     if(class(data)=="smooth.sim"){
         data <- data$data;
     }
@@ -351,15 +353,41 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                  substr(model,nchar(model),nchar(model))!="Z")){
             cfType <- "LogisticL";
         }
-        else{
+        else if(all(c(substr(model,1,1)!="Z", substr(model,2,2)!="Z"),
+                 substr(model,nchar(model),nchar(model))!="Z")){
             cfType <- "LogisticD";
+        }
+        else{
+            cfType <- "LogisticZ";
         }
         ##### Need to introduce also the one with ZZZ #####
 
         iyt <- ts(matrix(ot,obsInsample,1),frequency=frequency(data));
 
-        logisticModel <- es(iyt,model,persistence=persistence,initial=initial,
-                            ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+        if(cfType=="LogisticZ"){
+            logisticModel <- list(NA);
+
+            cfType <- "LogisticD";
+            modelNew <- gsub("Z","X",model);
+            logisticModel[[1]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
+                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+
+            cfType <- "LogisticL";
+            modelNew <- gsub("Z","Y",model);
+            logisticModel[[2]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
+                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+
+            if(logisticModel[[1]]$ICs[ic] < logisticModel[[2]]$ICs[ic]){
+                logisticModel <- logisticModel[[1]];
+            }
+            else{
+                logisticModel <- logisticModel[[2]];
+            }
+        }
+        else{
+            logisticModel <- es(iyt,model,persistence=persistence,initial=initial,
+                                ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+        }
 
         output <- list(model=logisticModel$model, fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
                        variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=logLik(logisticModel), nParam=nParam(logisticModel),

@@ -9,10 +9,10 @@ auto.ges(data, orderMax = 3, lagMax = frequency(data), type = c("A", "M",
   cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, intermittent = c("none",
-  "auto", "fixed", "interval", "probability", "sba"), imodel = "MNN",
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
-  initialX = NULL, updateX = FALSE, persistenceX = NULL,
+  "auto", "fixed", "interval", "probability", "sba", "logistic"),
+  imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
+  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
   transitionX = NULL, ...)
 }
 \arguments{

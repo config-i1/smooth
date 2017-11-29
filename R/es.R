@@ -233,7 +233,8 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-               intermittent=c("none","auto","fixed","interval","probability","sba","logistic"), imodel="MNN",
+               intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
+               imodel="MNN",
                bounds=c("usual","admissible","none"),
                silent=c("all","graph","legend","output","none"),
                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -689,10 +690,7 @@ EstimatorES <- function(...){
         }
     }
     else{
-        if(any(cfType==c("LogisticL","LogisticD"))){
-            cfType <- "TSB";
-        }
-        else{
+        if(!any(cfType==c("LogisticL","LogisticD"))){
             cfType <- "MSE";
         }
     }
@@ -1068,7 +1066,7 @@ CreatorES <- function(silent=FALSE,...){
         return(listToReturn);
     }
     else if(modelDo=="combine"){
-        if(all(cfType!=c("MSE","Rounded","TSB"))){
+        if(all(cfType!=c("MSE","Rounded","TSB","LogisticD","LogisticL"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The produced combinations weights may be wrong."),call.=FALSE);
         }
         environment(PoolEstimatorES) <- environment();
@@ -1137,7 +1135,9 @@ CreatorES <- function(silent=FALSE,...){
             }
         }
         else{
-            cfType <- "MSE";
+            if(!any(cfType==c("LogisticL","LogisticD"))){
+                cfType <- "MSE";
+            }
         }
 
         ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
