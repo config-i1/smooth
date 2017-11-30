@@ -2793,6 +2793,9 @@ likelihoodFunction <- function(C){
         if(cfType=="TFL" | cfType=="aTFL"){
             return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
         }
+        else if(any(cfType==c("LogisticD","LogisticL"))){
+            return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
+        }
         else{
             return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }

@@ -1169,6 +1169,8 @@ CreatorES <- function(silent=FALSE,...){
                     initialstates[1,3] <- initialstates[1,3] / (1 - initialstates[1,3]);
                     initialstates[1,4] <- (1+mean(diff(yot[1:min(12,obsNonzero)])))/2;
                     initialstates[1,4] <- initialstates[1,4] / (1 - initialstates[1,4]);
+                    initialstates[1,initialstates[1,3:4]==0] <- 1E-10;
+                    initialstates[1,initialstates[1,3:4]==1] <- 1-1E-10;
                 }
                 else{
                     initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));

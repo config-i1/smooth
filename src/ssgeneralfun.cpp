@@ -97,8 +97,8 @@ double errorf(double const &yact, double &yfit, char const &E){
     }
     else if(E=='L'){
         // This is a logistic multiplicative error
-        double yProb = yfit / (1 + yfit);
-        return (1 + yact - yProb)/(1 - yact + yProb);
+        // double yProb = yfit / (1 + yfit);
+        return ((1 + yact + yact * yfit)/(1 - yact - yact * yfit + 2 * yfit) - 1);
     }
     else{
         if((yact==0) & (yfit==0)){
@@ -125,8 +125,8 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
     }
     else if(E=='L'){
         // This is a multiplicative logistic error
-        yfit = yfit / (1 + yfit);
-        return (1 + yact - yfit)/(1 - yact + yfit);
+        // yfit = yfit / (1 + yfit);
+        return ((1 + yact + yact * yfit)/(1 - yact - yact * yfit + 2 * yfit) - 1);
     }
     else{
         yfit.elem(find(yfit==0)).fill(1e-100);
