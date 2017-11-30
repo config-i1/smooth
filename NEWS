@@ -1,10 +1,11 @@
-smooth v2.2.2 (Release data: 2017-11-29)
+smooth v2.2.2 (Release data: 2017-11-30)
 ==============
 
 Changes:
 * For the convenience if the provided data is of class "Mdata", then the smooth functions will take all the values and form the holdout sample according to the data.
 * Updated vignettes.
 * New probability type for intermittent models - "logistic".
+* In the case when we don't have binary xreg for the holdout, we now consider it as random and forecast it using iss().
 
 Bugfixes:
 * Fixed Likelihood calculation for TSB probability model.

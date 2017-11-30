@@ -2511,7 +2511,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             if(!is.null(xreg)){
                 if(length(xreg) < obsAll){
                     warning("xreg did not contain values for the holdout, so we had to predict missing values.", call.=FALSE);
-                    xregForecast <- es(xreg,h=obsAll-length(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                    # If this is a binary variable, use iss function.
+                    if(all((xreg==0) | (xreg==1))){
+                        xregForecast <- iss(xreg,model="XXX",h=obsAll-length(xreg),intermittent="l",ic="AICc")$forecast;
+                    }
+                    else{
+                        xregForecast <- es(xreg,h=obsAll-length(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                    }
                     xreg <- c(as.vector(xreg),as.vector(xregForecast));
                 }
                 else if(length(xreg) > obsAll){
@@ -2567,7 +2573,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                         cat(paste0(rep("\b",nchar(round((j-1)/nExovars,2)*100)+1),collapse=""));
                         cat(paste0(round(j/nExovars,2)*100,"%"));
                     }
-                    xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+
+                    if(all((xreg[,j]==0) | (xreg[,j]==1))){
+                        xregForecast[,j] <- iss(xreg[,j],model="XXX",h=obsAll-nrow(xreg),intermittent="l",ic="AICc")$forecast;
+                    }
+                    else{
+                        xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                    }
                 }
                 xreg <- rbind(xreg,xregForecast);
                 if(!silent){
