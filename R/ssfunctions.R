@@ -825,7 +825,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         environment(intermittentParametersSetter) <- environment();
         intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
-        if(obsNonzero <= nParamIntermittent){
+        if(obsNonzero <= nParamIntermittent & intermittent!="l"){
             warning(paste0("Not enough observations for estimation of occurence probability.\n",
                            "Switching to simpler model."),
                     call.=FALSE);
@@ -1602,7 +1602,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
             environment(intermittentParametersSetter) <- environment();
             intermittentParametersSetter(intermittent,ParentEnvironment=environment());
 
-            if(obsNonzero <= nParamIntermittent){
+            if(obsNonzero <= nParamIntermittent & intermittent!="l"){
                 warning(paste0("Not enough observations for estimation of occurence probability.\n",
                                "Switching to simpler model."),
                         call.=FALSE);

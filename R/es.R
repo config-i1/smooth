@@ -1098,6 +1098,7 @@ CreatorES <- function(silent=FALSE,...){
         environment(ICFunction) <- environment();
         environment(likelihoodFunction) <- environment();
         environment(BasicMakerES) <- environment();
+
         BasicMakerES(ParentEnvironment=environment());
 
         C <- c(vecg);
@@ -1327,7 +1328,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
 
-            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
+            warning("Not of non-zero enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
                 if(length(modelsPool)>2){
@@ -1369,7 +1370,7 @@ CreatorES <- function(silent=FALSE,...){
                 modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
-            warning("Not enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
+            warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
                 if(length(modelsPool)>2){
@@ -1390,10 +1391,54 @@ CreatorES <- function(silent=FALSE,...){
                 modelsPool <- c(modelsPool,"MNN");
             }
             persistence <- 0;
-            persistenceEstimate <- FALSE
-            warning("We did not have enough observations, so persistence value was set to zero.",call.=FALSE);
+            persistenceEstimate <- FALSE;
+            smoothingParameters <- matrix(0,3,2);
+            warning("We did not have enough of non-zero observations, so persistence value was set to zero.",call.=FALSE);
             modelDo <- "select"
             model <- "ZZZ";
+            Etype <- "Z";
+            Ttype <- "N";
+            Stype <- "N";
+            damped <- FALSE;
+            phiEstimate <- FALSE;
+        }
+        else if(obsNonzero==2){
+            modelsPool <- NULL;
+            persistence <- 0;
+            persistenceEstimate <- FALSE;
+            smoothingParameters <- matrix(0,3,2);
+            initialValue <- mean(y);
+            initialType <- "p";
+            initialstates <- matrix(rep(initialValue,2),nrow=1);
+            warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",call.=FALSE);
+            modelDo <- "nothing"
+            model <- "ANN";
+            Etype <- "A";
+            Ttype <- "N";
+            Stype <- "N";
+            damped <- FALSE;
+            phiEstimate <- FALSE;
+            parametersNumber[1,1] <- 0;
+            parametersNumber[2,1] <- 2;
+        }
+        else if(obsNonzero==1){
+            modelsPool <- NULL;
+            persistence <- 0;
+            persistenceEstimate <- FALSE;
+            smoothingParameters <- matrix(0,3,2);
+            initialValue <- y[y!=0];
+            initialType <- "p";
+            initialstates <- matrix(rep(initialValue,2),nrow=1);
+            warning("We did not have enough of non-zero observations, so we used Naive.",call.=FALSE);
+            modelDo <- "nothing"
+            model <- "ANN";
+            Etype <- "A";
+            Ttype <- "N";
+            Stype <- "N";
+            damped <- FALSE;
+            phiEstimate <- FALSE;
+            parametersNumber[1,1] <- 0;
+            parametersNumber[2,1] <- 2;
         }
         else{
             stop("Not enough observations... Even for fitting of ETS('ANN')!",call.=FALSE);
