@@ -16,7 +16,7 @@ iss(data, intermittent = c("none", "fixed", "interval", "probability", "sba",
 \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} -
 Teunter et al., 2011 method., \code{"sba"} - Syntetos-Boylan Approximation
 for Croston's method (bias correction) discussed in Syntetos and Boylan,
-2005.}
+2005, \code{"logistic"} - probability based on logit model.}
 
 \item{ic}{Information criteria to use in case of model selection.}
 

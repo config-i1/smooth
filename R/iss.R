@@ -131,7 +131,7 @@ intermittentMaker <- function(intermittent="n",...){
 #' \code{"croston"} - estimated using Croston, 1972 method and \code{"TSB"} -
 #' Teunter et al., 2011 method., \code{"sba"} - Syntetos-Boylan Approximation
 #' for Croston's method (bias correction) discussed in Syntetos and Boylan,
-#' 2005.
+#' 2005, \code{"logistic"} - probability based on logit model.
 #' @param ic Information criteria to use in case of model selection.
 #' @param h Forecast horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
@@ -170,8 +170,9 @@ intermittentMaker <- function(intermittent="n",...){
 #'     iss(y, intermittent="i", persistence=0.1)
 #'
 #' @export iss
-iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),ic=c("AICc","AIC","BIC"),
-                h=10, holdout=FALSE, model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
+iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),
+                ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
+                model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
 # Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","i","p","s","l"))){
