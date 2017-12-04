@@ -685,10 +685,13 @@ plot.iss <- function(x, ...){
     else if(intermittent=="f"){
         intermittent <- "Fixed probability";
     }
+    else if(intermittent=="l"){
+        intermittent <- "Logistic probability";
+    }
     else{
         intermittent <- "None";
     }
-    graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent));
+    graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent), ...);
 }
 
 #### Prints of smooth ####
