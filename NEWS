@@ -1,4 +1,4 @@
-smooth v2.2.2 (Release data: 2017-11-30)
+smooth v2.2.2 (Release data: 2017-12-04)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * Updated vignettes.
 * New probability type for intermittent models - "logistic".
 * In the case when we don't have binary xreg for the holdout, we now consider it as random and forecast it using iss().
+* graphmaker() now only resets par() when legend=TRUE. This allows using layout and producing several plots with the function on one canvas.
 
 Bugfixes:
 * Fixed Likelihood calculation for TSB probability model.
