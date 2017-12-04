@@ -693,10 +693,10 @@ plot.iss <- function(x, ...){
         intermittent <- "None";
     }
     if(is.null(ellipsis$main)){
-        graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent),...);
+        graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent), ...);
     }
     else{
-        graphmaker(x$actuals,x$forecast,x$fitted,...);
+        graphmaker(x$actuals,x$forecast,x$fitted, ...);
     }
 }
 
