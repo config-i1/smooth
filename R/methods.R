@@ -675,6 +675,7 @@ plot.smooth.forecast <- function(x, ...){
 #' @method plot iss
 #' @export
 plot.iss <- function(x, ...){
+    ellipsis <- list(...);
     intermittent <- x$intermittent
     if(intermittent=="i"){
         intermittent <- "Interval-based";
@@ -685,10 +686,18 @@ plot.iss <- function(x, ...){
     else if(intermittent=="f"){
         intermittent <- "Fixed probability";
     }
+    else if(intermittent=="l"){
+        intermittent <- "Logistic probability";
+    }
     else{
         intermittent <- "None";
     }
-    graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent));
+    if(is.null(ellipsis$main)){
+        graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent),...);
+    }
+    else{
+        graphmaker(x$actuals,x$forecast,x$fitted,...);
+    }
 }
 
 #### Prints of smooth ####
