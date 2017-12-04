@@ -177,5 +177,7 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
-    par(parDefault);
+    if(legend==TRUE){
+        par(parDefault);
+    }
 }
