@@ -108,17 +108,36 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
             xregDataNew <- xregData;
             if(leadsLength!=0){
             # Produce forecasts for leads
-                xregModel <- suppressWarnings(es(xregData,h=maxLead,intermittent="a",silent=TRUE));
+            # If this is a binary variable, use iss function.
+                if(all((xregData==0) | (xregData==1))){
+                    xregModel <- suppressWarnings(iss(xregData,model="XXX", h=maxLead,intermittent="l"));
+                }
+                else{
+                    xregModel <- suppressWarnings(es(xregData,h=maxLead,intermittent="a"));
+                }
                 xregDataNew <- c(xregDataNew,xregModel$forecast);
             }
             if(lagsLength!=0){
             # Produce reversed forecasts for lags
                 if(leadsLength!=0){
-                    xregModel <- suppressWarnings(es(rev(xregData),model=modelType(xregModel),persistence=xregModel$persistence,
-                                                     intermittent=xregModel$intermittent,h=maxLag,silent=TRUE));
+                    # If this is a binary variable, use iss function.
+                    if(all((xregData==0) | (xregData==1))){
+                        xregModel <- suppressWarnings(iss(rev(xregData), model=xregModel$model, intermittent=xregModel$intermittent,
+                                                          persistence=xregModel$persistence, h=maxLag));
+                    }
+                    else{
+                        xregModel <- suppressWarnings(es(rev(xregData), model=modelType(xregModel), persistence=xregModel$persistence,
+                                                         intermittent=xregModel$intermittent, imodel=xregModel$imodel, h=maxLag));
+                    }
                 }
                 else{
-                    xregModel <- suppressWarnings(es(rev(xregData),h=maxLag,intermittent="a",silent=TRUE));
+                    # If this is a binary variable, use iss function.
+                    if(all((xregData==0) | (xregData==1))){
+                        xregModel <- suppressWarnings(iss(rev(xregData),model="XXX", h=maxLag,intermittent="l"));
+                    }
+                    else{
+                        xregModel <- suppressWarnings(rev(es(xregData),h=maxLag,intermittent="a"));
+                    }
                 }
                 xregDataNew <- c(rev(xregModel$forecast),xregDataNew);
             }
