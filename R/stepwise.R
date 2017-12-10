@@ -29,12 +29,13 @@
 #' @examples
 #'
 #' xreg <- cbind(rnorm(100,10,3),rnorm(100,50,5))
-#' xreg <- cbind(100+0.5*xreg[,1]-0.75*xreg[,2]+rnorm(100,0,3),xreg)
+#' xreg <- cbind(100+0.5*xreg[,1]-0.75*xreg[,2]+rnorm(100,0,3),xreg,rnorm(100,300,10))
+#' colnames(xreg) <- c("y","x1","x2","Noise")
 #'
 #' stepwise(xreg)
 #'
 #' @export stepwise
-stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
+stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
 ##### Function that selects variables based on IC and using partial correlations
     ourData <- data;
     obs <- nrow(ourData)
@@ -107,7 +108,6 @@ stepwise <- function(data, ic=c("AIC","AICc","BIC"), silent=TRUE, df=NULL){
         }
     }
     bestModel <- lm(as.formula(bestFormula),data=ourData);
-    # attributes(bestModel)$ic <- bestIC;
 
     return(model=bestModel);
 }
