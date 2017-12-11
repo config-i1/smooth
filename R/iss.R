@@ -173,10 +173,11 @@ intermittentMaker <- function(intermittent="n",...){
 iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
-# Function estimates and returns mean and variance of probability for intermittent State-Space model based on the chosen method
+# Function returns intermittent State-Space model
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","i","p","s","l"))){
         intermittent <- "f";
+        warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
     }
     if(intermittent=="s"){
         intermittent <- "i";
@@ -200,8 +201,6 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
     otAll <- abs((data!=0)*1);
     iprob <- mean(ot);
     obsOnes <- sum(ot);
-# Sizes of demand
-    yot <- matrix(y[y!=0],obsOnes,1);
 
     if(!is.null(model)){
         # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
