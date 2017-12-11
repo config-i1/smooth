@@ -1,4 +1,4 @@
-smooth v2.2.2 (Release data: 2017-12-10)
+smooth v2.2.2 (Release data: 2017-12-11)
 ==============
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * graphmaker() now only resets par() when legend=TRUE. This allows using layout and producing several plots with the function on one canvas.
 * xregExpander() now uses iss() function in case of binary data.
 * Updated an example in stepwise() function.
+* ves() function now uses warning() instead of message() everywhere.
 
 Bugfixes:
 * Fixed Likelihood calculation for TSB probability model.

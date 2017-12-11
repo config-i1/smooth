@@ -781,14 +781,14 @@ CreatorVES <- function(silent=FALSE,...){
         colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     }
 
-    matvt <- ts(t(matvt),start=(time(data)[1] - dataDeltat*maxlag),frequency=datafreq);
-    yFitted <- ts(t(yFitted),start=start(data),frequency=datafreq);
-    errors <- ts(t(errors),start=start(data),frequency=datafreq);
+    matvt <- ts(t(matvt),start=(time(data)[1] - dataDeltat*maxlag),frequency=dataFreq);
+    yFitted <- ts(t(yFitted),start=dataStart,frequency=dataFreq);
+    errors <- ts(t(errors),start=dataStart,frequency=dataFreq);
 
-    yForecast <- ts(t(yForecast),start=time(data)[obsInSample] + dataDeltat,frequency=datafreq);
+    yForecast <- ts(t(yForecast),start=time(data)[obsInSample] + dataDeltat,frequency=dataFreq);
     forecastStart <- start(yForecast)
     if(any(intervalsType==c("i","u"))){
-        PI <-  ts(PI,start=forecastStart,frequency=datafreq);
+        PI <-  ts(PI,start=forecastStart,frequency=dataFreq);
     }
 
     if(cfType=="l"){
@@ -814,7 +814,7 @@ CreatorVES <- function(silent=FALSE,...){
 
 ##### Now let's deal with the holdout #####
     if(holdout){
-        yHoldout <- ts(data[(obsInSample+1):obsAll,],start=forecastStart,frequency=datafreq);
+        yHoldout <- ts(data[(obsInSample+1):obsAll,],start=forecastStart,frequency=dataFreq);
         errormeasures <- NA;
     }
     else{
