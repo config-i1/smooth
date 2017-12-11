@@ -136,7 +136,7 @@ xregExpander <- function(xreg, lags=c(-frequency(xreg):frequency(xreg)),
                         xregModel <- suppressWarnings(iss(rev(xregData),model="XXX", h=maxLag,intermittent="l"));
                     }
                     else{
-                        xregModel <- suppressWarnings(rev(es(xregData),h=maxLag,intermittent="a"));
+                        xregModel <- suppressWarnings(es(rev(xregData),h=maxLag,intermittent="a"));
                     }
                 }
                 xregDataNew <- c(rev(xregModel$forecast),xregDataNew);
