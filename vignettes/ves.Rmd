@@ -30,14 +30,14 @@ Y <- cbind(M3$N2570$x,M3$N2571$x);
 
 `ves()` function allows constructing Vector Exponential Smoothing in either pure additive or pure multiplicative form. The function has several elements that can either be individual or grouped. The former means that all the time series use the same value. For example, `persistence="g"` means that the smoothing parameters for all the series are the same. A simple call for `ves()` results in estimation of VES(A,N,N) with grouped smoothing parameters, transition matrix and individual initials:
 ```{r ves_basic}
-ves(Y, h=18, holdout=TRUE)
+ves(Y, h=18, holdout=TRUE, silent=FALSE)
 ```
 
 The output tells us how much time the estimation took, what model we estimated, how many parameters were estimated, the cost function type used and its value and finally the information criteria. Currently we do not provide error measures for the holdout, this functionality will be available with newer releases of `smooth`.
 
 In some cases we may decide that the series should be connecte with each other. In this case we can ask function to use "dependent" persistence. This means that along with the individual smoothing parameters, we will estimate cross-series ones. Here's the example:
 ```{r ves_AAN_persistence_dep}
-ourModel <- ves(Y, "AAN", persistence="d", h=18, holdout=TRUE)
+ourModel <- ves(Y, "AAN", persistence="d", h=18, holdout=TRUE, silent=FALSE)
 ```
 
 The resulting persistence matrix contains more values than the individual one:
@@ -47,7 +47,7 @@ ourModel$persistence
 Note that some of the values of smoothing parameters are negative and the others are greater than one. This is a normal behaviour for VES model in this implementation. Currently we only have bounds derived from the stability region (`bounds="admissible"`) and we do not do traditional restriction yet (and not sure if we ever will).
 
 Curently we have pure additive and pure multiplicative models only, and I don't intend introducing mixed models for VES at all, because I think that they are evil. The multiplicative model implemented in VES is in fact just an additive model applied to the data in logarithms. Let's see how the damped trend multiplicative seasonal model with individual damping and smoothing parameters looks like:
-```{r ves_MMM}
+```{r ves_MMdM}
 ourModel <- ves(Y, "MMdM", phi="i", persistence="i", h=18, holdout=TRUE)
 ```
 
