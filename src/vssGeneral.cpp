@@ -5,6 +5,16 @@
 
 using namespace Rcpp;
 
+arma::vec vErrorer(arma::vec const &vectorY, arma::vec const &vectorYhat, char const &E){
+    switch(E){
+        case 'A':
+            return vectorY - vectorYhat;
+        break;
+        case 'L':
+            return vectorY - vectorYhat;
+    }
+}
+
 // Fitter for vector models
 List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
              arma::uvec &lags, char const &E, char const &T, char const &S, arma::mat const &matrixO) {
@@ -39,7 +49,7 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
 
         /* # Measurement equation and the error term */
         matrixYfit.col(i-maxlag) = matrixO.col(i-maxlag) % (matrixW * matrixV(lagrows));
-        matrixE.col(i-maxlag) = (matrixY.col(i-maxlag) - matrixYfit.col(i-maxlag));
+        matrixE.col(i-maxlag) = vErrorer(matrixY.col(i-maxlag), matrixYfit.col(i-maxlag), E);
 
         /* # Transition equation */
         matrixV.col(i) = matrixF * matrixV(lagrows) + matrixG * matrixE.col(i-maxlag);
