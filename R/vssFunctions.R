@@ -1051,6 +1051,7 @@ vssForecaster <- function(...){
 
     if(modelIsMultiplicative){
         yForecast <- exp(yForecast);
+        PI <- exp(PI);
     }
 
     assign("Sigma",Sigma,ParentEnvironment);
