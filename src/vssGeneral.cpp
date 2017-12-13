@@ -8,6 +8,7 @@ using namespace Rcpp;
 arma::vec vErrorer(arma::vec const &vectorY, arma::vec const &vectorYhat, char const &E){
     switch(E){
         case 'A':
+        case 'M':
             return vectorY - vectorYhat;
         break;
         case 'L':
