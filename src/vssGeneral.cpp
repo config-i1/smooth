@@ -5,14 +5,28 @@
 
 using namespace Rcpp;
 
-arma::vec vErrorer(arma::vec const &vectorY, arma::vec const &vectorYhat, char const &E){
+arma::vec vFittedValue(arma::mat matrixW, arma::vec const &matrixV, char const &E){
+    switch(E){
+    case 'A':
+    case 'M':
+        return matrixW * matrixV;
+        break;
+    case 'L':
+        matrixW.row(0).fill(0);
+        arma::vec vecYFitter = exp(matrixW * matrixV);
+        return vecYFitter / (1 + sum(vecYFitter.rows(1,vecYFitter.n_rows)));
+    }
+}
+
+arma::vec vErrorValue(arma::vec const &vectorY, arma::vec const &vectorYhat, char const &E){
     switch(E){
         case 'A':
         case 'M':
             return vectorY - vectorYhat;
         break;
         case 'L':
-            return vectorY - vectorYhat;
+            arma::vec vectorE = (1 + vectorY - vectorYhat)/2;
+            return log(vectorE / vectorE(0));
     }
 }
 
@@ -49,8 +63,8 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
         lagrows = (i+1) * lagslength - lags - 1;
 
         /* # Measurement equation and the error term */
-        matrixYfit.col(i-maxlag) = matrixO.col(i-maxlag) % (matrixW * matrixV(lagrows));
-        matrixE.col(i-maxlag) = vErrorer(matrixY.col(i-maxlag), matrixYfit.col(i-maxlag), E);
+        matrixYfit.col(i-maxlag) = matrixO.col(i-maxlag) % vFittedValue(matrixW, matrixV(lagrows), E);
+        matrixE.col(i-maxlag) = vErrorValue(matrixY.col(i-maxlag), matrixYfit.col(i-maxlag), E);
 
         /* # Transition equation */
         matrixV.col(i) = matrixF * matrixV(lagrows) + matrixG * matrixE.col(i-maxlag);
