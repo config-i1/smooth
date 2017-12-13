@@ -1,7 +1,7 @@
 utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal","obsInSample","obsAll",
                          "modelLags","persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
                          "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat"));
+                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat","dataFreq","dataStart"));
 
 #' Vector Exponential Smoothing in SSOE state-space model
 #'
