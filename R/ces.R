@@ -72,6 +72,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{actuals} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{imodel} - model of the class "iss" if intermittent model was estimated.
+#' If the model is non-intermittent, then imodel is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
 #' variables.
