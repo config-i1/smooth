@@ -148,17 +148,17 @@ vssInput <- function(smoothType=c("ves"),...){
         }
 
         #### Check error type ####
-        if(all(Etype!=c("Z","X","Y","A","M","C"))){
-            warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'Y', 'A' or 'M'.\n",
-                           "Changing to 'Z'"),call.=FALSE);
-            Etype <- "Z";
+        if(all(Etype!=c("A","M","L"))){
+            warning(paste0("Wrong error type: ",Etype,". Should be 'A' or 'M'.\n",
+                           "Changing to 'A'"),call.=FALSE);
+            Etype <- "A";
         }
 
         #### Check trend type ####
-        if(all(Ttype!=c("Z","X","Y","N","A","M","C"))){
-            warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.\n",
-                           "Changing to 'Z'"),call.=FALSE);
-            Ttype <- "Z";
+        if(all(Ttype!=c("N","A","M"))){
+            warning(paste0("Wrong trend type: ",Ttype,". Should be 'N', 'A' or 'M'.\n",
+                           "Changing to 'A'"),call.=FALSE);
+            Ttype <- "A";
         }
 
         #### Check seasonality type ####
@@ -170,21 +170,19 @@ vssInput <- function(smoothType=c("ves"),...){
         }
 
         # Check if seasonality makes sense
-        if(all(Stype!=c("Z","X","Y","N","A","M","C"))){
-            warning(paste0("Wrong seasonality type: ",Stype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.",
-                           "Setting to 'Z'."),call.=FALSE);
+        if(all(Stype!=c("N","A","M"))){
+            warning(paste0("Wrong seasonality type: ",Stype,". Should be 'N', 'A' or 'M'.",
+                           "Setting to 'A'."),call.=FALSE);
             if(dataFreq==1){
                 Stype <- "N";
             }
             else{
-                Stype <- "Z";
+                Stype <- "A";
             }
         }
-        if(all(Stype!="N",dataFreq==1)){
-            if(all(Stype!=c("Z","X","Y"))){
-                warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
-                               "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
-            }
+        if(Stype!="N" & dataFreq==1){
+            warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
+                           "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
             Stype <- "N";
         }
 
@@ -196,9 +194,9 @@ vssInput <- function(smoothType=c("ves"),...){
             modelIsSeasonal <- TRUE;
         }
 
-        if(any(c(Etype,Ttype,Stype)=="Z")){
-            stop("Sorry we don't do model selection for VES yet.", call.=FALSE);
-        }
+        # if(any(c(Etype,Ttype,Stype)=="Z")){
+        #     stop("Sorry we don't do model selection for VES yet.", call.=FALSE);
+        # }
 
         maxlag <- dataFreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
 
@@ -208,6 +206,11 @@ vssInput <- function(smoothType=c("ves"),...){
         nComponentsNonSeasonal <- 1 + (Ttype!="N")*1;
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
     }
+
+    ##### intermittent #####
+    ##### !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
+    intermittent <- substring(intermittent[1],1,1);
+    ot <- matrix(1,nrow=obsInSample,ncol=nSeries);
 
     if(any(c(Etype,Ttype,Stype)=="M") & all(y>0)){
         if(any(c(Etype,Ttype,Stype)=="A")){
@@ -220,7 +223,13 @@ vssInput <- function(smoothType=c("ves"),...){
         modelIsMultiplicative <- TRUE;
     }
     else{
+        if(any(c(Etype,Ttype,Stype)=="M") & intermittent=="n"){
+            warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",call.=FALSE);
+        }
         modelIsMultiplicative <- FALSE;
+        Etype <- "A";
+        Ttype <- ifelse(Ttype=="M","A",Ttype);
+        Stype <- ifelse(Stype=="M","A",Stype);
     }
 
     #This is the estimation of covariance matrix
@@ -675,11 +684,6 @@ vssInput <- function(smoothType=c("ves"),...){
     if(level>1){
         level <- level / 100;
     }
-
-    ##### intermittent #####
-    ##### !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
-    intermittent <- substring(intermittent[1],1,1);
-    ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
 
     ##### Check if multiplicative is applicable #####
     if(any(smoothType==c("ves"))){
