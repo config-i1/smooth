@@ -8,14 +8,14 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
 # probability="d" - assume that ot[,1] and ot[,2] are dependent, so that sum(P)=1;
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","l"))){
-        intermittent <- "f";
         warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
+        intermittent <- "f";
     }
 
     ic <- ic[1];
 
     if(is.null(probability)){
-        warning("probability value is not selected. Switching to 'independent'.");
+        warning("probability value is not specified. Switching to 'independent'.");
         probability <- "i";
     }
     else{
@@ -28,13 +28,19 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
     }
 
     if(is.null(persistence)){
-        persistence <- "g";
+        if(probability=="d"){
+            persistence <- "g";
+        }
     }
     if(is.null(transition)){
-        transition <- "g";
+        if(probability=="d"){
+            transition <- "g";
+        }
     }
     if(is.null(phi)){
-        phi <- "g";
+        if(probability=="d"){
+            phi <- "g";
+        }
     }
     if(!is.null(initial)){
         # If a numeric is provided in initial, check it
@@ -52,11 +58,15 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
         }
     }
     else{
-        initial <- "i";
-        initialIsNumeric <- FALSE;
+        if(probability=="d"){
+            initial <- "i";
+            initialIsNumeric <- FALSE;
+        }
     }
     if(is.null(initialSeason)){
-        initialSeason <- "g";
+        if(probability=="d"){
+            initialSeason <- "g";
+        }
     }
 
     if(is.data.frame(data)){
@@ -115,7 +125,7 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
             pForecast[,] <- rep(initial,each=h);
         }
         states <- rbind(pFitted,pForecast);
-#            logLik <- structure((sum(log(pFitted[ot==1])) + sum(log((1-pFitted[ot==0])))),df=nSeries,class="logLik");
+        logLik <- structure((sum(log(pFitted[ot==1])) + sum(log((1-pFitted[ot==0])))),df=nSeries,class="logLik");
 
         states <- ts(states, start=dataStart, frequency=dataFreq);
         errors <- ts(ot-pFitted, start=dataStart, frequency=dataFreq);
@@ -128,8 +138,28 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
     }
 #### Logistic probability ####
     else if(intermittent=="l"){
-        stop("Sorry, not implemented yet.");
         if(probability=="i"){
+            issModel <- list(NA);
+            states <- rep(NA,obsAll);
+            logLik <- 0;
+            errors <- matrix(NA,obsInSample,nSeries);
+            initial <- NA;
+            for(i in 1:nSeries){
+                issModel <- iss(ot[,i],intermittent=intermittent,ic=ic,h=h,model=model,persistence=persistence,
+                                     initial=initial,initialSeason=initialSeason,xreg=xreg,holdout=holdout);
+                pFitted[,i] <- issModel$fitted;
+                pForecast[,i] <- issModel$forecast;
+                states <- cbind(states,issModel$states);
+                errors[,i] <- issModel$residuals;
+                #### This needs to be modified ####
+                logLik <- logLik + logLik(issModel);
+                ####
+                initial <- rbind(initial,issModel$initial);
+            }
+            states <- states[,-1];
+            initial <- initial[-1,];
+            nParam <- issModel$nParam;
+            model <- issModel$model;
         }
         else{
             # This matrix contains all the possible outcomes for probabilities
@@ -140,13 +170,23 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
                 otFull[,i] <- apply(ot==matrix(otOutcomes[i,],obsInSample,nSeries,byrow=T),1,all)*1;
             }
 
-            #call ves(otFull) here
+            issModel <- ves(otFull,model=model,persistence=persistence,transition=transition,phi=phi,
+                            initial=initial,initialSeason=initialSeason,ic=ic,h=h,xreg=xreg,holdout=holdout)
 
-            states <- matrix(apply(otFull,2,mean),obsAll,2^nSeries,byrow=T);
+            states <- issModel$states;
+            initial <- issModel$initial;
+            errors <- issModel$residuals;
+            pFitted[,] <- matrix(issModel$fitted %*% otOutcomes,obsInSample,nSeries,byrow=T);
+            pForecast[,] <- matrix(issModel$forecast %*% otOutcomes,h,nSeries,byrow=T);
 
-            pFitted[,] <- matrix(states[1,] %*% otOutcomes,obsInSample,nSeries,byrow=T);
-            pForecast[,] <- matrix(states[obsAll,] %*% otOutcomes,h,nSeries,byrow=T);
+            nParam <- issModel$nParam;
+            model <- modelType(issModel);
+            logLik <- issModel$logLik
         }
+
+        output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
+                       variance=pForecast*(1-pForecast), logLik=logLik, nParam=nSeries,
+                       residuals=errors, actuals=otAll, persistence=NULL, initial=initial);
     }
 
     return(structure(output,class="viss"));
