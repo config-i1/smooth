@@ -153,7 +153,7 @@ viss <- function(data, intermittent=c("none","fixed","logistic"),
                 errors[,i] <- issModel$residuals;
                 #### This needs to be modified ####
                 logLik <- logLik + logLik(issModel);
-                ####
+                #####
                 initial <- rbind(initial,issModel$initial);
             }
             states <- states[,-1];
