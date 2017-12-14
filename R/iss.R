@@ -140,6 +140,8 @@ intermittentMaker <- function(intermittent="n",...){
 #' be either \code{"ANN"} or \code{"MNN"}.
 #' @param persistence Persistence vector. If \code{NULL}, then it is estimated.
 #' @param initial Initial vector. If \code{NULL}, then it is estimated.
+#' @param initialSeason Initial vector of seasonal components. If \code{NULL},
+#' then it is estimated.
 #' @param xreg Vector of matrix of exogenous variables, explaining some parts
 #' of occurrence variable (probability).
 #' @return The object of class "iss" is returned. It contains following list of
@@ -172,8 +174,9 @@ intermittentMaker <- function(intermittent="n",...){
 #' @export iss
 iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
-                model=NULL, persistence=NULL, initial=NULL, xreg=NULL){
+                model=NULL, persistence=NULL, initial=NULL, initialSeason=NULL, xreg=NULL){
 # Function returns intermittent State-Space model
+#### Add initialSeason to the output? ####
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","i","p","s","l"))){
         intermittent <- "f";
@@ -273,7 +276,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         newh <- obsInsample - newh + h;
         crostonModel <- es(iyt,model=model,silent=TRUE,h=newh,
                            persistence=persistence,initial=initial,
-                           ic=ic,xreg=xreg);
+                           ic=ic,xreg=xreg,initialSeason=initialSeason);
 
         pt <- rep((crostonModel$fitted),zeroes);
         tailNumber <- obsInsample - length(pt);
@@ -316,7 +319,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         iy_kappa <- iyt*(1 - 2*kappa) + kappa;
 
         tsbModel <- es(iy_kappa,model,persistence=persistence,initial=initial,
-                       ic=ic,silent=TRUE,h=h,cfType="TSB",xreg=xreg);
+                       ic=ic,silent=TRUE,h=h,cfType="TSB",xreg=xreg,initialSeason=initialSeason);
 
         # Correction so we can return from those iy_kappa values
         tsbModel$fitted <- (tsbModel$fitted - kappa) / (1 - 2*kappa);
@@ -378,12 +381,12 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             cfType <- "LogisticD";
             modelNew <- gsub("Z","X",model);
             logisticModel[[1]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
-                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,initialSeason=initialSeason);
 
             cfType <- "LogisticL";
             modelNew <- gsub("Z","Y",model);
             logisticModel[[2]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
-                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,initialSeason=initialSeason);
 
             if(logisticModel[[1]]$ICs[ic] < logisticModel[[2]]$ICs[ic]){
                 logisticModel <- logisticModel[[1]];
@@ -394,7 +397,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
         else{
             logisticModel <- es(iyt,model,persistence=persistence,initial=initial,
-                                ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg);
+                                ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,initialSeason=initialSeason);
         }
 
         output <- list(model=modelType(logisticModel), fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,

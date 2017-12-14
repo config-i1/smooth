@@ -6,7 +6,8 @@
 \usage{
 iss(data, intermittent = c("none", "fixed", "interval", "probability", "sba",
   "logistic"), ic = c("AICc", "AIC", "BIC"), h = 10, holdout = FALSE,
-  model = NULL, persistence = NULL, initial = NULL, xreg = NULL)
+  model = NULL, persistence = NULL, initial = NULL,
+  initialSeason = NULL, xreg = NULL)
 }
 \arguments{
 \item{data}{Either numeric vector or time series vector.}
@@ -31,6 +32,9 @@ be either \code{"ANN"} or \code{"MNN"}.}
 \item{persistence}{Persistence vector. If \code{NULL}, then it is estimated.}
 
 \item{initial}{Initial vector. If \code{NULL}, then it is estimated.}
+
+\item{initialSeason}{Initial vector of seasonal components. If \code{NULL},
+then it is estimated.}
 
 \item{xreg}{Vector of matrix of exogenous variables, explaining some parts
 of occurrence variable (probability).}
