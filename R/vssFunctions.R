@@ -811,9 +811,12 @@ vLikelihoodFunction <- function(A){
     if(Etype=="A"){
         return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
     }
-    else{
-        ### This is sort of an approximation of the correct likelihood. Need to check it.
+    else if(Etype=="M"){
         return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)) - sum(y));
+    }
+    else{
+        #### This is not derived yet ####
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
     }
 }
 
@@ -1057,12 +1060,12 @@ vssForecaster <- function(...){
         yForecast <- exp(yForecast);
         PI <- exp(PI);
     }
-
-    if(Etype=="L"){
-        yForecast[1,] <- 0
-        yForecast <- exp(yForecast);
-        yForecast <- yForecast / matrix((1 + colSums(yForecast[-1,])),nSeries,h,byrow=TRUE);
-    }
+#
+#     if(Etype=="L"){
+#         yForecast[1,] <- 0
+#         yForecast <- exp(yForecast);
+#         yForecast <- yForecast / matrix((1 + colSums(yForecast[-1,])),nSeries,h,byrow=TRUE);
+#     }
 
     assign("Sigma",Sigma,ParentEnvironment);
     assign("yForecast",yForecast,ParentEnvironment);

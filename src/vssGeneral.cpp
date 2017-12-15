@@ -131,7 +131,7 @@ RcppExport SEXP vFitterWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG
 
 
 /* # Function produces the point forecasts for the specified model */
-arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma::mat const &matrixW,
+arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma::mat matrixW,
                       unsigned int const &nSeries, unsigned int const &hor, char const &E, char const &T, char const &S, arma::uvec lags){
                       // arma::mat const &matrixX, arma::mat const &matrixA, arma::mat const &matrixFX
     int lagslength = lags.n_rows;
@@ -149,6 +149,10 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
         lags(i) = lags(i) + (lagslength - i - 1);
     }
 
+    if(E=='L'){
+        matrixW.row(0).zeros();
+    }
+
     matrixVnew.submat(0,0,matrixVnew.n_rows-1,maxlag-1) = matrixV.submat(0,0,matrixVnew.n_rows-1,maxlag-1);
     // matrixAnew.submat(0,0,maxlag-1,matrixAnew.n_cols-1) = matrixAnew.submat(0,0,maxlag-1,matrixAnew.n_cols-1);
 
@@ -160,7 +164,8 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
         matrixVnew.col(i) = matrixF * matrixVnew(lagrows);
         // matrixAnew.row(i) = matrixAnew.row(i-1) * matrixFX;
 
-        matYfor.col(i-maxlag) = matrixW * matrixVnew(lagrows);
+        matYfor.col(i-maxlag) = vFittedValue(matrixW, matrixVnew(lagrows), E);
+        // matYfor.col(i-maxlag) = matrixW * matrixVnew(lagrows);
     }
 
     return matYfor;

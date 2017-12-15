@@ -1,6 +1,22 @@
 #' @export
+logLik.viss <- function(object,...){
+    obs <- nobs(object);
+    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
+}
+
+#' @export
 nobs.vsmooth <- function(object, ...){
     return(nrow(object$fitted));
+}
+#' @export
+nobs.viss <- function(object, ...){
+    return(nrow(object$fitted));
+}
+
+#' @export
+nParam.viss <- function(object, ...){
+    nParamReturn <- object$nParam[1,4];
+    return(nParamReturn);
 }
 
 #' @export
@@ -30,7 +46,76 @@ modelType.vsmooth <- function(object, ...){
     return(modelType);
 }
 
-#### Prints of vsmooth ####
+#### Plotting things ####
+#' @export
+plot.viss <- function(x, ...){
+    ellipsis <- list(...);
+    intermittent <- x$intermittent
+    if(intermittent=="f"){
+        intermittent <- "Fixed probability";
+    }
+    else if(intermittent=="l"){
+        intermittent <- "Logistic probability";
+    }
+    else{
+        intermittent <- "None";
+    }
+
+    actuals <- x$actuals;
+    yForecast <- x$forecast;
+    yFitted <- x$fitted;
+    dataDeltat <- deltat(actuals);
+    forecastStart <- start(yForecast);
+    h <- nrow(yForecast);
+    nSeries <- ncol(yForecast);
+    modelname <- paste0("iVES(",x$model,")")
+
+    pages <- ceiling(nSeries / 5);
+    parDefault <- par(no.readonly=TRUE);
+    for(j in 1:pages){
+        par(mfcol=c(min(5,floor(nSeries/j)),1));
+        for(i in 1:nSeries){
+            plotRange <- range(min(actuals[,i],yForecast[,i],yFitted[,i]),
+                               max(actuals[,i],yForecast[,i],yFitted[,i]));
+            plot(actuals[,i],main=paste0(modelname,", series ", i),ylab="Y",
+                 ylim=plotRange,
+                 xlim=range(time(actuals[,i])[1],time(yForecast)[max(h,1)]));
+            lines(yFitted[,i],col="purple",lwd=2,lty=2);
+            if(h>1){
+                lines(yForecast[,i],col="blue",lwd=2);
+            }
+            else{
+                points(yForecast[,i],col="blue",lwd=2,pch=4);
+            }
+            abline(v=dataDeltat*(forecastStart[2]-2)+forecastStart[1],col="red",lwd=2);
+        }
+        par(parDefault);
+    }
+}
+
+#### Prints of vector functions ####
+#' @export
+print.viss <- function(x, ...){
+    intermittent <- x$intermittent
+    if(intermittent=="l"){
+        intermittent <- "Logistic probability";
+    }
+    else if(intermittent=="f"){
+        intermittent <- "Fixed probability";
+    }
+    else{
+        intermittent <- "None";
+    }
+    ICs <- round(c(AIC(x),AICc(x),BIC(x)),4);
+    names(ICs) <- c("AIC","AICc","BIC");
+    cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
+    if(!is.null(x$model)){
+        cat(paste0("Underlying ETS model: ",x$model,"\n"));
+    }
+    cat("Information criteria: \n");
+    print(ICs);
+}
+
 #' @export
 print.vsmooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
@@ -92,5 +177,9 @@ print.vsmooth <- function(x, ...){
 #### Summary of objects ####
 #' @export
 summary.vsmooth <- function(object, ...){
+    print(object);
+}
+#' @export
+summary.viss <- function(object, ...){
     print(object);
 }
