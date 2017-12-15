@@ -12,8 +12,8 @@ arma::vec vFittedValue(arma::mat const &matrixW, arma::vec const &matrixV, char 
         return matrixW * matrixV;
         break;
     case 'L':
-        arma::vec vecYFitter = exp(matrixW * matrixV);
-        return vecYFitter / (1 + sum(vecYFitter.rows(1,vecYFitter.n_rows-1)));
+        arma::vec vecYFitted = exp(matrixW * matrixV);
+        return vecYFitted / (1 + sum(vecYFitted.rows(1,vecYFitted.n_rows-1)));
     }
 }
 
