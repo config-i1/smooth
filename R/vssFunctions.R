@@ -210,7 +210,7 @@ vssInput <- function(smoothType=c("ves"),...){
     ##### intermittent #####
     ##### !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
     intermittent <- substring(intermittent[1],1,1);
-    ot <- matrix(1,nrow=obsInSample,ncol=nSeries);
+    ot <- matrix(1,nrow=nSeries,ncol=obsInSample);
 
     if(any(c(Etype,Ttype,Stype)=="M") & all(y>0)){
         if(any(c(Etype,Ttype,Stype)=="A")){
