@@ -16,7 +16,7 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   "none"), ...)
 }
 \arguments{
-\item{data}{is the matrix with data, where series are in columns and
+\item{data}{The matrix with data, where series are in columns and
 observations are in rows.}
 
 \item{model}{The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},

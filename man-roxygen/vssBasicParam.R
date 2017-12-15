@@ -1,4 +1,4 @@
-#' @param data is the matrix with data, where series are in columns and
+#' @param data The matrix with data, where series are in columns and
 #' observations are in rows.
 #' @param persistence Persistence matrix \eqn{G}, containing smoothing
 #' parameters. Can be:
