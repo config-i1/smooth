@@ -1668,7 +1668,7 @@ CreatorES <- function(silent=FALSE,...){
             component.names <- c(component.names,"trend");
         }
         if(Stype!="N"){
-            component.names <- c(component.names,"seasonality");
+            component.names <- c(component.names,"seasonal");
         }
 
         if(!is.null(xregNames)){
