@@ -5,33 +5,32 @@
 
 using namespace Rcpp;
 
-arma::vec vFittedValue(arma::mat matrixW, arma::vec const &matrixV, char const &E){
+arma::vec vFittedValue(arma::mat const &matrixW, arma::vec const &matrixV, char const &E){
     switch(E){
     case 'A':
     case 'M':
         return matrixW * matrixV;
         break;
     case 'L':
-        matrixW.row(0).fill(0);
         arma::vec vecYFitter = exp(matrixW * matrixV);
-        return vecYFitter / (1 + sum(vecYFitter.rows(1,vecYFitter.n_rows)));
+        return vecYFitter / (1 + sum(vecYFitter.rows(1,vecYFitter.n_rows-1)));
     }
 }
 
-arma::vec vErrorValue(arma::vec const &vectorY, arma::vec const &vectorYhat, char const &E){
+arma::vec vErrorValue(arma::vec const &vectorY, arma::vec const &vectorYFit, char const &E){
     switch(E){
         case 'A':
         case 'M':
-            return vectorY - vectorYhat;
+            return vectorY - vectorYFit;
         break;
         case 'L':
-            arma::vec vectorE = (1 + vectorY - vectorYhat)/2;
+            arma::vec vectorE = (1 + vectorY - vectorYFit)/2;
             return log(vectorE / vectorE(0));
     }
 }
 
 // Fitter for vector models
-List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
+List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat matrixW, arma::mat const &matrixG,
              arma::uvec &lags, char const &E, char const &T, char const &S, arma::mat const &matrixO) {
     /* matrixY has nrow = nSeries, ncol = obs
      * matrixV has nrow = nSeries * nComponents, ncol = obs + maxlag
@@ -58,6 +57,10 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
     arma::mat matrixYfit(nSeries, obs, arma::fill::zeros);
     arma::mat matrixE(nSeries, obs, arma::fill::zeros);
     // arma::mat bufferforat(matrixGX.n_rows);
+
+    if(E=='L'){
+        matrixW.row(0).zeros();
+    }
 
     for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
         lagrows = (i+1) * lagslength - lags - 1;
@@ -200,7 +203,7 @@ RcppExport SEXP vForecasterWrap(SEXP matvt, SEXP matF, SEXP matw,
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
-double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat const &matrixW, arma::mat const &matrixG,
+double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat matrixW, arma::mat const &matrixG,
                   arma::uvec &lags, char const &E, char const &T, char const &S,
                   char const& CFtype, double const &normalize, arma::mat const &matrixO){
     // bool const &multi, std::string const &CFtype, char const &fitterType,
