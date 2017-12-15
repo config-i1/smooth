@@ -225,11 +225,11 @@ vssInput <- function(smoothType=c("ves"),...){
     else{
         if(any(c(Etype,Ttype,Stype)=="M") & intermittent=="n"){
             warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",call.=FALSE);
+            Etype <- "A";
+            Ttype <- ifelse(Ttype=="M","A",Ttype);
+            Stype <- ifelse(Stype=="M","A",Stype);
         }
-        modelIsMultiplicative <- FALSE;
-        Etype <- "A";
-        Ttype <- ifelse(Ttype=="M","A",Ttype);
-        Stype <- ifelse(Stype=="M","A",Stype);
+        modelIsMultiplicative <- FALSE
     }
 
     #This is the estimation of covariance matrix
@@ -1056,6 +1056,12 @@ vssForecaster <- function(...){
     if(modelIsMultiplicative){
         yForecast <- exp(yForecast);
         PI <- exp(PI);
+    }
+
+    if(Etype=="L"){
+        yForecast[1,] <- 0
+        yForecast <- exp(yForecast);
+        yForecast <- yForecast / matrix((1 + colSums(yForecast[-1,])),nSeries,h,byrow=TRUE);
     }
 
     assign("Sigma",Sigma,ParentEnvironment);
