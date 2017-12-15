@@ -1,4 +1,4 @@
-smooth v2.2.2 (Release data: 2017-12-11)
+smooth v2.2.2 (Release data: 2017-12-15)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * xregExpander() now uses iss() function in case of binary data.
 * Updated an example in stepwise() function.
 * ves() function now uses warning() instead of message() everywhere.
+* iss() now also accepts and returns initialSeason (works with intermittent="l" only).
 
 Bugfixes:
 * Fixed Likelihood calculation for TSB probability model.
