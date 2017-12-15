@@ -159,6 +159,7 @@ intermittentMaker <- function(intermittent="n",...){
 #' \item \code{actuals} - actual values of probabilities (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{initial} - initial values of the state vector;
+#' \item \code{initialSeason} - the matrix of initials seasonal states;
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[smooth]{es}}
