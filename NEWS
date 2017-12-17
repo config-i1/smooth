@@ -1,9 +1,14 @@
-smooth v2.2.2 (Release data: 2017-12-15)
+smooth v2.3.0 (Release data: 2017-12-17)
 ==============
 
 Changes:
 * New function, viss() - vector intermittent state-space model. Allows modelling occurrence probability of several variables simultaneously.
-* For the convenience if the provided data is of class "Mdata", then the smooth functions will take all the values and form the holdout sample according to the data.
+
+
+smooth v2.2.2 (Release data: 2017-12-15)
+==============
+
+Changes:
 * Updated vignettes.
 * New probability type for intermittent models - "logistic".
 * In the case when we don't have binary xreg for the holdout, we now consider it as random and forecast it using iss().

@@ -58,6 +58,9 @@
 #' \item \code{initialSeason} - the matrix of initials seasonal states;
 #' \item \code{intermittent} - type of intermittent model used;
 #' \item \code{probability} - type of probability used;
+#' \item \code{issModel} - intermittent state-space model used for
+#' calculations. Useful only in the case of \code{intermittent="l"} and
+#' \code{probability="d"}.;
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[smooth]{es}}
@@ -216,6 +219,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
         errors <- ts(ot-pFitted, start=dataStart, frequency=dataFreq);
         persistence <- NULL;
         nParam[1,1] <- nParam[1,4] <- nSeries;
+        issModel <- NULL
     }
 #### Logistic probability ####
     else if(intermittent=="l"){
@@ -308,6 +312,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
         pFitted <-rep(1,obsInSample);
         pForecast <-rep(1,h);
         logLik <- -Inf;
+        issModel <- NULL
     }
 
     states <- ts(states, start=dataStart, frequency=dataFreq);
@@ -317,7 +322,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
     output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
                    variance=pForecast*(1-pForecast), logLik=logLik, nParam=nParam,
                    residuals=errors, actuals=otAll, persistence=persistence, initial=initial,
-                   initialSeason=initialSeason, intermittent=intermittent,
+                   initialSeason=initialSeason, intermittent=intermittent, issModel=issModel,
                    probability=probability);
 
     return(structure(output,class="viss"));

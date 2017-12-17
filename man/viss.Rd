@@ -72,6 +72,9 @@ values:
 \item \code{initialSeason} - the matrix of initials seasonal states;
 \item \code{intermittent} - type of intermittent model used;
 \item \code{probability} - type of probability used;
+\item \code{issModel} - intermittent state-space model used for
+calculations. Useful only in the case of \code{intermittent="l"} and
+\code{probability="d"}.;
 }
 }
 \description{
