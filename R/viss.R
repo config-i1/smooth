@@ -224,7 +224,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
 #### Logistic probability ####
     else if(intermittent=="l"){
         if(probability=="i"){
-            Etype <- ifelse(Etype!="M","A",Etype);
+            Etype <- ifelse(Etype=="M","A",Etype);
             Ttype <- ifelse(Ttype=="M","A",Ttype);
             Stype <- ifelse(Stype=="M","A",Stype);
             model <- paste0(Etype,Ttype,damped,Stype);
