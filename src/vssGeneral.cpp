@@ -223,43 +223,37 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
 
     int nSeries = matrixY.n_rows;
 
-    // yactsum is needed for multiplicative error models
-    // double yactsum = arma::as_scalar(sum(log(matrixY.elem(nonzeroes))));
-
     List fitting = vFitter(matrixY, matrixV, matrixF, matrixW, matrixG, lags, E, T, S, matrixO);
 
     NumericMatrix mvtfromfit = as<NumericMatrix>(fitting["matvt"]);
     matrixV = as<arma::mat>(mvtfromfit);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
-    // NumericMatrix matrixAfromfit = as<NumericMatrix>(fitting["matat"]);
-    // matrixA = as<arma::mat>(matrixAfromfit);
 
     arma::mat matErrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);;
-    // arma::mat matErrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
-    // matErrors = matErrorsfromfit;
     matErrors = matErrors.elem(nonzeroes);
-    // if(E=='M'){
-    //     matErrors = log(1 + matErrors);
-    // }
 
-    // arma::vec veccij(hor, arma::fill::ones);
-    // arma::mat matrixSigma(hor, hor, arma::fill::eye);
-
-    if(CFtype=='l'){
-        try{
-            CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
-                nSeries * log(pow(normalize,2)));
-        }
-        catch(const std::runtime_error){
-            CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
-                nSeries * log(pow(normalize,2)));
-        }
-    }
-    else if(CFtype=='d'){
-        CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(obs)), 1));
+    if(E=='L'){
+        NumericMatrix Yfromfit = as<NumericMatrix>(fitting["yfit"]);
+        arma::mat matrixYfit(Yfromfit.begin(), Yfromfit.nrow(), Yfromfit.ncol(), false);
+        CFres = -sum(log(matrixYfit.elem(arma::find(matrixY==1))));
     }
     else{
-        CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(obs), 1));
+        if(CFtype=='l'){
+            try{
+                CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
+                    nSeries * log(pow(normalize,2)));
+            }
+            catch(const std::runtime_error){
+                CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
+                    nSeries * log(pow(normalize,2)));
+            }
+        }
+        else if(CFtype=='d'){
+            CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(obs)), 1));
+        }
+        else{
+            CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(obs), 1));
+        }
     }
     return CFres;
 }
