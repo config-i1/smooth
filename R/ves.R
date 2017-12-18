@@ -403,9 +403,7 @@ BasicMakerVES <- function(...){
         XValues <- rbind(rep(1,obsInSample),c(1:obsInSample));
         initialValue <- y %*% t(XValues) %*% solve(XValues %*% t(XValues));
         if(Etype=="L"){
-            initialValue[1,] <- 0;
-            initialValue <- exp(initialValue);
-            initialValue <- initialValue / (1 + colSums(initialValue[-1,]));
+            initialValue[,1] <- (initialValue[,1] - 0.5) * 20;
         }
 
         if(Ttype=="N"){
