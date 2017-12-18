@@ -1165,14 +1165,14 @@ CreatorES <- function(silent=FALSE,...){
             initialstates <- matrix(NA,1,4);
             initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
             initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * mean(c(1:min(12,obsNonzero)));
+            if(any(cfType=="LogisticD")){
+                initialstates[1,1] <- (initialstates[1,1] - 0.5);
+            }
             if(allowMultiplicative){
                 if(any(cfType=="LogisticL")){
-                    initialstates[1,3] <- mean(yot[1:min(12,obsNonzero)]);
-                    initialstates[1,3] <- initialstates[1,3] / (1 - initialstates[1,3]);
-                    initialstates[1,4] <- (1+mean(diff(yot[1:min(12,obsNonzero)])))/2;
-                    initialstates[1,4] <- initialstates[1,4] / (1 - initialstates[1,4]);
-                    initialstates[1,initialstates[1,3:4]==0] <- 1E-10;
-                    initialstates[1,initialstates[1,3:4]==1] <- 1-1E-10;
+                    initialstates[1,3] <- initialstates[1,1];
+                    initialstates[1,4] <- exp(initialstates[1,2]);
+                    initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
                 }
                 else{
                     initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));
