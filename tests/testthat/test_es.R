@@ -46,7 +46,7 @@ x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
 testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, intervals="np")
 test_that("Check exogenous variables for ETS on N1457", {
-    expect_equal(suppressWarnings(es(y, h=18, holdout=TRUE, xreg=x, cfType="aTMSE", silent=TRUE)$model), testModel$model);
+    expect_equal(suppressWarnings(es(y, "ANN", h=18, holdout=TRUE, xreg=x, cfType="aTMSE", silent=TRUE)$model), testModel$model);
     expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
 })
 
