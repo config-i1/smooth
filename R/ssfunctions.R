@@ -2602,7 +2602,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
 # If initialX is provided, then probably we don't need to check the xreg on variability and multicollinearity
             if(is.null(initialX)){
-                checkvariability <- apply(matrix(xreg[1:obsInsample,]==rep(xreg[1,],each=obsInsample),obsInsample,nExovars),2,all);
+                checkvariability <- apply(matrix(xreg[1:obsInsample,][ot==1,]==rep(xreg[ot==1,][1,],each=sum(ot)),sum(ot),nExovars),2,all);
                 if(any(checkvariability)){
                     if(all(checkvariability)){
                         warning("None of exogenous variables has variability. Cannot do anything with that, so dropping out xreg.",
