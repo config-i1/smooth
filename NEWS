@@ -4,6 +4,9 @@ smooth v2.3.0 (Release data: 2017-12-17)
 Changes:
 * New function, viss() - vector intermittent state-space model. Allows modelling occurrence probability of several variables simultaneously.
 
+Bugfixes:
+* smooth functions would return errors in case when some xreg variables were dropped and only one would be left.
+
 
 smooth v2.2.2 (Release data: 2017-12-15)
 ==============
