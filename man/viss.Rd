@@ -74,7 +74,7 @@ values:
 \item \code{probability} - type of probability used;
 \item \code{issModel} - intermittent state-space model used for
 calculations. Useful only in the case of \code{intermittent="l"} and
-\code{probability="d"}.;
+\code{probability="d"}.
 }
 }
 \description{
