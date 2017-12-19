@@ -2539,12 +2539,12 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 matat <- matrix(NA,obsStates,1);
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
-                    if(Etype=="A"){
-                        matat[1:maxlag,] <- cov(data[1:obsInsample][ot==1],xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
-                    }
-                    else{
+                    if(Etype=="M"){
                         matat[1:maxlag,] <- cov(log(data[1:obsInsample][ot==1]),
                                                 xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
+                    }
+                    else{
+                        matat[1:maxlag,] <- cov(data[1:obsInsample][ot==1],xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
                     }
                 }
                 if(is.null(names(xreg))){
@@ -2668,14 +2668,14 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 matxt <- as.matrix(xreg);
 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
-                    if(Etype=="A"){
+                    if(Etype=="M"){
                         matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% data[1:obsInsample][ot==1])[2:(nExovars+1)],
+                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% log(data[1:obsInsample][ot==1]))[2:(nExovars+1)],
                                                 each=maxlag);
                     }
                     else{
                         matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% log(data[1:obsInsample][ot==1]))[2:(nExovars+1)],
+                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% data[1:obsInsample][ot==1])[2:(nExovars+1)],
                                                 each=maxlag);
                     }
                 }
