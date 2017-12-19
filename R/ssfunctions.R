@@ -2593,7 +2593,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
             xregEqualToData <- apply(xreg[1:obsInsample,]==data[1:obsInsample],2,all);
             if(any(xregEqualToData)){
-                warning("One of exogenous variables and the forecasted data are exactly the same. We have droped it.",
+                warning("One of exogenous variables and the forecasted data are exactly the same. We have dropped it.",
                         call.=FALSE);
                 xreg <- matrix(xreg[,!xregEqualToData],nrow=nrow(xreg),ncol=ncol(xreg)-1,dimnames=list(NULL,colnames(xreg[,!xregEqualToData])));
             }
