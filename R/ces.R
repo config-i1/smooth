@@ -421,7 +421,7 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0),1,2);
         matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level","potential");
-        matvt[1,] <- c(mean(yot[1:min(10,obsNonzero)]),mean(yot[1:min(10,obsNonzero)])/1.1);
+        matvt[1,] <- c(mean(yot[1:min(max(10,datafreq),obsNonzero)]),mean(yot[1:min(max(10,datafreq),obsNonzero)])/1.1);
     }
     else if(seasonality=="s"){
         # Simple seasonality, lagged CES

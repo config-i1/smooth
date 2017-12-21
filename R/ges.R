@@ -493,8 +493,8 @@ CreatorGES <- function(silentText=FALSE,...){
     }
 
 ##### Preset values of matvt ######
-    slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-    intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
+    slope <- cov(yot[1:min(max(12,datafreq),obsNonzero),],c(1:min(max(12,datafreq),obsNonzero)))/var(c(1:min(max(12,datafreq),obsNonzero)));
+    intercept <- sum(yot[1:min(max(12,datafreq),obsNonzero),])/min(max(12,datafreq),obsNonzero) - slope * (sum(c(1:min(max(12,datafreq),obsNonzero)))/min(max(12,datafreq),obsNonzero) - 1);
 
     vtvalues <- intercept;
     if((orders %*% lags)>1){

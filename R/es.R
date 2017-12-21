@@ -1163,8 +1163,8 @@ CreatorES <- function(silent=FALSE,...){
     if(Ttype!="N"){
         if(initialType!="p"){
             initialstates <- matrix(NA,1,4);
-            initialstates[1,2] <- cov(yot[1:min(12,obsNonzero)],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-            initialstates[1,1] <- mean(yot[1:min(12,obsNonzero)]) - initialstates[1,2] * mean(c(1:min(12,obsNonzero)));
+            initialstates[1,2] <- cov(yot[1:min(max(datafreq,12),obsNonzero)],c(1:min(max(datafreq,12),obsNonzero)))/var(c(1:min(max(datafreq,12),obsNonzero)));
+            initialstates[1,1] <- mean(yot[1:min(max(datafreq,12),obsNonzero)]) - initialstates[1,2] * mean(c(1:min(max(datafreq,12),obsNonzero)));
             if(any(cfType=="LogisticD")){
                 initialstates[1,1] <- (initialstates[1,1] - 0.5);
             }
@@ -1175,8 +1175,8 @@ CreatorES <- function(silent=FALSE,...){
                     initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
                 }
                 else{
-                    initialstates[1,4] <- exp(cov(log(yot[1:min(12,obsNonzero)]),c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero))));
-                    initialstates[1,3] <- exp(mean(log(yot[1:min(12,obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(12,obsNonzero))));
+                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(datafreq,12),obsNonzero)]),c(1:min(max(datafreq,12),obsNonzero)))/var(c(1:min(max(datafreq,12),obsNonzero))));
+                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(datafreq,12),obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(max(datafreq,12),obsNonzero))));
                 }
             }
         }
@@ -1186,7 +1186,7 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         if(initialType!="p"){
-            initialstates <- matrix(rep(mean(yot[1:min(12,obsNonzero)]),4),nrow=1);
+            initialstates <- matrix(rep(mean(yot[1:min(max(datafreq,12),obsNonzero)]),4),nrow=1);
         }
         else{
             initialstates <- matrix(rep(initialValue,4),nrow=1);
