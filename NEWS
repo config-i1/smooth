@@ -9,6 +9,7 @@ Changes:
 Bugfixes:
 * smooth functions would return errors in case when some xreg variables were dropped and only one would be left.
 * ETSX(Z,Z,Z) did not work when xreg contained negative data. Now it should.
+* Number of parameters in case of xregDo="select" was incorrect.
 
 
 smooth v2.2.2 (Release data: 2017-12-15)

@@ -652,6 +652,10 @@ CreatorCES <- function(silentText=FALSE,...){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
+        if(xregDo=="s"){
+            nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
+            parametersNumber[1,2] <- nParamExo;
+        }
     }
 
 # Prepare for fitting

@@ -1924,6 +1924,7 @@ CreatorES <- function(silent=FALSE,...){
     }
 
     if(!is.null(xregNames)){
+        nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
         parametersNumber[1,2] <- nParamExo;
     }
 
