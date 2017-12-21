@@ -151,7 +151,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
                                          substr(model,3,3)=="C" | substr(model,4,4)=="C");
                 modelsPool <- model[!modelsPoolCombiner];
                 if(any(modelsPoolCombiner)){
-                    model <- "CCC";
+                    if(any(substr(model,nchar(model),nchar(model))!="N")){
+                        model <- "CCC";
+                    }
+                    else{
+                        model <- "CCN";
+                    }
                 }
                 else{
                     model <- "ZZZ";
