@@ -4,6 +4,7 @@ smooth v2.3.0 (Release data: 2017-12-21)
 Changes:
 * New function, viss() - vector intermittent state-space model. Allows modelling occurrence probability of several variables simultaneously.
 * New initialisation for es(), ges() and ces(). This should help getting more accurate initial states in cases of high frequency data.
+* The user can now control the optimiser via maxeval and xtol_rel provided in ellipsis of es() and ges() functions.
 
 Bugfixes:
 * smooth functions would return errors in case when some xreg variables were dropped and only one would be left.

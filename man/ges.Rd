@@ -158,7 +158,12 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 \code{model} can accept a previously estimated GES model and use all its
 parameters.  \code{FI=TRUE} will make the function produce Fisher
 Information matrix, which then can be used to calculated variances of
-parameters of the model.}
+parameters of the model.
+You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
+number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
+optimiser. The default values used in es() are \code{maxeval=5000} and
+\code{xtol_rel=1e-8}. You can read more about these parameters in the
+documentation of \link[nloptr]{nloptr} function.}
 }
 \value{
 Object of class "smooth" is returned. It contains:

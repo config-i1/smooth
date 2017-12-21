@@ -88,6 +88,11 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \code{CUpper} define lower and upper bounds for the search inside of the
 #' specified \code{bounds}. These values should have exactly the length equal
 #' to the number of parameters to estimate.
+#' You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
+#' number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
+#' optimiser. The default values used in es() are \code{maxeval=500} and
+#' \code{xtol_rel=1e-8}. You can read more about these parameters in the
+#' documentation of \link[nloptr]{nloptr} function.
 #' @return Object of class "smooth" is returned. It contains the list of the
 #' following values for classical ETS models:
 #'
@@ -613,7 +618,7 @@ EstimatorES <- function(...){
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
     C <- res$solution;
 
     # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
@@ -639,7 +644,7 @@ EstimatorES <- function(...){
             }
         }
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=500));
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
         C <- res$solution;
     }
 
@@ -653,7 +658,7 @@ EstimatorES <- function(...){
         cfType <- "Rounded";
     }
     res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=500));
+                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval));
 
     # This condition is needed in order to make sure that we did not make the solution worse
     if((res2$objective <= res$objective) | rounded){
@@ -1477,6 +1482,20 @@ CreatorES <- function(silent=FALSE,...){
     else{
         providedCUpper <- NULL;
     }
+
+    if(any(names(ellipsis)=="maxeval")){
+        maxeval <- ellipsis$maxeval;
+    }
+    else{
+        maxeval <- 500;
+    }
+    if(any(names(ellipsis)=="xtol_rel")){
+        xtol_rel <- ellipsis$xtol_rel;
+    }
+    else{
+        xtol_rel <- 1e-8;
+    }
+
 
 ##### Initials for optimiser #####
     if(!all(c(is.null(providedC),is.null(providedCLower),is.null(providedCUpper)))){

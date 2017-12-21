@@ -58,6 +58,11 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' parameters.  \code{FI=TRUE} will make the function produce Fisher
 #' Information matrix, which then can be used to calculated variances of
 #' parameters of the model.
+#' You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
+#' number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
+#' optimiser. The default values used in es() are \code{maxeval=5000} and
+#' \code{xtol_rel=1e-8}. You can read more about these parameters in the
+#' documentation of \link[nloptr]{nloptr} function.
 #' @return Object of class "smooth" is returned. It contains:
 #'
 #' \itemize{
@@ -367,11 +372,11 @@ CreatorGES <- function(silentText=FALSE,...){
         }
 
 # Optimise model. First run
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=5000));
+        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
         C <- res$solution;
 
 # Optimise model. Second run
-        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel/100, "maxeval"=maxeval/5));
         # This condition is needed in order to make sure that we did not make the solution worse
         if(res2$objective <= res$objective){
             res <- res2;
@@ -541,6 +546,19 @@ CreatorGES <- function(silentText=FALSE,...){
             providedC <- NULL;
         }
         C <- providedC;
+    }
+
+    if(any(names(ellipsis)=="maxeval")){
+        maxeval <- ellipsis$maxeval;
+    }
+    else{
+        maxeval <- 5000;
+    }
+    if(any(names(ellipsis)=="xtol_rel")){
+        xtol_rel <- ellipsis$xtol_rel;
+    }
+    else{
+        xtol_rel <- 1e-8;
     }
 
 ##### Start the calculations #####
