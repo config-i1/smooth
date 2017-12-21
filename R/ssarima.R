@@ -366,20 +366,14 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(nComponents > 0){
 # ar terms, ma terms from season to season...
             if(AREstimate){
-                # C <- c(C,rep(0.1,sum(ar.orders)));
                 C <- c(C,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
             }
             if(MAEstimate){
                 C <- c(C,rep(0.1,sum(ma.orders)));
-                # C <- c(C,c(1:sum(ma.orders))/sum(sum(ma.orders):1));
             }
 
 # initial values of state vector and the constant term
             if(initialType=="o"){
-                # slope <- cov(yot[1:min(12,obsNonzero),],c(1:min(12,obsNonzero)))/var(c(1:min(12,obsNonzero)));
-                # intercept <- sum(yot[1:min(12,obsNonzero),])/min(12,obsNonzero) - slope * (sum(c(1:min(12,obsNonzero)))/min(12,obsNonzero) - 1);
-                # initialStuff <- c(rep(intercept,nComponents));
-                # C <- c(C,initialStuff[1:nComponents]);
                 C <- c(C,matvt[1:nComponents,1]);
             }
         }
