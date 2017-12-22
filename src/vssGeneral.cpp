@@ -6,27 +6,31 @@
 using namespace Rcpp;
 
 arma::vec vFittedValue(arma::mat const &matrixW, arma::vec const &matrixV, char const &E){
-    switch(E){
-    case 'A':
-    case 'M':
-        return matrixW * matrixV;
-        break;
-    case 'L':
-        arma::vec vecYFitted = exp(matrixW * matrixV);
-        return vecYFitted / (1 + sum(vecYFitted.rows(1,vecYFitted.n_rows-1)));
-    }
-}
-
-arma::vec vErrorValue(arma::vec const &vectorY, arma::vec const &vectorYFit, char const &E){
+    arma::vec returnedValue;
     switch(E){
         case 'A':
         case 'M':
-            return vectorY - vectorYFit;
+            returnedValue = matrixW * matrixV;
+            break;
+        case 'L':
+            arma::vec vecYFitted = exp(matrixW * matrixV);
+            returnedValue = vecYFitted / (1 + sum(vecYFitted.rows(1,vecYFitted.n_rows-1)));
+    }
+    return returnedValue;
+}
+
+arma::vec vErrorValue(arma::vec const &vectorY, arma::vec const &vectorYFit, char const &E){
+    arma::vec returnedValue;
+    switch(E){
+        case 'A':
+        case 'M':
+            returnedValue = vectorY - vectorYFit;
         break;
         case 'L':
             arma::vec vectorE = (1 + vectorY - vectorYFit)/2;
-            return log(vectorE / vectorE(0));
+            returnedValue = log(vectorE / vectorE(0));
     }
+    return returnedValue;
 }
 
 // Fitter for vector models
