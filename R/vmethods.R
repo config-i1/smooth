@@ -96,12 +96,19 @@ plot.viss <- function(x, ...){
 #### Prints of vector functions ####
 #' @export
 print.viss <- function(x, ...){
-    intermittent <- x$intermittent
-    if(intermittent=="l"){
-        intermittent <- "Logistic probability";
+
+    if(x$probability=="i"){
+        intermittent <- "Independent ";
     }
-    else if(intermittent=="f"){
-        intermittent <- "Fixed probability";
+    else if(x$probability=="d"){
+        intermittent <- "Dependent ";
+    }
+
+    if(x$intermittent=="l"){
+        intermittent <- paste0(intermittent,"logistic probability");
+    }
+    else if(x$intermittent=="f"){
+        intermittent <- paste0(intermittent,"fixed probability");
     }
     else{
         intermittent <- "None";
