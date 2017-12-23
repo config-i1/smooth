@@ -177,6 +177,10 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
         data[is.na(data)] <- 0;
     }
 
+    if(intermittent=="n"){
+        probability <- "n";
+    }
+
     # Define obs, the number of observations of in-sample
     obsInSample <- nrow(data) - holdout*h;
 
@@ -306,6 +310,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
             logLik <- structure((sum(log(pFitted[ot==1])) + sum(log((1-pFitted[ot==0])))),df=nSeries,class="logLik");
         }
     }
+    ##### None #####
     else{
         states <- rep(1,obsAll);
         errors <- NA;
