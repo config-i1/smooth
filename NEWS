@@ -1,3 +1,14 @@
+smooth v2.3.1 (Release data: 2017-12-31)
+==============
+
+Changes:
+* es() now uses branch and bound mechanism for XXX and YYY models.
+* intermittent="l" now allows dealing with seasonal models in imodel.
+
+Bugfixes:
+* es() now also checks if data is multiplicative in case of YYY and acts accordingly.
+
+
 smooth v2.3.0 (Release data: 2017-12-23)
 ==============
 
