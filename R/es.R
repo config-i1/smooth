@@ -776,7 +776,6 @@ PoolPreparerES <- function(...){
 
     if(!is.null(modelsPool)){
         modelsNumber <- length(modelsPool);
-
 # List for the estimated models in the pool
         results <- as.list(c(1:modelsNumber));
         j <- 0;
@@ -805,7 +804,8 @@ PoolPreparerES <- function(...){
         results <- list(NA);
 
 ### Use brains in order to define models to estimate ###
-        if(modelDo=="select" & any(c(Ttype,Stype)=="Z")){
+        if(modelDo=="select" &
+           (any(c(Ttype,Stype)=="X") | any(c(Ttype,Stype)=="Y") | any(c(Ttype,Stype)=="Z"))){
             if(!silent){
                 cat("Forming the pool of models based on... ");
             }
@@ -820,15 +820,27 @@ PoolPreparerES <- function(...){
             }
 
             if(Ttype!="Z"){
-                if(damped){
-                    small.pool.trend <- paste0(Ttype,"d");
-                    trends.pool <- small.pool.trend;
+                if(Ttype=="X"){
+                    small.pool.trend <- c("N","A");
+                    trends.pool <- c("N","A","Ad");
+                    check.T <- TRUE;
+                }
+                else if(Ttype=="Y"){
+                    small.pool.trend <- c("N","M");
+                    trends.pool <- c("N","M","Md");
+                    check.T <- TRUE;
                 }
                 else{
-                    small.pool.trend <- Ttype;
-                    trends.pool <- Ttype;
+                    if(damped){
+                        small.pool.trend <- paste0(Ttype,"d");
+                        trends.pool <- small.pool.trend;
+                    }
+                    else{
+                        small.pool.trend <- Ttype;
+                        trends.pool <- Ttype;
+                    }
+                    check.T <- FALSE;
                 }
-                check.T <- FALSE;
             }
             else{
                 small.pool.trend <- c("N","A");
@@ -836,9 +848,21 @@ PoolPreparerES <- function(...){
             }
 
             if(Stype!="Z"){
-                small.pool.season <- Stype;
-                season.pool <- Stype;
-                check.S <- FALSE;
+                if(Stype=="X"){
+                    small.pool.season <- c("N","A");
+                    season.pool <- c("N","A");
+                    check.S <- TRUE;
+                }
+                else if(Stype=="Y"){
+                    small.pool.season <- c("N","M");
+                    season.pool <- c("N","M");
+                    check.S <- TRUE;
+                }
+                else{
+                    small.pool.season <- Stype;
+                    season.pool <- Stype;
+                    check.S <- FALSE;
+                }
             }
             else{
                 small.pool.season <- c("N","A","M");

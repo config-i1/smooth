@@ -217,70 +217,76 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
                 modelDo <- "estimate";
             }
 
-            if(any(unlist(strsplit(model,""))=="X") | any(unlist(strsplit(model,""))=="Y")){
-                modelsPool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
-                                 "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
-                                 "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
-                if(datafreq==1 & Stype!="N"){
-                    if(!silentText){
-                        warning("The provided data has frequency of 1. Only non-seasonal models are available.",call.=FALSE);
-                    }
-                    Stype <- "N";
-                    substr(model,nchar(model),nchar(model)) <- "N";
-                }
-
-                if((obsInsample < datafreq*2) & Stype!="N"){
-                    warning("Sorry, but we don't have enough data for the seasonal model. Switching to non-seasonal.",call.=FALSE);
-                    Stype <- "N";
-                }
-                # Restrict error types in the pool
-                if(Etype=="X"){
-                    modelsPool <- modelsPool[substr(modelsPool,1,1)=="A"];
-                    Etype <- "Z";
-                }
-                else if(Etype=="Y"){
-                    modelsPool <- modelsPool[substr(modelsPool,1,1)=="M"];
-                    Etype <- "Z";
-                }
-                else{
-                    if(Etype!="Z"){
-                        modelsPool <- modelsPool[substr(modelsPool,1,1)==Etype];
-                    }
-                }
-                # Restrict trend types in the pool
-                if(Ttype=="X"){
-                    modelsPool <- modelsPool[substr(modelsPool,2,2)=="A" | substr(modelsPool,2,2)=="N"];
-                    Ttype <- "Z";
-                }
-                else if(Ttype=="Y"){
-                    modelsPool <- modelsPool[substr(modelsPool,2,2)=="M" | substr(modelsPool,2,2)=="N"];
-                    Ttype <- "Z";
-                }
-                else{
-                    if(Ttype!="Z"){
-                        modelsPool <- modelsPool[substr(modelsPool,2,2)==Ttype];
-                        if(damped){
-                            modelsPool <- modelsPool[nchar(modelsPool)==4];
-                        }
-                    }
-                }
-                # Restrict season types in the pool
-                if(Stype=="X"){
-                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A" |
-                                               substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
-                    Stype <- "Z";
-                }
-                else if(Stype=="Y"){
-                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M" |
-                                               substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
-                    Stype <- "Z";
-                }
-                else{
-                    if(Stype!="Z"){
-                        modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))==Stype];
-                    }
-                }
+            if(Etype=="X"){
+                Etype <- "A";
             }
+            else if(Etype=="Y"){
+                Etype <- "M";
+            }
+            # if(any(unlist(strsplit(model,""))=="X") | any(unlist(strsplit(model,""))=="Y")){
+            #     modelsPool <- c("ANN","MNN","AAN","AMN","MAN","MMN","AAdN","AMdN","MAdN","MMdN","ANA","ANM","MNA","MNM",
+            #                      "AAA","AAM","AMA","AMM","MAA","MAM","MMA","MMM",
+            #                      "AAdA","AAdM","AMdA","AMdM","MAdA","MAdM","MMdA","MMdM");
+            #     if(datafreq==1 & Stype!="N"){
+            #         if(!silentText){
+            #             warning("The provided data has frequency of 1. Only non-seasonal models are available.",call.=FALSE);
+            #         }
+            #         Stype <- "N";
+            #         substr(model,nchar(model),nchar(model)) <- "N";
+            #     }
+            #
+            #     if((obsInsample < datafreq*2) & Stype!="N"){
+            #         warning("Sorry, but we don't have enough data for the seasonal model. Switching to non-seasonal.",call.=FALSE);
+            #         Stype <- "N";
+            #     }
+            #     # Restrict error types in the pool
+            #     if(Etype=="X"){
+            #         modelsPool <- modelsPool[substr(modelsPool,1,1)=="A"];
+            #         Etype <- "Z";
+            #     }
+            #     else if(Etype=="Y"){
+            #         modelsPool <- modelsPool[substr(modelsPool,1,1)=="M"];
+            #         Etype <- "Z";
+            #     }
+            #     else{
+            #         if(Etype!="Z"){
+            #             modelsPool <- modelsPool[substr(modelsPool,1,1)==Etype];
+            #         }
+            #     }
+            #     # Restrict trend types in the pool
+            #     if(Ttype=="X"){
+            #         modelsPool <- modelsPool[substr(modelsPool,2,2)=="A" | substr(modelsPool,2,2)=="N"];
+            #         Ttype <- "Z";
+            #     }
+            #     else if(Ttype=="Y"){
+            #         modelsPool <- modelsPool[substr(modelsPool,2,2)=="M" | substr(modelsPool,2,2)=="N"];
+            #         Ttype <- "Z";
+            #     }
+            #     else{
+            #         if(Ttype!="Z"){
+            #             modelsPool <- modelsPool[substr(modelsPool,2,2)==Ttype];
+            #             if(damped){
+            #                 modelsPool <- modelsPool[nchar(modelsPool)==4];
+            #             }
+            #         }
+            #     }
+            #     # Restrict season types in the pool
+            #     if(Stype=="X"){
+            #         modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A" |
+            #                                    substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
+            #         Stype <- "Z";
+            #     }
+            #     else if(Stype=="Y"){
+            #         modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M" |
+            #                                    substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N" ];
+            #         Stype <- "Z";
+            #     }
+            #     else{
+            #         if(Stype!="Z"){
+            #             modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))==Stype];
+            #         }
+            #     }
+            # }
         }
         else{
             if(any(unlist(strsplit(model,""))=="C")){
@@ -864,15 +870,15 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         }
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
         if(!allowMultiplicative){
-            if(Etype=="M"){
+            if(any(Etype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
                 Etype <- "A";
             }
-            if(Ttype=="M"){
+            if(any(Ttype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching trend type to 'A'", call.=FALSE);
                 Ttype <- "A";
             }
-            if(Stype=="M"){
+            if(any(Stype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching seasonality type to 'A'", call.=FALSE);
                 Stype <- "A";
             }
@@ -1058,7 +1064,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     if(any(smoothType==c("es"))){
         # If model selection is chosen, forget about the initial values and persistence
-        if(any(Etype=="Z",Ttype=="Z",Stype=="Z")){
+        if(any(Etype=="Z",any(Ttype==c("X","Y","Z")),Stype=="Z")){
             if(any(!is.null(initialValue),!is.null(initialSeason),!is.null(persistence),!is.null(phi))){
                 warning(paste0("Model selection doesn't go well with the predefined values.\n",
                                "Switching to estimation of all the parameters."),call.=FALSE);
