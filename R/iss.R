@@ -70,6 +70,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         nParamIntermittent <- 0;
     }
     iprob <- pt[1];
+    ot <- ts(ot,start=start(y),frequency=datafreq);
 
     assign("ot",ot,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
@@ -88,10 +89,10 @@ intermittentMaker <- function(intermittent="n",...){
 ##### If intermittent is not auto, then work normally #####
     if(all(intermittent!=c("n","provided","a"))){
         if(!imodelProvided){
-            imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h);
+            imodel <- iss(ot, model=intermittentModel, intermittent=intermittent, h=h);
         }
         else{
-            imodel <- iss(y, model=intermittentModel, intermittent=intermittent, h=h,
+            imodel <- iss(ot, model=intermittentModel, intermittent=intermittent, h=h,
                           persistence=imodel$persistence, initial=imodel$initial);
         }
         nParamIntermittent <- imodel$nParam;
