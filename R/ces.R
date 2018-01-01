@@ -518,8 +518,9 @@ CreatorCES <- function(silentText=FALSE,...){
     if(obsNonzero <= nParamMax){
         if(xregDo=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
-                stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                             nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
+                tinySample <- TRUE;
             }
             else{
                 warning(paste0("The potential number of exogenous variables is higher than the number of observations. ",
@@ -527,9 +528,27 @@ CreatorCES <- function(silentText=FALSE,...){
             }
         }
         else{
-            stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                        nParamMax," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
+            warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+                           nParamMax," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
+            tinySample <- TRUE;
         }
+    }
+    else{
+        tinySample <- FALSE;
+    }
+
+# If this is tiny sample, use SES instead
+    if(tinySample){
+        warning("Not enough observations to fit CES. Switching to ETS(A,N,N).",call.=FALSE);
+        return(es(data,"ANN",initial=initial,cfType=cfType,
+                  h=h,holdout=holdout,cumulative=cumulative,
+                  intervals=intervals,level=level,
+                  intermittent=intermittent,
+                  imodel=imodel,
+                  bounds="u",
+                  silent=silent,
+                  xreg=xreg,xregDo=xregDo,initialX=initialX,
+                  updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
 ##### Start doing things #####

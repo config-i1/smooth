@@ -103,9 +103,6 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(initialType=="o"){
             nParamMax <- nParamMax + 2;
         }
-        if(obsNonzero <= nParamMax){
-            stop(paste0("The sample is too small. We need at least ",nParamMax + 1," observations."),call.=FALSE);
-        }
     }
     if(any(models=="p")){
         nParamMax <- 4;

@@ -5,6 +5,7 @@ Changes:
 * es() now uses branch and bound mechanism for XXX and YYY models.
 * intermittent="l" now allows dealing with seasonal models in imodel.
 * make Accuracy() function available for users.
+* ces(), ges() and ssarima() now produce some forecasts on small samples (e.g. less than 6 observations). This mechanism is not yet smart enough, and will be improved upon.
 
 Bugfixes:
 * es() now also checks if data is multiplicative in case of YYY and acts accordingly.
