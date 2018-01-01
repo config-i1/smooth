@@ -703,7 +703,7 @@ CreatorCES <- function(silentText=FALSE,...){
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=dataStart,frequency=datafreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;

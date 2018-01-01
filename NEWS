@@ -1,4 +1,4 @@
-smooth v2.3.1 (Release data: 2017-12-31)
+smooth v2.3.1 (Release data: 2018-01-01)
 ==============
 
 Changes:
@@ -7,7 +7,7 @@ Changes:
 
 Bugfixes:
 * es() now also checks if data is multiplicative in case of YYY and acts accordingly.
-
+* dataStar and yForecastStart variables in the code.
 
 smooth v2.3.0 (Release data: 2017-12-23)
 ==============

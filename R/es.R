@@ -1893,9 +1893,9 @@ CreatorES <- function(silent=FALSE,...){
         forecasts.list <- forecasts.list[,!badStuff];
         icWeights <- icWeights[!badStuff];
         model.current <- model.current[!badStuff];
-        y.fit <- ts(fitted.list %*% icWeights,start=start(data),frequency=datafreq);
+        y.fit <- ts(fitted.list %*% icWeights,start=dataStart,frequency=datafreq);
         y.for <- ts(forecasts.list %*% icWeights,start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
-        errors <- ts(c(y) - y.fit,start=start(data),frequency=datafreq);
+        errors <- ts(c(y) - y.fit,start=dataStart,frequency=datafreq);
         s2 <- mean(errors^2);
         names(icWeights) <- model.current;
         if(intervals){
@@ -1925,7 +1925,7 @@ CreatorES <- function(silent=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=start(data),frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=dataStart,frequency=datafreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;

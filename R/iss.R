@@ -70,7 +70,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         nParamIntermittent <- 0;
     }
     iprob <- pt[1];
-    ot <- ts(ot,start=start(y),frequency=datafreq);
+    ot <- ts(ot,start=dataStart,frequency=datafreq);
 
     assign("ot",ot,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
