@@ -782,10 +782,10 @@ CreatorCES <- function(silentText=FALSE,...){
     if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
         if(cumulative){
-            errormeasures <- errorMeasurer(sum(y.holdout),y.for,h*y);
+            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
         }
         else{
-            errormeasures <- errorMeasurer(y.holdout,y.for,y);
+            errormeasures <- Accuracy(y.holdout,y.for,y);
         }
 
         if(cumulative){

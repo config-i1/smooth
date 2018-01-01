@@ -709,7 +709,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
         y.holdout <- ts(data[(obsNonzero+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
         s2 <- mean(errors^2);
-        errormeasures <- errorMeasurer(y.holdout,y.for,y);
+        errormeasures <- Accuracy(y.holdout,y.for,y);
         ICs <- c(t(testICs) %*% icWeights);
         names(ICs) <- ic;
 

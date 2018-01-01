@@ -14,7 +14,7 @@
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @aliases Error measures
+#' @aliases Errors
 #' @param actual The vector or matrix of actual values.
 #' @param forecast The vector or matrix of forecasts values.
 #' @param scale The value that should be used in the denominator of MASE. Can
@@ -74,7 +74,7 @@ MPE <- function(actual,forecast,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean((actual-forecast)/actual,na.rm=TRUE),digits=digits));
@@ -92,7 +92,7 @@ MAPE <- function(actual,forecast,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean(abs((actual-forecast)/actual),na.rm=TRUE),digits=digits));
@@ -111,7 +111,7 @@ SMAPE <- function(actual,forecast,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean(2*abs(actual-forecast)/(abs(actual)+abs(forecast)),na.rm=TRUE),digits=digits));
@@ -130,7 +130,7 @@ MASE <- function(actual,forecast,scale,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean(abs(actual-forecast),na.rm=TRUE)/scale,digits=digits));
@@ -150,7 +150,7 @@ RelMAE <-function(actual,forecast,benchmark,digits=3){
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
         message(paste0("Length of benchmark: ",length(benchmark)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean(abs(actual-forecast),na.rm=TRUE)/mean(abs(actual-benchmark),na.rm=TRUE),digits=digits));
@@ -170,7 +170,7 @@ sMSE <- function(actual,forecast,scale,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(mean((actual-forecast)^2,na.rm=TRUE)/scale,digits=digits));
@@ -189,7 +189,7 @@ sPIS <- function(actual,forecast,scale,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(sum(cumsum(forecast-actual))/scale,digits=digits));
@@ -208,27 +208,78 @@ sCE <- function(actual,forecast,scale,digits=3){
         message("The length of the provided data differs.");
         message(paste0("Length of actual: ",length(actual)));
         message(paste0("Length of forecast: ",length(forecast)));
-        message("Can't procede further on.");
+        stop("Cannot proceed.",call.=FALSE);
     }
     else{
         return(round(sum(forecast-actual)/scale,digits=digits));
     }
 }
 
-errorMeasurer <- function(holdout, forecast, actuals, digits=3,...){
+#' Accuracy of forecasts
+#'
+#' Function calculates several error measures using the provided
+#' data.
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @aliases Accuracy
+#' @param holdout The vector of the holdout values.
+#' @param forecast The vector of forecasts produced by a model.
+#' @param actual The vector of actual in-sample values.
+#' @param digits Number of digits of the output.
+#' @return The functions returns the named vector of errors:
+#' \itemize{
+#' \item MPE,
+#' \item cbias,
+#' \item MAPE,
+#' \item SMAPE,
+#' \item MASE,
+#' \item sMAE,
+#' \item RelMAE,
+#' \item sMSE,
+#' \item sPIS,
+#' \item sCE.
+#' }
+#' For the details on these errors, see \link[smooth]{Errors}.
+#' @references \itemize{
+#' \item Fildes, R. (1992). The evaluation of
+#' extrapolative forecasting methods. International Journal of Forecasting, 8,
+#' pp.81-98.
+#' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
+#' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
+#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
+#' concerns. International Journal of Forecasting, 9, pp.527-529.
+#' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
+#' intermittent demand. Journal of the Operational Research Society, 66,
+#' pp.914-924.
+#' \item Wallstrom P., Segerstedt A. (2010). Evaluation of forecasting error
+#' measurements and techniques for intermittent demand. International Journal
+#' of Production Economics, 128, pp.625-636.
+#' }
+#' @examples
+#'
+#'
+#' y <- rnorm(100,10,2)
+#' esmodel <- es(y[1:90],model="ANN",h=10)
+#'
+#' Accuracy(y[91:100],esmodel$forecast,y[1:90],digits=5)
+#'
+#' @export Accuracy
+Accuracy <- function(holdout, forecast, actual, digits=3){
     holdout <- as.vector(holdout);
     forecast <- as.vector(forecast);
-    actuals <- as.vector(actuals);
+    actual <- as.vector(actual);
     errormeasures <- c(MPE(holdout,forecast,digits=digits),
                        cbias(holdout-forecast,0,digits=digits),
                        MAPE(holdout,forecast,digits=digits),
                        SMAPE(holdout,forecast,digits=digits),
-                       MASE(holdout,forecast,mean(abs(diff(actuals))),digits=digits),
-                       MASE(holdout,forecast,mean(abs(actuals)),digits=digits),
-                       RelMAE(holdout,forecast,rep(actuals[length(actuals)],length(holdout)),digits=digits),
-                       sMSE(holdout,forecast,mean(abs(actuals[actuals!=0]))^2,digits=digits),
-                       sPIS(holdout,forecast,mean(abs(actuals[actuals!=0])),digits=digits),
-                       sCE(holdout,forecast,mean(abs(actuals[actuals!=0])),digits=digits));
+                       MASE(holdout,forecast,mean(abs(diff(actual))),digits=digits),
+                       MASE(holdout,forecast,mean(abs(actual)),digits=digits),
+                       RelMAE(holdout,forecast,rep(actual[length(actual)],length(holdout)),digits=digits),
+                       sMSE(holdout,forecast,mean(abs(actual[actual!=0]))^2,digits=digits),
+                       sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits),
+                       sCE(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
     names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE","sPIS","sCE");
 
     return(errormeasures);

@@ -2,8 +2,7 @@
 % Please edit documentation in R/error-measures.R
 \name{MPE}
 \alias{MPE}
-\alias{Error}
-\alias{measures}
+\alias{Errors}
 \alias{MAPE}
 \alias{SMAPE}
 \alias{MASE}

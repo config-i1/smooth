@@ -4,6 +4,7 @@ smooth v2.3.1 (Release data: 2018-01-01)
 Changes:
 * es() now uses branch and bound mechanism for XXX and YYY models.
 * intermittent="l" now allows dealing with seasonal models in imodel.
+* make Accuracy() function available for users.
 
 Bugfixes:
 * es() now also checks if data is multiplicative in case of YYY and acts accordingly.
