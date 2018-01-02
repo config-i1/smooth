@@ -1,4 +1,4 @@
-utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
+utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","yForecastStart"));
 
 #' Complex Exponential Smoothing
 #'
@@ -799,7 +799,7 @@ CreatorCES <- function(silentText=FALSE,...){
     parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=datafreq);
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
         }
@@ -808,7 +808,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=start(y.for),frequency=datafreq);
+            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
         }
     }
     else{
@@ -835,10 +835,10 @@ CreatorCES <- function(silentText=FALSE,...){
         y.high.new <- y.high;
         y.low.new <- y.low;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
             }
         }
 

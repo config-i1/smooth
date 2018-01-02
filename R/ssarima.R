@@ -1,5 +1,6 @@
 utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
-                         "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate"));
+                         "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
+                         "yForecastStart"));
 
 #' State-Space ARIMA
 #'

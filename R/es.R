@@ -3,7 +3,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
                          "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer","varVec",
                          "persistenceEstimate","initial","multisteps","ot",
-                         "silentText","silentGraph","silentLegend"));
+                         "silentText","silentGraph","silentLegend","yForecastStart"));
 
 #' Exponential Smoothing in SSOE state-space model
 #'
@@ -1901,8 +1901,8 @@ CreatorES <- function(silent=FALSE,...){
         if(intervals){
             lowerList <- lowerList[,!badStuff];
             upperList <- upperList[,!badStuff];
-            y.low <- ts(lowerList %*% icWeights,start=start(y.for),frequency=datafreq);
-            y.high <- ts(upperList %*% icWeights,start=start(y.for),frequency=datafreq);
+            y.low <- ts(lowerList %*% icWeights,start=yForecastStart,frequency=datafreq);
+            y.high <- ts(upperList %*% icWeights,start=yForecastStart,frequency=datafreq);
         }
         else{
             y.low <- NA;
@@ -1957,7 +1957,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Now let's deal with holdout #####
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=datafreq);
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=datafreq);
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
         }
@@ -1990,7 +1990,7 @@ CreatorES <- function(silent=FALSE,...){
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=start(y.for),frequency=datafreq);
+            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
         }
     }
     else{
@@ -2023,10 +2023,10 @@ CreatorES <- function(silent=FALSE,...){
         y.high.new <- y.high;
         y.low.new <- y.low;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
             }
         }
 

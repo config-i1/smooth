@@ -1,6 +1,6 @@
 utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
                          "persistenceEstimate","obsAll","obsInsample","multisteps","ot","obsNonzero","ICs","cfObjective",
-                         "y.for","y.low","y.high","normalizer"));
+                         "y.for","y.low","y.high","normalizer","yForecastStart"));
 
 #' General Exponential Smoothing
 #'

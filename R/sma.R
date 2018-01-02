@@ -1,3 +1,5 @@
+utils::globalVariables(c("yForecastStart"));
+
 #' Simple Moving Average
 #'
 #' Function constructs State-Space simple moving average of predefined order
@@ -256,7 +258,7 @@ CreatorSMA <- function(silentText=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
     if(holdout==T){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=start(y.for),frequency=frequency(data));
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
         }
@@ -265,7 +267,7 @@ CreatorSMA <- function(silentText=FALSE,...){
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=start(y.for),frequency=datafreq);
+            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
         }
     }
     else{
@@ -281,10 +283,10 @@ CreatorSMA <- function(silentText=FALSE,...){
         y.high.new <- y.high;
         y.low.new <- y.low;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
+                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
             }
         }
 
