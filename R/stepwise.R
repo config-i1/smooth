@@ -108,7 +108,12 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
         }
     }
 
+    # Create an object of the same name as the original data
+    # If it was a call on its own, make it one string
+    assign(paste0(deparse(substitute(data)),collapse=""),data);
+    # Remove "1+" from the best formula
     bestFormula <- sub(" 1+", "", bestFormula,fixed=T);
+
     bestModel <- do.call("lm", list(formula=as.formula(bestFormula),
                                     data=substitute(data)));
 
