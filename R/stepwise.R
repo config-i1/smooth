@@ -107,7 +107,10 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
             colnames(ourData)[ncol(ourData)] <- paste0(newElement," resid");
         }
     }
-    bestModel <- lm(as.formula(bestFormula),data=ourData);
+
+    bestFormula <- sub(" 1+", "", bestFormula,fixed=T);
+    bestModel <- do.call("lm", list(formula=as.formula(bestFormula),
+                                    data=substitute(data)));
 
     return(model=bestModel);
 }
