@@ -14,7 +14,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-This vignette explains how to use functions in 'smooth' package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](https://github.com/config-i1/smooth/blob/master/inst/doc/smooth-Documentation.pdf)".
+This vignette explains how to use functions in `smooth` package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](https://github.com/config-i1/smooth/blob/master/inst/doc/smooth-Documentation.pdf)". Some of the features of the package are also explained in my [blog](https://forecasting.svetunkov.ru/en/tag/smooth/).
 
 The package includes the following functions:
 
@@ -25,23 +25,23 @@ The package includes the following functions:
 5. [ves() - Vector Exponential Smoothing](ves.html);
 6. [sma() - Simple Moving Average in state-space form](sma.html);
 7. [sim.es() and simulate() - simulation functions for Exponential Smoothing](simulate.html).
-8. `iss()` -- function that estimates probability of occurrence of variable using one of the following: 1. Fixed probability; 2. Croston's probability; 3. SBA; 4. TSB probability. The model produced by `iss()` can then be used in any forecasting function as input variable for `imodel` parameter.
-9. `xregExpander()` -- function that creates lags and leads of the provided exogenous variables (either vector or matrix). This thing returns the matrix.
-10. `stepwise()` -- the function that implements stepwise based on information criteria and partial correlations. Easier to use and works faster than `step()` from ``stats'' package.
+8. `iss()` -- function that estimates probability of occurrence of variable using one of the following: 1. Fixed probability; 2. Croston's probability; 3. SBA; 4. TSB probability; 5. Logistic probability. The model produced by `iss()` can then be used in any forecasting function as input variable for `imodel` parameter. There is also vector counterpart of this function called `viss()` which implements multivariate fixed and logistic probabilities.
+9. `xregExpander()` -- function that creates lags and leads of the provided exogenous variables (either vector or matrix) and forecasts the missing values. This thing returns the matrix.
+10. `stepwise()` -- the function that implements stepwise based on information criteria and partial correlations. Easier to use and works faster than `step()` from `stats` package.
 
-This funcions (except for the last one) return object of class ``smooth'', which uses several methods.
+The functions (1) - (4) and (6) return object of class `smooth`, (5) returns the object of class `vsmooth`, (7) returns `smooth.sim` class and finally (8) returns `iss` or `viss` (depending on the function used). There are several methods for these classes in the package.
 
 ## Methods for the class `smooth`
 
-There are several functions that can be used together with `es()`, `ces()`, `ssarima()` and `ges()` functions. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with some explanations:
+There are several functions that can be used together with the forecasing functions of the package. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with brief explanations:
 
 1. `summary(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
-2. `fitted(ourModel)` -- fitted values;
+2. `fitted(ourModel)` -- fitted values of the model;
 3. `forecast(ourModel)` -- point and interval forecasts. This is needed for compatibility with Rob Hyndman's "forecast" package. `forecast(ourModel)` returns object of class `forecastSmooth`;
 4. `residuals(ourModel)` -- residuals of constructed model;
-5. `AIC(ourModel)`, `BIC(ourModel)` and `AICc(ourModel)` -- information criteria of the constructed model. `AICc()` function is not a standard ``stats'' function and is introduced by ``smooth'';
-6. `plot(ourModel)` -- plots states of constructed model. If number of states is higher than 10, then several graphs are produced;
-7. `simulate(ourModel)` -- produces data simulated from provided model. Currently only available for ETS via `simulate(es(...))`;
+5. `AIC(ourModel)`, `BIC(ourModel)` and `AICc(ourModel)` -- information criteria of the constructed model. `AICc()` function is not a standard `stats` function and is introduced by `smooth`;
+6. `plot(ourModel)` -- plots states of constructed model. If number of states is higher than 10, then several graphs are produced. In case of `iss()` plots the actual zeroes, fitted values and the forecast.
+7. `simulate(ourModel)` -- produces data simulated from provided model;
 8. `summary(forecast(ourModel))` -- prints point and interval forecasts;
 9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and intervals using `graphmaker()` function.
 10. `logLik(ourModel)` -- returns log-likelihood of the model;
@@ -50,7 +50,8 @@ There are several functions that can be used together with `es()`, `ces()`, `ssa
 13. `pointLik(ourModel)` -- likelihood values for each separate observation;
 14. `sigma(ourModel)` -- variance of the residuals of the model;
 15. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `ges()`);
-16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()` and `ges()`);
-17. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()` and `ets()`.
-18. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model.
-19. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with.
+16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `ges()` and `sma()`);
+17. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()`, `ves()` and `ets()`;
+18. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
+19. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
+20. `getResponse(ourModel)` -- returns actual values.
