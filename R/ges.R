@@ -251,7 +251,7 @@ ElementsGES <- function(C){
     if(initialType!="b"){
         if(initialType=="o"){
             vtvalues <- C[n.coef+(1:(orders %*% lags))];
-            n.coef <- n.coef + orders %*% lags;
+            n.coef <- n.coef + c(orders %*% lags);
 
             for(i in 1:nComponents){
                 vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
