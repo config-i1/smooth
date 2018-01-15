@@ -595,6 +595,14 @@ EstimatorES <- function(...){
     if(is.null(providedC)){
         C <- Cs$C;
     }
+    else{
+        # This part is needed for the xregDo="select"
+        C <- providedC;
+        # If the generated C is larger, then probably there is updateX=T
+        if(length(Cs$C)>length(C)){
+            C <- c(C,Cs$C[-c(1:length(C))]);
+        }
+    }
     if(is.null(providedCLower)){
         CLower <- Cs$CLower;
     }
@@ -756,6 +764,8 @@ XregSelector <- function(listToReturn){
     }
 
     if(!is.null(xreg)){
+        providedC <- c(C,coef(xregResults)[-1]);
+        phi <- NULL;
         res <- EstimatorES(ParentEnvironment=environment());
         icBest <- res$ICs[ic];
         logLik <- res$logLik;
@@ -1049,6 +1059,9 @@ PoolEstimatorES <- function(silent=FALSE,...){
             initialSeasonEstimate <- FALSE;
         }
 
+        # Make sure that this thing is NULL This is needed for xregSelector
+        providedC <- NULL;
+
         res <- EstimatorES(ParentEnvironment=environment());
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
@@ -1192,8 +1205,12 @@ CreatorES <- function(silent=FALSE,...){
     if(Ttype!="N"){
         if(initialType!="p"){
             initialstates <- matrix(NA,1,4);
-            initialstates[1,2] <- cov(yot[1:min(max(datafreq,12),obsNonzero)],c(1:min(max(datafreq,12),obsNonzero)))/var(c(1:min(max(datafreq,12),obsNonzero)));
-            initialstates[1,1] <- mean(yot[1:min(max(datafreq,12),obsNonzero)]) - initialstates[1,2] * mean(c(1:min(max(datafreq,12),obsNonzero)));
+            initialstates[1,2] <- (cov(yot[1:min(max(datafreq,12),obsNonzero)],
+                                       c(1:min(max(datafreq,12),obsNonzero)))/
+                                       var(c(1:min(max(datafreq,12),obsNonzero))));
+            initialstates[1,1] <- (mean(yot[1:min(max(datafreq,12),obsNonzero)]) -
+                                       initialstates[1,2] *
+                                       mean(c(1:min(max(datafreq,12), obsNonzero))));
             if(any(cfType=="LogisticD")){
                 initialstates[1,1] <- (initialstates[1,1] - 0.5);
             }
@@ -1204,8 +1221,12 @@ CreatorES <- function(silent=FALSE,...){
                     initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
                 }
                 else{
-                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(datafreq,12),obsNonzero)]),c(1:min(max(datafreq,12),obsNonzero)))/var(c(1:min(max(datafreq,12),obsNonzero))));
-                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(datafreq,12),obsNonzero)])) - log(initialstates[1,4]) * mean(c(1:min(max(datafreq,12),obsNonzero))));
+                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(datafreq,12),obsNonzero)]),
+                                                  c(1:min(max(datafreq,12),obsNonzero)))/
+                                                  var(c(1:min(max(datafreq,12),obsNonzero))));
+                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(datafreq,12),obsNonzero)])) -
+                                                  log(initialstates[1,4]) *
+                                                  mean(c(1:min(max(datafreq,12),obsNonzero))));
                 }
             }
         }
@@ -1358,7 +1379,8 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
 
-            warning("Not of non-zero enough observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
+            warning("Not of non-zero enough observations for the fit of ETS(",
+                    model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
                 if(length(modelsPool)>2){
@@ -1423,7 +1445,8 @@ CreatorES <- function(silent=FALSE,...){
             persistence <- 0;
             persistenceEstimate <- FALSE;
             smoothingParameters <- matrix(0,3,2);
-            warning("We did not have enough of non-zero observations, so persistence value was set to zero.",call.=FALSE);
+            warning("We did not have enough of non-zero observations, so persistence value was set to zero.",
+                    call.=FALSE);
             modelDo <- "select"
             model <- "ZZZ";
             Etype <- "Z";
@@ -1440,7 +1463,8 @@ CreatorES <- function(silent=FALSE,...){
             initialValue <- mean(y);
             initialType <- "p";
             initialstates <- matrix(rep(initialValue,2),nrow=1);
-            warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",call.=FALSE);
+            warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",
+                    call.=FALSE);
             modelDo <- "nothing"
             model <- "ANN";
             Etype <- "A";
@@ -1541,21 +1565,24 @@ CreatorES <- function(silent=FALSE,...){
 
             if(!is.null(providedC)){
                 if(nParam!=length(providedC)){
-                    warning(paste0("Number of parameters to optimise differes from the length of C: ",nParam," vs ",length(providedC),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of C: ",
+                                   nParam," vs ",length(providedC),".\n",
                                    "We will have to drop parameter C."),call.=FALSE);
                     providedC <- NULL;
                 }
             }
             if(!is.null(providedCLower)){
                 if(nParam!=length(providedCLower)){
-                    warning(paste0("Number of parameters to optimise differes from the length of CLower: ",nParam," vs ",length(providedCLower),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of CLower: ",
+                                   nParam," vs ",length(providedCLower),".\n",
                                    "We will have to drop parameter CLower."),call.=FALSE);
                     providedCLower <- NULL;
                 }
             }
             if(!is.null(providedCUpper)){
                 if(nParam!=length(providedCUpper)){
-                    warning(paste0("Number of parameters to optimise differes from the length of CUpper: ",nParam," vs ",length(providedCUpper),".\n",
+                    warning(paste0("Number of parameters to optimise differes from the length of CUpper: ",
+                                   nParam," vs ",length(providedCUpper),".\n",
                                    "We will have to drop parameter CUpper."),call.=FALSE);
                     providedCUpper <- NULL;
                 }
@@ -1626,7 +1653,9 @@ CreatorES <- function(silent=FALSE,...){
         Ttype <- TtypeOriginal;
         Stype <- StypeOriginal;
         if(all(cfType!=c("MSE","Rounded","TSB","LogisticL","LogisticD"))){
-            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
+            warning(paste0("'",cfType,
+                           "' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),
+                    call.=FALSE);
         }
         if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
@@ -1807,10 +1836,14 @@ CreatorES <- function(silent=FALSE,...){
             }
             if(!is.null(xreg)){
                 if(updateX){
-                    esFormula <- paste0(esFormula," * exp(",paste0(paste0("a",c(1:nExovars),"[t-1] * "),paste0(xregNames,"[t]"),collapse=" + "),")");
+                    esFormula <- paste0(esFormula," * exp(",
+                                        paste0(paste0("a",c(1:nExovars),"[t-1] * "),
+                                               paste0(xregNames,"[t]"),collapse=" + "),")");
                 }
                 else{
-                    esFormula <- paste0(esFormula," * exp(",paste0(paste0("a",c(1:nExovars)," * "),paste0(xregNames,"[t]"),collapse=" + "),")");
+                    esFormula <- paste0(esFormula," * exp(",
+                                        paste0(paste0("a",c(1:nExovars)," * "),
+                                               paste0(xregNames,"[t]"),collapse=" + "),")");
                 }
             }
             esFormula <- paste0(esFormula," * e[t]");
@@ -1840,7 +1873,6 @@ CreatorES <- function(silent=FALSE,...){
              lowerList <- matrix(NA,h,modelsNumber);
              upperList <- matrix(NA,h,modelsNumber);
         }
-
         for(i in 1:length(icWeights)){
             # Get all the parameters from the model
             Etype <- results[[i]]$Etype;

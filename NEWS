@@ -1,3 +1,13 @@
+smooth v2.3.2 (Release data: 2018-01-15)
+==============
+
+Changes:
+* The providedC is now used in case of xregDo="select". This should increase the speed of convergence and fix several bugs related to optimisation problems.
+
+Bugfixes:
+*
+
+
 smooth v2.3.1 (Release data: 2018-01-13)
 ==============
 
@@ -11,6 +21,7 @@ Bugfixes:
 * es() now also checks if data is multiplicative in case of YYY and acts accordingly.
 * dataStart and yForecastStart variables in the code.
 * stepwise() now has a more userfriendly Call in the output.
+
 
 smooth v2.3.0 (Release data: 2017-12-23)
 ==============
