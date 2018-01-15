@@ -3,7 +3,7 @@ context("Tests for ves() function");
 Y <- cbind(Mcomp::M3$N2570$x,Mcomp::M3$N2571$x);
 
 # Basic VES check
-testModel <- ves(Y,"MAdM", silent=TRUE);
+testModel <- suppressWarnings(ves(Y,"MAdM", silent=TRUE));
 test_that("Test VES(MMdM)", {
     expect_match(testModel$model, "MMdM");
 })
