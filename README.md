@@ -13,17 +13,17 @@ Here is the list of included functions:
 5. ssarima - SARIMA estimated in state-space framework. Allows multiple seasonalities.
 6. auto.ces - selection between seasonal and non-seasonal CES models.
 7. auto.ssarima - selection between different State-Space ARIMA models.
-8. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
-9. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
-10. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
-11. sim.ges - simulation functions for GES.
-12. sma - Simple Moving Average in state-space form.
-13. iss - Intermittent data state-space model. This function models the part with data occurrences using one of three methods: Croston's, TSB and fixed probability.
+8. auto.ges - automatic selection of the most appropriate GES model.
+9. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
+10. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
+11. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
+12. sim.ges - simulation functions for GES.
+13. sma - Simple Moving Average in state-space form.
+14. iss - intermittent data state-space model. This function models the part with data occurrences using one of the following methods: Croston's, TSB, fixed, SBA or logistic probability.
+15. viss - the vector counterpart of iss.
 
 Future works:
 
-14. ves - Vector Exponential Smoothing. This is similar to es, but for multivariate data rather than univariate.
-15. auto.ges - Automatic selection of the most appropriate GES model.
 16. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
 17. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
 18. sofa - Survival of the fittest algorithm applied to state-space models.
