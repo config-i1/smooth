@@ -1867,11 +1867,14 @@ CreatorES <- function(silent=FALSE,...){
         }
         esFormula <- paste0("y[t] = ",esFormula);
 
-        ICs <- rbind(ICs,icBest);
-        if(modelDo!="select"){
-            rownames(ICs)[1] <- model;
+        if(modelDo=="select"){
+            ICs <- rbind(ICs,icBest);
+            rownames(ICs)[nrow(ICs)] <- "Selected";
         }
-        rownames(ICs)[nrow(ICs)] <- "Selected";
+        else{
+            ICs <- t(as.matrix(ICs));
+            rownames(ICs) <- model;
+        }
     }
 ##### Produce fit and forecasts of combined model #####
     else{
