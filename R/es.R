@@ -1137,7 +1137,7 @@ CreatorES <- function(silent=FALSE,...){
         environment(EstimatorES) <- environment();
         res <- EstimatorES(ParentEnvironment=environment());
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
-                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs[ic],
+                             cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs,
                              nParam=res$nParam,FI=FI,logLik=res$logLik,xreg=xreg,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
         if(xregDo!="u"){
@@ -1198,7 +1198,7 @@ CreatorES <- function(silent=FALSE,...){
         ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
-        icBest <- ICs[ic];
+        icBest <- ICs;
         # Change back
         cfType <- cfTypeOriginal;
 
@@ -1868,6 +1868,10 @@ CreatorES <- function(silent=FALSE,...){
         esFormula <- paste0("y[t] = ",esFormula);
 
         ICs <- rbind(ICs,icBest);
+        if(modelDo!="select"){
+            rownames(ICs)[1] <- model;
+        }
+        rownames(ICs)[nrow(ICs)] <- "Selected";
     }
 ##### Produce fit and forecasts of combined model #####
     else{
