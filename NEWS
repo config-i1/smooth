@@ -1,10 +1,12 @@
-smooth v2.3.2 (Release data: 2018-01-15)
+smooth v2.3.2 (Release data: 2018-01-18)
 ==============
 
 Changes:
 * The providedC is now used in case of xregDo="select". This should increase the speed of convergence and fix several bugs related to optimisation problems.
 * The correct initialX are now used in cases of es("ZZZ") and es("CCC").
 * We now return the matrix of ICs and ICweights in cases of model selection and combinations of es().
+* maxeval in the optimiser now depends on the number of parameters. If we have more than 10, then maxeval=1000. Otherwise maxeval=500.
+* Removed a silly SMAPE from the output of accuracies and substituted by a more useful sCE. Both are still available via ourModel$accuracy.
 
 Bugfixes:
 * ges() added an array to a vector, which caused dozens of warnings. Fixed.

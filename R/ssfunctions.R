@@ -3092,9 +3092,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat("Forecast errors:\n");
         if(any(intermittent==c("none","n"))){
             cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
+                      paste0("sCE: ",errormeasures["sCE"]*100,"%"),
                       paste0("Bias: ",errormeasures["cbias"]*100,"%"),
-                      paste0("MAPE: ",errormeasures["MAPE"]*100,"%"),
-                      paste0("SMAPE: ",errormeasures["SMAPE"]*100,"%\n"),sep="; "));
+                      paste0("MAPE: ",errormeasures["MAPE"]*100,"%\n"),sep="; "));
             cat(paste(paste0("MASE: ",errormeasures["MASE"]),
                       paste0("sMAE: ",errormeasures["sMAE"]*100,"%"),
                       paste0("RelMAE: ",errormeasures["RelMAE"]),

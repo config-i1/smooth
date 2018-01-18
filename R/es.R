@@ -1549,7 +1549,14 @@ CreatorES <- function(silent=FALSE,...){
         maxeval <- ellipsis$maxeval;
     }
     else{
-        maxeval <- 500;
+        # If we have a lot of parameters, spend more time on the optimisation
+        if(nParamMax + FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) +
+           initialXEstimate*(ncol(matatOriginal) - ncol(matat)) > 10){
+            maxeval <- 1000;
+        }
+        else{
+            maxeval <- 500;
+        }
     }
     if(any(names(ellipsis)=="xtol_rel")){
         xtol_rel <- ellipsis$xtol_rel;
