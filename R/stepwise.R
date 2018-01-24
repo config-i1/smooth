@@ -57,11 +57,15 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
     }
     ourncols <- ncol(ourData) - 1;
     bestICNotFound <- TRUE;
+    # Run the simplest model y = const
     testFormula <- paste0(colnames(ourData)[1],"~ 1");
     testModel <- lm(as.formula(testFormula),data=ourData);
+    # Write down the logLik and take df into account
     logLikValue <- logLik(testModel);
     attributes(logLikValue)$df <- attributes(logLikValue)$df + df;
+    # Write down the IC
     currentIC <- bestIC <- IC(logLikValue);
+    # Add residuals to the ourData
     ourData <- cbind(ourData,residuals(testModel));
     colnames(ourData)[ncol(ourData)] <- "const resid";
     bestFormula <- testFormula;
@@ -69,19 +73,25 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
         cat(testFormula); cat(", "); cat(currentIC); cat("\n\n");
     }
 
+    # Start the loop
     while(bestICNotFound){
         ourCorrelation <- cor(ourData);
+        # Extract the last row of the correlation matrix
         ourCorrelation <- ourCorrelation[-1,-1];
         ourCorrelation <- ourCorrelation[nrow(ourCorrelation),];
         ourCorrelation <- ourCorrelation[1:ourncols];
+        # Find the highest correlation coefficient
         newElement <- which(abs(ourCorrelation)==max(abs(ourCorrelation)))[1];
         newElement <- names(ourCorrelation)[newElement];
+        # If the newElement is the same as before, stop
         if(any(newElement==all.vars(as.formula(bestFormula)))){
             bestICNotFound <- FALSE;
             break;
         }
+        # Include the new element in the original model
         testFormula <- paste0(testFormula,"+",newElement);
         testModel <- lm(as.formula(testFormula),data=ourData);
+        # Modify logLik
         logLikValue <- logLik(testModel);
         attributes(logLikValue)$df <- attributes(logLikValue)$df + df;
         if(attributes(logLikValue)$df >= (obs+1)){
@@ -92,11 +102,13 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
             break;
         }
 
+        # Calculate the IC
         currentIC <- IC(logLikValue);
         if(!silent){
             cat(testFormula); cat(", "); cat(currentIC); cat("\n");
             cat(round(ourCorrelation,3)); cat("\n\n");
         }
+        # If IC is greater than the previous, then the previous model is the best
         if(currentIC >= bestIC){
             bestICNotFound <- FALSE;
         }
