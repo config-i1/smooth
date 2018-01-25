@@ -7,6 +7,7 @@ Changes:
 
 Bugfixes:
 * ves(): Initial values for seasonal components in case of multiplicative models were incorrectly estimated.
+* iETS could not be used in some cases of highly intermittent data and intermittent!="n"
 
 
 smooth v2.3.2 (Release data: 2018-01-18)

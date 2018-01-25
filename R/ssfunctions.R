@@ -809,15 +809,15 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         if(!allowMultiplicative){
             if(any(Etype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
-                Etype <- "A";
+                Etype <- ifelse(Etype=="M","A","X");
             }
             if(any(Ttype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching trend type to 'A'", call.=FALSE);
-                Ttype <- "A";
+                Ttype <- ifelse(Ttype=="M","A","X");
             }
             if(any(Stype==c("M","Y"))){
                 warning("Can't apply multiplicative model to non-positive data. Switching seasonality type to 'A'", call.=FALSE);
-                Stype <- "A";
+                Stype <- ifelse(Stype=="M","A","X");
             }
 
             if(!is.null(modelsPool)){
