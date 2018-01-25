@@ -1124,10 +1124,9 @@ vssForecaster <- function(...){
 
     if(intermittent!="n"){
         if(!imodelProvided){
-            imodel <- viss(t(ot), intermittent=intermittent,
-                           h=h, holdout=FALSE,
-                           probability=iprobability,
-                           model=intermittentModel);
+            imodel <- viss(ts(t(ot),frequency=dataFreq),
+                           intermittent=intermittent, h=h, holdout=FALSE,
+                           probability=iprobability, model=intermittentModel);
         }
         yForecast <- yForecast * t(imodel$forecast);
     }

@@ -426,6 +426,7 @@ BasicMakerVES <- function(...){
             matvt[initialPlaces,1:maxlag] <- initialSeasonValue;
         }
         else{
+            # Matrix of dummies for seasons
             XValues <- matrix(rep(diag(maxlag),ceiling(obsInSample/maxlag)),maxlag)[,1:obsInSample];
             if(Stype=="A"){
                 initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
@@ -829,6 +830,10 @@ CreatorVES <- function(silent=FALSE,...){
 
     modelname <- "VES";
     modelname <- paste0(modelname,"(",model,")");
+
+    if(intermittent!="n"){
+        modelname <- paste0("i",modelname);
+    }
 
 ##### Print output #####
     if(!silentText){

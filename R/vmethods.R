@@ -139,6 +139,29 @@ print.vsmooth <- function(x, ...){
 
     cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
+    if(!is.null(x$imodel)){
+        if(x$imodel$probability=="i"){
+            intermittent <- "Independent ";
+        }
+        else if(x$imodel$probability=="d"){
+            intermittent <- "Dependent ";
+        }
+
+        if(x$imodel$intermittent=="l"){
+            intermittent <- paste0(intermittent,"logistic probability");
+        }
+        else if(x$imodel$intermittent=="f"){
+            intermittent <- paste0(intermittent,"fixed probability");
+        }
+        else{
+            intermittent <- "None";
+        }
+
+        cat(paste0("Intermittent model estimated: ",intermittent,"\n"));
+        if(!is.null(x$imodel$model)){
+            cat(paste0("Occurrence ETS model: ",x$model,"\n"));
+        }
+    }
     if(!is.null(x$nParam)){
         if(x$nParam[1,4]==1){
             cat(paste0(x$nParam[1,4]," parameter was estimated in the process\n"));
