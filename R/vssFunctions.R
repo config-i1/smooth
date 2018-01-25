@@ -1,4 +1,4 @@
-utils::globalVariables(c("initialSeason","persistence","phi"));
+utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobability"));
 
 ##### *Checker of input of vector functions* #####
 vssInput <- function(smoothType=c("ves"),...){
@@ -207,29 +207,77 @@ vssInput <- function(smoothType=c("ves"),...){
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
     }
 
-    ##### intermittent #####
-    ##### !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
-    intermittent <- substring(intermittent[1],1,1);
-    ot <- matrix(1,nrow=nSeries,ncol=obsInSample);
-
-    if(any(c(Etype,Ttype,Stype)=="M") & all(y>0)){
-        if(any(c(Etype,Ttype,Stype)=="A")){
-            warning("Mixed models are not available. Switching to pure multiplicative.",call.=FALSE);
-        }
-        y <- log(y);
-        Etype <- "M";
-        Ttype <- ifelse(Ttype=="A","M",Ttype);
-        Stype <- ifelse(Stype=="A","M",Stype);
-        modelIsMultiplicative <- TRUE;
+    ##### imodel #####
+    if(class(imodel)!="viss"){
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
     }
     else{
-        if(any(c(Etype,Ttype,Stype)=="M") & intermittent=="n"){
-            warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",call.=FALSE);
-            Etype <- "A";
-            Ttype <- ifelse(Ttype=="M","A",Ttype);
-            Stype <- ifelse(Stype=="M","A",Stype);
+        intermittentModel <- imodel$model;
+        intermittent <- imodel$intermittent;
+        imodelProvided <- TRUE;
+    }
+
+    ##### intermittent #####
+    intermittent <- substring(intermittent[1],1,1);
+    if(intermittent!="n"){
+        ot <- (y!=0)*1;
+        # Matrix of non-zero observations for the cost function
+        otObs <- diag(rowSums(ot));
+        for(i in 1:nSeries){
+            for(j in 1:nSeries){
+                if(i==j){
+                    next;
+                }
+                otObs[i,j] <- min(otObs[i,i],otObs[j,j]);
+            }
         }
-        modelIsMultiplicative <- FALSE
+    }
+    else{
+        ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
+        otObs <- matrix(obsInSample,nSeries,nSeries);
+    }
+
+    # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
+    if(all(ot==1) & intermittent!="n"){
+        intermittent <- "n";
+        imodelProvided <- FALSE;
+    }
+
+    iprobability <- substring(iprobability[1],1,1)
+
+    # Check if multiplicative model can be applied
+    if(any(c(Etype,Ttype,Stype)=="M")){
+        if(all(y>0)){
+            if(any(c(Etype,Ttype,Stype)=="A")){
+                warning("Mixed models are not available. Switching to pure multiplicative.",call.=FALSE);
+            }
+            y <- log(y);
+            Etype <- "M";
+            Ttype <- ifelse(Ttype=="A","M",Ttype);
+            Stype <- ifelse(Stype=="A","M",Stype);
+            modelIsMultiplicative <- TRUE;
+        }
+        else{
+            if(intermittent=="n"){
+                warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",call.=FALSE);
+                Etype <- "A";
+                Ttype <- ifelse(Ttype=="M","A",Ttype);
+                Stype <- ifelse(Stype=="M","A",Stype);
+                modelIsMultiplicative <- FALSE;
+            }
+            else{
+                y[ot==1] <- log(y[ot==1]);
+                Etype <- "M";
+                Ttype <- ifelse(Ttype=="A","M",Ttype);
+                Stype <- ifelse(Stype=="A","M",Stype);
+                modelIsMultiplicative <- TRUE;
+            }
+        }
+    }
+    else{
+        modelIsMultiplicative <- FALSE;
     }
 
     #This is the estimation of covariance matrix
@@ -793,8 +841,13 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("intervals",intervals,ParentEnvironment);
 
     assign("intermittent",intermittent,ParentEnvironment);
-    # !!!!! THIS WILL BE FIXED WHEN WE KNOW HOW TO DO THAT
     assign("ot",ot,ParentEnvironment);
+    assign("otObs",otObs,ParentEnvironment);
+    assign("intermittentModel",intermittentModel,ParentEnvironment);
+    assign("imodelProvided",imodelProvided,ParentEnvironment);
+    assign("imodel",imodel,ParentEnvironment);
+    assign("iprobability",iprobability,ParentEnvironment);
+
     # assign("yot",yot,ParentEnvironment);
     # assign("pt",pt,ParentEnvironment);
     # assign("pt.for",pt.for,ParentEnvironment);
@@ -854,6 +907,9 @@ vssFitter <- function(...){
 
     if(modelIsMultiplicative){
         yFitted <- exp(yFitted);
+        if(intermittent!="n"){
+            yFitted[ot==0] <- 0;
+        }
     }
 
     assign("matvt",matvt,ParentEnvironment);
@@ -1011,16 +1067,21 @@ vssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    df <- (obsInSample - nParam);
-    if(df<=0){
+    df <- (otObs - nParam);
+    if(any(df<=0)){
         warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
-        df <- obsInSample;
+        df <- otObs;
     }
     # If error additive, estimate as normal. Otherwise - lognormal
     Sigma <- (errors %*% t(errors)) / df;
 
-    if((obsInSample - nParam)<=0){
+    if(any((otObs - nParam)<=0)){
         df <- 0;
+    }
+    else{
+        #### The number of degrees of freedom needs to be amended in cases of intermittent models ####
+        # Should it be a matrix?
+        df <- min(df);
     }
 
     PI <- NA;
@@ -1060,14 +1121,19 @@ vssForecaster <- function(...){
         yForecast <- exp(yForecast);
         PI <- exp(PI);
     }
-#
-#     if(Etype=="L"){
-#         yForecast[1,] <- 0
-#         yForecast <- exp(yForecast);
-#         yForecast <- yForecast / matrix((1 + colSums(yForecast[-1,])),nSeries,h,byrow=TRUE);
-#     }
+
+    if(intermittent!="n"){
+        if(!imodelProvided){
+            imodel <- viss(t(ot), intermittent=intermittent,
+                           h=h, holdout=FALSE,
+                           probability=iprobability,
+                           model=intermittentModel);
+        }
+        yForecast <- yForecast * t(imodel$forecast);
+    }
 
     assign("Sigma",Sigma,ParentEnvironment);
     assign("yForecast",yForecast,ParentEnvironment);
     assign("PI",PI,ParentEnvironment);
+    assign("imodel",imodel,ParentEnvironment);
 }

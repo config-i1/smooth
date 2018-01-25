@@ -11,9 +11,9 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC"), h = 10,
   holdout = FALSE, intervals = c("none", "conditional", "unconditional",
   "independent"), level = 0.95, cumulative = FALSE,
-  intermittent = c("none", "auto", "fixed", "probability"),
-  bounds = c("admissible", "none"), silent = c("all", "graph", "output",
-  "none"), ...)
+  intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
+  iprobability = c("dependent", "independent"), bounds = c("admissible",
+  "none"), silent = c("all", "graph", "output", "none"), ...)
 }
 \arguments{
 \item{data}{The matrix with data, where series are in columns and
@@ -135,6 +135,15 @@ demand occurrences;
 criteria. The first letter can be used instead.
 }}
 
+\item{imodel}{Either character specifying what type of VES / ETS model should be
+used for probability modelling, or a model estimated using \link[smooth]{viss}
+function.}
+
+\item{iprobability}{Type of multivariate probability used in the model. Can be
+either \code{"independent"} or \code{"dependent"}. In the former case it is
+assumed that non-zeroes occur in each series independently. In the latter case
+each possible outcome is treated separately.}
+
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word. Currently only \code{"admissible"}
 bounds are available.}
@@ -254,6 +263,12 @@ ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 
 # Multiplicative damped trend model with individual phi
 ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="g")
+
+Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
+           c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
+
+# Intermittent VES with logistic probability
+ves(Y,model="MNN",h=10,holdout=TRUE,intermittent="l")
 
 }
 \references{

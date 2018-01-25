@@ -1,7 +1,8 @@
 utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal","obsInSample","obsAll",
                          "modelLags","persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
                          "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat","dataFreq","dataStart"));
+                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat","dataFreq","dataStart",
+                         "otObs"));
 
 #' Vector Exponential Smoothing in SSOE state-space model
 #'
@@ -142,6 +143,12 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' # Multiplicative damped trend model with individual phi
 #' ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="g")
 #'
+#' Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
+#'            c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
+#'
+#' # Intermittent VES with logistic probability
+#' ves(Y,model="MNN",h=10,holdout=TRUE,intermittent="l")
+#'
 #' @export
 ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
                 transition=c("group","independent","dependent"), phi=c("group","individual"),
@@ -150,7 +157,8 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
                 intervals=c("none","conditional","unconditional","independent"), level=0.95,
                 cumulative=FALSE,
-                intermittent=c("none","auto","fixed","probability"),
+                intermittent=c("none","fixed","logistic"), imodel="ANN",
+                iprobability=c("dependent","independent"),
                 bounds=c("admissible","none"),
                 silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
@@ -203,7 +211,7 @@ CF <- function(A){
     elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
 
     cfRes <- vOptimiserWrap(y, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            modelLags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot);
+                            modelLags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot, otObs);
     # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -273,14 +281,8 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         }
         A <- c(A,initialValue);
         ANames <- c(ANames,paste0("initial",c(1:initialLength)));
-        # if(Ttype!="M"){
-            ALower <- c(ALower,rep(-Inf,initialLength));
-            AUpper <- c(AUpper,rep(Inf,initialLength));
-        # }
-        # else{
-        #     ALower <- c(ALower,rep(c(0.1,0.01),initialLength/2));
-        #     AUpper <- c(AUpper,rep(c(Inf,3),initialLength/2));
-        # }
+        ALower <- c(ALower,rep(-Inf,initialLength));
+        AUpper <- c(AUpper,rep(Inf,initialLength));
     }
 
     ### Vector of initial seasonals
@@ -429,7 +431,7 @@ BasicMakerVES <- function(...){
                 initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             }
             else{
-                initialSeasonValue <- (log(y)-rowMeans(log(y))) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+                initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             }
             if(initialSeasonType=="g"){
                 initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,maxlag);
@@ -885,7 +887,7 @@ CreatorVES <- function(silent=FALSE,...){
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
                   measurement=matW, phi=dampedValue, coefficients=A,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
-                  nParam=parametersNumber,
+                  nParam=parametersNumber, imodel=imodel,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,intervals=intervalsType,level=level,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);

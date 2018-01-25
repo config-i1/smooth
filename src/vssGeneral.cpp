@@ -214,7 +214,7 @@ RcppExport SEXP vForecasterWrap(SEXP matvt, SEXP matF, SEXP matw,
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matrixF, arma::mat matrixW, arma::mat const &matrixG,
                   arma::uvec &lags, char const &E, char const &T, char const &S,
-                  char const& CFtype, double const &normalize, arma::mat const &matrixO){
+                  char const& CFtype, double const &normalize, arma::mat const &matrixO, arma::mat matrixOtObs){
     // bool const &multi, std::string const &CFtype, char const &fitterType,
     // arma::mat const &matrixX, arma::mat &matrixA, arma::mat const &matrixFX, arma::mat const &matrixGX,
     // # Make decomposition functions shut up!
@@ -233,8 +233,8 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     matrixV = as<arma::mat>(mvtfromfit);
     NumericMatrix errorsfromfit = as<NumericMatrix>(fitting["errors"]);
 
-    arma::mat matErrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);;
-    matErrors = matErrors.elem(nonzeroes);
+    arma::mat matErrors(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
+    // matErrors = matErrors / matrixOtObs;
 
     if(E=='L'){
         NumericMatrix Yfromfit = as<NumericMatrix>(fitting["yfit"]);
@@ -244,11 +244,11 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
     else{
         if(CFtype=='l'){
             try{
-                CFres = double(log(arma::prod(eig_sym(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs))) +
+                CFres = double(log(arma::prod(eig_sym((matErrors / normalize) * arma::trans(matErrors / normalize) / matrixOtObs))) +
                     nSeries * log(pow(normalize,2)));
             }
             catch(const std::runtime_error){
-                CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / obs)) +
+                CFres = double(log(arma::det((matErrors / normalize) * arma::trans(matErrors / normalize) / matrixOtObs)) +
                     nSeries * log(pow(normalize,2)));
             }
         }
@@ -267,7 +267,7 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
 // [[Rcpp::export]]
 RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG,
                                SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
-                               SEXP cfType, SEXP normalizer, SEXP bounds, SEXP ot) {
+                               SEXP cfType, SEXP normalizer, SEXP bounds, SEXP ot, SEXP otObs) {
     // SEXP multisteps, SEXP CFt, SEXP fittertype, SEXP bounds,
     // SEXP matxt, SEXP matat, SEXP matFX, SEXP matGX
     /* Function is needed to implement admissible constrains on smoothing parameters */
@@ -316,6 +316,9 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
     NumericMatrix ot_n(ot);
     arma::mat matrixO(ot_n.begin(), ot_n.nrow(), ot_n.ncol(), false);
 
+    NumericMatrix otObs_n(otObs);
+    arma::mat matrixOtObs(otObs_n.begin(), otObs_n.nrow(), otObs_n.ncol(), false);
+
     // Values needed for eigenvalues calculation
     arma::cx_vec eigval;
 
@@ -332,5 +335,5 @@ RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP m
 
     // multi, CFtype, fitterType,
     return wrap(vOptimiser(matrixY, matrixV, matrixF, matrixW, matrixG,
-                           lags, E, T, S, CFtype, normalize, matrixO));
+                           lags, E, T, S, CFtype, normalize, matrixO, matrixOtObs));
 }

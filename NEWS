@@ -1,3 +1,13 @@
+smooth v2.4.0 (Release data: 2018-01-25)
+==============
+
+Changes:
+* ves() model now accepts intermittent parameter. So we can construct multivariate intermittent models.
+
+Bugfixes:
+* ves(): Initial values for seasonal components in case of multiplicative models were incorrectly estimated.
+
+
 smooth v2.3.2 (Release data: 2018-01-18)
 ==============
 

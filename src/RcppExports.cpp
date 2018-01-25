@@ -356,8 +356,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // vOptimiserWrap
-RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP cfType, SEXP normalizer, SEXP bounds, SEXP ot);
-RcppExport SEXP _smooth_vOptimiserWrap(SEXP ytSEXP, SEXP matvtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP matGSEXP, SEXP modellagsSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP cfTypeSEXP, SEXP normalizerSEXP, SEXP boundsSEXP, SEXP otSEXP) {
+RcppExport SEXP vOptimiserWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP cfType, SEXP normalizer, SEXP bounds, SEXP ot, SEXP otObs);
+RcppExport SEXP _smooth_vOptimiserWrap(SEXP ytSEXP, SEXP matvtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP matGSEXP, SEXP modellagsSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP cfTypeSEXP, SEXP normalizerSEXP, SEXP boundsSEXP, SEXP otSEXP, SEXP otObsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -374,7 +374,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type normalizer(normalizerSEXP);
     Rcpp::traits::input_parameter< SEXP >::type bounds(boundsSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ot(otSEXP);
-    rcpp_result_gen = Rcpp::wrap(vOptimiserWrap(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot));
+    Rcpp::traits::input_parameter< SEXP >::type otObs(otObsSEXP);
+    rcpp_result_gen = Rcpp::wrap(vOptimiserWrap(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot, otObs));
     return rcpp_result_gen;
 END_RCPP
 }

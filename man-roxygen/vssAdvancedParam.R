@@ -22,3 +22,10 @@
 #' \item \code{auto} - automatic selection of intermittency type based on information
 #' criteria. The first letter can be used instead.
 #' }
+#' @param imodel Either character specifying what type of VES / ETS model should be
+#' used for probability modelling, or a model estimated using \link[smooth]{viss}
+#' function.
+#' @param iprobability Type of multivariate probability used in the model. Can be
+#' either \code{"independent"} or \code{"dependent"}. In the former case it is
+#' assumed that non-zeroes occur in each series independently. In the latter case
+#' each possible outcome is treated separately.
