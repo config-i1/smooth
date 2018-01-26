@@ -54,7 +54,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
 
     if(all(intermittent!=c("n","l","p"))){
 # If number of observations is low, set intermittency to "none"
-        if(obsNonzero < 5){
+        if(obsNonzero < 3){
             warning(paste0("Not enough non-zero observations for intermittent state-space model. We need at least 5.\n",
                            "Changing intermittent to 'n'."),call.=FALSE);
             intermittent <- "n";
@@ -316,7 +316,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         iyt <- ts(iyt,frequency=frequency(data));
 
         kappa <- 1E-5;
-        iy_kappa <- iyt*(1 - 2*kappa) + kappa;
+        iy_kappa <- ts(iyt*(1 - 2*kappa) + kappa,start=start(y),frequency=frequency(y));
 
         tsbModel <- es(iy_kappa,model,persistence=persistence,initial=initial,
                        ic=ic,silent=TRUE,h=h,cfType="TSB",xreg=xreg,
@@ -375,7 +375,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
         ##### Need to introduce also the one with ZZZ #####
 
-        iyt <- ts(matrix(ot,obsInsample,1),frequency=frequency(data));
+        iyt <- ts(matrix(ot,obsInsample,1),start=start(y),frequency=frequency(y));
 
         if(cfType=="LogisticZ"){
             logisticModel <- list(NA);
