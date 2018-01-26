@@ -251,10 +251,9 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
         pt.for <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
         errors <- ts(ot-iprob, start=start(y), frequency=frequency(y));
-        logLik <- structure((sum(log(pt[ot==1])) + sum(log((1-pt[ot==0])))),df=1,class="logLik");
 
         output <- list(model=model, fitted=pt, forecast=pt.for, states=pt,
-                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=1,
+                       variance=pt.for*(1-pt.for), logLik=NA, nParam=1,
                        residuals=errors, actuals=otAll,
                        persistence=NULL, initial=initial, initialSeason=NULL);
     }
@@ -298,10 +297,8 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             states <- 1/crostonModel$states;
         }
 
-        logLik <- logLik(crostonModel);
-
         output <- list(model=model, fitted=pt, forecast=pt.for, states=states,
-                       variance=pt.for*(1-pt.for), logLik=logLik, nParam=nParam(crostonModel),
+                       variance=pt.for*(1-pt.for), logLik=NA, nParam=nParam(crostonModel),
                        residuals=crostonModel$residuals, actuals=otAll,
                        persistence=crostonModel$persistence, initial=crostonModel$initial,
                        initialSeason=crostonModel$initialSeason);
@@ -346,7 +343,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
 
         output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
-                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=logLik(tsbModel), nParam=nParam(tsbModel)-1,
+                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=NA, nParam=nParam(tsbModel)-1,
                        residuals=tsbModel$residuals, actuals=otAll,
                        persistence=tsbModel$persistence, initial=tsbModel$initial,
                        initialSeason=tsbModel$initialSeason);
@@ -409,7 +406,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
 
         output <- list(model=modelType(logisticModel), fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
-                       variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=logLik(logisticModel), nParam=nParam(logisticModel),
+                       variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=NA, nParam=nParam(logisticModel),
                        residuals=logisticModel$residuals, actuals=otAll,
                        persistence=logisticModel$persistence, initial=logisticModel$initial,
                        initialSeason=logisticModel$initialSeason);
