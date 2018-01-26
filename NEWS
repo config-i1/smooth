@@ -1,4 +1,4 @@
-smooth v2.4.0 (Release data: 2018-01-25)
+smooth v2.4.0 (Release data: 2018-01-26)
 ==============
 
 Changes:
@@ -7,7 +7,9 @@ Changes:
 
 Bugfixes:
 * ves(): Initial values for seasonal components in case of multiplicative models were incorrectly estimated.
-* iETS could not be used in some cases of highly intermittent data and intermittent!="n"
+* iETS could not be used in some cases of highly intermittent data and intermittent!="n".
+* logLik was incorrectly calculated in iss() for cases of intermittent="p".
+* The selection of intermittent model was done incorrectly due to the new return of ICs.
 
 
 smooth v2.3.2 (Release data: 2018-01-18)

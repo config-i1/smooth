@@ -1685,13 +1685,13 @@ CreatorES <- function(silent=FALSE,...){
         intermittentModelsPool <- c("n","f","i","p","l");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
-        intermittentICs[1] <- esValues$icBest;
+        intermittentICs[1] <- esValues$icBest[ic];
 
         for(i in 2:length(intermittentModelsPool)){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorES(silent=TRUE);
-            intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
+            intermittentICs[i] <- intermittentModelsList[[i]]$icBest[ic];
             intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
         }
         intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
