@@ -1451,21 +1451,51 @@ CreatorES <- function(silent=FALSE,...){
                 model <- "ZZZ";
             }
         }
+        else if(obsNonzero==4){
+            if(any(Etype==c("A","M"))){
+                modelDo <- "estimate";
+                Ttype <- "N";
+                Stype <- "N";
+            }
+            else{
+                modelsPool <- c("ANN");
+                if(allowMultiplicative){
+                    modelsPool <- c(modelsPool,"MNN");
+                }
+                modelDo <- "select";
+                model <- "ZZZ";
+                Etype <- "Z";
+                Ttype <- "N";
+                Stype <- "N";
+                warning("You have a very small sample. The only available model is level model.",
+                        call.=FALSE);
+            }
+            smoothingParameters <- matrix(0,3,2);
+            damped <- FALSE;
+            phiEstimate <- FALSE;
+        }
         else if(obsNonzero==3){
-            modelsPool <- c("ANN");
-            if(allowMultiplicative){
-                modelsPool <- c(modelsPool,"MNN");
+            if(any(Etype==c("A","M"))){
+                modelDo <- "estimate";
+                Ttype <- "N";
+                Stype <- "N";
+            }
+            else{
+                modelsPool <- c("ANN");
+                if(allowMultiplicative){
+                    modelsPool <- c(modelsPool,"MNN");
+                }
+                modelDo <- "select";
+                model <- "ZZZ";
+                Etype <- "Z";
+                Ttype <- "N";
+                Stype <- "N";
             }
             persistence <- 0;
             persistenceEstimate <- FALSE;
             smoothingParameters <- matrix(0,3,2);
             warning("We did not have enough of non-zero observations, so persistence value was set to zero.",
                     call.=FALSE);
-            modelDo <- "select"
-            model <- "ZZZ";
-            Etype <- "Z";
-            Ttype <- "N";
-            Stype <- "N";
             damped <- FALSE;
             phiEstimate <- FALSE;
         }
