@@ -1,4 +1,4 @@
-smooth v2.4.0 (Release data: 2018-01-26)
+smooth v2.4.0 (Release data: 2018-01-30)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Bugfixes:
 * iETS could not be used in some cases of highly intermittent data and intermittent!="n".
 * logLik was incorrectly calculated in iss() for cases of intermittent="p".
 * The selection of intermittent model was done incorrectly due to the new return of ICs.
+* Return NULL in logLik() function, when logLik is unavailable for the model (e.g. combination of models). Similar thing with nParam().
 
 
 smooth v2.3.2 (Release data: 2018-01-18)

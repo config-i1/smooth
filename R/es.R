@@ -1352,6 +1352,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
+        #### !!! This needs to be cleverer. If user asks for "ZNZ", then trends should be excluded.
         if(!silentText){
             message(paste0("Number of non-zero observations is ",obsNonzero,
                            ", while the maximum number of parameters to estimate is ", nParamMax,".\n",

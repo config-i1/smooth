@@ -87,18 +87,30 @@ modelType <-  function(object, ...) UseMethod("modelType")
 #' @importFrom stats logLik
 #' @export
 logLik.smooth <- function(object,...){
-    obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
+    if(is.null(object$logLik)){
+        warning("The likelihood of this model is unavailable. Hint: did you use combinations?");
+        return(NULL);
+    }
+    else{
+        obs <- nobs(object);
+        return(structure(object$logLik,nobs=obs,df=nParam(object),class="logLik"));
+    }
 }
 #' @export
 logLik.smooth.sim <- function(object,...){
     obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=0,class="logLik");
+    return(structure(object$logLik,nobs=obs,df=0,class="logLik"));
 }
 #' @export
 logLik.iss <- function(object,...){
-    obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
+    if(is.null(object$logLik)){
+        warning("The likelihood of this model is unavailable.");
+        return(NULL);
+    }
+    else{
+        obs <- nobs(object);
+        return(structure(object$logLik,nobs=obs,df=nParam(object),class="logLik"));
+    }
 }
 
 #' @importFrom stats nobs
@@ -153,14 +165,19 @@ nParam.default <- function(object, ...){
 
 #' @export
 nParam.smooth <- function(object, ...){
-    nParamReturn <- object$nParam[1,4];
-    return(nParamReturn);
+    if(is.null(object$nParam)){
+        warning("Number of parameters of the model is unavailable. Hint: did you use combinations?",
+                call.=FALSE);
+        return(NULL);
+    }
+    else{
+        return(object$nParam[1,4]);
+    }
 }
 
 #' @export
 nParam.iss <- function(object, ...){
-    nParamReturn <- object$nParam;
-    return(nParamReturn);
+    return(object$nParam);
 }
 
 #' Point likelihood values
