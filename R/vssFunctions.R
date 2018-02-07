@@ -60,8 +60,10 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     #### Check data ####
-    if(!is.numeric(data)){
-        stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
+    if(!is.data.frame(data)){
+        if(!is.numeric(data)){
+            stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
+        }
     }
 
     if(is.null(dim(data))){
