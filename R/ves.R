@@ -792,6 +792,9 @@ CreatorVES <- function(silent=FALSE,...){
     errors <- ts(t(errors),start=dataStart,frequency=dataFreq);
 
     yForecast <- ts(t(yForecast),start=time(data)[obsInSample] + dataDeltat,frequency=dataFreq);
+    if(!is.matrix(yForecast)){
+        yForecast <- as.matrix(yForecast,h,nSeries);
+    }
     forecastStart <- start(yForecast)
     if(any(intervalsType==c("i","u"))){
         PI <-  ts(PI,start=forecastStart,frequency=dataFreq);
