@@ -38,6 +38,7 @@
 stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
 ##### Function that selects variables based on IC and using partial correlations
     ourData <- data;
+    ourData <- ourData[apply(!is.na(ourData),1,all),]
     obs <- nrow(ourData)
     if(is.null(df)){
         df <- 0;
@@ -75,7 +76,7 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
 
     # Start the loop
     while(bestICNotFound){
-        ourCorrelation <- cor(ourData);
+        ourCorrelation <- cor(ourData,use="complete.obs");
         # Extract the last row of the correlation matrix
         ourCorrelation <- ourCorrelation[-1,-1];
         ourCorrelation <- ourCorrelation[nrow(ourCorrelation),];
