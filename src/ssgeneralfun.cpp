@@ -1399,34 +1399,24 @@ int CFtypeswitch (std::string const& CFtype) {
     else if(CFtype=="MSEh") return 4;
     else if(CFtype=="TMSE") return 5;
     else if(CFtype=="GTMSE") return 6;
-    else if(CFtype=="MAEh") return 7;
-    else if(CFtype=="TMAE") return 8;
-    else if(CFtype=="GTMAE") return 9;
-    else if(CFtype=="HAMh") return 10;
-    else if(CFtype=="THAM") return 11;
-    else if(CFtype=="GTHAM") return 12;
-    else if(CFtype=="TFL") return 13;
-    else if(CFtype=="aMSEh") return 14;
-    else if(CFtype=="aTMSE") return 15;
-    else if(CFtype=="aGTMSE") return 16;
-    else if(CFtype=="aTFL") return 17;
-    else if(CFtype=="Rounded") return 18;
-    else if(CFtype=="TSB") return 19;
+    else if(CFtype=="MSCE") return 7;
+    else if(CFtype=="MAEh") return 8;
+    else if(CFtype=="TMAE") return 9;
+    else if(CFtype=="GTMAE") return 10;
+    else if(CFtype=="MACE") return 11;
+    else if(CFtype=="HAMh") return 12;
+    else if(CFtype=="THAM") return 13;
+    else if(CFtype=="GTHAM") return 14;
+    else if(CFtype=="CHAM") return 15;
+    else if(CFtype=="TFL") return 16;
+    else if(CFtype=="aMSEh") return 17;
+    else if(CFtype=="aTMSE") return 18;
+    else if(CFtype=="aGTMSE") return 19;
+    else if(CFtype=="aTFL") return 20;
+    // else if(CFtype=="aMSCE") return 18;
+    else if(CFtype=="Rounded") return 21;
+    else if(CFtype=="TSB") return 22;
     else return 1;
-    // if (CFtype == "TFL") return 1;
-    // if (CFtype == "GMSTFE") return 2;
-    // if (CFtype == "MSTFE") return 3;
-    // if (CFtype == "MSEh") return 4;
-    // if (CFtype == "MAE") return 5;
-    // if (CFtype == "HAM") return 6;
-    // if (CFtype == "MSE") return 7;
-    // if (CFtype == "aTFL") return 8;
-    // if (CFtype == "aGMSTFE") return 9;
-    // if (CFtype == "aMSTFE") return 10;
-    // if (CFtype == "aMSEh") return 11;
-    // if (CFtype == "Rounded") return 12;
-    // if (CFtype == "TSB") return 13;
-    // else return 7;
 }
 
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
@@ -1485,7 +1475,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     arma::vec veccij(hor, arma::fill::ones);
     arma::mat matrixSigma(hor, hor, arma::fill::eye);
 
-    if((multi==true) & (CFSwitch<=13)){
+    if((multi==true) & (CFSwitch<=16)){
         matErrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
         if(E=='M'){
             matErrors = log(1 + matErrors);
@@ -1505,7 +1495,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     }
 
 // If this is an analytical multistep cost function
-    if((CFSwitch>13) & (CFSwitch<18)){
+    if((CFSwitch>16) & (CFSwitch<21)){
 // Form vector for basic values and matrix Mu
         for(unsigned int i=1; i<hor; ++i){
             veccij(i) = arma::as_scalar(rowvecW * matrixPower(matrixF,i) * vecG);
@@ -1517,7 +1507,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         }
 
 // aTFL
-        if(CFSwitch==17){
+        if(CFSwitch==20){
             for(unsigned int i=0; i<hor; ++i){
                 for(unsigned int j=0; j<hor; ++j){
                     if(i>=j){
@@ -1535,9 +1525,9 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         }
     }
 
-    // Rounded CF
+    // Rounded CF and TSB
     arma::vec vecYfit;
-    if(CFSwitch>=18){
+    if(CFSwitch>=21){
         NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
         vecYfit = as<arma::vec>(yfitfromfit);
     }
@@ -1565,28 +1555,37 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         case 6:
             CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1));
         break;
-        // MAE based multisteps:
         case 7:
+            CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs)));
+        break;
+        // MAE based multisteps:
+        case 8:
             CFres = arma::as_scalar(sum(abs(matErrors.col(hor-1))) / double(matobs));
         break;
-        case 8:
+        case 9:
             CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1));
         break;
-        case 9:
+        case 10:
             CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1));
         break;
+        case 11:
+            CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs)));
+        break;
         // HAM based multisteps:
-        case 10:
+        case 12:
             CFres = arma::as_scalar(sum(sqrt(abs(matErrors.col(hor-1)))) / double(matobs));
         break;
-        case 11:
+        case 13:
             CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1));
         break;
-        case 12:
+        case 14:
             CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1));
         break;
+        case 15:
+            CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));
+        break;
         // TFL
-        case 13:
+        case 16:
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors / normalize) * (matErrors / normalize) / matobs))) +
                     hor * log(pow(normalize,2)));
@@ -1597,14 +1596,14 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             }
         break;
         // Analytical multisteps
-        case 14:
+        case 17:
             CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
         break;
-        case 15:
+        case 18:
             CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma);
         break;
-        case 16:
-        case 17:
+        case 19:
+        case 20:
             try{
                 CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
@@ -1615,11 +1614,11 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             }
         break;
         // Rounded
-        case 18:
+        case 21:
             CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
         break;
         // TSB
-        case 19:
+        case 22:
             CFres = -(sum(log(vecYfit.elem(find(vecYt>0.5)))) + sum(log(1-vecYfit.elem(find(vecYt<0.5)))));
         }
     break;
@@ -1649,34 +1648,46 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1))
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
-        // MAE based multisteps:
         case 7:
+            CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs))
+                        + (2 / double(obs)) * double(hor) * yactsum);
+        break;
+        // MAE based multisteps:
+        case 8:
             CFres = arma::as_scalar(exp(log(sum(abs(matErrors.col(hor-1))) / double(matobs))
                                         + (2 / double(obs)) * yactsum));
         break;
-        case 8:
+        case 9:
             CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1)
                         + (2 / double(obs)) * double(hor) * yactsum);
         break;
-        case 9:
+        case 10:
             CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1))
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
+        case 11:
+            CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs))
+                        + (2 / double(obs)) * double(hor) * yactsum);
+        break;
         // HAM based multisteps:
-        case 10:
+        case 12:
             CFres = arma::as_scalar(exp(log(sum(sqrt(abs(matErrors.col(hor-1)))) / double(matobs))
                                         + (2 / double(obs)) * yactsum));
         break;
-        case 11:
+        case 13:
             CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1)
                         + (2 / double(obs)) * double(hor) * yactsum);
         break;
-        case 12:
+        case 14:
             CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1))
                     + (2 / double(obs)) * double(hor) * yactsum;
         break;
+        case 15:
+            CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs))
+                        + (2 / double(obs)) * double(hor) * yactsum);
+        break;
         // TFL
-        case 13:
+        case 16:
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors) * (matErrors) / matobs))));
             }
@@ -1686,17 +1697,17 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         // Analytical multisteps
-        case 14:
+        case 17:
             CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
-        case 15:
+        case 18:
             CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma
                                     );
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
-        case 16:
-        case 17:
+        case 19:
+        case 20:
             try{
                 CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
@@ -1708,11 +1719,11 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         // Rounded
-        case 18:
+        case 21:
             CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
         break;
         // TSB
-        case 19:
+        case 22:
             CFres = -(sum(log(vecYfit.elem(find(vecYt>0.5)))) + sum(log(1-vecYfit.elem(find(vecYt<0.5)))));
         }
     }

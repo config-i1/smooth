@@ -1,15 +1,18 @@
 #' @param cfType Type of Cost Function used in optimization. \code{cfType} can
 #' be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
-#' \code{HAM} (Half Absolute Moment), \code{GMSTFE} - Mean Log Squared Trace
-#' Forecast Error, \code{MSTFE} - Mean Squared Trace Forecast Error and
-#' \code{MSEh} - optimisation using only h-steps ahead error, \code{TFL} -
-#' trace forecast likelihood. If \code{cfType!="MSE"}, then likelihood and
-#' model selection is done based on equivalent \code{MSE}. Model selection in
-#' this cases becomes not optimal.
+#' \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
+#' \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
+#' using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
+#' If \code{cfType!="MSE"}, then likelihood and model selection is done based
+#' on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 #'
 #' There are also available analytical approximations for multistep functions:
-#' \code{aMSEh}, \code{aMSTFE} and \code{aGMSTFE}. These can be useful in cases
+#' \code{aMSEh}, \code{aTMSE} and \code{aGTMSE}. These can be useful in cases
 #' of small samples.
+#'
+#' Finally, just for fun the absolute and half analogues of multistep estimators
+#' are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
+#' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
 #' @param bounds What type of bounds to use in the model estimation. The first
 #' letter can be used instead of the whole word.
 #' @param intermittent Defines type of intermittent model used. Can be: 1.

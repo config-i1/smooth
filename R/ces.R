@@ -139,7 +139,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @export ces
 ces <- function(data, seasonality=c("none","simple","partial","full"),
                 initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
-                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE"),
+                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),

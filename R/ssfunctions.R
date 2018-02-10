@@ -610,7 +610,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("MSEh","TMSE","GTMSE","MAEh","TMAE","GTMAE","HAMh","THAM","GTHAM",
+    if(any(cfType==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+                     "HAMh","THAM","GTHAM","CHAM",
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
@@ -1456,7 +1457,8 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### Cost function type #####
     cfType <- cfType[1];
-    if(any(cfType==c("MSEh","TMSE","GTMSE","MAEh","TMAE","GTMAE","HAMh","THAM","GTHAM",
+    if(any(cfType==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+                     "HAMh","THAM","GTHAM","CHAM",
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }

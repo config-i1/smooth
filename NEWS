@@ -4,6 +4,7 @@ smooth v2.4.0 (Release data: 2018-02-10)
 Changes:
 * ves() model now accepts intermittent parameter. So we can construct multivariate intermittent models.
 * ves() now prints information about the underlying intermittent model.
+* New estimator - MSCE (Mean Squared Cumulative Error). Needed in cases of cumulative demand.
 
 Bugfixes:
 * ves(): Initial values for seasonal components in case of multiplicative models were incorrectly estimated.
