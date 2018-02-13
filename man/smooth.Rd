@@ -6,8 +6,8 @@
 \alias{smooth-package}
 \title{Smooth package}
 \description{
-Package contains several exponential (and not) smoothing functions used in
-time series analysis and forecasting.
+Package contains functions implementing Single Source of Error state-space models for
+purposes of time series analysis and forecasting.
 }
 \details{
 \tabular{ll}{ Package: \tab smooth\cr Type: \tab Package\cr Date: \tab

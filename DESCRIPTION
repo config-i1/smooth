@@ -7,9 +7,9 @@ Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("au
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
 BugReports: https://github.com/config-i1/smooth/issues
-Description: The set of smoothing functions used for time series analysis and
-    in forecasting. Currently the package includes exponential smoothing models and
-    SARIMA in state-space form + several simulation functions.
+Description: Functions implementing Single Source of Error state-space models for purposes of time series
+            analysis and forecasting. The package includes exponential smoothing, SARIMA in state-space forms and
+            several simulation functions.
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2)
