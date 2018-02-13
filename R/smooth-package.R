@@ -1,7 +1,7 @@
 #' Smooth package
 #'
-#' Package contains several exponential (and not) smoothing functions used in
-#' time series analysis and forecasting.
+#' Package contains functions implementing Single Source of Error state-space models for
+#' purposes of time series analysis and forecasting.
 #'
 #' \tabular{ll}{ Package: \tab smooth\cr Type: \tab Package\cr Date: \tab
 #' 2016-01-27 - Inf\cr License: \tab GPL-2 \cr } The following functions are

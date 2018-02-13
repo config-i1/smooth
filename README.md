@@ -33,7 +33,7 @@ Future works:
 The stable version of the package is available on CRAN, so you can install it by running:
 > install.packages("smooth")
 
-A recent, development version, is available via github and can be installed using "devtools" in R. Firstly make sure that you have devtools:
+A recent, development version, is available via github and can be installed using "devtools" in R. First, make sure that you have devtools:
 > if (!require("devtools")){install.packages("devtools")}
 
 and after that run:
