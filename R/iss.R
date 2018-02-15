@@ -280,6 +280,9 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                            ic=ic,xreg=xreg,initialSeason=initialSeason);
 
         pt <- rep((crostonModel$fitted),zeroes);
+        if(any(pt<1)){
+            pt[pt<1] <- 1;
+        }
         tailNumber <- obsInsample - length(pt);
         if(tailNumber>0){
             pt <- c(pt,crostonModel$forecast[1:tailNumber]);

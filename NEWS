@@ -1,8 +1,9 @@
-smooth v2.4.1 (Release data: 2018-02-13)
+smooth v2.4.1 (Release data: 2018-02-15)
 ==============
 
 Bugfixes:
 * Fixed minor typos in the description of the package.
+* Fix in iss() for Interval-based model, when for some reason the probability becomes greater than one.
 
 
 smooth v2.4.0 (Release data: 2018-02-10)
