@@ -638,22 +638,22 @@ EstimatorES <- function(...){
     # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
     if(any(C==Cs$C)){
         if(C[1]==Cs$C[1]){
-            C[1] <- 0;
+            C[1] <- max(0,CLower);
         }
         if(Ttype!="N"){
             if(C[2]==Cs$C[2]){
-                C[2] <- 0;
+                C[2] <- max(0,CLower);
             }
             if(Stype!="N"){
                 if(C[3]==Cs$C[3]){
-                    C[3] <- 0;
+                    C[3] <- max(0,CLower);
                 }
             }
         }
         else{
             if(Stype!="N"){
                 if(C[2]==Cs$C[2]){
-                    C[2] <- 0;
+                    C[2] <- max(0,CLower);
                 }
             }
         }
