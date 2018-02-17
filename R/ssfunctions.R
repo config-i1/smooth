@@ -239,6 +239,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             warning(paste0("Wrong error type: ",Etype,". Should be 'Z', 'X', 'Y', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Etype <- "Z";
+            modelDo <- "select";
         }
 
         ### Check trend type
@@ -246,6 +247,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             warning(paste0("Wrong trend type: ",Ttype,". Should be 'Z', 'X', 'Y', 'N', 'A' or 'M'.\n",
                            "Changing to 'Z'"),call.=FALSE);
             Ttype <- "Z";
+            modelDo <- "select";
         }
     }
     else if(smoothType=="ssarima"){
@@ -455,6 +457,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             }
             else{
                 Stype <- "Z";
+                modelDo <- "select";
             }
         }
         if(all(Stype!="N",datafreq==1)){
