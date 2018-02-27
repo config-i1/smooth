@@ -460,6 +460,9 @@ CreatorGES <- function(silentText=FALSE,...){
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
+    if(is.null(xreg)){
+        xregDo <- "u";
+    }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";

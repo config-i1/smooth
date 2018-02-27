@@ -6,6 +6,7 @@ Bugfixes:
 * Fix in iss() for Interval-based model, when for some reason the probability becomes greater than one.
 * When the incorrect error/trend/season were specified in es() it would fail to work.
 * Fix for the cases, when the names of several xreg variables are the same.
+* When xreg is invalid and set to NULL, change xregDo to "use".
 
 
 smooth v2.4.0 (Release data: 2018-02-10)

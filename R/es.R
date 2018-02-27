@@ -1337,6 +1337,9 @@ CreatorES <- function(silent=FALSE,...){
     FXEstimate <- xregdata$FXEstimate;
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
+    if(is.null(xreg)){
+        xregDo <- "u";
+    }
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
     nParamIntermittent <- all(intermittent!=c("n","provided"))*1;
