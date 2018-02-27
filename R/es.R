@@ -771,7 +771,12 @@ XregSelector <- function(listToReturn){
     }
 
     if(!is.null(xreg)){
-        providedC <- c(C,coef(xregResults)[-1]);
+        if(Etype=="M" & any(abs(coef(xregResults)[-1])>10)){
+            providedC <- c(C,coef(xregResults)[-1]/max(abs(coef(xregResults)[-1])));
+        }
+        else{
+            providedC <- c(C,coef(xregResults)[-1]);
+        }
         phi <- NULL;
         res <- EstimatorES(ParentEnvironment=environment());
         icBest <- res$ICs[ic];

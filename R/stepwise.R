@@ -116,8 +116,9 @@ stepwise <- function(data, ic=c("AICc","AIC","BIC"), silent=TRUE, df=NULL){
         else{
             bestIC <- currentIC;
             bestFormula <- testFormula;
-            ourData <- cbind(ourData,residuals(testModel));
-            colnames(ourData)[ncol(ourData)] <- paste0(newElement," resid");
+            # ourData <- cbind(ourData,residuals(testModel));
+            ourData[,ncol(ourData)] <- residuals(testModel);
+            # colnames(ourData)[ncol(ourData)] <- paste0(newElement," resid");
         }
     }
 
