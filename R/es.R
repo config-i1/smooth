@@ -1402,7 +1402,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
 
-            warning("Not of non-zero enough observations for the fit of ETS(",
+            warning("Not enought of non-zero observations for the fit of ETS(",
                     model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";
