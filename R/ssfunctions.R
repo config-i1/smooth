@@ -2661,6 +2661,12 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                                        "xreg variables. We had to remove them."),call.=FALSE);
                         xregNames <- gsub("[^[:alnum:]]", "", xregNames);
                     }
+                    xregDuplicated <- duplicated(colnames(xreg));
+                    if(any(xregDuplicated)){
+                        warning(paste0("Some names of variables are duplicated. ",
+                                       "We had to rename them."),call.=FALSE);
+                        xregNames[xregDuplicated] <- paste0("xDuplicated",c(1:sum(xregDuplicated)));
+                    }
                     colnames(matxt) <- colnames(matat) <- colnames(matatMultiplicative) <- xregNames;
                 }
             }
