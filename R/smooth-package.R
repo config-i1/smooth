@@ -29,7 +29,6 @@
 #' \item \link[smooth]{orders} - extracts orders of the fitted model.
 #' \item \link[smooth]{lags} - extracts lags of the fitted model.
 #' \item \link[smooth]{modelType} - extracts type of the fitted model.
-#' \item \link[smooth]{AICc} - extracts AICc of the fitted model.
 #' \item \link[smooth]{forecast} - produces forecast using provided model.
 #' \item fitted - extracts fitted values from provided model.
 #' \item getResponse - returns actual values from the provided model.
@@ -69,6 +68,7 @@
 #' @importFrom graphics abline layout legend lines par points polygon
 #' @importFrom stats AIC BIC cov dbeta decompose deltat end frequency is.ts median coef optimize nlminb cor qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif start time ts var simulate lm as.formula residuals plnorm pnorm
 #' @importFrom utils packageVersion
+#' @importFrom greybox xregExpander stepwise
 #' @useDynLib smooth
 NULL
 

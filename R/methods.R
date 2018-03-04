@@ -1,31 +1,3 @@
-# forecast <- function(object, ...) UseMethod("forecast")
-
-
-#' Corrected Akaike's Information Criterion
-#'
-#' This function extracts AICc from "smooth" objects.
-#'
-#' AICc was proposed by Nariaki Sugiura in 1978 and is used on small samples.
-#'
-#' @aliases AICc
-#' @param object Time series model.
-#' @param ...  Some stuff.
-#' @return This function returns numeric value.
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
-#' @seealso \link[stats]{AIC}, \link[stats]{BIC}
-#' @references Kenneth P. Burnham, David R. Anderson (1998). Model Selection
-#' and Multimodel Inference. Springer Science & Business Media.
-#' @keywords htest
-#' @examples
-#'
-#' ourModel <- ces(rnorm(100,0,1),h=10)
-#'
-#' AICc(ourModel,h=10)
-#'
-#' @export AICc
-AICc <- function(object, ...) UseMethod("AICc")
-
-
 #' Functions that extract values from the fitted model
 #'
 #' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()}
@@ -84,6 +56,10 @@ lags <- function(object, ...) UseMethod("lags")
 modelType <-  function(object, ...) UseMethod("modelType")
 
 ##### Likelihood function and stuff #####
+
+#' @importFrom greybox AICc
+
+
 #' @importFrom stats logLik
 #' @export
 logLik.smooth <- function(object,...){
@@ -253,20 +229,6 @@ pointLik.smooth <- function(object, ...){
 #' @export
 sigma.smooth <- function(object, ...){
     return(sqrt(object$s2));
-}
-
-##### IC functions #####
-#' @export
-AICc.default <- function(object, ...){
-    obs <- nobs(object);
-
-    llikelihood <- logLik(object);
-    nParam <- attributes(llikelihood)$df;
-    llikelihood <- llikelihood[1:length(llikelihood)];
-
-    IC <- 2*nParam - 2*llikelihood + 2 * nParam * (nParam + 1) / (obs - nParam - 1);
-
-    return(IC);
 }
 
 #### Extraction of parameters of models ####

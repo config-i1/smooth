@@ -16,11 +16,12 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
 
 `es()` is a part of [smooth package](smooth.html). It allows constructing Exponential Smoothing (also known as ETS), selecting the most appropriate one among 30 possible ones, including exogenous variables and many more.
 
-In this vignette we will use data from `Mcomp` package, so it is advised to install it.
+In this vignette we will use data from `Mcomp` package, so it is advised to install it. We also use some of the functions of the `greybox` package.
 
 Let's load the necessary packages:
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
+require(greybox)
 require(Mcomp)
 ```
 
@@ -117,7 +118,7 @@ or the one with the updated xreg:
 ourModel <- es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
 ```
 
-If we want to check if lagged x can be used for forecasting purposes, we can use `xregExpander()` function:
+If we want to check if lagged x can be used for forecasting purposes, we can use `xregExpander()` function from `greybox` package:
 ```{r es_N2457_xreg_expanded_select}
 es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=xregExpander(x), xregDo="select")
 ```

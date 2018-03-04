@@ -1,6 +1,13 @@
 smooth v2.4.1 (Release data: 2018-03-04)
 ==============
 
+Changes:
+* Moved AICc(), xregExpander() and stepwise() to greybox package. We now depend on greybox (>=0.1.1).
+
+
+smooth v2.4.1 (Release data: 2018-03-04)
+==============
+
 Bugfixes:
 * Fixed minor typos in the description of the package.
 * Fix in iss() for Interval-based model, when for some reason the probability becomes greater than one.

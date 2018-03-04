@@ -1,7 +1,7 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using Smoothing Functions
-Version: 2.4.1
+Version: 2.4.2.41001
 Date: 2018-03-04
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
@@ -14,6 +14,7 @@ License: GPL (>=2)
 Depends:
     R (>= 3.0.2)
 Imports:
+    greybox (>= 0.1.1),
     Rcpp (>= 0.12.3),
     stats,
     graphics,
