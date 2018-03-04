@@ -24,7 +24,6 @@ Imports:
 LinkingTo: Rcpp, RcppArmadillo (>= 0.8.100.0.0)
 Suggests:
     Mcomp,
-    greybox,
     numDeriv,
     testthat,
     knitr,
