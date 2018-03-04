@@ -2,7 +2,7 @@ Package: smooth
 Type: Package
 Title: Forecasting Using Smoothing Functions
 Version: 2.4.1
-Date: 2018-03-03
+Date: 2018-03-04
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -24,7 +24,6 @@ Imports:
 LinkingTo: Rcpp, RcppArmadillo (>= 0.8.100.0.0)
 Suggests:
     Mcomp,
-    greybox,
     numDeriv,
     testthat,
     knitr,
