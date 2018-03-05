@@ -152,10 +152,6 @@ auto.ces <- function(data, models=c("none","simple","full"),
         return(CESModel);
     }
 
-    if(cfType!="MSE"){
-        warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
-    }
-
 # Check the number of observations and number of parameters.
     if(any(models=="f") & (obsNonzero <= datafreq*2 + 2 + 4 + 1)){
         warning("Sorry, but you don't have enough observations for CES(f).",call.=FALSE);

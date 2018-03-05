@@ -351,10 +351,6 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         return(bestModel);
     }
 
-    if(cfType!="MSE"){
-        warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
-    }
-
     i.orders <- matrix(0,prod(i.max+1),ncol=length(i.max));
 
 ##### Loop for differences #####

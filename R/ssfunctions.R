@@ -1474,6 +1474,11 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
         multisteps <- FALSE;
     }
 
+    if(all(cfType!=c("MSE","MAE","HAM","TFL","aTFL"))){
+        warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. ",
+                       "The results of the model selection may be wrong."),call.=FALSE);
+    }
+
     ##### intervals, intervalsType, level #####
     #intervalsType <- substring(intervalsType[1],1,1);
     intervalsType <- intervals[1];
@@ -2777,17 +2782,27 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
 ##### *Likelihood function* #####
 likelihoodFunction <- function(C){
-# This block is needed in order to make R CMD to shut up about "no visible binding..."
-    if(any(intermittent==c("n","provided"))){
-        if(cfType=="TFL" | cfType=="aTFL"){
+#### Basic logLikelihood based on C and CF ####
+    logLikFromCF <- function(C, cfType){
+        if(cfType=="MAE"){
+            return(- obsNonzero*(log(2*exp(1)) + log(CF(C))));
+        }
+        else if(cfType=="HAM"){
+            return(- obsNonzero*(log(4*exp(2)) + 2*log(0.5*CF(C))));
+        }
+        else if(any(cfType==c("TFL","aTFL"))){
             return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
         }
         else if(any(cfType==c("LogisticD","LogisticL"))){
             return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
         }
         else{
+            #if(cfType=="MSE")
             return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
+    }
+    if(any(intermittent==c("n","provided"))){
+        return(logLikFromCF(C, cfType));
     }
     else{
         #Failsafe for exceptional cases when the probability is equal to zero / one, when it should not have been.
@@ -2796,11 +2811,11 @@ likelihoodFunction <- function(C){
             ptNew <- pt[(pt!=0) & (pt!=1)];
             otNew <- ot[(pt!=0) & (pt!=1)];
             if(length(ptNew)==0){
-                return(-obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+                return(logLikFromCF(C, cfType));
             }
             else{
                 return(sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]))
-                       - obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+                       + logLikFromCF(C, cfType));
             }
         }
         #Failsafe for cases, when data has no variability when ot==1.
@@ -2818,11 +2833,11 @@ likelihoodFunction <- function(C){
         if(cfType=="TFL" | cfType=="aTFL"){
             return(sum(log(pt[ot==1]))*h
                    + sum(log(1-pt[ot==0]))*h
-                   - obsNonzero/2 * (h*log(2*pi*exp(1)) + CF(C)));
+                   + logLikFromCF(C, cfType));
         }
         else{
             return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0]))
-                   - obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+                   + logLikFromCF(C, cfType));
         }
     }
 }

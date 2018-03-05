@@ -711,7 +711,7 @@ EstimatorES <- function(...){
         }
     }
     else{
-        if(!any(cfType==c("LogisticL","LogisticD"))){
+        if(!any(cfType==c("LogisticL","LogisticD","MAE","HAM"))){
             cfType <- "MSE";
         }
     }
@@ -818,7 +818,7 @@ PoolPreparerES <- function(...){
             season.pool <- c("N","A","M");
         }
 
-        if(Etype!="Z"){
+        if(all(Etype!=c("Z","C"))){
             errors.pool <- Etype;
         }
 
@@ -1003,19 +1003,32 @@ PoolPreparerES <- function(...){
         }
         else{
 # Make the corrections in the pool for combinations
-            if(Etype!="Z"){
-                errors.pool <- Etype;
-            }
-            if(Ttype!="Z"){
-                if(damped){
-                    trends.pool <- paste0(Ttype,"d");
+            if(all(Ttype!=c("Z","C"))){
+                if(Ttype=="Y"){
+                    trends.pool <- c("N","M","Md");
+                }
+                else if(Ttype=="X"){
+                    trends.pool <- c("N","A","Ad");
                 }
                 else{
-                    trends.pool <- Ttype;
+                    if(damped){
+                        trends.pool <- paste0(Ttype,"d");
+                    }
+                    else{
+                        trends.pool <- Ttype;
+                    }
                 }
             }
-            if(Stype!="Z"){
-                season.pool <- Stype;
+            if(all(Stype!=c("Z","C"))){
+                if(Stype=="Y"){
+                    trends.pool <- c("N","M");
+                }
+                else if(Stype=="X"){
+                    trends.pool <- c("N","A");
+                }
+                else{
+                    season.pool <- Stype;
+                }
             }
 
             modelsNumber <- (length(errors.pool)*length(trends.pool)*length(season.pool));
@@ -1105,9 +1118,6 @@ PoolEstimatorES <- function(silent=FALSE,...){
 ##### Function selects the best es() based on IC #####
 CreatorES <- function(silent=FALSE,...){
     if(modelDo=="select"){
-        if(all(cfType!=c("MSE","Rounded","TSB","LogisticD","LogisticL"))){
-            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The results of model selection may be wrong."),call.=FALSE);
-        }
         environment(PoolEstimatorES) <- environment();
         esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
@@ -1121,9 +1131,6 @@ CreatorES <- function(silent=FALSE,...){
         return(listToReturn);
     }
     else if(modelDo=="combine"){
-        if(all(cfType!=c("MSE","Rounded","TSB","LogisticD","LogisticL"))){
-            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. The produced combinations weights may be wrong."),call.=FALSE);
-        }
         environment(PoolEstimatorES) <- environment();
         esPoolResults <- PoolEstimatorES(silent=silent);
         results <- esPoolResults$results;
@@ -1195,7 +1202,7 @@ CreatorES <- function(silent=FALSE,...){
             }
         }
         else{
-            if(!any(cfType==c("LogisticL","LogisticD"))){
+            if(!any(cfType==c("LogisticL","LogisticD","MAE","HAM"))){
                 cfType <- "MSE";
             }
         }
@@ -1558,6 +1565,18 @@ CreatorES <- function(silent=FALSE,...){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
             modelCurrent <- model;
+        }
+        else{
+            if(all(cfType!=c("MSE","MAE","HAM","TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
+                if(modelDo=="combine"){
+                    warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'.",
+                                   "The produced combination weights may be wrong."),call.=FALSE);
+                }
+                else{
+                    warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. ",
+                                   "The results of the model selection may be wrong."),call.=FALSE);
+                }
+            }
         }
     }
     else{
