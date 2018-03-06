@@ -109,35 +109,7 @@ nobs.iss <- function(object, ...){
     return(length(object$fitted));
 }
 
-#' Number of parameters in the model
-#'
-#' This function returns the number of estimated parameters in the model
-#'
-#' This is a very basic and a simple function which does what it says:
-#' extracts number of parameters in the estimated model.
-#'
-#' @aliases nParam
-#' @param object Time series model.
-#' @param ... Some other parameters passed to the method.
-#' @return This function returns a numeric value.
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
-#' @seealso \link[stats]{nobs}, \link[stats]{logLik}
-#' @keywords htest
-#' @examples
-#'
-#' ourModel <- ces(rnorm(100,0,1),h=10)
-#'
-#' nParam(ourModel)
-#'
-#' @importFrom stats coefficients
-#' @export nParam
-nParam <- function(object, ...) UseMethod("nParam")
-
-#' @export
-nParam.default <- function(object, ...){
-    # The length of the vector of parameters + variance
-    return(length(coefficients(object))+1);
-}
+#' @importFrom greybox nParam
 
 #' @export
 nParam.smooth <- function(object, ...){
