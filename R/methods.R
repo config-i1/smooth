@@ -58,6 +58,28 @@ modelType <-  function(object, ...) UseMethod("modelType")
 ##### Likelihood function and stuff #####
 
 #' @importFrom greybox AICc
+#' @export
+AICc.smooth <- function(object, ...){
+    llikelihood <- logLik(object);
+    nParamAll <- attributes(llikelihood)$df;
+    llikelihood <- llikelihood[1:length(llikelihood)];
+
+    if(!is.null(object$imodel)){
+        obs <- sum(object$fitted!=0);
+        nParamSizes <- nParamAll - object$nParam[1,3];
+
+        IC <- (2*nParamAll - 2*llikelihood +
+                   2*nParamSizes*(nParamSizes + 1) / (obs - nParamSizes - 1));
+    }
+    else{
+        obs <- nobs(object);
+
+        IC <- 2*nParamAll - 2*llikelihood + 2 * nParamAll * (nParamAll + 1) / (obs - nParamAll - 1);
+    }
+
+    return(IC);
+}
+
 
 
 #' @importFrom stats logLik

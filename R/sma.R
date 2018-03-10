@@ -216,7 +216,8 @@ CreatorSMA <- function(silentText=FALSE,...){
     C <- NULL;
     cfObjective <- CF(C);
 
-    ICValues <- ICFunction(nParam=nParam,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                           C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
     bestIC <- ICs["AICc"];

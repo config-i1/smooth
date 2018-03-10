@@ -370,7 +370,6 @@ CF <- function(C){
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
-
     cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
                       h, modellags, Etype, Ttype, Stype,
                       multisteps, cfType, normalizer, initialType,
@@ -716,7 +715,8 @@ EstimatorES <- function(...){
         }
     }
 
-    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=res$solution,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                           C=res$solution,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
@@ -1207,7 +1207,8 @@ CreatorES <- function(silent=FALSE,...){
             }
         }
 
-        ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
+        ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                               C=C,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs;

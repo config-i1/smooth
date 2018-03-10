@@ -407,7 +407,8 @@ CreatorGES <- function(silentText=FALSE,...){
         cfType <- "MSE";
     }
 
-    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                           C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
@@ -741,7 +742,8 @@ CreatorGES <- function(silentText=FALSE,...){
         environment(likelihoodFunction) <- environment();
         environment(ICFunction) <- environment();
 
-        ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype="M");
+        ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                               C=C,Etype="M");
         ICs <- ICValues$ICs;
         logLik <- ICValues$llikelihood;
     }

@@ -2843,17 +2843,20 @@ likelihoodFunction <- function(C){
 }
 
 ##### *Function calculates ICs* #####
-ICFunction <- function(nParam=nParam,C,Etype=Etype){
+ICFunction <- function(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                       C,Etype=Etype){
 # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
 # And it is based on the mean of the sum squared residuals either than sum.
 # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
+    nParamOverall <- nParam + nParamIntermittent;
     llikelihood <- likelihoodFunction(C);
 
-    AIC.coef <- 2*nParam*h^multisteps - 2*llikelihood;
+    AIC.coef <- 2*nParamOverall*h^multisteps - 2*llikelihood;
 # max here is needed in order to take into account cases with higher number of parameters than observations
+#!!! This is incorrect in the case of non-normal residuals!
     AICc.coef <- AIC.coef + 2 * nParam*h^multisteps * (nParam + 1) / max(obsNonzero - nParam - 1,0);
-    BIC.coef <- log(obsNonzero)*nParam*h^multisteps - 2*llikelihood;
+    BIC.coef <- log(obsNonzero)*nParamOverall*h^multisteps - 2*llikelihood;
 
     ICs <- c(AIC.coef, AICc.coef, BIC.coef);
     names(ICs) <- c("AIC", "AICc", "BIC");

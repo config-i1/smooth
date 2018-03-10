@@ -445,7 +445,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         cfType <- "MSE";
     }
 
-    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                           C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     bestIC <- ICs["AICc"];
     logLik <- ICValues$llikelihood;

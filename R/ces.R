@@ -393,7 +393,8 @@ CreatorCES <- function(silentText=FALSE,...){
     else{
         cfType <- "MSE";
     }
-    ICValues <- ICFunction(nParam=nParam+nParamIntermittent,C=C,Etype=Etype);
+    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+                           C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
