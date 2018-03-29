@@ -2268,7 +2268,8 @@ ssForecaster <- function(...){
             }
 
             # We don't simulate pure additive models, pure multiplicative and
-            # additive models with multiplicative error on non-intermittent data, because they can be approximated by pure additive
+            # additive models with multiplicative error on non-intermittent data,
+            # because they can be approximated by pure additive
             if(intervalsType=="p"){
                 if(all(c(Etype,Stype,Ttype)!="M") |
                    all(c(Etype,Stype,Ttype)!="A") |
@@ -2294,7 +2295,7 @@ ssForecaster <- function(...){
             #     simulateIntervals <- TRUE;
             # }
 
-            if(simulateIntervals==TRUE){
+            if(simulateIntervals){
                 nSamples <- 10000;
                 matg <- matrix(vecg,nComponents,nSamples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
@@ -2343,7 +2344,8 @@ ssForecaster <- function(...){
                     y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=datafreq);
                 }
                 else{
-                    y.for <- ts(y.for,start=yForecastStart + y.exo.for,frequency=datafreq);
+                    # y.for <- apply(y.simulated,1,mean)
+                    y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                 }
