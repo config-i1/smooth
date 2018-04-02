@@ -2292,7 +2292,7 @@ ssForecaster <- function(...){
 
             #If this is integer-valued model, then do simulations
             # if(rounded){
-            #     simulateIntervals <- TRUE;
+                # simulateIntervals <- TRUE;
             # }
 
             if(simulateIntervals){
@@ -2344,7 +2344,9 @@ ssForecaster <- function(...){
                     y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=datafreq);
                 }
                 else{
-                    # y.for <- apply(y.simulated,1,mean)
+                    # if(Etype=="M"){
+                    #     y.for <- apply(y.simulated,1,median)
+                    # }
                     y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);

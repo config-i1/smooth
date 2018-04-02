@@ -850,6 +850,9 @@ print.iss <- function(x, ...){
     else if(intermittent=="l"){
         intermittent <- "Logistic probability";
     }
+    else if(intermittent=="s"){
+        intermittent <- "Interval-based with SBA correction";
+    }
     else{
         intermittent <- "None";
     }

@@ -1,4 +1,4 @@
-smooth v2.4.2 (Release data: 2018-03-29)
+smooth v2.4.2 (Release data: 2018-04-02)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 Bugfixes:
 * Combinations in es() did not work in case of something like "CYY" because of the wrong pool of models.
 * Found a bug in forecast production in cases, when prediction intervals were simulated.
+* SBA was not written down, when used in iss. This did not allow to reuse the model properly.
 
 
 smooth v2.4.1 (Release data: 2018-03-04)

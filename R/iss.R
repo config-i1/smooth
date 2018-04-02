@@ -293,6 +293,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             pt <- ts((1-sum(crostonModel$persistence)/2)/pt,start=start(y),frequency=frequency(y));
             pt.for <- ts((1-sum(crostonModel$persistence)/2)/pt.for, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
             states <- 1/crostonModel$states;
+            intermittent <- "s";
         }
         else{
             pt <- ts(1/pt,start=start(y),frequency=frequency(y));
