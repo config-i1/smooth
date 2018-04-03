@@ -2222,6 +2222,12 @@ ssForecaster <- function(...){
         warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
         df <- obsNonzero;
     }
+    else if(df<5){
+        warning(paste0("Low number of degrees of freedom, the estimate of variance might be unreliable.\n",
+                       "Using T instead of T-k in the denominator."),
+                call.=FALSE);
+        df <- obsNonzero;
+    }
 
 # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
@@ -2256,7 +2262,7 @@ ssForecaster <- function(...){
         # Bias correction for the MZZ models and log-normality assumption
         # This only works for pure multiplicative models.
         # The mixed models can go to hell right now...
-        if(Etype=="M"){
+        if(Etype=="M" & h>1){
             logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
                                     sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
             yForBias <- rep(NA,h);
@@ -2264,7 +2270,7 @@ ssForecaster <- function(...){
             for(i in 2:h){
                 yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
             }
-            yForBias <- cumsum(yForBias);
+            yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
             y.for <- y.for + yForBias;
         }
 

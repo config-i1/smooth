@@ -285,9 +285,16 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
         tailNumber <- obsInsample - length(pt);
         if(tailNumber>0){
-            pt <- c(pt,crostonModel$forecast[1:tailNumber]);
+            pt.for <- crostonModel$forecast[1:tailNumber];
+            if(any(pt.for<1)){
+                pt.for[pt.for<1] <- 1;
+            }
+            pt <- c(pt,pt.for);
         }
         pt.for <- crostonModel$forecast[(tailNumber+1):newh];
+        if(any(pt.for<1)){
+            pt.for[pt.for<1] <- 1;
+        }
 
         if(sbaCorrection){
             pt <- ts((1-sum(crostonModel$persistence)/2)/pt,start=start(y),frequency=frequency(y));
