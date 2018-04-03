@@ -794,7 +794,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     }
 
     # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(all(pt==1) & all(intermittent!=c("n","p"))){
+    if(all(pt==1) & all(intermittent!=c("n","provided"))){
         intermittent <- "n";
         imodelProvided <- FALSE;
     }

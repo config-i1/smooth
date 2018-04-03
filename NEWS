@@ -14,6 +14,7 @@ Bugfixes:
 * Found a bug in forecast production in cases, when prediction intervals were simulated.
 * SBA was not written down, when used in iss. This did not allow to reuse the model properly.
 * In some weird cases Croston would produce forecats of intervals < 1. Fixed that.
+* Fix in iss() for the cases when intermittent model is applied to non-intermittent data.
 
 
 smooth v2.4.1 (Release data: 2018-03-04)

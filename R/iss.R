@@ -240,6 +240,12 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         warning("Sorry, but we do not deal with seasonal models in iss yet.",call.=FALSE);
     }
 
+    if(var(ot)==0){
+        warning(paste0("There is no variability in the occurrence of the variable in-sample.\n",
+                       "Switching to intermitten='none'."),call.=FALSE)
+        intermittent <- "n";
+    }
+
 #### Fixed probability ####
     if(intermittent=="f"){
         if(!is.null(initial)){
@@ -424,8 +430,8 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
     }
 #### None ####
     else{
-        pt <- ts(rep(1,obsAll),start=start(y),frequency=frequency(y));
-        pt.for <- ts(rep(1,h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+        pt <- ts(y,start=start(y),frequency=frequency(y));
+        pt.for <- ts(rep(y[obsInsample],h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
         errors <- ts(rep(0,obsInsample), start=start(y), frequency=frequency(y));
         output <- list(model=NULL, fitted=pt, forecast=pt.for, states=pt,
                        variance=rep(0,h), logLik=NA, nParam=0,
