@@ -2253,6 +2253,21 @@ ssForecaster <- function(...){
             }
         }
 
+        # Bias correction for the MZZ models and log-normality assumption
+        # This only works for pure multiplicative models.
+        # The mixed models can go to hell right now...
+        if(Etype=="M"){
+            logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
+                                    sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
+            yForBias <- rep(NA,h);
+            yForBias[1] <- 0;
+            for(i in 2:h){
+                yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
+            }
+            yForBias <- cumsum(yForBias);
+            y.for <- y.for + yForBias;
+        }
+
         # Write down the forecasting intervals
         if(intervals){
             if(h==1){
