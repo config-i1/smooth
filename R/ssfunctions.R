@@ -2263,15 +2263,16 @@ ssForecaster <- function(...){
         # This only works for pure multiplicative models.
         # The mixed models can go to hell right now...
         if(Etype=="M" & h>1){
-            logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
-                                    sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
+            # logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
+                                    # sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
+            logErrorBias <- rowMeans(log(1 + vecg %*% as.vector(errors*ot)))
             yForBias <- rep(NA,h);
             yForBias[1] <- 0;
             for(i in 2:h){
                 yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
             }
             yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
-            y.for <- y.for + yForBias;
+            y.for <- y.for*exp(yForBias);
 
             if(any(y.for<0)){
                 y.for[y.for<0] <- 1e-5;
