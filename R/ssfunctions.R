@@ -2272,6 +2272,10 @@ ssForecaster <- function(...){
             }
             yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
             y.for <- y.for + yForBias;
+
+            if(any(y.for<0)){
+                y.for[y.for<0] <- 1e-5;
+            }
         }
 
         # Write down the forecasting intervals
