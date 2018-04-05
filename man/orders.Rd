@@ -4,6 +4,7 @@
 \alias{orders}
 \alias{lags}
 \alias{modelType}
+\alias{errorType}
 \title{Functions that extract values from the fitted model}
 \usage{
 orders(object, ...)
@@ -11,6 +12,8 @@ orders(object, ...)
 lags(object, ...)
 
 modelType(object, ...)
+
+errorType(object, ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
@@ -27,14 +30,15 @@ Either vector or list with values is returned.
 }
 }
 \description{
-These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()}
-and type of model from \code{es()} and \code{ces()}.
+These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
+type of model from \code{es()} and \code{ces()} and error type of all the above.
 }
 \details{
 \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
-This can also be applied to \code{ets()} function from forecast package.
+This can also be applied to \code{ets()} function from forecast package. Finally, \code{errorType}
+extracts the type of error from the model (either additive or multiplicative).
 }
 \examples{
 
@@ -45,11 +49,13 @@ ourModel <- ces(x, h=10)
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
+errorType(ourModel)
 # And as another example it does the opposite for ges() and ssarima()
 ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
+errorType(ourModel)
 
 # Finally these values can be used for simulate functions or original functions.
 ourModel <- auto.ssarima(x)
@@ -63,5 +69,9 @@ sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$cons
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{htest}
+\keyword{models}
+\keyword{nonlinear}
+\keyword{regression}
+\keyword{smooth}
 \keyword{ts}
+\keyword{univar}

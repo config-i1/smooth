@@ -1,12 +1,16 @@
 #' Functions that extract values from the fitted model
 #'
-#' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()}
-#' and type of model from \code{es()} and \code{ces()}.
+#' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
+#' type of model from \code{es()} and \code{ces()} and error type of all the above.
 #'
 #' \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 #' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 #' \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
-#' This can also be applied to \code{ets()} function from forecast package.
+#' This can also be applied to \code{ets()} function from forecast package. Finally, \code{errorType}
+#' extracts the type of error from the model (either additive or multiplicative).
+#'
+#' @template ssAuthor
+#' @template ssKeywords
 #'
 #' @aliases orders
 #' @param object Model estimated using one of the functions of smooth package.
@@ -18,9 +22,7 @@
 #' \item \code{i} - I orders.
 #' \item \code{ma} - MA orders.
 #' }
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
 #' @seealso \link[forecast]{forecast}, \link[smooth]{ssarima}
-#' @keywords ts htest
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
@@ -30,11 +32,13 @@
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
+#' errorType(ourModel)
 #' # And as another example it does the opposite for ges() and ssarima()
 #' ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
+#' errorType(ourModel)
 #'
 #' # Finally these values can be used for simulate functions or original functions.
 #' ourModel <- auto.ssarima(x)
@@ -54,6 +58,11 @@ lags <- function(object, ...) UseMethod("lags")
 #' @rdname orders
 #' @export modelType
 modelType <-  function(object, ...) UseMethod("modelType")
+
+#' @aliases errorType
+#' @rdname orders
+#' @export errorType
+errorType <-  function(object, ...) UseMethod("errorType")
 
 ##### Likelihood function and stuff #####
 
@@ -80,7 +89,161 @@ AICc.smooth <- function(object, ...){
     return(IC);
 }
 
+#' Function returns the covariance matrix of conditional multiple steps ahead forecast errors
+#'
+#' This function extracts covariance matrix of 1 to h steps ahead forecast errors for
+#' \code{ssarima()}, \code{ges()}, \code{sma()}, \code{es()} and \code{ces()} models.
+#'
+#' The function returns either scalar (if it is a non-smooth model)
+#' or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
+#' forecat errors. This is currently done based on empirical values. The analytical ones
+#' are more complicated.
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @param object Model estimated using one of the functions of smooth package.
+#' @param type What method to use in order to produce covariance matrix:
+#' \enumerate{
+#' \item \code{empirical} - based on the in-sample 1 to h steps ahead forecast errors
+#' (works fine on larger samples);
+#' \item \code{simulated} - the data is simulated from the estimated model, then the
+#' same model is applied to it and then the empirical 1 to h steps ahead forecast
+#' errors are produced;
+#' \item \code{analytical} - based on the state-space structure of the model and the
+#' one-step-ahead forecast error. This works correctly only for pure additive and
+#' pure multiplicative models.
+#' }
+#' @param silent If \code{TRUE}, then nothing is printed out in the process. Otherwise
+#' the progress is shown.
+#' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
+#' is used). These are usually \code{nsim},  \code{obs} and  \code{seed}.
+#' This increases the accuracy on small samples and intermittent data;
+#' @return Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
+#'
+#' @seealso \link[smooth]{orders}
+#' @examples
+#'
+#' x <- rnorm(100,0,1)
+#'
+#' # A simple example with a 5x5 covariance matrix
+#' ourModel <- ces(x, h=5)
+#' covar(ourModel)
+#'
+#' @rdname covar
+#' @export covar
+covar <-  function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...) UseMethod("covar")
 
+#' @export
+covar.default <- function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...){
+    # Function extracts the conditional variances from the model
+    return(sigma(object)^2);
+}
+
+#' @aliases covar.smooth
+#' @rdname covar
+#' @export
+covar.smooth <- function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...){
+    # Function extracts the conditional variances from the model
+    type <- substr(type[1],1,1);
+    # Empirical covariance matrix
+    if(type=="e"){
+        errors <- object$errors;
+        if(!is.null(object$imodel)){
+            obs <- t((errors!=0)*1) %*% (errors!=0)*1;
+            obs[obs==0] <- 1;
+        }
+        else{
+            obs <- matrix(nobs(object),ncol(errors),ncol(errors));
+        }
+        covarMat <- t(errors) %*% errors / obs;
+    }
+    # Simulated covariance matrix
+    else if(type=="s"){
+        ellipsis <- list(...);
+        if(any(names(ellipsis)=="nsim")){
+            nsim <- ellipsis$nsim;
+        }
+        else{
+            nsim <- 1000;
+        }
+        if(any(names(ellipsis)=="obs")){
+            obs <- ellipsis$obs;
+        }
+        else{
+            obs <- 200;
+        }
+        if(any(names(ellipsis)=="seed")){
+            seed <- ellipsis$seed;
+        }
+        else{
+            seed <- NULL;
+        }
+
+        h <- length(object$forecast);
+        newData <- simulate(object, nsim=nsim, obs=obs, seed=seed);
+        errors <- array(NA,c(nsim*obs,h));
+        if(gregexpr("ETS",object$model)!=-1){
+            smoothFunction <- es;
+        }
+        # GES models
+        else if(gregexpr("GES",object$model)!=-1){
+            smoothFunction <- ges;
+        }
+        # SSARIMA models
+        else if(gregexpr("ARIMA",object$model)!=-1){
+            smoothFunction <- ssarima;
+        }
+        # CES models
+        else if(gregexpr("CES",object$model)!=-1){
+            smoothFunction <- ces;
+        }
+        # SMA models
+        else if(gregexpr("SMA",object$model)!=-1){
+            smoothFunction <- sma;
+        }
+
+        if((!silent)){
+            cat("Simulating data...  ");
+            progressBar <- c("/","\u2014","\\","|");
+        }
+        # Apply the model to the simulated data
+        for(i in 1:nsim){
+            smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
+            errors[((i-1)*obs+1):(i*obs),] <- smoothModel$errors[1:obs,];
+            if(!silent){
+                cat("\b");
+                cat(progressBar[(i/4-floor(i/4))*4+1]);
+            }
+        }
+        if(!silent){
+            cat("\n");
+        }
+
+        # Calculate covariance matrix
+        if(!is.null(object$imodel)){
+            obs <- t((errors!=0)*1) %*% (errors!=0)*1;
+            obs[obs==0] <- 1;
+        }
+        else{
+            obs <- matrix(obs*nsim,ncol(errors),ncol(errors));
+        }
+        covarMat <- t(errors) %*% errors / obs;
+    }
+    # Analytical covariance matrix
+    else if(type=="a"){
+        stop("This type is not implemented yet.",
+             call.=FALSE);
+        vecg <- object$persistence;
+        matF <- object$transition;
+        matw <- object$measurement;
+        h <- length(object$forecast);
+        if(errorType(object)=="A"){
+        }
+    }
+    return(covarMat);
+    # correlation matrix: covar(test) / sqrt(diag(covar(test)) %*% t(diag(covar(test))))
+}
 
 #' @importFrom stats logLik
 #' @export
@@ -150,6 +313,159 @@ nParam.iss <- function(object, ...){
     return(object$nParam);
 }
 
+#' Prediction Likelihood Score
+#'
+#' Function estimates Prediction Likelihood Score for the provided model
+#'
+#' Prediction likelihood score (PLS) is based on either normal or log-normal
+#' distribution of errors. This is extracted from the provided model. The likelihood
+#' based onthe distribution of 1 to h steps ahead forecast errors is used in the process.
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @param object The model estimated using smooth functions. This thing also accepts
+#' other models (e.g. estimated using functions from forecast package), but may not always
+#' work properly with them.
+#' @param holdout The values for the holdout part of the sample. If the model was fitted
+#' on the data with the \code{holdout=TRUE}, then the parameter is not needed.
+#' @param ... Parameters passed to covar function. The function is called in order to get
+#' the covariance matrix of 1 to h steps ahead forecast errors.
+#'
+#' @return A value of the log-likelihood.
+#' @references \itemize{
+#' \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
+#' demand for slow-moving inventories: A modelling approach. International
+#' Journal of Forecasting 28 (2), 485-496.
+#' \item Kolassa, S., 2016. Evaluating predictive count data distributions in retail
+#' sales forecasting. International Journal of Forecasting 32 (3), 788-803.
+#' }
+#' @examples
+#'
+#' # Generate data, apply es() with the holdout parameter and calculate PLS
+#' x <- rnorm(100,0,1)
+#' ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
+#' pls(ourModel)
+#' pls(ourModel, type="s", nsim=100, obs=100)
+#'
+#' @rdname pls
+#' @export pls
+pls <-  function(object, holdout=NULL, ...) UseMethod("pls")
+# Function calculates PLS based on the provided model
+
+#' @importFrom stats dnorm
+#' @export
+pls.default <- function(object, holdout=NULL, ...){
+    if(is.null(holdout)){
+        stop("We need the values from the holdout in order to proceed.",
+             call.=FALSE);
+    }
+    h <- length(holdout);
+    yForecast <- forecast(object, h=h)$mean;
+
+    return(sum(dnorm(holdout,yForecast,sigma(object),log=TRUE)));
+}
+
+#' @rdname pls
+#' @aliases pls.smooth
+#' @export
+pls.smooth <- function(object, holdout=NULL, ...){
+    # If holdout is provided, check it and use it. Otherwise try extracting from the model
+    yForecast <- object$forecast;
+    covarMat <- covar(object, ...);
+    if(!is.null(holdout)){
+        if(length(yForecast)!=length(holdout)){
+            if(is.null(object$holdout)){
+                stop("The forecast of the model does not correspond to the provided holdout.",
+                     call.=FALSE);
+            }
+            else{
+                holdout <- object$holdout;
+            }
+        }
+    }
+    else{
+        if(is.null(object$holdout)){
+            stop("No values for the holdout are available. Cannot proceed.",
+                 call.=FALSE);
+        }
+        holdout <- object$holdout;
+    }
+    h <- length(holdout);
+
+    Etype <- errorType(object);
+
+    # Additive models
+    if(Etype=="A"){
+        # Non-intermittent data
+        if(is.null(object$imodel)){
+            errors <- holdout - yForecast;
+            obsNonZero <- h;
+            plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+        }
+        # Intermittent data
+        else{
+            ot <- holdout!=0;
+            obsNonZero <- sum(ot);
+            pForecast <- object$imodel$forecast;
+            errors <- holdout - yForecast / pForecast;
+            if(all(ot)){
+                plsValue <- (-(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2) +
+                                 sum(log(pForecast)));
+            }
+            else if(all(!ot)){
+                plsValue <- sum(log(1-pForecast));
+            }
+            else{
+                errors[!ot] <- 0;
+
+                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+                plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
+            }
+        }
+    }
+    # Multiplicative models
+    else{
+        # Non-intermittent data
+        if(is.null(object$imodel)){
+            errors <- holdout - yForecast;
+            obsNonZero <- h;
+            plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
+                              h * sum(log(holdout)));
+        }
+        # Intermittent data
+        else{
+            ot <- holdout!=0;
+            obsNonZero <- sum(ot);
+            pForecast <- object$imodel$forecast;
+            errors <- log(holdout) - log(yForecast / pForecast);
+            if(all(ot)){
+                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
+                                  h * sum(log(holdout))) + sum(log(pForecast));
+            }
+            else if(all(!ot)){
+                plsValue <- sum(log(1-pForecast));
+            }
+            else{
+                errors[!ot] <- 0;
+
+                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
+                                  h * sum(log(holdout[ot])));
+                plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
+            }
+        }
+    }
+
+    return(plsValue);
+}
+
+
 #' Point likelihood values
 #'
 #' This function returns a vector of logarithms of likelihoods for each observation
@@ -196,25 +512,16 @@ pointLik.default <- function(object, ...){
 
 #' @export
 pointLik.smooth <- function(object, ...){
-    if(!any(class(object)=="smooth")){
-        stop("Sorry, but we do not support this class yet.",call.=FALSE);
-    }
-
     obs <- nobs(object);
     errors <- residuals(object);
     s2 <- sigma(object)^2;
     likValues <- vector("numeric",obs);
 
-    if(gregexpr("ETS",object$model)!=-1){
-        if(substr(modelType(object),1,1)=="A"){
-            likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
-        }
-        else{
-            likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2 - log(getResponse(object));
-        }
+    if(errorType(object)=="A"){
+        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
     }
     else{
-        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
+        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2 - log(getResponse(object));
     }
     return(likValues);
 }
@@ -432,6 +739,55 @@ lags.Arima <- function(object, ...){
     lags <- c(1,model[5]);
 
     return(lags);
+}
+
+#### Function extracts type of error in the model: "A" or "M" ####
+#' @export
+errorType.default <- function(object, ...){
+    return("A");
+}
+
+#' @export
+errorType.smooth <- function(object, ...){
+    # ETS models
+    if(gregexpr("ETS",object$model)!=-1){
+        if(any(substr(modelType(object),1,1)==c("A","X"))){
+            Etype <- "A";
+        }
+        else if(any(substr(modelType(object),1,1)==c("M","Y"))){
+            Etype <- "M";
+        }
+        else{
+            stop("Sorry, but we cannot calculate PLS for this type of model",
+                 call.=FALSE);
+        }
+    }
+    # GES models
+    else if(gregexpr("GES",object$model)!=-1){
+        if(gregexpr("MGES",object$model)!=-1){
+            Etype <- "M";
+        }
+        else{
+            Etype <- "A";
+        }
+    }
+    # SSARIMA models
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        Etype <- "A";
+    }
+    # CES models
+    else if(gregexpr("CES",object$model)!=-1){
+        Etype <- "A";
+    }
+    # SMA models
+    else if(gregexpr("SMA",object$model)!=-1){
+        Etype <- "A";
+    }
+    else{
+        stop(paste0("Sorry but we cannot identify error type for the model '",object$model),
+             call.=FALSE);
+    }
+    return(Etype);
 }
 
 #### Function extracts type of model. For example "AAN" from ets ####

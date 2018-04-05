@@ -2087,27 +2087,27 @@ CreatorES <- function(silent=FALSE,...){
 
 # Add PLS
 ### Currently PLS can only be returned when intervals=TRUE because of the varVec
-        if(intervals){
-            errormeasuresNames <- names(errormeasures);
-            if(all(intermittent!=c("n","none"))){
-                errormeasures <- c(errormeasures,
-                                   suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
-                                                        sigma=s2, trace=FALSE, iprob=imodel$forecast,
-                                                        varVec=varVec, rounded=rounded)));
-            }
-            else{
-                if(multisteps){
-                    sigma <- t(errors.mat) %*% errors.mat / obsInsample;
-                }
-                else{
-                    sigma <- s2;
-                }
-                errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
-                                                                       sigma=sigma, trace=multisteps, iprob=rep(1,h),
-                                                                       varVec=varVec, rounded=rounded)));
-            }
-            names(errormeasures) <- c(errormeasuresNames,"PLS");
-        }
+        # if(intervals){
+        #     errormeasuresNames <- names(errormeasures);
+        #     if(all(intermittent!=c("n","none"))){
+        #         errormeasures <- c(errormeasures,
+        #                            suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
+        #                                                 sigma=s2, trace=FALSE, iprob=imodel$forecast,
+        #                                                 varVec=varVec, rounded=rounded)));
+        #     }
+        #     else{
+        #         if(multisteps){
+        #             sigma <- t(errors.mat) %*% errors.mat / obsInsample;
+        #         }
+        #         else{
+        #             sigma <- s2;
+        #         }
+        #         errormeasures <- c(errormeasures, suppressWarnings(pls(actuals=y.holdout, forecasts=y.for, Etype=Etype,
+        #                                                                sigma=sigma, trace=multisteps, iprob=rep(1,h),
+        #                                                                varVec=varVec, rounded=rounded)));
+        #     }
+        #     names(errormeasures) <- c(errormeasuresNames,"PLS");
+        # }
 
         if(cumulative){
             y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);

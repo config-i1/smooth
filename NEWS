@@ -1,8 +1,15 @@
+smooth v2.4.3 (Release data: 2018-04-05)
+==============
+
+Changes:
+* Two new methods for the models: covar() returns covariance matrix of 1 to h steps ahead forecast errors; pls() returns Prediction Likelihood Score for the model. Currently only empirical and simulated covariance matrix is available. The analytical is much trickier to implement.
+
+
 smooth v2.4.2 (Release data: 2018-04-03)
 ==============
 
 Changes:
-* Moved AICc(), xregExpander(), stepwise() and nParam to greybox package. We now depend on greybox (>=0.1.1).
+* Moved AICc(), xregExpander(), stepwise() and nParam() to greybox package. We now depend on greybox (>=0.1.1).
 * es(), ces(), ges(), ssarima() and all the automatic univariate functions now have model selection mechanism in case of cfType="MAE". This is based on Laplace distribution.
 * The same thing is now available for cfType="HAM". This is based on a distribution that I have not yet met in the literature and had to derive myself.
 * Corrections in AICc.smooth for intermittent models.
