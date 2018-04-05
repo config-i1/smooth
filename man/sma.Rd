@@ -74,6 +74,7 @@ following values:
 \item \code{transition} - matrix F.
 \item \code{persistence} - the persistence vector. This is the place, where
 smoothing parameters live.
+\item \code{measurement} - measurement vector of the model.
 \item \code{order} - order of moving average.
 \item \code{initial} - Initial state vector values.
 \item \code{initialType} - Type of initial values used.
