@@ -180,6 +180,7 @@ following values:
 \item \code{transition} - matrix F.
 \item \code{persistence} - the persistence vector. This is the place, where
 smoothing parameters live.
+\item \code{measurement} - measurement vector of the model.
 \item \code{AR} - the matrix of coefficients of AR terms.
 \item \code{I} - the matrix of coefficients of I terms.
 \item \code{MA} - the matrix of coefficients of MA terms.

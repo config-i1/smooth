@@ -146,6 +146,15 @@ covar.default <- function(object, type=c("empirical","simulated","analytical"), 
 covar.smooth <- function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...){
     # Function extracts the conditional variances from the model
     type <- substr(type[1],1,1);
+
+    if(is.null(object$persistence) & (type=="a")){
+        warning(paste0("The provided model does not contain the components necessary for the ",
+                       "derivation of the analytical covariance.\n",
+                       "Did you combine forecasts? Switching to 'empirical'"),
+                call.=FALSE);
+        type <- "e";
+    }
+
     # Empirical covariance matrix
     if(type=="e"){
         errors <- object$errors;
@@ -232,12 +241,14 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
     }
     # Analytical covariance matrix
     else if(type=="a"){
-        stop("This type is not implemented yet.",
+        stop("This is not implemented yet.",
              call.=FALSE);
+        h <- length(object$forecast);
+        modelLags <- lags(object);
+        s2 <- sigma(object)^2;
         vecg <- object$persistence;
         matF <- object$transition;
         matw <- object$measurement;
-        h <- length(object$forecast);
         if(errorType(object)=="A"){
         }
     }
@@ -700,6 +711,21 @@ getResponse.smooth.forecast <- function(object, ...){
 #### Function extracts lags of provided model ####
 #' @export
 lags.default <- function(object, ...){
+    lags <- NA;
+    return(lags);
+}
+
+#' @export
+lags.Arima <- function(object, ...){
+    model <- object$arma;
+
+    lags <- c(1,model[5]);
+
+    return(lags);
+}
+
+#' @export
+lags.smooth <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
         if(gregexpr("GES",model)!=-1){
@@ -721,6 +747,36 @@ lags.default <- function(object, ...){
         else if(gregexpr("SMA",model)!=-1){
             lags <- 1;
         }
+        else if(gregexpr("ETS",model)!=-1){
+            modelName <- modelType(object);
+            lags <- c(1);
+            if(substr(modelName,2,2)!="N"){
+                lags <- c(lags,1);
+            }
+            if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
+                lags <- c(lags,frequency(getResponse(object)));
+            }
+        }
+        else if(gregexpr("CES",model)!=-1){
+            modelName <- modelType(object);
+            dataFreq <- frequency(getResponse(object));
+            if(modelName=="n"){
+                lags <- c(1,1);
+            }
+            else if(modelName=="s"){
+                lags <- c(dataFreq,dataFreq);
+            }
+            else if(modelName=="p"){
+                lags <- c(1,1,dataFreq);
+            }
+            else if(modelName=="f"){
+                lags <- c(1,1,dataFreq,dataFreq);
+            }
+            else{
+                stop("Sorry, but we cannot identify the type of the provided model.",
+                     call.=FALSE);
+            }
+        }
         else{
             lags <- NA;
         }
@@ -728,15 +784,6 @@ lags.default <- function(object, ...){
     else{
         lags <- NA;
     }
-
-    return(lags);
-}
-
-#' @export
-lags.Arima <- function(object, ...){
-    model <- object$arma;
-
-    lags <- c(1,model[5]);
 
     return(lags);
 }

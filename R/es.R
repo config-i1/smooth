@@ -107,6 +107,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' smoothing parameters live.
 #' \item \code{phi} - value of damping parameter.
 #' \item \code{transition} - transition matrix of the model.
+#' \item \code{measurement} - measurement vector of the model.
 #' \item \code{initialType} - type of the initial values used.
 #' \item \code{initial} - initial values of the state vector (non-seasonal).
 #' \item \code{initialSeason} - initial values of the seasonal part of state vector.
@@ -2164,6 +2165,7 @@ CreatorES <- function(silent=FALSE,...){
     if(modelDo!="combine"){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       states=matvt,persistence=persistence,phi=phi,transition=matF,
+                      measurement=matw,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=parametersNumber,
                       fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,

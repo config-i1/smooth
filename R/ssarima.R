@@ -90,6 +90,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{transition} - matrix F.
 #' \item \code{persistence} - the persistence vector. This is the place, where
 #' smoothing parameters live.
+#' \item \code{measurement} - measurement vector of the model.
 #' \item \code{AR} - the matrix of coefficients of AR terms.
 #' \item \code{I} - the matrix of coefficients of I terms.
 #' \item \code{MA} - the matrix of coefficients of MA terms.
@@ -983,6 +984,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
+                  measurement=matw,
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber,

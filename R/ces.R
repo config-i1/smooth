@@ -51,6 +51,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{B} - smoothing parameter for the seasonal component. Can either
 #' be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 #' in a form b0 + ib1.
+#' \item \code{persistence} - persistence vector. This is the place, where
+#' smoothing parameters live.
+#' \item \code{transition} - transition matrix of the model.
+#' \item \code{measurement} - measurement vector of the model.
 #' \item \code{initialType} - Type of the initial values used.
 #' \item \code{initial} - the initial values of the state vector (non-seasonal).
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
@@ -859,6 +863,8 @@ CreatorCES <- function(silentText=FALSE,...){
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,A=A$value,B=B$value,
+                  persistence=vecg,transition=matF,
+                  measurement=matw,
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,

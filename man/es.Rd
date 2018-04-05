@@ -200,6 +200,7 @@ components of es() and exogenous variables.
 smoothing parameters live.
 \item \code{phi} - value of damping parameter.
 \item \code{transition} - transition matrix of the model.
+\item \code{measurement} - measurement vector of the model.
 \item \code{initialType} - type of the initial values used.
 \item \code{initial} - initial values of the state vector (non-seasonal).
 \item \code{initialSeason} - initial values of the seasonal part of state vector.
