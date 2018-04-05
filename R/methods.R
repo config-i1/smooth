@@ -147,9 +147,9 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
     # Function extracts the conditional variances from the model
     type <- substr(type[1],1,1);
 
-    if(is.null(object$persistence) & (type=="a")){
+    if(is.null(object$persistence) & any(type==c("a","s"))){
         warning(paste0("The provided model does not contain the components necessary for the ",
-                       "derivation of the analytical covariance.\n",
+                       "derivation of the covariance matrix.\n",
                        "Did you combine forecasts? Switching to 'empirical'"),
                 call.=FALSE);
         type <- "e";
