@@ -396,7 +396,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
         }
     }
     else{
-        if(is.null(object$holdout)){
+        if(all(is.na(object$holdout))){
             stop("No values for the holdout are available. Cannot proceed.",
                  call.=FALSE);
         }
