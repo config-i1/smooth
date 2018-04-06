@@ -760,16 +760,16 @@ lags.smooth <- function(object, ...){
         else if(gregexpr("CES",model)!=-1){
             modelName <- modelType(object);
             dataFreq <- frequency(getResponse(object));
-            if(modelName=="n"){
+            if(modelName=="none"){
                 lags <- c(1,1);
             }
-            else if(modelName=="s"){
+            else if(modelName=="simple"){
                 lags <- c(dataFreq,dataFreq);
             }
-            else if(modelName=="p"){
+            else if(modelName=="partial"){
                 lags <- c(1,1,dataFreq);
             }
-            else if(modelName=="f"){
+            else if(modelName=="full"){
                 lags <- c(1,1,dataFreq,dataFreq);
             }
             else{
@@ -843,43 +843,57 @@ errorType.smooth <- function(object, ...){
 #### Function extracts type of model. For example "AAN" from ets ####
 #' @export
 modelType.default <- function(object, ...){
-    model <- object$model;
-    if(!is.null(model)){
-        if(gregexpr("ETS",model)!=-1){
-            modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
-        }
-        else if(gregexpr("CES",model)!=-1){
-            modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
-            if(modelType=="n"){
-                modelType <- "none";
-            }
-            else if(modelType=="s"){
-                modelType <- "simple";
-            }
-            else if(modelType=="p"){
-                modelType <- "partial";
-            }
-            else{
-                modelType <- "full";
-            }
-        }
-        else{
-            modelType <- NA;
-        }
-    }
-    else{
+    modelType <- NA;
+    if(is.null(object$model)){
         if(any(gregexpr("ets",object$call)!=-1)){
             model <- object$method;
             modelType <- gsub(",","",substring(model,5,nchar(model)-1));
         }
     }
+    return(modelType);
+}
+
+#' @export
+modelType.smooth <- function(object, ...){
+    model <- object$model;
+
+    if(gregexpr("ETS",model)!=-1){
+        modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+    }
+    else if(gregexpr("CES",model)!=-1){
+        modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        if(modelType=="n"){
+            modelType <- "none";
+        }
+        else if(modelType=="s"){
+            modelType <- "simple";
+        }
+        else if(modelType=="p"){
+            modelType <- "partial";
+        }
+        else{
+            modelType <- "full";
+        }
+    }
+    else{
+        modelType <- NA;
+    }
 
     return(modelType);
 }
 
+#' @export
+modelType.smooth.sim <- modelType.smooth;
+
 #### Function extracts orders of provided model ####
 #' @export
 orders.default <- function(object, ...){
+    orders <- NA;
+    return(orders);
+}
+
+#' @export
+orders.smooth <- function(object, ...){
     model <- object$model;
     if(!is.null(model)){
         if(gregexpr("GES",model)!=-1){
@@ -914,6 +928,9 @@ orders.default <- function(object, ...){
 
     return(orders);
 }
+
+#' @export
+orders.smooth.sim <- orders.smooth;
 
 #' @export
 orders.Arima <- function(object, ...){
