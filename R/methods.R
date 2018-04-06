@@ -788,6 +788,9 @@ lags.smooth <- function(object, ...){
     return(lags);
 }
 
+#' @export
+lags.smooth.sim <- lags.smooth;
+
 #### Function extracts type of error in the model: "A" or "M" ####
 #' @export
 errorType.default <- function(object, ...){
