@@ -57,12 +57,14 @@ lags <- function(object, ...) UseMethod("lags")
 #' @aliases modelType
 #' @rdname orders
 #' @export modelType
-modelType <-  function(object, ...) UseMethod("modelType")
+modelType <- function(object, ...) UseMethod("modelType")
+
+modelLags <- function(object, ...) UseMethod("modelLags")
 
 #' @aliases errorType
 #' @rdname orders
 #' @export errorType
-errorType <-  function(object, ...) UseMethod("errorType")
+errorType <- function(object, ...) UseMethod("errorType")
 
 ##### Likelihood function and stuff #####
 
@@ -241,14 +243,14 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
     }
     # Analytical covariance matrix
     else if(type=="a"){
-        stop("This is not implemented yet.",
-             call.=FALSE);
         h <- length(object$forecast);
-        modelLags <- lags(object);
+        modelLags <- modelLags(object);
         s2 <- sigma(object)^2;
         vecg <- object$persistence;
         matF <- object$transition;
         matw <- object$measurement;
+            print(matF);
+            print(modelLags)
         if(errorType(object)=="A"){
         }
     }
@@ -750,9 +752,6 @@ lags.smooth <- function(object, ...){
         else if(gregexpr("ETS",model)!=-1){
             modelName <- modelType(object);
             lags <- c(1);
-            if(substr(modelName,2,2)!="N"){
-                lags <- c(lags,1);
-            }
             if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
                 lags <- c(lags,frequency(getResponse(object)));
             }
@@ -761,16 +760,16 @@ lags.smooth <- function(object, ...){
             modelName <- modelType(object);
             dataFreq <- frequency(getResponse(object));
             if(modelName=="none"){
-                lags <- c(1,1);
+                lags <- c(1);
             }
             else if(modelName=="simple"){
-                lags <- c(dataFreq,dataFreq);
+                lags <- c(dataFreq);
             }
             else if(modelName=="partial"){
-                lags <- c(1,1,dataFreq);
+                lags <- c(1,dataFreq);
             }
             else if(modelName=="full"){
-                lags <- c(1,1,dataFreq,dataFreq);
+                lags <- c(1,dataFreq);
             }
             else{
                 stop("Sorry, but we cannot identify the type of the provided model.",
@@ -838,6 +837,33 @@ errorType.smooth <- function(object, ...){
              call.=FALSE);
     }
     return(Etype);
+}
+
+##### Function returns the modellags from the model - internal function #####
+modelLags.default <- function(object, ...){
+    modelLags <- NA;
+    if(gregexpr("ETS",object$model)!=-1){
+        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+    }
+    else if(gregexpr("GES",object$model)!=-1){
+        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        ordersARIMA <- orders(object);
+        nComponents <- max(ordersARIMA$ar %*% lags(object) + ordersARIMA$i %*% lags(object),
+                           ordersARIMA$ma %*% lags(object));
+        modelLags <- matrix(rep(1,times=nComponents),ncol=1);
+        if(is.numeric(object$constant)){
+            modelLags <- rbind(modellags,1);
+        }
+    }
+    else if(gregexpr("CES",object$model)!=-1){
+        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+    }
+    else if(gregexpr("SMA",object$model)!=-1){
+        modelLags <- matrix(rep(1,times=orders(object)),ncol=1);
+    }
+    return(modelLags);
 }
 
 #### Function extracts type of model. For example "AAN" from ets ####
@@ -917,6 +943,35 @@ orders.smooth <- function(object, ...){
         }
         else if(gregexpr("SMA",model)!=-1){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1));
+        }
+        else if(gregexpr("ETS",model)!=-1){
+            modelName <- modelType(object);
+            orders <- 1;
+            if(substr(modelName,2,2)!="N"){
+                orders <- 2;
+            }
+            if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
+                orders <- c(orders, 1);
+            }
+        }
+        else if(gregexpr("CES",model)!=-1){
+            modelName <- modelType(object);
+            if(modelName=="none"){
+                orders <- 2;
+            }
+            else if(modelName=="simple"){
+                orders <- 2;
+            }
+            else if(modelName=="partial"){
+                orders <- c(2,1);
+            }
+            else if(modelName=="full"){
+                orders <- c(2,2);
+            }
+            else{
+                stop("Sorry, but we cannot identify the type of the provided model.",
+                     call.=FALSE);
+            }
         }
         else{
             orders <- NA;
