@@ -116,10 +116,10 @@ AICc.smooth <- function(object, ...){
 #' one-step-ahead forecast error. This works correctly only for pure additive and
 #' pure multiplicative models.
 #' }
-#' @param silent If \code{TRUE}, then nothing is printed out in the process. Otherwise
-#' the progress is shown.
 #' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
-#' is used). These are usually \code{nsim},  \code{obs} and  \code{seed}.
+#' is used). These are \code{obs} and \code{seed}. The parameter \code{nsim} is not
+#' available because it does not make a sense for covariance calculation. By default
+#' \code{obs=10000}.
 #' This increases the accuracy on small samples and intermittent data;
 #' @return Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
 #'
@@ -134,10 +134,10 @@ AICc.smooth <- function(object, ...){
 #'
 #' @rdname covar
 #' @export covar
-covar <-  function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...) UseMethod("covar")
+covar <-  function(object, type=c("empirical","simulated","analytical"), ...) UseMethod("covar")
 
 #' @export
-covar.default <- function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...){
+covar.default <- function(object, type=c("empirical","simulated","analytical"), ...){
     # Function extracts the conditional variances from the model
     return(sigma(object)^2);
 }
@@ -145,7 +145,7 @@ covar.default <- function(object, type=c("empirical","simulated","analytical"), 
 #' @aliases covar.smooth
 #' @rdname covar
 #' @export
-covar.smooth <- function(object, type=c("empirical","simulated","analytical"), silent=TRUE, ...){
+covar.smooth <- function(object, type=c("empirical","simulated","analytical"), ...){
     # Function extracts the conditional variances from the model
     type <- substr(type[1],1,1);
 
@@ -159,30 +159,33 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
 
     # Empirical covariance matrix
     if(type=="e"){
-        errors <- object$errors;
+        if(errorType(object)=="A"){
+            errors <- object$errors;
+        }
+        else{
+            errors <- log(1 + object$errors);
+        }
         if(!is.null(object$imodel)){
             obs <- t((errors!=0)*1) %*% (errors!=0)*1;
             obs[obs==0] <- 1;
+            df <- obs - nParam(object);
+            df[df<=0] <- obs[df<=0];
         }
         else{
             obs <- matrix(nobs(object),ncol(errors),ncol(errors));
+            df <- obs - nParam(object);
+            df[df<=0] <- obs[df<=0];
         }
-        covarMat <- t(errors) %*% errors / obs;
+        covarMat <- t(errors) %*% errors / df;
     }
     # Simulated covariance matrix
     else if(type=="s"){
         ellipsis <- list(...);
-        if(any(names(ellipsis)=="nsim")){
-            nsim <- ellipsis$nsim;
-        }
-        else{
-            nsim <- 1000;
-        }
         if(any(names(ellipsis)=="obs")){
             obs <- ellipsis$obs;
         }
         else{
-            obs <- 200;
+            obs <- 10000;
         }
         if(any(names(ellipsis)=="seed")){
             seed <- ellipsis$seed;
@@ -192,8 +195,7 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
         }
 
         h <- length(object$forecast);
-        newData <- simulate(object, nsim=nsim, obs=obs, seed=seed);
-        errors <- array(NA,c(nsim*obs,h));
+        newData <- simulate(object, nsim=1, obs=obs, seed=seed);
         if(gregexpr("ETS",object$model)!=-1){
             smoothFunction <- es;
         }
@@ -214,21 +216,16 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
             smoothFunction <- sma;
         }
 
-        if((!silent)){
-            cat("Simulating data...  ");
-            progressBar <- c("/","\u2014","\\","|");
-        }
         # Apply the model to the simulated data
-        for(i in 1:nsim){
-            smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
-            errors[((i-1)*obs+1):(i*obs),] <- smoothModel$errors[1:obs,];
-            if(!silent){
-                cat("\b");
-                cat(progressBar[(i/4-floor(i/4))*4+1]);
-            }
-        }
-        if(!silent){
-            cat("\n");
+        smoothModel <- smoothFunction(newData$data, model=object, h=h);
+        # Remove first h-1 and last values.
+        errors <- smoothModel$errors[h-1+1:obs,];
+
+        # Transform errors if needed
+        if(errorType(object)=="M"){
+            # Remove zeroes if they are present
+            errors <- errors[!apply(errors==0,1,any),];
+            errors <- log(1 + errors);
         }
 
         # Calculate covariance matrix
@@ -237,22 +234,80 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), s
             obs[obs==0] <- 1;
         }
         else{
-            obs <- matrix(obs*nsim,ncol(errors),ncol(errors));
+            obs <- matrix(nrow(errors),ncol(errors),ncol(errors));
         }
+
         covarMat <- t(errors) %*% errors / obs;
     }
     # Analytical covariance matrix
     else if(type=="a"){
+        if(!is.null(object$imodel)){
+            ot <- (residuals(object)!=0)*1;
+        }
+        else{
+            ot <- rep(1,length(residuals(object)));
+        }
         h <- length(object$forecast);
-        modelLags <- modelLags(object);
+        lagsModel <- modelLags(object);
+        lagsUnique <- unique(lagsModel);
+        steps <- lagsUnique[lagsUnique<=h];
         s2 <- sigma(object)^2;
         vecg <- object$persistence;
         matF <- object$transition;
         matw <- object$measurement;
-            print(matF);
-            print(modelLags)
-        if(errorType(object)=="A"){
+        arrayF <- array(0,c(dim(matF),length(steps)))
+        arrayw <- array(0,c(dim(matw),length(steps)))
+        covarMat <- diag(h);
+        for(i in 1:length(steps)){
+            arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
+            arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
         }
+        cValues <- rep(0,h);
+        arrayWeights <- matrix(0,nrow(matF),h);
+        if(errorType(object)=="A"){
+            s2g <- matrix(0,nrow(matF),1);
+        }
+        else{
+            errors <- residuals(object);
+            df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
+            s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
+                        t(log(1 + vecg %*% as.vector(errors*ot))) / df);
+        }
+        # Produce c_{ij} values
+        #### This is the weakest part at the moment as it does not take the lag structure
+        #### of the models correctly.
+        for(i in 2:h){
+            for(j in 1:sum(steps<i)){
+                arrayWeights[,i] <- (arrayWeights[i] +
+                                         matrixPowerWrap(as.matrix(arrayF[,,j]),
+                                                         floor((i-1)/steps[j])-1) %*% vecg
+                                     + s2g);
+                cValues[i] <- cValues[i] + arrayw[,,j] %*% arrayWeights[,i];
+            }
+        }
+        # Fill in diagonals
+        for(i in 2:h){
+            covarMat[i,i] <- covarMat[i-1,i-1] + cValues[i]^2;
+        }
+        # Fill in off-diagonals
+        for(i in 1:h){
+            for(j in 1:h){
+                if(i==j){
+                    next;
+                }
+                else if(i==1){
+                    covarMat[i,j] = cValues[j];
+                }
+                else if(i>j){
+                    covarMat[i,j] <- covarMat[j,i];
+                }
+                else{
+                    covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
+                }
+            }
+        }
+        # Multiply the matrix by the one-step-ahead variance
+        covarMat <- covarMat * s2;
     }
     return(covarMat);
     # correlation matrix: covar(test) / sqrt(diag(covar(test)) %*% t(diag(covar(test))))
@@ -359,7 +414,7 @@ nParam.iss <- function(object, ...){
 #' x <- rnorm(100,0,1)
 #' ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
 #' pls(ourModel)
-#' pls(ourModel, type="s", nsim=100, obs=100)
+#' pls(ourModel, type="s", obs=1000)
 #'
 #' @rdname pls
 #' @export pls
@@ -414,7 +469,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
         if(is.null(object$imodel)){
             errors <- holdout - yForecast;
             obsNonZero <- h;
-            plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+            plsValue <- -(log(2*pi*det(covarMat))/2 +
                               sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
         }
         # Intermittent data
@@ -424,7 +479,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             pForecast <- object$imodel$forecast;
             errors <- holdout - yForecast / pForecast;
             if(all(ot)){
-                plsValue <- (-(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                plsValue <- (-(log(2*pi*det(covarMat))/2 +
                                    sum(t(errors) %*% solve(covarMat) %*% errors) / 2) +
                                  sum(log(pForecast)));
             }
@@ -434,7 +489,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                plsValue <- -(log(2*pi*det(covarMat))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
             }
@@ -444,11 +499,11 @@ pls.smooth <- function(object, holdout=NULL, ...){
     else{
         # Non-intermittent data
         if(is.null(object$imodel)){
-            errors <- holdout - yForecast;
+            errors <- log(holdout) - log(yForecast);
             obsNonZero <- h;
-            plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+            plsValue <- -(log(2*pi*det(covarMat))/2 +
                               sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
-                              h * sum(log(holdout)));
+                              sum(log(holdout)));
         }
         # Intermittent data
         else{
@@ -457,9 +512,9 @@ pls.smooth <- function(object, holdout=NULL, ...){
             pForecast <- object$imodel$forecast;
             errors <- log(holdout) - log(yForecast / pForecast);
             if(all(ot)){
-                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                plsValue <- -(log(2*pi*det(covarMat))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
-                                  h * sum(log(holdout))) + sum(log(pForecast));
+                                  sum(log(holdout))) + sum(log(pForecast));
             }
             else if(all(!ot)){
                 plsValue <- sum(log(1-pForecast));
@@ -467,7 +522,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(obsNonZero/2 * h * log(2*pi*det(covarMat)) +
+                plsValue <- -(log(2*pi*det(covarMat))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
                                   h * sum(log(holdout[ot])));
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));

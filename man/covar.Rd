@@ -5,11 +5,10 @@
 \alias{covar.smooth}
 \title{Function returns the covariance matrix of conditional multiple steps ahead forecast errors}
 \usage{
-covar(object, type = c("empirical", "simulated", "analytical"),
-  silent = TRUE, ...)
+covar(object, type = c("empirical", "simulated", "analytical"), ...)
 
 \method{covar}{smooth}(object, type = c("empirical", "simulated",
-  "analytical"), silent = TRUE, ...)
+  "analytical"), ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
@@ -26,11 +25,10 @@ one-step-ahead forecast error. This works correctly only for pure additive and
 pure multiplicative models.
 }}
 
-\item{silent}{If \code{TRUE}, then nothing is printed out in the process. Otherwise
-the progress is shown.}
-
 \item{...}{Other parameters passed to simulate function (if \code{type="simulated"}
-is used). These are usually \code{nsim},  \code{obs} and  \code{seed}.
+is used). These are \code{obs} and \code{seed}. The parameter \code{nsim} is not
+available because it does not make a sense for covariance calculation. By default
+\code{obs=10000}.
 This increases the accuracy on small samples and intermittent data;}
 }
 \value{

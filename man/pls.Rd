@@ -37,7 +37,7 @@ based onthe distribution of 1 to h steps ahead forecast errors is used in the pr
 x <- rnorm(100,0,1)
 ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
 pls(ourModel)
-pls(ourModel, type="s", nsim=100, obs=100)
+pls(ourModel, type="s", obs=1000)
 
 }
 \references{
