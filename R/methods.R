@@ -157,6 +157,12 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
         type <- "e";
     }
 
+    if(!is.null(object$imodel) & type=="e"){
+        warning(paste0("Empirical covariance matrix can be very inaccurate in cases of ",
+                       "intemittent models.\nWe recommend using type='s' or type='a' instead."),
+                call.=FALSE);
+    }
+
     # Empirical covariance matrix
     if(type=="e"){
         if(errorType(object)=="A"){
@@ -252,7 +258,7 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
         lagsUnique <- unique(lagsModel);
         steps <- lagsUnique[lagsUnique<=h];
         s2 <- sigma(object)^2;
-        vecg <- object$persistence;
+        vecg <- matrix(object$persistence,length(object$persistence),1);
         matF <- object$transition;
         matw <- object$measurement;
         arrayF <- array(0,c(dim(matF),length(steps)))
@@ -263,26 +269,28 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
         }
         cValues <- rep(0,h);
-        arrayWeights <- matrix(0,nrow(matF),h);
-        if(errorType(object)=="A"){
-            s2g <- matrix(0,nrow(matF),1);
-        }
-        else{
-            errors <- residuals(object);
-            df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
-            s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
-                        t(log(1 + vecg %*% as.vector(errors*ot))) / df);
-        }
+        matrixWeights <- matrix(0,nrow(matF),h);
+        # if(errorType(object)=="A"){
+        #     s2g <- matrix(0,nrow(matF),ncol(matF));
+        # }
+        # else{
+        #     errors <- residuals(object);
+        #     df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
+        #     s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
+        #                 t(log(1 + vecg %*% as.vector(errors*ot))) / df);
+        # }
         # Produce c_{ij} values
-        #### This is the weakest part at the moment as it does not take the lag structure
-        #### of the models correctly.
+        #### This is the weakest part at the moment:
+        ### 1. It does not take the lag structure of the models correctly.
+        ### 2. It does not deal with multiplicative error correctly.
         for(i in 2:h){
+            # print(i)
             for(j in 1:sum(steps<i)){
-                arrayWeights[,i] <- (arrayWeights[i] +
-                                         matrixPowerWrap(as.matrix(arrayF[,,j]),
-                                                         floor((i-1)/steps[j])-1) %*% vecg
-                                     + s2g);
-                cValues[i] <- cValues[i] + arrayw[,,j] %*% arrayWeights[,i];
+                cValues[i] <- cValues[i] + (arrayw[,,j] %*%
+                                                matrixPowerWrap(as.matrix(arrayF[,,j]),
+                                                                floor((i-1)/steps[j])-1) %*% vecg);
+                # cValues[i] <- cValues[i] + arrayw[,,j] %*% (matrixWeights[,i]);
+                # + s2g %*% arrayw[,,j]
             }
         }
         # Fill in diagonals
@@ -469,7 +477,8 @@ pls.smooth <- function(object, holdout=NULL, ...){
         if(is.null(object$imodel)){
             errors <- holdout - yForecast;
             obsNonZero <- h;
-            plsValue <- -(log(2*pi*det(covarMat))/2 +
+            # Here and later in the code the abs() is needed for weird cases of wrong covarMat
+            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
                               sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
         }
         # Intermittent data
@@ -479,7 +488,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             pForecast <- object$imodel$forecast;
             errors <- holdout - yForecast / pForecast;
             if(all(ot)){
-                plsValue <- (-(log(2*pi*det(covarMat))/2 +
+                plsValue <- (-(log(2*pi*abs(det(covarMat)))/2 +
                                    sum(t(errors) %*% solve(covarMat) %*% errors) / 2) +
                                  sum(log(pForecast)));
             }
@@ -489,7 +498,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(log(2*pi*det(covarMat))/2 +
+                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
             }
@@ -501,7 +510,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
         if(is.null(object$imodel)){
             errors <- log(holdout) - log(yForecast);
             obsNonZero <- h;
-            plsValue <- -(log(2*pi*det(covarMat))/2 +
+            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
                               sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
                               sum(log(holdout)));
         }
@@ -512,7 +521,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             pForecast <- object$imodel$forecast;
             errors <- log(holdout) - log(yForecast / pForecast);
             if(all(ot)){
-                plsValue <- -(log(2*pi*det(covarMat))/2 +
+                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
                                   sum(log(holdout))) + sum(log(pForecast));
             }
@@ -522,7 +531,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(log(2*pi*det(covarMat))/2 +
+                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
                                   h * sum(log(holdout[ot])));
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
