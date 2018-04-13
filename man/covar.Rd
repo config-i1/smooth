@@ -26,10 +26,9 @@ pure multiplicative models.
 }}
 
 \item{...}{Other parameters passed to simulate function (if \code{type="simulated"}
-is used). These are \code{obs} and \code{seed}. The parameter \code{nsim} is not
-available because it does not make a sense for covariance calculation. By default
-\code{obs=10000}.
-This increases the accuracy on small samples and intermittent data;}
+is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
+\code{obs=1000}, \code{nsim=100}. This approach increases the accuracy of
+covariance matrix on small samples and intermittent data;}
 }
 \value{
 Scalar in cases of non-smooth functions. (h x h) matrix otherwise.

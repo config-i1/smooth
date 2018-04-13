@@ -117,10 +117,9 @@ AICc.smooth <- function(object, ...){
 #' pure multiplicative models.
 #' }
 #' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
-#' is used). These are \code{obs} and \code{seed}. The parameter \code{nsim} is not
-#' available because it does not make a sense for covariance calculation. By default
-#' \code{obs=10000}.
-#' This increases the accuracy on small samples and intermittent data;
+#' is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
+#' \code{obs=1000}, \code{nsim=100}. This approach increases the accuracy of
+#' covariance matrix on small samples and intermittent data;
 #' @return Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
 #'
 #' @seealso \link[smooth]{orders}
@@ -191,7 +190,13 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             obs <- ellipsis$obs;
         }
         else{
-            obs <- 10000;
+            obs <- 1000;
+        }
+        if(any(names(ellipsis)=="nsim")){
+            nsim <- ellipsis$nsim;
+        }
+        else{
+            nsim <- 100;
         }
         if(any(names(ellipsis)=="seed")){
             seed <- ellipsis$seed;
@@ -201,7 +206,6 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
         }
 
         h <- length(object$forecast);
-        newData <- simulate(object, nsim=1, obs=obs, seed=seed);
         if(gregexpr("ETS",object$model)!=-1){
             smoothFunction <- es;
         }
@@ -222,28 +226,34 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             smoothFunction <- sma;
         }
 
-        # Apply the model to the simulated data
-        smoothModel <- smoothFunction(newData$data, model=object, h=h);
-        # Remove first h-1 and last values.
-        errors <- smoothModel$errors[h-1+1:obs,];
+        covarArray <- array(NA,c(h,h,nsim));
 
-        # Transform errors if needed
-        if(errorType(object)=="M"){
-            # Remove zeroes if they are present
-            errors <- errors[!apply(errors==0,1,any),];
-            errors <- log(1 + errors);
+        newData <- simulate(object, nsim=nsim, obs=obs, seed=seed);
+        for(i in 1:nsim){
+            # Apply the model to the simulated data
+            smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
+            # Remove first h-1 and last values.
+            errors <- smoothModel$errors[h-1+1:obs,];
+
+            # Transform errors if needed
+            if(errorType(object)=="M"){
+                # Remove zeroes if they are present
+                errors <- errors[!apply(errors==0,1,any),];
+                errors <- log(1 + errors);
+            }
+
+            # Calculate covariance matrix
+            if(!is.null(object$imodel)){
+                obsInSample <- t((errors!=0)*1) %*% (errors!=0)*1;
+                obsInSample[obsInSample==0] <- 1;
+            }
+            else{
+                obsInSample <- matrix(nrow(errors),ncol(errors),ncol(errors));
+            }
+            covarArray[,,i] <- t(errors) %*% errors / obsInSample;
         }
 
-        # Calculate covariance matrix
-        if(!is.null(object$imodel)){
-            obs <- t((errors!=0)*1) %*% (errors!=0)*1;
-            obs[obs==0] <- 1;
-        }
-        else{
-            obs <- matrix(nrow(errors),ncol(errors),ncol(errors));
-        }
-
-        covarMat <- t(errors) %*% errors / obs;
+        covarMat <- apply(covarArray,c(1,2),mean);
     }
     # Analytical covariance matrix
     else if(type=="a"){
@@ -264,53 +274,56 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
         arrayF <- array(0,c(dim(matF),length(steps)))
         arrayw <- array(0,c(dim(matw),length(steps)))
         covarMat <- diag(h);
-        for(i in 1:length(steps)){
-            arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
-            arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
-        }
-        cValues <- rep(0,h);
-        matrixWeights <- matrix(0,nrow(matF),h);
-        # if(errorType(object)=="A"){
-        #     s2g <- matrix(0,nrow(matF),ncol(matF));
-        # }
-        # else{
-        #     errors <- residuals(object);
-        #     df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
-        #     s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
-        #                 t(log(1 + vecg %*% as.vector(errors*ot))) / df);
-        # }
-        # Produce c_{ij} values
-        #### This is the weakest part at the moment:
-        ### 1. It does not take the lag structure of the models correctly.
-        ### 2. It does not deal with multiplicative error correctly.
-        for(i in 2:h){
-            # print(i)
-            for(j in 1:sum(steps<i)){
-                cValues[i] <- cValues[i] + (arrayw[,,j] %*%
-                                                matrixPowerWrap(as.matrix(arrayF[,,j]),
-                                                                floor((i-1)/steps[j])-1) %*% vecg);
-                # cValues[i] <- cValues[i] + arrayw[,,j] %*% (matrixWeights[,i]);
-                # + s2g %*% arrayw[,,j]
+        if(h>min(lagsModel)){
+            for(i in 1:length(steps)){
+                arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
+                arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
             }
-        }
-        # Fill in diagonals
-        for(i in 2:h){
-            covarMat[i,i] <- covarMat[i-1,i-1] + cValues[i]^2;
-        }
-        # Fill in off-diagonals
-        for(i in 1:h){
-            for(j in 1:h){
-                if(i==j){
-                    next;
+            cValues <- rep(0,h);
+            matrixWeights <- matrix(0,nrow(matF),h);
+            # if(errorType(object)=="A"){
+            #     s2g <- matrix(0,nrow(matF),ncol(matF));
+            # }
+            # else{
+            #     errors <- residuals(object);
+            #     df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
+            #     s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
+            #                 t(log(1 + vecg %*% as.vector(errors*ot))) / df);
+            # }
+            # Produce c_{ij} values
+            #### This is the weakest part at the moment:
+            ### 1. It does not take the lag structure of the models correctly.
+            ### 2. It does not deal with multiplicative error correctly.
+            cMatrix <- array(NA,c(dim(matF),h));
+            for(i in 2:h){
+                # print(i)
+                for(j in 1:sum(steps<i)){
+                    cValues[i] <- cValues[i] + (arrayw[,,j] %*%
+                                                    matrixPowerWrap(as.matrix(arrayF[,,j]),
+                                                                    floor((i-1)/steps[j])-1) %*% vecg);
+                    # cValues[i] <- cValues[i] + arrayw[,,j] %*% (matrixWeights[,i]);
+                    # + s2g %*% arrayw[,,j]
                 }
-                else if(i==1){
-                    covarMat[i,j] = cValues[j];
-                }
-                else if(i>j){
-                    covarMat[i,j] <- covarMat[j,i];
-                }
-                else{
-                    covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
+            }
+            # Fill in diagonals
+            for(i in 2:h){
+                covarMat[i,i] <- covarMat[i-1,i-1] + cValues[i]^2;
+            }
+            # Fill in off-diagonals
+            for(i in 1:h){
+                for(j in 1:h){
+                    if(i==j){
+                        next;
+                    }
+                    else if(i==1){
+                        covarMat[i,j] = cValues[j];
+                    }
+                    else if(i>j){
+                        covarMat[i,j] <- covarMat[j,i];
+                    }
+                    else{
+                        covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
+                    }
                 }
             }
         }
@@ -1428,8 +1441,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
 
     if(gregexpr("ETS",object$model)!=-1){
-        model <- object$model;
-        model <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
+        model <- modelType(object);
         if(any(unlist(gregexpr("C",model))==-1)){
             if(substr(model,1,1)=="A"){
                 randomizer <- "rnorm";
@@ -1463,7 +1475,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         }
     }
     else if(gregexpr("CES",object$model)!=-1){
-        model <- substring(object$model,unlist(gregexpr("\\(",object$model))+1,unlist(gregexpr("\\)",object$model))-1);
+        model <- modelType(object);
         initial <- object$initial;
         randomizer <- "rnorm";
         simulatedData <- sim.ces(seasonality=model,
@@ -1473,14 +1485,14 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
     else if(gregexpr("GES",object$model)!=-1){
         model <- object$model;
-        orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
-        lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+        orders <- orders(object);
+        lags <- lags(object);
         initial <- object$initial;
         randomizer <- "rnorm";
         simulatedData <- sim.ges(orders=orders, lags=lags, frequency=frequency(object$actuals), measurement=object$measurement,
                                  transition=object$transition, persistence=object$persistence, initial=object$initial,
                                  obs=obs, nsim=nsim,
-                                 iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sqrt(object$s2),...);
+                                 iprob=object$iprob[length(object$iprob)], randomizer=randomizer, mean=0, sd=sigma(object),...);
 
     }
     else if(gregexpr("SMA",object$model)!=-1){
