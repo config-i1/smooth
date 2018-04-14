@@ -190,13 +190,13 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             obs <- ellipsis$obs;
         }
         else{
-            obs <- 1000;
+            obs <- length(getResponse(object));
         }
         if(any(names(ellipsis)=="nsim")){
             nsim <- ellipsis$nsim;
         }
         else{
-            nsim <- 100;
+            nsim <- 1000;
         }
         if(any(names(ellipsis)=="seed")){
             seed <- ellipsis$seed;
@@ -264,23 +264,23 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             ot <- rep(1,length(residuals(object)));
         }
         h <- length(object$forecast);
-        lagsModel <- modelLags(object);
-        lagsUnique <- unique(lagsModel);
-        steps <- lagsUnique[lagsUnique<=h];
-        s2 <- sigma(object)^2;
-        vecg <- matrix(object$persistence,length(object$persistence),1);
-        matF <- object$transition;
-        matw <- object$measurement;
-        arrayF <- array(0,c(dim(matF),length(steps)))
-        arrayw <- array(0,c(dim(matw),length(steps)))
         covarMat <- diag(h);
-        if(h>min(lagsModel)){
+        lagsModel <- modelLags(object);
+        s2 <- sigma(object)^2;
+        if(h > min(lagsModel)){
+            lagsUnique <- unique(lagsModel);
+            steps <- lagsUnique[lagsUnique<=h];
+            vecg <- matrix(object$persistence,length(object$persistence),1);
+            matF <- object$transition;
+            matw <- object$measurement;
+            arrayF <- array(0,c(dim(matF),length(steps)));
+            arrayw <- array(0,c(dim(matw),length(steps)));
             for(i in 1:length(steps)){
                 arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
                 arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
             }
             cValues <- rep(0,h);
-            matrixWeights <- matrix(0,nrow(matF),h);
+
             # if(errorType(object)=="A"){
             #     s2g <- matrix(0,nrow(matF),ncol(matF));
             # }
@@ -294,17 +294,29 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             #### This is the weakest part at the moment:
             ### 1. It does not take the lag structure of the models correctly.
             ### 2. It does not deal with multiplicative error correctly.
-            cMatrix <- array(NA,c(dim(matF),h));
+            FmatrixPowered <- array(diag(nrow(matF)),c(dim(matF),h));
             for(i in 2:h){
                 # print(i)
                 for(j in 1:sum(steps<i)){
                     cValues[i] <- cValues[i] + (arrayw[,,j] %*%
-                                                    matrixPowerWrap(as.matrix(arrayF[,,j]),
-                                                                    floor((i-1)/steps[j])-1) %*% vecg);
-                    # cValues[i] <- cValues[i] + arrayw[,,j] %*% (matrixWeights[,i]);
-                    # + s2g %*% arrayw[,,j]
+                                                    matrixPowerWrap(arrayF[,,j],
+                                                                    (floor((i-1)/steps[j])>1)*1) %*%
+                                                    FmatrixPowered[,,i-steps[j]] %*% vecg);
+                    if(j==1){
+                        FmatrixPowered[,,i] <- (matrixPowerWrap(arrayF[,,j],
+                                                               (floor((i-1)/steps[j])>1)*1) %*%
+                                                    FmatrixPowered[,,i-steps[j]]);
+                    }
+                    else{
+                        FmatrixPowered[,,i] <- (FmatrixPowered[,,i] +
+                                                    matrixPowerWrap(arrayF[,,j],
+                                                                    (floor((i-1)/steps[j])>1)*1) %*%
+                                                    FmatrixPowered[,,i-steps[j]]);
+                    }
+                    # cValues[i] <- cValues[i] + (arrayw[,,j] %*% FmatrixPowered[,,i] %*% vecg);
                 }
             }
+
             # Fill in diagonals
             for(i in 2:h){
                 covarMat[i,i] <- covarMat[i-1,i-1] + cValues[i]^2;
