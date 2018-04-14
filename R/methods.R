@@ -294,26 +294,30 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             #### This is the weakest part at the moment:
             ### 1. It does not take the lag structure of the models correctly.
             ### 2. It does not deal with multiplicative error correctly.
-            FmatrixPowered <- array(diag(nrow(matF)),c(dim(matF),h));
+            FmatrixPowered <- array(diag(nrow(matF)),c(dim(matF),h,length(steps)));
             for(i in 2:h){
                 # print(i)
-                for(j in 1:sum(steps<i)){
-                    cValues[i] <- cValues[i] + (arrayw[,,j] %*%
-                                                    matrixPowerWrap(arrayF[,,j],
-                                                                    (floor((i-1)/steps[j])>1)*1) %*%
-                                                    FmatrixPowered[,,i-steps[j]] %*% vecg);
-                    if(j==1){
-                        FmatrixPowered[,,i] <- (matrixPowerWrap(arrayF[,,j],
-                                                               (floor((i-1)/steps[j])>1)*1) %*%
-                                                    FmatrixPowered[,,i-steps[j]]);
+                for(k in 1:sum(steps<i)){
+                    for(j in 1:sum(steps<i)){
+                        # cValues[i] <- cValues[i] + (arrayw[,,j] %*%
+                        #                                 matrixPowerWrap(arrayF[,,j],
+                        #                                                 (floor((i-1)/steps[j])>1)*1) %*%
+                        #                                 FmatrixPowered[,,i-steps[j]] %*% vecg);
+                        if(all(FmatrixPowered[,,i,k]==diag(nrow(matF)))){
+                            FmatrixPowered[,,i,k] <- (matrixPowerWrap(arrayF[,,j],
+                                                                    (floor((i-steps[k])/steps[j])>1)*1) %*%
+                                                        FmatrixPowered[,,i-steps[j],k]);
+                        }
+                        else{
+                            FmatrixPowered[,,i,k] <- (FmatrixPowered[,,i,k] +
+                                                        matrixPowerWrap(arrayF[,,j],
+                                                                        (floor((i-steps[k])/steps[j])>1)*1) %*%
+                                                        FmatrixPowered[,,i-steps[j],k]);
+                        }
+                        # cValues[i] <- cValues[i] + (arrayw[,,j] %*% FmatrixPowered[,,i] %*% vecg);
                     }
-                    else{
-                        FmatrixPowered[,,i] <- (FmatrixPowered[,,i] +
-                                                    matrixPowerWrap(arrayF[,,j],
-                                                                    (floor((i-1)/steps[j])>1)*1) %*%
-                                                    FmatrixPowered[,,i-steps[j]]);
-                    }
-                    # cValues[i] <- cValues[i] + (arrayw[,,j] %*% FmatrixPowered[,,i] %*% vecg);
+                    # print(FmatrixPowered[,,i,k])
+                    cValues[i] <- arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
                 }
             }
 
