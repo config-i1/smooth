@@ -273,8 +273,9 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             vecg <- matrix(object$persistence,length(object$persistence),1);
             matF <- object$transition;
             matw <- object$measurement;
-            arrayF <- array(0,c(dim(matF),length(steps)));
-            arrayw <- array(0,c(dim(matw),length(steps)));
+            nComponents <- nrow(matF);
+            arrayF <- array(0,c(nComponents,nComponents,length(steps)));
+            arrayw <- array(0,c(1,nComponents,length(steps)));
             for(i in 1:length(steps)){
                 arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
                 arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
@@ -292,32 +293,43 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             # }
             # Produce c_{ij} values
             #### This is the weakest part at the moment:
-            ### 1. It does not take the lag structure of the models correctly.
-            ### 2. It does not deal with multiplicative error correctly.
-            FmatrixPowered <- array(diag(nrow(matF)),c(dim(matF),h,length(steps)));
+            ### It does not deal with multiplicative error correctly.
+            matrixFZeroes <- matrix(0,nComponents,nComponents);
+            FmatrixPowered <- array(0,c(nComponents,nComponents,h,length(steps)));
+            FmatrixPowered[,,1,] <- diag(nComponents);
             for(i in 2:h){
-                # print(i)
                 for(k in 1:sum(steps<i)){
-                    for(j in 1:sum(steps<i)){
-                        # cValues[i] <- cValues[i] + (arrayw[,,j] %*%
-                        #                                 matrixPowerWrap(arrayF[,,j],
-                        #                                                 (floor((i-1)/steps[j])>1)*1) %*%
-                        #                                 FmatrixPowered[,,i-steps[j]] %*% vecg);
-                        if(all(FmatrixPowered[,,i,k]==diag(nrow(matF)))){
-                            FmatrixPowered[,,i,k] <- (matrixPowerWrap(arrayF[,,j],
-                                                                    (floor((i-steps[k])/steps[j])>1)*1) %*%
-                                                        FmatrixPowered[,,i-steps[j],k]);
+                    # This needs to be produced only for the lower lag.
+                    # Then it will be reused for the higher ones.
+                    if(k==1){
+                        for(j in 1:sum(steps<i)){
+                            if(((i-steps[k])/steps[j]>1)){
+                                newF <- arrayF[,,j];
+                            }
+                            else{
+                                newF <- diag(nComponents);
+                            }
+
+                            # If this is a zero matrix, do simple multiplication
+                            if(all(FmatrixPowered[,,i,k]==0)){
+                                FmatrixPowered[,,i,k] <- (newF %*%
+                                                              FmatrixPowered[,,i-steps[j],k]);
+                            }
+                            else{
+                                # Check that the multiplication is not an identity matrix
+                                if(!all((newF %*% FmatrixPowered[,,i-steps[j],k])==diag(nComponents))){
+                                    FmatrixPowered[,,i,k] <- FmatrixPowered[,,i,k] + (newF %*%
+                                                                  FmatrixPowered[,,i-steps[j],k]);
+                                }
+                            }
                         }
-                        else{
-                            FmatrixPowered[,,i,k] <- (FmatrixPowered[,,i,k] +
-                                                        matrixPowerWrap(arrayF[,,j],
-                                                                        (floor((i-steps[k])/steps[j])>1)*1) %*%
-                                                        FmatrixPowered[,,i-steps[j],k]);
-                        }
-                        # cValues[i] <- cValues[i] + (arrayw[,,j] %*% FmatrixPowered[,,i] %*% vecg);
                     }
-                    # print(FmatrixPowered[,,i,k])
-                    cValues[i] <- arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
+                    # Copy the structure from the lower lags
+                    else{
+                        FmatrixPowered[,,i,k] <- FmatrixPowered[,,i-steps[k]+1,1];
+                    }
+                    # Generate values of cj
+                    cValues[i] <- cValues[i] + arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
                 }
             }
 
