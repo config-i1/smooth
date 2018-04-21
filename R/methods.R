@@ -107,14 +107,14 @@ AICc.smooth <- function(object, ...){
 #' @param object Model estimated using one of the functions of smooth package.
 #' @param type What method to use in order to produce covariance matrix:
 #' \enumerate{
+#' \item \code{analytical} - based on the state-space structure of the model and the
+#' one-step-ahead forecast error. This works for pure additive and pure multiplicative
+#' models. The values for the mixed models might be off.
 #' \item \code{empirical} - based on the in-sample 1 to h steps ahead forecast errors
 #' (works fine on larger samples);
 #' \item \code{simulated} - the data is simulated from the estimated model, then the
 #' same model is applied to it and then the empirical 1 to h steps ahead forecast
 #' errors are produced;
-#' \item \code{analytical} - based on the state-space structure of the model and the
-#' one-step-ahead forecast error. This works correctly only for pure additive and
-#' pure multiplicative models.
 #' }
 #' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
 #' is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
@@ -133,10 +133,10 @@ AICc.smooth <- function(object, ...){
 #'
 #' @rdname covar
 #' @export covar
-covar <-  function(object, type=c("empirical","simulated","analytical"), ...) UseMethod("covar")
+covar <-  function(object, type=c("analytical","empirical","simulated"), ...) UseMethod("covar")
 
 #' @export
-covar.default <- function(object, type=c("empirical","simulated","analytical"), ...){
+covar.default <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
     return(sigma(object)^2);
 }
@@ -144,7 +144,7 @@ covar.default <- function(object, type=c("empirical","simulated","analytical"), 
 #' @aliases covar.smooth
 #' @rdname covar
 #' @export
-covar.smooth <- function(object, type=c("empirical","simulated","analytical"), ...){
+covar.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
     type <- substr(type[1],1,1);
 
@@ -294,6 +294,8 @@ covar.smooth <- function(object, type=c("empirical","simulated","analytical"), .
             # Produce c_{ij} values
             #### This is the weakest part at the moment:
             ### It does not deal with multiplicative error correctly.
+            ### But the current implementation is an approximation for multiplicative models
+            ### with low smoothing parameters.
             matrixFZeroes <- matrix(0,nComponents,nComponents);
             FmatrixPowered <- array(0,c(nComponents,nComponents,h,length(steps)));
             FmatrixPowered[,,1,] <- diag(nComponents);

@@ -5,24 +5,24 @@
 \alias{covar.smooth}
 \title{Function returns the covariance matrix of conditional multiple steps ahead forecast errors}
 \usage{
-covar(object, type = c("empirical", "simulated", "analytical"), ...)
+covar(object, type = c("analytical", "empirical", "simulated"), ...)
 
-\method{covar}{smooth}(object, type = c("empirical", "simulated",
-  "analytical"), ...)
+\method{covar}{smooth}(object, type = c("analytical", "empirical",
+  "simulated"), ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
 
 \item{type}{What method to use in order to produce covariance matrix:
 \enumerate{
+\item \code{analytical} - based on the state-space structure of the model and the
+one-step-ahead forecast error. This works for pure additive and pure multiplicative
+models. The values for the mixed models might be off.
 \item \code{empirical} - based on the in-sample 1 to h steps ahead forecast errors
 (works fine on larger samples);
 \item \code{simulated} - the data is simulated from the estimated model, then the
 same model is applied to it and then the empirical 1 to h steps ahead forecast
 errors are produced;
-\item \code{analytical} - based on the state-space structure of the model and the
-one-step-ahead forecast error. This works correctly only for pure additive and
-pure multiplicative models.
 }}
 
 \item{...}{Other parameters passed to simulate function (if \code{type="simulated"}
