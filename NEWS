@@ -17,7 +17,7 @@ Changes:
 * The same thing is now available for cfType="HAM". This is based on a distribution that I have not yet met in the literature and had to derive myself.
 * Corrections in AICc.smooth for intermittent models.
 * Due to log-normality assumption in multiplicative models, the forecasts should have a bias correction. This means that ETS(M,N,N) does not produce straight line anymore, but a slowly increasig one. This has been corrected in this version of smooth.
-* We now warn, when the number of degrees of freedom is too low for the reasonable estimation of variance (comparing with 5, because a median human being has 5 fingers on their hand).
+* We now warn, when the number of degrees of freedom is too low for the reasonable estimation of variance (comparing with 5, because a median human being has 5 fingers per hand).
 
 Bugfixes:
 * Combinations in es() did not work in case of something like "CYY" because of the wrong pool of models.
