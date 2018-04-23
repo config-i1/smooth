@@ -285,10 +285,10 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
 
             # Prepare transition array
             transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
-            transitionPowered[,,1,] <- diag(nComponents);
+            transitionPowered[,,1:min(steps),] <- diag(nComponents);
 
             # Generate values for the transition matrix
-            for(i in 2:h){
+            for(i in (min(steps)+1):h){
                 for(k in 1:sum(steps<i)){
                     # This needs to be produced only for the lower lag.
                     # Then it will be reused for the higher ones.
@@ -515,8 +515,9 @@ nParam.iss <- function(object, ...){
 #' # Generate data, apply es() with the holdout parameter and calculate PLS
 #' x <- rnorm(100,0,1)
 #' ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
-#' pls(ourModel)
-#' pls(ourModel, type="s", obs=1000)
+#' pls(ourModel, type="a")
+#' pls(ourModel, type="e")
+#' pls(ourModel, type="s", obs=100, nsim=100)
 #'
 #' @rdname pls
 #' @export pls

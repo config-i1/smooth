@@ -1958,11 +1958,10 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 cumVarVec[1:min(h,maxlag)] <- s2 * (h - 1:min(h,maxlag) + 1);
             }
 
-#### Pure multiplicative models ####
+#### Pure Multiplicative models ####
             if(Etype=="M"){
                 # This is just an approximation of the true intervals
                 if(h > min(modellags)){
-                    varVec[1] <- 1;
                     lagsUnique <- unique(modellags);
                     steps <- lagsUnique[lagsUnique<=h];
                     stepsNumber <- length(steps);
@@ -1973,13 +1972,14 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
                     }
                     cValues <- rep(0,h);
+                    varVec[1:(min(steps)+1)] <- 1;
 
                     # Prepare transition array
                     transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
-                    transitionPowered[,,1,] <- diag(nComponents);
+                    transitionPowered[,,1:min(steps),] <- diag(nComponents);
 
                     # Generate values for the transition matrix
-                    for(i in 2:h){
+                    for(i in (min(steps)+1):h){
                         for(k in 1:sum(steps<i)){
                             # This needs to be produced only for the lower lag.
                             # Then it will be reused for the higher ones.
@@ -2085,7 +2085,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Pure Additive models ####
             else{
                 if(h > min(modellags)){
-                    varVec[1] <- 1;
                     lagsUnique <- unique(modellags);
                     steps <- lagsUnique[lagsUnique<=h];
                     stepsNumber <- length(steps);
@@ -2096,13 +2095,14 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
                     }
                     cValues <- rep(0,h);
+                    varVec[1:(min(steps)+1)] <- 1;
 
                     # Prepare transition array
                     transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
-                    transitionPowered[,,1,] <- diag(nComponents);
+                    transitionPowered[,,1:min(steps),] <- diag(nComponents);
 
                     # Generate values for the transition matrix
-                    for(i in 2:h){
+                    for(i in (min(steps)+1):h){
                         for(k in 1:sum(steps<i)){
                             # This needs to be produced only for the lower lag.
                             # Then it will be reused for the higher ones.

@@ -36,8 +36,9 @@ based onthe distribution of 1 to h steps ahead forecast errors is used in the pr
 # Generate data, apply es() with the holdout parameter and calculate PLS
 x <- rnorm(100,0,1)
 ourModel <- es(x, h=10, holdout=TRUE, intervals=TRUE)
-pls(ourModel)
-pls(ourModel, type="s", obs=1000)
+pls(ourModel, type="a")
+pls(ourModel, type="e")
+pls(ourModel, type="s", obs=100, nsim=100)
 
 }
 \references{
