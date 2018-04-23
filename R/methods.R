@@ -347,8 +347,6 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
                     }
                 }
             }
-            # Multiply the matrix by the one-step-ahead variance
-            covarMat <- covarMat * s2;
             ### The function does not deal with multiplicative error correctly for 100%.
             ### The current implementation is an approximation for multiplicative models.
             # }
@@ -409,6 +407,8 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             #     }
             # }
         }
+        # Multiply the matrix by the one-step-ahead variance
+        covarMat <- covarMat * s2;
     }
     return(covarMat);
     # correlation matrix: covar(test) / sqrt(diag(covar(test)) %*% t(diag(covar(test))))
