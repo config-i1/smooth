@@ -1960,63 +1960,100 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 #### Pure multiplicative models ####
             if(Etype=="M"){
-                # Array of variance of states
-                matrixOfVarianceOfStates <- array(0,c(nComponents,nComponents,h+maxlag));
-                matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% t(persistence) * s2;
-                matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
+                # This is just an approximation of the true intervals
+                if(h > min(modellags)){
+                    varVec[1] <- 1;
+                    lagsUnique <- unique(modellags);
+                    steps <- lagsUnique[lagsUnique<=h];
+                    stepsNumber <- length(steps);
+                    arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
+                    arrayMeasurement <- array(0,c(1,nComponents,stepsNumber));
+                    for(i in 1:stepsNumber){
+                        arrayTransition[,modellags==steps[i],i] <- transition[,modellags==steps[i]];
+                        arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
+                    }
+                    cValues <- rep(0,h);
 
-                # New transition and measurement for the internal use
-                transitionnew <- matrix(0,nComponents,nComponents);
-                measurementnew <- matrix(0,1,nComponents);
+                    # Prepare transition array
+                    transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
+                    transitionPowered[,,1,] <- diag(nComponents);
 
-                # selectionmat is needed for the correct selection of lagged variables in the array
-                # newelements are needed for the correct fill in of all the previous matrices
-                selectionmat <- transitionnew;
-                newelements <- rep(FALSE,nComponents);
+                    # Generate values for the transition matrix
+                    for(i in 2:h){
+                        for(k in 1:sum(steps<i)){
+                            # This needs to be produced only for the lower lag.
+                            # Then it will be reused for the higher ones.
+                            if(k==1){
+                                for(j in 1:sum(steps<i)){
+                                    if(((i-steps[k])/steps[j]>1)){
+                                        transitionNew <- arrayTransition[,,j];
+                                    }
+                                    else{
+                                        transitionNew <- diag(nComponents);
+                                    }
 
-                # Define chunks, which correspond to the lags with h being the final one
-                chuncksofhorizon <- c(1,unique(modellags),h);
-                chuncksofhorizon <- sort(chuncksofhorizon);
-                chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
-                chuncksofhorizon <- unique(chuncksofhorizon);
-
-                # Length of the vector, excluding the h at the end
-                chunkslength <- length(chuncksofhorizon) - 1;
-
-                newelements <- modellags<=(chuncksofhorizon[1]);
-                measurementnew[,newelements] <- measurement[,newelements];
-                # This is needed for the first observations, where we do not care about the transition equation
-                varVec[1:min(h,maxlag)] <- s2;
-
-                for(j in 1:chunkslength){
-                    selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
-                    selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
-
-                    newelements <- modellags<(chuncksofhorizon[j]+1);
-                    transitionnew[,newelements] <- transition[,newelements];
-                    measurementnew[,newelements] <- measurement[,newelements];
-
-                    for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
-                        selectionmat[modellags>chuncksofhorizon[j],] <- i;
-                        selectionmat[,modellags>chuncksofhorizon[j]] <- i;
-
-                        matrixOfVarianceOfStatesLagged[newelements,newelements] <- matrixOfVarianceOfStates[cbind(rep(c(1:nComponents),each=nComponents),
-                                                                                                                  rep(c(1:nComponents),nComponents),
-                                                                                                                  i - c(selectionmat))];
-
-                        matrixOfVarianceOfStates[,,i] <- transitionnew %*% matrixOfVarianceOfStatesLagged %*% t(transitionnew) + s2g;
-                        varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
-                        if(cumulative){
-                            # This is just an approximation!
-                            cumVarVec[i] <- ((measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew)) + s2) * m;
-                            m <- m-1;
+                                    # If this is a zero matrix, do simple multiplication
+                                    if(all(transitionPowered[,,i,k]==0)){
+                                        transitionPowered[,,i,k] <- (transitionNew %*%
+                                                                         transitionPowered[,,i-steps[j],k]);
+                                    }
+                                    else{
+                                        # Check that the multiplication is not an identity matrix
+                                        if(!all((transitionNew %*% transitionPowered[,,i-steps[j],k])==diag(nComponents))){
+                                            transitionPowered[,,i,k] <- transitionPowered[,,i,k] + (transitionNew %*%
+                                                                                                        transitionPowered[,,i-steps[j],k]);
+                                        }
+                                    }
+                                }
+                            }
+                            # Copy the structure from the lower lags
+                            else{
+                                transitionPowered[,,i,k] <- transitionPowered[,,i-steps[k]+1,1];
+                            }
+                            # Generate values of cj
+                            cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
                         }
+                    }
+
+                    # Fill in diagonals
+                    for(i in 2:h){
+                        varVec[i] <- varVec[i-1] + cValues[i]^2;
                     }
                 }
 
                 ### Cumulative variance is different.
                 if(cumulative){
-                    varVec <- sum(cumVarVec);
+                    # Create covariance matrix
+                    covarMat <- diag(h);
+                    diag(covarMat) <- varVec;
+
+                    # Fill in off-diagonals
+                    for(i in 1:h){
+                        for(j in 1:h){
+                            if(i==j){
+                                next;
+                            }
+                            else if(i==1){
+                                covarMat[i,j] = cValues[j];
+                            }
+                            else if(i>j){
+                                covarMat[i,j] <- covarMat[j,i];
+                            }
+                            else{
+                                covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
+                            }
+                        }
+                    }
+                    varVec <- sum(covarMat);
+                    varVec <- log(exp(varVec / h) * h);
+                }
+
+                # Multiply the vector
+                varVec <- varVec * s2;
+
+                ### Cumulative variance is different.
+                if(cumulative){
+                    # varVec <- sum(cumVarVec);
 
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
@@ -2047,107 +2084,93 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             # }
 #### Pure Additive models ####
             else{
-                ### This is an example of the correct variance estimation for h=10
-                ### This needs to be implemented here at some point
-                # y <- sim.es("ANA",frequency=4,obs=120)
-                # test <- ges(y$data,orders=c(1,1,1),lags=c(1,4,9),intervals=T,h=10)
-                #
-                # F1 <- test$transition
-                # F2 <- test$transition
-                # F1[,-1] <- 0
-                # F2[,-2] <- 0
-                # g <- test$persistence
-                # w1 <- test$measurement
-                # w2 <- test$measurement
-                # w1[,-1] <- 0
-                # w2[,-2] <- 0
-                #
-                # vecVar <- rep(1,10)
-                # vecVar[1] <- (w1 %*% (matrixPowerWrap(F1,8) %*% g + F2 %*% matrixPowerWrap(F1,4) %*% g + matrixPowerWrap(F2,2) %*% g) +
-                #                   w2 %*% (matrixPowerWrap(F1,5) %*% g + F2 %*% matrixPowerWrap(F1,1) %*% g))
-                #
-                # vecVar[2] <- (w1 %*% (matrixPowerWrap(F1,7) %*% g + F2 %*% matrixPowerWrap(F1,3) %*% g) +
-                #                   w2 %*% (matrixPowerWrap(F1,4) %*% g + F2 %*% g))
-                #
-                # vecVar[3] <- (w1 %*% (matrixPowerWrap(F1,6) %*% g + F2 %*% matrixPowerWrap(F1,2) %*% g) +
-                #                   w2 %*% (matrixPowerWrap(F1,3) %*% g))
-                #
-                # vecVar[4] <- (w1 %*% (matrixPowerWrap(F1,5) %*% g + F2 %*% matrixPowerWrap(F1,1) %*% g) +
-                #                   w2 %*% (matrixPowerWrap(F1,2) %*% g))
-                #
-                # vecVar[5] <- (w1 %*% (matrixPowerWrap(F1,4) %*% g + F2 %*% g) +
-                #                   w2 %*% (matrixPowerWrap(F1,1) %*% g))
-                #
-                # vecVar[6] <- (w1 %*% (matrixPowerWrap(F1,3) %*% g) +
-                #                   w2 %*% g)
-                #
-                # vecVar[7:10] <- c(w1 %*% (matrixPowerWrap(F1,2) %*% g),
-                #                   w1 %*% (matrixPowerWrap(F1,1) %*% g),
-                #                   w1 %*% g,
-                #                   1)
-                #
-                # vecVar <- vecVar^2
-                # sum(vecVar) * test$s2
+                if(h > min(modellags)){
+                    varVec[1] <- 1;
+                    lagsUnique <- unique(modellags);
+                    steps <- lagsUnique[lagsUnique<=h];
+                    stepsNumber <- length(steps);
+                    arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
+                    arrayMeasurement <- array(0,c(1,nComponents,stepsNumber));
+                    for(i in 1:stepsNumber){
+                        arrayTransition[,modellags==steps[i],i] <- transition[,modellags==steps[i]];
+                        arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
+                    }
+                    cValues <- rep(0,h);
 
-                # Array of variance of states
-                matrixOfVarianceOfStates <- array(0,c(nComponents,nComponents,h+maxlag));
-                matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% t(persistence) * s2;
-                matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
+                    # Prepare transition array
+                    transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
+                    transitionPowered[,,1,] <- diag(nComponents);
 
-                # New transition and measurement for the internal use
-                transitionnew <- matrix(0,nComponents,nComponents);
-                measurementnew <- matrix(0,1,nComponents);
+                    # Generate values for the transition matrix
+                    for(i in 2:h){
+                        for(k in 1:sum(steps<i)){
+                            # This needs to be produced only for the lower lag.
+                            # Then it will be reused for the higher ones.
+                            if(k==1){
+                                for(j in 1:sum(steps<i)){
+                                    if(((i-steps[k])/steps[j]>1)){
+                                        transitionNew <- arrayTransition[,,j];
+                                    }
+                                    else{
+                                        transitionNew <- diag(nComponents);
+                                    }
 
-                # selectionmat is needed for the correct selection of lagged variables in the array
-                # newelements are needed for the correct fill in of all the previous matrices
-                selectionmat <- transitionnew;
-                newelements <- rep(FALSE,nComponents);
-
-                # Define chunks, which correspond to the lags with h being the final one
-                chuncksofhorizon <- c(1,unique(modellags),h);
-                chuncksofhorizon <- sort(chuncksofhorizon);
-                chuncksofhorizon <- chuncksofhorizon[chuncksofhorizon<=h];
-                chuncksofhorizon <- unique(chuncksofhorizon);
-
-                # Length of the vector, excluding the h at the end
-                chunkslength <- length(chuncksofhorizon) - 1;
-
-                newelements <- modellags<=(chuncksofhorizon[1]);
-                measurementnew[,newelements] <- measurement[,newelements];
-
-                # This is needed for the first observations, where we do not care about the transition equation
-                varVec[1:min(h,maxlag)] <- s2;
-
-                m <- h-1;
-                for(j in 1:chunkslength){
-                    selectionmat[modellags==chuncksofhorizon[j],] <- chuncksofhorizon[j];
-                    selectionmat[,modellags==chuncksofhorizon[j]] <- chuncksofhorizon[j];
-
-                    newelements <- modellags<(chuncksofhorizon[j]+1);
-                    transitionnew[,newelements] <- transition[,newelements];
-                    measurementnew[,newelements] <- measurement[,newelements];
-
-                    for(i in (chuncksofhorizon[j]+1):chuncksofhorizon[j+1]){
-                        selectionmat[modellags>chuncksofhorizon[j],] <- i;
-                        selectionmat[,modellags>chuncksofhorizon[j]] <- i;
-
-                        matrixOfVarianceOfStatesLagged[newelements,newelements] <- matrixOfVarianceOfStates[cbind(rep(c(1:nComponents),each=nComponents),
-                                                                                                                  rep(c(1:nComponents),nComponents),
-                                                                                                                  i - c(selectionmat))];
-
-                        matrixOfVarianceOfStates[,,i] <- transitionnew %*% matrixOfVarianceOfStatesLagged %*% t(transitionnew) + persistence %*% t(persistence) * s2;
-                        varVec[i] <- measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew) + s2;
-                        if(cumulative){
-                            cumVarVec[i] <- ((measurementnew %*% matrixOfVarianceOfStatesLagged %*% t(measurementnew)) + s2) * m;
-                            m <- m-1;
+                                    # If this is a zero matrix, do simple multiplication
+                                    if(all(transitionPowered[,,i,k]==0)){
+                                        transitionPowered[,,i,k] <- (transitionNew %*%
+                                                                         transitionPowered[,,i-steps[j],k]);
+                                    }
+                                    else{
+                                        # Check that the multiplication is not an identity matrix
+                                        if(!all((transitionNew %*% transitionPowered[,,i-steps[j],k])==diag(nComponents))){
+                                            transitionPowered[,,i,k] <- transitionPowered[,,i,k] + (transitionNew %*%
+                                                                                                        transitionPowered[,,i-steps[j],k]);
+                                        }
+                                    }
+                                }
+                            }
+                            # Copy the structure from the lower lags
+                            else{
+                                transitionPowered[,,i,k] <- transitionPowered[,,i-steps[k]+1,1];
+                            }
+                            # Generate values of cj
+                            cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
                         }
+                    }
+
+                    # Fill in diagonals
+                    for(i in 2:h){
+                        varVec[i] <- varVec[i-1] + cValues[i]^2;
                     }
                 }
 
                 ### Cumulative variance is different.
                 if(cumulative){
-                    varVec <- sum(cumVarVec);
+                    # Create covariance matrix
+                    covarMat <- diag(h);
+                    diag(covarMat) <- varVec;
+
+                    # Fill in off-diagonals
+                    for(i in 1:h){
+                        for(j in 1:h){
+                            if(i==j){
+                                next;
+                            }
+                            else if(i==1){
+                                covarMat[i,j] = cValues[j];
+                            }
+                            else if(i>j){
+                                covarMat[i,j] <- covarMat[j,i];
+                            }
+                            else{
+                                covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
+                            }
+                        }
+                    }
+                    varVec <- sum(covarMat);
                 }
+                # Multiply the vector
+                varVec <- varVec * s2;
 
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
@@ -2310,9 +2333,9 @@ ssForecaster <- function(...){
                 simulateIntervals <- FALSE;
             }
 
-            if(cumulative){
-               # & Etype=="M"){
-               # & intervalsType=="p"){ <--- this is temporary. We do not know what cumulative means for multiplicative models.
+            # It is not possible to produce parametric / semi / non intervals for cumulative values
+            # So we use simulations instead.
+            if(cumulative & Etype=="M"){
                 simulateIntervals <- TRUE;
             }
 
