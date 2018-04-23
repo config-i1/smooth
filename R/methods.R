@@ -270,21 +270,22 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         if(h > min(lagsModel)){
             lagsUnique <- unique(lagsModel);
             steps <- lagsUnique[lagsUnique<=h];
-            vecg <- matrix(object$persistence,length(object$persistence),1);
-            matF <- object$transition;
-            matw <- object$measurement;
-            nComponents <- nrow(matF);
-            arrayF <- array(0,c(nComponents,nComponents,length(steps)));
-            arrayw <- array(0,c(1,nComponents,length(steps)));
-            for(i in 1:length(steps)){
-                arrayF[,lagsModel==steps[i],i] <- matF[,lagsModel==steps[i]];
-                arrayw[,lagsModel==steps[i],i] <- matw[,lagsModel==steps[i]];
+            stepsNumber <- length(steps);
+            persistence <- matrix(object$persistence,length(object$persistence),1);
+            transition <- object$transition;
+            measurement <- object$measurement;
+            nComponents <- nrow(transition);
+            arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
+            arrayMeasurement <- array(0,c(1,nComponents,stepsNumber));
+            for(i in 1:stepsNumber){
+                arrayTransition[,lagsModel==steps[i],i] <- transition[,lagsModel==steps[i]];
+                arrayMeasurement[,lagsModel==steps[i],i] <- measurement[,lagsModel==steps[i]];
             }
             cValues <- rep(0,h);
 
-            # Produce c_{ij} values
-            FmatrixPowered <- array(0,c(nComponents,nComponents,h,length(steps)));
-            FmatrixPowered[,,1,] <- diag(nComponents);
+            # Prepare transition array
+            transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
+            transitionPowered[,,1,] <- diag(nComponents);
 
             # Generate values for the transition matrix
             for(i in 2:h){
@@ -294,32 +295,32 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
                     if(k==1){
                         for(j in 1:sum(steps<i)){
                             if(((i-steps[k])/steps[j]>1)){
-                                newF <- arrayF[,,j];
+                                transitionNew <- arrayTransition[,,j];
                             }
                             else{
-                                newF <- diag(nComponents);
+                                transitionNew <- diag(nComponents);
                             }
 
                             # If this is a zero matrix, do simple multiplication
-                            if(all(FmatrixPowered[,,i,k]==0)){
-                                FmatrixPowered[,,i,k] <- (newF %*%
-                                                              FmatrixPowered[,,i-steps[j],k]);
+                            if(all(transitionPowered[,,i,k]==0)){
+                                transitionPowered[,,i,k] <- (transitionNew %*%
+                                                              transitionPowered[,,i-steps[j],k]);
                             }
                             else{
                                 # Check that the multiplication is not an identity matrix
-                                if(!all((newF %*% FmatrixPowered[,,i-steps[j],k])==diag(nComponents))){
-                                    FmatrixPowered[,,i,k] <- FmatrixPowered[,,i,k] + (newF %*%
-                                                                                          FmatrixPowered[,,i-steps[j],k]);
+                                if(!all((transitionNew %*% transitionPowered[,,i-steps[j],k])==diag(nComponents))){
+                                    transitionPowered[,,i,k] <- transitionPowered[,,i,k] + (transitionNew %*%
+                                                                                          transitionPowered[,,i-steps[j],k]);
                                 }
                             }
                         }
                     }
                     # Copy the structure from the lower lags
                     else{
-                        FmatrixPowered[,,i,k] <- FmatrixPowered[,,i-steps[k]+1,1];
+                        transitionPowered[,,i,k] <- transitionPowered[,,i-steps[k]+1,1];
                     }
                     # Generate values of cj
-                    cValues[i] <- cValues[i] + arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
+                    cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
                 }
             }
 
@@ -353,12 +354,12 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             # else{
             #     errors <- as.vector(residuals(object)*ot);
             #     df <- as.vector(sum(log(1 + errors)^2) / s2);
-            #     gs2 <- (log(1 + vecg %*% errors) %*%
-            #                 t(log(1 + vecg %*% errors)) / df);
+            #     gs2 <- (log(1 + persistence %*% errors) %*%
+            #                 t(log(1 + persistence %*% errors)) / df);
             #     # Covariances between (1 + e) and (1 + ge)
-            #     gCov <- vecg;
+            #     gCov <- persistence;
             #     for(i in 1:nrow(gCov)){
-            #         gCov[i,] <- cov(log(1 + vecg %*% t(errors))[i,],
+            #         gCov[i,] <- cov(log(1 + persistence %*% t(errors))[i,],
             #                     log(1 + errors));
             #     }
             #     gCov <- gCov * length(errors) / df;
@@ -368,7 +369,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             #    for(i in 2:h){
             #        for(k in 1:sum(steps<i)){
             #            # Generate values of cj
-            #            cValues[i] <- cValues[i] + arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
+            #            cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
             #        }
             #    }
             #
@@ -377,8 +378,8 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             #         covarMat[i,i] <- (covarMat[i-1,i-1]);
             #         for(k in 1:sum(steps<i)){
             #             covarMat[i,i] <- (covarMat[i,i] +
-            #                                   arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% gs2 %*%
-            #                                   t(FmatrixPowered[,,i,k]) %*% arrayw[,,k]);
+            #                                   arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% gs2 %*%
+            #                                   t(transitionPowered[,,i,k]) %*% arrayMeasurement[,,k]);
             #         }
             #     }
             #
@@ -390,7 +391,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             #             }
             #             else if(i==1){
             #                 for(k in 1:sum(steps<j)){
-            #                     covarMat[i,j] <- arrayw[,,k] %*% FmatrixPowered[,,j,k] %*% gCov;
+            #                     covarMat[i,j] <- arrayMeasurement[,,k] %*% transitionPowered[,,j,k] %*% gCov;
             #                 }
             #             }
             #             else if(i>j){
@@ -399,8 +400,8 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             #             else{
             #                 covarMat[i,j] <- covarMat[i-1,j-1]
             #                 for(k in 1:sum(steps<i)){
-            #                     covarMat[i,j] <- (covarMat[i,j] + arrayw[,,k] %*% FmatrixPowered[,,j,k] %*% gCov *
-            #                                           arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% gCov);
+            #                     covarMat[i,j] <- (covarMat[i,j] + arrayMeasurement[,,k] %*% transitionPowered[,,j,k] %*% gCov *
+            #                                           arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% gCov);
             #                 }
             #             }
             #         }
