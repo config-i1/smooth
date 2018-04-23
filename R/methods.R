@@ -282,23 +282,11 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             }
             cValues <- rep(0,h);
 
-            # if(errorType(object)=="A"){
-            #     s2g <- matrix(0,nrow(matF),ncol(matF));
-            # }
-            # else{
-            #     errors <- residuals(object);
-            #     df <- as.vector(sum(log(1 + errors*ot)^2) / s2);
-            #     s2g <- (log(1 + vecg %*% as.vector(errors*ot)) %*%
-            #                 t(log(1 + vecg %*% as.vector(errors*ot))) / df);
-            # }
             # Produce c_{ij} values
-            #### This is the weakest part at the moment:
-            ### It does not deal with multiplicative error correctly.
-            ### But the current implementation is an approximation for multiplicative models
-            ### with low smoothing parameters.
-            matrixFZeroes <- matrix(0,nComponents,nComponents);
             FmatrixPowered <- array(0,c(nComponents,nComponents,h,length(steps)));
             FmatrixPowered[,,1,] <- diag(nComponents);
+
+            # Generate values for the transition matrix
             for(i in 2:h){
                 for(k in 1:sum(steps<i)){
                     # This needs to be produced only for the lower lag.
@@ -321,7 +309,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
                                 # Check that the multiplication is not an identity matrix
                                 if(!all((newF %*% FmatrixPowered[,,i-steps[j],k])==diag(nComponents))){
                                     FmatrixPowered[,,i,k] <- FmatrixPowered[,,i,k] + (newF %*%
-                                                                  FmatrixPowered[,,i-steps[j],k]);
+                                                                                          FmatrixPowered[,,i-steps[j],k]);
                                 }
                             }
                         }
@@ -334,6 +322,9 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
                     cValues[i] <- cValues[i] + arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
                 }
             }
+
+            # Additive error model
+            # if(errorType(object)=="A"){
 
             # Fill in diagonals
             for(i in 2:h){
@@ -356,9 +347,68 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
                     }
                 }
             }
+            # Multiply the matrix by the one-step-ahead variance
+            covarMat <- covarMat * s2;
+            ### The function does not deal with multiplicative error correctly for 100%.
+            ### The current implementation is an approximation for multiplicative models.
+            # }
+            # else{
+            #     errors <- as.vector(residuals(object)*ot);
+            #     df <- as.vector(sum(log(1 + errors)^2) / s2);
+            #     gs2 <- (log(1 + vecg %*% errors) %*%
+            #                 t(log(1 + vecg %*% errors)) / df);
+            #     # Covariances between (1 + e) and (1 + ge)
+            #     gCov <- vecg;
+            #     for(i in 1:nrow(gCov)){
+            #         gCov[i,] <- cov(log(1 + vecg %*% t(errors))[i,],
+            #                     log(1 + errors));
+            #     }
+            #     gCov <- gCov * length(errors) / df;
+            #
+            #     covarMat[1,1] <- s2;
+            #
+            #    for(i in 2:h){
+            #        for(k in 1:sum(steps<i)){
+            #            # Generate values of cj
+            #            cValues[i] <- cValues[i] + arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% vecg;
+            #        }
+            #    }
+            #
+            #     # Fill in diagonals
+            #     for(i in 2:h){
+            #         covarMat[i,i] <- (covarMat[i-1,i-1]);
+            #         for(k in 1:sum(steps<i)){
+            #             covarMat[i,i] <- (covarMat[i,i] +
+            #                                   arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% gs2 %*%
+            #                                   t(FmatrixPowered[,,i,k]) %*% arrayw[,,k]);
+            #         }
+            #     }
+            #
+            #     # Fill in off-diagonals
+            #     for(i in 1:h){
+            #         for(j in 1:h){
+            #             if(i==j){
+            #                 next;
+            #             }
+            #             else if(i==1){
+            #                 for(k in 1:sum(steps<j)){
+            #                     covarMat[i,j] <- arrayw[,,k] %*% FmatrixPowered[,,j,k] %*% gCov;
+            #                 }
+            #             }
+            #             else if(i>j){
+            #                 covarMat[i,j] <- covarMat[j,i];
+            #             }
+            #             else{
+            #                 covarMat[i,j] <- covarMat[i-1,j-1]
+            #                 for(k in 1:sum(steps<i)){
+            #                     covarMat[i,j] <- (covarMat[i,j] + arrayw[,,k] %*% FmatrixPowered[,,j,k] %*% gCov *
+            #                                           arrayw[,,k] %*% FmatrixPowered[,,i,k] %*% gCov);
+            #                 }
+            #             }
+            #         }
+            #     }
+            # }
         }
-        # Multiply the matrix by the one-step-ahead variance
-        covarMat <- covarMat * s2;
     }
     return(covarMat);
     # correlation matrix: covar(test) / sqrt(diag(covar(test)) %*% t(diag(covar(test))))
