@@ -2394,14 +2394,12 @@ ssForecaster <- function(...){
                 }
                 else{
                     # if(Etype=="M"){
-                    #     y.for <- apply(y.simulated,1,median)
+                    #     y.for <- apply(y.simulated,1,mean)
                     # }
                     y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                 }
-                # For now we leave it as NULL
-                varVec <- NULL;
             }
             else{
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
@@ -2440,7 +2438,6 @@ ssForecaster <- function(...){
                     y.low <- ceiling(y.low);
                     y.high <- ceiling(y.high);
                 }
-                varVec <- quantvalues$variance;
             }
         }
         else{
@@ -2456,15 +2453,12 @@ ssForecaster <- function(...){
             else{
                 y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
             }
-            varVec <- NULL;
         }
     }
     else{
         y.low <- NA;
         y.high <- NA;
         y.for <- ts(NA,start=yForecastStart,frequency=datafreq);
-        # For now we leave it as NULL, because this thing is estimated in ssIntervals()
-        varVec <- NULL;
     }
 
     if(any(is.na(y.fit),all(is.na(y.for),h>0))){
@@ -2487,7 +2481,6 @@ ssForecaster <- function(...){
     assign("y.for",y.for,ParentEnvironment);
     assign("y.low",y.low,ParentEnvironment);
     assign("y.high",y.high,ParentEnvironment);
-    assign("varVec",varVec,ParentEnvironment);
     assign("yForecastStart",yForecastStart,ParentEnvironment);
 }
 
