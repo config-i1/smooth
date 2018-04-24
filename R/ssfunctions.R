@@ -1675,7 +1675,7 @@ ssFitter <- function(...){
 ##### *State-space intervals* #####
 ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
-                        modellags=NULL, states=NULL, cumulative=FALSE,
+                        modellags=NULL, states=NULL, cumulative=FALSE, cfType="MSE",
                         y.for=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
                         iprob=1, ivar=1){
 # Function constructs intervals based on the provided random variable.
@@ -1799,21 +1799,22 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
     return(list(lower=lowerquant,upper=upperquant));
 }
 
+    # if(cfType=="MSE"){
 # If degrees of freedom are provided, use Student's distribution. Otherwise stick with normal.
-    if(is.null(df)){
-        upperquant <- qnorm((1+level)/2,0,1);
-        lowerquant <- qnorm((1-level)/2,0,1);
-    }
-    else{
-        if(df>0){
-            upperquant <- qt((1+level)/2,df=df);
-            lowerquant <- qt((1-level)/2,df=df);
+        if(is.null(df)){
+            upperquant <- qnorm((1+level)/2,0,1);
+            lowerquant <- qnorm((1-level)/2,0,1);
         }
         else{
-            upperquant <- sqrt(1/((1-level)/2));
-            lowerquant <- -upperquant;
+            if(df>0){
+                upperquant <- qt((1+level)/2,df=df);
+                lowerquant <- qt((1-level)/2,df=df);
+            }
+            else{
+                upperquant <- sqrt(1/((1-level)/2));
+                lowerquant <- -upperquant;
+            }
         }
-    }
 
 ##### If they want us to produce several steps ahead #####
     if(is.matrix(errors) | is.data.frame(errors)){
@@ -1947,113 +1948,21 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Parametric intervals ####
         else if(intervalsType=="p"){
             nComponents <- nrow(transition);
-            maxlag <- max(modellags);
             h <- length(y.for);
 
             # Vector of final variances
             varVec <- rep(NA,h);
-            if(cumulative){
-                # covarVec <- rep(0,h);
-                cumVarVec <- rep(0,h);
-                cumVarVec[1:min(h,maxlag)] <- s2 * (h - 1:min(h,maxlag) + 1);
-            }
 
 #### Pure Multiplicative models ####
             if(Etype=="M"){
                 # This is just an approximation of the true intervals
-                if(h > min(modellags)){
-                    lagsUnique <- unique(modellags);
-                    steps <- lagsUnique[lagsUnique<=h];
-                    stepsNumber <- length(steps);
-                    arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
-                    arrayMeasurement <- array(0,c(1,nComponents,stepsNumber));
-                    for(i in 1:stepsNumber){
-                        arrayTransition[,modellags==steps[i],i] <- transition[,modellags==steps[i]];
-                        arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
-                    }
-                    cValues <- rep(0,h);
-                    varVec[1:(min(steps)+1)] <- 1;
-
-                    # Prepare transition array
-                    transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
-                    transitionPowered[,,1:min(steps),] <- diag(nComponents);
-
-                    # Generate values for the transition matrix
-                    for(i in (min(steps)+1):h){
-                        for(k in 1:sum(steps<i)){
-                            # This needs to be produced only for the lower lag.
-                            # Then it will be reused for the higher ones.
-                            if(k==1){
-                                for(j in 1:sum(steps<i)){
-                                    if(((i-steps[k])/steps[j]>1)){
-                                        transitionNew <- arrayTransition[,,j];
-                                    }
-                                    else{
-                                        transitionNew <- diag(nComponents);
-                                    }
-
-                                    # If this is a zero matrix, do simple multiplication
-                                    if(all(transitionPowered[,,i,k]==0)){
-                                        transitionPowered[,,i,k] <- (transitionNew %*%
-                                                                         transitionPowered[,,i-steps[j],k]);
-                                    }
-                                    else{
-                                        # Check that the multiplication is not an identity matrix
-                                        if(!all((transitionNew %*% transitionPowered[,,i-steps[j],k])==diag(nComponents))){
-                                            transitionPowered[,,i,k] <- transitionPowered[,,i,k] + (transitionNew %*%
-                                                                                                        transitionPowered[,,i-steps[j],k]);
-                                        }
-                                    }
-                                }
-                            }
-                            # Copy the structure from the lower lags
-                            else{
-                                transitionPowered[,,i,k] <- transitionPowered[,,i-steps[k]+1,1];
-                            }
-                            # Generate values of cj
-                            cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
-                        }
-                    }
-
-                    # Fill in diagonals
-                    for(i in 2:h){
-                        varVec[i] <- varVec[i-1] + cValues[i]^2;
-                    }
-                }
+                covarMat <- covarAnal(modellags, h, nComponents,
+                                      measurement, transition, persistence, s2);
 
                 ### Cumulative variance is different.
                 if(cumulative){
-                    # Create covariance matrix
-                    covarMat <- diag(h);
-                    diag(covarMat) <- varVec;
-
-                    # Fill in off-diagonals
-                    for(i in 1:h){
-                        for(j in 1:h){
-                            if(i==j){
-                                next;
-                            }
-                            else if(i==1){
-                                covarMat[i,j] = cValues[j];
-                            }
-                            else if(i>j){
-                                covarMat[i,j] <- covarMat[j,i];
-                            }
-                            else{
-                                covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
-                            }
-                        }
-                    }
                     varVec <- sum(covarMat);
                     varVec <- log(exp(varVec / h) * h);
-                }
-
-                # Multiply the vector
-                varVec <- varVec * s2;
-
-                ### Cumulative variance is different.
-                if(cumulative){
-                    # varVec <- sum(cumVarVec);
 
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(sum(y.for)), sdVec=sqrt(varVec), Etype="M");
@@ -2067,6 +1976,8 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     }
                 }
                 else{
+                    varVec <- diag(covarMat);
+
                     if(any(iprob!=1)){
                         quants <- qlnormBin(iprob, level=level, meanVec=log(y.for), sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
@@ -2084,93 +1995,16 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             # }
 #### Pure Additive models ####
             else{
-                if(h > min(modellags)){
-                    lagsUnique <- unique(modellags);
-                    steps <- lagsUnique[lagsUnique<=h];
-                    stepsNumber <- length(steps);
-                    arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
-                    arrayMeasurement <- array(0,c(1,nComponents,stepsNumber));
-                    for(i in 1:stepsNumber){
-                        arrayTransition[,modellags==steps[i],i] <- transition[,modellags==steps[i]];
-                        arrayMeasurement[,modellags==steps[i],i] <- measurement[,modellags==steps[i]];
-                    }
-                    cValues <- rep(0,h);
-                    varVec[1:(min(steps)+1)] <- 1;
+                covarMat <- covarAnal(modellags, h, nComponents,
+                                      measurement, transition, persistence, s2);
 
-                    # Prepare transition array
-                    transitionPowered <- array(0,c(nComponents,nComponents,h,stepsNumber));
-                    transitionPowered[,,1:min(steps),] <- diag(nComponents);
-
-                    # Generate values for the transition matrix
-                    for(i in (min(steps)+1):h){
-                        for(k in 1:sum(steps<i)){
-                            # This needs to be produced only for the lower lag.
-                            # Then it will be reused for the higher ones.
-                            if(k==1){
-                                for(j in 1:sum(steps<i)){
-                                    if(((i-steps[k])/steps[j]>1)){
-                                        transitionNew <- arrayTransition[,,j];
-                                    }
-                                    else{
-                                        transitionNew <- diag(nComponents);
-                                    }
-
-                                    # If this is a zero matrix, do simple multiplication
-                                    if(all(transitionPowered[,,i,k]==0)){
-                                        transitionPowered[,,i,k] <- (transitionNew %*%
-                                                                         transitionPowered[,,i-steps[j],k]);
-                                    }
-                                    else{
-                                        # Check that the multiplication is not an identity matrix
-                                        if(!all((transitionNew %*% transitionPowered[,,i-steps[j],k])==diag(nComponents))){
-                                            transitionPowered[,,i,k] <- transitionPowered[,,i,k] + (transitionNew %*%
-                                                                                                        transitionPowered[,,i-steps[j],k]);
-                                        }
-                                    }
-                                }
-                            }
-                            # Copy the structure from the lower lags
-                            else{
-                                transitionPowered[,,i,k] <- transitionPowered[,,i-steps[k]+1,1];
-                            }
-                            # Generate values of cj
-                            cValues[i] <- cValues[i] + arrayMeasurement[,,k] %*% transitionPowered[,,i,k] %*% persistence;
-                        }
-                    }
-
-                    # Fill in diagonals
-                    for(i in 2:h){
-                        varVec[i] <- varVec[i-1] + cValues[i]^2;
-                    }
-                }
-
-                ### Cumulative variance is different.
+                ### Cumulative variance is a sum of all the elements of the matrix
                 if(cumulative){
-                    # Create covariance matrix
-                    covarMat <- diag(h);
-                    diag(covarMat) <- varVec;
-
-                    # Fill in off-diagonals
-                    for(i in 1:h){
-                        for(j in 1:h){
-                            if(i==j){
-                                next;
-                            }
-                            else if(i==1){
-                                covarMat[i,j] = cValues[j];
-                            }
-                            else if(i>j){
-                                covarMat[i,j] <- covarMat[j,i];
-                            }
-                            else{
-                                covarMat[i,j] = covarMat[i-1,j-1] + covarMat[1,j] * covarMat[1,i];
-                            }
-                        }
-                    }
                     varVec <- sum(covarMat);
                 }
-                # Multiply the vector
-                varVec <- varVec * s2;
+                else{
+                    varVec <- diag(covarMat);
+                }
 
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
@@ -2278,29 +2112,29 @@ ssForecaster <- function(...){
             warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
                            "Please, use another model."),call.=FALSE);
             if(intervals){
-            warning("And don't expect anything reasonable from the prediction intervals!",call.=FALSE);
+                warning("And don't expect anything reasonable from the prediction intervals!",call.=FALSE);
             }
         }
 
         # Bias correction for the MZZ models and log-normality assumption
         # This only works for pure multiplicative models.
         # The mixed models can go to hell right now...
-        if(Etype=="M" & h>1){
-            # logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
-                                    # sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
-            logErrorBias <- rowMeans(log(1 + vecg %*% as.vector(errors*ot)))
-            yForBias <- rep(NA,h);
-            yForBias[1] <- 0;
-            for(i in 2:h){
-                yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
-            }
-            yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
-            y.for <- y.for*exp(yForBias);
-
-            if(any(y.for<0)){
-                y.for[y.for<0] <- 1e-5;
-            }
-        }
+        # if(Etype=="M" & h>1){
+        #     # logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
+        #                             # sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
+        #     logErrorBias <- rowMeans(log(1 + vecg %*% as.vector(errors*ot)))
+        #     yForBias <- rep(NA,h);
+        #     yForBias[1] <- 0;
+        #     for(i in 2:h){
+        #         yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
+        #     }
+        #     yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
+        #     y.for <- y.for*exp(yForBias);
+        #
+        #     if(any(y.for<0)){
+        #         y.for[y.for<0] <- 1e-5;
+        #     }
+        # }
 
         # Write down the forecasting intervals
         if(intervals){
@@ -2338,6 +2172,10 @@ ssForecaster <- function(...){
             if(cumulative & Etype=="M"){
                 simulateIntervals <- TRUE;
             }
+
+            # if(Etype=="M"){
+            #     simulateIntervals <- TRUE;
+            # }
 
             #If this is integer-valued model, then do simulations
             # if(rounded){
@@ -2393,9 +2231,15 @@ ssForecaster <- function(...){
                     y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=datafreq);
                 }
                 else{
-                    # if(Etype=="M"){
-                    #     y.for <- apply(y.simulated,1,mean)
-                    # }
+                    if(Etype=="M"){
+                        # This thing returns mode for the log-normal distribution
+                        y.for <- exp(apply(log(y.simulated),1,mean) -
+                                         apply(log(y.simulated),1,var));
+                        # This thing returns mean for the log-normal distribution
+                        # y.for <- apply(y.simulated,1,mean);
+                        # This thing returns median for the log-normal distribution
+                        # y.for <- apply(y.simulated,1,median);
+                    }
                     y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
@@ -2405,7 +2249,7 @@ ssForecaster <- function(...){
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
-                                           cumulative=cumulative,
+                                           cumulative=cumulative, cfType=cfType,
                                            y.for=y.for, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                            iprob=iprob, ivar=ivar);
 
