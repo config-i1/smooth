@@ -1,4 +1,4 @@
-smooth v2.4.3 (Release data: 2018-04-24)
+smooth v2.4.3 (Release data: 2018-04-25)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * We now return measurent and persistence vectors and transition matrix from every smooth model. This is needed for the analytical covar().
 * covar() now also produces analytical covariance matrix for all the additive models. The same code is used for multiplicative models and should work as an okay approximation.
 * The code of prediction intervals has been updated. They should be more precise now.
+* The prediction intervals for cfType=c("MAE","HAM") are now produced using Laplace and S distributions.
 
 
 smooth v2.4.2 (Release data: 2018-04-03)

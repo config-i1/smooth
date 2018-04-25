@@ -68,7 +68,7 @@
 #' @importFrom graphics abline layout legend lines par points polygon
 #' @importFrom stats AIC BIC cov dbeta decompose deltat end frequency is.ts median coef optimize nlminb cor qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif start time ts var simulate lm as.formula residuals plnorm pnorm
 #' @importFrom utils packageVersion
-#' @importFrom greybox xregExpander stepwise
+#' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace
 #' @useDynLib smooth
 NULL
 

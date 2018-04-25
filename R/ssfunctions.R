@@ -1746,7 +1746,15 @@ qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
         quantiles <- iprob * plnorm(quant, meanlog=meanVec, sdlog=sdVec) + (1 - iprob);
     }
     else{
-        quantiles <- iprob * pnorm(quant, mean=meanVec, sd=sdVec) + (1 - iprob)*(quant>0);
+        if(cfType=="MAE"){
+            quantiles <- iprob * plaplace(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
+        }
+        else if(cfType=="HAM"){
+            quantiles <- iprob * ps(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
+        }
+        else{
+            quantiles <- iprob * pnorm(quant, mean=meanVec, sd=sdVec) + (1 - iprob)*(quant>0);
+        }
     }
     CF <- (level-quantiles)^2;
     return(CF)
@@ -1762,7 +1770,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             quantInitials <- qlnorm((1-level)/2,meanVec,sdVec)
         }
         else{
-            quantInitials <- qnorm((1-level)/2,meanVec,sdVec)
+            if(cfType=="MAE"){
+                quantInitials <- qlaplace((1-level)/2,meanVec,sdVec)
+            }
+            else if(cfType=="HAM"){
+                quantInitials <- qs((1-level)/2,meanVec,sdVec)
+            }
+            else{
+                quantInitials <- qnorm((1-level)/2,meanVec,sdVec)
+            }
         }
         for(i in 1:length(sdVec)){
             if(quantInitials[i]==0){
@@ -1784,7 +1800,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         quantInitials <- qlnorm(levelNew,meanVec,sdVec);
     }
     else{
-        quantInitials <- qnorm(levelNew,meanVec,sdVec);
+        if(cfType=="MAE"){
+            quantInitials <- qlaplace(levelNew,meanVec,sdVec)
+        }
+        else if(cfType=="HAM"){
+            quantInitials <- qs(levelNew,meanVec,sdVec)
+        }
+        else{
+            quantInitials <- qnorm(levelNew,meanVec,sdVec)
+        }
     }
     for(i in 1:length(sdVec)){
         if(quantInitials[i]==0){
@@ -1799,7 +1823,16 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
     return(list(lower=lowerquant,upper=upperquant));
 }
 
-    # if(cfType=="MSE"){
+    if(cfType=="MAE"){
+        upperquant <- qlaplace((1+level)/2,0,1);
+        lowerquant <- qlaplace((1-level)/2,0,1);
+    }
+    else if(cfType=="HAM"){
+        upperquant <- qs((1+level)/2,0,2);
+        lowerquant <- qs((1-level)/2,0,2);
+    }
+    else{
+    #if(cfType=="MSE")
 # If degrees of freedom are provided, use Student's distribution. Otherwise stick with normal.
         if(is.null(df)){
             upperquant <- qnorm((1+level)/2,0,1);
@@ -1815,6 +1848,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 lowerquant <- -upperquant;
             }
         }
+    }
 
 ##### If they want us to produce several steps ahead #####
     if(is.matrix(errors) | is.data.frame(errors)){
@@ -1895,6 +1929,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- ev + quants$lower;
                     }
                     else{
+                        if(cfType=="MAE"){
+                            # s^2 = 2 b^2 => b^2 = s^2 / 2
+                            varVec <- varVec / 2;
+                        }
+                        else if(cfType=="HAM"){
+                            # s^2 = 120 b^4 => b^4 = s^2 / 120
+                            # S(mu, b) = S(mu, 1) * 50^2
+                            varVec <- varVec/120;
+                        }
                         upper <- ev + upperquant * sqrt(varVec);
                         lower <- ev + lowerquant * sqrt(varVec);
                     }
@@ -1908,6 +1951,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- sum(ev) + quants$lower;
                     }
                     else{
+                        if(cfType=="MAE"){
+                            # s^2 = 2 b^2 => b^2 = s^2 / 2
+                            varVec <- varVec / 2;
+                        }
+                        else if(cfType=="HAM"){
+                            # s^2 = 120 b^4 => b^4 = s^2 / 120
+                            # S(mu, b) = S(mu, 1) * 50^2
+                            varVec <- varVec/120;
+                        }
                         upper <- sum(ev) + upperquant * sqrt(varVec);
                         lower <- sum(ev) + lowerquant * sqrt(varVec);
                     }
@@ -2007,12 +2059,21 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                 }
 
                 if(any(iprob!=1)){
+                    # Take intermittent data into account
                     quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)), sdVec=sqrt(varVec), Etype="A");
                     upper <- quants$upper;
                     lower <- quants$lower;
                 }
                 else{
-                    # Take intermittent data into account
+                    if(cfType=="MAE"){
+                        # s^2 = 2 b^2 => b^2 = s^2 / 2
+                        varVec <- varVec / 2;
+                    }
+                    else if(cfType=="HAM"){
+                        # s^2 = 120 b^4 => b^4 = s^2 / 120
+                        # S(mu, b) = S(mu, 1) * 50^2
+                        varVec <- varVec/120;
+                    }
                     upper <- upperquant * sqrt(varVec);
                     lower <- lowerquant * sqrt(varVec);
                 }
@@ -2048,6 +2109,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     lower <- quants$lower;
                 }
                 else{
+                    if(cfType=="MAE"){
+                        # s^2 = 2 b^2 => b^2 = s^2 / 2
+                        s2 <- s2 / 2;
+                    }
+                    else if(cfType=="HAM"){
+                        # s^2 = 120 b^4 => b^4 = s^2 / 120
+                        # S(mu, b) = S(mu, 1) * 50^2
+                        s2 <- s2/120;
+                    }
                     upper <- ev + upperquant * sqrt(s2);
                     lower <- ev + lowerquant * sqrt(s2);
                 }
