@@ -2350,7 +2350,7 @@ ssForecaster <- function(...){
             # }
 
             if(simulateIntervals){
-                nSamples <- 100000;
+                nSamples <- 10000;
                 matg <- matrix(vecg,nComponents,nSamples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
                 arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],nSamples);
