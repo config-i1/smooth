@@ -1,4 +1,4 @@
-smooth v2.4.3 (Release data: 2018-04-25)
+smooth v2.4.3 (Release data: 2018-04-26)
 ==============
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * covar() now also produces analytical covariance matrix for all the additive models. The same code is used for multiplicative models and should work as an okay approximation.
 * The code of prediction intervals has been updated. They should be more precise now.
 * The prediction intervals for cfType=c("MAE","HAM") are now produced using Laplace and S distributions.
+* After several rounds of derivations, it seems that the forecasts for multiplicative models still correspond to the median, so there is no need for bias correction.
 
 
 smooth v2.4.2 (Release data: 2018-04-03)

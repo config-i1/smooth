@@ -2284,7 +2284,9 @@ ssForecaster <- function(...){
         # Bias correction for the MZZ models and log-normality assumption
         # This only works for pure multiplicative models.
         # The mixed models can go to hell right now...
-        # if(Etype=="M" & h>1){
+        if(Etype=="M" & h>1){
+            ### This is the conditional mean of ETS(M,N,N)
+            # y.for <- y.for * c((1-vecg + vecg*exp(s2/2))^c(0:(h-1))*exp(s2/2));
         #     # logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
         #                             # sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
         #     logErrorBias <- rowMeans(log(1 + vecg %*% as.vector(errors*ot)))
@@ -2299,7 +2301,7 @@ ssForecaster <- function(...){
         #     if(any(y.for<0)){
         #         y.for[y.for<0] <- 1e-5;
         #     }
-        # }
+        }
 
         # Write down the forecasting intervals
         if(intervals){
@@ -2348,7 +2350,7 @@ ssForecaster <- function(...){
             # }
 
             if(simulateIntervals){
-                nSamples <- 10000;
+                nSamples <- 100000;
                 matg <- matrix(vecg,nComponents,nSamples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
                 arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],nSamples);
@@ -2396,15 +2398,15 @@ ssForecaster <- function(...){
                     y.high <- ts(quantile(colSums(y.simulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=datafreq);
                 }
                 else{
-                    if(Etype=="M"){
-                        # This thing returns mode for the log-normal distribution
-                        y.for <- exp(apply(log(y.simulated),1,mean) -
-                                         apply(log(y.simulated),1,var));
-                        # This thing returns mean for the log-normal distribution
-                        # y.for <- apply(y.simulated,1,mean);
-                        # This thing returns median for the log-normal distribution
-                        # y.for <- apply(y.simulated,1,median);
-                    }
+                    # if(Etype=="M"){
+                    #     # This thing returns mode for the log-normal distribution
+                    #     # y.for <- exp(apply(log(y.simulated),1,mean) -
+                    #     #                  apply(log(y.simulated),1,var));
+                    #     # This thing returns mean for the log-normal distribution
+                    #     # y.for <- apply(y.simulated,1,mean);
+                    #     # This thing returns median for the log-normal distribution
+                    #     y.for <- apply(y.simulated,1,median);
+                    # }
                     y.for <- ts(y.for,start=yForecastStart,frequency=datafreq);
                     y.low <- ts(apply(y.simulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
                     y.high <- ts(apply(y.simulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + y.exo.for,start=yForecastStart,frequency=datafreq);
