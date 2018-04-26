@@ -1764,20 +1764,35 @@ qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
 qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
     lowerquant <- upperquant <- rep(0,length(sdVec));
 
+    if(cfType=="MAE"){
+        sdVec <- sqrt(sdVec/2);
+    }
+    else if(cfType=="HAM"){
+        sdVec <- 2*(sdVec/120)^0.25;
+    }
+
 # Produce lower quantiles
     if(Etype=="A" | all(Etype=="M",(1-iprob) < (1-level)/2)){
         if(Etype=="M"){
-            quantInitials <- qlnorm((1-level)/2,meanVec,sdVec)
+            if(cfType=="MAE"){
+                quantInitials <- exp(qlaplace((1-level)/2,meanVec,sdVec));
+            }
+            else if(cfType=="HAM"){
+                quantInitials <- exp(qs((1-level)/2,meanVec,sdVec));
+            }
+            else{
+                quantInitials <- qlnorm((1-level)/2,meanVec,sdVec);
+            }
         }
         else{
             if(cfType=="MAE"){
-                quantInitials <- qlaplace((1-level)/2,meanVec,sdVec)
+                quantInitials <- qlaplace((1-level)/2,meanVec,sdVec);
             }
             else if(cfType=="HAM"){
-                quantInitials <- qs((1-level)/2,meanVec,sdVec)
+                quantInitials <- qs((1-level)/2,meanVec,sdVec);
             }
             else{
-                quantInitials <- qnorm((1-level)/2,meanVec,sdVec)
+                quantInitials <- qnorm((1-level)/2,meanVec,sdVec);
             }
         }
         for(i in 1:length(sdVec)){
@@ -1797,7 +1812,15 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 # Produce upper quantiles
     if(Etype=="M"){
-        quantInitials <- qlnorm(levelNew,meanVec,sdVec);
+        if(cfType=="MAE"){
+            quantInitials <- exp(qlaplace(levelNew,meanVec,sdVec));
+        }
+        else if(cfType=="HAM"){
+            quantInitials <- exp(qs(levelNew,meanVec,sdVec));
+        }
+        else{
+            quantInitials <- qlnorm(levelNew,meanVec,sdVec);
+        }
     }
     else{
         if(cfType=="MAE"){
@@ -1901,8 +1924,20 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- quants$lower;
                     }
                     else{
-                        upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
-                        lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                        if(cfType=="MAE"){
+                            varVec <- sqrt(varVec/2);
+                            upper <- exp(qlaplace((1+level)/2,0,varVec));
+                            lower <- exp(qlaplace((1-level)/2,0,varVec));
+                        }
+                        else if(cfType=="HAM"){
+                            varVec <- (varVec/120)^0.25;
+                            upper <- exp(qs((1+level)/2,0,varVec*2));
+                            lower <- exp(qs((1-level)/2,0,varVec*2));
+                        }
+                        else{
+                            upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
+                            lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                        }
                     }
                 }
                 else{
@@ -1914,8 +1949,20 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- quants$lower;
                     }
                     else{
-                        upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
-                        lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                        if(cfType=="MAE"){
+                            varVec <- sqrt(varVec/2);
+                            upper <- exp(qlaplace((1+level)/2,0,varVec));
+                            lower <- exp(qlaplace((1-level)/2,0,varVec));
+                        }
+                        else if(cfType=="HAM"){
+                            varVec <- (varVec/120)^0.25;
+                            upper <- exp(qs((1+level)/2,0,varVec*2));
+                            lower <- exp(qs((1-level)/2,0,varVec*2));
+                        }
+                        else{
+                            upper <- qlnorm((1+level)/2,rep(0,nVariables),sqrt(varVec));
+                            lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
+                        }
                     }
                 }
             }
@@ -2022,9 +2069,23 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- quants$lower;
                     }
                     else{
-                        # Produce quantiles for log-normal dist with the specified variance
-                        upper <- sum(y.for)*qlnorm((1+level)/2,0,sqrt(varVec));
-                        lower <- sum(y.for)*qlnorm((1-level)/2,0,sqrt(varVec));
+                        if(cfType=="MAE"){
+                            varVec <- sqrt(varVec / 2);
+                            upper <- exp(qlaplace((1+level)/2,0,varVec));
+                            lower <- exp(qlaplace((1-level)/2,0,varVec));
+                        }
+                        else if(cfType=="HAM"){
+                            varVec <- 2*(varVec/120)^0.25;
+                            upper <- exp(qs((1+level)/2,0,varVec));
+                            lower <- exp(qs((1-level)/2,0,varVec));
+                        }
+                        else{
+                            # Produce quantiles for log-normal dist with the specified variance
+                            upper <- qlnorm((1+level)/2,0,sqrt(varVec));
+                            lower <- qlnorm((1-level)/2,0,sqrt(varVec));
+                        }
+                        upper <- sum(y.for)*upper;
+                        lower <- sum(y.for)*lower;
                     }
                 }
                 else{
@@ -2036,9 +2097,26 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                         lower <- quants$lower;
                     }
                     else{
+                        if(cfType=="MAE"){
+                            # s^2 = 2 b^2 => b = sqrt(s^2 / 2)
+                            varVec <- sqrt(varVec / 2);
+                            upper <- exp(qlaplace((1+level)/2,0,varVec));
+                            lower <- exp(qlaplace((1-level)/2,0,varVec));
+                        }
+                        else if(cfType=="HAM"){
+                            # s^2 = 120 b^4 => b^4 = s^2 / 120
+                            # S(mu, b) = S(mu, 1) * 50^2
+                            varVec <- 2*(varVec/120)^0.25;
+                            upper <- exp(qs((1+level)/2,0,varVec));
+                            lower <- exp(qs((1-level)/2,0,varVec));
+                        }
+                        else{
                         # Produce quantiles for log-normal dist with the specified variance
-                        upper <- y.for*qlnorm((1+level)/2,0,sqrt(varVec));
-                        lower <- y.for*qlnorm((1-level)/2,0,sqrt(varVec));
+                            upper <- qlnorm((1+level)/2,0,sqrt(varVec));
+                            lower <- qlnorm((1-level)/2,0,sqrt(varVec));
+                        }
+                        upper <- y.for*upper;
+                        lower <- y.for*lower;
                     }
                 }
             }
@@ -2071,7 +2149,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     }
                     else if(cfType=="HAM"){
                         # s^2 = 120 b^4 => b^4 = s^2 / 120
-                        # S(mu, b) = S(mu, 1) * 50^2
+                        # S(mu, b) = S(mu, 1) * b^2
                         varVec <- varVec/120;
                     }
                     upper <- upperquant * sqrt(varVec);
@@ -2098,8 +2176,25 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     lower <- quants$lower;
                 }
                 else{
-                    upper <- y.for*qlnorm((1+level)/2,0,sqrt(s2));
-                    lower <- y.for*qlnorm((1-level)/2,0,sqrt(s2));
+                    if(cfType=="MAE"){
+                        # s^2 = 2 b^2 => b = sqrt(s^2 / 2)
+                        s2 <- sqrt(s2 / 2);
+                        upper <- exp(qlaplace((1+level)/2,0,s2));
+                        lower <- exp(qlaplace((1-level)/2,0,s2));
+                    }
+                    else if(cfType=="HAM"){
+                        # s^2 = 120 b^4 => b^4 = s^2 / 120
+                        # S(mu, b) = S(mu, 1) * 50^2
+                        s2 <- 2*(s2/120)^0.25;
+                        upper <- exp(qs((1+level)/2,0,s2));
+                        lower <- exp(qs((1-level)/2,0,s2));
+                    }
+                    else{
+                        upper <- qlnorm((1+level)/2,0,sqrt(s2));
+                        lower <- qlnorm((1-level)/2,0,sqrt(s2));
+                    }
+                    upper <- y.for*upper;
+                    lower <- y.for*lower;
                 }
             }
             else{
