@@ -33,7 +33,7 @@ For the details on these errors, see \link[smooth]{Errors}.
 }
 \description{
 Function calculates several error measures using the provided
-data.
+data for the holdout sample.
 }
 \examples{
 

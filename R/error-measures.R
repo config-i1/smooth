@@ -218,7 +218,7 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' Accuracy of forecasts
 #'
 #' Function calculates several error measures using the provided
-#' data.
+#' data for the holdout sample.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
