@@ -1,4 +1,4 @@
-smooth v2.4.3 (Release data: 2018-04-26)
+smooth v2.4.3 (Release data: 2018-04-27)
 ==============
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * The code of prediction intervals has been updated. They should be more precise now.
 * The prediction intervals for cfType=c("MAE","HAM") are now produced using Laplace and S distributions.
 * After several rounds of derivations, it seems that the forecasts for multiplicative models still correspond to the median, so there is no need for bias correction.
+* GES now has a restriction on transition matrix and measurement vector - (0, 1). The idea is that they represent Markov Chain elements.
 
 
 smooth v2.4.2 (Release data: 2018-04-03)

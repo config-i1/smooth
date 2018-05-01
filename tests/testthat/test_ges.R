@@ -42,5 +42,5 @@ test_that("Select exogenous variables for GESX on N1457 with selection", {
 
 # Use automatic GES
 test_that("Use automatic GES on N1234$x", {
-    expect_equal(auto.ges(Mcomp::M3$N1234$x, silent=TRUE)$model, "GES(1[1])");
+    expect_equal(auto.ges(Mcomp::M3$N1234, silent=TRUE)$model, "GES(1[1],1[3])");
 })
