@@ -44,7 +44,7 @@ pls(ourModel, type="s", obs=100, nsim=100)
 \references{
 \itemize{
 %\item Eltoft, T., Taesu, K., Te-Won, L. (2006). On the multivariate Laplace
-distribution. IEEE Signal Processing Letters. 13 (5): 300–303.
+distribution. IEEE Signal Processing Letters. 13 (5): 300-303.
 \url{doi:10.1109/LSP.2006.870353} - this is not yet used in the function.
 \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
 demand for slow-moving inventories: A modelling approach. International

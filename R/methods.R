@@ -367,7 +367,7 @@ nParam.iss <- function(object, ...){
 #' @return A value of the log-likelihood.
 #' @references \itemize{
 #' %\item Eltoft, T., Taesu, K., Te-Won, L. (2006). On the multivariate Laplace
-#' distribution. IEEE Signal Processing Letters. 13 (5): 300–303.
+#' distribution. IEEE Signal Processing Letters. 13 (5): 300-303.
 #' \url{doi:10.1109/LSP.2006.870353} - this is not yet used in the function.
 #' \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
 #' demand for slow-moving inventories: A modelling approach. International
@@ -454,8 +454,8 @@ pls.smooth <- function(object, holdout=NULL, ...){
         }
         else{
         # Here and later in the code the abs() is needed for weird cases of wrong covarMat
-            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+            plsValue <- -as.vector(log(2*pi*abs(det(covarMat)))/2 +
+                                       (t(errors) %*% solve(covarMat) %*% errors) / 2);
         }
         return(plsValue);
     }
