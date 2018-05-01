@@ -1,8 +1,8 @@
-smooth v2.4.3 (Release data: 2018-04-27)
+smooth v2.4.3 (Release data: 2018-05-01)
 ==============
 
 Changes:
-* Two new methods for the models: covar() returns covariance matrix of 1 to h steps ahead forecast errors; pls() returns Prediction Likelihood Score for the model. Currently only empirical and simulated covariance matrix is available. The analytical is much trickier to implement.
+* Two new methods for the models: covar() returns covariance matrix of 1 to h steps ahead forecast errors; pls() returns Prediction Likelihood Score for the model.
 * We now return measurent and persistence vectors and transition matrix from every smooth model. This is needed for the analytical covar().
 * covar() now also produces analytical covariance matrix for all the additive models. The same code is used for multiplicative models and should work as an okay approximation.
 * The code of prediction intervals has been updated. They should be more precise now.

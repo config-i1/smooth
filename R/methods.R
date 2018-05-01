@@ -366,11 +366,14 @@ nParam.iss <- function(object, ...){
 #'
 #' @return A value of the log-likelihood.
 #' @references \itemize{
+#' %\item Eltoft, T., Taesu, K., Te-Won, L. (2006). On the multivariate Laplace
+#' distribution. IEEE Signal Processing Letters. 13 (5): 300–303.
+#' \url{doi:10.1109/LSP.2006.870353} - this is not yet used in the function.
 #' \item Snyder, R. D., Ord, J. K., Beaumont, A., 2012. Forecasting the intermittent
 #' demand for slow-moving inventories: A modelling approach. International
 #' Journal of Forecasting 28 (2), 485-496.
 #' \item Kolassa, S., 2016. Evaluating predictive count data distributions in retail
-#' sales forecasting. International Journal of Forecasting 32 (3), 788-803.
+#' sales forecasting. International Journal of Forecasting 32 (3), 788-803..
 #' }
 #' @examples
 #'
@@ -427,27 +430,50 @@ pls.smooth <- function(object, holdout=NULL, ...){
     h <- length(holdout);
 
     Etype <- errorType(object);
+    cfType <- object$cfType;
+    if(any(cfType==c("MAE","MAEh","TMAE","GTMAE","MACE"))){
+        cfType <- "MAE";
+    }
+    else if(any(cfType==c("HAM","HAMh","THAM","GTHAM","CHAM"))){
+        cfType <- "HAM";
+    }
+    else{
+        cfType <- "MSE";
+    }
+
+    densityFunction <- function(cfType, ...){
+        if(cfType=="MAE"){
+        # This is a simplification. The real multivariate Laplace is bizarre!
+            b <- sqrt(diag(covarMat)/2);
+            plsValue <- sum(dlaplace(errors, 0, b, log=TRUE));
+        }
+        else if(cfType=="HAM"){
+        # This is a simplification. We don't have multivariate HAM yet.
+            b <- (diag(covarMat)/120)^0.25;
+            plsValue <- sum(ds(errors, 0, b, log=TRUE));
+        }
+        else{
+        # Here and later in the code the abs() is needed for weird cases of wrong covarMat
+            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
+                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+        }
+        return(plsValue);
+    }
 
     # Additive models
     if(Etype=="A"){
         # Non-intermittent data
         if(is.null(object$imodel)){
             errors <- holdout - yForecast;
-            obsNonZero <- h;
-            # Here and later in the code the abs() is needed for weird cases of wrong covarMat
-            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+            plsValue <- densityFunction(cfType, errors, covarMat);
         }
         # Intermittent data
         else{
             ot <- holdout!=0;
-            obsNonZero <- sum(ot);
             pForecast <- object$imodel$forecast;
             errors <- holdout - yForecast / pForecast;
             if(all(ot)){
-                plsValue <- (-(log(2*pi*abs(det(covarMat)))/2 +
-                                   sum(t(errors) %*% solve(covarMat) %*% errors) / 2) +
-                                 sum(log(pForecast)));
+                plsValue <- densityFunction(cfType, errors, covarMat) + sum(log(pForecast));
             }
             else if(all(!ot)){
                 plsValue <- sum(log(1-pForecast));
@@ -455,8 +481,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2);
+                plsValue <- densityFunction(cfType, errors, covarMat);
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
             }
         }
@@ -466,21 +491,16 @@ pls.smooth <- function(object, holdout=NULL, ...){
         # Non-intermittent data
         if(is.null(object$imodel)){
             errors <- log(holdout) - log(yForecast);
-            obsNonZero <- h;
-            plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                              sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
-                              sum(log(holdout)));
+            plsValue <- densityFunction(cfType, errors, covarMat) - sum(log(holdout));
         }
         # Intermittent data
         else{
             ot <- holdout!=0;
-            obsNonZero <- sum(ot);
             pForecast <- object$imodel$forecast;
             errors <- log(holdout) - log(yForecast / pForecast);
             if(all(ot)){
-                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
-                                  sum(log(holdout))) + sum(log(pForecast));
+                plsValue <- (densityFunction(cfType, errors, covarMat) - sum(log(holdout)) +
+                             sum(log(pForecast)));
             }
             else if(all(!ot)){
                 plsValue <- sum(log(1-pForecast));
@@ -488,9 +508,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
             else{
                 errors[!ot] <- 0;
 
-                plsValue <- -(log(2*pi*abs(det(covarMat)))/2 +
-                                  sum(t(errors) %*% solve(covarMat) %*% errors) / 2 +
-                                  h * sum(log(holdout[ot])));
+                plsValue <- densityFunction(cfType, errors, covarMat) - sum(log(holdout[ot]));
                 plsValue <- plsValue + sum(log(pForecast[ot])) + sum(log(1-pForecast[!ot]));
             }
         }
