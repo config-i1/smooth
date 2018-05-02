@@ -602,13 +602,11 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         bounds <- "u";
     }
 
-    if(any(smoothType==c("es","ges","ces"))){
-        ##### Information Criteria #####
-        ic <- ic[1];
-        if(all(ic!=c("AICc","AIC","BIC"))){
-            warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
-            ic <- "AICc";
-        }
+    ##### Information Criteria #####
+    ic <- ic[1];
+    if(all(ic!=c("AICc","AIC","BIC"))){
+        warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
+        ic <- "AICc";
     }
 
     ##### Cost function type #####
@@ -1262,6 +1260,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     assign("FI",FI,ParentEnvironment);
     assign("rounded",rounded,ParentEnvironment);
     assign("parametersNumber",parametersNumber,ParentEnvironment);
+    assign("ic",ic,ParentEnvironment);
 
     if(smoothType=="es"){
         assign("model",model,ParentEnvironment);
@@ -1275,7 +1274,6 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         assign("phi",phi,ParentEnvironment);
         assign("phiEstimate",phiEstimate,ParentEnvironment);
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
-        assign("ic",ic,ParentEnvironment);
     }
     else if(smoothType=="ges"){
         assign("transitionEstimate",transitionEstimate,ParentEnvironment);
@@ -1474,7 +1472,8 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
         multisteps <- FALSE;
     }
 
-    if(all(cfType!=c("MSE","MAE","HAM","TFL","aTFL"))){
+    if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+                      "TFL","aTFL"))){
         warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. ",
                        "The results of the model selection may be wrong."),call.=FALSE);
     }
@@ -2841,10 +2840,10 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 likelihoodFunction <- function(C){
 #### Basic logLikelihood based on C and CF ####
     logLikFromCF <- function(C, cfType){
-        if(cfType=="MAE"){
+        if(any(cfType==c("MAE","MAEh","MACE"))){
             return(- obsNonzero*(log(2*exp(1)) + log(CF(C))));
         }
-        else if(cfType=="HAM"){
+        else if(any(cfType==c("HAM","HAMh","CHAM"))){
             return(- 2*obsNonzero*(log(2*exp(1)) + log(0.5*CF(C))));
         }
         else if(any(cfType==c("TFL","aTFL"))){
@@ -2854,10 +2853,11 @@ likelihoodFunction <- function(C){
             return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
         }
         else{
-            #if(cfType=="MSE")
+            #if(cfType==c("MSE","MSEh","MSCE"))
             return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
         }
     }
+
     if(any(intermittent==c("n","provided"))){
         return(logLikFromCF(C, cfType));
     }

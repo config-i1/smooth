@@ -702,16 +702,8 @@ EstimatorES <- function(...){
     nParam <- length(C) + 1;
 
     # Change cfType for model selection
-    if(multisteps){
-        if(substring(cfType,1,1)=="a"){
-            cfType <- "aTFL";
-        }
-        else{
-            cfType <- "TFL";
-        }
-    }
-    else{
-        if(!any(cfType==c("LogisticL","LogisticD","MAE","HAM"))){
+    if(!multisteps){
+        if(any(cfType==c("Rounded","TSB"))){
             cfType <- "MSE";
         }
     }
@@ -1194,16 +1186,8 @@ CreatorES <- function(silent=FALSE,...){
         nParam <- length(C) + 1;
 
 # Change cfType for model selection
-        if(multisteps){
-            if(substring(cfType,1,1)=="a"){
-                cfType <- "aTFL";
-            }
-            else{
-                cfType <- "TFL";
-            }
-        }
-        else{
-            if(!any(cfType==c("LogisticL","LogisticD","MAE","HAM"))){
+        if(!multisteps){
+            if(any(cfType==c("Rounded","TSB"))){
                 cfType <- "MSE";
             }
         }
@@ -1569,7 +1553,8 @@ CreatorES <- function(silent=FALSE,...){
             modelCurrent <- model;
         }
         else{
-            if(all(cfType!=c("MSE","MAE","HAM","TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
+            if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+                              "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
                 if(modelDo=="combine"){
                     warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'.",
                                    "The produced combination weights may be wrong."),call.=FALSE);
@@ -1733,7 +1718,8 @@ CreatorES <- function(silent=FALSE,...){
         Etype <- EtypeOriginal;
         Ttype <- TtypeOriginal;
         Stype <- StypeOriginal;
-        if(all(cfType!=c("MSE","Rounded","TSB","LogisticL","LogisticD"))){
+        if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+                          "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
             warning(paste0("'",cfType,
                            "' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),
                     call.=FALSE);
@@ -1742,7 +1728,7 @@ CreatorES <- function(silent=FALSE,...){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","i","p","l");
+        intermittentModelsPool <- c("n","f","i","p","s","l");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs[1] <- esValues$icBest[ic];

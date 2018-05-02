@@ -627,14 +627,15 @@ CreatorGES <- function(silentText=FALSE,...){
 
 ##### If intermittent=="a", run a loop and select the best one #####
     if(intermittent=="a"){
-        if(cfType!="MSE"){
+        if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+                          "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
             warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
         }
         if(!silentText){
             cat("Selecting appropriate type of intermittency... ");
         }
 # Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","c","t","s");
+        intermittentModelsPool <- c("n","f","i","p","s","l");
         intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
         intermittentModelsList <- list(NA);
         intermittentICs[1] <- gesValues$icBest;
@@ -644,11 +645,8 @@ CreatorGES <- function(silentText=FALSE,...){
             intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
             intermittentModelsList[[i]] <- CreatorGES(silentText=TRUE);
-            intermittentICs[i] <- intermittentModelsList[[i]]$icBest;
+            intermittentICs[i] <- intermittentModelsList[[i]]$icBest[ic];
             intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
-            # if(intermittentICs[i]>intermittentICs[i-1]){
-            #     break;
-            # }
         }
         intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
         intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
