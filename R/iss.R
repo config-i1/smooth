@@ -181,8 +181,8 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 #### Add initialSeason to the output? ####
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","i","p","s","l"))){
-        intermittent <- "f";
         warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
+        intermittent <- "f";
     }
     if(intermittent=="s"){
         intermittent <- "i";
