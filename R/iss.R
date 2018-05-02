@@ -409,7 +409,8 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                                  ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,
                                  initialSeason=initialSeason);
 
-            if(logisticModel[[1]]$ICs[ic] < logisticModel[[2]]$ICs[ic]){
+            if(logisticModel[[1]]$ICs[nrow(logisticModel[[1]]$ICs),ic] <
+               logisticModel[[2]]$ICs[nrow(logisticModel[[2]]$ICs),ic]){
                 logisticModel <- logisticModel[[1]];
             }
             else{
