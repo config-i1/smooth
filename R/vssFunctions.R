@@ -688,7 +688,7 @@ vssInput <- function(smoothType=c("ves"),...){
 
     ##### Information Criteria #####
     ic <- ic[1];
-    if(all(ic!=c("AICc","AIC","BIC"))){
+    if(all(ic!=c("AICc","AIC","BIC","BICc"))){
         warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
         ic <- "AICc";
     }
@@ -883,13 +883,19 @@ vICFunction <- function(nParam=nParam,A,Etype=Etype){
 
     llikelihood <- vLikelihoodFunction(A);
 
-    AIC.coef <- 2*nParam - 2*llikelihood;
-    # max here is needed in order to take into account cases with higher number of parameters than observations
-    AICc.coef <- AIC.coef + 2 * nParam * (nParam + 1) / max(obsInSample - nParam - 1,0);
-    BIC.coef <- log(obsInSample)*nParam - 2*llikelihood;
+    coefAIC <- 2*nParam - 2*llikelihood;
+    coefBIC <- log(obsInSample)*nParam - 2*llikelihood;
 
-    ICs <- c(AIC.coef, AICc.coef, BIC.coef);
-    names(ICs) <- c("AIC", "AICc", "BIC");
+    # max here is needed in order to take into account cases with higher number of parameters than observations
+    coefAICc <- ((2*obsInSample*(nParam*nSeries + nSeries*(nSeries+1)/2)) /
+                                 max(obsInSample - (nParam + nSeries + 1),0)) -2*llikelihood;
+
+    coefBICc <- (((nParam + nSeries*(nSeries+1)/2) *
+                      log(obsInSample * nSeries) * obsInSample * nSeries) /
+                     (obsInSample * nSeries - nParam - nSeries*(nSeries+1)/2)) -2*llikelihood;
+
+    ICs <- c(coefAIC, coefAICc, coefBIC, coefBICc);
+    names(ICs) <- c("AIC", "AICc", "BIC", "BICc");
 
     return(list(llikelihood=llikelihood,ICs=ICs));
 }

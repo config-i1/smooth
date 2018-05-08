@@ -6,11 +6,11 @@
 \usage{
 ces(data, seasonality = c("none", "simple", "partial", "full"),
   initial = c("optimal", "backcasting"), A = NULL, B = NULL,
-  ic = c("AICc", "AIC", "BIC"), cfType = c("MSE", "MAE", "HAM", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
-  level = 0.95, intermittent = c("none", "auto", "fixed", "interval",
-  "probability", "sba", "logistic"), imodel = "MNN",
+  ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
+  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
+  "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
+  "interval", "probability", "sba", "logistic"), imodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
   "output", "none"), xreg = NULL, xregDo = c("use", "select"),
   initialX = NULL, updateX = FALSE, persistenceX = NULL,
@@ -205,7 +205,7 @@ exogenous variables were estimated as well.
 \item \code{persistenceX} - persistence vector g for exogenous variables.
 \item \code{transitionX} - transition matrix F for exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes
-AIC, AICc, BIC and CIC (Complex IC).
+AIC, AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
 \item \code{cf} - Cost function value.
 \item \code{cfType} - Type of cost function used in the estimation.

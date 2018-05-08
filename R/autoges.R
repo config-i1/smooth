@@ -53,7 +53,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @export auto.ges
 auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z"),
-                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                      cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
                      intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,

@@ -604,7 +604,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
 
     ##### Information Criteria #####
     ic <- ic[1];
-    if(all(ic!=c("AICc","AIC","BIC"))){
+    if(all(ic!=c("AICc","AIC","BIC","BICc"))){
         warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
         ic <- "AICc";
     }
@@ -1451,7 +1451,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
 
     ##### Information Criteria #####
     ic <- ic[1];
-    if(all(ic!=c("AICc","AIC","BIC"))){
+    if(all(ic!=c("AICc","AIC","BIC","BICc"))){
         warning(paste0("Strange type of information criteria defined: ",ic,". Switching to 'AICc'."),call.=FALSE);
         ic <- "AICc";
     }
@@ -2909,14 +2909,29 @@ ICFunction <- function(nParam=nParam,nParamIntermittent=nParamIntermittent,
     nParamOverall <- nParam + nParamIntermittent;
     llikelihood <- likelihoodFunction(C);
 
-    AIC.coef <- 2*nParamOverall*h^multisteps - 2*llikelihood;
-# max here is needed in order to take into account cases with higher number of parameters than observations
-#!!! This is incorrect in the case of non-normal residuals!
-    AICc.coef <- AIC.coef + 2 * nParam*h^multisteps * (nParam + 1) / max(obsNonzero - nParam - 1,0);
-    BIC.coef <- log(obsNonzero)*nParamOverall*h^multisteps - 2*llikelihood;
+# max here is needed in order to take into account cases with higher
+## number of parameters than observations
+### AICc and BICc are incorrect in case of non-normal residuals!
+    if(cfType=="TFL"){
+        coefAIC <- 2*nParamOverall*h - 2*llikelihood;
+        coefBIC <- log(obsNonzero)*nParamOverall*h - 2*llikelihood;
+        coefAICc <- (2*obsNonzero*(nParam*h + (h*(h+1))/2) /
+                         max(obsNonzero - nParam - 1 - h,0)
+                     -2*llikelihood);
+        coefBICc <- (((nParam + (h*(h+1))/2)*
+                          log(obsNonzero*h)*obsNonzero*h) /
+                         max(obsNonzero*h - nParam - (h*(h+1))/2,0)
+                     -2*llikelihood);
+    }
+    else{
+        coefAIC <- 2*nParamOverall - 2*llikelihood;
+        coefBIC <- log(obsNonzero)*nParamOverall - 2*llikelihood;
+        coefAICc <- coefAIC + 2*nParam*(nParam+1) / max(obsNonzero-nParam-1,0);
+        coefBICc <- (nParam * log(obsNonzero) * obsNonzero) / (obsNonzero - nParam - 1) -2*llikelihood;
+    }
 
-    ICs <- c(AIC.coef, AICc.coef, BIC.coef);
-    names(ICs) <- c("AIC", "AICc", "BIC");
+    ICs <- c(coefAIC, coefAICc, coefBIC, coefBICc);
+    names(ICs) <- c("AIC", "AICc", "BIC", "BICc");
 
     return(list(llikelihood=llikelihood,ICs=ICs));
 }
@@ -3086,7 +3101,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         ICs <- ICs[nrow(ICs),];
     }
-    print(ICs);
+    print(round(ICs,4));
 
     if(intervals){
         if(intervalsType=="p"){

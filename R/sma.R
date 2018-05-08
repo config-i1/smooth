@@ -62,7 +62,7 @@ utils::globalVariables(c("yForecastStart"));
 #' \item \code{actuals} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC,
-#' AICc and BIC.
+#' AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - Cost function value.
 #' \item \code{cfType} - Type of cost function used in the estimation.
@@ -89,7 +89,7 @@ utils::globalVariables(c("yForecastStart"));
 #' plot(forecast(ourModel))
 #'
 #' @export sma
-sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC"),
+sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 silent=c("all","graph","legend","output","none"),
@@ -221,7 +221,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                            C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
-    bestIC <- ICs["AICc"];
+    bestIC <- ICs[ic];
 
     return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,nParam=nParam,nComponents=nComponents,
                 matF=matF,vecg=vecg,matvt=matvt,matw=matw,modellags=modellags,

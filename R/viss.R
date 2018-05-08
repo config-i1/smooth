@@ -76,7 +76,7 @@
 #'
 #' @export viss
 viss <- function(data, intermittent=c("logistic","none","fixed"),
-                 ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
+                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                  probability=c("dependent","independent"),
                  model="ANN", persistence=NULL, transition=NULL, phi=NULL,
                  initial=NULL, initialSeason=NULL, xreg=NULL){

@@ -128,7 +128,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc and BIC.
+#' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - Cost function value.
 #' \item \code{cfType} - Type of cost function used in the estimation.
@@ -192,7 +192,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' @export ssarima
 ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
-                    initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+                    initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                     cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
@@ -449,7 +449,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
                            C=C,Etype=Etype);
     ICs <- ICValues$ICs;
-    bestIC <- ICs["AICc"];
+    bestIC <- ICs[ic];
     logLik <- ICValues$llikelihood;
 
 # Revert to the provided cost function

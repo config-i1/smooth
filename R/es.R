@@ -139,7 +139,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc and BIC.
+#' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - cost function value.
 #' \item \code{cfType} - type of cost function used in the estimation.
@@ -237,7 +237,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #'
 #' @export es
 es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
-               initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC"),
+               initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
@@ -1096,7 +1096,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
     if(!silent){
         cat("... Done! \n");
     }
-    icSelection <- matrix(NA,modelsNumber,3);
+    icSelection <- matrix(NA,modelsNumber,4);
     for(i in 1:modelsNumber){
         icSelection[i,] <- results[[i]]$ICs;
     }
@@ -1130,10 +1130,10 @@ CreatorES <- function(silent=FALSE,...){
         icSelection <- esPoolResults$icSelection;
         icSelection <- icSelection/(h^multisteps);
         icBest <- apply(icSelection,2,min);
-        icBest <- matrix(icBest,nrow=nrow(icSelection),ncol=3,byrow=TRUE);
+        icBest <- matrix(icBest,nrow=nrow(icSelection),ncol=4,byrow=TRUE);
         icWeights <- (exp(-0.5*(icSelection-icBest)) /
                           matrix(colSums(exp(-0.5*(icSelection-icBest))),
-                                 nrow=nrow(icSelection),ncol=3,byrow=TRUE));
+                                 nrow=nrow(icSelection),ncol=4,byrow=TRUE));
         ICs <- colSums(icSelection * icWeights);
         return(list(icWeights=icWeights,ICs=ICs,icBest=icBest,results=results,cfObjective=NA,
                     icSelection=icSelection));

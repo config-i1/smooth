@@ -175,7 +175,7 @@ intermittentMaker <- function(intermittent="n",...){
 #'
 #' @export iss
 iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),
-                ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
+                ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 model=NULL, persistence=NULL, initial=NULL, initialSeason=NULL, xreg=NULL){
 # Function returns intermittent State-Space model
 #### Add initialSeason to the output? ####

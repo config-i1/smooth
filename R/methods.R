@@ -72,20 +72,38 @@ errorType <- function(object, ...) UseMethod("errorType")
 #' @export
 AICc.smooth <- function(object, ...){
     llikelihood <- logLik(object);
-    nParamAll <- attributes(llikelihood)$df;
+    nParamAll <- nParam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
 
     if(!is.null(object$imodel)){
         obs <- sum(object$fitted!=0);
         nParamSizes <- nParamAll - object$nParam[1,3];
-
         IC <- (2*nParamAll - 2*llikelihood +
                    2*nParamSizes*(nParamSizes + 1) / (obs - nParamSizes - 1));
     }
     else{
         obs <- nobs(object);
-
         IC <- 2*nParamAll - 2*llikelihood + 2 * nParamAll * (nParamAll + 1) / (obs - nParamAll - 1);
+    }
+
+    return(IC);
+}
+
+#' @importFrom greybox BICc
+#' @export
+BICc.smooth <- function(object, ...){
+    llikelihood <- logLik(object);
+    nParamAll <- nParam(object);
+    llikelihood <- llikelihood[1:length(llikelihood)];
+
+    if(!is.null(object$imodel)){
+        obs <- sum(object$fitted!=0);
+        nParamSizes <- nParamAll - object$nParam[1,3];
+        IC <- - 2*llikelihood + (nParamSizes * log(obs) * obs) / (obs - nParamSizes - 1);
+    }
+    else{
+        obs <- nobs(object);
+        IC <- - 2*llikelihood + (nParamAll * log(obs) * obs) / (obs - nParamAll - 1);
     }
 
     return(IC);
@@ -1373,8 +1391,8 @@ print.iss <- function(x, ...){
     else{
         intermittent <- "None";
     }
-    ICs <- round(c(AIC(x),AICc(x),BIC(x)),4);
-    names(ICs) <- c("AIC","AICc","BIC");
+    ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
+    names(ICs) <- c("AIC","AICc","BIC","BICc");
     cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));

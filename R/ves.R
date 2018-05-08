@@ -154,7 +154,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 transition=c("group","independent","dependent"), phi=c("group","individual"),
                 initial=c("individual","group"), initialSeason=c("group","individual"),
                 cfType=c("likelihood","diagonal","trace"),
-                ic=c("AICc","AIC","BIC"), h=10, holdout=FALSE,
+                ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 intervals=c("none","conditional","unconditional","independent"), level=0.95,
                 cumulative=FALSE,
                 intermittent=c("none","fixed","logistic"), imodel="ANN",

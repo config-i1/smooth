@@ -86,7 +86,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc, BIC and CIC (Complex IC).
+#' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - Cost function value.
 #' \item \code{cfType} - Type of cost function used in the estimation.
@@ -142,7 +142,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @export ces
 ces <- function(data, seasonality=c("none","simple","partial","full"),
-                initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC"),
+                initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
@@ -402,7 +402,7 @@ CreatorCES <- function(silentText=FALSE,...){
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
-    bestIC <- ICs["AICc"];
+    bestIC <- ICs[ic];
 
 # Revert to the provided cost function
     cfType <- cfTypeOriginal;

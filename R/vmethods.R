@@ -5,6 +5,35 @@ logLik.viss <- function(object,...){
 }
 
 #' @export
+AICc.vsmooth <- function(object, ...){
+    llikelihood <- logLik(object);
+    nParamAll <- nParam(object);
+    llikelihood <- llikelihood[1:length(llikelihood)];
+    nSeries <- ncol(object$actuals);
+
+    obs <- nobs(object);
+    IC <- -2*llikelihood + ((2*obs*(nParamAll*nSeries + nSeries*(nSeries+1)/2)) /
+                                (obs - (nParamAll + nSeries + 1)));
+
+    return(IC);
+}
+
+#' @export
+BICc.vsmooth <- function(object, ...){
+    llikelihood <- logLik(object);
+    nParamAll <- nParam(object);
+    llikelihood <- llikelihood[1:length(llikelihood)];
+    nSeries <- ncol(object$actuals);
+
+    obs <- nobs(object);
+    IC <- -2*llikelihood + (((nParamAll + nSeries*(nSeries+1)/2) *
+                                 log(obs * nSeries) * obs * nSeries) /
+                                (obs * nSeries - nParamAll - nSeries*(nSeries+1)/2));
+
+    return(IC);
+}
+
+#' @export
 nobs.vsmooth <- function(object, ...){
     return(nrow(object$fitted));
 }
@@ -67,7 +96,7 @@ plot.viss <- function(x, ...){
     dataDeltat <- deltat(actuals);
     forecastStart <- start(yForecast);
     h <- nrow(yForecast);
-    nSeries <- ncol(yForecast);
+    nSeries <- ncol(actuals);
     modelname <- paste0("iVES(",x$model,")")
 
     pages <- ceiling(nSeries / 5);
@@ -113,8 +142,8 @@ print.viss <- function(x, ...){
     else{
         intermittent <- "None";
     }
-    ICs <- round(c(AIC(x),AICc(x),BIC(x)),4);
-    names(ICs) <- c("AIC","AICc","BIC");
+    ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
+    names(ICs) <- c("AIC","AICc","BIC","BICc");
     cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));

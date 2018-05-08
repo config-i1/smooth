@@ -76,7 +76,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @export auto.ssarima
 auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(data)),
                          combine=FALSE, workFast=TRUE, constant=NULL,
-                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC"),
+                         initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                          cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          h=10, holdout=FALSE, cumulative=FALSE,
                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
@@ -328,6 +328,10 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         else if(ic=="BIC"){
             llikelihood <- (nParam*log(obsNonzero) - icValue)/2;
             correction <- nParamNew*log(obsNonzero) - 2*llikelihood;
+        }
+        else if(ic=="BICc"){
+            llikelihood <- ((nParam*log(obsNonzero)*obsNonzero)/(obsNonzero-nParam-1) - icValue)/2;
+            correction <- (nParamNew*log(obsNonzero)*obsNonzero)/(obsNonzero-nParamNew-1) - 2*llikelihood;
         }
 
         return(correction);

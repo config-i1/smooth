@@ -105,7 +105,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc and BIC.
+#' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
 #' \item \code{cf} - Cost function value.
 #' \item \code{cfType} - Type of cost function used in the estimation.
@@ -159,7 +159,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' @export ges
 ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
                 persistence=NULL, transition=NULL, measurement=NULL,
-                initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC"),
+                initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                 cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,

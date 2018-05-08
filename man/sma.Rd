@@ -4,7 +4,7 @@
 \alias{sma}
 \title{Simple Moving Average}
 \usage{
-sma(data, order = NULL, ic = c("AICc", "AIC", "BIC"), h = 10,
+sma(data, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95, silent = c("all",
   "graph", "legend", "output", "none"), ...)
@@ -97,7 +97,7 @@ account).
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{ICs} - values of information criteria of the model. Includes AIC,
-AICc and BIC.
+AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
 \item \code{cf} - Cost function value.
 \item \code{cfType} - Type of cost function used in the estimation.
