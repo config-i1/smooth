@@ -378,7 +378,7 @@ CF <- function(C){
                       bounds);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
-        cfRes <- 1e+100;
+        cfRes <- 1e+500;
     }
 
     return(cfRes);
@@ -431,8 +431,8 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        CLower <- c(CLower,rep(1e-5,maxlag));
-                        CUpper <- c(CUpper,rep(10,maxlag));
+                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -638,25 +638,26 @@ EstimatorES <- function(...){
     # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
     if(any(C==Cs$C)){
         if(C[1]==Cs$C[1]){
-            C[1] <- max(0,CLower);
+            C[1] <- max(0,CLower[1]);
         }
         if(Ttype!="N"){
             if(C[2]==Cs$C[2]){
-                C[2] <- max(0,CLower);
+                C[2] <- max(0,CLower[2]);
             }
             if(Stype!="N"){
                 if(C[3]==Cs$C[3]){
-                    C[3] <- max(0,CLower);
+                    C[3] <- max(0,CLower[3]);
                 }
             }
         }
         else{
             if(Stype!="N"){
                 if(C[2]==Cs$C[2]){
-                    C[2] <- max(0,CLower);
+                    C[2] <- max(0,CLower[2]);
                 }
             }
         }
+
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
         C <- res$solution;
@@ -1258,8 +1259,10 @@ CreatorES <- function(silent=FALSE,...){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
             seasonalCoefs <- decompose(ts(c(y),frequency=datafreq),type="additive")$seasonal[1:datafreq];
-            seasonalCoefs <- cbind(seasonalCoefs,decompose(ts(c(y),frequency=datafreq),
-                                                           type="multiplicative")$seasonal[1:datafreq]);
+            decompositionM <- decompose(ts(c(y),frequency=datafreq), type="multiplicative");
+            seasonalCoefs <- cbind(seasonalCoefs,decompositionM$seasonal[1:datafreq]);
+            seasonalRandomness <- c(min(decompositionM$random,na.rm=TRUE),
+                                    max(decompositionM$random,na.rm=TRUE));
         }
         else{
             initialSeasonEstimate <- FALSE;
