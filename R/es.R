@@ -1285,7 +1285,7 @@ CreatorES <- function(silent=FALSE,...){
         }
 
         if(cfType=="HAM"){
-            smoothingParameters <- cbind(rep(0,3),rep(0,3));
+            smoothingParameters <- cbind(rep(0.01,3),rep(0.01,3));
         }
     }
 

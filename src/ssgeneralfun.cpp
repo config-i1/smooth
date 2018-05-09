@@ -1449,7 +1449,16 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     int matobs = obs + hor - 1;
 
 // yactsum is needed for multiplicative error models
-    double yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
+    double yactsum = 0;
+    if((CFSwitch==7) | (CFSwitch==11) | (CFSwitch==15)){
+        arma::vec vecYtNonZero = vecYt.elem(nonzeroes);
+        for(int i=0; i<(obs-hor); ++i){
+            yactsum += log(sum(vecYtNonZero.rows(i,i+hor)));
+        }
+    }
+    else{
+        yactsum = arma::as_scalar(sum(log(vecYt.elem(nonzeroes))));
+    }
 
     List fitting;
 
@@ -1482,6 +1491,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             matErrors.elem(arma::find_nonfinite(matErrors)).fill(1e10);
 
 // This correction is needed in order to take the correct number of observations in the error matrix
+// !!! This needs to be revised !!! ///
             yactsum = yactsum / obs * matobs;
         }
     }
@@ -1623,16 +1633,17 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         }
     break;
     case 'M':
+    // (2 / double(obs)) and others are needed here in order to produce adequate likelihoods
         switch(CFSwitch){
         // Basic one-step aheads
         case 1:
             CFres = arma::as_scalar(exp(log(mean(pow(matErrors,2))) + (2 / double(obs)) * yactsum));
         break;
         case 2:
-            CFres = arma::as_scalar(exp(log(mean(abs(matErrors))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(mean(abs(matErrors))) + (1 / double(obs)) * yactsum));
         break;
         case 3:
-            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(matErrors)))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(matErrors)))) + (1 / (2*double(obs))) * yactsum));
         break;
         // MSE based multisteps:
         case 4:
@@ -1650,41 +1661,41 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         case 7:
             CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs))
-                        + (2 / double(obs)) * double(hor) * yactsum);
+                        + (2 / double(obs)) * yactsum);
         break;
         // MAE based multisteps:
         case 8:
             CFres = arma::as_scalar(exp(log(sum(abs(matErrors.col(hor-1))) / double(matobs))
-                                        + (2 / double(obs)) * yactsum));
+                                        + (1 / double(obs)) * yactsum));
         break;
         case 9:
             CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1)
-                        + (2 / double(obs)) * double(hor) * yactsum);
+                        + (1 / double(obs)) * double(hor) * yactsum);
         break;
         case 10:
             CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1))
-                    + (2 / double(obs)) * double(hor) * yactsum;
+                    + (1 / double(obs)) * double(hor) * yactsum;
         break;
         case 11:
             CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs))
-                        + (2 / double(obs)) * double(hor) * yactsum);
+                        + (1 / double(obs)) * yactsum);
         break;
         // HAM based multisteps:
         case 12:
             CFres = arma::as_scalar(exp(log(sum(sqrt(abs(matErrors.col(hor-1)))) / double(matobs))
-                                        + (2 / double(obs)) * yactsum));
+                                        + (1 / (2*double(obs))) * yactsum));
         break;
         case 13:
             CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1)
-                        + (2 / double(obs)) * double(hor) * yactsum);
+                        + (1 / (2*double(obs))) * double(hor) * yactsum);
         break;
         case 14:
             CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1))
-                    + (2 / double(obs)) * double(hor) * yactsum;
+                    + (1 / (2*double(obs))) * double(hor) * yactsum;
         break;
         case 15:
             CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs))
-                        + (2 / double(obs)) * double(hor) * yactsum);
+                        + (1 / (2*double(obs))) * yactsum);
         break;
         // TFL
         case 16:
@@ -1699,7 +1710,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         // Analytical multisteps
         case 17:
             CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
-            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+            CFres = CFres + (2 / double(matobs)) * yactsum;
         break;
         case 18:
             CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma
