@@ -378,7 +378,7 @@ CF <- function(C){
                       bounds);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
-        cfRes <- 1e+100;
+        cfRes <- 1e+500;
     }
 
     return(cfRes);

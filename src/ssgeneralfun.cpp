@@ -1634,6 +1634,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     break;
     case 'M':
     // (2 / double(obs)) and others are needed here in order to produce adequate likelihoods
+    // exp(log(...) + ...) is needed in order to have the necessary part before producing logs in likelihood
         switch(CFSwitch){
         // Basic one-step aheads
         case 1:
@@ -1650,18 +1651,17 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(exp(log(sum(pow(matErrors.col(hor-1),2)) / double(matobs))
                                         + (2 / double(obs)) * yactsum));
         break;
-// no exp is the temporary fix for very strange behaviour of MAM type models
         case 5:
-            CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(matobs), 1)
-                        + (2 / double(obs)) * double(hor) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(sum(pow(matErrors,2)) / double(matobs), 1))
+                        + (2 / double(obs)) * double(hor) * yactsum));
         break;
         case 6:
-            CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1))
-                    + (2 / double(obs)) * double(hor) * yactsum;
+            CFres = arma::as_scalar(exp(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1)
+                    + (2 / double(obs)) * double(hor) * yactsum));
         break;
         case 7:
-            CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs))
-                        + (2 / double(obs)) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(pow(sum(matErrors,1),2) / double(matobs)))
+                        + (2 / double(obs)) * yactsum));
         break;
         // MAE based multisteps:
         case 8:
@@ -1669,16 +1669,16 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                                         + (1 / double(obs)) * yactsum));
         break;
         case 9:
-            CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1)
-                        + (1 / double(obs)) * double(hor) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(sum(abs(matErrors)) / double(matobs), 1))
+                        + (1 / double(obs)) * double(hor) * yactsum));
         break;
         case 10:
-            CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1))
-                    + (1 / double(obs)) * double(hor) * yactsum;
+            CFres = arma::as_scalar(exp(log(sum(log(sum(abs(matErrors)) / double(matobs)), 1))
+                    + (1 / double(obs)) * double(hor) * yactsum));
         break;
         case 11:
-            CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs))
-                        + (1 / double(obs)) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(abs(sum(matErrors,1)) / double(matobs)))
+                        + (1 / double(obs)) * yactsum));
         break;
         // HAM based multisteps:
         case 12:
@@ -1686,16 +1686,16 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                                         + (1 / (2*double(obs))) * yactsum));
         break;
         case 13:
-            CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1)
-                        + (1 / (2*double(obs))) * double(hor) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1))
+                        + (1 / (2*double(obs))) * double(hor) * yactsum));
         break;
         case 14:
             CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1))
                     + (1 / (2*double(obs))) * double(hor) * yactsum;
         break;
         case 15:
-            CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs))
-                        + (1 / (2*double(obs))) * yactsum);
+            CFres = arma::as_scalar(exp(log(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)))
+                        + (1 / (2*double(obs))) * yactsum));
         break;
         // TFL
         case 16:
