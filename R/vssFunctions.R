@@ -735,27 +735,6 @@ vssInput <- function(smoothType=c("ves"),...){
         level <- level / 100;
     }
 
-    ##### Check if multiplicative is applicable #####
-    if(any(smoothType==c("ves"))){
-        # Check if multiplicative models can be fitted
-        allowMultiplicative <- !((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0)));
-        # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
-        if(!allowMultiplicative){
-            if(Etype=="M"){
-                warning("Can't apply multiplicative model to non-positive data. Switching error type to 'A'", call.=FALSE);
-                Etype <- "A";
-            }
-            if(Ttype=="M"){
-                warning("Can't apply multiplicative model to non-positive data. Switching trend type to 'A'", call.=FALSE);
-                Ttype <- "A";
-            }
-            if(Stype=="M"){
-                warning("Can't apply multiplicative model to non-positive data. Switching seasonality type to 'A'", call.=FALSE);
-                Stype <- "A";
-            }
-        }
-    }
-
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
     if(all(bounds!=c("u","a","n"))){
@@ -811,7 +790,6 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     assign("nComponentsAll",nComponentsAll,ParentEnvironment);
     assign("nComponentsNonSeasonal",nComponentsNonSeasonal,ParentEnvironment);
-    assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
 
     assign("persistenceValue",persistenceValue,ParentEnvironment);
     assign("persistenceType",persistenceType,ParentEnvironment);
