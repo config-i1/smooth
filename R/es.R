@@ -477,8 +477,8 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        CLower <- c(CLower,rep(-0.0001,maxlag));
-                        CUpper <- c(CUpper,rep(20,maxlag));
+                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -523,8 +523,8 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         CUpper <- c(CUpper,rep(Inf,maxlag));
                     }
                     else{
-                        CLower <- c(CLower,rep(-Inf,maxlag));
-                        CUpper <- c(CUpper,rep(Inf,maxlag));
+                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -626,8 +626,10 @@ EstimatorES <- function(...){
 
     # Change C if it is out of the bounds
     if(any((C>=CUpper),(C<=CLower))){
-        C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
-        C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
+        # C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
+        # C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
+        CUpper[C>=CUpper] <- C[C>=CUpper] * 1.001 + 0.001;
+        CLower[C<=CLower] <- C[C<=CLower] * 0.999 - 0.001;
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
