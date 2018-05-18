@@ -1642,6 +1642,11 @@ ssFitter <- function(...){
     y.fit <- ts(fitting$yfit,start=dataStart,frequency=datafreq);
     errors <- ts(fitting$errors,start=dataStart,frequency=datafreq);
 
+    if(any(is.nan(matvt[,1]))){
+        matvt[is.nan(matvt[,1]),1] <- 0;
+        warning(paste0("Something went wrong with the model ",model,", NaNs were produced.\n",
+                       "This could happen if you used multiplicative model on non-positive data. Please, use a different model."),call.=FALSE);
+    }
     if(EtypeNew=="M" & any(matvt[,1]<0)){
         matvt[matvt[,1]<0,1] <- 0.001;
         warning(paste0("Negative values produced in the level of state vector of model ",model,".\n",
@@ -2266,12 +2271,17 @@ ssForecaster <- function(...){
     yForecastStart <- time(data)[obsInsample]+deltat(data);
 
     if(h>0){
-        y.for <- ts(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+        y.for <- ts(c(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                    matF, matw, h, Etype, Ttype, Stype, modellags,
                                    matrix(matxt[(obsAll-h+1):(obsAll),],ncol=nExovars),
-                                   matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX),
+                                   matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX)),
                     start=yForecastStart,frequency=datafreq);
 
+        if(any(is.nan(y.for))){
+            warning(paste0("NaNs were produced in the forecast.\n",
+                           "This could happen if you used multiplicative model on non-positive data. Please, use a different model."),call.=FALSE);
+            y.for[] <- 0;
+        }
         if(Etype=="M" & any(y.for<0)){
             warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
                            "Please, use another model."),call.=FALSE);
