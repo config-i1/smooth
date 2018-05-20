@@ -1131,6 +1131,12 @@ plot.smooth <- function(x, ...){
 }
 
 #' @export
+plot.smoothC <- function(x, ...){
+    graphmaker(x$actuals, x$forecast, x$fitted, x$lower, x$upper, x$level,
+               main="Combined smooth forecasts");
+}
+
+#' @export
 plot.smooth.sim <- function(x, ...){
     ellipsis <- list(...);
     if(is.null(ellipsis$main)){
@@ -1222,15 +1228,17 @@ print.smooth <- function(x, ...){
 
     intervalsType <- x$intervals;
 
-    if(gregexpr("SMA",x$model)!=-1){
-        x$iprob <- 1;
-        x$initialType <- "b";
-        intermittent <- "n";
-    }
-    else if(gregexpr("ETS",x$model)!=-1){
+    if(!is.null(x$model)){
+        if(gregexpr("SMA",x$model)!=-1){
+            x$iprob <- 1;
+            x$initialType <- "b";
+            intermittent <- "n";
+        }
+        else if(gregexpr("ETS",x$model)!=-1){
     # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
-        if(cumulative & substr(modelType(x),1,1)=="M"){
-            intervalsType <- "p";
+            if(cumulative & substr(modelType(x),1,1)=="M"){
+                intervalsType <- "p";
+            }
         }
     }
     if(class(x$imodel)!="iss"){

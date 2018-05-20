@@ -4,7 +4,7 @@ utils::globalVariables(c("h","holdout","orders","lags","transition","measurement
                          "constant","AR","MA","data","y.fit","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
-ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
+ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     # This is universal function needed in order to check the passed arguments to es(), ges(), ces() and ssarima()
 
     smoothType <- smoothType[1];
@@ -477,6 +477,10 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
             nParamMax <- order;
         }
     }
+    else{
+        maxlag <- 1;
+        nParamMax <- 0;
+    }
 
     ##### Lags and components for GES #####
     if(smoothType=="ges"){
@@ -598,8 +602,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
     if(bounds!="u" & bounds!="a" & bounds!="n"){
-        warning("Strange bounds are defined. Switching to 'usual'.",call.=FALSE);
-        bounds <- "u";
+        warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
+        bounds <- "a";
     }
 
     ##### Information Criteria #####
@@ -671,19 +675,19 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
         intervalsType <- "p";
     }
 
-    if(intervalsType=="none"){
+    if(any(intervalsType==c("none","n"))){
         intervalsType <- "n";
         intervals <- FALSE;
     }
-    else if(intervalsType=="parametric"){
+    else if(any(intervalsType==c("parametric","p"))){
         intervalsType <- "p";
         intervals <- TRUE;
     }
-    else if(intervalsType=="semiparametric"){
+    else if(any(intervalsType==c("semiparametric","sp"))){
         intervalsType <- "sp";
         intervals <- TRUE;
     }
-    else if(intervalsType=="nonparametric"){
+    else if(any(intervalsType==c("nonparametric","np"))){
         intervalsType <- "np";
         intervals <- TRUE;
     }
@@ -997,6 +1001,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima"),...){
                                               maxlag*(seasonality!="n") +
                                               maxlag*any(seasonality==c("f","s")));
                 }
+            }
+            else if(smoothType=="smoothC"){
+                warning("We cannot use the preset initials for the models. Switching to optimal.",
+                        call.=FALSE);
+                initialType <- "o";
+                initialValue <- NULL;
             }
         }
     }
@@ -1497,19 +1507,19 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
         intervalsType <- "p";
     }
 
-    if(intervalsType=="none"){
+    if(any(intervalsType==c("none","n"))){
         intervalsType <- "n";
         intervals <- FALSE;
     }
-    else if(intervalsType=="parametric"){
+    else if(any(intervalsType==c("parametric","p"))){
         intervalsType <- "p";
         intervals <- TRUE;
     }
-    else if(intervalsType=="semiparametric"){
+    else if(any(intervalsType==c("semiparametric","sp"))){
         intervalsType <- "sp";
         intervals <- TRUE;
     }
-    else if(intervalsType=="nonparametric"){
+    else if(any(intervalsType==c("nonparametric","np"))){
         intervalsType <- "np";
         intervals <- TRUE;
     }
@@ -2235,7 +2245,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         stop("The provided data is not either vector or matrix. Can't do anything with it!", call.=FALSE);
     }
 
-    return(list(upper=upper,lower=lower,variance=varVec));
+    return(list(upper=upper,lower=lower));
 }
 
 ##### *Forecaster of state-space functions* #####
@@ -2955,20 +2965,26 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
                      intermittent="n"){
 # Function forms the generic output for State-space models.
-    if(gregexpr("ETS",modelname)!=-1){
-        model <- "ETS";
+    if(!is.null(modelname)){
+        if(gregexpr("ETS",modelname)!=-1){
+            model <- "ETS";
+        }
+        else if(gregexpr("CES",modelname)!=-1){
+            model <- "CES";
+        }
+        else if(gregexpr("GES",modelname)!=-1){
+            model <- "GES";
+        }
+        else if(gregexpr("ARIMA",modelname)!=-1){
+            model <- "ARIMA";
+        }
+        else if(gregexpr("SMA",modelname)!=-1){
+            model <- "SMA";
+        }
     }
-    else if(gregexpr("CES",modelname)!=-1){
-        model <- "CES";
-    }
-    else if(gregexpr("GES",modelname)!=-1){
-        model <- "GES";
-    }
-    else if(gregexpr("ARIMA",modelname)!=-1){
-        model <- "ARIMA";
-    }
-    else if(gregexpr("SMA",modelname)!=-1){
-        model <- "SMA";
+    else{
+        model <- "smoothC";
+        modelname <- "Combined smooth";
     }
 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
