@@ -39,7 +39,7 @@ sowhat("I don't have a girlfriend.")
 Nowwhat (to be implemented),
 }
 \author{
-Ivan Svetunkov
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \keyword{42}
 \keyword{sowhat}

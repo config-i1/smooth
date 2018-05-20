@@ -549,7 +549,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
 #' @param object Time series model.
 #' @param ...  Some stuff.
 #' @return This function returns a vector.
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @template ssAuthor
 #' @seealso \link[stats]{AIC}, \link[stats]{BIC}
 #' @keywords htest
 #' @examples
@@ -706,7 +706,7 @@ NULL
 #' \item \code{intervals} - binary variable (whether intervals were produced or not).
 #' \item \code{residuals} - the residuals of the original model.
 #' }
-#' @author Ivan Svetunkov, \email{ivan@@svetunkov.ru}
+#' @template ssAuthor
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast}}
 #' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 #' Forecasting with exponential smoothing: the state space approach,

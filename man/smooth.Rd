@@ -27,8 +27,10 @@ included in the package:
 \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
 \item \link[smooth]{sim.ges} - simulate time series using GES as a model.
+\item \link[smooth]{sim.sma} - simulate time series using SMA.
 \item \link[smooth]{iss} - intermittent data state-space model. This
 function models the part with data occurrences using one of three methods.
+\item \link[smooth]{viss} - Does the same as iss, but for the multivariate models.
 }
 There are also several methods implemented in the package for the classes
 "smooth" and "smooth.sim":
@@ -36,13 +38,23 @@ There are also several methods implemented in the package for the classes
 \item \link[smooth]{orders} - extracts orders of the fitted model.
 \item \link[smooth]{lags} - extracts lags of the fitted model.
 \item \link[smooth]{modelType} - extracts type of the fitted model.
+\item \link[smooth]{errorType} - extracts type of the error in the model.
 \item \link[smooth]{forecast} - produces forecast using provided model.
+\item \link[smooth]{pointLik} - returns the likelihood values for each in-sample observation.
+\item \link[smooth]{covar} - returns covariance matrix of multiple steps ahead forecast errors.
+\item \link[smooth]{pls} - returns Prediction Likelihood Score.
+\item \link[greybox]{nParam} - returns number of the estimated parameters.
+\item \link[smooth]{Accuracy} - returns vector of error measures for the providede forecasts
+and holdout.
+\item \link[smooth]{graphmaker} - plots the original series, the fitted values and the forecasts.
 \item fitted - extracts fitted values from provided model.
 \item getResponse - returns actual values from the provided model.
 \item residuals - extracts residuals of provided model.
-\item plot - plots either states of the model or produced forecast (depending on what object is passed).
+\item plot - plots either states of the model or produced forecast (depending on what object
+is passed).
 \item simulate - uses sim functions in order to simulate data using the provided object.
 \item summary - provides summary of the object.
+\item AICc, BICc - return, guess what...
 }
 }
 \examples{

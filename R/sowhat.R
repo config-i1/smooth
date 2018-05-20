@@ -6,7 +6,7 @@
 #'
 #' @param ...  Any number of variables or string with a question.
 #' @return It doesn't return any value, only messages. So what?
-#' @author Ivan Svetunkov
+#' @template ssAuthor
 #' @seealso Nowwhat (to be implemented),
 #' @references \itemize{
 #' \item\href{http://en.wiktionary.org/wiki/so_what}{Sowhat?}
@@ -34,5 +34,5 @@ sowhat <- function(...){
 
 # Function is needed to ask additional question before the release
 release_questions <- function(){
-  c("Did you check package with --use-valgrind if C++ code changed?");
+  c("i1: Did you check package with --use-valgrind if C++ code changed?");
 }
