@@ -25,7 +25,7 @@ Here is the list of the included functions:
 17. Accuracy - the vector of the error measures for the provided forecasts and the holdout.
 18. graphmaker - plots the original series, the fitted values and the forecasts.
 19. sowhat - returns the ultimate answer to any question.
-20. combineSmooth - the function that combines forecasts from es(), ces(), ges(), ssarima() and sma() functions.
+20. smoothCombine - the function that combines forecasts from es(), ces(), ges(), ssarima() and sma() functions.
 
 Future works:
 

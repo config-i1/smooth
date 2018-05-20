@@ -8,6 +8,11 @@
 #' framework. Due to the the complexity of some of the models, the
 #' estimation process may take some time. So be patient.
 #'
+#' The prediction intervals are combined quantile-wise, which takes extra
+#' time, because we need to produce all the distributions for all the
+#' models. This can be sped up with the smaller bins parameter, but the
+#' resulting intervals may be imprecise.
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssAuthor
@@ -17,9 +22,20 @@
 #' @template ssETSRef
 #' @template ssIntervalsRef
 #'
+#' @references \itemize{
+#' \item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
+#' Robert L., (2013) Is It Better to Average Probabilities or
+#' Quantiles? Management Science 59(7):1594-1611. DOI:
+#' [10.1287/mnsc.1120.1667](https://doi.org/10.1287/mnsc.1120.1667)
+#' }
+#'
 #' @param initial Can be \code{"optimal"}, meaning that the initial
 #' states are optimised, or \code{"backcasting"}, meaning that the
 #' initials are produced using backcasting procedure.
+#' @param bins The number of bins for the prediction intervals.
+#' The lower value means faster work of the function, but less
+#' precise estimates of the quantiles. This needs to be an even
+#' number.
 #' @param ... This currently determines nothing.
 #'
 #' \itemize{
@@ -49,8 +65,7 @@
 #' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
 #' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 #' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
+#' cumulative error) and Bias coefficient.
 #' }
 #'
 #' @seealso \code{\link[smooth]{es}, \link[smooth]{auto.ssarima},
@@ -60,14 +75,15 @@
 #'
 #' library(Mcomp)
 #'
-#' ourModel <- combineSmooth(M3[[578]])
+#' ourModel <- smoothCombine(M3[[578]])
 #' plot(ourModel)
 #'
-#' @export combineSmooth
-combineSmooth <- function(data, initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
+#' @export smoothCombine
+smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                           cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
                           intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                          bins=1000,
                           intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
                           imodel="MNN",
                           bounds=c("admissible","none"),
@@ -173,7 +189,9 @@ combineSmooth <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
 
     if(intervalsType!="n"){
         #### This part is for combining the prediction intervals ####
-        bins <- 1000-1
+        if((abs(bins) %% 2)<=1e-100){
+            bins <- bins-1;
+        }
 
         # This is needed for appropriate combination of prediction intervals
         ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(paste0("Model",c(1:nModels)),

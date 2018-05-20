@@ -15,7 +15,7 @@
 #' \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
 #' \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
 #' \item \link[smooth]{sma} - Simple Moving Average in state-space form.
-#' \item \link[smooth]{combineSmooth} - the function that combines forecasts from es(),
+#' \item \link[smooth]{smoothCombine} - the function that combines forecasts from es(),
 #' ces(), ges(), ssarima() and sma() functions.
 #' \item \link[smooth]{ves} - Vector Exponential Smoothing.
 #' \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
