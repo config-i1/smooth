@@ -177,10 +177,11 @@ possible because they are all formulated in Single Source of Error
 framework. Due to the the complexity of some of the models, the
 estimation process may take some time. So be patient.
 
-The prediction intervals are combined quantile-wise, which takes extra
-time, because we need to produce all the distributions for all the
-models. This can be sped up with the smaller bins parameter, but the
-resulting intervals may be imprecise.
+The prediction intervals are combined quantile-wise (Lichtendahl et
+al., 2013), which takes extra time, because we need to produce all
+the distributions for all the models. This can be sped up with the
+smaller value for bins parameter, but the resulting intervals may
+be imprecise.
 }
 \examples{
 
