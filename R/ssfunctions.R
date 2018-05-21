@@ -2966,20 +2966,26 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      intermittent="n"){
 # Function forms the generic output for State-space models.
     if(!is.null(modelname)){
-        if(gregexpr("ETS",modelname)!=-1){
-            model <- "ETS";
+        if(is.list(modelname)){
+            model <- "smoothC";
+            modelname <- "Combined smooth";
         }
-        else if(gregexpr("CES",modelname)!=-1){
-            model <- "CES";
-        }
-        else if(gregexpr("GES",modelname)!=-1){
-            model <- "GES";
-        }
-        else if(gregexpr("ARIMA",modelname)!=-1){
-            model <- "ARIMA";
-        }
-        else if(gregexpr("SMA",modelname)!=-1){
-            model <- "SMA";
+        else{
+            if(gregexpr("ETS",modelname)!=-1){
+                model <- "ETS";
+            }
+            else if(gregexpr("CES",modelname)!=-1){
+                model <- "CES";
+            }
+            else if(gregexpr("GES",modelname)!=-1){
+                model <- "GES";
+            }
+            else if(gregexpr("ARIMA",modelname)!=-1){
+                model <- "ARIMA";
+            }
+            else if(gregexpr("SMA",modelname)!=-1){
+                model <- "SMA";
+            }
         }
     }
     else{

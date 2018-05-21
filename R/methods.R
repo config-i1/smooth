@@ -1229,15 +1229,17 @@ print.smooth <- function(x, ...){
     intervalsType <- x$intervals;
 
     if(!is.null(x$model)){
-        if(gregexpr("SMA",x$model)!=-1){
-            x$iprob <- 1;
-            x$initialType <- "b";
-            intermittent <- "n";
-        }
-        else if(gregexpr("ETS",x$model)!=-1){
-    # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
-            if(cumulative & substr(modelType(x),1,1)=="M"){
-                intervalsType <- "p";
+        if(!is.list(x$model)){
+            if(gregexpr("SMA",x$model)!=-1){
+                x$iprob <- 1;
+                x$initialType <- "b";
+                intermittent <- "n";
+            }
+            else if(gregexpr("ETS",x$model)!=-1){
+                # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
+                if(cumulative & substr(modelType(x),1,1)=="M"){
+                    intervalsType <- "p";
+                }
             }
         }
     }

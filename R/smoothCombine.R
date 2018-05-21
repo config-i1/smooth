@@ -30,6 +30,9 @@
 #' [10.1287/mnsc.1120.1667](https://doi.org/10.1287/mnsc.1120.1667)
 #' }
 #'
+#' @param models List of the estimated smooth models to use in the
+#' combination. If \code{NULL}, then all the models are estimated
+#' in the function.
 #' @param initial Can be \code{"optimal"}, meaning that the initial
 #' states are optimised, or \code{"backcasting"}, meaning that the
 #' initials are produced using backcasting procedure.
@@ -79,8 +82,18 @@
 #' ourModel <- smoothCombine(M3[[578]])
 #' plot(ourModel)
 #'
+#' # models parameter accepts either previously estimated smoothCombine
+#' # or a manually formed list of smooth models estimated in sample:
+#' smoothCombine(M3[[578]],models=ourModel)
+#'
+#' \dontrun{models <- list(es(M3[[578]]), sma(M3[[578]]))
+#' smoothCombine(M3[[578]],models=models)
+#' }
+#'
+#' @importFrom stats fitted
 #' @export smoothCombine
-smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
+smoothCombine <- function(data, models=NULL,
+                          initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                           cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
                           intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
@@ -96,6 +109,10 @@ smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    if(any(class(models)=="smoothC")){
+        models <- models$models;
+    }
 
 # Add all the variables in ellipsis to current environment
     thisEnvironment <- environment();
@@ -118,75 +135,82 @@ smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
         IC <- BICc;
     }
 
-    # These values are needed for the prediction intervals
-    nModels <- 5;
+    modelsNotProvided <- is.null(models);
+    if(modelsNotProvided){
+        nModels <- 5;
+    }
+    else{
+        nModels <- length(models);
+    }
 
-    if(!silentText){
-        cat("Estimating models... ");
+    if(modelsNotProvided){
+        if(!silentText){
+            cat("Estimating models... ");
+        }
+        #### This is model fitting ####
+        if(!silentText){
+            cat("ES");
+        }
+        esModel <- es(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
+                      cumulative=cumulative,intervals="n",intermittent=intermittent,
+                      imodel=imodel,bounds=bounds,silent=TRUE,
+                      xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+        if(!silentText){
+            cat(", CES");
+        }
+        cesModel <- auto.ces(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
+                             cumulative=cumulative,intervals="n",intermittent=intermittent,
+                             imodel=imodel,bounds=bounds,silent=TRUE,
+                             xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                             initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+        if(!silentText){
+            cat(", SSARIMA");
+        }
+        ssarimaModel <- auto.ssarima(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
+                                     cumulative=cumulative,intervals="n",intermittent=intermittent,
+                                     imodel=imodel,bounds=bounds,silent=TRUE,
+                                     xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                                     initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+        if(!silentText){
+            cat(", GES");
+        }
+        gesModel <- auto.ges(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
+                             cumulative=cumulative,intervals="n",intermittent=intermittent,
+                             imodel=imodel,bounds=bounds,silent=TRUE,
+                             xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                             initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+        if(!silentText){
+            cat(", SMA");
+        }
+        smaModel <- sma(data,ic=ic,h=h,holdout=holdout,
+                        cumulative=cumulative,intervals="n",silent=TRUE);
+        if(!silentText){
+            cat(". Done!\n");
+        }
+        models <- list(esModel, cesModel, ssarimaModel, gesModel, smaModel);
     }
-    # This function produces forecasts from several models and then combines them
-    #### This is model fitting ####
-    if(!silentText){
-        cat("ES");
-    }
-    esModel <- es(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                  cumulative=cumulative,intervals=intervalsType,level=0.5,intermittent=intermittent,
-                  imodel=imodel,bounds=bounds,silent=TRUE,
-                  xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
-                  initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
-    if(!silentText){
-        cat(", CES");
-    }
-    cesModel <- auto.ces(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                         cumulative=cumulative,intervals=intervalsType,level=0.5,intermittent=intermittent,
-                         imodel=imodel,bounds=bounds,silent=TRUE,
-                         xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
-                         initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
-    if(!silentText){
-        cat(", SSARIMA");
-    }
-    ssarimaModel <- auto.ssarima(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                                 cumulative=cumulative,intervals=intervalsType,level=0.5,intermittent=intermittent,
-                                 imodel=imodel,bounds=bounds,silent=TRUE,
-                                 xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
-                                 initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
-    if(!silentText){
-        cat(", GES");
-    }
-    gesModel <- auto.ges(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                         cumulative=cumulative,intervals=intervalsType,level=0.5,intermittent=intermittent,
-                         imodel=imodel,bounds=bounds,silent=TRUE,
-                         xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
-                         initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
-    if(!silentText){
-        cat(", SMA");
-    }
-    smaModel <- sma(data,ic=ic,h=h,holdout=holdout,
-                    cumulative=cumulative,intervals=intervalsType,level=0.5,silent=TRUE);
-    if(!silentText){
-        cat(". Done!\n");
-    }
+
+    yForecastTest <- forecast(models[[1]],h=h,intervals="none",holdout=holdout);
+    yForecastStart <- start(yForecastTest$mean);
+    yHoldout <- yForecastTest$model$holdout;
+    y <- yForecastTest$model$actuals;
 
     # Calculate AIC weights
-    ICs <- c(IC(esModel),IC(cesModel),IC(ssarimaModel),IC(gesModel),IC(smaModel));
-    names(ICs) <- paste0(c("ETS", "CES", "SSARIMA", "GES", "SMA"), " ", ic);
+    ICs <- unlist(lapply(models, IC));
+    names(ICs) <- paste0("model", c(1:nModels), " ", ic);
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    yForecast <- (esModel$forecast * icWeights[1] + cesModel$forecast * icWeights[2] +
-                      ssarimaModel$forecast * icWeights[3] + gesModel$forecast * icWeights[4] +
-                      smaModel$forecast * icWeights[5]);
+    modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+                              level=0.5,holdout=holdout,cumulative=cumulative);
+    yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
+    yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=datafreq);
 
-    yFitted <- (esModel$fitted * icWeights[1] + cesModel$fitted * icWeights[2] +
-                      ssarimaModel$fitted * icWeights[3] + gesModel$fitted * icWeights[4] +
-                      smaModel$fitted * icWeights[5]);
-
-    y <- esModel$actuals;
-    yHoldout <- esModel$holdout;
+    yFitted <- as.matrix(as.data.frame(lapply(models,fitted)));
+    yFitted <- ts(c(yFitted %*% icWeights),start=dataStart,frequency=datafreq);
 
     lower <- upper <- NA;
-
-    yForecastStart <- start(yForecast);
 
     if(intervalsType!="n"){
         #### This part is for combining the prediction intervals ####
@@ -202,11 +226,8 @@ smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
         ourSequence <- array(NA,c(bins,h))
 
         # Write down the median values for all the models
-        ourQuantiles[1,"0.5",] <- esModel$lower;
-        ourQuantiles[2,"0.5",] <- cesModel$lower;
-        ourQuantiles[3,"0.5",] <- ssarimaModel$lower;
-        ourQuantiles[4,"0.5",] <- gesModel$lower;
-        ourQuantiles[5,"0.5",] <- smaModel$lower;
+
+        ourQuantiles[,"0.5",] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"lower"))));
 
         if(!silentText){
             cat("Constructing prediction intervals...    ");
@@ -220,30 +241,13 @@ smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
                 cat(paste0(rep("\b",nchar(round((j-1)/((bins-1)/2),2)*100)+1),collapse=""));
                 cat(paste0(round(j/((bins-1)/2),2)*100,"%"));
             }
-            esModel <- es(data,model=esModel,h=h,intervals=intervalsType,level=j*2/(bins+1),
-                          holdout=holdout,cumulative=cumulative,silent=T);
-            ourQuantiles[1,(bins+1)/2-j,] <- esModel$lower;
-            ourQuantiles[1,(bins+1)/2+j,] <- esModel$upper;
+            modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+                                      level=j*2/(bins+1),holdout=holdout,cumulative=cumulative);
 
-            cesModel <- ces(data,model=cesModel,h=h,intervals=intervalsType,level=j*2/(bins+1),
-                            holdout=holdout,cumulative=cumulative,silent=T);
-            ourQuantiles[2,(bins+1)/2-j,] <- cesModel$lower;
-            ourQuantiles[2,(bins+1)/2+j,] <- cesModel$upper;
-
-            ssarimaModel <- ssarima(data,model=ssarimaModel,h=h,intervals=intervalsType,level=j*2/(bins+1),
-                                    holdout=holdout,cumulative=cumulative,silent=T);
-            ourQuantiles[3,(bins+1)/2-j,] <- ssarimaModel$lower;
-            ourQuantiles[3,(bins+1)/2+j,] <- ssarimaModel$upper;
-
-            gesModel <- ges(data,model=gesModel,h=h,intervals=intervalsType,level=j*2/(bins+1),
-                            holdout=holdout,cumulative=cumulative,silent=T);
-            ourQuantiles[4,(bins+1)/2-j,] <- gesModel$lower;
-            ourQuantiles[4,(bins+1)/2+j,] <- gesModel$upper;
-
-            smaModel <- sma(data,model=smaModel,h=h,intervals=intervalsType,level=j*2/(bins+1),
-                            holdout=holdout,cumulative=cumulative,silent=T);
-            ourQuantiles[5,(bins+1)/2-j,] <- smaModel$lower;
-            ourQuantiles[5,(bins+1)/2+j,] <- smaModel$upper;
+            ourQuantiles[,(bins+1)/2-j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                             `[[`,"lower"))));
+            ourQuantiles[,(bins+1)/2+j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                             `[[`,"upper"))));
         }
 
         # Write down minimum and maximum values between the models for each horizon
@@ -315,7 +319,8 @@ smoothCombine <- function(data, initial=c("optimal","backcasting"), ic=c("AICc",
         }
     }
 
-    model <- list(timeElapsed=Sys.time()-startTime, initialType=initialType, fitted=yFitted,
+    model <- list(timeElapsed=Sys.time()-startTime, models=models, initialType=initialType,
+                  fitted=yFitted,
                   forecast=yForecast, lower=lower, upper=upper, residuals=errors, s2=s2,
                   intervals=intervalsType, level=level, cumulative=cumulative,
                   actuals=data, holdout=yHoldout, ICs=ICs, ICw=icWeights, cfType=cfType,

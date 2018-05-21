@@ -4,19 +4,23 @@
 \alias{smoothCombine}
 \title{Combination of forecasts of state-space models}
 \usage{
-smoothCombine(data, initial = c("optimal", "backcasting"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
-  level = 0.95, bins = 1000, intermittent = c("none", "auto", "fixed",
-  "interval", "probability", "sba", "logistic"), imodel = "MNN",
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
-  initialX = NULL, updateX = FALSE, persistenceX = NULL,
+smoothCombine(data, models = NULL, initial = c("optimal", "backcasting"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
+  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
+  "nonparametric"), level = 0.95, bins = 1000, intermittent = c("none",
+  "auto", "fixed", "interval", "probability", "sba", "logistic"),
+  imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
+  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
   transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
+
+\item{models}{List of the estimated smooth models to use in the
+combination. If \code{NULL}, then all the models are estimated
+in the function.}
 
 \item{initial}{Can be \code{"optimal"}, meaning that the initial
 states are optimised, or \code{"backcasting"}, meaning that the
@@ -189,6 +193,14 @@ library(Mcomp)
 
 ourModel <- smoothCombine(M3[[578]])
 plot(ourModel)
+
+# models parameter accepts either previously estimated smoothCombine
+# or a manually formed list of smooth models estimated in sample:
+smoothCombine(M3[[578]],models=ourModel)
+
+\dontrun{models <- list(es(M3[[578]]), sma(M3[[578]]))
+smoothCombine(M3[[578]],models=models)
+}
 
 }
 \references{
