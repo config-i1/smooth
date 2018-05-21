@@ -143,18 +143,18 @@ smoothCombine <- function(data, models=NULL,
         nModels <- length(models);
     }
 
+    #### Model selection, if none is provided ####
     if(modelsNotProvided){
         if(!silentText){
             cat("Estimating models... ");
         }
-        #### This is model fitting ####
         if(!silentText){
             cat("ES");
         }
         esModel <- es(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
                       cumulative=cumulative,intervals="n",intermittent=intermittent,
                       imodel=imodel,bounds=bounds,silent=TRUE,
-                      xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                      xreg=xreg,xregDo=xregDo,updateX=updateX,
                       initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", CES");
@@ -162,7 +162,7 @@ smoothCombine <- function(data, models=NULL,
         cesModel <- auto.ces(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
                              cumulative=cumulative,intervals="n",intermittent=intermittent,
                              imodel=imodel,bounds=bounds,silent=TRUE,
-                             xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                             xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", SSARIMA");
@@ -170,7 +170,7 @@ smoothCombine <- function(data, models=NULL,
         ssarimaModel <- auto.ssarima(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
                                      cumulative=cumulative,intervals="n",intermittent=intermittent,
                                      imodel=imodel,bounds=bounds,silent=TRUE,
-                                     xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                                     xreg=xreg,xregDo=xregDo,updateX=updateX,
                                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", GES");
@@ -178,7 +178,7 @@ smoothCombine <- function(data, models=NULL,
         gesModel <- auto.ges(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
                              cumulative=cumulative,intervals="n",intermittent=intermittent,
                              imodel=imodel,bounds=bounds,silent=TRUE,
-                             xreg=NULL,xregDo=c("use","select"),updateX=FALSE,
+                             xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", SMA");
@@ -189,6 +189,7 @@ smoothCombine <- function(data, models=NULL,
             cat(". Done!\n");
         }
         models <- list(esModel, cesModel, ssarimaModel, gesModel, smaModel);
+        names(models) <- c("ETS","CES","SSARIMA","GES","SMA");
     }
 
     yForecastTest <- forecast(models[[1]],h=h,intervals="none",holdout=holdout);
@@ -198,12 +199,19 @@ smoothCombine <- function(data, models=NULL,
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
-    names(ICs) <- paste0("model", c(1:nModels), " ", ic);
+    if(is.null(names(models))){
+        names(ICs) <- paste0("model", c(1:nModels), " ", ic);
+    }
+    else{
+        names(ICs) <- paste0(names(models), " ", ic);
+    }
+
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
     modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
-                              level=0.5,holdout=holdout,cumulative=cumulative);
+                              level=0.5,holdout=holdout,cumulative=cumulative,
+                              xreg=xreg);
     yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
     yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=datafreq);
 
@@ -242,7 +250,8 @@ smoothCombine <- function(data, models=NULL,
                 cat(paste0(round(j/((bins-1)/2),2)*100,"%"));
             }
             modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
-                                      level=j*2/(bins+1),holdout=holdout,cumulative=cumulative);
+                                      level=j*2/(bins+1),holdout=holdout,cumulative=cumulative,
+                                      xreg=xreg);
 
             ourQuantiles[,(bins+1)/2-j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
                                                                              `[[`,"lower"))));
