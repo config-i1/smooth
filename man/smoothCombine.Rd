@@ -8,7 +8,7 @@ smoothCombine(data, models = NULL, initial = c("optimal", "backcasting"),
   ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, bins = 1000, intermittent = c("none",
+  "nonparametric"), level = 0.95, bins = 200, intermittent = c("none",
   "auto", "fixed", "interval", "probability", "sba", "logistic"),
   imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
   "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
@@ -145,6 +145,8 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 \item \code{timeElapsed} - time elapsed for the construction of the model.
 \item \code{initialType} - type of the initial values used.
 \item \code{fitted} - fitted values of ETS.
+\item \code{quantiles} - the 3D array of produced quantiles if \code{intervals!="none"}
+with the dimensions: (number of models) x (bins) x (h).
 \item \code{forecast} - point forecast of ETS.
 \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
 then NA is returned.

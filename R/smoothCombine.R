@@ -46,6 +46,8 @@
 #' \item \code{timeElapsed} - time elapsed for the construction of the model.
 #' \item \code{initialType} - type of the initial values used.
 #' \item \code{fitted} - fitted values of ETS.
+#' \item \code{quantiles} - the 3D array of produced quantiles if \code{intervals!="none"}
+#' with the dimensions: (number of models) x (bins) x (h).
 #' \item \code{forecast} - point forecast of ETS.
 #' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
 #' then NA is returned.
@@ -97,7 +99,7 @@ smoothCombine <- function(data, models=NULL,
                           cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
                           intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                          bins=1000,
+                          bins=200,
                           intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
                           imodel="MNN",
                           bounds=c("admissible","none"),
@@ -219,6 +221,7 @@ smoothCombine <- function(data, models=NULL,
     yFitted <- ts(c(yFitted %*% icWeights),start=dataStart,frequency=datafreq);
 
     lower <- upper <- NA;
+    ourQuantiles <- NA;
 
     if(intervalsType!="n"){
         #### This part is for combining the prediction intervals ####
@@ -227,7 +230,7 @@ smoothCombine <- function(data, models=NULL,
         }
 
         # This is needed for appropriate combination of prediction intervals
-        ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(paste0("Model",c(1:nModels)),
+        ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(names(models),
                                                                  c(1:bins)/(bins+1),paste0("h",c(1:h))))
         minMaxQuantiles <- matrix(NA,2,h)
         # Prepare the matrix for the sequences from min to max for each h
@@ -329,7 +332,7 @@ smoothCombine <- function(data, models=NULL,
     }
 
     model <- list(timeElapsed=Sys.time()-startTime, models=models, initialType=initialType,
-                  fitted=yFitted,
+                  fitted=yFitted, quantiles=ourQuantiles,
                   forecast=yForecast, lower=lower, upper=upper, residuals=errors, s2=s2,
                   intervals=intervalsType, level=level, cumulative=cumulative,
                   actuals=data, holdout=yHoldout, ICs=ICs, ICw=icWeights, cfType=cfType,
