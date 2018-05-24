@@ -8,11 +8,11 @@
 #' framework. Due to the the complexity of some of the models, the
 #' estimation process may take some time. So be patient.
 #'
-#' The prediction intervals are combined quantile-wise (Lichtendahl et
-#' al., 2013), which takes extra time, because we need to produce all
-#' the distributions for all the models. This can be sped up with the
-#' smaller value for bins parameter, but the resulting intervals may
-#' be imprecise.
+#' The prediction intervals are combined either probability-wise or
+#' quantile-wise (Lichtendahl et al., 2013), which may take extra time,
+#' because we need to produce all the distributions for all the models.
+#' This can be sped up with the smaller value for bins parameter, but
+#' the resulting intervals may be imprecise.
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -22,13 +22,6 @@
 #' @template ssGeneralRef
 #' @template ssETSRef
 #' @template ssIntervalsRef
-#'
-#' @references \itemize{
-#' \item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
-#' Robert L., (2013) Is It Better to Average Probabilities or
-#' Quantiles? Management Science 59(7):1594-1611. DOI:
-#' [10.1287/mnsc.1120.1667](https://doi.org/10.1287/mnsc.1120.1667)
-#' }
 #'
 #' @param models List of the estimated smooth models to use in the
 #' combination. If \code{NULL}, then all the models are estimated
@@ -40,6 +33,9 @@
 #' The lower value means faster work of the function, but less
 #' precise estimates of the quantiles. This needs to be an even
 #' number.
+#' @param intervalsCombine How to average the prediction intervals:
+#' quantile-wise (\code{"quantile"}) or probability-wise
+#' (\code{"probability"}).
 #' @param ... This currently determines nothing.
 #'
 #' \itemize{
@@ -81,7 +77,7 @@
 #'
 #' library(Mcomp)
 #'
-#' ourModel <- smoothCombine(M3[[578]])
+#' ourModel <- smoothCombine(M3[[578]],intervals="p")
 #' plot(ourModel)
 #'
 #' # models parameter accepts either previously estimated smoothCombine
@@ -99,7 +95,7 @@ smoothCombine <- function(data, models=NULL,
                           cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
                           intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                          bins=200,
+                          bins=200, intervalsCombine=c("quantile","probability"),
                           intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
                           imodel="MNN",
                           bounds=c("admissible","none"),
@@ -113,7 +109,11 @@ smoothCombine <- function(data, models=NULL,
     startTime <- Sys.time();
 
     if(any(class(models)=="smoothC")){
+        ourQuantiles <- models$quantiles;
         models <- models$models;
+    }
+    else{
+        ourQuantiles <- NA;
     }
 
 # Add all the variables in ellipsis to current environment
@@ -136,6 +136,9 @@ smoothCombine <- function(data, models=NULL,
     else if(ic=="BICc"){
         IC <- BICc;
     }
+
+    # Grab the type of intervals combination
+    intervalsCombine <- substr(intervalsCombine[1],1,1);
 
     modelsNotProvided <- is.null(models);
     if(modelsNotProvided){
@@ -221,72 +224,100 @@ smoothCombine <- function(data, models=NULL,
     yFitted <- ts(c(yFitted %*% icWeights),start=dataStart,frequency=datafreq);
 
     lower <- upper <- NA;
-    ourQuantiles <- NA;
 
     if(intervalsType!="n"){
         #### This part is for combining the prediction intervals ####
-        if((abs(bins) %% 2)<=1e-100){
-            bins <- bins-1;
-        }
+        quantilesReturned <- matrix(NA,2,h,dimnames=list(c("Lower","Upper"),paste0("h",c(1:h))));
+        # Minimum and maximum quantiles
+        minMaxQuantiles <- matrix(NA,2,h);
 
-        # This is needed for appropriate combination of prediction intervals
-        ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(names(models),
-                                                                 c(1:bins)/(bins+1),paste0("h",c(1:h))))
-        minMaxQuantiles <- matrix(NA,2,h)
-        # Prepare the matrix for the sequences from min to max for each h
-        ourSequence <- array(NA,c(bins,h))
-
-        # Write down the median values for all the models
-
-        ourQuantiles[,"0.5",] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"lower"))));
-
-        if(!silentText){
-            cat("Constructing prediction intervals...    ");
-        }
-        # Do loop writing down all the quantiles
-        for(j in 1:((bins-1)/2)){
-            if(!silentText){
-                if(j==1){
-                    cat("\b");
-                }
-                cat(paste0(rep("\b",nchar(round((j-1)/((bins-1)/2),2)*100)+1),collapse=""));
-                cat(paste0(round(j/((bins-1)/2),2)*100,"%"));
+        if(intervalsCombine=="p"){
+            # Probability-based combination
+            if((abs(bins) %% 2)<=1e-100){
+                bins <- bins-1;
             }
+
+            # If the quantiles are provided and bins in them are larger
+            # or equal to what the user asked, then don't recalculate them.
+            quantilesRedo <- TRUE;
+            if(!any(is.na(ourQuantiles))){
+                if(dim(ourQuantiles)[2]>=bins){
+                    quantilesRedo <- FALSE;
+                }
+            }
+
+            # Prepare the matrix for the sequences from min to max for each h
+            ourSequence <- array(NA,c(bins,h));
+
+            # If quantiles weren't provided by the previous model, produce them
+            if(quantilesRedo){
+
+                # This is needed for appropriate combination of prediction intervals
+                ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(names(models),
+                                                                         c(1:bins)/(bins+1),
+                                                                         colnames(quantilesReturned)));
+
+                # Write down the median values for all the models
+                ourQuantiles[,"0.5",] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"lower"))));
+
+                if(!silentText){
+                    cat("Constructing prediction intervals...    ");
+                }
+                # Do loop writing down all the quantiles
+                for(j in 1:((bins-1)/2)){
+                    if(!silentText){
+                        if(j==1){
+                            cat("\b");
+                        }
+                        cat(paste0(rep("\b",nchar(round((j-1)/((bins-1)/2),2)*100)+1),collapse=""));
+                        cat(paste0(round(j/((bins-1)/2),2)*100,"%"));
+                    }
+                    modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+                                              level=j*2/(bins+1),holdout=holdout,cumulative=cumulative,
+                                              xreg=xreg);
+
+                    ourQuantiles[,(bins+1)/2-j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                                     `[[`,"lower"))));
+                    ourQuantiles[,(bins+1)/2+j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                                     `[[`,"upper"))));
+                }
+            }
+
+            # Write down minimum and maximum values between the models for each horizon
+            minMaxQuantiles[1,] <- apply(ourQuantiles,3,min);
+            minMaxQuantiles[2,] <- apply(ourQuantiles,3,max);
+            # Prepare an array with the new combined probabilities
+            newProbabilities <- array(NA,c(bins,h),dimnames=list(c(1:bins),dimnames(ourQuantiles)[[3]]));
+            for(j in 1:h){
+                ourSequence[,j] <- seq(minMaxQuantiles[1,j],minMaxQuantiles[2,j],length.out=bins);
+                for(k in 1:bins){
+                    newProbabilities[k,j] <- sum(icWeights %*% (ourQuantiles[,,j] <= ourSequence[k,j])) / (bins+1);
+                }
+            }
+
+            # The quantilesReturned - quantiles, for which the newP is the first time > than selected value
+            for(j in 1:h){
+                quantilesReturned[1,j] <- ourSequence[newProbabilities[,j]>=(1-level)/2,j][1];
+                quantilesReturned[2,j] <- ourSequence[newProbabilities[,j]>=(1+level)/2,j][1];
+            }
+
+            if(!silentText){
+                cat(" Done!\n");
+            }
+        }
+        else{
             modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
-                                      level=j*2/(bins+1),holdout=holdout,cumulative=cumulative,
+                                      level=level,holdout=holdout,cumulative=cumulative,
                                       xreg=xreg);
 
-            ourQuantiles[,(bins+1)/2-j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
-                                                                             `[[`,"lower"))));
-            ourQuantiles[,(bins+1)/2+j,] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,
-                                                                             `[[`,"upper"))));
+            quantilesReturned[1,] <- icWeights %*% t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                                    `[[`,"lower"))));
+            quantilesReturned[2,] <- icWeights %*% t(as.matrix(as.data.frame(lapply(modelsForecasts,
+                                                                                    `[[`,"upper"))));
         }
 
-        # Write down minimum and maximum values between the models for each horizon
-        minMaxQuantiles[1,] <- apply(ourQuantiles,3,min);
-        minMaxQuantiles[2,] <- apply(ourQuantiles,3,max);
-        # Prepare an array with the new combined probabilities
-        newProbabilities <- array(NA,c(bins,h),dimnames=list(c(1:bins),dimnames(ourQuantiles)[[3]]));
-        for(j in 1:h){
-            ourSequence[,j] <- seq(minMaxQuantiles[1,j],minMaxQuantiles[2,j],length.out=bins);
-            for(k in 1:bins){
-                newProbabilities[k,j] <- sum(icWeights %*% (ourQuantiles[,,j] <= ourSequence[k,j])) / (bins+1);
-            }
-        }
-
-        # The correct intervals - quantiles, for which the newP is the first time > than selected value
-        intervalsCorrect <- matrix(NA,2,h,dimnames=list(c("Lower","Upper"),dimnames(ourQuantiles)[[3]]));
-        for(j in 1:h){
-            intervalsCorrect[1,j] <- ourSequence[newProbabilities[,j]>=(1-level)/2,j][1];
-            intervalsCorrect[2,j] <- ourSequence[newProbabilities[,j]>=(1+level)/2,j][1];
-        }
-
-        if(!silentText){
-            cat(" Done!\n");
-        }
-
-        lower <- ts(intervalsCorrect[1,],start=yForecastStart,frequency=datafreq);
-        upper <- ts(intervalsCorrect[2,],start=yForecastStart,frequency=datafreq);
+        lower <- ts(quantilesReturned[1,],start=yForecastStart,frequency=datafreq);
+        upper <- ts(quantilesReturned[2,],start=yForecastStart,frequency=datafreq);
     }
 
     errors <- c(y[1:length(yFitted)])-c(yFitted);
