@@ -71,7 +71,9 @@ used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
 parametric intervals are constructed, while the latter is equivalent to
-\code{none}.}
+\code{none}.
+If the forecasts of the models were combined, then the intervals are combined
+quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 

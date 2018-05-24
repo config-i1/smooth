@@ -24,6 +24,8 @@
 #' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
 #' parametric intervals are constructed, while the latter is equivalent to
 #' \code{none}.
+#' If the forecasts of the models were combined, then the intervals are combined
+#' quantile-wise (Lichtendahl et al., 2013).
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
 #' printed out and drawn. \code{silent="all"} means that nothing is produced or

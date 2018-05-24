@@ -8,7 +8,8 @@ smoothCombine(data, models = NULL, initial = c("optimal", "backcasting"),
   ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, bins = 200, intermittent = c("none",
+  "nonparametric"), level = 0.95, bins = 200,
+  intervalsCombine = c("quantile", "probability"), intermittent = c("none",
   "auto", "fixed", "interval", "probability", "sba", "logistic"),
   imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
   "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
@@ -70,7 +71,9 @@ used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
 parametric intervals are constructed, while the latter is equivalent to
-\code{none}.}
+\code{none}.
+If the forecasts of the models were combined, then the intervals are combined
+quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
@@ -78,6 +81,10 @@ parametric intervals are constructed, while the latter is equivalent to
 The lower value means faster work of the function, but less
 precise estimates of the quantiles. This needs to be an even
 number.}
+
+\item{intervalsCombine}{How to average the prediction intervals:
+quantile-wise (\code{"quantile"}) or probability-wise
+(\code{"probability"}).}
 
 \item{intermittent}{Defines type of intermittent model used. Can be: 1.
 \code{none}, meaning that the data should be considered as non-intermittent;
@@ -183,17 +190,17 @@ possible because they are all formulated in Single Source of Error
 framework. Due to the the complexity of some of the models, the
 estimation process may take some time. So be patient.
 
-The prediction intervals are combined quantile-wise (Lichtendahl et
-al., 2013), which takes extra time, because we need to produce all
-the distributions for all the models. This can be sped up with the
-smaller value for bins parameter, but the resulting intervals may
-be imprecise.
+The prediction intervals are combined either probability-wise or
+quantile-wise (Lichtendahl et al., 2013), which may take extra time,
+because we need to produce all the distributions for all the models.
+This can be sped up with the smaller value for bins parameter, but
+the resulting intervals may be imprecise.
 }
 \examples{
 
 library(Mcomp)
 
-ourModel <- smoothCombine(M3[[578]])
+ourModel <- smoothCombine(M3[[578]],intervals="p")
 plot(ourModel)
 
 # models parameter accepts either previously estimated smoothCombine
@@ -223,9 +230,6 @@ weights. International Journal of Forecasting, 27, pp 238 - 251.
 \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
 Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
 225-237.
-}
-
-\itemize{
 \item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
 Robert L., (2013) Is It Better to Average Probabilities or
 Quantiles? Management Science 59(7):1594-1611. DOI:

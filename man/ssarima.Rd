@@ -93,7 +93,9 @@ used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
 parametric intervals are constructed, while the latter is equivalent to
-\code{none}.}
+\code{none}.
+If the forecasts of the models were combined, then the intervals are combined
+quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
@@ -319,6 +321,10 @@ plot(forecast(ourModel))
 \item Taylor, J.W. and Bunn, D.W. (1999) A Quantile Regression Approach to
 Generating Prediction Intervals. Management Science, Vol 45, No 2, pp
 225-237.
+\item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
+Robert L., (2013) Is It Better to Average Probabilities or
+Quantiles? Management Science 59(7):1594-1611. DOI:
+[10.1287/mnsc.1120.1667](https://doi.org/10.1287/mnsc.1120.1667)
 }
 
 \itemize{
