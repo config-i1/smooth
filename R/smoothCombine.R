@@ -212,7 +212,7 @@ smoothCombine <- function(data, models=NULL,
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
     modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
-                              level=0.5,holdout=holdout,cumulative=cumulative,
+                              level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
     yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
     yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=datafreq);
@@ -277,8 +277,8 @@ smoothCombine <- function(data, models=NULL,
         # The correct intervals - quantiles, for which the newP is the first time > than selected value
         intervalsCorrect <- matrix(NA,2,h,dimnames=list(c("Lower","Upper"),dimnames(ourQuantiles)[[3]]));
         for(j in 1:h){
-            intervalsCorrect[1,j] <- ourSequence[newProbabilities[,j]>=0.05,j][1];
-            intervalsCorrect[2,j] <- ourSequence[newProbabilities[,j]>=0.95,j][1];
+            intervalsCorrect[1,j] <- ourSequence[newProbabilities[,j]>=(1-level)/2,j][1];
+            intervalsCorrect[2,j] <- ourSequence[newProbabilities[,j]>=(1+level)/2,j][1];
         }
 
         if(!silentText){
