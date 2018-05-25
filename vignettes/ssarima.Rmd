@@ -35,7 +35,8 @@ Some more complicated model can be defined using parameter `orders` the followin
 ```{r ssarima_N2457_orders}
 ssarima(M3$N2457$x, orders=list(ar=c(0,1),i=c(1,0),ma=c(1,1)),lags=c(1,12),h=18)
 ```
-This would construct us seasonal ARIMA(0,1,1)(1,0,1)_12.
+
+This would construct us seasonal ARIMA(0,1,1)(1,0,1)$_{12}$.
 
 We could try selecting orders manually, but this can also be done automatically via `auto.ssarima()` function:
 ```{r auto_ssarima_N2457}

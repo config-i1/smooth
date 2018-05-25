@@ -10,7 +10,7 @@ vignette: >
 ---
 
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+knitr::opts_chunk$set(fig.width=6, fig.height=5.5, fig.path='Figs/', fig.show='hold',
                       warning=FALSE, message=FALSE)
 ```
 
@@ -44,7 +44,8 @@ The resulting persistence matrix contains more values than the individual one:
 ```{r ves_AAN_persistence_dep_value}
 ourModel$persistence
 ```
-Note that some of the values of smoothing parameters are negative and the others are greater than one. This is a normal behaviour for VES model in this implementation. Currently we only have bounds derived from the stability region (`bounds="admissible"`) and we do not do traditional restriction yet (and not sure if we ever will).
+
+Note that some of the values of smoothing parameters are negative and the others are greater than one. This is a normal behaviour for VES model in this implementation. Currently we only have bounds derived from the stability region (`bounds="admissible"`) and we do not do traditional restrictions yet (and not sure if we ever will).
 
 Curently we have pure additive and pure multiplicative models only, and I don't intend introducing mixed models for VES at all, because I think that they are evil. The multiplicative model implemented in VES is in fact just an additive model applied to the data in logarithms. Let's see how the damped trend multiplicative seasonal model with individual damping and smoothing parameters looks like:
 ```{r ves_MMdM}
