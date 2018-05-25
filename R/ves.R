@@ -852,7 +852,7 @@ CreatorVES <- function(silent=FALSE,...){
         pages <- ceiling(nSeries / 5);
         parDefault <- par(no.readonly=TRUE);
         for(j in 1:pages){
-            par(mfcol=c(min(5,floor(nSeries/j)),1));
+            par(mar=c(4,4,2,1),mfcol=c(min(5,floor(nSeries/j)),1));
             for(i in 1:nSeries){
                 if(any(intervalsType==c("u","i"))){
                     plotRange <- range(min(data[,i],yForecast[,i],yFitted[,i],PI[,i*2-1]),
