@@ -622,7 +622,15 @@ EstimatorVES <- function(...){
     ICs <- IAValues$ICs;
     logLik <- IAValues$llikelihood;
 
-    return(list(ICs=ICs,objective=res$objective,A=A,nParam=nParam,logLik=logLik));
+    # Write down Fisher Information if needed
+    if(FI){
+        environment(vLikelihoodFunction) <- environment();
+        FI <- numDeriv::hessian(vLikelihoodFunction,A);
+        rownames(FI) <- AList$ANames;
+        colnames(FI) <- AList$ANames;
+    }
+
+    return(list(ICs=ICs,objective=res$objective,A=A,nParam=nParam,logLik=logLik,FI=FI));
 }
 
 ##### Function constructs the VES function #####
@@ -632,7 +640,7 @@ CreatorVES <- function(silent=FALSE,...){
         res <- EstimatorVES(ParentEnvironment=environment());
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=res$objective,A=res$A,ICs=res$ICs,icBest=res$ICs[ic],
-                             nParam=res$nParam,logLik=res$logLik);
+                             nParam=res$nParam,logLik=res$logLik,FI=res$FI);
 
         return(listToReturn);
     }
@@ -645,18 +653,26 @@ CreatorVES <- function(silent=FALSE,...){
         list2env(elements,environment());
 
         A <- c(persistenceValue);
+        ANames <- paste0("Persistence",c(1:length(persistenceValue)));
         if(damped){
             A <- c(A,dampedValue);
+            ANames <- c(ANames,paste0("phi",c(1:length(dampedValue))));
         }
         if(transitionType=="d"){
+            transitionLength <- length(A);
             # Write values from the rest of transition matrix
             for(i in 1:nSeries){
                 A <- c(A, c(transitionValue[c(1:nComponentsAll)+nComponentsAll*(i-1),
                                             setdiff(c(1:nSeries*nComponentsAll),c(1:nComponentsAll)+nComponentsAll*(i-1))]));
             }
+            transitionLength <- length(A) - transitionLength;
+            ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
         }
         A <- c(A,initialValue);
+        ANames <- c(ANames,paste0("initial",c(1:length(initialValue))));
         A <- c(A,initialSeasonValue);
+        ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
+        names(A) <- ANames;
 
         cfObjective <- CF(A);
 
@@ -677,9 +693,17 @@ CreatorVES <- function(silent=FALSE,...){
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
 
+        # Write down Fisher Information if needed
+        if(FI){
+            environment(vLikelihoodFunction) <- environment();
+            FI <- numDeriv::hessian(vLikelihoodFunction,A);
+            rownames(FI) <- ANames;
+            colnames(FI) <- ANames;
+        }
+
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
                              cfObjective=cfObjective,A=A,ICs=ICs,icBest=icBest,
-                             nParam=nParam,logLik=logLik);
+                             nParam=nParam,logLik=logLik,FI=FI);
         return(listToReturn);
     }
 }
@@ -898,6 +922,7 @@ CreatorVES <- function(silent=FALSE,...){
                   nParam=parametersNumber, imodel=imodel,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,intervals=intervalsType,level=level,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures,
+                  FI=FI);
     return(structure(model,class=c("vsmooth","smooth")));
 }
