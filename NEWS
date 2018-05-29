@@ -1,4 +1,4 @@
-smooth v2.4.4 (Release data: 2018-05-24)
+smooth v2.4.4 (Release data: 2018-05-29)
 ==============
 
 Changes:
@@ -6,6 +6,9 @@ Changes:
 * New restrictions on the seasonal multiplicative models, so that the indecies don't become rediculous.
 * New function - smoothCombine - that combines forecasts from es(), ssarima(), ces(), ges() and sma().
 * A reference to a paper about the combination of intervals.
+* ves() now returns FI if the user asked for it.
+* ves() now also returns error measures in cases of holdout=TRUE.
+* Finally, we use the colnames of the provided data in the produced variables.
 
 Bugfixes:
 * MSCE, MSEh, MACE, MAEh, CHAM and HAMh returned the wrong values in the optimiser for multiplicative models. Now they are correct and the respective likelihoods are correct as well.
