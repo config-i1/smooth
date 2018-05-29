@@ -160,7 +160,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
                 cumulative=FALSE,
                 intermittent=c("none","fixed","logistic"), imodel="ANN",
                 iprobability=c("dependent","independent"),
-                bounds=c("admissible","none"),
+                bounds=c("admissible","usual","none"),
                 silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov
 
@@ -242,8 +242,14 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
             persistenceLength <- nComponentsAll*nSeries^2;
         }
         A <- c(A,rep(0.1,persistenceLength));
-        ALower <- c(ALower,rep(-5,persistenceLength));
-        AUpper <- c(AUpper,rep(5,persistenceLength));
+        if(bounds=="u"){
+            ALower <- c(ALower,rep(0,persistenceLength));
+            AUpper <- c(AUpper,rep(1,persistenceLength));
+        }
+        else{
+            ALower <- c(ALower,rep(-5,persistenceLength));
+            AUpper <- c(AUpper,rep(5,persistenceLength));
+        }
         ANames <- c(ANames,paste0("Persistence",c(1:persistenceLength)));
     }
 
@@ -671,8 +677,10 @@ CreatorVES <- function(silent=FALSE,...){
         }
         A <- c(A,initialValue);
         ANames <- c(ANames,paste0("initial",c(1:length(initialValue))));
-        A <- c(A,initialSeasonValue);
-        ANames <- c(ANames,paste0("initialSeason",c(1:length(initialSeasonValue))));
+        if(Stype!="N"){
+            A <- c(A,initialSeasonValue);
+            ANames <- c(ANames,paste0("initialSeason",c(1:length(initialSeasonValue))));
+        }
         names(A) <- ANames;
 
         cfObjective <- CF(A);

@@ -10,12 +10,14 @@ Changes:
 * ves() now also returns error measures in cases of holdout=TRUE.
 * Finally, we use the colnames of the provided data in the produced variables.
 * modelType() and errorType() methods are now available for iss class.
+* ves() now also has usual bounds (smoothing parameters between 0 and 1).
 
 Bugfixes:
 * MSCE, MSEh, MACE, MAEh, CHAM and HAMh returned the wrong values in the optimiser for multiplicative models. Now they are correct and the respective likelihoods are correct as well.
 * es() in some cases could not find optimal solution because the returned 1e+100 was lower than the estimated value (especially in case of GTMSE and multiplicative models).
 * ves() did not work, when the original data was less than 1 and the multiplicative model was needed.
 * es() now returns forecast as a vector, not a matrix.
+* ves() would not work correctly for provided persistence.
 
 
 smooth v2.4.3 (Release data: 2018-05-03)

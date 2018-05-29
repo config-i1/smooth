@@ -13,7 +13,7 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   "independent"), level = 0.95, cumulative = FALSE,
   intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
   iprobability = c("dependent", "independent"), bounds = c("admissible",
-  "none"), silent = c("all", "graph", "output", "none"), ...)
+  "usual", "none"), silent = c("all", "graph", "output", "none"), ...)
 }
 \arguments{
 \item{data}{The matrix with data, where series are in columns and

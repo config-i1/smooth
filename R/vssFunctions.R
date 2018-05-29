@@ -329,22 +329,6 @@ vssInput <- function(smoothType=c("ves"),...){
             else{
                 persistenceType <- "p";
                 persistenceEstimate <- FALSE;
-                ### Check the persistence matrix in order to decide number of parameters
-                persistencePartial <- matrix(persistenceValue[1:nComponentsAll,1:nSeries],
-                                            nComponentsAll,nSeries);
-                # Check if persistence is dependent
-                if(all(persistencePartial[,nSeries]==0)){
-                    # Check if persistence is grouped
-                    if(persistenceValue[1,1]==persistenceValue[1+nComponentsAll,nSeries]){
-                        parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
-                    }
-                    else{
-                        parametersNumber[2,1] <- parametersNumber[2,1] + nSeries*nComponentsAll;
-                    }
-                }
-                else{
-                    parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(persistenceValue)));
-                }
 
                 if(length(persistenceValue)==nComponentsAll){
                     persistenceBuffer <- matrix(0,nSeries*nComponentsAll,nSeries);
@@ -352,9 +336,27 @@ vssInput <- function(smoothType=c("ves"),...){
                         persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),i] <- persistenceValue;
                     }
                     persistenceValue <- persistenceBuffer;
+                    parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(persistenceValue)));
                 }
                 else{
+                    ### Check the persistence matrix in order to decide number of parameters
+                    persistencePartial <- matrix(persistenceValue[1:nComponentsAll,1:nSeries],
+                                                 nComponentsAll,nSeries);
                     persistenceValue <- matrix(persistenceValue,nSeries*nComponentsAll,nSeries);
+
+                    # Check if persistence is dependent
+                    if(all(persistencePartial[,nSeries]==0)){
+                        # Check if persistence is grouped
+                        if(persistenceValue[1,1]==persistenceValue[1+nComponentsAll,nSeries]){
+                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                        }
+                        else{
+                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries*nComponentsAll;
+                        }
+                    }
+                    else{
+                        parametersNumber[2,1] <- parametersNumber[2,1] + length(unique(as.vector(persistenceValue)));
+                    }
                 }
             }
         }
