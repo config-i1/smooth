@@ -106,6 +106,13 @@ vssInput <- function(smoothType=c("ves"),...){
     dataFreq <- frequency(data);
     dataDeltat <- deltat(data);
     dataStart <- start(data);
+    dataNames <- colnames(data);
+    if(!is.null(dataNames)){
+        dataNames <- gsub(" ", "_", dataNames, fixed = TRUE);
+    }
+    else{
+        dataNames <- paste0("Series",c(1:nSeries));
+    }
 
     # Number of parameters to estimate / provided
     parametersNumber <- matrix(0,2,4,
@@ -778,6 +785,7 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("dataFreq",dataFreq,ParentEnvironment);
     assign("dataDeltat",dataDeltat,ParentEnvironment);
     assign("dataStart",dataStart,ParentEnvironment);
+    assign("dataNames",dataNames,ParentEnvironment);
     assign("parametersNumber",parametersNumber,ParentEnvironment);
 
     assign("model",model,ParentEnvironment);

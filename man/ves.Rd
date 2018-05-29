@@ -195,6 +195,7 @@ for the number of degrees of freedom);
 \item \code{cf} - The value of the cost function;
 \item \code{cfType} - The type of the used cost function;
 \item \code{accuracy} - the values of the error measures. Currently not available.
+\item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 }
 }
 \description{

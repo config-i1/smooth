@@ -127,6 +127,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{cf} - The value of the cost function;
 #' \item \code{cfType} - The type of the used cost function;
 #' \item \code{accuracy} - the values of the error measures. Currently not available.
+#' \item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 #' }
 #' @seealso \code{\link[smooth]{es}, \link[forecast]{ets}}
 #'
@@ -390,8 +391,8 @@ BasicMakerVES <- function(...){
         statesNames <- c(statesNames,"seasonal");
     }
     matvt <- matrix(NA, nComponentsAll*nSeries, obsStates,
-                    dimnames=list(paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)),
-                                         ", ",statesNames),NULL));
+                    dimnames=list(paste0(rep(dataNames,each=nComponentsAll),
+                                         "_",statesNames),NULL));
     ## Deal with non-seasonal part of the vector of states
     if(!initialEstimate){
         initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
@@ -773,20 +774,26 @@ CreatorVES <- function(silent=FALSE,...){
             parametersNumber[1,1] <- parametersNumber[1,1] + length(matG);
         }
     }
-    rownames(persistenceValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsAll)), ", ", persistenceNames);
+    rownames(persistenceValue) <- paste0(rep(dataNames,each=nComponentsAll), "_", persistenceNames);
+    colnames(persistenceValue) <- dataNames;
 
 # This is needed anyway for the reusability of the model
     transitionValue <- matF;
     if(transitionEstimate){
         parametersNumber[1,1] <- parametersNumber[1,1] + length(transitionValue);
     }
+    colnames(transitionValue) <- rownames(persistenceValue);
+    rownames(transitionValue) <- rownames(persistenceValue);
 
     if(damped){
-        rownames(dampedValue) <- paste0("Series",c(1:nSeries));
+        rownames(dampedValue) <- dataNames;
         if(dampedEstimate){
             parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(dampedValue)));
         }
     }
+
+    rownames(matW) <- dataNames;
+    colnames(matW) <- rownames(persistenceValue);
 
     initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+1;
     initialNames <- "level";
@@ -799,7 +806,7 @@ CreatorVES <- function(silent=FALSE,...){
         initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
         parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialValue)));
     }
-    rownames(initialValue) <- paste0(paste0("Series",rep(c(1:nSeries),each=nComponentsNonSeasonal)), ", ", initialNames);
+    rownames(initialValue) <- paste0(rep(dataNames,each=nComponentsNonSeasonal), "_", initialNames);
 
     if(modelIsSeasonal){
         if(initialSeasonEstimate){
@@ -807,7 +814,7 @@ CreatorVES <- function(silent=FALSE,...){
             initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
             parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialSeasonValue)));
         }
-        rownames(initialSeasonValue) <- paste0("Series",c(1:nSeries));
+        rownames(initialSeasonValue) <- dataNames;
         colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     }
 
@@ -819,6 +826,7 @@ CreatorVES <- function(silent=FALSE,...){
     if(!is.matrix(yForecast)){
         yForecast <- as.matrix(yForecast,h,nSeries);
     }
+    colnames(yForecast) <- dataNames;
     forecastStart <- start(yForecast)
     if(any(intervalsType==c("i","u"))){
         PI <-  ts(PI,start=forecastStart,frequency=dataFreq);
@@ -848,11 +856,20 @@ CreatorVES <- function(silent=FALSE,...){
 ##### Now let's deal with the holdout #####
     if(holdout){
         yHoldout <- ts(data[(obsInSample+1):obsAll,],start=forecastStart,frequency=dataFreq);
-        errormeasures <- NA;
+        colnames(yHoldout) <- dataNames;
+
+        measureFirst <- Accuracy(yHoldout[,1],yForecast[,1],y[,1]);
+        errorMeasures <- matrix(NA,nSeries,length(measureFirst));
+        rownames(errorMeasures) <- dataNames;
+        colnames(errorMeasures) <- names(measureFirst);
+        errorMeasures[1,] <- measureFirst;
+        for(i in 2:nSeries){
+            errorMeasures[i,] <- Accuracy(yHoldout[,i],yForecast[,i],y[,i]);
+        }
     }
     else{
         yHoldout <- NA;
-        errormeasures <- NA;
+        errorMeasures <- NA;
     }
 
     modelname <- "VES";
@@ -922,7 +939,7 @@ CreatorVES <- function(silent=FALSE,...){
                   nParam=parametersNumber, imodel=imodel,
                   actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,intervals=intervalsType,level=level,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures,
+                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errorMeasures,
                   FI=FI);
     return(structure(model,class=c("vsmooth","smooth")));
 }
