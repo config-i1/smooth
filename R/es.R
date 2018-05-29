@@ -1801,7 +1801,7 @@ CreatorES <- function(silent=FALSE,...){
 # Write down Fisher Information if needed
         if(FI){
             environment(likelihoodFunction) <- environment();
-            FI <- numDeriv::hessian(likelihoodFunction,C);
+            FI <- -numDeriv::hessian(likelihoodFunction,C);
         }
 
         ssFitter(ParentEnvironment=environment());

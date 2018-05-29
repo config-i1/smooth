@@ -626,7 +626,7 @@ EstimatorVES <- function(...){
     # Write down Fisher Information if needed
     if(FI){
         environment(vLikelihoodFunction) <- environment();
-        FI <- numDeriv::hessian(vLikelihoodFunction,A);
+        FI <- -numDeriv::hessian(vLikelihoodFunction,A);
         rownames(FI) <- AList$ANames;
         colnames(FI) <- AList$ANames;
     }
@@ -697,7 +697,7 @@ CreatorVES <- function(silent=FALSE,...){
         # Write down Fisher Information if needed
         if(FI){
             environment(vLikelihoodFunction) <- environment();
-            FI <- numDeriv::hessian(vLikelihoodFunction,A);
+            FI <- -numDeriv::hessian(vLikelihoodFunction,A);
             rownames(FI) <- ANames;
             colnames(FI) <- ANames;
         }
