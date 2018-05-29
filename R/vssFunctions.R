@@ -488,9 +488,9 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     if(transitionType=="d"){
-        ## !!! Each separate transition matrix is not evaluated, but the left spaces are...
+        ## !!! Each separate transition matrix is not evaluated, but the off-diagonals are
         transitionEstimate <- TRUE;
-        nParamMax <- nParamMax + nSeries*nComponentsAll - nComponentsAll^2;
+        nParamMax <- nParamMax + (nSeries-1)*nSeries*nComponentsAll^2;
     }
 
     ##### Damping parameter ####

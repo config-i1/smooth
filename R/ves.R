@@ -788,7 +788,7 @@ CreatorVES <- function(silent=FALSE,...){
 # This is needed anyway for the reusability of the model
     transitionValue <- matF;
     if(transitionEstimate){
-        parametersNumber[1,1] <- parametersNumber[1,1] + length(transitionValue);
+        parametersNumber[1,1] <- parametersNumber[1,1] + (nSeries-1)*nSeries*nComponentsAll^2;
     }
     colnames(transitionValue) <- rownames(persistenceValue);
     rownames(transitionValue) <- rownames(persistenceValue);
