@@ -109,6 +109,8 @@ vssInput <- function(smoothType=c("ves"),...){
     dataNames <- colnames(data);
     if(!is.null(dataNames)){
         dataNames <- gsub(" ", "_", dataNames, fixed = TRUE);
+        dataNames <- gsub(":", "_", dataNames, fixed = TRUE);
+        dataNames <- gsub("$", "_", dataNames, fixed = TRUE);
     }
     else{
         dataNames <- paste0("Series",c(1:nSeries));

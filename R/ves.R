@@ -672,7 +672,7 @@ CreatorVES <- function(silent=FALSE,...){
         A <- c(A,initialValue);
         ANames <- c(ANames,paste0("initial",c(1:length(initialValue))));
         A <- c(A,initialSeasonValue);
-        ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
+        ANames <- c(ANames,paste0("initialSeason",c(1:length(initialSeasonValue))));
         names(A) <- ANames;
 
         cfObjective <- CF(A);
