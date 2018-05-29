@@ -896,6 +896,14 @@ errorType.smooth <- function(object, ...){
     return(Etype);
 }
 
+#' @export
+errorType.smooth.sim <- errorType.smooth;
+
+#' @export
+errorType.iss <- function(object, ...){
+    return(substr(modelType(object),1,1));
+}
+
 ##### Function returns the modellags from the model - internal function #####
 modelLags.default <- function(object, ...){
     modelLags <- NA;
@@ -967,6 +975,11 @@ modelType.smooth <- function(object, ...){
 
 #' @export
 modelType.smooth.sim <- modelType.smooth;
+
+#' @export
+modelType.iss <- function(object, ...){
+    return(object$model);
+}
 
 #### Function extracts orders of provided model ####
 #' @export
