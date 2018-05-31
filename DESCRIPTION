@@ -25,7 +25,6 @@ Imports:
     utils,
     zoo
 LinkingTo: Rcpp, RcppArmadillo (>= 0.8.100.0.0)
-Remotes: config-i1/greybox
 Suggests:
     Mcomp,
     numDeriv,
