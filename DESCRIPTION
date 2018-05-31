@@ -1,7 +1,7 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 2.4.4
+Version: 2.4.5.41001
 Date: 2018-05-31
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
@@ -25,6 +25,7 @@ Imports:
     utils,
     zoo
 LinkingTo: Rcpp, RcppArmadillo (>= 0.8.100.0.0)
+Remotes: config-i1/greybox
 Suggests:
     Mcomp,
     numDeriv,
