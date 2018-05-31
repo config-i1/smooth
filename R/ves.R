@@ -2,14 +2,14 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
                          "modelLags","persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
                          "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
                          "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat","dataFreq","dataStart",
-                         "otObs"));
+                         "otObs","dataNames"));
 
-#' Vector Exponential Smoothing in SSOE state-space model
+#' Vector Exponential Smoothing in SSOE state space model
 #'
 #' Function constructs vector ETS model and returns forecast, fitted values, errors
 #' and matrix of states along with other useful variables.
 #'
-#' Function estimates vector ETS in a form of the Single Source of Error State-space
+#' Function estimates vector ETS in a form of the Single Source of Error state space
 #' model of the following type:
 #'
 #' \deqn{

@@ -2,10 +2,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 
 #' Complex Exponential Smoothing
 #'
-#' Function estimates CES in state-space form with information potential equal
+#' Function estimates CES in state space form with information potential equal
 #' to errors and returns several variables.
 #'
-#' The function estimates Complex Exponential Smoothing in the state-space 2
+#' The function estimates Complex Exponential Smoothing in the state space 2
 #' described in Svetunkov, Kourentzes (2017) with the information potential
 #' equal to the approximation error.  The estimation of initial states of xt is
 #' done using backcast.
@@ -152,7 +152,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
-# Function estimates CES in state-space form with sigma = error
+# Function estimates CES in state space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
 #  information criteria.

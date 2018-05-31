@@ -2,7 +2,7 @@
 % Please edit documentation in R/ves.R
 \name{ves}
 \alias{ves}
-\title{Vector Exponential Smoothing in SSOE state-space model}
+\title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
 ves(data, model = "ANN", persistence = c("group", "independent",
   "dependent"), transition = c("group", "independent", "dependent"),
@@ -203,7 +203,7 @@ Function constructs vector ETS model and returns forecast, fitted values, errors
 and matrix of states along with other useful variables.
 }
 \details{
-Function estimates vector ETS in a form of the Single Source of Error State-space
+Function estimates vector ETS in a form of the Single Source of Error state space
 model of the following type:
 
 \deqn{

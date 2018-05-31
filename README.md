@@ -10,7 +10,7 @@ Here is the list of the included functions:
 2. ces - Complex Exponential Smoothing. Function estimates CES and makes forecast. See documentation for details.
 3. ges - Generalised Exponential Smoothing. Next step from CES. The paper on this is in the process.
 4. ves - Vector Exponential Smoothing. Vector form of the ETS model.
-5. ssarima - SARIMA estimated in state-space framework. Allows multiple seasonalities.
+5. ssarima - SARIMA estimated in state space framework. Allows multiple seasonalities.
 6. auto.ces - selection between seasonal and non-seasonal CES models.
 7. auto.ssarima - selection between different State-Space ARIMA models.
 8. auto.ges - automatic selection of the most appropriate GES model.
@@ -18,9 +18,9 @@ Here is the list of the included functions:
 10. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
 11. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
 12. sim.ges - simulation functions for GES.
-13. sma - Simple Moving Average in state-space form.
+13. sma - Simple Moving Average in state space form.
 14. sim.sma - simulates data from SMA.
-15. iss - intermittent data state-space model. This function models the part with data occurrences using one of the following methods: Croston's, TSB, fixed, SBA or logistic probability.
+15. iss - intermittent data state space model. This function models the part with data occurrences using one of the following methods: Croston's, TSB, fixed, SBA or logistic probability.
 16. viss - the vector counterpart of iss.
 17. Accuracy - the vector of the error measures for the provided forecasts and the holdout.
 18. graphmaker - plots the original series, the fitted values and the forecasts.
@@ -31,7 +31,7 @@ Future works:
 
 16. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
 17. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
-18. sofa - Survival of the fittest algorithm applied to state-space models.
+18. sofa - Survival of the fittest algorithm applied to state space models.
 
 Available methods:
 

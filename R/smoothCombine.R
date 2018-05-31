@@ -1,4 +1,4 @@
-#' Combination of forecasts of state-space models
+#' Combination of forecasts of state space models
 #'
 #' Function constructs ETS, SSARIMA, CES, GES and SMA and combines their
 #' forecasts using IC weights.

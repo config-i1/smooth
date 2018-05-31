@@ -1,4 +1,4 @@
-smooth v2.4.4 (Release data: 2018-05-29)
+smooth v2.4.4 (Release data: 2018-05-31)
 ==============
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 * Finally, we use the colnames of the provided data in the produced variables.
 * modelType() and errorType() methods are now available for iss class.
 * ves() now also has usual bounds (smoothing parameters between 0 and 1).
+* Updated the description of the package and several typos.
 
 Bugfixes:
 * MSCE, MSEh, MACE, MAEh, CHAM and HAMh returned the wrong values in the optimiser for multiplicative models. Now they are correct and the respective likelihoods are correct as well.
@@ -121,7 +122,7 @@ smooth v2.3.0 (Release data: 2017-12-23)
 ==============
 
 Changes:
-* New function, viss() - vector intermittent state-space model. Allows modelling occurrence probability of several variables simultaneously.
+* New function, viss() - vector intermittent state space model. Allows modelling occurrence probability of several variables simultaneously.
 * New initialisation for es(), ges() and ces(). This should help getting more accurate initial states in cases of high frequency data.
 * The user can now control the optimiser via maxeval and xtol_rel provided in ellipsis of es() and ges() functions.
 
@@ -590,7 +591,7 @@ smooth v1.4.2 (Release date: 2016-09-15)
 Changes:
 
 * We now use vignettes, explaining how to work with functions and what they return. This is just a start of the work. Vignettes will be updated. There is also a work on documentation for models underlying smooth package. This is currently reviewed and will be available as a working paper soon.
-* New function - sma() - Simple Moving Average. It fits one as a state-space model. So, apparantely there is a model underlying simple moving average method...
+* New function - sma() - Simple Moving Average. It fits one as a state space model. So, apparantely there is a model underlying simple moving average method...
 * Named transitionX and persistenceX are now returned, when using exogenous variables are used with updateX=TRUE. This should simplify the analysis of these matrices.
 
 Bugfixes:

@@ -6,7 +6,7 @@
 \alias{smooth-package}
 \title{Smooth package}
 \description{
-Package contains functions implementing Single Source of Error state-space models for
+Package contains functions implementing Single Source of Error state space models for
 purposes of time series analysis and forecasting.
 }
 \details{
@@ -17,11 +17,11 @@ included in the package:
 \item \link[smooth]{es} - Exponential Smoothing in Single Source of Errors State Space form.
 \item \link[smooth]{ces} - Complex Exponential Smoothing.
 \item \link[smooth]{ges} - Generalised Exponential Smoothing.
-\item \link[smooth]{ssarima} - SARIMA in state-space framework.
+\item \link[smooth]{ssarima} - SARIMA in state space framework.
 % \item \link[smooth]{nus} - Non-Uniform Smoothing.
 \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
 \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
-\item \link[smooth]{sma} - Simple Moving Average in state-space form.
+\item \link[smooth]{sma} - Simple Moving Average in state space form.
 \item \link[smooth]{smoothCombine} - the function that combines forecasts from es(),
 ces(), ges(), ssarima() and sma() functions.
 \item \link[smooth]{ves} - Vector Exponential Smoothing.
@@ -30,7 +30,7 @@ ces(), ges(), ssarima() and sma() functions.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
 \item \link[smooth]{sim.ges} - simulate time series using GES as a model.
 \item \link[smooth]{sim.sma} - simulate time series using SMA.
-\item \link[smooth]{iss} - intermittent data state-space model. This
+\item \link[smooth]{iss} - intermittent data state space model. This
 function models the part with data occurrences using one of three methods.
 \item \link[smooth]{viss} - Does the same as iss, but for the multivariate models.
 }

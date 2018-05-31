@@ -1686,7 +1686,7 @@ ssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
-##### *State-space intervals* #####
+##### *State space intervals* #####
 ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
                         modellags=NULL, states=NULL, cumulative=FALSE, cfType="MSE",
@@ -2248,7 +2248,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
     return(list(upper=upper,lower=lower));
 }
 
-##### *Forecaster of state-space functions* #####
+##### *Forecaster of state space functions* #####
 ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -2964,7 +2964,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
                      intermittent="n"){
-# Function forms the generic output for State-space models.
+# Function forms the generic output for state space models.
     if(!is.null(modelname)){
         if(is.list(modelname)){
             model <- "smoothC";

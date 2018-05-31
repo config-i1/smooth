@@ -2,7 +2,7 @@
 % Please edit documentation in R/es.R
 \name{es}
 \alias{es}
-\title{Exponential Smoothing in SSOE state-space model}
+\title{Exponential Smoothing in SSOE state space model}
 \usage{
 es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), initialSeason = NULL,
@@ -280,7 +280,7 @@ Function constructs ETS model and returns forecast, fitted values, errors
 and matrix of states.
 }
 \details{
-Function estimates ETS in a form of the Single Source of Error State-space
+Function estimates ETS in a form of the Single Source of Error state space
 model of the following type:
 
 \deqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}

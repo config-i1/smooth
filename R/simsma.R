@@ -1,6 +1,6 @@
 #' Simulate Simple Moving Average
 #'
-#' Function generates data using SMA in a Single Source of Error state-space
+#' Function generates data using SMA in a Single Source of Error state space
 #' model as a data generating process.
 #'
 #'

@@ -2,12 +2,12 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 
 #' Complex Exponential Smoothing Auto
 #'
-#' Function estimates CES in state-space form with information potential equal
+#' Function estimates CES in state space form with information potential equal
 #' to errors with different seasonality types and chooses the one with the
 #' lowest IC value.
 #'
 #' The function estimates several Complex Exponential Smoothing in the
-#' state-space 2 described in Svetunkov, Kourentzes (2015) with the information
+#' state space 2 described in Svetunkov, Kourentzes (2015) with the information
 #' potential equal to the approximation error using different types of
 #' seasonality and chooses the one with the lowest value of information
 #' criterion.
@@ -63,7 +63,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
-# Function estimates several CES models in state-space form with sigma = error,
+# Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
 #  and values of information criteria

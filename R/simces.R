@@ -78,7 +78,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     initial=NULL,
                     randomizer=c("rnorm","runif","rbeta","rt"),
                     iprob=1, ...){
-# Function simulates the data using CES state-space framework
+# Function simulates the data using CES state space framework
 #
 # seasonality - the type of seasonality to produce.
 # frequency - the frequency of the data. In the case of seasonal models must be > 1.

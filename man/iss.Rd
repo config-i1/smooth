@@ -64,7 +64,7 @@ is needed in order to forecast intermittent demand using other functions.
 }
 \details{
 The function estimates probability of demand occurrence, using one of the ETS
-state-space models.
+state space models.
 }
 \examples{
 

@@ -55,7 +55,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
     if(all(intermittent!=c("n","l","p"))){
 # If number of observations is low, set intermittency to "none"
         if(obsNonzero < 3){
-            warning(paste0("Not enough non-zero observations for intermittent state-space model. We need at least 5.\n",
+            warning(paste0("Not enough non-zero observations for intermittent state space model. We need at least 5.\n",
                            "Changing intermittent to 'n'."),call.=FALSE);
             intermittent <- "n";
         }
@@ -120,7 +120,7 @@ intermittentMaker <- function(intermittent="n",...){
 #' is needed in order to forecast intermittent demand using other functions.
 #'
 #' The function estimates probability of demand occurrence, using one of the ETS
-#' state-space models.
+#' state space models.
 #'
 #' @template ssIntermittentRef
 #' @template ssAuthor
@@ -177,7 +177,7 @@ intermittentMaker <- function(intermittent="n",...){
 iss <- function(data, intermittent=c("none","fixed","interval","probability","sba","logistic"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 model=NULL, persistence=NULL, initial=NULL, initialSeason=NULL, xreg=NULL){
-# Function returns intermittent State-Space model
+# Function returns intermittent state space model
 #### Add initialSeason to the output? ####
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","i","p","s","l"))){

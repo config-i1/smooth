@@ -915,7 +915,7 @@ vssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
-##### *State-space intervals* #####
+##### *State space intervals* #####
 # This is not implemented yet
 #' @importFrom stats qchisq
 vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
@@ -1060,7 +1060,7 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
     return(PI);
 }
 
-##### *Forecaster of state-space functions* #####
+##### *Forecaster of state space functions* #####
 vssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];

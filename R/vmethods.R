@@ -144,7 +144,7 @@ print.viss <- function(x, ...){
     }
     ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
     names(ICs) <- c("AIC","AICc","BIC","BICc");
-    cat(paste0("Intermittent State-Space model estimated: ",intermittent,"\n"));
+    cat(paste0("Intermittent state space model estimated: ",intermittent,"\n"));
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));
     }

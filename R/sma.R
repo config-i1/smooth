@@ -2,9 +2,9 @@ utils::globalVariables(c("yForecastStart"));
 
 #' Simple Moving Average
 #'
-#' Function constructs State-Space simple moving average of predefined order
+#' Function constructs state space simple moving average of predefined order
 #'
-#' The function constructs AR model in the Single Source of Error State-space form
+#' The function constructs AR model in the Single Source of Error state space form
 #' based on the idea that:
 #'
 #' \eqn{y_{t} = \frac{1}{n} \sum_{j=1}^n y_{t-j}}
@@ -94,7 +94,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 silent=c("all","graph","legend","output","none"),
                 ...){
-# Function constructs simple moving average in state-space model
+# Function constructs simple moving average in state space model
 
 #    Copyright (C) 2016  Ivan Svetunkov
 

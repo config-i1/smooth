@@ -222,11 +222,11 @@ cumulative error) and Bias coefficient. This is available only when
 }
 }
 \description{
-Function estimates CES in state-space form with information potential equal
+Function estimates CES in state space form with information potential equal
 to errors and returns several variables.
 }
 \details{
-The function estimates Complex Exponential Smoothing in the state-space 2
+The function estimates Complex Exponential Smoothing in the state space 2
 described in Svetunkov, Kourentzes (2017) with the information potential
 equal to the approximation error.  The estimation of initial states of xt is
 done using backcast.

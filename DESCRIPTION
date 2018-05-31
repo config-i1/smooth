@@ -1,15 +1,17 @@
 Package: smooth
 Type: Package
-Title: Forecasting Using Smoothing Functions
-Version: 2.4.4.41008
-Date: 2018-05-29
+Title: Forecasting Using State Space Models
+Version: 2.4.4
+Date: 2018-05-31
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
 BugReports: https://github.com/config-i1/smooth/issues
-Description: Functions implementing Single Source of Error state-space models for purposes of time series
-            analysis and forecasting. The package includes exponential smoothing, SARIMA in state-space forms and
-            several simulation functions.
+Description: Functions implementing Single Source of Error state space models for purposes
+             of time series analysis and forecasting. The package includes Exponential Smoothing,
+             SARIMA, Complex Exponential Smoothing, Simple Moving Average, Vector Exponential
+             Smoothing in state space forms, several simulation functions and intermittent demand
+             state space models.
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2),

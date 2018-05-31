@@ -110,10 +110,10 @@ Bias coefficient (based on complex numbers). This is available only when
 }
 }
 \description{
-Function constructs State-Space simple moving average of predefined order
+Function constructs state space simple moving average of predefined order
 }
 \details{
-The function constructs AR model in the Single Source of Error State-space form
+The function constructs AR model in the Single Source of Error state space form
 based on the idea that:
 
 \eqn{y_{t} = \frac{1}{n} \sum_{j=1}^n y_{t-j}}

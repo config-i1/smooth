@@ -2,7 +2,7 @@
 % Please edit documentation in R/ssarima.R
 \name{ssarima}
 \alias{ssarima}
-\title{State-Space ARIMA}
+\title{State Space ARIMA}
 \usage{
 ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
@@ -235,7 +235,7 @@ cumulative error) and Bias coefficient. This is available only when
 }
 }
 \description{
-Function constructs State-Space ARIMA, estimating AR, MA terms and initial
+Function constructs State Space ARIMA, estimating AR, MA terms and initial
 states.
 }
 \details{
@@ -249,7 +249,7 @@ where \eqn{y_[t]} is the actual values, \eqn{\epsilon_[t]} is the error term,
 the constant. In case of non-zero differences \eqn{c} acts as drift.
 
 This model is then transformed into ARIMA in the Single Source of Error
-State-space form (proposed in Snyder, 1985):
+State space form (proposed in Snyder, 1985):
 
 \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
 

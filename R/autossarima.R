@@ -1,13 +1,13 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
 
-#' State-Space ARIMA
+#' State Space ARIMA
 #'
-#' Function selects the best State-Space ARIMA based on information criteria,
+#' Function selects the best State Space ARIMA based on information criteria,
 #' using fancy branch and bound mechanism. The resulting model can be not
 #' optimal in IC meaning, but it is usually reasonable.
 #'
 #' The function constructs bunch of ARIMAs in Single Source of Error
-#' State-space form (see \link[smooth]{ssarima} documentation) and selects the
+#' state space form (see \link[smooth]{ssarima} documentation) and selects the
 #' best one based on information criterion.
 #'
 #' Due to the flexibility of the model, multiple seasonalities can be used. For

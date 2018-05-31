@@ -2,7 +2,7 @@
 % Please edit documentation in R/smoothCombine.R
 \name{smoothCombine}
 \alias{smoothCombine}
-\title{Combination of forecasts of state-space models}
+\title{Combination of forecasts of state space models}
 \usage{
 smoothCombine(data, models = NULL, initial = c("optimal", "backcasting"),
   ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",

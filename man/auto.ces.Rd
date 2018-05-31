@@ -146,13 +146,13 @@ Object of class "smooth" is returned. See \link[smooth]{ces} for
 details.
 }
 \description{
-Function estimates CES in state-space form with information potential equal
+Function estimates CES in state space form with information potential equal
 to errors with different seasonality types and chooses the one with the
 lowest IC value.
 }
 \details{
 The function estimates several Complex Exponential Smoothing in the
-state-space 2 described in Svetunkov, Kourentzes (2015) with the information
+state space 2 described in Svetunkov, Kourentzes (2015) with the information
 potential equal to the approximation error using different types of
 seasonality and chooses the one with the lowest value of information
 criterion.

@@ -7,7 +7,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' Function constructs General Exponential Smoothing, estimating matrices F, w,
 #' vector g and initial parameters.
 #'
-#' The function estimates the Single Source of Error State-space model of the
+#' The function estimates the Single Source of Error state space model of the
 #' following type:
 #'
 #' \deqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}

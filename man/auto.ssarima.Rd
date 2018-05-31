@@ -2,7 +2,7 @@
 % Please edit documentation in R/autossarima.R
 \name{auto.ssarima}
 \alias{auto.ssarima}
-\title{State-Space ARIMA}
+\title{State Space ARIMA}
 \usage{
 auto.ssarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(data)), combine = FALSE, workFast = TRUE,
@@ -168,13 +168,13 @@ Object of class "smooth" is returned. See \link[smooth]{ssarima} for
 details.
 }
 \description{
-Function selects the best State-Space ARIMA based on information criteria,
+Function selects the best State Space ARIMA based on information criteria,
 using fancy branch and bound mechanism. The resulting model can be not
 optimal in IC meaning, but it is usually reasonable.
 }
 \details{
 The function constructs bunch of ARIMAs in Single Source of Error
-State-space form (see \link[smooth]{ssarima} documentation) and selects the
+state space form (see \link[smooth]{ssarima} documentation) and selects the
 best one based on information criterion.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For

@@ -2,9 +2,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
                          "yForecastStart"));
 
-#' State-Space ARIMA
+#' State Space ARIMA
 #'
-#' Function constructs State-Space ARIMA, estimating AR, MA terms and initial
+#' Function constructs State Space ARIMA, estimating AR, MA terms and initial
 #' states.
 #'
 #' The basic ARIMA(p,d,q) used in the function has the following form:
@@ -17,7 +17,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' the constant. In case of non-zero differences \eqn{c} acts as drift.
 #'
 #' This model is then transformed into ARIMA in the Single Source of Error
-#' State-space form (proposed in Snyder, 1985):
+#' State space form (proposed in Snyder, 1985):
 #'
 #' \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
 #'
@@ -202,7 +202,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     silent=c("all","graph","legend","output","none"),
                     xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                     updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
-##### Function constructs SARIMA model (possible triple seasonality) using state-space approach
+##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
 #    Copyright (C) 2016  Ivan Svetunkov
