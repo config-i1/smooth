@@ -40,7 +40,7 @@ This function extracts covariance matrix of 1 to h steps ahead forecast errors f
 \details{
 The function returns either scalar (if it is a non-smooth model)
 or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
-forecat errors. This is currently done based on empirical values. The analytical ones
+forecast errors. This is currently done based on empirical values. The analytical ones
 are more complicated.
 }
 \examples{

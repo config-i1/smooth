@@ -28,7 +28,7 @@ the end of the data.}
 \item{probability}{Type of probability assumed in the model. If
 \code{"dependent"}, then it is assumed that occurrence of one variable is
 connected with the occurrence with another one. In case of \code{"independent"}
-the occurrence of the variables is assumed to happen independ of each
+the occurrence of the variables is assumed to happen independent of each
 other.}
 
 \item{model}{Type of ETS model used for the estimation. Normally this should

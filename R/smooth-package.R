@@ -39,7 +39,7 @@
 #' \item \link[smooth]{covar} - returns covariance matrix of multiple steps ahead forecast errors.
 #' \item \link[smooth]{pls} - returns Prediction Likelihood Score.
 #' \item \link[greybox]{nParam} - returns number of the estimated parameters.
-#' \item \link[smooth]{Accuracy} - returns vector of error measures for the providede forecasts
+#' \item \link[smooth]{Accuracy} - returns vector of error measures for the provided forecasts
 #' and holdout.
 #' \item \link[smooth]{graphmaker} - plots the original series, the fitted values and the forecasts.
 #' \item fitted - extracts fitted values from provided model.

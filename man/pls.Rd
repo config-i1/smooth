@@ -29,7 +29,7 @@ Function estimates Prediction Likelihood Score for the provided model
 \details{
 Prediction likelihood score (PLS) is based on either normal or log-normal
 distribution of errors. This is extracted from the provided model. The likelihood
-based onthe distribution of 1 to h steps ahead forecast errors is used in the process.
+based on the distribution of 1 to h steps ahead forecast errors is used in the process.
 }
 \examples{
 

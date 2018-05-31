@@ -116,7 +116,7 @@ BICc.smooth <- function(object, ...){
 #'
 #' The function returns either scalar (if it is a non-smooth model)
 #' or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
-#' forecat errors. This is currently done based on empirical values. The analytical ones
+#' forecast errors. This is currently done based on empirical values. The analytical ones
 #' are more complicated.
 #'
 #' @template ssAuthor
@@ -369,7 +369,7 @@ nParam.iss <- function(object, ...){
 #'
 #' Prediction likelihood score (PLS) is based on either normal or log-normal
 #' distribution of errors. This is extracted from the provided model. The likelihood
-#' based onthe distribution of 1 to h steps ahead forecast errors is used in the process.
+#' based on the distribution of 1 to h steps ahead forecast errors is used in the process.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
@@ -678,7 +678,7 @@ NULL
 #' This function is created in order for the package to be compatible with Rob
 #' Hyndman's "forecast" package
 #'
-#' This is not a compulsary function. You can simply use \link[smooth]{es},
+#' This is not a compulsory function. You can simply use \link[smooth]{es},
 #' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without
 #' \code{forecast.smooth}. But if you are really used to \code{forecast}
 #' function, then go ahead!

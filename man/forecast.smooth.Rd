@@ -43,7 +43,7 @@ This function is created in order for the package to be compatible with Rob
 Hyndman's "forecast" package
 }
 \details{
-This is not a compulsary function. You can simply use \link[smooth]{es},
+This is not a compulsory function. You can simply use \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without
 \code{forecast.smooth}. But if you are really used to \code{forecast}
 function, then go ahead!
