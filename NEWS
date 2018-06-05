@@ -1,3 +1,10 @@
+smooth v2.4.5 (Release data: 2018-06-05)
+==============
+
+Changes:
+* The covariance matrix of VES now also contains named columns and rows.
+
+
 smooth v2.4.4 (Release data: 2018-05-31)
 ==============
 

@@ -1072,6 +1072,7 @@ vssForecaster <- function(...){
     }
     # If error additive, estimate as normal. Otherwise - lognormal
     Sigma <- (errors %*% t(errors)) / df;
+    rownames(Sigma) <- colnames(Sigma) <- dataNames;
 
     if(any((otObs - nParam)<=0)){
         df <- 0;
