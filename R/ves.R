@@ -721,7 +721,7 @@ CreatorVES <- function(silent=FALSE,...){
     yFitted <- matrix(NA,nSeries,obsInSample);
     yForecast <- matrix(NA,nSeries,h);
     errors <- matrix(NA,nSeries,obsInSample);
-    colnames(yFitted) <- colnames(yForecast) <- colnames(errors) <- dataNames;
+    rownames(yFitted) <- rownames(yForecast) <- rownames(errors) <- dataNames;
 
 ##### Define modelDo #####
     if(any(persistenceEstimate, transitionEstimate, dampedEstimate, initialEstimate, initialSeasonEstimate)){
