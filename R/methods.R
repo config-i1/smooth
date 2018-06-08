@@ -581,6 +581,16 @@ pointLik.default <- function(object, ...){
 }
 
 #' @export
+pointLik.ets <- function(object, ...){
+    likValues <- pointLik.default(object);
+    if(errorType(object)=="M"){
+        likValues <- likValues - log(abs(fitted(object)));
+    }
+
+    return(likValues);
+}
+
+#' @export
 pointLik.smooth <- function(object, ...){
     obs <- nobs(object);
     errors <- residuals(object);
@@ -593,6 +603,7 @@ pointLik.smooth <- function(object, ...){
     else{
         likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2 - log(getResponse(object));
     }
+
     return(likValues);
 }
 
@@ -600,6 +611,11 @@ pointLik.smooth <- function(object, ...){
 #' @export
 sigma.smooth <- function(object, ...){
     return(sqrt(object$s2));
+}
+
+#' @export
+sigma.ets <- function(object, ...){
+    return(sqrt(object$sigma2));
 }
 
 #### Extraction of parameters of models ####
@@ -851,6 +867,16 @@ lags.smooth.sim <- lags.smooth;
 #' @export
 errorType.default <- function(object, ...){
     return("A");
+}
+
+#' @export
+errorType.ets <- function(object, ...){
+    if(substr(object$method,5,5)=="M"){
+        return("M");
+    }
+    else{
+        return("A");
+    }
 }
 
 #' @export
