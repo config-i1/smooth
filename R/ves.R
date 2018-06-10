@@ -936,8 +936,8 @@ CreatorVES <- function(silent=FALSE,...){
                 }
                 abline(v=dataDeltat*(forecastStart[2]-2)+forecastStart[1],col="red",lwd=2);
             }
-            par(parDefault);
         }
+        par(parDefault);
     }
 
     ##### Return values #####
