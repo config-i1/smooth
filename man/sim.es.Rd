@@ -7,7 +7,7 @@
 sim.es(model = "ANN", obs = 10, nsim = 1, frequency = 1,
   persistence = NULL, phi = 1, initial = NULL, initialSeason = NULL,
   bounds = c("usual", "admissible", "restricted"), randomizer = c("rnorm",
-  "rlnorm", "runif", "rbeta", "rt"), iprob = 1, ...)
+  "rlnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
 }
 \arguments{
 \item{model}{Type of ETS model according to [Hyndman et. al., 2008]
@@ -41,13 +41,14 @@ generated. \code{"usual"} - bounds from p.156 by Hyndman et. al., 2008.
 \code{"restricted"} - similar to \code{"usual"} but with upper bound equal
 to 0.3. \code{"admissible"} - bounds from tables 10.1 and 10.2 of Hyndman
 et. al., 2008. Using first letter of the type of bounds also works. These
-bounds are also used for multiplicative models, so be careful!}
+bounds are also used for multiplicative models, but the models are much
+more restrictive, so weird results might be obtained. Be careful!}
 
 \item{randomizer}{Type of random number generator function used for error
-term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But
+term. Defaults are: \code{rnorm}, \code{rt}, \code{rlaplace}, \code{rlnorm}. But
 any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
-\code{lambda=2} can be used as well.}
+\code{lambda=2} can be used as well, but might result in weird values.}
 
 \item{iprob}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time

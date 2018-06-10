@@ -53,10 +53,10 @@ stationarity and stability. Using first letter of the type of bounds also
 works.}
 
 \item{randomizer}{Type of random number generator function used for error
-term. Defaults are: \code{rnorm}, \code{rt}, \code{runif}, \code{rbeta}. But
+term. Defaults are: \code{rnorm}, \code{rt}, \code{rlaplace}, \code{rlnorm}. But
 any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
-\code{lambda=2} can be used as well.}
+\code{lambda=2} can be used as well, but might result in weird values.}
 
 \item{iprob}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time

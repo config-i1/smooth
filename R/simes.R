@@ -29,7 +29,8 @@
 #' \code{"restricted"} - similar to \code{"usual"} but with upper bound equal
 #' to 0.3. \code{"admissible"} - bounds from tables 10.1 and 10.2 of Hyndman
 #' et. al., 2008. Using first letter of the type of bounds also works. These
-#' bounds are also used for multiplicative models, so be careful!
+#' bounds are also used for multiplicative models, but the models are much
+#' more restrictive, so weird results might be obtained. Be careful!
 #' @param ...  Additional parameters passed to the chosen randomizer. All the
 #' parameters should be passed in the order they are used in chosen randomizer.
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
@@ -106,10 +107,10 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                    frequency=1, persistence=NULL, phi=1,
                    initial=NULL, initialSeason=NULL,
                    bounds=c("usual","admissible","restricted"),
-                   randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
+                   randomizer=c("rnorm","rlnorm","rt","rlaplace","rs"),
                    iprob=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
-#    Copyright (C) 2015 - 2016 Ivan Svetunkov
+#    Copyright (C) 2015 - Inf Ivan Svetunkov
 
     bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
@@ -218,7 +219,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         matw <- c(matw,1);
         componentSeasonal <- TRUE;
 
-        if(componentTrend==FALSE){
+        if(!componentTrend){
             matF <- matrix(c(1,0,0,1),2,2);
         }
         else{
@@ -407,7 +408,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
 # Generate seasonal states if they were not supplied
-    if(componentSeasonal==TRUE & is.null(initialSeason)){
+    if(componentSeasonal & is.null(initialSeason)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
             arrvt[1:maxlag,componentsNumber+1,] <- runif(nsim*maxlag,-500,500);
@@ -424,7 +425,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
-    else if(componentSeasonal==TRUE & !is.null(initialSeason)){
+    else if(componentSeasonal & !is.null(initialSeason)){
         arrvt[1:maxlag,componentsNumber+1,] <- rep(initialSeason,nsim);
         initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
     }
@@ -486,8 +487,6 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         }
     }
 
-    veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
-
 # Generate ones for the possible intermittency
     if(all(iprob == 1)){
         matot[,] <- 1;
@@ -507,6 +506,17 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     # }
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);
+
+    if(any(randomizer==c("rnorm","rt"))){
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+    }
+    else if(randomizer=="rlnorm"){
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
+    }
+    # This can also be implemented for dlaplace and ds... But maybe some time later...
+    else{
+        veclikelihood <- NA;
+    }
 
     if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);

@@ -320,7 +320,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
     return(list(A=A,ALower=ALower,AUpper=AUpper,ANames=ANames));
 }
 
-##### Basic VES initialiser #####
+##### Basic VES initialiser
 ### This function will accept Etype, Ttype, Stype and damped and would return:
 # nComponentsNonSeasonal, nComponentsAll, maxlag, modelIsSeasonal, obsStates
 # This is needed for model selection
