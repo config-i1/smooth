@@ -900,10 +900,15 @@ CreatorVES <- function(silent=FALSE,...){
     # This is a temporary solution
     if(!silentGraph){
         pages <- ceiling(nSeries / 5);
+        perPage <- ceiling(nSeries / pages);
+        packs <- c(seq(1, nSeries+1, perPage));
+        if(packs[length(packs)]<nSeries+1){
+            packs <- c(packs,nSeries+1);
+        }
         parDefault <- par(no.readonly=TRUE);
         for(j in 1:pages){
-            par(mar=c(4,4,2,1),mfcol=c(min(5,floor(nSeries/j)),1));
-            for(i in 1:nSeries){
+            par(mar=c(4,4,2,1),mfcol=c(perPage,1));
+            for(i in packs[j]:(packs[j+1]-1)){
                 if(any(intervalsType==c("u","i"))){
                     plotRange <- range(min(data[,i],yForecast[,i],yFitted[,i],PI[,i*2-1]),
                                        max(data[,i],yForecast[,i],yFitted[,i],PI[,i*2]));
