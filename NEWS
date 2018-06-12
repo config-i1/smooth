@@ -1,11 +1,11 @@
-smooth v2.4.5 (Release data: 2018-06-11)
+smooth v2.4.5 (Release data: 2018-06-12)
 ==============
 
 Changes:
 * The covariance matrix of VES now also contains named columns and rows.
 * And so do residuals, fitted values and forecasts.
 * errorType, pointLik and sigma now return something useful for ets class.
-* Changed the set of default values for randomizer for sim.es() to "rnorm","rlnorm","rt","rlaplace" and "rs".
+* Changed the set of default values for randomizer for simulate functions to "rnorm","rt","rlaplace" and "rs". sim.es() also works with "rlnorm".
 * Started the work on sim.ves function.
 
 Bugfixes:

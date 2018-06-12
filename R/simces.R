@@ -76,7 +76,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     obs=10, nsim=1,
                     frequency=1, A=NULL, B=NULL,
                     initial=NULL,
-                    randomizer=c("rnorm","runif","rbeta","rt"),
+                    randomizer=c("rnorm","rt","rlaplace","rs"),
                     iprob=1, ...){
 # Function simulates the data using CES state space framework
 #
@@ -312,53 +312,46 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         }
     }
 
-# If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
+    # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
+    if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(args)==0)){
         warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 
-# Check if no argument was passed in dots
+    # Check if no argument was passed in dots
     if(length(args)==0){
-# Create vector of the errors
-        if(any(randomizer==c("rnorm","runif"))){
+        # Create vector of the errors
+        if(any(randomizer==c("rnorm","rlaplace","rs"))){
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
         }
-        else if(randomizer=="rlnorm"){
-            materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-iprob));
-            materrors <- materrors - 1;
-        }
         else if(randomizer=="rt"){
-# The degrees of freedom are df = n - k.
+            # The degrees of freedom are df = n - k.
             materrors[,] <- rt(nsim*obs,obs-(componentsNumber + maxlag));
         }
 
-        if(randomizer!="rlnorm"){
-# Center errors just in case
-            materrors <- materrors - colMeans(materrors);
-# Change variance to make some sense. Errors should not be rediculously high and not too low.
-            materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,]))));
+        # Center errors just in case
+        materrors <- materrors - colMeans(materrors);
+        # Change variance to make some sense. Errors should not be rediculously high and not too low.
+        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,]))));
+        if(randomizer=="rs"){
+            materrors <- materrors / 4;
         }
     }
-# If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
+    # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
         if(randomizer=="rbeta"){
-# Center the errors around 0
+            # Center the errors around 0
             materrors <- materrors - 0.5;
-# Make a meaningful variance of data. Something resembling to var=1.
-            materrors <- materrors / rep(sqrt(colMeans(materrors^2)) * sqrt(abs(arrvt[1,1,])),each=obs);
+            # Make a meaningful variance of data. Something resembling to var=1.
+            materrors <- materrors / rep(sqrt(colMeans(materrors^2)) *
+                                             sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
         }
         else if(randomizer=="rt"){
-# Make a meaningful variance of data.
+            # Make a meaningful variance of data.
             materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
         }
-        else if(randomizer=="rlnorm"){
-            materrors <- materrors - 1;
-        }
     }
-
-    veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
 
 # Generate ones for the possible intermittency
     if(all(iprob == 1)){
@@ -379,6 +372,23 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
     arrvt <- simulateddata$arrvt;
     dimnames(arrvt) <- list(NULL,componentsNames,NULL);
+
+    if(any(randomizer==c("rnorm","rt"))){
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
+    }
+    else if(randomizer=="rlaplace"){
+        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(materrors))));
+    }
+    else if(randomizer=="rs"){
+        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(materrors)))));
+    }
+    else if(randomizer=="rlnorm"){
+        veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
+    }
+    # If this is something unknown, forget about it
+    else{
+        veclikelihood <- NA;
+    }
 
     if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);

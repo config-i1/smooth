@@ -273,8 +273,8 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         }
     }
 
-# If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rlnorm","rt","runif")) & (length(args)==0)){
+    # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
+    if(all(randomizer!=c("rnorm","rt","rlaplace","rs","rlnorm")) & (length(args)==0)){
         warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
@@ -433,26 +433,22 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # Check if any argument was passed in dots
     if(length(args)==0){
 # Create vector of the errors
-        if(any(randomizer==c("rnorm","runif"))){
+        if(any(randomizer==c("rnorm","rlaplace","rs"))){
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
+        }
+        else if(randomizer=="rt"){
+            # The degrees of freedom are df = n - k.
+            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + maxlag));
         }
         else if(randomizer=="rlnorm"){
             materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-iprob));
             materrors <- materrors - 1;
         }
-        else if(randomizer=="rt"){
-# The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + maxlag));
-        }
 
         if(randomizer!="rlnorm"){
-            if(randomizer=="runif"){
-                # Center errors just in case
-                materrors <- materrors - colMeans(materrors);
-            }
-# If the error is multiplicative, scale it!
+            # If the error is multiplicative, scale it!
             if(Etype=="M"){
-# Errors will be lognormal, decrease variance, so it behaves better
+                # Errors will be lognormal, decrease variance, so it behaves better
                 if(any(iprob!=1)){
                     materrors <- materrors * 0.5;
                 }
@@ -466,6 +462,9 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
             else if(Etype=="A"){
 # Change variance to make some sense. Errors should not be rediculously high and not too low.
                 materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+                if(randomizer=="rs"){
+                    materrors <- materrors / 4;
+                }
             }
         }
     }
@@ -510,10 +509,16 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     if(any(randomizer==c("rnorm","rt"))){
         veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2)));
     }
+    else if(randomizer=="rlaplace"){
+        veclikelihood <- -obs*(log(2*exp(1)) + log(colMeans(abs(materrors))));
+    }
+    else if(randomizer=="rs"){
+        veclikelihood <- -2*obs*(log(2*exp(1)) + log(0.5*colMeans(sqrt(abs(materrors)))));
+    }
     else if(randomizer=="rlnorm"){
         veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
     }
-    # This can also be implemented for dlaplace and ds... But maybe some time later...
+    # If this is something unknown, forget about it
     else{
         veclikelihood <- NA;
     }

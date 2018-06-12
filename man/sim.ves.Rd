@@ -84,7 +84,6 @@ smoothing parameters used in the simulation.
 coefficients.
 \item \code{residuals} - Error terms used in the simulation. Either matrix
 or array, depending on \code{nsim}.
-\item \code{logLik} - Log-likelihood of the constructed model.
 }
 }
 \description{

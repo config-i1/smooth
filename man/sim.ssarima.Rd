@@ -7,7 +7,7 @@
 sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, obs = 10,
   nsim = 1, frequency = 1, AR = NULL, MA = NULL, constant = FALSE,
   initial = NULL, bounds = c("admissible", "none"),
-  randomizer = c("rnorm", "runif", "rbeta", "rt"), iprob = 1, ...)
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
 }
 \arguments{
 \item{orders}{List of orders, containing vector variables \code{ar},
@@ -53,8 +53,9 @@ stationarity and stability. Using first letter of the type of bounds also
 works.}
 
 \item{randomizer}{Type of random number generator function used for error
-term. Defaults are: \code{rnorm}, \code{rt}, \code{rlaplace}, \code{rlnorm}. But
-any function from \link[stats]{Distributions} will do the trick if the
+term. Defaults are: \code{rnorm}, \code{rt}, \code{rlaplace} and \code{rs}.
+\code{rlnorm} should be used for multiplicative models (e.g. ETS(M,N,N)).
+But any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
 \code{lambda=2} can be used as well, but might result in weird values.}
 

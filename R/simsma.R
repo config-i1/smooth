@@ -47,7 +47,7 @@
 sim.sma <- function(order=NULL, obs=10, nsim=1,
                    frequency=1,
                    initial=NULL,
-                   randomizer=c("rnorm","rlnorm","runif","rbeta","rt"),
+                   randomizer=c("rnorm","rt","rlaplace","rs"),
                    iprob=1, ...){
     # Function generates data using SMA model as a data generating process.
     #    Copyright (C) 2017 Ivan Svetunkov

@@ -1197,9 +1197,9 @@ plot.smooth.sim <- function(x, ...){
         do.call(plot, ellipsis);
     }
     else{
-        message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
-                       "Please use plot(ourSimulation$data[,k]) instead. Plotting a random series."));
         randomNumber <- ceiling(runif(1,1,nsim));
+        message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
+                       "Please use plot(ourSimulation$data[,k]) instead. Plotting randomly selected series N",randomNumber,"."));
         if(is.null(ellipsis$ylab)){
             ellipsis$ylab <- paste0("Series N",randomNumber);
         }
