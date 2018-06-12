@@ -164,6 +164,12 @@ covar.default <- function(object, type=c("analytical","empirical","simulated"), 
 #' @export
 covar.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
+
+    if(any(class(object)=="smoothC")){
+        stop("Sorry, but covariance matrix is not available for the combinations.",
+            call.=FALSE)
+    }
+
     type <- substr(type[1],1,1);
 
     if(is.null(object$persistence) & any(type==c("a","s"))){
@@ -424,6 +430,10 @@ pls.default <- function(object, holdout=NULL, ...){
 #' @aliases pls.smooth
 #' @export
 pls.smooth <- function(object, holdout=NULL, ...){
+    if(any(class(object)=="smoothC")){
+        stop("Sorry, but PLS is not available for the combinations.",
+             call.=FALSE)
+    }
     # If holdout is provided, check it and use it. Otherwise try extracting from the model
     yForecast <- object$forecast;
     covarMat <- covar(object, ...);
