@@ -7,6 +7,7 @@ Changes:
 * errorType, pointLik and sigma now return something useful for ets class.
 * Changed the set of default values for randomizer for simulate functions to "rnorm","rt","rlaplace" and "rs". sim.es() also works with "rlnorm".
 * Started the work on sim.ves function.
+* Added separate ham() function fro HAM calculation.
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE

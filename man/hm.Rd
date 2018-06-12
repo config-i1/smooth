@@ -2,10 +2,13 @@
 % Please edit documentation in R/error-measures.R
 \name{hm}
 \alias{hm}
+\alias{ham}
 \alias{cbias}
 \title{Half moment of a distribution and its derivatives.}
 \usage{
 hm(x, C = mean(x), digits = 5, ...)
+
+ham(x, C = mean(x), digits = 5, ...)
 
 cbias(x, C = mean(x), digits = 5, ...)
 }
@@ -19,12 +22,13 @@ cbias(x, C = mean(x), digits = 5, ...)
 \item{...}{Other parameters passed to mean function.}
 }
 \value{
-A complex variable is returned for \code{hm} function and real value
-is returned for \code{cbias}.
+A complex variable is returned for \code{hm} function and real values
+are returned for \code{cbias} and \code{ham}.
 }
 \description{
 \code{hm} function estimates half moment from some predefined constant
-\code{C}.  \code{cbias} function calculates bias based on \code{hm}.
+\code{C}. \code{ham} estimates half absolute moment. Finally, \code{cbias}
+function returns bias based on \code{hm}.
 }
 \details{
 \code{NA} values of \code{x} are excluded on the first step of calculation.
@@ -33,6 +37,7 @@ is returned for \code{cbias}.
 
 x <- rnorm(100,0,1)
 hm(x)
+ham(x)
 cbias(x)
 
 }

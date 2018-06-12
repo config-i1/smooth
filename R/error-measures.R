@@ -289,7 +289,8 @@ Accuracy <- function(holdout, forecast, actual, digits=3){
 #' Half moment of a distribution and its derivatives.
 #'
 #' \code{hm} function estimates half moment from some predefined constant
-#' \code{C}.  \code{cbias} function calculates bias based on \code{hm}.
+#' \code{C}. \code{ham} estimates half absolute moment. Finally, \code{cbias}
+#' function returns bias based on \code{hm}.
 #'
 #' \code{NA} values of \code{x} are excluded on the first step of calculation.
 #'
@@ -301,12 +302,13 @@ Accuracy <- function(holdout, forecast, actual, digits=3){
 #' @param C Centering parameter.
 #' @param digits Number of digits for rounding.
 #' @param ...  Other parameters passed to mean function.
-#' @return A complex variable is returned for \code{hm} function and real value
-#' is returned for \code{cbias}.
+#' @return A complex variable is returned for \code{hm} function and real values
+#' are returned for \code{cbias} and \code{ham}.
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
 #' hm(x)
+#' ham(x)
 #' cbias(x)
 #'
 #' @export hm
@@ -315,6 +317,16 @@ hm <- function(x,C=mean(x),digits=5,...){
     # This function calculates half moment
     x <- x[!is.na(x)];
     result <- round(mean(sqrt(as.complex(x-C)),...),digits=digits);
+    return(result);
+}
+
+#' @rdname hm
+#' @export ham
+#' @aliases ham
+ham <- function(x,C=mean(x),digits=5,...){
+    # This function calculates half moment
+    x <- x[!is.na(x)];
+    result <- round(mean(sqrt(abs(x-C)),...),digits=digits);
     return(result);
 }
 
