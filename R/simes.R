@@ -112,9 +112,17 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # Function generates data using ETS with Single Source of Error as a data generating process.
 #    Copyright (C) 2015 - Inf Ivan Svetunkov
 
-    bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
     args <- list(...);
+    bounds <- bounds[1];
+
+    if(all(bounds!=c("u","a","r","usual","admissible","restricted"))){
+        warning(paste0("Strange type of bounds provided: ",bounds,". Switching to 'usual'."),
+                call.=FALSE);
+        bounds <- "u";
+    }
+
+    bounds <- substring(bounds[1],1,1);
 
 # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
     if(nchar(model)==4){

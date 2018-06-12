@@ -94,11 +94,19 @@ sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
                         randomizer=c("rnorm","rt","rlaplace","rs"),
                         iprob=1, ...){
 # Function generates data using SSARIMA in Single Source of Error as a data generating process.
-#    Copyright (C) 2015 - 2016 Ivan Svetunkov
+#    Copyright (C) 2015 - Inf Ivan Svetunkov
 
-    bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
     args <- list(...);
+    bounds <- bounds[1];
+
+    if(all(bounds!=c("n","a","none","admissible"))){
+        warning(paste0("Strange type of bounds provided: ",bounds,". Switching to 'admissible'."),
+                call.=FALSE);
+        bounds <- "a";
+    }
+
+    bounds <- substring(bounds[1],1,1);
 
     if(!is.null(orders)){
         ar.orders <- orders$ar;
