@@ -1,4 +1,4 @@
-smooth v2.4.5 (Release data: 2018-06-12)
+smooth v2.4.5 (Release data: 2018-06-13)
 ==============
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * Changed the set of default values for randomizer for simulate functions to "rnorm","rt","rlaplace" and "rs". sim.es() also works with "rlnorm".
 * Started the work on sim.ves function.
 * Added separate ham() function fro HAM calculation.
+* ssarima() now also accepts orders=c(p,d,q). lags are assumed to be equal to 1 in this case, so that a non-seasonal model is constructed.
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE

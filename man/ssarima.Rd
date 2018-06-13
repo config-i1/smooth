@@ -23,7 +23,9 @@ ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
 \code{i} and \code{ma}. Example:
 \code{orders=list(ar=c(1,2),i=c(1),ma=c(1,1,1))}. If a variable is not
 provided in the list, then it is assumed to be equal to zero. At least one
-variable should have the same length as \code{lags}.}
+variable should have the same length as \code{lags}. Another option is to
+specify orders as a vector of a form \code{orders=c(p,d,q)}. The non-seasonal
+ARIMA(p,d,q) is constructed in this case.}
 
 \item{lags}{Defines lags for the corresponding orders (see examples above).
 The length of \code{lags} must correspond to the length of either \code{ar},
