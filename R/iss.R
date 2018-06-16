@@ -368,7 +368,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 #### Logistic ####
     else if(intermittent=="l"){
         if(is.null(model)){
-            model <- "YYY";
+            model <- "XXX";
         }
         if(is.null(initial)){
             initial <- "o";
@@ -400,14 +400,14 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             cfType <- "LogisticD";
             modelNew <- gsub("Z","X",model);
             logisticModel[[1]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
-                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,
-                                 initialSeason=initialSeason);
+                                     ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,
+                                     initialSeason=initialSeason);
 
             cfType <- "LogisticL";
             modelNew <- gsub("Z","Y",model);
             logisticModel[[2]] <- es(iyt,modelNew,persistence=persistence,initial=initial,
-                                 ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,
-                                 initialSeason=initialSeason);
+                                     ic=ic,silent=TRUE,h=h,cfType=cfType,xreg=xreg,
+                                     initialSeason=initialSeason);
 
             if(logisticModel[[1]]$ICs[nrow(logisticModel[[1]]$ICs),ic] <
                logisticModel[[2]]$ICs[nrow(logisticModel[[2]]$ICs),ic]){
