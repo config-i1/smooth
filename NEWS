@@ -13,6 +13,7 @@ Changes:
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE
 * iss() returned the wrong likelihood because of a typo in the formula
+* Fix for the internal likelihood calculation for intermittent logistic models
 
 
 smooth v2.4.4 (Release data: 2018-05-31)
