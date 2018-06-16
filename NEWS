@@ -1,4 +1,4 @@
-smooth v2.4.5 (Release data: 2018-06-13)
+smooth v2.4.5 (Release data: 2018-06-15)
 ==============
 
 Changes:
@@ -12,6 +12,7 @@ Changes:
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE
+* iss() returned the wrong likelihood because of a typo in the formula
 
 
 smooth v2.4.4 (Release data: 2018-05-31)
