@@ -41,7 +41,7 @@ List vSimulator(arma::cube &cubeStates, arma::cube const &cubeErrors, arma::cube
         matrixErrors = cubeErrors.slice(i);
 
         for (int j=lagsMax; j<obsall; j=j+1) {
-            lagrows = (i+1) * lagsLength - lags - 1;
+            lagrows = (j+1) * lagsLength - lags - 1;
 
             /* # Measurement equation and the error term */
             matrixY.col(j-lagsMax) = (matrixW * matrixStates(lagrows) + matrixErrors.col(j-lagsMax));

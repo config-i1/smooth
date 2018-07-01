@@ -157,7 +157,6 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         componentsNames <- "level";
         matw <- diag(nSeries);
 # The transition matrix
-        matF <- diag(nSeries);
         transComponents <- matrix(1,nSeries,1);
     }
 
@@ -267,7 +266,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 
     #### Form transition matrix ####
-    matF <- matrix(0,nComponentsAll*nSeries,nComponentsAll*nSeries);
+    matF <- diag(nSeries*nComponentsAll);
     if(!is.null(transition)){
         if(length(transition)==nComponentsAll^2){
             for(i in 1:nSeries){
@@ -291,18 +290,16 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         }
     }
     else{
-        if(damped){
-            for(i in 1:nSeries){
-                matF[(i-1)*nComponentsAll+1,
-                     (i-1)*nComponentsAll+1] <- transComponents[i,1];
-                if(componentTrend){
-                    matF[(i-1)*nComponentsAll+1:2,
-                         (i-1)*nComponentsAll+2] <- transComponents[i,2];
-                }
-                if(componentSeasonal){
-                    matF[(i-1)*nComponentsAll+nComponentsAll,
-                         (i-1)*nComponentsAll+nComponentsAll] <- 1;
-                }
+        for(i in 1:nSeries){
+            matF[(i-1)*nComponentsAll+1,
+                 (i-1)*nComponentsAll+1] <- transComponents[i,1];
+            if(componentTrend){
+                matF[(i-1)*nComponentsAll+1:2,
+                     (i-1)*nComponentsAll+2] <- transComponents[i,2];
+            }
+            if(componentSeasonal){
+                matF[(i-1)*nComponentsAll+nComponentsAll,
+                     (i-1)*nComponentsAll+nComponentsAll] <- 1;
             }
         }
     }
@@ -461,7 +458,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
 # Create and normalize seasonal components
         initialSeason <- runif(modelLagsMax,-500,500);
         initialSeason <- initialSeason - mean(initialSeason);
-        arrayStates[nComponentsAll,1:modelLagsMax,] <- initialSeason;
+        arrayStates[nComponentsAll*c(1:nSeries),1:modelLagsMax,] <- initialSeason;
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else{
@@ -506,7 +503,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
 #### Simulate the data ####
     simulatedData <- vSimulatorWrap(arrayStates,arrayErrors,arrayF,arrayW,arrayG,modelLags);
 
-    arrayActuals[,] <- simulatedData$arrayActuals;
+    arrayActuals[,,] <- simulatedData$arrayActuals;
     arrayStates[,,] <- simulatedData$arrayStates;
 
     if(nsim==1){
@@ -518,6 +515,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     model <- paste0("VES(",model,")");
 
     model <- list(model=model, data=arrayActuals, states=arrayStates, persistence=arrayG, phi=phi,
+                  transition=arrayF, measurement=arrayW,
                   initial=initial, initialSeason=initialSeason, residuals=arrayErrors);
     return(structure(model,class=c("smooth.sim","vsmooth.sim")));
 }

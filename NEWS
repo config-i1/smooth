@@ -10,6 +10,7 @@ Changes:
 * Added separate ham() function for HAM calculation.
 * ssarima() now also accepts orders=c(p,d,q). lags are assumed to be equal to 1 in this case, so that a non-seasonal model is constructed.
 * RelMSE and RelAME error measures are introduced. These should be useful for intermittent demand.
+* sim.ves() now seems to work.
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE.

@@ -48,15 +48,15 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
     int obsall = matrixV.n_cols;
     // unsigned int nComponents = matrixV.n_rows / nSeries;
     unsigned int maxlag = max(lags);
-    int lagslength = lags.n_rows;
+    int lagsLength = lags.n_rows;
 
-    lags = lags * lagslength;
+    lags = lags * lagsLength;
 
-    for(int i=0; i<lagslength; i=i+1){
-        lags(i) = lags(i) + (lagslength - i - 1);
+    for(int i=0; i<lagsLength; i=i+1){
+        lags(i) = lags(i) + (lagsLength - i - 1);
     }
 
-    arma::uvec lagrows(lagslength, arma::fill::zeros);
+    arma::uvec lagrows(lagsLength, arma::fill::zeros);
 
     arma::mat matrixYfit(nSeries, obs, arma::fill::zeros);
     arma::mat matrixE(nSeries, obs, arma::fill::zeros);
@@ -67,7 +67,7 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
     }
 
     for (unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
-        lagrows = (i+1) * lagslength - lags - 1;
+        lagrows = (i+1) * lagsLength - lags - 1;
 
         /* # Measurement equation and the error term */
         matrixYfit.col(i-maxlag) = matrixO.col(i-maxlag) % vFittedValue(matrixW, matrixV(lagrows), E);
@@ -78,7 +78,7 @@ List vFitter(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const &matr
     }
 
     for (int i=obs+maxlag; i<obsall; i=i+1) {
-        lagrows = (i+1) * lagslength - lags - 1;
+        lagrows = (i+1) * lagsLength - lags - 1;
         matrixV.col(i) = matrixF * matrixV(lagrows);
         // matrixA.col(i) = matrixFX * matrixA.col(i-1);
     }
@@ -138,19 +138,19 @@ RcppExport SEXP vFitterWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG
 arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma::mat matrixW,
                       unsigned int const &nSeries, unsigned int const &hor, char const &E, char const &T, char const &S, arma::uvec lags){
                       // arma::mat const &matrixX, arma::mat const &matrixA, arma::mat const &matrixFX
-    int lagslength = lags.n_rows;
+    int lagsLength = lags.n_rows;
     unsigned int maxlag = max(lags);
     unsigned int hh = hor + maxlag;
 
-    arma::uvec lagrows(lagslength, arma::fill::zeros);
+    arma::uvec lagrows(lagsLength, arma::fill::zeros);
     arma::mat matYfor(nSeries, hor, arma::fill::zeros);
     arma::mat matrixVnew(matrixV.n_rows, hh, arma::fill::zeros);
     // arma::mat matrixAnew(hh, matrixA.n_cols, arma::fill::zeros);
 
-    lags = lags * lagslength;
+    lags = lags * lagsLength;
 
-    for(int i=0; i<lagslength; i=i+1){
-        lags(i) = lags(i) + (lagslength - i - 1);
+    for(int i=0; i<lagsLength; i=i+1){
+        lags(i) = lags(i) + (lagsLength - i - 1);
     }
 
     if(E=='L'){
@@ -162,7 +162,7 @@ arma::mat vForecaster(arma::mat const & matrixV, arma::mat const &matrixF, arma:
 
     /* # Fill in the new xt matrix using F. Do the forecasts. */
     for (unsigned int i=maxlag; i<hh; i=i+1) {
-        lagrows = (i+1) * lagslength - lags - 1;
+        lagrows = (i+1) * lagsLength - lags - 1;
 
         /* # Transition equation */
         matrixVnew.col(i) = matrixF * matrixVnew(lagrows);
