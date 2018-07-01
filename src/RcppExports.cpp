@@ -316,6 +316,22 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// vSimulatorWrap
+RcppExport SEXP vSimulatorWrap(SEXP arrayStates, SEXP arrayErrors, SEXP arrayF, SEXP arrayW, SEXP arrayG, SEXP modelLags);
+RcppExport SEXP _smooth_vSimulatorWrap(SEXP arrayStatesSEXP, SEXP arrayErrorsSEXP, SEXP arrayFSEXP, SEXP arrayWSEXP, SEXP arrayGSEXP, SEXP modelLagsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type arrayStates(arrayStatesSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type arrayErrors(arrayErrorsSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type arrayF(arrayFSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type arrayW(arrayWSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type arrayG(arrayGSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type modelLags(modelLagsSEXP);
+    rcpp_result_gen = Rcpp::wrap(vSimulatorWrap(arrayStates, arrayErrors, arrayF, arrayW, arrayG, modelLags));
+    return rcpp_result_gen;
+END_RCPP
+}
 // vFitterWrap
 RcppExport SEXP vFitterWrap(SEXP yt, SEXP matvt, SEXP matF, SEXP matw, SEXP matG, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP ot);
 RcppExport SEXP _smooth_vFitterWrap(SEXP ytSEXP, SEXP matvtSEXP, SEXP matFSEXP, SEXP matwSEXP, SEXP matGSEXP, SEXP modellagsSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP otSEXP) {

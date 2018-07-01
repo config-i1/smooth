@@ -3,13 +3,13 @@
 #' Functions allow to calculate different types of errors: \enumerate{ \item MPE
 #' - Mean Percentage Error, \item MAPE - Mean Absolute Percentage Error,
 #' \item SMAPE - Symmetric Mean Absolute Percentage Error, \item MASE - Mean
-#' Absolute Scaled Error, \item RelMAE - Average Relative Mean Absolute Error,
-#' \item sMSE - Scaled Mean Squared Error, \item sPIS- Scaled Periods-In-Stock,
-#' \item sCE - Scaled Cumulative Error.  }
+#' Absolute Scaled Error, \item RelMAE - Relative Mean Absolute Error,
+#' \item RelMSE - Relative Mean Squared Error, \item RelAME - Relative
+#' Absolute Mean Error, \item sMSE - Scaled Mean Squared Error,
+#' \item sPIS- Scaled Periods-In-Stock, \item sCE - Scaled Cumulative Error.  }
 #'
 #' In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical
 #' one -- squared mean value of in-sample actuals.
-#'
 #'
 #' @template ssAuthor
 #' @template ssKeywords
@@ -153,7 +153,65 @@ RelMAE <-function(actual,forecast,benchmark,digits=3){
         stop("Cannot proceed.",call.=FALSE);
     }
     else{
-        return(round(mean(abs(actual-forecast),na.rm=TRUE)/mean(abs(actual-benchmark),na.rm=TRUE),digits=digits));
+        if(all(forecast==benchmark)){
+            return(1);
+        }
+        else{
+            return(round(mean(abs(actual-forecast),na.rm=TRUE)/
+                             mean(abs(actual-benchmark),na.rm=TRUE),digits=digits));
+        }
+    }
+}
+
+#' @rdname error-measures
+#' @export RelMSE
+#' @aliases RelMSE
+RelMSE <-function(actual,forecast,benchmark,digits=3){
+    # This function calculates Relative MSE
+    # actual - actual values,
+    # forecast - forecasted or fitted values.
+    # benchmark - forecasted or fitted values of etalon method.
+    if((length(actual) != length(forecast)) | (length(actual) != length(benchmark)) | (length(benchmark) != length(forecast))){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        message(paste0("Length of benchmark: ",length(benchmark)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        if(all(forecast==benchmark)){
+            return(1);
+        }
+        else{
+            return(round(mean((actual-forecast)^2,na.rm=TRUE)/
+                             mean((actual-benchmark)^2,na.rm=TRUE),digits=digits));
+        }
+    }
+}
+
+#' @rdname error-measures
+#' @export RelAME
+#' @aliases RelAME
+RelAME <-function(actual,forecast,benchmark,digits=3){
+    # This function calculates Relative Absolute ME
+    # actual - actual values,
+    # forecast - forecasted or fitted values.
+    # benchmark - forecasted or fitted values of etalon method.
+    if((length(actual) != length(forecast)) | (length(actual) != length(benchmark)) | (length(benchmark) != length(forecast))){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        message(paste0("Length of benchmark: ",length(benchmark)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        if(all(forecast==benchmark)){
+            return(1);
+        }
+        else{
+            return(round(abs(mean((actual-forecast),na.rm=TRUE))/
+                             abs(mean((actual-benchmark),na.rm=TRUE)),digits=digits));
+        }
     }
 }
 
@@ -233,10 +291,11 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' \item MPE,
 #' \item cbias,
 #' \item MAPE,
-#' \item SMAPE,
 #' \item MASE,
 #' \item sMAE,
 #' \item RelMAE,
+#' \item RelMSE,
+#' \item RelAME,
 #' \item sMSE,
 #' \item sPIS,
 #' \item sCE.
@@ -270,17 +329,20 @@ Accuracy <- function(holdout, forecast, actual, digits=3){
     holdout <- as.vector(holdout);
     forecast <- as.vector(forecast);
     actual <- as.vector(actual);
+    benchmark <- rep(actual[length(actual)],length(holdout));
     errormeasures <- c(MPE(holdout,forecast,digits=digits),
-                       cbias(holdout-forecast,0,digits=digits),
                        MAPE(holdout,forecast,digits=digits),
-                       SMAPE(holdout,forecast,digits=digits),
                        MASE(holdout,forecast,mean(abs(diff(actual))),digits=digits),
                        MASE(holdout,forecast,mean(abs(actual)),digits=digits),
-                       RelMAE(holdout,forecast,rep(actual[length(actual)],length(holdout)),digits=digits),
                        sMSE(holdout,forecast,mean(abs(actual[actual!=0]))^2,digits=digits),
-                       sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits),
-                       sCE(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
-    names(errormeasures) <- c("MPE","cbias","MAPE","SMAPE","MASE","sMAE","RelMAE","sMSE","sPIS","sCE");
+                       sCE(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits),
+                       RelMAE(holdout,forecast,benchmark,digits=digits),
+                       RelMSE(holdout,forecast,benchmark,digits=digits),
+                       RelAME(holdout,forecast,benchmark,digits=digits),
+                       cbias(holdout-forecast,0,digits=digits),
+                       sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
+    names(errormeasures) <- c("MPE","MAPE","MASE","sMAE","sMSE","sCE",
+                              "RelMAE","RelMSE","RelAME","cbias","sPIS");
 
     return(errormeasures);
 }

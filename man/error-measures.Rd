@@ -7,6 +7,8 @@
 \alias{SMAPE}
 \alias{MASE}
 \alias{RelMAE}
+\alias{RelMSE}
+\alias{RelAME}
 \alias{sMSE}
 \alias{sPIS}
 \alias{sCE}
@@ -21,6 +23,10 @@ SMAPE(actual, forecast, digits = 3)
 MASE(actual, forecast, scale, digits = 3)
 
 RelMAE(actual, forecast, benchmark, digits = 3)
+
+RelMSE(actual, forecast, benchmark, digits = 3)
+
+RelAME(actual, forecast, benchmark, digits = 3)
 
 sMSE(actual, forecast, scale, digits = 3)
 
@@ -49,9 +55,10 @@ All the functions return the scalar value.
 Functions allow to calculate different types of errors: \enumerate{ \item MPE
 - Mean Percentage Error, \item MAPE - Mean Absolute Percentage Error,
 \item SMAPE - Symmetric Mean Absolute Percentage Error, \item MASE - Mean
-Absolute Scaled Error, \item RelMAE - Average Relative Mean Absolute Error,
-\item sMSE - Scaled Mean Squared Error, \item sPIS- Scaled Periods-In-Stock,
-\item sCE - Scaled Cumulative Error.  }
+Absolute Scaled Error, \item RelMAE - Relative Mean Absolute Error,
+\item RelMSE - Relative Mean Squared Error, \item RelAME - Relative
+Absolute Mean Error, \item sMSE - Scaled Mean Squared Error,
+\item sPIS- Scaled Periods-In-Stock, \item sCE - Scaled Cumulative Error.  }
 }
 \details{
 In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical

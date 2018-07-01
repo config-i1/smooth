@@ -555,6 +555,9 @@ pls.smooth <- function(object, holdout=NULL, ...){
 #' values are biased, so you would possibly need to take number of degrees of freedom
 #' into account in order to have an unbiased estimator.
 #'
+#' This value is based on the general likelihood (not its concentrated version), so
+#' the sum of these values may slightly differ from the output of logLik.
+#'
 #' @aliases pointLik
 #' @param object Time series model.
 #' @param ...  Some stuff.
@@ -572,7 +575,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
 #' pointLik(ourModel) - nParam(ourModel)
 #'
 #' # Bias correction in AIC style
-#' 2*(nParam(ourModel) - pointLik(ourModel))
+#' 2*(nParam(ourModel)/nobs(ourModel) - pointLik(ourModel))
 #'
 #' # BIC calculation based on pointLik
 #' log(nobs(ourModel))*nParam(ourModel) - 2*sum(pointLik(ourModel))
@@ -611,7 +614,7 @@ pointLik.smooth <- function(object, ...){
         likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
     }
     else{
-        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2 - log(getResponse(object));
+        likValues <- -1/2 * log(2*pi*s2) - 1/2 * log(1+errors)^2 / s2 - log(getResponse(object));
     }
 
     return(likValues);

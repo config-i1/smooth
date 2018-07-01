@@ -21,10 +21,11 @@ The functions returns the named vector of errors:
 \item MPE,
 \item cbias,
 \item MAPE,
-\item SMAPE,
 \item MASE,
 \item sMAE,
 \item RelMAE,
+\item RelMSE,
+\item RelAME,
 \item sMSE,
 \item sPIS,
 \item sCE.

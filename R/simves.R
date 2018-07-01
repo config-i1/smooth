@@ -1,3 +1,5 @@
+utils::globalVariables(c("mvrnorm"));
+
 #' Simulate Vector Exponential Smoothing
 #'
 #' Function generates data using VES model as a data generating process.
@@ -79,8 +81,13 @@
 #'
 #' # Create 40 observations of quarterly data using AAA model with errors
 #' # from normal distribution
-#' \dontrun{ETS.AAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
+#' \dontrun{VES.AAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
 #'                    randomizer="rnorm",mean=0,sd=100)}
+#'
+#' # You can also use mvrnorm function from MASS package as randomizer,
+#' # but you need to provide mu and Sigma explicitly
+#' \dontrun{VES.ANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=3,
+#'                    randomizer="mvrnorm",mu=c(100,50),Sigma=matrix(c(40,20,20,30),2,2))}
 #'
 #' @export sim.ves
 sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
@@ -352,14 +359,18 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 
     ##### Form arrays #####
-    arrayW <- array(matw,c(dim(matw),nsim));
-    arrayF <- array(matF,c(dim(matF),nsim));
-    arrayG <- array(matG,c(dim(matG),nsim));
+    arrayW <- array(matw,c(dim(matw),nsim),
+                    dimnames=list(dataNames,componentsNames,NULL));
+    arrayF <- array(matF,c(dim(matF),nsim),
+                    dimnames=list(componentsNames,componentsNames,NULL));
+    arrayG <- array(matG,c(dim(matG),nsim),
+                    dimnames=list(componentsNames,dataNames,NULL));
     arrayStates <- array(NA,c(nComponentsAll*nSeries,obs+modelLagsMax,nsim),
                      dimnames=list(componentsNames,NULL,NULL));
-    arrayErrors <- array(NA,c(obs,nSeries,nsim));
-    arrayActuals <- array(NA,c(obs,nSeries,nsim));
-
+    arrayErrors <- array(NA,c(nSeries,obs,nsim),
+                         dimnames=list(dataNames,NULL,NULL));
+    arrayActuals <- array(NA,c(nSeries,obs,nsim),
+                          dimnames=list(dataNames,NULL,NULL));
 
     #### Generate persistence ####
 # If the persistence is NULL or was of the wrong length, generate the values
@@ -454,8 +465,10 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else{
-        for(i in 1:nSeries){
-            arrayStates[i*nComponentsAll,1:modelLagsMax,] <- initialSeason[i,];
+        if(componentSeasonal){
+            for(i in 1:nSeries){
+                arrayStates[i*nComponentsAll,1:modelLagsMax,] <- initialSeason[i,];
+            }
         }
     }
 
@@ -463,73 +476,48 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     if(length(args)==0){
 # Create vector of the errors
         if(any(randomizer==c("rnorm"))){
-            arrayErrors[,,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs*nSeries,")")));
+            arrayErrors[,,] <- rnorm(nsim*obs*nSeries);
         }
         else if(randomizer=="rt"){
 # The degrees of freedom are df = n - k.
             arrayErrors[,,] <- rt(nsim*obs*nSeries,obs-(nComponentsAll + modelLagsMax));
         }
+        else if(randomizer=="rlaplace"){
+            arrayErrors[,,] <- rlaplace(nsim*obs*nSeries);
+        }
+        else if(randomizer=="rs"){
+            arrayErrors[,,] <- rs(nsim*obs*nSeries);
+        }
+        # Make variance sort of meaningful
         arrayErrors <- arrayErrors * sqrt(abs(arrayStates[1,1,1]));
     }
 
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
         if(randomizer=="mvrnorm"){
-            arrayErrors[,,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
+            args$n <- nsim*obs;
+            arrayErrors[,,] <- t(do.call(mvrnorm,args));
         }
         else{
             arrayErrors[,,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs*nSeries,",", toString(as.character(args)),")")));
         }
     }
 
-# # Generate ones for the possible intermittency
-#     if(all(iprob == 1)){
-#         matot[,] <- 1;
-#     }
-#     else{
-#         matot[,] <- rbinom(obs*nsim,1,iprob);
-#     }
-
-
-
 #### Simulate the data ####
-    simulateddata <- simulatorwrap(arrayvt,materrors,matot,arrayF,matw,matg,Etype,Ttype,Stype,modelLags);
+    simulatedData <- vSimulatorWrap(arrayStates,arrayErrors,arrayF,arrayW,arrayG,modelLags);
 
-    # if(all(iprob == 1)){
-        matyt <- simulateddata$matyt;
-    # }
-    # else{
-        # matyt <- round(simulateddata$matyt,0);
-    # }
-    arrayvt <- simulateddata$arrayvt;
-    dimnames(arrayvt) <- list(NULL,componentsNames,NULL);
+    arrayActuals[,] <- simulatedData$arrayActuals;
+    arrayStates[,,] <- simulatedData$arrayStates;
 
     if(nsim==1){
-        matyt <- ts(matyt[,1],frequency=frequency);
-        materrors <- ts(materrors[,1],frequency=frequency);
-        arrayvt <- ts(arrayvt[,,1],frequency=frequency,start=c(0,frequency-modelLagsMax+1));
-        matot <- ts(matot[,1],frequency=frequency);
-    }
-    else{
-        matyt <- ts(matyt,frequency=frequency);
-        materrors <- ts(materrors,frequency=frequency);
-        matot <- ts(matot,frequency=frequency);
+        arrayActuals <- ts(t(arrayActuals[,,1]),frequency=frequency);
+        arrayErrors <- ts(t(arrayErrors[,,1]),frequency=frequency);
+        arrayStates <- ts(t(arrayStates[,,1]),frequency=frequency,start=c(0,frequency-modelLagsMax+1));
     }
 
-    if(Ttype!="N"){
-        rownames(matg) <- c("alpha","beta","gamma")[1:nComponentsAll];
-    }
-    else{
-        rownames(matg) <- c("alpha","gamma")[1:nComponentsAll];
-    }
+    model <- paste0("VES(",model,")");
 
-    model <- paste0("ETS(",model,")");
-    if(any(iprob!=1)){
-        model <- paste0("i",model);
-    }
-
-    model <- list(model=model, data=matyt, states=arrayvt, persistence=matg, phi=phi,
-                  initial=initial, initialSeason=initialSeason, iprob=iprob, intermittent=intermittent,
-                  residuals=materrors, occurrences=matot);
-    return(structure(model,class="smooth.sim"));
+    model <- list(model=model, data=arrayActuals, states=arrayStates, persistence=arrayG, phi=phi,
+                  initial=initial, initialSeason=initialSeason, residuals=arrayErrors);
+    return(structure(model,class=c("smooth.sim","vsmooth.sim")));
 }

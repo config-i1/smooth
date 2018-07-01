@@ -102,6 +102,7 @@
 #' iETS.MNN <- sim.es("MNN",frequency=12,persistence=0.2,initial=4,iprob=iprob,obs=50)
 #'
 #' @importFrom stats optim
+#' @importFrom greybox rlaplace rs
 #' @export sim.es
 sim.es <- function(model="ANN", obs=10, nsim=1,
                    frequency=1, persistence=NULL, phi=1,

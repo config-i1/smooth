@@ -96,8 +96,13 @@ THIS FUNCTION IS UNDER CONSTRUCTION. IT DOES NOT WORK YET!
 
 # Create 40 observations of quarterly data using AAA model with errors
 # from normal distribution
-\dontrun{ETS.AAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
+\dontrun{VES.AAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
                    randomizer="rnorm",mean=0,sd=100)}
+
+# You can also use mvrnorm function from MASS package as randomizer,
+# but you need to provide mu and Sigma explicitly
+\dontrun{VES.ANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=3,
+                   randomizer="mvrnorm",mu=c(100,50),Sigma=matrix(c(40,20,20,30),2,2))}
 
 }
 \references{
