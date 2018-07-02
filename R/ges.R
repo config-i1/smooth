@@ -202,8 +202,15 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
-        else if(is.null(model$xreg)){
-            xreg <- NULL;
+        else{
+            if(is.null(model$xreg)){
+                xreg <- NULL;
+            }
+            else{
+                if(ncol(xreg)!=ncol(model$xreg)){
+                    xreg <- xreg[,colnames(model$xreg)];
+                }
+            }
         }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;

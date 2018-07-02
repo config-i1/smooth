@@ -294,8 +294,15 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
-        else if(is.null(model$xreg)){
-            xreg <- NULL;
+        else{
+            if(is.null(model$xreg)){
+                xreg <- NULL;
+            }
+            else{
+                if(ncol(xreg)!=ncol(model$xreg)){
+                    xreg <- xreg[,colnames(model$xreg)];
+                }
+            }
         }
 
         initialX <- model$initialX;

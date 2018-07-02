@@ -14,7 +14,7 @@ Changes:
 * sim.ves() is tested and now should work fine in the majority of cases.
 * simulate method for ves is now available.
 * Code of simulate.smooth() is optimised and shortened.
-* Small additio in vignette for sim.ves()
+* Small additio in vignette for sim.ves().
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE.
@@ -22,6 +22,7 @@ Bugfixes:
 * Fix for the internal likelihood calculation for intermittent logistic models.
 * Corrections in pointLik() function. This should now be closer to the original likelihood if summed up. This is still an ongoing research, this thing will change in future.
 * Bugfixes in sim.es and sim.ssarima, so that rlaplace and rs can be easily used.
+* es(), ssarim(), ces() and ges() didn't work correctly when the already estimated model was reused with new xreg of a different size. The new fix partially solves the problem. Make sure that you provide the table with the correct exogenous variables!
 
 
 smooth v2.4.4 (Release data: 2018-05-31)

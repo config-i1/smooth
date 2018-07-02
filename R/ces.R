@@ -182,8 +182,15 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
-        else if(is.null(model$xreg)){
-            xreg <- NULL;
+        else{
+            if(is.null(model$xreg)){
+                xreg <- NULL;
+            }
+            else{
+                if(ncol(xreg)!=ncol(model$xreg)){
+                    xreg <- xreg[,colnames(model$xreg)];
+                }
+            }
         }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;

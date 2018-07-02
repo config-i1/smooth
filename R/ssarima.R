@@ -235,8 +235,15 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(is.null(xreg)){
                 xreg <- model$xreg;
             }
-            else if(is.null(model$xreg)){
-                xreg <- NULL;
+            else{
+                if(is.null(model$xreg)){
+                    xreg <- NULL;
+                }
+                else{
+                    if(ncol(xreg)!=ncol(model$xreg)){
+                        xreg <- xreg[,colnames(model$xreg)];
+                    }
+                }
             }
             initialX <- model$initialX;
             persistenceX <- model$persistenceX;
