@@ -12,6 +12,7 @@ Changes:
 * RelMSE and RelAME error measures are introduced. These should be useful for intermittent demand.
 * sim.ves() now seems to work.
 * sim.ves() is tested and now should work fine in the majority of cases.
+* simulate method for ves is now available.
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE.

@@ -273,6 +273,118 @@ print.vsmooth <- function(x, ...){
 
 }
 
+#### Simulate data using provided vector object ####
+#' @export
+simulate.vsmooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
+    ellipsis <- list(...);
+    if(is.null(obs)){
+        obs <- nobs(object);
+    }
+    if(!is.null(seed)){
+        set.seed(seed);
+    }
+
+    nSeries <- ncol(object$actuals);
+
+    # Start a list of arguments
+    args <- vector("list",0);
+
+    if(!is.null(ellipsis$randomizer)){
+        randomizer <- ellipsis$randomizer;
+    }
+    else{
+        randomizer <- "rnorm";
+    }
+
+    if(randomizer=="rnorm"){
+        if(!is.null(ellipsis$mean)){
+            args$mean <- ellipsis$mean;
+        }
+        else{
+            args$mean <- 0;
+        }
+
+        if(!is.null(ellipsis$sd)){
+            args$sd <- ellipsis$sd;
+        }
+        else{
+            args$sd <- sqrt(mean(residuals(object)^2));
+        }
+    }
+    else if(randomizer=="rlaplace"){
+        if(!is.null(ellipsis$mu)){
+            args$mu <- ellipsis$mu;
+        }
+        else{
+            args$mu <- 0;
+        }
+
+        if(!is.null(ellipsis$b)){
+            args$b <- ellipsis$b;
+        }
+        else{
+            args$b <- mean(abs(residuals(object)));
+        }
+    }
+    else if(randomizer=="rs"){
+        if(!is.null(ellipsis$mu)){
+            args$mu <- ellipsis$mu;
+        }
+        else{
+            args$mu <- 0;
+        }
+
+        if(!is.null(ellipsis$b)){
+            args$b <- ellipsis$b;
+        }
+        else{
+            args$b <- mean(sqrt(abs(residuals(object))));
+        }
+    }
+    else if(randomizer=="mvrnorm"){
+        if(!is.null(ellipsis$mu)){
+            args$mu <- ellipsis$mu;
+        }
+        else{
+            args$mu <- 0;
+        }
+
+        if(!is.null(ellipsis$Sigma)){
+            args$Sigma <- ellipsis$Sigma;
+        }
+        else{
+            args$Sigma <- sigma(object);
+        }
+    }
+
+    args$randomizer <- randomizer;
+    args$frequency <- frequency(object$actuals);
+    args$obs <- obs;
+    args$nsim <- nsim;
+    args$initial <- object$initial;
+
+    if(gregexpr("VES",object$model)!=-1){
+        if(all(object$phi==1)){
+            phi <- 1;
+        }
+        else{
+            phi <- object$phi;
+        }
+        model <- modelType(object);
+        args <- c(args,list(model=model, phi=phi, persistence=object$persistence,
+                            transition=object$transition,
+                            initialSeason=object$initialSeason));
+
+        simulatedData <- do.call("sim.ves",args);
+    }
+    else{
+        model <- substring(object$model,1,unlist(gregexpr("\\(",object$model))[1]-1);
+        message(paste0("Sorry, but simulate is not yet available for the model ",model,"."));
+        simulatedData <- NA;
+    }
+    return(simulatedData);
+}
+
 #### Summary of objects ####
 #' @export
 summary.vsmooth <- function(object, ...){
