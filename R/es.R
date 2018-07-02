@@ -294,6 +294,10 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
+        else if(is.null(model$xreg)){
+            xreg <- NULL;
+        }
+
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
@@ -1849,6 +1853,13 @@ CreatorES <- function(silent=FALSE,...){
         if(initialXEstimate){
             initialX <- matat[1,];
             names(initialX) <- colnames(matat);
+        }
+
+        # Make initialX NULL if all xreg were dropped
+        if(length(initialX)==1){
+            if(initialX==0){
+                initialX <- NULL;
+            }
         }
 
         if(gXEstimate){

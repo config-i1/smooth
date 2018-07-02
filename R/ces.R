@@ -182,6 +182,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
+        else if(is.null(model$xreg)){
+            xreg <- NULL;
+        }
         initialX <- model$initialX;
         persistenceX <- model$persistenceX;
         transitionX <- model$transitionX;
@@ -715,8 +718,17 @@ CreatorCES <- function(silentText=FALSE,...){
                                       maxlag*(seasonality!="n") + maxlag*any(seasonality==c("f","s")));
         }
     }
+
     if(initialXEstimate){
         initialX <- matat[1,];
+        names(initialX) <- colnames(matat);
+    }
+
+    # Make initialX NULL if all xreg were dropped
+    if(length(initialX)==1){
+        if(initialX==0){
+            initialX <- NULL;
+        }
     }
 
     if(gXEstimate){
@@ -763,7 +775,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
     }
 
-# Right down the smoothing parameters
+    # Right down the smoothing parameters
     nCoefficients <- 0;
     if(A$estimate){
         A$value <- complex(real=C[1],imaginary=C[2]);
@@ -825,7 +837,7 @@ CreatorCES <- function(silentText=FALSE,...){
         errormeasures <- NA;
     }
 
-##### Print output #####
+    ##### Print output #####
     if(!silentText){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
             if(bounds!="a"){
@@ -838,7 +850,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
     }
 
-##### Make a plot #####
+    ##### Make a plot #####
     if(!silentGraph){
         y.for.new <- y.for;
         y.high.new <- y.high;
@@ -861,7 +873,7 @@ CreatorCES <- function(silentText=FALSE,...){
         }
     }
 
-##### Return values #####
+    ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,A=A$value,B=B$value,
                   persistence=vecg,transition=matF,

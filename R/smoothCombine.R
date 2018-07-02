@@ -217,6 +217,7 @@ smoothCombine <- function(data, models=NULL,
     modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
                               level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
+
     yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
     yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=datafreq);
 

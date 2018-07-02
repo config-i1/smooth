@@ -235,6 +235,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(is.null(xreg)){
                 xreg <- model$xreg;
             }
+            else if(is.null(model$xreg)){
+                xreg <- NULL;
+            }
             initialX <- model$initialX;
             persistenceX <- model$persistenceX;
             transitionX <- model$transitionX;
@@ -789,8 +792,17 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
         }
     }
+
     if(initialXEstimate){
         initialX <- matat[1,];
+        names(initialX) <- colnames(matat);
+    }
+
+    # Make initialX NULL if all xreg were dropped
+    if(length(initialX)==1){
+        if(initialX==0){
+            initialX <- NULL;
+        }
     }
 
     if(gXEstimate){
