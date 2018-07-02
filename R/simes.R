@@ -498,6 +498,11 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         else if(randomizer=="rlnorm"){
             materrors <- materrors - 1;
         }
+
+        # Deal with rlaplace and rs in the case of multiplicative model
+        if(Etype=="M" & any(randomizer==c("rlaplace","rs","rt"))){
+            materrors <- exp(materrors) - 1;
+        }
     }
 
 # Generate ones for the possible intermittency
