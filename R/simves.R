@@ -529,5 +529,5 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     model <- list(model=model, data=arrayActuals, states=arrayStates, persistence=arrayG, phi=phi,
                   transition=arrayF, measurement=arrayW,
                   initial=initial, initialSeason=initialSeason, residuals=arrayErrors);
-    return(structure(model,class=c("smooth.sim","vsmooth.sim")));
+    return(structure(model,class=c("vsmooth.sim","smooth.sim")));
 }

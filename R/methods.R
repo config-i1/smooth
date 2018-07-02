@@ -1196,10 +1196,10 @@ plot.smooth.sim <- function(x, ...){
     }
 
     if(is.null(dim(x$data))){
-        nsim <- 1
+        nsim <- 1;
     }
     else{
-        nsim <- dim(x$data)[2]
+        nsim <- dim(x$data)[2];
     }
 
     if(nsim==1){

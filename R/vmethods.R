@@ -122,6 +122,46 @@ plot.viss <- function(x, ...){
     }
 }
 
+#' @export
+plot.vsmooth.sim <- function(x, ...){
+    ellipsis <- list(...);
+    if(is.null(ellipsis$main)){
+        ellipsis$main <- x$model;
+    }
+
+    if(length(dim(x$data))==2){
+        nsim <- 1;
+    }
+    else{
+        nsim <- dim(x$data)[3];
+    }
+
+    nSeries <- dim(x$data)[2];
+    if(nSeries>10){
+        warning("You have generated more than ten time series. We will plot only first ten of them.",
+                call.=FALSE);
+        x$data <- x$data[,1:10,];
+    }
+
+    if(nsim==1){
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- "Data";
+        }
+        ellipsis$x <- x$data;
+        do.call(plot, ellipsis);
+    }
+    else{
+        randomNumber <- ceiling(runif(1,1,nsim));
+        message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
+                       "Please use plot(ourSimulation$data[,k]) instead. Plotting randomly selected series N",randomNumber,"."));
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- paste0("Series N",randomNumber);
+        }
+        ellipsis$x <- ts(x$data[,,randomNumber]);
+        do.call(plot, ellipsis);
+    }
+}
+
 #### Prints of vector functions ####
 #' @export
 print.viss <- function(x, ...){
