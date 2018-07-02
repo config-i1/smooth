@@ -4,8 +4,6 @@ utils::globalVariables(c("mvrnorm"));
 #'
 #' Function generates data using VES model as a data generating process.
 #'
-#' THIS FUNCTION IS UNDER CONSTRUCTION. IT DOES NOT WORK YET!
-#'
 #' @template ssAuthor
 #' @template vssKeywords
 #'
@@ -134,7 +132,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         Etype <- substring(model,1,1);
         Ttype <- substring(model,2,2);
         Stype <- substring(model,3,3);
-        if(phi!=1 & Ttype!="N"){
+        if(any(phi!=1) & Ttype!="N"){
             model <- paste0(Etype,Ttype,"d",Stype);
             warning(paste0("Damping parameter is set to ",phi,". Changing model to: ",model),call.=FALSE);
         }
