@@ -60,6 +60,14 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     #### Check data ####
+    if(any(class(data)=="vsmooth.sim")){
+        data <- data$data;
+        if(length(dim(data))==3){
+            warning("Simulated data contains several samples. Selecting a random one.",call.=FALSE);
+            data <- ts(data[,,runif(1,1,dim(data)[3])]);
+        }
+    }
+
     if(!is.data.frame(data)){
         if(!is.numeric(data)){
             stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
