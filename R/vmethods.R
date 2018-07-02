@@ -284,10 +284,10 @@ simulate.vsmooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         set.seed(seed);
     }
 
-    nSeries <- ncol(object$actuals);
-
     # Start a list of arguments
     args <- vector("list",0);
+
+    args$nSeries <- ncol(object$actuals);
 
     if(!is.null(ellipsis$randomizer)){
         randomizer <- ellipsis$randomizer;

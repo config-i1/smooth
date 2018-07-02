@@ -247,7 +247,7 @@ This way the we generate two independent time series with similar DGPs and the s
 
 In addition, we can simulate multivariate series from an estimated VES model:
 ```{r simulate_smooth_ves_estimated}
-ourModel <- ves(x$data,model="AAN",persistence="dependant")
+ourModel <- ves(x$data,model="AAN",persistence="dependent")
 Y <- simulate(ourModel)
 plot(Y)
 ```

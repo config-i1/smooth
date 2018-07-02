@@ -258,7 +258,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             matG[,] <- persistence;
         }
         else{
-            stop(paste0("The length of persistence matrix is wrong! It should be either",
+            stop(paste0("The length of persistence matrix is wrong! It should be either ",
                         nComponentsAll,", or ",nComponentsAll*nSeries,", or ",nComponentsAll*nSeries^2,
                         "."),
                  call.=FALSE);
@@ -452,8 +452,8 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
     else{
         for(i in 1:nSeries){
-            arrayStates[(1:nComponentsNonSeasonal)*i,1:modelLagsMax,] <-
-                initial[(i-1)*nComponentsNonSeasonal+1:nComponentsNonSeasonal,1];
+            arrayStates[((i-1)*nComponentsNonSeasonal)+(1:nComponentsNonSeasonal),1:modelLagsMax,] <-
+                initial[(i-1)*nComponentsNonSeasonal+(1:nComponentsNonSeasonal),1];
         }
     }
 
