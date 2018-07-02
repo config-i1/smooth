@@ -918,8 +918,8 @@ CreatorVES <- function(silent=FALSE,...){
                                        max(data[,i],yForecast[,i],yFitted[,i]));
                 }
                 plot(data[,i],main=paste0(modelname," ",dataNames[i]),ylab="Y",
-                     ylim=plotRange,
-                     xlim=range(time(data[,i])[1],time(yForecast)[max(h,1)]));
+                     ylim=plotRange, xlim=range(time(data[,i])[1],time(yForecast)[max(h,1)]),
+                     type="l");
                 lines(yFitted[,i],col="purple",lwd=2,lty=2);
                 if(h>1){
                     if(any(intervalsType==c("u","i"))){

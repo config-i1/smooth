@@ -107,8 +107,8 @@ plot.viss <- function(x, ...){
             plotRange <- range(min(actuals[,i],yForecast[,i],yFitted[,i]),
                                max(actuals[,i],yForecast[,i],yFitted[,i]));
             plot(actuals[,i],main=paste0(modelname,", series ", i),ylab="Y",
-                 ylim=plotRange,
-                 xlim=range(time(actuals[,i])[1],time(yForecast)[max(h,1)]));
+                 ylim=plotRange, xlim=range(time(actuals[,i])[1],time(yForecast)[max(h,1)]),
+                 type="l");
             lines(yFitted[,i],col="purple",lwd=2,lty=2);
             if(h>1){
                 lines(yForecast[,i],col="blue",lwd=2);
