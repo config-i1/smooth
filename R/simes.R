@@ -116,6 +116,11 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     randomizer <- randomizer[1];
     args <- list(...);
     bounds <- bounds[1];
+    # If R decided that by "b" we meant "bounds", fix this!
+    if(is.numeric(bounds)){
+        args$b <- bounds;
+        bounds <- "u";
+    }
 
     if(all(bounds!=c("u","a","r","usual","admissible","restricted"))){
         warning(paste0("Strange type of bounds provided: ",bounds,". Switching to 'usual'."),

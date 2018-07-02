@@ -99,6 +99,11 @@ sim.ssarima <- function(orders=list(ar=0,i=1,ma=1), lags=1,
     randomizer <- randomizer[1];
     args <- list(...);
     bounds <- bounds[1];
+    # If R decided that by "b" we meant "bounds", fix this!
+    if(is.numeric(bounds)){
+        args$b <- bounds;
+        bounds <- "u";
+    }
 
     if(all(bounds!=c("n","a","none","admissible"))){
         warning(paste0("Strange type of bounds provided: ",bounds,". Switching to 'admissible'."),

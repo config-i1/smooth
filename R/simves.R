@@ -86,7 +86,7 @@ utils::globalVariables(c("mvrnorm"));
 #'
 #' # You can also use mvrnorm function from MASS package as randomizer,
 #' # but you need to provide mu and Sigma explicitly
-#' \dontrun{VES.ANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=3,
+#' \dontrun{VES.ANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=2,
 #'                    randomizer="mvrnorm",mu=c(100,50),Sigma=matrix(c(40,20,20,30),2,2))}
 #'
 #' @export sim.ves
@@ -100,9 +100,15 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
 # Function generates data using VES model.
 #    Copyright (C) 2018 - Inf Ivan Svetunkov
 
-    bounds <- substring(bounds[1],1,1);
     randomizer <- randomizer[1];
     args <- list(...);
+    bounds <- bounds[1];
+    # If R decided that by "b" we meant "bounds", fix this!
+    if(is.numeric(bounds)){
+        args$b <- bounds;
+        bounds <- "u";
+    }
+    bounds <- substring(bounds[1],1,1);
 
 # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
     if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(args)==0)){
@@ -119,7 +125,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             warning(paste0("You have defined a strange model: ",model),call.=FALSE);
             model <- paste0(Etype,Ttype,"d",Stype);
         }
-        if(Ttype!="N" & phi==1){
+        if(Ttype!="N" & all(phi==1)){
             model <- paste0(Etype,Ttype,Stype);
             warning(paste0("Damping parameter is set to 1. Changing model to: ",model),call.=FALSE);
         }
@@ -168,7 +174,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         nComponentsAll <- nComponentsAll + 1;
         modelLags <- c(modelLags,1);
         componentsNames <- c(componentsNames,"trend");
-        if(is.na(phi) | is.null(phi)){
+        if(all(is.na(phi)) | all(is.null(phi))){
             phi <- 1;
             damped <- FALSE;
         }
@@ -244,13 +250,13 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
                 matG[(i-1)*nComponentsAll+c(1:nComponentsAll),i] <- c(persistence);
             }
         }
-        else if(length(persistence)!=nComponentsAll*nSeries){
+        else if(length(persistence)==nComponentsAll*nSeries){
             for(i in 1:nSeries){
                 matG[(i-1)*nComponentsAll+c(1:nComponentsAll),
                      i] <- c(persistence)[(i-1)*nComponentsAll+c(1:nComponentsAll)];
             }
         }
-        else if(length(persistence)!=nComponentsAll*nSeries^2){
+        else if(length(persistence)==nComponentsAll*nSeries^2){
             matG[,] <- persistence;
         }
         else{
@@ -274,7 +280,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
                      (i-1)*nComponentsAll+c(1:nComponentsAll)] <- c(transition);
             }
         }
-        else if(length(persistence)==(nComponentsAll*nSeries)^2){
+        else if(length(transition)==(nComponentsAll*nSeries)^2){
             matF[,] <- c(transition);
         }
         else{
@@ -439,16 +445,16 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     #### Generate initial states ####
     if(initialGenerate){
         arrayStates[c(0:(nSeries-1))*nComponentsAll+1,
-                    1:modelLagsMax,nsim] <- runif(nsim,0,5000);
+                    1:modelLagsMax,] <- runif(nsim,0,5000);
         if(componentTrend){
             arrayStates[c(0:(nSeries-1))*nComponentsAll+2,
-                        1:modelLagsMax,nsim] <- runif(nsim,-100,100);
+                        1:modelLagsMax,] <- runif(nsim,-100,100);
         }
         initial <- matrix(arrayStates[1:nComponentsNonSeasonal,1,],ncol=nsim);
     }
     else{
         for(i in 1:nSeries){
-            arrayStates[1:nComponentsNonSeasonal,1:modelLagsMax,] <-
+            arrayStates[(1:nComponentsNonSeasonal)*i,1:modelLagsMax,] <-
                 initial[(i-1)*nComponentsNonSeasonal+1:nComponentsNonSeasonal,1];
         }
     }
@@ -458,7 +464,8 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
 # Create and normalize seasonal components
         initialSeason <- runif(modelLagsMax,-500,500);
         initialSeason <- initialSeason - mean(initialSeason);
-        arrayStates[nComponentsAll*c(1:nSeries),1:modelLagsMax,] <- initialSeason;
+        arrayStates[nComponentsAll*c(1:nSeries),1:modelLagsMax,] <- matrix(initialSeason,nSeries,
+                                                                           modelLagsMax,byrow=TRUE);
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else{
@@ -510,6 +517,11 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         arrayActuals <- ts(t(arrayActuals[,,1]),frequency=frequency);
         arrayErrors <- ts(t(arrayErrors[,,1]),frequency=frequency);
         arrayStates <- ts(t(arrayStates[,,1]),frequency=frequency,start=c(0,frequency-modelLagsMax+1));
+    }
+    else{
+        arrayActuals <- aperm(arrayActuals,c(2,1,3));
+        arrayErrors <- aperm(arrayErrors,c(2,1,3));
+        arrayStates <- aperm(arrayStates,c(2,1,3));
     }
 
     model <- paste0("VES(",model,")");
