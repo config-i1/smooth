@@ -14,6 +14,7 @@ Changes:
 * sim.ves() is tested and now should work fine in the majority of cases.
 * simulate method for ves is now available.
 * Code of simulate.smooth() is optimised and shortened.
+* Small additio in vignette for sim.ves()
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE.
