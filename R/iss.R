@@ -255,6 +255,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             initial <- iprob;
             pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
         }
+        names(initial) <- "level";
         pt.for <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
         errors <- ts(ot-iprob, start=start(y), frequency=frequency(y));
 
