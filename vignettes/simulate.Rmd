@@ -1,10 +1,10 @@
 ---
-title: "simulate(), sim.es(), sim.ssarima(), sim.ces() - simulate functions for ETS, SARIMA and CES"
+title: "Simulate functions of the package"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{simulate(), sim.es(), sim.ssarima(), sim.ces() - simulate functions for ETS, SARIMA and CES}
+  %\VignetteIndexEntry{Simulate functions of the package}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
