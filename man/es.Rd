@@ -221,6 +221,7 @@ then NA is returned.
 case of trace forecasts this is the matrix used in optimisation. In non-trace estimations
 it is returned just for the information.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
+This is an unbiased estimate of variance.
 \item \code{intervals} - type of intervals asked by user.
 \item \code{level} - confidence level for intervals.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
@@ -236,7 +237,7 @@ estimated as well.
 \item \code{persistenceX} - persistence vector g for exogenous variables.
 \item \code{transitionX} - transition matrix F for exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
-\item \code{logLik} - log-likelihood of the function.
+\item \code{logLik} - conventrated log-likelihood of the function.
 \item \code{cf} - cost function value.
 \item \code{cfType} - type of cost function used in the estimation.
 \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}

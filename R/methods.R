@@ -587,8 +587,7 @@ pointLik <- function(object, ...) UseMethod("pointLik")
 pointLik.default <- function(object, ...){
     obs <- nobs(object);
     errors <- residuals(object);
-    s2 <- sigma(object)^2;
-    likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
+    likValues <- dnorm(errors, 0, sigma(object), TRUE);
 
     return(likValues);
 }
@@ -607,18 +606,64 @@ pointLik.ets <- function(object, ...){
 pointLik.smooth <- function(object, ...){
     obs <- nobs(object);
     errors <- residuals(object);
-    s2 <- sigma(object)^2;
     likValues <- vector("numeric",obs);
+    cfType <- object$cfType;
 
-    if(errorType(object)=="A"){
-        likValues <- -1/2 * log(2*pi*s2) - 1/2 * errors^2 / s2;
+    if(errorType(object)=="M"){
+        errors <- log(1+errors);
+        likValues <- likValues - log(getResponse(object));
+    }
+
+    if(any(cfType==c("MAE","MAEh","TMAE","GTMAE","MACE"))){
+        likValues <- likValues + dlaplace(errors, 0, mean(abs(errors)), TRUE);
+    }
+    else if(any(cfType==c("HAM","HAMh","THAM","GTHAM","CHAM"))){
+        likValues <- likValues + ds(errors, 0, mean(sqrt(abs(errors))/2), TRUE);
     }
     else{
-        likValues <- -1/2 * log(2*pi*s2) - 1/2 * log(1+errors)^2 / s2 - log(getResponse(object));
+        likValues <- likValues + dnorm(errors, 0, sqrt(mean(abs(errors)^2)), TRUE);
     }
+
+    likValues <- ts(as.vector(likValues), start=start(errors), frequency=frequency(errors));
 
     return(likValues);
 }
+
+#' Point AIC
+#'
+#' This function returns a vector of AIC values for the in-sample observations
+#'
+#' This is based on \link[smooth]{pointLik} function. The formula for this is:
+#' pAIC_t = 2 * k - 2 * T * l_t ,
+#' where k is the number of parameters, T is the number of observations and l_t is
+#' the point likelihood. This way we preserve the property that AIC = mean(pAIC).
+#'
+#' @aliases pAIC
+#' @param object Time series model.
+#' @param ...  Some stuff.
+#' @return The function returns the vector of point AIC values.
+#' @template ssAuthor
+#' @seealso \link[smooth]{pointLik}
+#' @keywords htest
+#' @examples
+#'
+#' ourModel <- ces(rnorm(100,0,1),h=10)
+#'
+#' pAICValues <- pAIC(ourModel)
+#'
+#' mean(pAICValues)
+#' AIC(ourModel)
+#'
+#' @export pAIC
+pAIC <- function(object, ...) UseMethod("pAIC")
+
+#' @export
+pAIC.default <- function(object, ...){
+    obs <- nobs(object);
+    k <- nParam(object);
+    return(2*k - 2 * obs * pointLik(object));
+}
+
 
 #' @importFrom stats sigma
 #' @export

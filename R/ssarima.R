@@ -375,11 +375,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    nParam <- (1 + nComponents*(initialType=="o") + sum(ar.orders)*(ARRequired * AREstimate) +
-                   sum(ma.orders)*(MARequired * MAEstimate) + 1*(constantRequired * constantEstimate) +
-                   nExovars * initialXEstimate +
-                   (updateX)*((nExovars^2)*FXEstimate + nExovars*gXEstimate));
-
     # If there is something to optimise, let's do it.
     if(any((initialType=="o"),(AREstimate),(MAEstimate),
            (initialXEstimate),(FXEstimate),(gXEstimate),(constantEstimate))){
@@ -438,6 +433,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             C <- res$solution;
         }
         cfObjective <- res$objective;
+
+        # Parameters estimated + variance
+        nParam <- length(C) + 1;
     }
     else{
         C <- NULL;
@@ -451,19 +449,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
 
         cfObjective <- CF(C);
-    }
 
-# Change cfType for model selection
-    if(multisteps){
-        #     if(substring(cfType,1,1)=="a"){
-        cfType <- "aTFL";
-        #     }
-        #     else{
-        #         cfType <- "TFL";
-        #     }
-    }
-    else{
-        cfType <- "MSE";
+        # Only variance is estimated
+        nParam <- 1;
     }
 
     ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
@@ -471,9 +459,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     ICs <- ICValues$ICs;
     bestIC <- ICs[ic];
     logLik <- ICValues$llikelihood;
-
-# Revert to the provided cost function
-    cfType <- cfTypeOriginal
 
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,nParam=nParam,logLik=logLik));
 }

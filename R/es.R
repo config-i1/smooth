@@ -1,6 +1,6 @@
 utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","datafreq","initialType",
                          "yot","maxlag","silent","allowMultiplicative","modelCurrent",
-                         "nParamIntermittent","cfTypeOriginal","matF","matw","pt.for","errors.mat",
+                         "nParamIntermittent","matF","matw","pt.for","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
                          "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend","yForecastStart",
@@ -125,6 +125,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' case of trace forecasts this is the matrix used in optimisation. In non-trace estimations
 #' it is returned just for the information.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
+#' This is an unbiased estimate of variance.
 #' \item \code{intervals} - type of intervals asked by user.
 #' \item \code{level} - confidence level for intervals.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
@@ -140,7 +141,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - log-likelihood of the function.
+#' \item \code{logLik} - conventrated log-likelihood of the function.
 #' \item \code{cf} - cost function value.
 #' \item \code{cfType} - type of cost function used in the estimation.
 #' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
@@ -703,32 +704,14 @@ EstimatorES <- function(...){
         }
     }
 
-    # 1 variance, nComponents smoothing parameters, phi,
-    # level and trend initials if we optimise them,
-    # maxlag seasonal initials if we do not backcast and they need to be estimated
-    # intiials of xreg if they need to be estimated
-    # updateX with transitionX and persistenceX
-    # nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
-    #                (nComponents - (Stype!="N")) * (initialType=="o") +
-    #                maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
-    #                nExovars * initialXEstimate +
-    #                (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
+    # Parameters estimated + variance
     nParam <- length(C) + 1;
-
-    # Change cfType for model selection
-    if(!multisteps){
-        if(any(cfType==c("Rounded","TSB"))){
-            cfType <- "MSE";
-        }
-    }
 
     ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
                            C=res$solution,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
-    # Change back
-    cfType <- cfTypeOriginal;
     return(list(ICs=ICs,objective=res$objective,C=C,nParam=nParam,FI=FI,logLik=logLik));
 }
 
@@ -1187,32 +1170,14 @@ CreatorES <- function(silent=FALSE,...){
 
         cfObjective <- CF(C);
 
-        # 1 variance, nComponents smoothing parameters, phi,
-        # level and trend initials if we optimise them,
-        # maxlag seasonal initials if we do not backcast and they need to be estimated
-        # intiials of xreg if they need to be estimated
-        # updateX with transitionX and persistenceX
-        # nParam <- (1 + nComponents*persistenceEstimate + phiEstimate*damped +
-        #                (nComponents - (Stype!="N")) * (initialType=="o") +
-        #                maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
-        #                nExovars * initialXEstimate +
-        #                (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
-        nParam <- length(C) + 1;
-
-# Change cfType for model selection
-        if(!multisteps){
-            if(any(cfType==c("Rounded","TSB"))){
-                cfType <- "MSE";
-            }
-        }
+        # Only variance is estimated in this case
+        nParam <- 1;
 
         ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
                                C=C,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs;
-        # Change back
-        cfType <- cfTypeOriginal;
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,
@@ -1639,32 +1604,32 @@ CreatorES <- function(silent=FALSE,...){
             # maxlag seasonal initials if we do not backcast and they need to be estimated
             # intiials of xreg if they need to be estimated
             # updateX with transitionX and persistenceX
-            nParam <- (nComponents*persistenceEstimate + phiEstimate*damped +
-                           (nComponents - (Stype!="N")) * (initialType=="o") +
-                           maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
-                           nExovars * initialXEstimate +
-                           (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
+            nParamToEstimate <- (nComponents*persistenceEstimate + phiEstimate*damped +
+                                     (nComponents - (Stype!="N")) * (initialType=="o") +
+                                     maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
+                                     nExovars * initialXEstimate +
+                                     (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
 
             if(!is.null(providedC)){
-                if(nParam!=length(providedC)){
+                if(nParamToEstimate!=length(providedC)){
                     warning(paste0("Number of parameters to optimise differes from the length of C: ",
-                                   nParam," vs ",length(providedC),".\n",
+                                   nParamToEstimate," vs ",length(providedC),".\n",
                                    "We will have to drop parameter C."),call.=FALSE);
                     providedC <- NULL;
                 }
             }
             if(!is.null(providedCLower)){
-                if(nParam!=length(providedCLower)){
+                if(nParamToEstimate!=length(providedCLower)){
                     warning(paste0("Number of parameters to optimise differes from the length of CLower: ",
-                                   nParam," vs ",length(providedCLower),".\n",
+                                   nParamToEstimate," vs ",length(providedCLower),".\n",
                                    "We will have to drop parameter CLower."),call.=FALSE);
                     providedCLower <- NULL;
                 }
             }
             if(!is.null(providedCUpper)){
-                if(nParam!=length(providedCUpper)){
+                if(nParamToEstimate!=length(providedCUpper)){
                     warning(paste0("Number of parameters to optimise differes from the length of CUpper: ",
-                                   nParam," vs ",length(providedCUpper),".\n",
+                                   nParamToEstimate," vs ",length(providedCUpper),".\n",
                                    "We will have to drop parameter CUpper."),call.=FALSE);
                     providedCUpper <- NULL;
                 }

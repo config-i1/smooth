@@ -330,10 +330,6 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    nParam <- (1 + sum(modellags)*(initialType=="o") + A$number*A$estimate + B$number*B$estimate +
-                   nExovars * initialXEstimate +
-                   (updateX)*((nExovars^2)*FXEstimate + nExovars*gXEstimate));
-
     if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
         C <- NULL;
         # If we don't need to estimate A
@@ -396,26 +392,24 @@ CreatorCES <- function(silentText=FALSE,...){
 
         C <- res$solution;
         cfObjective <- res$objective;
+
+        # Parameters estimated + variance
+        nParam <- length(C) + 1;
     }
     else{
         C <- c(A$value,B$value,initialValue,initialX,transitionX,persistenceX);
         cfObjective <- CF(C);
+
+        # Only variance is estimated
+        nParam <- 1;
     }
-    if(multisteps){
-        cfType <- "aTFL";
-    }
-    else{
-        cfType <- "MSE";
-    }
+
     ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
                            C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
     bestIC <- ICs[ic];
-
-# Revert to the provided cost function
-    cfType <- cfTypeOriginal;
 
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,nParam=nParam,logLik=logLik));
 }

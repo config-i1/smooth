@@ -185,7 +185,6 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(CF) <- environment();
 
     nComponents <- order;
-    #nParam <- nComponents + 1;
     if(order>1){
         matF <- rbind(cbind(rep(1/nComponents,nComponents-1),diag(nComponents-1)),c(1/nComponents,rep(0,nComponents-1)));
         matw <- matrix(c(1,rep(0,nComponents-1)),1,nComponents);

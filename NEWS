@@ -1,4 +1,4 @@
-smooth v2.4.5 (Release data: 2018-07-02)
+smooth v2.4.5 (Release data: 2018-07-03)
 ==============
 
 Changes:
@@ -12,9 +12,11 @@ Changes:
 * RelMSE and RelAME error measures are introduced. These should be useful for intermittent demand.
 * sim.ves() now seems to work.
 * sim.ves() is tested and now should work fine in the majority of cases.
-* simulate method for ves is now available.
+* simulate() method for ves is now available.
 * Code of simulate.smooth() is optimised and shortened.
-* Small additio in vignette for sim.ves().
+* Small addition in vignette for sim.ves().
+* New method for smooth functions - pAIC.
+* Simplifications in the number of parameters calculation.
 
 Bugfixes:
 * ves() now produces the correct number of plots if silent=FALSE.
@@ -23,6 +25,7 @@ Bugfixes:
 * Corrections in pointLik() function. This should now be closer to the original likelihood if summed up. This is still an ongoing research, this thing will change in future.
 * Bugfixes in sim.es and sim.ssarima, so that rlaplace and rs can be easily used.
 * es(), ssarim(), ces() and ges() didn't work correctly when the already estimated model was reused with new xreg of a different size. The new fix partially solves the problem. Make sure that you provide the table with the correct exogenous variables!
+* When a model is reused the nuber of parameters in AIC should be equal to 1 (because only variance is estimated, the rest is provided).
 
 
 smooth v2.4.4 (Release data: 2018-05-31)
