@@ -242,7 +242,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
     if(var(ot)==0){
         warning(paste0("There is no variability in the occurrence of the variable in-sample.\n",
-                       "Switching to intermitten='none'."),call.=FALSE)
+                       "Switching to intermittent='none'."),call.=FALSE)
         intermittent <- "n";
     }
 
