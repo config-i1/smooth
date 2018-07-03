@@ -13,7 +13,7 @@ utils::globalVariables(c("mvrnorm"));
 #' \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA} etc.
 #' Only pure additive and pure multiplicative models are supported. In the
 #' latter case the data is generated using additive model and then
-#' expontiated.
+#' exponentiated.
 #' @param obs Number of observations in each generated time series.
 #' @param nsim Number of series to generate (number of simulations to do).
 #' @param nSeries Number of series in each generated group of series.

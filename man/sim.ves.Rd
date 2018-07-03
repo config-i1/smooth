@@ -14,7 +14,7 @@ sim.ves(model = "ANN", obs = 10, nsim = 1, nSeries = 2, frequency = 1,
 \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA} etc.
 Only pure additive and pure multiplicative models are supported. In the
 latter case the data is generated using additive model and then
-expontiated.}
+exponentiated.}
 
 \item{obs}{Number of observations in each generated time series.}
 

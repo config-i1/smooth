@@ -141,7 +141,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - conventrated log-likelihood of the function.
+#' \item \code{logLik} - concentrated log-likelihood of the function.
 #' \item \code{cf} - cost function value.
 #' \item \code{cfType} - type of cost function used in the estimation.
 #' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
