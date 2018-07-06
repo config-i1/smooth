@@ -257,7 +257,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             # Apply the model to the simulated data
             smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
             # Remove first h-1 and last values.
-            errors <- smoothModel$errors[h-1+1:obs,];
+            errors <- smoothModel$errors;
 
             # Transform errors if needed
             if(errorType(object)=="M"){
