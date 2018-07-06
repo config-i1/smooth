@@ -2,7 +2,7 @@ smooth v2.4.6 (Release data: 2018-07-03)
 ==============
 
 Changes:
-
+* All the multisteps estimators now have what they were supposed to originally have: smaller sample of T-h.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)

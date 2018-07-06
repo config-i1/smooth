@@ -1330,20 +1330,20 @@ arma::mat errorer(arma::mat const &matrixVt, arma::mat const &matrixF, arma::mat
                   arma::mat const &matrixXt, arma::mat const &matrixAt, arma::mat const &matrixFX, arma::vec const &vecOt){
     int obs = vecYt.n_rows;
     int hh = 0;
-    arma::mat matErrors(obs+hor-1, hor, arma::fill::zeros);
+    arma::mat matErrors(obs-hor, hor, arma::fill::zeros);
     unsigned int maxlag = max(lags);
 
-    for(int i = 0; i < obs; i=i+1){
+    for(int i = 0; i < (obs-hor); i=i+1){
         hh = std::min(hor, obs-i);
-        matErrors.submat(hor-1+i, 0, hor-1+i, hh-1) = arma::trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
+        matErrors.submat(i, 0, i, hh-1) = arma::trans(vecOt.rows(i, i+hh-1) % errorvf(vecYt.rows(i, i+hh-1),
             forecaster(matrixVt.rows(i,i+maxlag-1), matrixF, rowvecW, hh, E, T, S, lags, matrixXt.rows(i, i+hh-1),
                 matrixAt.rows(i, i+hh-1), matrixFX), E));
     }
 
 // Fix for GV in order to perform better in the sides of the series
-    for(int i=0; i<(hor-1); i=i+1){
-        matErrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = matErrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(1.0+i);
-    }
+    // for(int i=0; i<(hor-1); i=i+1){
+    //     matErrors.submat((hor-2)-(i),i+1,(hor-2)-(i),hor-1) = matErrors.submat(hor-1,0,hor-1,hor-i-2) * sqrt(1.0+i);
+    // }
 
     return matErrors;
 }
@@ -1446,7 +1446,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     arma::uvec nonzeroes = find(vecOt>0);
     int obs = nonzeroes.n_rows;
     double CFres = 0;
-    int matobs = obs + hor - 1;
+    int matobs = obs - hor;
 
 // yactsum is needed for multiplicative error models
     double yactsum = 0;
