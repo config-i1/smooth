@@ -1,8 +1,9 @@
-cma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
-                h=10, holdout=FALSE, cumulative=FALSE,
-                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
                 silent=c("all","graph","legend","output","none"),
                 ...){
+
+    holdout <- FALSE;
+    h <- 0;
 
     # If a previous model provided as a model, write down the variables
     if(exists("model")){
@@ -84,23 +85,23 @@ cma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     }
 
     if((order %% 2)!=0){
-        model <- sma(y, order=order, ic=ic, h=max(h*2,order), holdout=FALSE, cumulative=FALSE,
-                        intervals=intervals, level=level, silent=TRUE, ...);
+        model <- sma(y, order=order, ic=ic, h=order, holdout=FALSE, cumulative=FALSE,
+                     silent=TRUE, ...);
         yFitted <- c(model$fitted[-c(1:((order+1)/2))],model$forecast);
-        if(h!=0){
-            yForecast <- yFitted[-(1:obsInsample)];
-            yForecast <- ts(yForecast[1:h], start=start(model$forecast), frequency=datafreq);
-            model$forecast <- yForecast;
-            if(any(!is.na(model$upper))){
-                model$upper <- ts(model$upper[-(1:((order+1)/2))][1:h], start=start(model$forecast),
-                                  frequency=datafreq);
-                model$lower <- ts(model$lower[-(1:((order+1)/2))][1:h], start=start(model$forecast),
-                                  frequency=datafreq);
-            }
-        }
-        else{
-            model$forecast <- ts(NA, start=start(model$forecast), frequency=datafreq);
-        }
+        # if(h!=0){
+        #     yForecast <- yFitted[-(1:obsInsample)];
+        #     yForecast <- ts(yForecast[1:h], start=start(model$forecast), frequency=datafreq);
+        #     model$forecast <- yForecast;
+        #     if(any(!is.na(model$upper))){
+        #         model$upper <- ts(model$upper[-(1:((order+1)/2))][1:h], start=start(model$forecast),
+        #                           frequency=datafreq);
+        #         model$lower <- ts(model$lower[-(1:((order+1)/2))][1:h], start=start(model$forecast),
+        #                           frequency=datafreq);
+        #     }
+        # }
+        # else{
+        model$forecast <- ts(NA, start=start(model$forecast), frequency=datafreq);
+        # }
         yFitted <- ts(yFitted[1:obsInsample], start=dataStart, frequency=datafreq);
         model$model <- paste0("CMA(",order,")");
         model$fitted <- yFitted;
@@ -115,7 +116,8 @@ cma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     }
 
     if(!silent){
-        graphmaker(data, model$forecast, model$fitted, model$upper, model$lower, level=level);
+        graphmaker(data, model$forecast, model$fitted, legend=FALSE, vline=FALSE,
+                   main=model$model, xlab="Time");
     }
 
     return(model);
