@@ -2986,6 +2986,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             else if(gregexpr("SMA",modelname)!=-1){
                 model <- "SMA";
             }
+            else if(gregexpr("CMA",modelname)!=-1){
+                model <- "CMA";
+            }
         }
     }
     else{

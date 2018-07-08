@@ -1327,7 +1327,7 @@ print.smooth <- function(x, ...){
 
     if(!is.null(x$model)){
         if(!is.list(x$model)){
-            if(gregexpr("SMA",x$model)!=-1){
+            if((gregexpr("SMA",x$model)!=-1) | gregexpr("CMA",x$model)!=-1){
                 x$iprob <- 1;
                 x$initialType <- "b";
                 intermittent <- "n";

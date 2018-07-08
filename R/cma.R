@@ -4,6 +4,19 @@ cma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 silent=c("all","graph","legend","output","none"),
                 ...){
 
+    # If a previous model provided as a model, write down the variables
+    if(exists("model")){
+        if(is.null(model$model)){
+            stop("The provided model is not Simple Moving Average!",call.=FALSE);
+        }
+        else if(gregexpr("SMA",model$model)==-1){
+            stop("The provided model is not Simple Moving Average!",call.=FALSE);
+        }
+        else{
+            order <- model$order;
+        }
+    }
+
     ##### data #####
     if(any(class(data)=="smooth.sim")){
         data <- data$data;
@@ -41,12 +54,69 @@ cma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         stop("Not enough observations in sample.",call.=FALSE);
     }
     # Define the actual values
-    y <- matrix(data[1:obsInsample],obsInsample,1);
     datafreq <- frequency(data);
     dataStart <- start(data);
+    y <- ts(matrix(data[1:obsInsample],obsInsample,1), start=dataStart, frequency=datafreq);
 
-    smaModel <- sma(y, order=order, ic=ic, h=h*2, holdout=FALSE, cumulative=cumulative,
-                    intervals=intervals, level=level, silent=silent, ...);
+    # Order of the model
+    if(!is.null(order)){
+        if(obsInsample < order){
+            stop("Sorry, but we don't have enough observations for that order.",call.=FALSE);
+        }
 
+        if(!is.numeric(order)){
+            stop("The provided order is not numeric.",call.=FALSE);
+        }
+        else{
+            if(length(order)!=1){
+                warning("The order should be a scalar. Using the first provided value.",call.=FALSE);
+                order <- order[1];
+            }
 
+            if(order<1){
+                stop("The order of the model must be a positive number.",call.=FALSE);
+            }
+        }
+        orderSelect <- FALSE;
+    }
+    else{
+        orderSelect <- TRUE;
+    }
+
+    if((order %% 2)!=0){
+        model <- sma(y, order=order, ic=ic, h=max(h*2,order), holdout=FALSE, cumulative=FALSE,
+                        intervals=intervals, level=level, silent=TRUE, ...);
+        yFitted <- c(model$fitted[-c(1:((order+1)/2))],model$forecast);
+        if(h!=0){
+            yForecast <- yFitted[-(1:obsInsample)];
+            yForecast <- ts(yForecast[1:h], start=start(model$forecast), frequency=datafreq);
+            model$forecast <- yForecast;
+            if(any(!is.na(model$upper))){
+                model$upper <- ts(model$upper[-(1:((order+1)/2))][1:h], start=start(model$forecast),
+                                  frequency=datafreq);
+                model$lower <- ts(model$lower[-(1:((order+1)/2))][1:h], start=start(model$forecast),
+                                  frequency=datafreq);
+            }
+        }
+        else{
+            model$forecast <- ts(NA, start=start(model$forecast), frequency=datafreq);
+        }
+        yFitted <- ts(yFitted[1:obsInsample], start=dataStart, frequency=datafreq);
+        model$model <- paste0("CMA(",order,")");
+        model$fitted <- yFitted;
+        model$residuals <- ts(y - yFitted, start=dataStart, frequency=datafreq);
+        model$s2 <- sum(model$residuals^2)/(obsInsample - 2);
+        model$cf <- mean(model$residuals^2);
+        model$logLik <- -obsInsample/2 *(log(2*pi*exp(1)) + log(model$cf));
+        model$ICs <- c(AIC(model),AICc(model),BIC(model),BICc(model));
+        names(model$ICs) <- c("AIC","AICc","BIC","BICc");
+    }
+    else{
+    }
+
+    if(!silent){
+        graphmaker(data, model$forecast, model$fitted, model$upper, model$lower, level=level);
+    }
+
+    return(model);
 }
