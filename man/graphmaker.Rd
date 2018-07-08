@@ -5,7 +5,7 @@
 \title{Linear graph construction function}
 \usage{
 graphmaker(actuals, forecast, fitted = NULL, lower = NULL, upper = NULL,
-  level = NULL, legend = TRUE, main = NULL, cumulative = FALSE)
+  level = NULL, legend = TRUE, cumulative = FALSE, vline = TRUE, ...)
 }
 \arguments{
 \item{actuals}{The vector of actual series.}
@@ -25,10 +25,13 @@ Should be ts object that start at the end of \code{fitted} values.}
 
 \item{legend}{If \code{TRUE}, the legend is drawn.}
 
-\item{main}{The title of the produced plot.}
-
 \item{cumulative}{If \code{TRUE}, then the forecast is treated as
 cumulative and value per period is plotted.}
+
+\item{vline}{Whether to draw the vertical line, spliiting the in-sample
+and the holdout sample.}
+
+\item{...}{Other parameters passed to \code{plot()} function.}
 }
 \value{
 Function does not return anything.
