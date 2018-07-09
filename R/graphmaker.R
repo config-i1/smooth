@@ -111,7 +111,7 @@ graphmaker <- function(actuals, forecast, fitted=NULL, lower=NULL, upper=NULL,
     }
 
     if(!is.null(ellipsis$main) & cumulative){
-        ellipsis$main <- paste0(main,", cumulative forecast");
+        ellipsis$main <- paste0(ellipsis$main,", cumulative forecast");
     }
 
     if(is.null(ellipsis$type)){

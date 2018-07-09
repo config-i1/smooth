@@ -3081,14 +3081,16 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-    if(initialType=="o"){
-        cat("Initial values were optimised.\n");
-    }
-    else if(initialType=="b"){
-        cat("Initial values were produced using backcasting.\n");
-    }
-    else if(initialType=="p"){
-        cat("Initial values were provided by user.\n");
+    if(model!="CMA"){
+        if(initialType=="o"){
+            cat("Initial values were optimised.\n");
+        }
+        else if(initialType=="b"){
+            cat("Initial values were produced using backcasting.\n");
+        }
+        else if(initialType=="p"){
+            cat("Initial values were provided by user.\n");
+        }
     }
 
     if(!is.null(nParam)){

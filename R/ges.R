@@ -80,8 +80,8 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{transition} - matrix F.
 #' \item \code{persistence} - persistence vector. This is the place, where
 #' smoothing parameters live.
-#' \item \code{fitted} - fitted values of ETS.
-#' \item \code{forecast} - point forecast of ETS.
+#' \item \code{fitted} - fitted values.
+#' \item \code{forecast} - point forecast.
 #' \item \code{lower} - lower bound of prediction interval. When
 #' \code{intervals="none"} then NA is returned.
 #' \item \code{upper} - higher bound of prediction interval. When

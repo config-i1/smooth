@@ -24,6 +24,8 @@ included in the package:
 \item \link[smooth]{sma} - Simple Moving Average in state space form.
 \item \link[smooth]{smoothCombine} - the function that combines forecasts from es(),
 ces(), ges(), ssarima() and sma() functions.
+\item \link[smooth]{cma} - Centered Moving Average. This is for smoothing time series,
+not for forecasting.
 \item \link[smooth]{ves} - Vector Exponential Smoothing.
 \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
 \item \link[smooth]{sim.ces} - simulate time series using CES as a model.

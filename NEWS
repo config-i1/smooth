@@ -1,9 +1,10 @@
-smooth v2.4.6 (Release data: 2018-07-03)
+smooth v2.4.6 (Release data: 2018-07-09)
 ==============
 
 Changes:
 * All the multisteps estimators now have what they were supposed to originally have: smaller sample of T-h.
 * graphmaker() function is now more flexible, allowing to tune parameter of plot.
+* Centered Moving Average function is now available. This is not a model, but just a transfer function of SMA.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)

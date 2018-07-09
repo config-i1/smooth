@@ -1192,6 +1192,17 @@ plot.smooth <- function(x, ...){
             message("Combination of models was done. Sorry, but there is nothing to plot.");
         }
     }
+    else if(gregexpr("CMA",x$model)!=-1){
+        ellipsis$actuals <- x$actuals;
+        ellipsis$forecast <- x$forecast;
+        ellipsis$fitted <- x$fitted;
+        ellipsis$legend <- FALSE;
+        ellipsis$vline <- FALSE;
+        if(is.null(ellipsis$main)){
+            ellipsis$main <- x$model;
+        }
+        do.call(graphmaker, ellipsis);
+    }
     else{
         if(any(unlist(gregexpr("combine",x$model))!=-1)){
             # If we did combinations, we cannot do anything
@@ -1307,9 +1318,17 @@ plot.iss <- function(x, ...){
 #### Prints of smooth ####
 #' @export
 print.smooth <- function(x, ...){
-    holdout <- any(!is.na(x$holdout));
-    intervals <- any(!is.na(x$lower));
-    cumulative <- x$cumulative;
+
+    if(gregexpr("CMA",x$model)!=-1){
+        holdout <- FALSE;
+        intervals <- FALSE;
+        cumulative <- FALSE;
+    }
+    else{
+        holdout <- any(!is.na(x$holdout));
+        intervals <- any(!is.na(x$lower));
+        cumulative <- x$cumulative;
+    }
 
     if(all(holdout,intervals)){
         if(!cumulative){

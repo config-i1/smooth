@@ -46,8 +46,8 @@ utils::globalVariables(c("yForecastStart"));
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
 #' provided parameters will take this into account.
-#' \item \code{fitted} - the fitted values of ETS.
-#' \item \code{forecast} - the point forecast of ETS.
+#' \item \code{fitted} - the fitted values.
+#' \item \code{forecast} - the point forecast.
 #' \item \code{lower} - the lower bound of prediction interval. When
 #' \code{intervals=FALSE} then NA is returned.
 #' \item \code{upper} - the higher bound of prediction interval. When
@@ -70,6 +70,13 @@ utils::globalVariables(c("yForecastStart"));
 #' holdout sample. Includes: MPE, MAPE, SMAPE, MASE, sMAE, RelMAE, sMSE and
 #' Bias coefficient (based on complex numbers). This is available only when
 #' \code{holdout=TRUE}.
+#' }
+#'
+#' @references \itemize{
+#' \item Svetunkov, I., & Petropoulos, F. (2017). Old dog, new tricks: a
+#' modelling view of simple moving averages. International Journal of
+#' Production Research, 7543(January), 1-14.
+#' \url{https://doi.org/10.1080/00207543.2017.1380326}
 #' }
 #'
 #' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},

@@ -1,6 +1,77 @@
-cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
-                silent=c("all","graph","legend","output","none"),
-                ...){
+#' Centered Moving Average
+#'
+#' Function constructs centered moving average based on state space SMA
+#'
+#' If the otder is odd, then the function constructs SMA(order) and
+#' shifts it back in time. Otherwise an AR(order+1) model is constructed
+#' with the preset parameters:
+#'
+#' phi_i = {0.5,1,1,...,0.5} / order
+#'
+#' This then corresponds to the centered MA with 0.5 weight for the
+#' first observation and 0.5 weight for an additional one. e.g. if this is
+#' monthly data and we use order=12, then half of the first january and
+#' half of the new one is taken.
+#'
+#' This is not a forecasting tool. This is supposed to smooth the time
+#' series in order to find trend. So don't expect any forecasts from this
+#' function!
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @template smoothRef
+#'
+#' @param data Vector or ts object, containing data needed to be smoothed.
+#' @param order Order of centered moving average. If \code{NULL}, then the
+#' function will try to select order of SMA based on information criteria.
+#' See \link[smooth]{sma} for details.
+#' @param silent If \code{TRUE}, then plot is not produced. Otherwise, there
+#' is a plot...
+#' @return Object of class "smooth" is returned. It contains the list of the
+#' following values:
+#'
+#' \itemize{
+#' \item \code{model} - the name of the estimated model.
+#' \item \code{timeElapsed} - time elapsed for the construction of the model.
+#' \item \code{order} - order of the moving average.
+#' \item \code{nParam} - table with the number of estimated / provided parameters.
+#' If a previous model was reused, then its initials are reused and the number of
+#' provided parameters will take this into account.
+#' \item \code{fitted} - the fitted values, shifted in time.
+#' \item \code{forecast} - NAs, because this function does not produce forecasts.
+#' \item \code{residuals} - the residuals of the SMA / AR model.
+#' \item \code{s2} - variance of the residuals (taking degrees of freedom into
+#' account) of the SMA / AR model.
+#' \item \code{actuals} - the original data.
+#' \item \code{ICs} - values of information criteria from the respective SMA or
+#' AR model. Includes AIC, AICc, BIC and BICc.
+#' \item \code{logLik} - log-likelihood of the SMA / AR model.
+#' \item \code{cf} - Cost function value (for the SMA / AR model).
+#' \item \code{cfType} - Type of cost function used in the estimation.
+#' }
+#'
+#' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},
+#' \link[smooth]{ssarima}}
+#'
+#' @keywords SARIMA ARIMA
+#' @examples
+#'
+#' # SMA of specific order
+#' ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
+#'
+#' # SMA of arbitrary order
+#' ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
+#'
+#' summary(ourModel)
+#' forecast(ourModel)
+#' plot(forecast(ourModel))
+#'
+#' @export cma
+cma <- function(data, order=NULL, silent=TRUE){
+
+# Start measuring the time of calculations
+    startTime <- Sys.time();
 
     holdout <- FALSE;
     h <- 0;
@@ -8,10 +79,10 @@ cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
     # If a previous model provided as a model, write down the variables
     if(exists("model")){
         if(is.null(model$model)){
-            stop("The provided model is not Simple Moving Average!",call.=FALSE);
+            stop("The provided model is not a Centered Moving Average!",call.=FALSE);
         }
-        else if(gregexpr("SMA",model$model)==-1){
-            stop("The provided model is not Simple Moving Average!",call.=FALSE);
+        else if(gregexpr("CMA",model$model)==-1){
+            stop("The provided model is not a Centered Moving Average!",call.=FALSE);
         }
         else{
             order <- model$order;
@@ -23,8 +94,6 @@ cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
         data <- data$data;
     }
     else if(class(data)=="Mdata"){
-        h <- data$h;
-        holdout <- TRUE;
         data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
     }
 
@@ -57,7 +126,7 @@ cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
     # Define the actual values
     datafreq <- frequency(data);
     dataStart <- start(data);
-    y <- ts(matrix(data[1:obsInsample],obsInsample,1), start=dataStart, frequency=datafreq);
+    y <- ts(data[1:obsInsample], start=dataStart, frequency=datafreq);
 
     # Order of the model
     if(!is.null(order)){
@@ -84,40 +153,45 @@ cma <- function(data, order=7, ic=c("AICc","AIC","BIC","BICc"),
         orderSelect <- TRUE;
     }
 
-    if((order %% 2)!=0){
-        model <- sma(y, order=order, ic=ic, h=order, holdout=FALSE, cumulative=FALSE,
-                     silent=TRUE, ...);
-        yFitted <- c(model$fitted[-c(1:((order+1)/2))],model$forecast);
-        # if(h!=0){
-        #     yForecast <- yFitted[-(1:obsInsample)];
-        #     yForecast <- ts(yForecast[1:h], start=start(model$forecast), frequency=datafreq);
-        #     model$forecast <- yForecast;
-        #     if(any(!is.na(model$upper))){
-        #         model$upper <- ts(model$upper[-(1:((order+1)/2))][1:h], start=start(model$forecast),
-        #                           frequency=datafreq);
-        #         model$lower <- ts(model$lower[-(1:((order+1)/2))][1:h], start=start(model$forecast),
-        #                           frequency=datafreq);
-        #     }
-        # }
-        # else{
-        model$forecast <- ts(NA, start=start(model$forecast), frequency=datafreq);
-        # }
-        yFitted <- ts(yFitted[1:obsInsample], start=dataStart, frequency=datafreq);
-        model$model <- paste0("CMA(",order,")");
-        model$fitted <- yFitted;
-        model$residuals <- ts(y - yFitted, start=dataStart, frequency=datafreq);
-        model$s2 <- sum(model$residuals^2)/(obsInsample - 2);
-        model$cf <- mean(model$residuals^2);
-        model$logLik <- -obsInsample/2 *(log(2*pi*exp(1)) + log(model$cf));
-        model$ICs <- c(AIC(model),AICc(model),BIC(model),BICc(model));
-        names(model$ICs) <- c("AIC","AICc","BIC","BICc");
-    }
-    else{
+    if(orderSelect){
+        order <- orders(sma(y));
     }
 
+    if((order %% 2)!=0){
+        smaModel <- sma(y, order=order, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+        yFitted <- c(smaModel$fitted[-c(1:((order+1)/2))],smaModel$forecast);
+        logLik <- smaModel$logLik;
+        errors <- residuals(smaModel);
+    }
+    else{
+        ssarimaModel <- ssarima(y, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
+                         h=order, holdout=FALSE, silent=TRUE);
+        yFitted <- c(ssarimaModel$fitted[-c(1:(order/2))],ssarimaModel$forecast);
+        smaModel <- sma(y, order=1, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+        logLik <- ssarimaModel$logLik;
+        errors <- residuals(ssarimaModel);
+    }
+    yForecast <- ts(NA, start=start(smaModel$forecast), frequency=datafreq);
+    yFitted <- ts(yFitted[1:obsInsample], start=dataStart, frequency=datafreq);
+    modelname <- paste0("CMA(",order,")");
+    nParam <- smaModel$nParam;
+    s2 <- sum(errors^2)/(obsInsample - 2);
+    cfObjective <- mean(errors^2);
+
+    model <- structure(list(model=modelname,timeElapsed=Sys.time()-startTime,
+                            order=order, nParam=nParam,
+                            fitted=yFitted,forecast=yForecast,residuals=errors,s2=s2,
+                            actuals=data,
+                            ICs=NULL,logLik=logLik,cf=cfObjective,cfType="MSE"),
+                       class="smooth");
+
+    ICs <- c(AIC(model),AICc(model),BIC(model),BICc(model));
+    names(ICs) <- c("AIC","AICc","BIC","BICc");
+    model$ICs <- ICs;
+
     if(!silent){
-        graphmaker(data, model$forecast, model$fitted, legend=FALSE, vline=FALSE,
-                   main=model$model, xlab="Time");
+        graphmaker(data, yForecast, model$fitted, legend=FALSE, vline=FALSE,
+                   main=model$model);
     }
 
     return(model);
