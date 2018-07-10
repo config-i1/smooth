@@ -1055,14 +1055,27 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 1;
+    int nloops = 2;
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
     arma::mat matrixXtTrans = matrixXt.t();
 
     // Inverse transition matrix for backcasting
-    // arma::mat matrixFInv;
+    arma::mat matrixFInv = matrixF;
+    arma::rowvec rowvecWInv = rowvecW;
+    // Values needed for eigenvalues calculation
+    // arma::cx_vec eigval;
+    //
+    // if(arma::eig_gen(eigval, matrixF)){
+    //     if(any(abs(eigval) >= 1)){
+    //         if(!arma::inv(matrixFInv,matrixF)){
+    //             matrixFInv = arma::pinv(matrixF);
+    //             rowvecWInv = rowvecW * matrixFInv * matrixFInv;
+    //         }
+    //     }
+    // }
+
     // if(!arma::inv(matrixFInv,matrixF)){
     //     matrixFInv = matrixF.t();
     //     matrixFInv(0,0) = 0;
@@ -1148,13 +1161,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecWInv, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i+1));
             vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
-            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
-                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * vecErrors(i-maxlag);
+            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixFInv, T, S) +
+                              gvalue(matrixVt(lagrows), matrixFInv, rowvecWInv, E, T, S) % vecG * vecErrors(i-maxlag);
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.col(i).is_finite()){
@@ -1179,7 +1192,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 /* # Fill in the head of the matrices */
         for (int i=maxlag-1; i>=0; i=i-1) {
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
-            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
+            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixFInv, T, S);
             matrixAt.col(i) = matrixFX * matrixAt.col(i+1);
         }
     }
