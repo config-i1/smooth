@@ -105,8 +105,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
 #' provided parameters will take this into account.
-#' \item \code{fitted} - the fitted values of ETS.
-#' \item \code{forecast} - the point forecast of ETS.
+#' \item \code{fitted} - the fitted values.
+#' \item \code{forecast} - the point forecast.
 #' \item \code{lower} - the lower bound of prediction interval. When
 #' \code{intervals="none"} then NA is returned.
 #' \item \code{upper} - the higher bound of prediction interval. When

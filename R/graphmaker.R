@@ -17,9 +17,11 @@
 #' Should be ts object that start at the end of \code{fitted} values.
 #' @param level The width of the prediction interval.
 #' @param legend If \code{TRUE}, the legend is drawn.
-#' @param main The title of the produced plot.
 #' @param cumulative If \code{TRUE}, then the forecast is treated as
 #' cumulative and value per period is plotted.
+#' @param vline Whether to draw the vertical line, spliiting the in-sample
+#' and the holdout sample.
+#' @param ... Other parameters passed to \code{plot()} function.
 #' @return Function does not return anything.
 #' @author Ivan Svetunkov
 #' @seealso \code{\link[stats]{ts}}
@@ -40,9 +42,12 @@
 #' graphmaker(actuals,forecast)
 #'
 #' @export graphmaker
-graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
-                       level=NULL,legend=TRUE,main=NULL,cumulative=FALSE){
+graphmaker <- function(actuals, forecast, fitted=NULL, lower=NULL, upper=NULL,
+                       level=NULL, legend=TRUE, cumulative=FALSE, vline=TRUE, ...){
 # Function constructs the universal linear graph for any model
+
+    ellipsis <- list(...);
+
 ##### Make legend change if the fitted is provided or not!
     if(!is.null(lower) | !is.null(upper)){
         intervals <- TRUE;
@@ -75,40 +80,70 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
 # Write down the default values of par
     parDefault <- par(no.readonly = TRUE);
 
-# Estimate plot range
-    plot.range <- range(min(actuals[!is.na(actuals)],fitted[!is.na(fitted)],
-                            forecast[!is.na(forecast)],lower[!is.na(lower)],upper[!is.na(upper)]),
-                        max(actuals[!is.na(actuals)],fitted[!is.na(fitted)],
-                            forecast[!is.na(forecast)],lower[!is.na(lower)],upper[!is.na(upper)]));
-
     if(legend==TRUE){
         layout(matrix(c(1,2),2,1),heights=c(0.86,0.14));
-        if(is.null(main)){
-            par(mar=c(2,3,2,1));
+        if(is.null(ellipsis$main)){
+            parMar <- c(2,3,2,1);
         }
         else{
-            par(mar=c(2,3,3,1));
+            parMar <- c(2,3,3,1);
         }
     }
     else{
-        if(is.null(main)){
-            par(mar=c(3,3,2,1));
+        if(is.null(ellipsis$main)){
+            parMar <- c(3,3,2,1);
         }
         else{
-            par(mar=c(3,3,3,1));
+            parMar <- c(3,3,3,1);
         }
     }
 
-    if(!is.null(main) & cumulative){
-        main <- paste0(main,", cumulative forecast");
+# Estimate plot range
+    if(is.null(ellipsis$ylim)){
+        ellipsis$ylim <- range(min(actuals[!is.na(actuals)],fitted[!is.na(fitted)],
+                                   forecast[!is.na(forecast)],lower[!is.na(lower)],upper[!is.na(upper)]),
+                               max(actuals[!is.na(actuals)],fitted[!is.na(fitted)],
+                                   forecast[!is.na(forecast)],lower[!is.na(lower)],upper[!is.na(upper)]));
     }
 
-    plot(actuals,type="l",xlim=range(time(actuals)[1],time(forecast)[max(h,1)]),
-         ylim=plot.range,xlab="", ylab="", main=main);
+    if(is.null(ellipsis$xlim)){
+        ellipsis$xlim <- range(time(actuals)[1],time(forecast)[max(h,1)]);
+    }
+
+    if(!is.null(ellipsis$main) & cumulative){
+        ellipsis$main <- paste0(ellipsis$main,", cumulative forecast");
+    }
+
+    if(is.null(ellipsis$type)){
+        ellipsis$type <- "l";
+    }
+
+    if(is.null(ellipsis$xlab)){
+        ellipsis$xlab <- "";
+    }
+    else{
+        parMar[1] <- parMar[1] + 1;
+    }
+
+    if(is.null(ellipsis$ylab)){
+        ellipsis$ylab <- "";
+    }
+    else{
+        parMar[2] <- parMar[2] + 1;
+    }
+
+    ellipsis$x <- actuals;
+
+    par(mar=parMar);
+    do.call(plot, ellipsis);
+    # plot(actuals, type="l", xlim=range(time(actuals)[1],time(forecast)[max(h,1)]),
+         # ylim=plot.range, xlab="", ylab="", main=main);
     if(any(!is.na(fitted))){
         lines(fitted,col="purple",lwd=2,lty=2);
     }
-    abline(v=deltat(forecast)*(start(forecast)[2]-2)+start(forecast)[1],col="red",lwd=2);
+    if(vline){
+        abline(v=deltat(forecast)*(start(forecast)[2]-2)+start(forecast)[1],col="red",lwd=2);
+    }
 
     if(intervals){
         if(h>1){
@@ -177,7 +212,5 @@ graphmaker <- function(actuals,forecast,fitted=NULL,lower=NULL,upper=NULL,
         }
     }
 
-    if(legend==TRUE){
-        par(parDefault);
-    }
+    par(parDefault);
 }

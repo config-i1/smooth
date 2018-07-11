@@ -68,7 +68,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
-    else if(class(data)=="Mdata"){
+    else if(any(class(data)=="Mdata")){
         h <- data$h;
         holdout <- TRUE;
         data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
@@ -1393,7 +1393,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
     if(any(class(data)=="smooth.sim")){
         data <- data$data;
     }
-    else if(class(data)=="Mdata"){
+    else if(any(class(data)=="Mdata")){
         h <- data$h;
         holdout <- TRUE;
         data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
@@ -2986,6 +2986,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             else if(gregexpr("SMA",modelname)!=-1){
                 model <- "SMA";
             }
+            else if(gregexpr("CMA",modelname)!=-1){
+                model <- "CMA";
+            }
         }
     }
     else{
@@ -3078,14 +3081,16 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-    if(initialType=="o"){
-        cat("Initial values were optimised.\n");
-    }
-    else if(initialType=="b"){
-        cat("Initial values were produced using backcasting.\n");
-    }
-    else if(initialType=="p"){
-        cat("Initial values were provided by user.\n");
+    if(model!="CMA"){
+        if(initialType=="o"){
+            cat("Initial values were optimised.\n");
+        }
+        else if(initialType=="b"){
+            cat("Initial values were produced using backcasting.\n");
+        }
+        else if(initialType=="p"){
+            cat("Initial values were provided by user.\n");
+        }
     }
 
     if(!is.null(nParam)){

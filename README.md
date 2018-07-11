@@ -27,12 +27,12 @@ Here is the list of the included functions:
 19. graphmaker - plots the original series, the fitted values and the forecasts.
 20. sowhat - returns the ultimate answer to any question.
 21. smoothCombine - the function that combines forecasts from es(), ces(), ges(), ssarima() and sma() functions.
+22. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
 
 Future works:
 
-16. cma - Centred Moving Average. This should be based on sma(), but would be available for time series decomposition.
-17. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
-18. sofa - Survival of the fittest algorithm applied to state space models.
+1. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
+2. sofa - Survival of the fittest algorithm applied to state space models.
 
 Available methods:
 
