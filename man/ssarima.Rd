@@ -31,7 +31,9 @@ ARIMA(p,d,q) is constructed in this case.}
 The length of \code{lags} must correspond to the length of either \code{ar},
 \code{i} or \code{ma} in \code{orders} variable. There is no restrictions on
 the length of \code{lags} vector. It is recommended to order \code{lags}
-ascending.}
+ascending.
+The orders are set by a user. If you want the automatic order selection,
+then use \link[smooth]{auto.ssarima} function instead.}
 
 \item{constant}{If \code{TRUE}, constant term is included in the model. Can
 also be a number (constant value).}
@@ -298,7 +300,7 @@ ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 
-# SARIMA of a perculiar order on AirPassengers data
+# SARIMA of a peculiar order on AirPassengers data
 \dontrun{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
         h=10,holdout=TRUE)}
 
@@ -338,8 +340,8 @@ Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
 }
 }
 \seealso{
-\code{\link[forecast]{auto.arima}, \link[smooth]{orders},
-\link[smooth]{lags}, \link[smooth]{sim.ssarima}}
+\code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
+\link[smooth]{lags}, \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

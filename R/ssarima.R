@@ -60,6 +60,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \code{i} or \code{ma} in \code{orders} variable. There is no restrictions on
 #' the length of \code{lags} vector. It is recommended to order \code{lags}
 #' ascending.
+#' The orders are set by a user. If you want the automatic order selection,
+#' then use \link[smooth]{auto.ssarima} function instead.
 #' @param constant If \code{TRUE}, constant term is included in the model. Can
 #' also be a number (constant value).
 #' @param AR Vector or matrix of AR parameters. The order of parameters should
@@ -144,8 +146,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \code{holdout=TRUE}.
 #' }
 #'
-#' @seealso \code{\link[forecast]{auto.arima}, \link[smooth]{orders},
-#' \link[smooth]{lags}, \link[smooth]{sim.ssarima}}
+#' @seealso \code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
+#' \link[smooth]{lags}, \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
 #'
 #' @examples
 #'
@@ -172,7 +174,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
 #'         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 #'
-#' # SARIMA of a perculiar order on AirPassengers data
+#' # SARIMA of a peculiar order on AirPassengers data
 #' \dontrun{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
 #'         h=10,holdout=TRUE)}
 #'
