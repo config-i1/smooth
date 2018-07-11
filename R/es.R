@@ -1200,7 +1200,15 @@ CreatorES <- function(silent=FALSE,...){
                                        initialstates[1,2] *
                                        mean(c(1:min(max(datafreq,12), obsNonzero))));
             if(any(cfType=="LogisticD")){
-                initialstates[1,1] <- (initialstates[1,1] - 0.5);
+                if(all(yot[1:min(max(datafreq,12),obsNonzero)]==0)){
+                    initialstates[1,1] <- -500;
+                }
+                else if(all(yot[1:min(max(datafreq,12),obsNonzero)]==1)){
+                    initialstates[1,1] <- 500;
+                }
+                else{
+                    initialstates[1,1] <- (initialstates[1,1] - 0.5);
+                }
             }
             if(allowMultiplicative){
                 if(any(cfType=="LogisticL")){

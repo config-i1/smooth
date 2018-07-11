@@ -2502,9 +2502,25 @@ ssForecaster <- function(...){
         y.high <- y.high / (1 + y.high);
     }
     else if(cfType=="LogisticD"){
-        y.for <- exp(y.for) / (1 + exp(y.for));
-        y.low <- exp(y.low) / (1 + exp(y.low));
-        y.high <- exp(y.high) / (1 + exp(y.high));
+        # If the values are too high (hard to take exp), substitute by 1
+        y.forNew <- exp(y.for) / (1 + exp(y.for));
+        y.lowNew <- exp(y.low) / (1 + exp(y.low));
+        y.highNew <- exp(y.high) / (1 + exp(y.high));
+        if(any(y.for>500)){
+            y.forNew[y.for>500] <- 1;
+            y.lowNew[y.lowNew>500] <- 1;
+            y.highNew[y.lowNew>500] <- 1;
+        }
+        # If the values are too low (hard to take exp), substitute by 0
+        if(any(y.for< -500)){
+            y.forNew[y.for< -500] <- 0;
+            y.lowNew[y.lowNew< -500] <- 0;
+            y.highNew[y.lowNew< -500] <- 0;
+        }
+
+        y.for <- y.forNew;
+        y.low <- y.lowNew;
+        y.high <- y.highNew;
     }
 
     assign("s2",s2,ParentEnvironment);

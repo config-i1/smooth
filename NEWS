@@ -1,10 +1,13 @@
-smooth v2.4.6 (Release data: 2018-07-09)
+smooth v2.4.6 (Release data: 2018-07-11)
 ==============
 
 Changes:
 * All the multisteps estimators now have what they were supposed to originally have: smaller sample of T-h.
 * graphmaker() function is now more flexible, allowing to tune parameter of plot.
 * Centered Moving Average function is now available. This is not a model, but just a transfer function of SMA.
+
+Bugfixes
+* Fixed a bug for logistic intemittent model, when the probability of occurrence was becoming 0 or 1.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)

@@ -1032,7 +1032,15 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
 
     if(E=='D'){
         // This is a logistic additive error
-        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
+        arma::vec vecYfitNew = exp(vecYfit) / (1 + exp(vecYfit));
+        // If there are very large values, substitute them by 1 / 0 respectively
+        if(arma::any(vecYfit> 500)){
+            vecYfitNew(find(vecYfit> 500)).fill(1);
+        }
+        if(arma::any(vecYfit< -500)){
+            vecYfitNew(find(vecYfit< -500)).fill(0);
+        }
+        vecYfit = vecYfitNew;
     }
     else if(E=='L'){
         // This is a logistic multiplicative error
