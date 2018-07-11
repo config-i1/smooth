@@ -92,7 +92,26 @@ double errorf(double const &yact, double &yfit, char const &E){
     }
     else if(E=='D'){
         // This is a logistic additive error
-        double yProb = exp(yfit) / (1 + exp(yfit));
+        double yProb;
+        if(yfit > 500){
+            if(yact==1){
+                yProb = 1;
+            }
+            else{
+                return(-pow(10,log(abs(yfit))));
+            }
+        }
+        else if(yfit < -500){
+            if(yact==0){
+                yProb = 0;
+            }
+            else{
+                return(pow(10,log(abs(yfit))));
+            }
+        }
+        else{
+            yProb = exp(yfit) / (1 + exp(yfit));
+        }
         return log((1 + yact - yProb)/(1 - yact + yProb));
     }
     else if(E=='L'){
@@ -120,7 +139,15 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
     }
     else if(E=='D'){
         // This is an additive logistic error
-        yfit = exp(yfit) / (1 + exp(yfit));
+        if(any(vectorise(yfit) > 500)){
+            yfit(find(yfit > 500)).fill(1);
+        }
+        else if(any(vectorise(yfit) > 500)){
+            yfit(find(yfit< -500)).fill(0);
+        }
+        else{
+            yfit = exp(yfit) / (1 + exp(yfit));
+        }
         return log((1 + yact - yfit)/(1 - yact + yfit));
     }
     else if(E=='L'){

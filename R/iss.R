@@ -441,7 +441,16 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
                        persistence=NULL, initial=NULL, initialSeason=NULL);
     }
     output$intermittent <- intermittent;
-    output$logLik <- (sum(log(output$fitted[ot!=0])) +
-                      sum(log(1-output$fitted[ot==0])));
+    pt <- output$fitted;
+    if(any(c(1-pt[ot==0]==0,pt[ot==1]==0))){
+        # return(-Inf);
+        ptNew <- pt[(pt!=0) & (pt!=1)];
+        otNew <- ot[(pt!=0) & (pt!=1)];
+        output$logLik <- sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]));
+    }
+    else{
+        output$logLik <- (sum(log(pt[ot!=0])) +
+                              sum(log(1-pt[ot==0])));
+    }
     return(structure(output,class="iss"));
 }
