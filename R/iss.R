@@ -449,8 +449,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         output$logLik <- sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]));
     }
     else{
-        output$logLik <- (sum(log(pt[ot!=0])) +
-                              sum(log(1-pt[ot==0])));
+        output$logLik <- (sum(log(pt[ot!=0])) + sum(log(1-pt[ot==0])));
     }
     return(structure(output,class="iss"));
 }
