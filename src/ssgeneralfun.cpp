@@ -98,7 +98,7 @@ double errorf(double const &yact, double &yfit, char const &E){
                 yProb = 1;
             }
             else{
-                return(-pow(10,log(abs(yfit))));
+                return(-yfit);
             }
         }
         else if(yfit < -500){
@@ -106,7 +106,7 @@ double errorf(double const &yact, double &yfit, char const &E){
                 yProb = 0;
             }
             else{
-                return(pow(10,log(abs(yfit))));
+                return(-yfit);
             }
         }
         else{
