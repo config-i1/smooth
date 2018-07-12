@@ -332,39 +332,6 @@ CF <- function(C){
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                            bounds);
 
-    # elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
-    #                         ARValue, MAValue, constantValue, C,
-    #                         matvt, vecg, matF,
-    #                         initialType, nExovars, matat, matFX, vecgX,
-    #                         AREstimate, MAEstimate, constantRequired, constantEstimate,
-    #                         xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate);
-    # matF <- elements$matF;
-    # vecg <- elements$vecg;
-    # matvt[,] <- elements$matvt;
-    # matvt[1,] <- matrixPowerWrap(matF,nComponents+1) %*% matvt[1,];
-    # matat[,] <- elements$matat;
-    # matFX <- elements$matFX;
-    # vecgX <- elements$vecgX;
-
-    # polysos.ar <- elements$arPolynomial;
-    # polysos.ma <- elements$maPolynomial;
-    #
-    # if(bounds=="a" & (nComponents > 0)){
-    #     arRoots <- abs(polyroot(polysos.ar));
-    #     if(any(arRoots<1)){
-    #         return(max(arRoots)*1E+100);
-    #     }
-    #     maRoots <- abs(polyroot(polysos.ma));
-    #     if(any(maRoots<1)){
-    #         return(max(maRoots)*1E+100);
-    #     }
-    # }
-    #
-    # cfRes <- optimizerwrap(elements$matvt, elements$matF, matw, y, elements$vecg,
-    #                        h, modellags, Etype, Ttype, Stype,
-    #                        multisteps, cfType, normalizer, initialType,
-    #                        matxt, elements$matat, elements$matFX, elements$vecgX, ot);
-
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
     }
