@@ -285,7 +285,8 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' @param holdout The vector of the holdout values.
 #' @param forecast The vector of forecasts produced by a model.
 #' @param actual The vector of actual in-sample values.
-#' @param digits Number of digits of the output.
+#' @param digits Number of digits of the output. If \code{NULL}
+#' then \code{digits=100}.
 #' @return The functions returns the named vector of errors:
 #' \itemize{
 #' \item MPE,
@@ -325,7 +326,10 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' Accuracy(y[91:100],esmodel$forecast,y[1:90],digits=5)
 #'
 #' @export Accuracy
-Accuracy <- function(holdout, forecast, actual, digits=3){
+Accuracy <- function(holdout, forecast, actual, digits=NULL){
+    if(is.null(digits)){
+        digits <- 100;
+    }
     holdout <- as.vector(holdout);
     forecast <- as.vector(forecast);
     actual <- as.vector(actual);

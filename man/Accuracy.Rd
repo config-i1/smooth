@@ -4,7 +4,7 @@
 \alias{Accuracy}
 \title{Accuracy of forecasts}
 \usage{
-Accuracy(holdout, forecast, actual, digits = 3)
+Accuracy(holdout, forecast, actual, digits = NULL)
 }
 \arguments{
 \item{holdout}{The vector of the holdout values.}
@@ -13,7 +13,8 @@ Accuracy(holdout, forecast, actual, digits = 3)
 
 \item{actual}{The vector of actual in-sample values.}
 
-\item{digits}{Number of digits of the output.}
+\item{digits}{Number of digits of the output. If \code{NULL}
+then \code{digits=100}.}
 }
 \value{
 The functions returns the named vector of errors:
