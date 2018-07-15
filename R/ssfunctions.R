@@ -181,7 +181,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             Etype <- substring(model,1,1);
             Ttype <- substring(model,2,2);
             Stype <- substring(model,3,3);
-            damped <- FALSE;
+            if(any(Ttype==c("Z","X","Y"))){
+                damped <- TRUE;
+            }
+            else{
+                damped <- FALSE;
+            }
         }
         else{
             message(paste0("You have defined a strange model: ",model));
@@ -250,7 +255,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             modelDo <- "select";
         }
     }
-    else if(smoothType=="ssarima"){
+    else if(any(smoothType==c("ssarima","ssarima2"))){
         ##### Orders and lags for ssarima #####
         if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
             stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
@@ -291,7 +296,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         # If zeroes are defined for some orders, drop them.
         if(any((ar.orders + i.orders + ma.orders)==0)){
             orders2leave <- (ar.orders + i.orders + ma.orders)!=0;
-            if(all(orders2leave==FALSE)){
+            if(all(!orders2leave)){
                 orders2leave <- lags==min(lags);
             }
             ar.orders <- ar.orders[orders2leave];
@@ -418,7 +423,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         # Number of components to use
         nComponents <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
         modellags <- matrix(rep(1,times=nComponents),ncol=1);
-        if(constantRequired==TRUE){
+        if(constantRequired){
             modellags <- rbind(modellags,1);
         }
         maxlag <- 1;
@@ -593,6 +598,30 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             A$number <- 2;
             B$number <- 2;
         }
+    }
+
+    #### This is a temporary thing. If the function works, we will do that properly ####
+    else if(smoothType=="ssarima2"){
+        # Number of components to use
+        degreeOfPolynom <- max(prod((ar.orders + i.orders + 1) * lags),
+                           (prod((ma.orders + 1) * lags)));
+        nComponents <- min(degreeOfPolynom, max(sum((ar.orders + i.orders) * lags),
+                                            sum((ma.orders) * lags)));
+
+        if(obsInsample < nComponents){
+            warning(paste0("In-sample size is ",obsInsample,", while number of components is ",nComponents,
+                           ". Cannot fit the model."),call.=FALSE)
+            stop("Not enough observations for such a complicated model.",call.=FALSE);
+        }
+
+        modellags <- matrix(1:degreeOfPolynom,ncol=1);
+        # Define the non-zero values
+        nonZeroParameters
+        modellags <- modellags[nonZeroParameters];
+        if(constantRequired){
+            modellags <- rbind(modellags,1);
+        }
+        maxlag <- max(modellags);
     }
 
     ##### obsStates #####
@@ -1067,7 +1096,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 
         ##### phi for ES #####
         if(!is.null(phi)){
-            if(!is.numeric(phi) & (damped==TRUE)){
+            if(!is.numeric(phi) & (damped)){
                 warning(paste0("Provided value of phi is meaningless. phi will be estimated."),call.=FALSE);
                 phi <- NULL;
                 phiEstimate <- TRUE;
@@ -1143,7 +1172,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     }
 
     if(smoothType=="ssarima"){
-        if((nComponents==0) & (constantRequired==FALSE)){
+        if((nComponents==0) & (!constantRequired)){
             if(!silentText){
                 warning("You have not defined any model! Constructing model with zero constant.",call.=FALSE);
             }
@@ -1177,12 +1206,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps==TRUE) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+    if((multisteps) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
         warning(paste0("Do you seriously think that you can use ",cfType,
                        " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
         stop("Not enough observations for multisteps cost function.",call.=FALSE);
     }
-    else if((multisteps==TRUE) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+    else if((multisteps) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
         warning(paste0("Number of observations is really low for a multisteps cost function! ",
                        "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
@@ -1292,7 +1321,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("lags",lags,ParentEnvironment);
         assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     }
-    else if(smoothType=="ssarima"){
+    else if(any(smoothType==c("ssarima","ssarima2"))){
         assign("ar.orders",ar.orders,ParentEnvironment);
         assign("i.orders",i.orders,ParentEnvironment);
         assign("ma.orders",ma.orders,ParentEnvironment);
@@ -1318,7 +1347,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
     }
 
-    if(any(smoothType==c("ges","ssarima","ces"))){
+    if(any(smoothType==c("ges","ssarima","ces","ssarima2"))){
         assign("nComponents",nComponents,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
@@ -3129,9 +3158,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat(paste0("Residuals standard deviation: ",round(sqrt(s2),3),"\n"));
     }
 
-    if(hadxreg==TRUE){
+    if(hadxreg){
         cat("Xreg coefficients were estimated");
-        if(wentwild==TRUE){
+        if(wentwild){
             cat(" in a crazy style\n");
         }
         else{
