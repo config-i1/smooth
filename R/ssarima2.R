@@ -151,50 +151,35 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @examples
 #'
-#' # ARIMA(1,1,1) fitted to some data
-#' ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-#'                              holdout=TRUE,intervals="p")
-#'
 #' # The previous one is equivalent to:
-#' \dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
+#' \dontrun{ourModel <- ssarima2(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
 #'                     holdout=TRUE,intervals="p")}
 #'
-#' # Model with the same lags and orders, applied to a different data
-#' ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
-#'
-#' # The same model applied to a different data
-#' ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
-#'
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
+#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
 #'
 #' # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
+#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
 #'         lags=c(1,4),h=18,holdout=TRUE)
-#' ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-#'         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 #'
 #' # SARIMA of a peculiar order on AirPassengers data
-#' \dontrun{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
+#' \dontrun{ssarima2(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
 #'         h=10,holdout=TRUE)}
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
-#' ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")}
-#'
-#' # SARIMA(0,1,1) with exogenous variables
-#' ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))
+#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
+#' ssarima2(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")}
 #'
 #' # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-#' \dontrun{ourModel <- ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
+#' \dontrun{ourModel <- ssarima2(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
 #'                     xreg=c(1:118),updateX=TRUE)}
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
-#' @export ssarima
-ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+#' @export ssarima2
+ssarima2 <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                     cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -317,7 +302,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput("ssarima",ParentEnvironment=environment());
+    ssInput("ssarima2",ParentEnvironment=environment());
 
 # Cost function for SSARIMA
 CF <- function(C){
@@ -332,7 +317,7 @@ CF <- function(C){
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                            bounds,
                            # The last bit is "ssarimaOld"
-                           TRUE);
+                           FALSE);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -447,8 +432,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         vecg <- matrix(0.1,nComponents,1);
         matvt <- matrix(NA,obsStates,nComponents);
         if(constantRequired){
-            matF <- cbind(rbind(matF,rep(0,nComponents)),c(1,rep(0,nComponents-1),1));
-            matw <- cbind(matw,0);
+            matF <- cbind(rbind(matF,rep(0,nComponents)),c(0,rep(0,nComponents-1),1));
+            matw <- cbind(matw,1);
             vecg <- rbind(vecg,0);
             matvt <- cbind(matvt,rep(1,obsStates));
         }
@@ -456,12 +441,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             matvt[1,1:nComponents] <- initialValue;
         }
         else{
-            if(obsInsample<(nComponents+datafreq)){
-                matvt[1:nComponents,] <- y[1:nComponents] + diff(y[1:(nComponents+1)]);
-            }
-            else{
-                matvt[1:nComponents,] <- (y[1:nComponents]+y[1:nComponents+datafreq])/2;
-            }
+            matvt[1:maxlag,] <- matrix(y[1:nComponents], maxlag, nComponents, byrow=TRUE);
         }
     }
     else{
@@ -560,7 +540,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # If this is tiny sample, use ARIMA with constant instead
     if(tinySample){
         warning("Not enough observations to fit ARIMA. Switching to ARIMA(0,0,0) with constant.",call.=FALSE);
-        return(ssarima(data,orders=list(ar=0,i=0,ma=0),lags=1,
+        return(ssarima2(data,orders=list(ar=0,i=0,ma=0),lags=1,
                        constant=TRUE,
                        initial=initial,cfType=cfType,
                        h=h,holdout=holdout,cumulative=cumulative,
@@ -652,7 +632,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                TRUE);
+                                FALSE);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -721,7 +701,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            TRUE);
+                            FALSE);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;

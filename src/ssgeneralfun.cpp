@@ -743,7 +743,8 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
              arma::mat &matrixVt, arma::vec &vecG, arma::mat &matrixF,
              char const &fitterType, int const &nexo, arma::mat &matrixAt, arma::mat &matrixFX, arma::vec &vecGX,
              bool const &arEstimate, bool const &maEstimate, bool const &constRequired, bool const &constEstimate,
-             bool const &xregEstimate, bool const &wild, bool const &fXEstimate, bool const &gXEstimate, bool const &initialXEstimate){
+             bool const &xregEstimate, bool const &wild, bool const &fXEstimate, bool const &gXEstimate, bool const &initialXEstimate,
+             bool const &arimaOld){
 
 // Form matrices with parameters, that are then used for polynomial multiplication
     arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
@@ -831,7 +832,13 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
 
 // Fill in transition matrix
     if(ariPolynomial.n_elem>1){
-        matrixF.submat(0,0,ariPolynomial.n_elem-2,0) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1);
+        if(arimaOld){
+            matrixF.submat(0,0,ariPolynomial.n_elem-2,0) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1);
+        }
+        else{
+            arma::rowvec unitVector(nComponents, arma::fill::ones);
+            matrixF.submat(0,0,ariPolynomial.n_elem-2,ariPolynomial.n_elem-2) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1) * unitVector;
+        }
     }
 
 // Fill in persistence vector
@@ -844,9 +851,17 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
             nParam += nComponents;
         }
         else if(fitterType=='b'){
-            for(unsigned int i=1; i < nComponents; i=i+1){
-                matrixVt.submat(0,i,nComponents-i-1,i) = matrixVt.submat(1,i-1,nComponents-i,i-1) -
-                                                         matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
+            if(arimaOld){
+                for(unsigned int i=1; i < nComponents; i=i+1){
+                    matrixVt.submat(0,i,nComponents-i-1,i) = matrixVt.submat(1,i-1,nComponents-i,i-1) -
+                        matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
+                }
+            }
+            else{
+                for(unsigned int i=1; i < nComponents; i=i+1){
+                    matrixVt.submat(0,i,nComponents-i-1,i) = (matrixVt.submat(0,i,nComponents-i-1,i) *
+                        matrixF.submat(i-1,0,i-1,0));
+                }
             }
         }
     }
@@ -895,7 +910,8 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
                             SEXP matvt, SEXP vecg, SEXP matF,
                             SEXP fittertype, SEXP nexovars, SEXP matat, SEXP matFX, SEXP vecgX,
                             SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst,
-                            SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX){
+                            SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX,
+                            SEXP ssarimaOld){
 
     IntegerVector ARorders_n(ARorders);
     arma::uvec arOrders = as<arma::uvec>(ARorders_n);
@@ -966,13 +982,16 @@ RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARI
     bool gXEstimate = as<bool>(estimgX);
     bool initialXEstimate = as<bool>(estiminitX);
 
+    bool arimaOld = as<bool>(ssarimaOld);
+
 
     return wrap(polysos(arOrders, maOrders, iOrders, lags, nComponents,
                         arValues, maValues, constValue, C,
                         matrixVt, vecG, matrixF,
                         fitterType, nexo, matrixAt, matrixFX, vecGX,
                         arEstimate, maEstimate, constRequired, constEstimate,
-                        xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate));
+                        xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate,
+                        arimaOld));
 }
 
 // # Fitter for univariate models
@@ -1090,15 +1109,15 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 2;
+    int nloops = 1;
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
     arma::mat matrixXtTrans = matrixXt.t();
 
     // Inverse transition matrix for backcasting
-    arma::mat matrixFInv = matrixF;
-    arma::rowvec rowvecWInv = rowvecW;
+    // arma::mat matrixFInv = matrixF;
+    // arma::rowvec rowvecWInv = rowvecW;
     // Values needed for eigenvalues calculation
     // arma::cx_vec eigval;
     //
@@ -1196,13 +1215,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecWInv, E, T, S,
+            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i+1));
             vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
-            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixFInv, T, S) +
-                              gvalue(matrixVt(lagrows), matrixFInv, rowvecWInv, E, T, S) % vecG * vecErrors(i-maxlag);
+            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
+                              gvalue(matrixVt(lagrows), matrixF, rowvecW, E, T, S) % vecG * vecErrors(i-maxlag);
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
             if(!matrixVt.col(i).is_finite()){
@@ -1227,7 +1246,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 /* # Fill in the head of the matrices */
         for (int i=maxlag-1; i>=0; i=i-1) {
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
-            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixFInv, T, S);
+            matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
             matrixAt.col(i) = matrixFX * matrixAt.col(i+1);
         }
     }
@@ -1987,7 +2006,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
                               SEXP nexovars, SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
                               SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst,
                               SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX,
-                              SEXP bounds) {
+                              SEXP bounds, SEXP ssarimaOld) {
 
     IntegerVector ARorders_n(ARorders);
     arma::uvec arOrders = as<arma::uvec>(ARorders_n);
@@ -2058,13 +2077,16 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
     bool gXEstimate = as<bool>(estimgX);
     bool initialXEstimate = as<bool>(estiminitX);
 
+    bool arimaOld = as<bool>(ssarimaOld);
+
 // Initialise ARIMA
     List polynomials = polysos(arOrders, maOrders, iOrders, lagsARIMA, nComponents,
                                arValues, maValues, constValue, C,
                                matrixVt, vecG, matrixF,
                                fitterType, nexo, matrixAt, matrixFX, vecGX,
                                arEstimate, maEstimate, constRequired, constEstimate,
-                               xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate);
+                               xregEstimate, wild, fXEstimate, gXEstimate, initialXEstimate,
+                               arimaOld);
 
     matvt_n = as<NumericMatrix>(polynomials["matvt"]);
     matrixVt = as<arma::mat>(matvt_n);
@@ -2131,8 +2153,16 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
             NumericMatrix arPolynom = as<NumericMatrix>(polynomials["arPolynomial"]);
             arma::mat arPolynomial = as<arma::mat>(arPolynom);
 
-            arma::mat arMatrixF = matrixF.submat(0,0,arPolynomial.n_elem-2,arPolynomial.n_elem-2);
-            arMatrixF.submat(0,0,arMatrixF.n_rows-1,0) = arPolynomial.rows(1,arPolynomial.n_elem-1);
+            int FnRows = arPolynomial.n_elem-2;
+            arma::mat arMatrixF = matrixF.submat(0,0,FnRows,FnRows);
+            if(arimaOld){
+                arMatrixF.submat(0,0,FnRows,0) = arPolynomial.rows(1,FnRows+1);
+            }
+            else{
+                // Not sure that this is needed - the two models should give the same solution
+                arma::rowvec unitVector(FnRows+1, arma::fill::ones);
+                arMatrixF.submat(0,0,FnRows,FnRows) = arPolynomial.rows(1,FnRows+1) * unitVector;
+            }
 
             if(arma::eig_gen(eigval, arMatrixF)){
                 if(max(abs(eigval))> 1){

@@ -156,7 +156,9 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     matvt, vecg, matF,
                                     "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
                                     FALSE, FALSE, FALSE, FALSE,
-                                    FALSE, FALSE, FALSE, FALSE, FALSE);
+                                    FALSE, FALSE, FALSE, FALSE, FALSE,
+                                    # This is still old ssarima
+                                    TRUE);
 
             if(bounds=="a" & (componentsNumber > 0)){
                 ARRoots <- abs(polyroot(elements$arPolynomial));
@@ -177,7 +179,9 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     matvt, vecg, matF,
                                     "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
                                     FALSE, FALSE, FALSE, FALSE,
-                                    FALSE, FALSE, FALSE, FALSE, FALSE);
+                                    FALSE, FALSE, FALSE, FALSE, FALSE,
+                                    # This is still old ssarima
+                                    TRUE);
 
             if(bounds=="a" & (componentsNumber > 0)){
                 MARoots <- abs(polyroot(elements$maPolynomial));
@@ -535,7 +539,9 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                 matrix(arrvt[,,i],obsStates), matrix(matg[,i],ncol=1), matF,
                                 "b", 0, matrix(1,obsStates,1), matrix(1,1,1), matrix(0,1,1),
                                 FALSE, FALSE, constantRequired, FALSE,
-                                FALSE, FALSE, FALSE, FALSE, FALSE);
+                                FALSE, FALSE, FALSE, FALSE, FALSE,
+                                # This is still old ssarima
+                                TRUE);
 
         arrF[,,i] <- elements$matF;
         matg[,i] <- elements$vecg;

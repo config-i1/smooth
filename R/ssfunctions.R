@@ -616,7 +616,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 
         modellags <- matrix(1:degreeOfPolynom,ncol=1);
         # Define the non-zero values
-        nonZeroParameters
+        #### !This needs to be treated correctly! ####
+        nonZeroParameters <- 1:length(modellags);
+
         modellags <- modellags[nonZeroParameters];
         if(constantRequired){
             modellags <- rbind(modellags,1);
