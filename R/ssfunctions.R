@@ -602,11 +602,46 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 
     #### This is a temporary thing. If the function works, we will do that properly ####
     else if(smoothType=="ssarima2"){
-        # Number of components to use
-        degreeOfPolynom <- max(prod((ar.orders + i.orders + 1) * lags),
-                           (prod((ma.orders + 1) * lags)));
-        nComponents <- min(degreeOfPolynom, max(sum((ar.orders + i.orders) * lags),
-                                            sum((ma.orders) * lags)));
+        # Define the non-zero values. This is done via the calculation of orders of polynomials
+        ariValues <- list(NA);
+        maValues <- list(NA);
+        for(i in 1:length(lags)){
+            ariValues[[i]] <- c(0,min(1,ar.orders[i]):ar.orders[i])
+            if(i.orders[i]!=0){
+                ariValues[[i]] <- c(ariValues[[i]],1:i.orders[i]+ar.orders[i]);
+            }
+            ariValues[[i]] <- unique(ariValues[[i]] * lags[i]);
+            maValues[[i]] <- unique(c(0,min(1,ma.orders[i]):ma.orders[i]) * lags[i]);
+        }
+
+        # Produce ARI polynomials
+        ariLengths <- unlist(lapply(ariValues,length));
+        ariPolynomial <- array(0,ariLengths);
+        for(i in 1:length(ariValues)){
+            if(i==1){
+                ariPolynomial <- ariPolynomial + array(ariValues[[i]], ariLengths);
+            }
+            else{
+                ariPolynomial <- ariPolynomial + array(rep(ariValues[[i]],each=prod(ariLengths[1:(i-1)])), ariLengths);
+            }
+        }
+
+        # Produce MA polynomials
+        maLengths <- unlist(lapply(maValues,length));
+        maPolynomial <- array(0,maLengths);
+        for(i in 1:length(maValues)){
+            if(i==1){
+                maPolynomial <- maPolynomial + array(maValues[[i]], maLengths);
+            }
+            else{
+                maPolynomial <- maPolynomial + array(rep(maValues[[i]],each=prod(maLengths[1:(i-1)])), maLengths);
+            }
+        }
+
+        # Extract the necessary parameters
+        nonZeroComponents <- sort(unique(c(c(ariPolynomial)[-1],c(maPolynomial)[-1])));
+        degreeOfPolynom <- max(nonZeroComponents);
+        nComponents <- length(nonZeroComponents);
 
         if(obsInsample < nComponents){
             warning(paste0("In-sample size is ",obsInsample,", while number of components is ",nComponents,
@@ -614,12 +649,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             stop("Not enough observations for such a complicated model.",call.=FALSE);
         }
 
-        modellags <- matrix(1:degreeOfPolynom,ncol=1);
-        # Define the non-zero values
-        #### !This needs to be treated correctly! ####
-        nonZeroParameters <- 1:length(modellags);
+        modellags <- matrix(nonZeroComponents,ncol=1);
 
-        modellags <- modellags[nonZeroParameters];
         if(constantRequired){
             modellags <- rbind(modellags,1);
         }
