@@ -17,8 +17,8 @@ etsmatrices <- function(matvt, vecg, phi, Cvalues, ncomponentsR, modellags, fitt
     .Call('_smooth_etsmatrices', PACKAGE = 'smooth', matvt, vecg, phi, Cvalues, ncomponentsR, modellags, fittertype, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild, estimFX, estimgX, estiminitX)
 }
 
-polysoswrap <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld) {
-    .Call('_smooth_polysoswrap', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld)
+polysoswrap <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld, modellags) {
+    .Call('_smooth_polysoswrap', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld, modellags)
 }
 
 fitterwrap <- function(matvt, matF, matw, yt, vecg, modellags, Etype, Ttype, Stype, fittertype, matxt, matat, matFX, vecgX, ot) {

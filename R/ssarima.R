@@ -652,7 +652,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                TRUE);
+                                TRUE, modellags);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -721,7 +721,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            TRUE);
+                            TRUE, modellags);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;
