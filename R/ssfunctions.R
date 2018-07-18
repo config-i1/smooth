@@ -639,6 +639,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         }
 
         # Extract the necessary parameters
+        ### Add this stuff to the CFArima
+        nonZeroARI <- c(ariPolynomial)[-1];
+        nonZeroMA <- c(maPolynomial)[-1];
         nonZeroComponents <- sort(unique(c(c(ariPolynomial)[-1],c(maPolynomial)[-1])));
         degreeOfPolynom <- max(nonZeroComponents);
         nComponents <- length(nonZeroComponents);

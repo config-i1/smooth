@@ -427,7 +427,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 ##### Preset values of matvt and other matrices ######
     if(nComponents > 0){
         # Transition matrix, measurement vector and persistence vector + state vector
-        matF <- rbind(cbind(rep(0,nComponents-1),diag(nComponents-1)),rep(0,nComponents));
+        matF <- diag(nComponents);
         matw <- matrix(c(1,rep(0,nComponents-1)),1,nComponents);
         vecg <- matrix(0.1,nComponents,1);
         matvt <- matrix(NA,obsStates,nComponents);
@@ -632,7 +632,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                FALSE);
+                                FALSE, modellags);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -701,7 +701,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            FALSE);
+                            FALSE, modellags);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;

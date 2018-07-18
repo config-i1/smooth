@@ -84,8 +84,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // polysoswrap
-RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp, SEXP AR, SEXP MA, SEXP constant, SEXP Cvalues, SEXP matvt, SEXP vecg, SEXP matF, SEXP fittertype, SEXP nexovars, SEXP matat, SEXP matFX, SEXP vecgX, SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst, SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX, SEXP ssarimaOld);
-RcppExport SEXP _smooth_polysoswrap(SEXP ARordersSEXP, SEXP MAordersSEXP, SEXP IordersSEXP, SEXP ARIMAlagsSEXP, SEXP nCompSEXP, SEXP ARSEXP, SEXP MASEXP, SEXP constantSEXP, SEXP CvaluesSEXP, SEXP matvtSEXP, SEXP vecgSEXP, SEXP matFSEXP, SEXP fittertypeSEXP, SEXP nexovarsSEXP, SEXP matatSEXP, SEXP matFXSEXP, SEXP vecgXSEXP, SEXP estimARSEXP, SEXP estimMASEXP, SEXP requireConstSEXP, SEXP estimConstSEXP, SEXP estimxregSEXP, SEXP gowildSEXP, SEXP estimFXSEXP, SEXP estimgXSEXP, SEXP estiminitXSEXP, SEXP ssarimaOldSEXP) {
+RcppExport SEXP polysoswrap(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP ARIMAlags, SEXP nComp, SEXP AR, SEXP MA, SEXP constant, SEXP Cvalues, SEXP matvt, SEXP vecg, SEXP matF, SEXP fittertype, SEXP nexovars, SEXP matat, SEXP matFX, SEXP vecgX, SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst, SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX, SEXP ssarimaOld, SEXP modellags);
+RcppExport SEXP _smooth_polysoswrap(SEXP ARordersSEXP, SEXP MAordersSEXP, SEXP IordersSEXP, SEXP ARIMAlagsSEXP, SEXP nCompSEXP, SEXP ARSEXP, SEXP MASEXP, SEXP constantSEXP, SEXP CvaluesSEXP, SEXP matvtSEXP, SEXP vecgSEXP, SEXP matFSEXP, SEXP fittertypeSEXP, SEXP nexovarsSEXP, SEXP matatSEXP, SEXP matFXSEXP, SEXP vecgXSEXP, SEXP estimARSEXP, SEXP estimMASEXP, SEXP requireConstSEXP, SEXP estimConstSEXP, SEXP estimxregSEXP, SEXP gowildSEXP, SEXP estimFXSEXP, SEXP estimgXSEXP, SEXP estiminitXSEXP, SEXP ssarimaOldSEXP, SEXP modellagsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -116,7 +116,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type estimgX(estimgXSEXP);
     Rcpp::traits::input_parameter< SEXP >::type estiminitX(estiminitXSEXP);
     Rcpp::traits::input_parameter< SEXP >::type ssarimaOld(ssarimaOldSEXP);
-    rcpp_result_gen = Rcpp::wrap(polysoswrap(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld));
+    Rcpp::traits::input_parameter< SEXP >::type modellags(modellagsSEXP);
+    rcpp_result_gen = Rcpp::wrap(polysoswrap(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, vecg, matF, fittertype, nexovars, matat, matFX, vecgX, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, ssarimaOld, modellags));
     return rcpp_result_gen;
 END_RCPP
 }
