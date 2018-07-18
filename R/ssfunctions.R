@@ -3243,20 +3243,20 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         cat("Forecast errors:\n");
         if(any(intermittent==c("none","n"))){
-            cat(paste(paste0("MPE: ",errormeasures["MPE"]*100,"%"),
-                      paste0("sCE: ",errormeasures["sCE"]*100,"%"),
-                      paste0("Bias: ",errormeasures["cbias"]*100,"%"),
-                      paste0("MAPE: ",errormeasures["MAPE"]*100,"%\n"),sep="; "));
-            cat(paste(paste0("MASE: ",errormeasures["MASE"]),
-                      paste0("sMAE: ",errormeasures["sMAE"]*100,"%"),
-                      paste0("RelMAE: ",errormeasures["RelMAE"]),
-                      paste0("sMSE: ",errormeasures["sMSE"]*100,"%\n"),sep="; "));
+            cat(paste(paste0("MPE: ",round(errormeasures["MPE"],3)*100,"%"),
+                      paste0("sCE: ",round(errormeasures["sCE"],3)*100,"%"),
+                      paste0("Bias: ",round(errormeasures["cbias"],3)*100,"%"),
+                      paste0("MAPE: ",round(errormeasures["MAPE"],3)*100,"%\n"),sep="; "));
+            cat(paste(paste0("MASE: ",round(errormeasures["MASE"],3)),
+                      paste0("sMAE: ",round(errormeasures["sMAE"],3)*100,"%"),
+                      paste0("RelMAE: ",round(errormeasures["RelMAE"],3)),
+                      paste0("sMSE: ",round(errormeasures["sMSE"],3)*100,"%\n"),sep="; "));
         }
         else{
-            cat(paste(paste0("Bias: ",errormeasures["cbias"]*100,"%"),
-                      paste0("sMSE: ",errormeasures["sMSE"]*100,"%"),
-                      paste0("sPIS: ",errormeasures["sPIS"]*100,"%"),
-                      paste0("sCE: ",errormeasures["sCE"]*100,"%\n"),sep="; "));
+            cat(paste(paste0("Bias: ",round(errormeasures["cbias"],3)*100,"%"),
+                      paste0("sMSE: ",round(errormeasures["sMSE"],3)*100,"%"),
+                      paste0("sPIS: ",round(errormeasures["sPIS"],3)*100,"%"),
+                      paste0("sCE: ",round(errormeasures["sCE"],3)*100,"%\n"),sep="; "));
         }
     }
 }
