@@ -662,8 +662,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         polysos.ar <- elements$arPolynomial;
         polysos.ma <- elements$maPolynomial;
         # Need to remove polyroot() here as well and find a better substitution
-        arRoots <- abs(polyroot(polysos.ar));
-        maRoots <- abs(polyroot(polysos.ma));
+        # arRoots <- abs(polyroot(polysos.ar));
+        # maRoots <- abs(polyroot(polysos.ma));
 
         ssFitter(ParentEnvironment=environment());
 
@@ -731,8 +731,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
     # Need to remove polyroot() here as well and find a better substitution
-    arRoots <- polyroot(polysos.ar);
-    maRoots <- polyroot(polysos.ma);
+    # arRoots <- polyroot(polysos.ar);
+    # maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
     # Write down Fisher Information if needed

@@ -396,10 +396,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # initial values of state vector and the constant term
         if(nComponents>0 & initialType=="p"){
-            matvt[1,1:nComponents] <- initialValue;
+            matvt[1:maxlag,1:nComponents] <- initialValue;
         }
         if(constantRequired){
-            matvt[1,(nComponents+1)] <- constantValue;
+            matvt[1:maxlag,(nComponents+1)] <- constantValue;
         }
 
         cfObjective <- CF(C);
@@ -436,7 +436,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             matvt <- cbind(matvt,rep(1,obsStates));
         }
         if(initialType=="p"){
-            matvt[1,1:nComponents] <- initialValue;
+            matvt[1:maxlag,1:nComponents] <- initialValue;
         }
         else{
             for(i in 1:nComponents){
@@ -642,8 +642,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         polysos.ar <- elements$arPolynomial;
         polysos.ma <- elements$maPolynomial;
         # Need to remove polyroot() here as well and find a better substitution
-        arRoots <- abs(polyroot(polysos.ar));
-        maRoots <- abs(polyroot(polysos.ma));
+        # arRoots <- abs(polyroot(polysos.ar));
+        # maRoots <- abs(polyroot(polysos.ma));
 
         ssFitter(ParentEnvironment=environment());
 
@@ -711,8 +711,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
     # Need to remove polyroot() here as well and find a better substitution
-    arRoots <- polyroot(polysos.ar);
-    maRoots <- polyroot(polysos.ma);
+    # arRoots <- polyroot(polysos.ar);
+    # maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
     # Write down Fisher Information if needed

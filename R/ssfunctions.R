@@ -1055,6 +1055,20 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
                     parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
                 }
             }
+            else if(smoothType=="msarima"){
+                if(length(initialValue) != nComponents*maxlag){
+                    warning(paste0("Wrong length of initial vector. Should be ",nComponents,
+                                   " instead of ",length(initial),".\n",
+                                   "Values of initial vector will be estimated."),call.=FALSE);
+                    initialValue <- NULL;
+                    initialType <- "o";
+                }
+                else{
+                    initialType <- "p";
+                    initialValue <- initial;
+                    parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
+                }
+            }
             else if(smoothType=="ces"){
                 if(length(initialValue) != maxlag*nComponents){
                     warning(paste0("Wrong length of initial vector. Should be ",maxlag*nComponents,
