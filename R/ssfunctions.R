@@ -1397,7 +1397,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 }
 
 ##### *Checker for auto. functions* #####
-ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima"),...){
+ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima","auto.msarima"),...){
     # This is universal function needed in order to check the passed arguments to auto.ces(), auto.ges() and auto.ssarima()
 
     ellipsis <- list(...);
@@ -2131,7 +2131,6 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
 #### Parametric intervals ####
         else if(intervalsType=="p"){
-            nComponents <- nrow(transition);
             h <- length(y.for);
 
             # Vector of final variances

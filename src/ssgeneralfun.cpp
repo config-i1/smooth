@@ -843,6 +843,7 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
         else{
             // This thing does not take into account the possibility of q > p
             arma::rowvec unitVector(matrixF.n_cols, arma::fill::ones);
+            unitVector(unitVector.n_elem-1) = 0;
             matrixF.rows(ARILags.col(1)) = -ariPolynomial(ARILags.col(0)) * unitVector;
         }
     }

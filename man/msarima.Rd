@@ -2,7 +2,7 @@
 % Please edit documentation in R/msarima.R
 \name{msarima}
 \alias{msarima}
-\title{State Space ARIMA}
+\title{Multiple Seasonal ARIMA}
 \usage{
 msarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
@@ -239,8 +239,8 @@ cumulative error) and Bias coefficient. This is available only when
 }
 }
 \description{
-Function constructs State Space ARIMA, estimating AR, MA terms and initial
-states.
+Function constructs Multiple Seasonal State Space ARIMA, estimating AR, MA
+terms and initial states.
 }
 \details{
 The basic ARIMA(p,d,q) used in the function has the following form:
@@ -268,12 +268,15 @@ vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
 \eqn{F} is the \code{transition} matrix, \eqn{g} is the \code{persistence}
 vector, \eqn{a_t} is the vector of parameters for exogenous variables,
 \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
-\code{persistenceX} matrix.
+\code{persistenceX} matrix. The main difference from \link[smooth]{ssarima}
+function is that this model skips zero polynomials, substantially decreasing
+the dimension of the transition matrix. As a result, this function works
+faster than \link[smooth]{ssarima}, and it is more accurate.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For
 example, something crazy like this can be constructed:
 SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-take some finite time...
+take some time...
 }
 \examples{
 
@@ -321,8 +324,8 @@ Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
 }
 }
 \seealso{
-\code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
-\link[smooth]{lags}, \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
+\code{\link[smooth]{auto.msarima}, \link[smooth]{orders},
+\link[smooth]{lags}, \link[smooth]{ssarima}, \link[forecast]{auto.arima}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

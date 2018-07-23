@@ -6,6 +6,7 @@ Changes:
 * graphmaker() function is now more flexible, allowing to tune parameter of plot.
 * Centered Moving Average function is now available. This is not a model, but just a transfer function of SMA.
 * New function - msarima() - Multiple Seasonal ARIMA. This is a reimplementation of ssarima() function, that relies on a different state-space model and works substantially faster.
+* New function - auto.msarima() - for the order selection of msarima.
 
 Bugfixes
 * Fixed a bug for logistic intemittent model, when the probability of occurrence was becoming 0 or 1.

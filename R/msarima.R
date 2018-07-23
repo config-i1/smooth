@@ -2,10 +2,10 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
                          "yForecastStart","nonZeroARI","nonZeroMA"));
 
-#' State Space ARIMA
+#' Multiple Seasonal ARIMA
 #'
-#' Function constructs State Space ARIMA, estimating AR, MA terms and initial
-#' states.
+#' Function constructs Multiple Seasonal State Space ARIMA, estimating AR, MA
+#' terms and initial states.
 #'
 #' The basic ARIMA(p,d,q) used in the function has the following form:
 #'
@@ -32,12 +32,15 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \eqn{F} is the \code{transition} matrix, \eqn{g} is the \code{persistence}
 #' vector, \eqn{a_t} is the vector of parameters for exogenous variables,
 #' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
-#' \code{persistenceX} matrix.
+#' \code{persistenceX} matrix. The main difference from \link[smooth]{ssarima}
+#' function is that this model skips zero polynomials, substantially decreasing
+#' the dimension of the transition matrix. As a result, this function works
+#' faster than \link[smooth]{ssarima}, and it is more accurate.
 #'
 #' Due to the flexibility of the model, multiple seasonalities can be used. For
 #' example, something crazy like this can be constructed:
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take some finite time...
+#' take some time...
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -146,8 +149,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \code{holdout=TRUE}.
 #' }
 #'
-#' @seealso \code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
-#' \link[smooth]{lags}, \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
+#' @seealso \code{\link[smooth]{auto.msarima}, \link[smooth]{orders},
+#' \link[smooth]{lags}, \link[smooth]{ssarima}, \link[forecast]{auto.arima}}
 #'
 #' @examples
 #'
