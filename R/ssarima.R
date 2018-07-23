@@ -1,6 +1,6 @@
 utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
-                         "yForecastStart"));
+                         "yForecastStart","nonZeroARI","nonZeroMA"));
 
 #' State Space ARIMA
 #'
@@ -332,7 +332,7 @@ CF <- function(C){
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                            bounds,
                            # The last bit is "ssarimaOld"
-                           TRUE);
+                           TRUE, nonZeroARI, nonZeroMA);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -652,7 +652,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                TRUE, modellags);
+                                TRUE, modellags, nonZeroARI, nonZeroMA);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -721,7 +721,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            TRUE, modellags);
+                            TRUE, modellags, nonZeroARI, nonZeroMA);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;

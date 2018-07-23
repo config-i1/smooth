@@ -294,7 +294,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         transition <- object$transition;
         measurement <- object$measurement;
 
-        covarMat <- covarAnal(lagsModel, h, nComponents, measurement, transition, persistence, s2);
+        covarMat <- covarAnal(lagsModel, h, measurement, transition, persistence, s2);
 
     }
     return(covarMat);
@@ -481,9 +481,15 @@ pls.smooth <- function(object, holdout=NULL, ...){
             plsValue <- sum(ds(errors, 0, b, log=TRUE));
         }
         else{
-        # Here and later in the code the abs() is needed for weird cases of wrong covarMat
-            plsValue <- -as.vector(log(2*pi*abs(det(covarMat)))/2 +
-                                       (t(errors) %*% solve(covarMat) %*% errors) / 2);
+            if(is.infinite(det(covarMat))){
+                plsValue <- -as.vector((log(2*pi)+(abs(determinant(covarMat)$modulus)))/2 +
+                                           (t(errors) %*% solve(covarMat) %*% errors) / 2);
+            }
+            else{
+                # Here and later in the code the abs() is needed for weird cases of wrong covarMat
+                plsValue <- -as.vector(log(2*pi*abs(det(covarMat)))/2 +
+                                           (t(errors) %*% solve(covarMat) %*% errors) / 2);
+            }
         }
         return(plsValue);
     }
@@ -991,26 +997,31 @@ errorType.iss <- function(object, ...){
 ##### Function returns the modellags from the model - internal function #####
 modelLags.default <- function(object, ...){
     modelLags <- NA;
-    if(gregexpr("ETS",object$model)!=-1){
-        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+    if(any(class(object)=="msarima")){
+        modelLags <- object$modelLags;
     }
-    else if(gregexpr("GES",object$model)!=-1){
-        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
-    }
-    else if(gregexpr("ARIMA",object$model)!=-1){
-        ordersARIMA <- orders(object);
-        nComponents <- max(ordersARIMA$ar %*% lags(object) + ordersARIMA$i %*% lags(object),
-                           ordersARIMA$ma %*% lags(object));
-        modelLags <- matrix(rep(1,times=nComponents),ncol=1);
-        if(is.numeric(object$constant)){
-            modelLags <- rbind(modellags,1);
+    else{
+        if(gregexpr("ETS",object$model)!=-1){
+            modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
-    }
-    else if(gregexpr("CES",object$model)!=-1){
-        modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
-    }
-    else if(gregexpr("SMA",object$model)!=-1){
-        modelLags <- matrix(rep(1,times=orders(object)),ncol=1);
+        else if(gregexpr("GES",object$model)!=-1){
+            modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+        }
+        else if(gregexpr("ARIMA",object$model)!=-1){
+            ordersARIMA <- orders(object);
+            nComponents <- max(ordersARIMA$ar %*% lags(object) + ordersARIMA$i %*% lags(object),
+                               ordersARIMA$ma %*% lags(object));
+            modelLags <- matrix(rep(1,times=nComponents),ncol=1);
+            if(is.numeric(object$constant)){
+                modelLags <- rbind(modelLags,1);
+            }
+        }
+        else if(gregexpr("CES",object$model)!=-1){
+            modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
+        }
+        else if(gregexpr("SMA",object$model)!=-1){
+            modelLags <- matrix(rep(1,times=orders(object)),ncol=1);
+        }
     }
     return(modelLags);
 }

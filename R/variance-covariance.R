@@ -1,4 +1,4 @@
-covarAnal <- function(lagsModel, h, nComponents, measurement, transition, persistence, s2){
+covarAnal <- function(lagsModel, h, measurement, transition, persistence, s2){
     # Function returns analytical conditional h-steps ahead covariance matrix
     # This is used in covar() method and in the construction of parametric prediction intervals
     covarMat <- diag(h);

@@ -158,7 +158,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     FALSE, FALSE, FALSE, FALSE,
                                     FALSE, FALSE, FALSE, FALSE, FALSE,
                                     # This is still old ssarima
-                                    TRUE, modellags);
+                                    TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
 
             if(bounds=="a" & (componentsNumber > 0)){
                 ARRoots <- abs(polyroot(elements$arPolynomial));
@@ -181,7 +181,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     FALSE, FALSE, FALSE, FALSE,
                                     FALSE, FALSE, FALSE, FALSE, FALSE,
                                     # This is still old ssarima
-                                    TRUE, modellags);
+                                    TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
 
             if(bounds=="a" & (componentsNumber > 0)){
                 MARoots <- abs(polyroot(elements$maPolynomial));
@@ -541,7 +541,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                 FALSE, FALSE, constantRequired, FALSE,
                                 FALSE, FALSE, FALSE, FALSE, FALSE,
                                 # This is still old ssarima
-                                TRUE, modellags);
+                                TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
 
         arrF[,,i] <- elements$matF;
         matg[,i] <- elements$vecg;

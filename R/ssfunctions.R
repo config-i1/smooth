@@ -255,7 +255,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             modelDo <- "select";
         }
     }
-    else if(any(smoothType==c("ssarima","ssarima2"))){
+    else if(any(smoothType==c("ssarima","msarima"))){
         ##### Orders and lags for ssarima #####
         if(any(is.complex(c(ar.orders,i.orders,ma.orders,lags)))){
             stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
@@ -422,7 +422,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 
         # Number of components to use
         nComponents <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
-        modellags <- matrix(rep(1,times=nComponents),ncol=1);
+        nonZeroARI <- matrix(1,ncol=2);
+        nonZeroMA <- matrix(1,ncol=2);
+        modellags <- matrix(rep(1,nComponents),ncol=1);
         if(constantRequired){
             modellags <- rbind(modellags,1);
         }
@@ -601,7 +603,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     }
 
     #### This is a temporary thing. If the function works, we will do that properly ####
-    else if(smoothType=="ssarima2"){
+    else if(smoothType=="msarima"){
         # Define the non-zero values. This is done via the calculation of orders of polynomials
         ariValues <- list(NA);
         maValues <- list(NA);
@@ -638,12 +640,14 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             }
         }
 
-        # Extract the necessary parameters
-        ### Add this stuff to the CFArima
-        nonZeroARI <- c(ariPolynomial)[-1];
-        nonZeroMA <- c(maPolynomial)[-1];
-        nonZeroComponents <- sort(unique(c(c(ariPolynomial)[-1],c(maPolynomial)[-1])));
-        degreeOfPolynom <- max(nonZeroComponents);
+        # What are the non-zero ARI and MA polynomials?
+        ### What are their positions in transition matrix?
+        nonZeroARI <- matrix(c(ariPolynomial)[-1],ncol=1);
+        nonZeroMA <- matrix(c(maPolynomial)[-1],ncol=1);
+        nonZeroComponents <- sort(unique(c(nonZeroARI,nonZeroMA)));
+        nonZeroARI <- cbind(nonZeroARI,which(nonZeroComponents %in% nonZeroARI)-1);
+        nonZeroMA <- cbind(nonZeroMA,which(nonZeroComponents %in% nonZeroMA)-1);
+
         nComponents <- length(nonZeroComponents);
 
         if(obsInsample < nComponents){
@@ -1357,7 +1361,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("lags",lags,ParentEnvironment);
         assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     }
-    else if(any(smoothType==c("ssarima","ssarima2"))){
+    else if(any(smoothType==c("ssarima","msarima"))){
         assign("ar.orders",ar.orders,ParentEnvironment);
         assign("i.orders",i.orders,ParentEnvironment);
         assign("ma.orders",ma.orders,ParentEnvironment);
@@ -1371,6 +1375,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("constantValue",constantValue,ParentEnvironment);
         assign("constantEstimate",constantEstimate,ParentEnvironment);
         assign("constantRequired",constantRequired,ParentEnvironment);
+        assign("nonZeroARI",nonZeroARI,ParentEnvironment);
+        assign("nonZeroMA",nonZeroMA,ParentEnvironment);
     }
     else if(smoothType=="ces"){
         assign("seasonality",seasonality,ParentEnvironment);
@@ -1383,7 +1389,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
     }
 
-    if(any(smoothType==c("ges","ssarima","ces","ssarima2"))){
+    if(any(smoothType==c("ges","ssarima","ces","msarima"))){
         assign("nComponents",nComponents,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
@@ -2134,8 +2140,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 #### Pure Multiplicative models ####
             if(Etype=="M"){
                 # This is just an approximation of the true intervals
-                covarMat <- covarAnal(modellags, h, nComponents,
-                                      measurement, transition, persistence, s2);
+                covarMat <- covarAnal(modellags, h, measurement, transition, persistence, s2);
 
                 ### Cumulative variance is different.
                 if(cumulative){
@@ -2204,8 +2209,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             # }
 #### Pure Additive models ####
             else{
-                covarMat <- covarAnal(modellags, h, nComponents,
-                                      measurement, transition, persistence, s2);
+                covarMat <- covarAnal(modellags, h, measurement, transition, persistence, s2);
 
                 ### Cumulative variance is a sum of all the elements of the matrix
                 if(cumulative){

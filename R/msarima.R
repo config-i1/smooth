@@ -1,6 +1,6 @@
 utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
-                         "yForecastStart"));
+                         "yForecastStart","nonZeroARI","nonZeroMA"));
 
 #' State Space ARIMA
 #'
@@ -152,34 +152,30 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' @examples
 #'
 #' # The previous one is equivalent to:
-#' \dontrun{ourModel <- ssarima2(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
-#'                     holdout=TRUE,intervals="p")}
+#' ourModel <- msarima(rnorm(118,100,3),orders=c(1,1,1),lags=1,h=18,holdout=TRUE,intervals="p")
 #'
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
-#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
-#'
-#' # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
-#'         lags=c(1,4),h=18,holdout=TRUE)
+#' msarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)
 #'
 #' # SARIMA of a peculiar order on AirPassengers data
-#' \dontrun{ssarima2(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
-#'         h=10,holdout=TRUE)}
+#' msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
+#'         h=10,holdout=TRUE)
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' \dontrun{ssarima2(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
-#' ssarima2(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")}
+#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
+#'
+#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")
 #'
 #' # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-#' \dontrun{ourModel <- ssarima2(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
-#'                     xreg=c(1:118),updateX=TRUE)}
+#' ourModel <- msarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
+#'                     xreg=c(1:118),updateX=TRUE)
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
-#' @export ssarima2
-ssarima2 <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+#' @export msarima
+msarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                     cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -302,11 +298,10 @@ ssarima2 <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
-    ssInput("ssarima2",ParentEnvironment=environment());
+    ssInput("msarima",ParentEnvironment=environment());
 
 # Cost function for SSARIMA
 CF <- function(C){
-
     cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
                            ARValue, MAValue, constantValue, C,
                            matvt, matF, matw, y, vecg,
@@ -317,7 +312,7 @@ CF <- function(C){
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                            bounds,
                            # The last bit is "ssarimaOld"
-                           FALSE);
+                           FALSE, nonZeroARI, nonZeroMA);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -427,9 +422,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 ##### Preset values of matvt and other matrices ######
     if(nComponents > 0){
         # Transition matrix, measurement vector and persistence vector + state vector
-        matF <- diag(nComponents);
-        matw <- matrix(c(1,rep(0,nComponents-1)),1,nComponents);
-        vecg <- matrix(0.1,nComponents,1);
+        matF <- matrix(0,nComponents,nComponents);
+        matw <- matrix(1,1,nComponents);
+        vecg <- matrix(0,nComponents,1);
         matvt <- matrix(NA,obsStates,nComponents);
         if(constantRequired){
             matF <- cbind(rbind(matF,rep(0,nComponents)),c(0,rep(0,nComponents-1),1));
@@ -441,7 +436,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             matvt[1,1:nComponents] <- initialValue;
         }
         else{
-            matvt[1:maxlag,] <- matrix(y[1:nComponents], maxlag, nComponents, byrow=TRUE);
+            for(i in 1:nComponents){
+                matvt[1:maxlag,i] <- rep(y[1:modellags[i]],ceiling(maxlag/modellags[i]))[1:maxlag];
+            }
         }
     }
     else{
@@ -540,7 +537,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # If this is tiny sample, use ARIMA with constant instead
     if(tinySample){
         warning("Not enough observations to fit ARIMA. Switching to ARIMA(0,0,0) with constant.",call.=FALSE);
-        return(ssarima2(data,orders=list(ar=0,i=0,ma=0),lags=1,
+        return(msarima(data,orders=list(ar=0,i=0,ma=0),lags=1,
                        constant=TRUE,
                        initial=initial,cfType=cfType,
                        h=h,holdout=holdout,cumulative=cumulative,
@@ -632,7 +629,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                FALSE, modellags);
+                                FALSE, modellags, nonZeroARI, nonZeroMA);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -701,7 +698,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            FALSE, modellags);
+                            FALSE, modellags, nonZeroARI, nonZeroMA);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;
@@ -730,10 +727,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
         if(constantRequired==TRUE){
-            initialValue <- matvt[1,-ncol(matvt)];
+            initialValue <- matvt[1:maxlag,-ncol(matvt)];
         }
         else{
-            initialValue <- matvt[1,];
+            initialValue <- matvt[1:maxlag,];
         }
         if(initialType!="b"){
             parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
@@ -957,11 +954,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   measurement=matw,
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
                   initialType=initialType,initial=initialValue,
-                  nParam=parametersNumber,
+                  nParam=parametersNumber, modelLags=modellags,
                   fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
                   actuals=data,holdout=y.holdout,imodel=imodel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
-    return(structure(model,class="smooth"));
+    return(structure(model,class=c("smooth","msarima")));
 }
