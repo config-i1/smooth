@@ -4,7 +4,7 @@ covarAnal <- function(lagsModel, h, measurement, transition, persistence, s2){
     covarMat <- diag(h);
     if(h > min(lagsModel)){
             lagsUnique <- unique(lagsModel);
-            steps <- lagsUnique[lagsUnique<=h];
+            steps <- sort(lagsUnique[lagsUnique<=h]);
             stepsNumber <- length(steps);
             nComponents <- nrow(transition);
             arrayTransition <- array(0,c(nComponents,nComponents,stepsNumber));
