@@ -642,8 +642,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 
         # What are the non-zero ARI and MA polynomials?
         ### What are their positions in transition matrix?
-        nonZeroARI <- matrix(c(ariPolynomial)[-1],ncol=1);
-        nonZeroMA <- matrix(c(maPolynomial)[-1],ncol=1);
+        nonZeroARI <- unique(matrix(c(ariPolynomial)[-1],ncol=1));
+        nonZeroMA <- unique(matrix(c(maPolynomial)[-1],ncol=1));
         nonZeroComponents <- sort(unique(c(nonZeroARI,nonZeroMA)));
         nonZeroARI <- cbind(nonZeroARI,which(nonZeroComponents %in% nonZeroARI)-1);
         nonZeroMA <- cbind(nonZeroMA,which(nonZeroComponents %in% nonZeroMA)-1);
