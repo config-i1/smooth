@@ -715,7 +715,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
         bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
-                          fitted=y.fit,forecast=y.for,
+                          fitted=y.fit,forecast=y.for,cumulative=cumulative,
                           lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervals,level=level,
                           actuals=data,holdout=y.holdout,intermittent=intermittent,
                           xreg=xreg, xregDo=xregDo, initialX=initialX,
