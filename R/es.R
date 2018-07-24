@@ -638,10 +638,10 @@ EstimatorES <- function(...){
 
     # Change C if it is out of the bounds
     if(any((C>=CUpper),(C<=CLower))){
-        # C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
-        # C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
-        CUpper[C>=CUpper] <- C[C>=CUpper] * 1.001 + 0.001;
-        CLower[C<=CLower] <- C[C<=CLower] * 0.999 - 0.001;
+        CUpper[C>=CUpper & C<0] <- C[C>=CUpper & C<0] * 0.999 + 0.001;
+        CUpper[C>=CUpper & C>=0] <- C[C>=CUpper & C>=0] * 1.001 + 0.001;
+        CLower[C<=CLower & C<0] <- C[C<=CLower & C<0] * 1.001 - 0.001;
+        CLower[C<=CLower & C>=0] <- C[C>=CLower] * 0.999 - 0.001;
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
@@ -671,16 +671,16 @@ EstimatorES <- function(...){
                 }
             }
         }
-
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
         C <- res$solution;
     }
-
     # Change C if it is out of the bounds
     if(any((C>=CUpper),(C<=CLower))){
-        C[C>=CUpper] <- CUpper[C>=CUpper] * 0.999 - 0.001;
-        C[C<=CLower] <- CLower[C<=CLower] * 1.001 + 0.001;
+        CUpper[C>=CUpper & C<0] <- C[C>=CUpper & C<0] * 0.999 + 0.001;
+        CUpper[C>=CUpper & C>=0] <- C[C>=CUpper & C>=0] * 1.001 + 0.001;
+        CLower[C<=CLower & C<0] <- C[C<=CLower & C<0] * 1.001 - 0.001;
+        CLower[C<=CLower & C>=0] <- C[C>=CLower] * 0.999 - 0.001;
     }
 
     if(rounded){
