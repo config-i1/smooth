@@ -430,7 +430,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         vecg <- matrix(0,nComponents,1);
         matvt <- matrix(NA,obsStates,nComponents);
         if(constantRequired){
-            matF <- cbind(rbind(matF,rep(0,nComponents)),c(0,rep(0,nComponents-1),1));
+            matF <- cbind(rbind(matF,rep(0,nComponents)),rep(1,nComponents+1));
             matw <- cbind(matw,1);
             vecg <- rbind(vecg,0);
             matvt <- cbind(matvt,rep(1,obsStates));
