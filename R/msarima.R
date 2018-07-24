@@ -440,7 +440,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
         else{
             for(i in 1:nComponents){
-                matvt[1:maxlag,i] <- rep(y[1:modellags[i]],ceiling(maxlag/modellags[i]))[1:maxlag];
+                nRepeats <- ceiling(maxlag/modellags[i]);
+                matvt[1:maxlag,i] <- rep(y[1:modellags[i]],nRepeats)[nRepeats*modellags[i]+(-maxlag+1):0];
+                # matvt[1:maxlag,i] <- rep(y[1:modellags[i]],nRepeats)[1:maxlag];
             }
         }
     }
