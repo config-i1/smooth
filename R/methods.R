@@ -1330,10 +1330,17 @@ plot.iss <- function(x, ...){
 #' @export
 print.smooth <- function(x, ...){
 
-    if(gregexpr("CMA",x$model)!=-1){
-        holdout <- FALSE;
-        intervals <- FALSE;
-        cumulative <- FALSE;
+    if(!is.list(x$model)){
+        if(gregexpr("CMA",x$model)!=-1){
+            holdout <- FALSE;
+            intervals <- FALSE;
+            cumulative <- FALSE;
+        }
+        else{
+            holdout <- any(!is.na(x$holdout));
+            intervals <- any(!is.na(x$lower));
+            cumulative <- x$cumulative;
+        }
     }
     else{
         holdout <- any(!is.na(x$holdout));
