@@ -641,7 +641,7 @@ EstimatorES <- function(...){
         CUpper[C>=CUpper & C<0] <- C[C>=CUpper & C<0] * 0.999 + 0.001;
         CUpper[C>=CUpper & C>=0] <- C[C>=CUpper & C>=0] * 1.001 + 0.001;
         CLower[C<=CLower & C<0] <- C[C<=CLower & C<0] * 1.001 - 0.001;
-        CLower[C<=CLower & C>=0] <- C[C>=CLower] * 0.999 - 0.001;
+        CLower[C<=CLower & C>=0] <- C[C>=CLower & C>=0] * 0.999 - 0.001;
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
@@ -680,7 +680,7 @@ EstimatorES <- function(...){
         CUpper[C>=CUpper & C<0] <- C[C>=CUpper & C<0] * 0.999 + 0.001;
         CUpper[C>=CUpper & C>=0] <- C[C>=CUpper & C>=0] * 1.001 + 0.001;
         CLower[C<=CLower & C<0] <- C[C<=CLower & C<0] * 1.001 - 0.001;
-        CLower[C<=CLower & C>=0] <- C[C>=CLower] * 0.999 - 0.001;
+        CLower[C<=CLower & C>=0] <- C[C>=CLower & C>=0] * 0.999 - 0.001;
     }
 
     if(rounded){
