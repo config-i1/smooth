@@ -1783,29 +1783,34 @@ smoothType.default <- function(object, ...){
 }
 
 smoothType.smooth <- function(object, ...){
-    if(gregexpr("ETS",object$model)!=-1){
-        smoothType <- "ETS";
-    }
-    else if(gregexpr("CES",object$model)!=-1){
-        smoothType <- "CES";
-    }
-    else if(gregexpr("ARIMA",object$model)!=-1){
-        smoothType <- "ARIMA";
-    }
-    else if(gregexpr("GES",object$model)!=-1){
-        smoothType <- "GES";
-    }
-    else if(gregexpr("SMA",object$model)!=-1){
-        smoothType <- "SMA";
-    }
-    else if(gregexpr("CMA",object$model)!=-1){
-        smoothType <- "CMA";
-    }
-    else if(gregexpr("VES",object$model)!=-1){
-        smoothType <- "VES";
+    if(!is.list(object$model)){
+        if(gregexpr("ETS",object$model)!=-1){
+            smoothType <- "ETS";
+        }
+        else if(gregexpr("CES",object$model)!=-1){
+            smoothType <- "CES";
+        }
+        else if(gregexpr("ARIMA",object$model)!=-1){
+            smoothType <- "ARIMA";
+        }
+        else if(gregexpr("GES",object$model)!=-1){
+            smoothType <- "GES";
+        }
+        else if(gregexpr("SMA",object$model)!=-1){
+            smoothType <- "SMA";
+        }
+        else if(gregexpr("CMA",object$model)!=-1){
+            smoothType <- "CMA";
+        }
+        else if(gregexpr("VES",object$model)!=-1){
+            smoothType <- "VES";
+        }
+        else{
+            smoothType <- NA;
+        }
     }
     else{
-        smoothType <- NA;
+        smoothType <- "smoothCombine";
     }
 
     return(smoothType);
