@@ -673,6 +673,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             if(ICValue < bestIC){
                 bestModel <- testModel;
                 constantValue <- FALSE;
+                bestIC <- ICValue;
             }
             else{
                 constantValue <- TRUE;
