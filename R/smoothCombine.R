@@ -205,11 +205,9 @@ smoothCombine <- function(data, models=NULL,
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
     if(is.null(names(models))){
-        names(ICs) <- paste0("model", c(1:nModels), " ", ic);
+        names(models) <- unlist(lapply(models,smoothType));
     }
-    else{
-        names(ICs) <- paste0(names(models), " ", ic);
-    }
+    names(ICs) <- paste0(names(models), " ", ic);
 
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
