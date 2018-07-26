@@ -321,6 +321,7 @@ smoothCombine <- function(data, models=NULL,
         upper <- ts(quantilesReturned[2,],start=yForecastStart,frequency=datafreq);
     }
 
+    y <- y[1:length(yFitted)];
     errors <- c(y[1:length(yFitted)])-c(yFitted);
     s2 <- mean(errors^2);
 

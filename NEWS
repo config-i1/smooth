@@ -1,4 +1,4 @@
-smooth v2.4.6 (Release data: 2018-07-23)
+smooth v2.4.6 (Release data: 2018-07-26)
 ==============
 
 Changes:
@@ -12,6 +12,7 @@ Bugfixes
 * Fixed a bug for logistic intemittent model, when the probability of occurrence was becoming 0 or 1.
 * es() would not count damping parameter as parameter in the initialisation if model selection is chosen.
 * Bugfix for pls(), when the multiple steps ahead covariance matrix is becoming too large to calculate its determinant.
+* RelMAE, RelMSE and RelAME were calculated incorrectly in smoothCombine.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)
