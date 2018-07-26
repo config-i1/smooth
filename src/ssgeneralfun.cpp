@@ -880,11 +880,11 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
                         matrixVt.submat(0,0,nComponents-i-1,0) * matrixF.submat(i-1,0,i-1,0);
                 }
             }
-            else{
-                for(unsigned int i=0; i < nComponents; i=i+1){
-                    matrixVt.submat(0,i,nComponents-i,i) = matrixVt.submat(0,i,nComponents-i,i);// * matrixF.submat(i,0,i,0);
-                }
-            }
+            // else{
+            //     for(unsigned int i=0; i < nComponents; i=i+1){
+            //         matrixVt.submat(0,i,nComponents-i,i) = matrixVt.submat(0,i,nComponents-i,i) * matrixF.submat(i,0,i,0);
+            //     }
+            // }
         }
     }
 
@@ -1151,7 +1151,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 1;
+    int nloops = 2;
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
