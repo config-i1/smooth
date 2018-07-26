@@ -1294,9 +1294,6 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
         }
     }
 
-    // matrixVt = matrixVt.t();
-    // matrixAt = matrixAt.t();
-
     if(E=='D'){
         // This is a logistic additive error
         vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
