@@ -17,7 +17,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' the constant. In case of non-zero differences \eqn{c} acts as drift.
 #'
 #' This model is then transformed into ARIMA in the Single Source of Error
-#' State space form (proposed in Snyder, 1985):
+#' State space form (based by Snyder, 1985, but in a slightly different
+#' formulation):
 #'
 #' \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
 #'
@@ -33,14 +34,16 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' vector, \eqn{a_t} is the vector of parameters for exogenous variables,
 #' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
 #' \code{persistenceX} matrix. The main difference from \link[smooth]{ssarima}
-#' function is that this model skips zero polynomials, substantially decreasing
-#' the dimension of the transition matrix. As a result, this function works
-#' faster than \link[smooth]{ssarima}, and it is more accurate.
+#' function is that this implementation skips zero polynomials, substantially
+#' decreasing the dimension of the transition matrix. As a result, this
+#' function works faster than \link[smooth]{ssarima} on high frequency data,
+#' and it is more accurate.
 #'
 #' Due to the flexibility of the model, multiple seasonalities can be used. For
 #' example, something crazy like this can be constructed:
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take some time...
+#' take some time... Still this should be estimated in finite time (not like
+#' with \code{ssarima}).
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -77,10 +80,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' passed here.
 #' @param ...  Other non-documented parameters.
 #'
-#' Vectors of orders can be passed here using \code{ar.orders}, \code{i.orders}
-#' and \code{ma.orders}. \code{orders} variable needs to be NULL in this case.
-#'
-#' Parameter \code{model} can accept a previously estimated SSARIMA model and
+#' Parameter \code{model} can accept a previously estimated SARIMA model and
 #' use all its parameters.
 #'
 #' \code{FI=TRUE} will make the function produce Fisher Information matrix,
@@ -643,9 +643,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         vecgX <- elements$vecgX;
         polysos.ar <- elements$arPolynomial;
         polysos.ma <- elements$maPolynomial;
-        # Need to remove polyroot() here as well and find a better substitution
-        # arRoots <- abs(polyroot(polysos.ar));
-        # maRoots <- abs(polyroot(polysos.ma));
 
         ssFitter(ParentEnvironment=environment());
 
@@ -717,11 +714,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     # maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
-    # Write down Fisher Information if needed
-    if(FI){
-        environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
-    }
 
 ##### Fit simple model and produce forecast #####
     ssFitter(ParentEnvironment=environment());
@@ -862,24 +854,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
     }
 
-    if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
-        if(cumulative){
-            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
-        }
-        else{
-            errormeasures <- Accuracy(y.holdout,y.for,y);
-        }
-
-        if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
-        }
-    }
-    else{
-        y.holdout <- NA;
-        errormeasures <- NA;
-    }
-
 # Give model the name
     if((length(ar.orders)==1) && all(lags==1)){
         if(!is.null(xreg)){
@@ -929,6 +903,34 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
     parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+
+    # Write down Fisher Information if needed
+    if(FI & parametersNumber[1,4]>1){
+        environment(likelihoodFunction) <- environment();
+        FI <- -numDeriv::hessian(likelihoodFunction,C);
+    }
+    else{
+        FI <- NA;
+    }
+
+##### Deal with the holdout sample #####
+    if(holdout){
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        if(cumulative){
+            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
+        }
+        else{
+            errormeasures <- Accuracy(y.holdout,y.for,y);
+        }
+
+        if(cumulative){
+            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
+        }
+    }
+    else{
+        y.holdout <- NA;
+        errormeasures <- NA;
+    }
 
 ##### Make a plot #####
     if(!silentGraph){

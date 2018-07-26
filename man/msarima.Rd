@@ -165,10 +165,7 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 
 \item{...}{Other non-documented parameters.
 
-Vectors of orders can be passed here using \code{ar.orders}, \code{i.orders}
-and \code{ma.orders}. \code{orders} variable needs to be NULL in this case.
-
-Parameter \code{model} can accept a previously estimated SSARIMA model and
+Parameter \code{model} can accept a previously estimated SARIMA model and
 use all its parameters.
 
 \code{FI=TRUE} will make the function produce Fisher Information matrix,
@@ -253,7 +250,8 @@ where \eqn{y_[t]} is the actual values, \eqn{\epsilon_[t]} is the error term,
 the constant. In case of non-zero differences \eqn{c} acts as drift.
 
 This model is then transformed into ARIMA in the Single Source of Error
-State space form (proposed in Snyder, 1985):
+State space form (based by Snyder, 1985, but in a slightly different
+formulation):
 
 \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
 
@@ -269,14 +267,16 @@ vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
 vector, \eqn{a_t} is the vector of parameters for exogenous variables,
 \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
 \code{persistenceX} matrix. The main difference from \link[smooth]{ssarima}
-function is that this model skips zero polynomials, substantially decreasing
-the dimension of the transition matrix. As a result, this function works
-faster than \link[smooth]{ssarima}, and it is more accurate.
+function is that this implementation skips zero polynomials, substantially
+decreasing the dimension of the transition matrix. As a result, this
+function works faster than \link[smooth]{ssarima} on high frequency data,
+and it is more accurate.
 
 Due to the flexibility of the model, multiple seasonalities can be used. For
 example, something crazy like this can be constructed:
 SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-take some time...
+take some time... Still this should be estimated in finite time (not like
+with \code{ssarima}).
 }
 \examples{
 

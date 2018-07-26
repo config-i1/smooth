@@ -729,11 +729,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     polysos.ma <- elements$maPolynomial;
 
     nComponents <- nComponents + constantRequired;
-    # Write down Fisher Information if needed
-    if(FI){
-        environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
-    }
 
 ##### Fit simple model and produce forecast #####
     ssFitter(ParentEnvironment=environment());
@@ -874,24 +869,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
     }
 
-    if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
-        if(cumulative){
-            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
-        }
-        else{
-            errormeasures <- Accuracy(y.holdout,y.for,y);
-        }
-
-        if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
-        }
-    }
-    else{
-        y.holdout <- NA;
-        errormeasures <- NA;
-    }
-
 # Give model the name
     if((length(ar.orders)==1) && all(lags==1)){
         if(!is.null(xreg)){
@@ -941,6 +918,34 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
     parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+
+    # Write down Fisher Information if needed
+    if(FI & parametersNumber[1,4]>1){
+        environment(likelihoodFunction) <- environment();
+        FI <- -numDeriv::hessian(likelihoodFunction,C);
+    }
+    else{
+        FI <- NA;
+    }
+
+##### Deal with the holdout sample #####
+    if(holdout){
+        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        if(cumulative){
+            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
+        }
+        else{
+            errormeasures <- Accuracy(y.holdout,y.for,y);
+        }
+
+        if(cumulative){
+            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
+        }
+    }
+    else{
+        y.holdout <- NA;
+        errormeasures <- NA;
+    }
 
 ##### Make a plot #####
     if(!silentGraph){

@@ -740,12 +740,6 @@ CreatorGES <- function(silentText=FALSE,...){
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
-    # Write down Fisher Information if needed
-    if(FI){
-        environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
-    }
-
 ##### Fit simple model and produce forecast #####
     ssFitter(ParentEnvironment=environment());
     ssForecaster(ParentEnvironment=environment());
@@ -844,7 +838,17 @@ CreatorGES <- function(silentText=FALSE,...){
     parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
     parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
-    if(holdout==T){
+    # Write down Fisher Information if needed
+    if(FI & parametersNumber[1,4]>1){
+        environment(likelihoodFunction) <- environment();
+        FI <- -numDeriv::hessian(likelihoodFunction,C);
+    }
+    else{
+        FI <- NA;
+    }
+
+##### Deal with the holdout sample #####
+    if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
