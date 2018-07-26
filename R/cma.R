@@ -81,7 +81,7 @@ cma <- function(data, order=NULL, silent=TRUE){
         if(is.null(model$model)){
             stop("The provided model is not a Centered Moving Average!",call.=FALSE);
         }
-        else if(gregexpr("CMA",model$model)==-1){
+        else if(smoothType(model)!="CMA"){
             stop("The provided model is not a Centered Moving Average!",call.=FALSE);
         }
         else{

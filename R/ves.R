@@ -169,7 +169,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
 
 # If a previous model provided as a model, write down the variables
     if(any(class(model)=="vsmooth")){
-        if(gregexpr("VES",model$model)==-1){
+        if(smoothType(model)!="VES"){
             stop("The provided model is not VES.",call.=FALSE);
         }
         # intermittent <- model$intermittent;

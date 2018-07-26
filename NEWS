@@ -8,6 +8,8 @@ Changes:
 * New function - msarima() - Multiple Seasonal ARIMA. This is a reimplementation of ssarima() function, that relies on a different state-space model and works substantially faster.
 * New function - auto.msarima() - for the order selection of msarima.
 * Tuning of msarima() optimisation.
+* New method - modelName - that returns the name of the model. e.g. "ETS(M,A,N)". Can be useful for summarising results. Also applicable to non-smooth classes (e.g. Arima, ar etc).
+* A new internal function for determining the type of model used (smoothType).
 
 Bugfixes
 * Fixed a bug for logistic intemittent model, when the probability of occurrence was becoming 0 or 1.

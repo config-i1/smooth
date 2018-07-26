@@ -222,7 +222,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         if(is.null(model$model)){
             stop("The provided model is not ARIMA.",call.=FALSE);
         }
-        else if(gregexpr("ARIMA",model$model)==-1){
+        else if(smoothType(model)!="ARIMA"){
             stop("The provided model is not ARIMA.",call.=FALSE);
         }
 

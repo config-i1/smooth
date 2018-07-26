@@ -3,6 +3,7 @@
 \name{orders}
 \alias{orders}
 \alias{lags}
+\alias{modelName}
 \alias{modelType}
 \alias{errorType}
 \title{Functions that extract values from the fitted model}
@@ -10,6 +11,8 @@
 orders(object, ...)
 
 lags(object, ...)
+
+modelName(object, ...)
 
 modelType(object, ...)
 
@@ -28,6 +31,8 @@ Either vector or list with values is returned.
 \item \code{i} - I orders.
 \item \code{ma} - MA orders.
 }
+\code{lags()} returns the vector of lags of the model.
+All the other functions return strings of character.
 }
 \description{
 These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
@@ -37,8 +42,11 @@ type of model from \code{es()} and \code{ces()} and error type of all the above.
 \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
-This can also be applied to \code{ets()} function from forecast package. Finally, \code{errorType}
-extracts the type of error from the model (either additive or multiplicative).
+This can also be applied to \code{ets()} function from forecast package. \code{errorType}
+extracts the type of error from the model (either additive or multiplicative). Finally, \code{modelName}
+returns the name of the fitted model. For example, "ARIMA(0,1,1)". This is purely descriptive and
+can also be applied to non-smooth classes, so that, for example, you can easily extract the name
+of the fitted AR model from \code{ar()} function from \code{stats} package.
 }
 \examples{
 
@@ -50,17 +58,24 @@ orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
 errorType(ourModel)
+modelName(ourModel)
+
 # And as another example it does the opposite for ges() and ssarima()
 ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
 errorType(ourModel)
+modelName(ourModel)
 
 # Finally these values can be used for simulate functions or original functions.
 ourModel <- auto.ssarima(x)
 ssarima(x, orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
 sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+
+ourModel <- es(x)
+es(x, model=modelType(ourModel))
+sim.es(model=modelType(ourModel))
 
 }
 \seealso{

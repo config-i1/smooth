@@ -116,7 +116,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         if(is.null(model$model)){
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
-        else if(gregexpr("SMA",model$model)==-1){
+        else if(smoothType(model)!="SMA"){
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
         else{

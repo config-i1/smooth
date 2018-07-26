@@ -255,7 +255,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
     #This overrides the similar thing in ssfunctions.R but only for data generated from sim.es()
     if(class(data)=="smooth.sim"){
-        if(gregexpr("ETS",data$model)!=-1){
+        if(smoothType(data)=="ETS"){
             model <- data;
             data <- data$data;
         }
@@ -267,7 +267,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 
 # If a previous model provided as a model, write down the variables
     if(any(class(model)=="smooth") | any(class(model)=="smooth.sim")){
-        if(gregexpr("ETS",model$model)==-1){
+        if(smoothType(model)!="ETS"){
             stop("The provided model is not ETS.",call.=FALSE);
         }
         if(!is.null(model$imodel)){

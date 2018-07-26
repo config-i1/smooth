@@ -170,7 +170,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
         if(is.null(model$model)){
             stop("The provided model is not CES.",call.=FALSE);
         }
-        else if(gregexpr("ES",model$model)==-1){
+        else if(smoothType(model)!="CES"){
             stop("The provided model is not CES.",call.=FALSE);
         }
         if(!is.null(model$imodel)){

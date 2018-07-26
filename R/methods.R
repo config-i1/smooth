@@ -6,8 +6,11 @@
 #' \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 #' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 #' \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
-#' This can also be applied to \code{ets()} function from forecast package. Finally, \code{errorType}
-#' extracts the type of error from the model (either additive or multiplicative).
+#' This can also be applied to \code{ets()} function from forecast package. \code{errorType}
+#' extracts the type of error from the model (either additive or multiplicative). Finally, \code{modelName}
+#' returns the name of the fitted model. For example, "ARIMA(0,1,1)". This is purely descriptive and
+#' can also be applied to non-smooth classes, so that, for example, you can easily extract the name
+#' of the fitted AR model from \code{ar()} function from \code{stats} package.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
@@ -22,6 +25,8 @@
 #' \item \code{i} - I orders.
 #' \item \code{ma} - MA orders.
 #' }
+#' \code{lags()} returns the vector of lags of the model.
+#' All the other functions return strings of character.
 #' @seealso \link[forecast]{forecast}, \link[smooth]{ssarima}
 #' @examples
 #'
@@ -33,17 +38,24 @@
 #' lags(ourModel)
 #' modelType(ourModel)
 #' errorType(ourModel)
+#' modelName(ourModel)
+#'
 #' # And as another example it does the opposite for ges() and ssarima()
 #' ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
 #' errorType(ourModel)
+#' modelName(ourModel)
 #'
 #' # Finally these values can be used for simulate functions or original functions.
 #' ourModel <- auto.ssarima(x)
 #' ssarima(x, orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
 #' sim.ssarima(orders=orders(ourModel), lags=lags(ourModel), constant=ourModel$constant)
+#'
+#' ourModel <- es(x)
+#' es(x, model=modelType(ourModel))
+#' sim.es(model=modelType(ourModel))
 #'
 #' @rdname orders
 #' @export orders
@@ -54,12 +66,20 @@ orders <- function(object, ...) UseMethod("orders")
 #' @export lags
 lags <- function(object, ...) UseMethod("lags")
 
+#' @aliases modelName
+#' @rdname orders
+#' @export modelName
+modelName <- function(object, ...) UseMethod("modelName")
+
 #' @aliases modelType
 #' @rdname orders
 #' @export modelType
 modelType <- function(object, ...) UseMethod("modelType")
 
+
 modelLags <- function(object, ...) UseMethod("modelLags")
+
+smoothType <- function(object, ...) UseMethod("smoothType")
 
 #' @aliases errorType
 #' @rdname orders
@@ -209,6 +229,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
     }
     # Simulated covariance matrix
     else if(type=="s"){
+        smoothType <- smoothType(object);
         ellipsis <- list(...);
         if(any(names(ellipsis)=="obs")){
             obs <- ellipsis$obs;
@@ -230,23 +251,23 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         }
 
         h <- length(object$forecast);
-        if(gregexpr("ETS",object$model)!=-1){
+        if(smoothType=="ETS"){
             smoothFunction <- es;
         }
         # GES models
-        else if(gregexpr("GES",object$model)!=-1){
+        else if(smoothType=="GES"){
             smoothFunction <- ges;
         }
         # SSARIMA models
-        else if(gregexpr("ARIMA",object$model)!=-1){
+        else if(smoothType=="ARIMA"){
             smoothFunction <- ssarima;
         }
         # CES models
-        else if(gregexpr("CES",object$model)!=-1){
+        else if(smoothType=="CES"){
             smoothFunction <- ces;
         }
         # SMA models
-        else if(gregexpr("SMA",object$model)!=-1){
+        else if(smoothType=="SMA"){
             smoothFunction <- sma;
         }
 
@@ -686,11 +707,12 @@ sigma.ets <- function(object, ...){
 #' @export
 coef.smooth <- function(object, ...)
 {
-    if(gregexpr("CES",object$model)!=-1){
+    smoothType <- smoothType(object);
+    if(smoothType=="CES"){
         parameters <- c(object$A,object$B);
     }
-    else if(gregexpr("ETS",object$model)!=-1){
-        if(any(unlist(gregexpr("C",object$model))==-1)){
+    else if(smoothType=="ETS"){
+        if(any(unlist(gregexpr("C",modelType(object)))==-1)){
             # If this was normal ETS, return values
             parameters <- c(object$persistence,object$initial,object$initialSeason,object$initialX);
         }
@@ -700,14 +722,14 @@ coef.smooth <- function(object, ...)
             parameters <- NULL;
         }
     }
-    else if(gregexpr("GES",object$model)!=-1){
+    else if(smoothType=="GES"){
         parameters <- c(object$measurement,object$transition,object$persistence,object$initial);
         names(parameters) <- c(paste0("Measurement ",c(1:length(object$measurement))),
                                paste0("Transition ",c(1:length(object$transition))),
                                paste0("Persistence ",c(1:length(object$persistence))),
                                paste0("Initial ",c(1:length(object$initial))));
     }
-    else if(gregexpr("ARIMA",object$model)!=-1){
+    else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
             # If this was normal ARIMA, return values
             namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
@@ -732,7 +754,7 @@ coef.smooth <- function(object, ...)
             parameters <- NULL;
         }
     }
-    else if(gregexpr("SMA",object$model)!=-1){
+    else if(smoothType=="SMA"){
         parameters <- object$persistence;
     }
 
@@ -805,30 +827,36 @@ NULL
 forecast.smooth <- function(object, h=10,
                             intervals=c("parametric","semiparametric","nonparametric","none"),
                             level=0.95, ...){
+    smoothType <- smoothType(object);
     intervals <- intervals[1];
-    if(gregexpr("ETS",object$model)!=-1){
+    if(smoothType=="ETS"){
         newModel <- es(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
-    else if(gregexpr("CES",object$model)!=-1){
+    else if(smoothType=="CES"){
         newModel <- ces(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
-    else if(gregexpr("GES",object$model)!=-1){
-        newModel <- ges(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+    else if(smoothType=="GES"){
+        newModel <- ges(object$actuals,model=object,type=errorType(object),h=h,intervals=intervals,level=level,silent="all",...);
     }
-    else if(gregexpr("ARIMA",object$model)!=-1){
+    else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
-            newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+            if(any(class(object)=="msarima")){
+                newModel <- msarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+            }
+            else{
+                newModel <- ssarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
+            }
         }
         else{
             stop(paste0("Sorry, but in order to produce forecasts for this ARIMA we need to recombine it.\n",
                  "You will have to use auto.ssarima() function instead."),call.=FALSE);
         }
     }
-    else if(gregexpr("SMA",object$model)!=-1){
+    else if(smoothType=="SMA"){
         newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else{
-        stop("Wrong object provided. This needs to be either 'ETS' or 'CES' or 'GES' or 'SSARIMA' model.",call.=FALSE);
+        stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GES', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
     }
     output <- list(model=object,method=object$model,fitted=newModel$fitted,actuals=newModel$actuals,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
@@ -850,27 +878,38 @@ getResponse.smooth.forecast <- function(object, ...){
 #### Function extracts lags of provided model ####
 #' @export
 lags.default <- function(object, ...){
-    lags <- NA;
+    return(NA);
+}
+
+#' @export
+lags.ets <- function(object, ...){
+    modelName <- modelType(object);
+    lags <- c(1);
+    if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
+        lags <- c(lags,frequency(getResponse(object)));
+    }
     return(lags);
 }
 
 #' @export
+lags.ar <- function(object, ...){
+    return(1);
+}
+
+#' @export
 lags.Arima <- function(object, ...){
-    model <- object$arma;
-
-    lags <- c(1,model[5]);
-
-    return(lags);
+    return(c(1,object$arma[5]));
 }
 
 #' @export
 lags.smooth <- function(object, ...){
     model <- object$model;
+    smoothType <- smoothType(object);
     if(!is.null(model)){
-        if(gregexpr("GES",model)!=-1){
+        if(smoothType=="GES"){
             lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
         }
-        else if(gregexpr("ARIMA",model)!=-1){
+        else if(smoothType=="ARIMA"){
             if(any(unlist(gregexpr("combine",object$model))==-1)){
                 if(any(unlist(gregexpr("\\[",model))!=-1)){
                     lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
@@ -883,17 +922,17 @@ lags.smooth <- function(object, ...){
                 warning("ARIMA was combined and we cannot extract lags anymore. Sorry!",call.=FALSE);
             }
         }
-        else if(gregexpr("SMA",model)!=-1){
+        else if(smoothType=="SMA"){
             lags <- 1;
         }
-        else if(gregexpr("ETS",model)!=-1){
+        else if(smoothType=="ETS"){
             modelName <- modelType(object);
             lags <- c(1);
             if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
                 lags <- c(lags,frequency(getResponse(object)));
             }
         }
-        else if(gregexpr("CES",model)!=-1){
+        else if(smoothType=="CES"){
             modelName <- modelType(object);
             dataFreq <- frequency(getResponse(object));
             if(modelName=="none"){
@@ -945,8 +984,9 @@ errorType.ets <- function(object, ...){
 
 #' @export
 errorType.smooth <- function(object, ...){
+    smoothType <- smoothType(object);
     # ETS models
-    if(gregexpr("ETS",object$model)!=-1){
+    if(smoothType=="ETS"){
         if(any(substr(modelType(object),1,1)==c("A","X"))){
             Etype <- "A";
         }
@@ -954,13 +994,13 @@ errorType.smooth <- function(object, ...){
             Etype <- "M";
         }
         else{
-            stop("Sorry, but we cannot calculate PLS for this type of model",
+            stop("Sorry, but we cannot define error type for this type of model",
                  call.=FALSE);
         }
     }
     # GES models
-    else if(gregexpr("GES",object$model)!=-1){
-        if(gregexpr("MGES",object$model)!=-1){
+    else if(smoothType=="GES"){
+        if(substr(modelName(object),1,1)=="M"){
             Etype <- "M";
         }
         else{
@@ -968,15 +1008,19 @@ errorType.smooth <- function(object, ...){
         }
     }
     # SSARIMA models
-    else if(gregexpr("ARIMA",object$model)!=-1){
+    else if(smoothType=="ARIMA"){
         Etype <- "A";
     }
     # CES models
-    else if(gregexpr("CES",object$model)!=-1){
+    else if(smoothType=="CES"){
         Etype <- "A";
     }
     # SMA models
-    else if(gregexpr("SMA",object$model)!=-1){
+    else if(smoothType=="SMA"){
+        Etype <- "A";
+    }
+    # SMA models
+    else if(smoothType=="CMA"){
         Etype <- "A";
     }
     else{
@@ -1001,13 +1045,14 @@ modelLags.default <- function(object, ...){
         modelLags <- object$modelLags;
     }
     else{
-        if(gregexpr("ETS",object$model)!=-1){
+        smoothType <- smoothType(object);
+        if(smoothType=="ETS"){
             modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
-        else if(gregexpr("GES",object$model)!=-1){
+        else if(smoothType=="GES"){
             modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
-        else if(gregexpr("ARIMA",object$model)!=-1){
+        else if(smoothType=="ARIMA"){
             ordersARIMA <- orders(object);
             nComponents <- max(ordersARIMA$ar %*% lags(object) + ordersARIMA$i %*% lags(object),
                                ordersARIMA$ma %*% lags(object));
@@ -1016,14 +1061,57 @@ modelLags.default <- function(object, ...){
                 modelLags <- rbind(modelLags,1);
             }
         }
-        else if(gregexpr("CES",object$model)!=-1){
+        else if(smoothType=="CES"){
             modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
-        else if(gregexpr("SMA",object$model)!=-1){
+        else if(smoothType=="SMA"){
             modelLags <- matrix(rep(1,times=orders(object)),ncol=1);
         }
     }
     return(modelLags);
+}
+
+#### Function extracts the full name of a model. For example "ETS(AAN)" ####
+#' @export
+modelName.default <- function(object, ...){
+    return(NA);
+}
+
+#' @export
+modelName.ar <- function(object, ...){
+    return(paste0("AR(",object$order,")"));
+}
+
+#' @export
+modelName.lm <- function(object, ...){
+    return("Regression");
+}
+
+#' @export
+modelName.Arima <- function(object, ...){
+    ordersArma <- object$arma;
+    if(all(ordersArma[c(3,4,7)]==0)){
+        return(paste0("ARIMA(",paste(ordersArma[c(1,6,2)],collapse=","),")"));
+    }
+    else{
+        return(paste0("SARIMA(",paste(ordersArma[c(1,6,2)],collapse=","),")(",
+                      paste(ordersArma[c(3,7,4)],collapse=","),")[",ordersArma[5],"]"));
+    }
+}
+
+#' @export
+modelName.ets <- function(object, ...){
+    return(object$method);
+}
+
+#' @export
+modelName.forecast <- function(object, ...){
+    return(object$method);
+}
+
+#' @export
+modelName.smooth <- function(object, ...){
+    return(object$model);
 }
 
 #### Function extracts type of model. For example "AAN" from ets ####
@@ -1042,11 +1130,12 @@ modelType.default <- function(object, ...){
 #' @export
 modelType.smooth <- function(object, ...){
     model <- object$model;
+    smoothType <- smoothType(object);
 
-    if(gregexpr("ETS",model)!=-1){
+    if(smoothType=="ETS"){
         modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
     }
-    else if(gregexpr("CES",model)!=-1){
+    else if(smoothType=="CES"){
         modelType <- substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1);
         if(modelType=="n"){
             modelType <- "none";
@@ -1079,18 +1168,18 @@ modelType.iss <- function(object, ...){
 #### Function extracts orders of provided model ####
 #' @export
 orders.default <- function(object, ...){
-    orders <- NA;
-    return(orders);
+    return(NA);
 }
 
 #' @export
 orders.smooth <- function(object, ...){
+    smoothType <- smoothType(object);
     model <- object$model;
     if(!is.null(model)){
-        if(gregexpr("GES",model)!=-1){
+        if(smoothType=="GES"){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
         }
-        else if(gregexpr("ARIMA",model)!=-1){
+        else if(smoothType=="ARIMA"){
             if(any(unlist(gregexpr("combine",object$model))==-1)){
                 arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
                                        ,collapse=";");
@@ -1106,10 +1195,10 @@ orders.smooth <- function(object, ...){
                 warning("ARIMA was combined and we cannot extract orders anymore. Sorry!",call.=FALSE);
             }
         }
-        else if(gregexpr("SMA",model)!=-1){
+        else if(smoothType=="SMA"){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1));
         }
-        else if(gregexpr("ETS",model)!=-1){
+        else if(smoothType=="ETS"){
             modelName <- modelType(object);
             orders <- 1;
             if(substr(modelName,2,2)!="N"){
@@ -1119,7 +1208,7 @@ orders.smooth <- function(object, ...){
                 orders <- c(orders, 1);
             }
         }
-        else if(gregexpr("CES",model)!=-1){
+        else if(smoothType=="CES"){
             modelName <- modelType(object);
             if(modelName=="none"){
                 orders <- 2;
@@ -1153,6 +1242,11 @@ orders.smooth <- function(object, ...){
 orders.smooth.sim <- orders.smooth;
 
 #' @export
+orders.ar <- function(object, ...){
+    return(list(ar=object$order));
+}
+
+#' @export
 orders.Arima <- function(object, ...){
     model <- object$arma;
 
@@ -1171,7 +1265,8 @@ orders.Arima <- function(object, ...){
 plot.smooth <- function(x, ...){
     ellipsis <- list(...);
     parDefault <- par(no.readonly = TRUE);
-    if(gregexpr("ETS",x$model)!=-1){
+    smoothType <- smoothType(x);
+    if(smoothType=="ETS"){
         if(any(unlist(gregexpr("C",x$model))==-1)){
             if(ncol(x$states)>10){
                 message("Too many states. Plotting them one by one on several graphs.");
@@ -1203,7 +1298,7 @@ plot.smooth <- function(x, ...){
             message("Combination of models was done. Sorry, but there is nothing to plot.");
         }
     }
-    else if(gregexpr("CMA",x$model)!=-1){
+    else if(smoothType=="CMA"){
         ellipsis$actuals <- x$actuals;
         ellipsis$forecast <- x$forecast;
         ellipsis$fitted <- x$fitted;
@@ -1329,9 +1424,10 @@ plot.iss <- function(x, ...){
 #### Prints of smooth ####
 #' @export
 print.smooth <- function(x, ...){
+    smoothType <- smoothType(x);
 
     if(!is.list(x$model)){
-        if(gregexpr("CMA",x$model)!=-1){
+        if(smoothType=="CMA"){
             holdout <- FALSE;
             intervals <- FALSE;
             cumulative <- FALSE;
@@ -1364,12 +1460,12 @@ print.smooth <- function(x, ...){
 
     if(!is.null(x$model)){
         if(!is.list(x$model)){
-            if((gregexpr("SMA",x$model)!=-1) | gregexpr("CMA",x$model)!=-1){
+            if(any(smoothType==c("SMA","CMA"))){
                 x$iprob <- 1;
                 x$initialType <- "b";
                 intermittent <- "n";
             }
-            else if(gregexpr("ETS",x$model)!=-1){
+            else if(smoothType=="ETS"){
                 # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
                 if(cumulative & substr(modelType(x),1,1)=="M"){
                     intervalsType <- "p";
@@ -1395,6 +1491,7 @@ print.smooth <- function(x, ...){
 
 #' @export
 print.smooth.sim <- function(x, ...){
+    smoothType <- smoothType(x);
     if(is.null(dim(x$data))){
         nsim <- 1
     }
@@ -1406,7 +1503,7 @@ print.smooth.sim <- function(x, ...){
     cat(paste0("Number of generated series: ",nsim,"\n"));
 
     if(nsim==1){
-        if(gregexpr("ETS",x$model)!=-1){
+        if(smoothType=="ETS"){
             cat(paste0("Persistence vector: \n"));
             xPersistence <- as.vector(x$persistence);
             names(xPersistence) <- rownames(x$persistence);
@@ -1419,7 +1516,7 @@ print.smooth.sim <- function(x, ...){
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
-        else if(gregexpr("ARIMA",x$model)!=-1){
+        else if(smoothType=="ARIMA"){
             ar.orders <- orders(x)$ar;
             i.orders <- orders(x)$i;
             ma.orders <- orders(x)$ma;
@@ -1480,7 +1577,7 @@ print.smooth.sim <- function(x, ...){
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
-        else if(gregexpr("CES",x$model)!=-1){
+        else if(smoothType=="CES"){
             cat(paste0("Smoothing parameter A: ",round(x$A,3),"\n"));
             if(!is.null(x$B)){
                 if(is.complex(x$B)){
@@ -1492,7 +1589,7 @@ print.smooth.sim <- function(x, ...){
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
-        else if(gregexpr("SMA",x$model)!=-1){
+        else if(smoothType=="SMA"){
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
     }
@@ -1558,6 +1655,7 @@ print.iss <- function(x, ...){
 #' @export
 simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     ellipsis <- list(...);
+    smoothType <- smoothType(object);
     if(is.null(obs)){
         obs <- nobs(object);
     }
@@ -1629,7 +1727,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     args$initial <- object$initial;
     args$iprob <- object$iprob[length(object$iprob)];
 
-    if(gregexpr("ETS",object$model)!=-1){
+    if(smoothType=="ETS"){
         model <- modelType(object);
         if(any(unlist(gregexpr("C",model))==-1)){
             args <- c(args,list(model=model, phi=object$phi, persistence=object$persistence,
@@ -1642,7 +1740,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             simulatedData <- NA;
         }
     }
-    else if(gregexpr("ARIMA",object$model)!=-1){
+    else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
             args <- c(args,list(orders=orders(object), lags=lags(object),
                                 AR=object$AR, MA=object$MA, constant=object$constant));
@@ -1654,19 +1752,19 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             simulatedData <- NA;
         }
     }
-    else if(gregexpr("CES",object$model)!=-1){
+    else if(smoothType=="CES"){
         args <- c(args,list(seasonality=modelType(object), A=object$A, B=object$B));
 
         simulatedData <- do.call("sim.ces",args);
     }
-    else if(gregexpr("GES",object$model)!=-1){
+    else if(smoothType=="GES"){
         args <- c(args,list(orders=orders(object), lags=lags(object),
                             measurement=object$measurement, transition=object$transition,
                             persistence=object$persistence));
 
         simulatedData <- do.call("sim.ges",args);
     }
-    else if(gregexpr("SMA",object$model)!=-1){
+    else if(smoothType=="SMA"){
         args <- c(args,list(order=orders(object)));
 
         simulatedData <- do.call("sim.sma",args);
@@ -1678,6 +1776,42 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
     return(simulatedData);
 }
+
+#### Type of smooth model. Internal function ####
+smoothType.default <- function(object, ...){
+    return(NA);
+}
+
+smoothType.smooth <- function(object, ...){
+    if(gregexpr("ETS",object$model)!=-1){
+        smoothType <- "ETS";
+    }
+    else if(gregexpr("CES",object$model)!=-1){
+        smoothType <- "CES";
+    }
+    else if(gregexpr("ARIMA",object$model)!=-1){
+        smoothType <- "ARIMA";
+    }
+    else if(gregexpr("GES",object$model)!=-1){
+        smoothType <- "GES";
+    }
+    else if(gregexpr("SMA",object$model)!=-1){
+        smoothType <- "SMA";
+    }
+    else if(gregexpr("CMA",object$model)!=-1){
+        smoothType <- "CMA";
+    }
+    else if(gregexpr("VES",object$model)!=-1){
+        smoothType <- "VES";
+    }
+    else{
+        smoothType <- NA;
+    }
+
+    return(smoothType);
+}
+
+smoothType.smooth.sim <- smoothType.smooth;
 
 #### Summary of objects ####
 #' @export

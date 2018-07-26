@@ -184,13 +184,11 @@ ges <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
         if(is.null(model$model)){
             stop("The provided model is not GES.",call.=FALSE);
         }
-        else if(gregexpr("GES",model$model)==-1){
+        else if(smoothType(model)!="GES"){
             stop("The provided model is not GES.",call.=FALSE);
         }
 
-        if(gregexpr("MGES",model$model)!=-1){
-            type <- "M";
-        }
+        type <- errorType(model);
 
         if(!is.null(model$imodel)){
             imodel <- model$imodel;
