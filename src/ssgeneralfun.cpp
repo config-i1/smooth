@@ -1151,7 +1151,8 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
-    int nloops = 2;
+    // This means that we do only one loop (forward -> backwards -> forward)
+    int nloops = 1;
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
