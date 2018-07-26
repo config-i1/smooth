@@ -731,7 +731,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        if(constantRequired==TRUE){
+        if(constantRequired){
             initialValue <- matvt[1:maxlag,-ncol(matvt)];
         }
         else{
@@ -862,7 +862,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
     }
 
-    if(holdout==T){
+    if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);

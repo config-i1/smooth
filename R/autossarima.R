@@ -198,7 +198,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     # If zeroes are defined as orders for some lags, drop them.
     if(any((ar.max + i.max + ma.max)==0)){
         orders2leave <- (ar.max + i.max + ma.max)!=0;
-        if(all(orders2leave==FALSE)){
+        if(all(!orders2leave)){
             orders2leave <- lags==min(lags);
         }
         ar.max <- ar.max[orders2leave];
@@ -337,7 +337,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         return(correction);
     }
 
-    if(silentText==FALSE){
+    if(!silentText){
         cat("Estimation progress:     ");
     }
 
@@ -371,7 +371,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     # Start the loop with differences
     for(d in 1:nrow(i.orders)){
         m <- m + 1;
-        if(silentText==FALSE){
+        if(!silentText){
             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
             cat(paste0(round((m)/nModels,2)*100,"%"));
         }
@@ -435,7 +435,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 if(ma.max[seasSelectMA]!=0){
                     for(maSelect in 1:ma.max[seasSelectMA]){
                         m <- m + 1;
-                        if(silentText==FALSE){
+                        if(!silentText){
                             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                             cat(paste0(round((m)/nModels,2)*100,"%"));
                         }
@@ -501,7 +501,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                 if(ar.max[seasSelectAR]!=0){
                                     for(arSelect in 1:ar.max[seasSelectAR]){
                                         m <- m + 1;
-                                        if(silentText==FALSE){
+                                        if(!silentText){
                                             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                                             cat(paste0(round((m)/nModels,2)*100,"%"));
                                         }
@@ -574,7 +574,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                     if(ar.max[seasSelectAR]!=0){
                         for(arSelect in 1:ar.max[seasSelectAR]){
                             m <- m + 1;
-                            if(silentText==FALSE){
+                            if(!silentText){
                                 cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                                 cat(paste0(round((m)/nModels,2)*100,"%"));
                             }
@@ -639,7 +639,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 #### Test the constant ####
     if(constantCheck){
         m <- m + 1;
-        if(silentText==FALSE){
+        if(!silentText){
             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
             cat(paste0(round((m)/nModels,2)*100,"%"));
         }
@@ -744,7 +744,7 @@ auto.ssarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         bestModel$timeElapsed <- Sys.time()-startTime;
     }
 
-    if(silentText==FALSE){
+    if(!silentText){
         cat("... Done! \n");
     }
 

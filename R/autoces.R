@@ -136,8 +136,8 @@ auto.ces <- function(data, models=c("none","simple","full"),
     }
 
     if(datafreq==1){
-        if(silentText==FALSE){
-        message("The data is not seasonal. Simple CES was the only solution here.");
+        if(!silentText){
+            message("The data is not seasonal. Simple CES was the only solution here.");
         }
 
         CESModel <- ces(data, seasonality="n",
@@ -170,11 +170,11 @@ auto.ces <- function(data, models=c("none","simple","full"),
     IC.vector <- c(1:length(models));
 
     j <- 1;
-    if(silentText==FALSE){
+    if(!silentText){
         cat("Estimating CES with seasonality: ")
     }
     for(i in models){
-        if(silentText==FALSE){
+        if(!silentText){
             cat(paste0('"',i,'" '));
         }
         CESModel[[j]] <- ces(data, seasonality=i,
@@ -198,7 +198,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     y.low <- bestModel$lower;
     modelname <- bestModel$model;
 
-    if(silentText==FALSE){
+    if(!silentText){
         best.seasonality <- models[which(IC.vector==min(IC.vector))];
         cat(" \n");
         cat(paste0('The best model is with seasonality = "',best.seasonality,'"\n'));

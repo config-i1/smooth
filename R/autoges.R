@@ -262,7 +262,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
 
     bestModel$timeElapsed <- Sys.time()-startTime;
 
-    if(silentText==FALSE){
+    if(!silentText){
         cat("Done!\n");
     }
 

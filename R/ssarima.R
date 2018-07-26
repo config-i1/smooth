@@ -661,9 +661,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         vecgX <- elements$vecgX;
         polysos.ar <- elements$arPolynomial;
         polysos.ma <- elements$maPolynomial;
-        # Need to remove polyroot() here as well and find a better substitution
-        # arRoots <- abs(polyroot(polysos.ar));
-        # maRoots <- abs(polyroot(polysos.ma));
 
         ssFitter(ParentEnvironment=environment());
 
@@ -730,9 +727,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     vecgX <- elements$vecgX;
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
-    # Need to remove polyroot() here as well and find a better substitution
-    # arRoots <- polyroot(polysos.ar);
-    # maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
     # Write down Fisher Information if needed
@@ -749,7 +743,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        if(constantRequired==TRUE){
+        if(constantRequired){
             initialValue <- matvt[1,-ncol(matvt)];
         }
         else{
@@ -880,7 +874,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
     }
 
-    if(holdout==T){
+    if(holdout){
         y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
             errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
