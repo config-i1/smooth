@@ -667,7 +667,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testTransition[[m]] <- testModel$transition;
                 testPersistence[[m]] <- testModel$persistence;
             }
-            # cat("Constant: ");print(ICValue);
+            if(silent[1]=="d"){
+                cat("No constant: "); cat(ICValue); cat("\n");
+            }
             if(ICValue < bestIC){
                 bestModel <- testModel;
                 constantValue <- FALSE;
@@ -676,6 +678,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 constantValue <- TRUE;
             }
         }
+    }
+    if(silent[1]=="d"){
+        cat("Best IC: "); cat(bestIC); cat("\n");
     }
 
     if(combine){

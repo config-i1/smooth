@@ -337,10 +337,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(nComponents > 0){
 # ar terms, ma terms from season to season...
             if(AREstimate){
-                C <- c(C,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
+                # C <- c(C,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
+                C <- c(C,rep(1/sum(ar.orders),sum(ar.orders)));
             }
             if(MAEstimate){
-                C <- c(C,rep(0.1,sum(ma.orders)));
+                # C <- c(C,rep(0.1,sum(ma.orders)));
+                C <- c(C,rep(1/sum(ma.orders),sum(ma.orders)));
             }
 
 # initial values of state vector and the constant term
@@ -376,16 +378,14 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
-        if(initialType=="o"){
 # Optimise model. Second run
-            res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
-                # This condition is needed in order to make sure that we did not make the solution worse
-            if(res2$objective <= res$objective){
-                res <- res2;
-            }
-
-            C <- res$solution;
+        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+        # This condition is needed in order to make sure that we did not make the solution worse
+        if(res2$objective <= res$objective){
+            res <- res2;
         }
+
+        C <- res$solution;
         cfObjective <- res$objective;
 
         # Parameters estimated + variance
