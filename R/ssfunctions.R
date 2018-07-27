@@ -979,6 +979,11 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             initialType <- "o";
         }
         else{
+            if(smoothType=="msarima" & initialValue=="o"){
+                initialValue <- "b";
+                warning("We don't support optimisation of the initial states of MSARIMA. Switching to 'backcasting'.",
+                        call.=FALSE);
+            }
             initialType <- initialValue;
         }
         initialValue <- NULL;
@@ -1059,9 +1064,9 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
                 if(length(initialValue) != nComponents*maxlag){
                     warning(paste0("Wrong length of initial vector. Should be ",nComponents,
                                    " instead of ",length(initial),".\n",
-                                   "Values of initial vector will be estimated."),call.=FALSE);
+                                   "Values of initial vector will be backcasted."),call.=FALSE);
                     initialValue <- NULL;
-                    initialType <- "o";
+                    initialType <- "b";
                 }
                 else{
                     initialType <- "p";
