@@ -846,6 +846,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(ar.orders[i]!=0){
             if(AREstimate){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
+                names(C)[n.coef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[ar.i]);
                 n.coef <- n.coef + ar.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ar.orders[i];
             }
@@ -858,6 +859,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(ma.orders[i]!=0){
             if(MAEstimate){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
+                names(C)[n.coef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[ma.i]);
                 n.coef <- n.coef + ma.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ma.orders[i];
             }
@@ -901,6 +903,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(constantEstimate){
             constantValue <- matvt[1,nComponents];
             parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+            if(!is.null(names(C))){
+                names(C)[is.na(names(C))][1] <- "Constant";
+            }
+            else{
+                names(C)[1] <- "Constant";
+            }
         }
         const <- constantValue;
 
@@ -916,6 +924,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         constantValue <- NULL;
     }
 
+    if(initialType=="o"){
+        names(C)[is.na(names(C))] <- paste0("Component ",c(1:length(initialValue)));
+    }
+
     parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
     parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
 
@@ -923,6 +935,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(FI & parametersNumber[1,4]>1){
         environment(likelihoodFunction) <- environment();
         FI <- -numDeriv::hessian(likelihoodFunction,C);
+        rownames(FI) <- colnames(FI) <- names(C);
     }
     else{
         FI <- NA;

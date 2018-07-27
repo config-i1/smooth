@@ -160,9 +160,19 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
 #' msarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)
 #'
-#' # SARIMA of a peculiar order on AirPassengers data
-#' msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
-#'         h=10,holdout=TRUE)
+#' # SARIMA of a peculiar order on AirPassengers data with Fisher Information
+#' ourModel <- msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
+#'                     lags=c(1,6,12),h=10,holdout=TRUE,FI=TRUE)
+#'
+#' # Construct the 95% confidence intervals for the parameters of the model
+#' ourCoefs <- coef(ourModel)
+#' ourCoefsSD <- sqrt(abs(diag(solve(ourModel$FI))))
+#' # Sort values accordingly
+#' ourCoefs <- ourCoefs[names(ourCoefsSD)]
+#' ourConfInt <- cbind(ourCoefs + qt(0.025,nobs(ourModel)) * ourCoefsSD,
+#'                     ourCoefs + qt(0.975,nobs(ourModel)) * ourCoefsSD)
+#' colnames(ourConfInt) <- c("2.25%","97.5%")
+#' ourConfInt
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
 #' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
@@ -594,9 +604,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             intermittentModelsList[[i]] <- CreatorSSARIMA(silentText=TRUE);
             intermittentICs[i] <- intermittentModelsList[[i]]$bestIC[ic];
             intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
-            # if(intermittentICs[i]>intermittentICs[i-1]){
-            #     break;
-            # }
         }
         intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
         intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
@@ -709,9 +716,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     vecgX <- elements$vecgX;
     polysos.ar <- elements$arPolynomial;
     polysos.ma <- elements$maPolynomial;
-    # Need to remove polyroot() here as well and find a better substitution
-    # arRoots <- polyroot(polysos.ar);
-    # maRoots <- polyroot(polysos.ma);
 
     nComponents <- nComponents + constantRequired;
 
@@ -831,6 +835,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(ar.orders[i]!=0){
             if(AREstimate){
                 ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
+                names(C)[n.coef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[ar.i]);
                 n.coef <- n.coef + ar.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ar.orders[i];
             }
@@ -843,6 +848,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(ma.orders[i]!=0){
             if(MAEstimate){
                 MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
+                names(C)[n.coef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[ma.i]);
                 n.coef <- n.coef + ma.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ma.orders[i];
             }
@@ -886,6 +892,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(constantEstimate){
             constantValue <- matvt[1,nComponents];
             parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+            if(!is.null(names(C))){
+                names(C)[is.na(names(C))][1] <- "Constant";
+            }
+            else{
+                names(C)[1] <- "Constant";
+            }
         }
         const <- constantValue;
 
@@ -908,6 +920,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(FI & parametersNumber[1,4]>1){
         environment(likelihoodFunction) <- environment();
         FI <- -numDeriv::hessian(likelihoodFunction,C);
+        rownames(FI) <- colnames(FI) <- names(C);
     }
     else{
         FI <- NA;

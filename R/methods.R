@@ -735,11 +735,11 @@ coef.smooth <- function(object, ...)
             namesConstant <- NamesMA <- NamesAR <- parameters <- NULL;
             if(any(object$AR!=0)){
                 parameters <- c(parameters,object$AR);
-                NamesAR <- paste(rownames(object$AR),rep(colnames(object$AR),each=ncol(object$AR)),sep=", ");
+                NamesAR <- paste(rownames(object$AR),rep(colnames(object$AR),each=nrow(object$AR)),sep=", ");
             }
             if(any(object$MA!=0)){
                 parameters <- c(parameters,object$MA);
-                NamesMA <- paste(rownames(object$MA),rep(colnames(object$MA),each=ncol(object$MA)),sep=", ")
+                NamesMA <- paste(rownames(object$MA),rep(colnames(object$MA),each=nrow(object$MA)),sep=", ")
             }
             if(object$constant!=0){
                 parameters <- c(parameters,object$constant);
