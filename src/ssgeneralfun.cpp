@@ -1151,8 +1151,15 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
     * # matrixAt is the matrix with the parameters for the exogenous
     */
 
+    int nloops;
+    // If... this is ssarima, don't do backcasting
+    if(all(lags==1) & (lags.n_elem > 3)){
+        nloops = 0;
+    }
+    else{
     // This means that we do only one loop (forward -> backwards -> forward)
-    int nloops = 1;
+        nloops = 1;
+    }
 
     matrixVt = matrixVt.t();
     matrixAt = matrixAt.t();
