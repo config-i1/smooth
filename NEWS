@@ -1,4 +1,4 @@
-smooth v2.4.6 (Release data: 2018-07-26)
+smooth v2.4.6 (Release data: 2018-07-29)
 ==============
 
 Changes:
@@ -16,6 +16,7 @@ Bugfixes
 * es() would not count damping parameter as parameter in the initialisation if model selection is chosen.
 * Bugfix for pls(), when the multiple steps ahead covariance matrix is becoming too large to calculate its determinant.
 * RelMAE, RelMSE and RelAME were calculated incorrectly in smoothCombine.
+* No more warnings from iss(x, intermittent="p") when the data is only slightly intermittent.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)
