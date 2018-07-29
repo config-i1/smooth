@@ -324,7 +324,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 #### TSB method ####
     else if(intermittent=="p"){
         if(is.null(model)){
-            model <- "YYY";
+            model <- "YYN";
         }
         if(is.null(initial)){
             initial <- "o";
