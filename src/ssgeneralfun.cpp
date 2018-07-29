@@ -1749,7 +1749,13 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         // TSB
         case 22:
-            CFres = -(sum(log(vecYfit.elem(find(vecYt>0.5)))) + sum(log(1-vecYfit.elem(find(vecYt<0.5)))));
+            arma::vec vecyFitFinite;
+            vecyFitFinite = log(vecYfit.elem(find(vecYt>=0.5)));
+            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
+            CFres = -sum(vecyFitFinite);
+            vecyFitFinite = log(1-vecYfit.elem(find(vecYt<0.5)));
+            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
+            CFres = CFres - sum(vecyFitFinite);
         }
     break;
     case 'M':
@@ -1855,7 +1861,13 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         // TSB
         case 22:
-            CFres = -(sum(log(vecYfit.elem(find(vecYt>0.5)))) + sum(log(1-vecYfit.elem(find(vecYt<0.5)))));
+            arma::vec vecyFitFinite;
+            vecyFitFinite = log(vecYfit.elem(find(vecYt>=0.5)));
+            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
+            CFres = -sum(vecyFitFinite);
+            vecyFitFinite = log(1-vecYfit.elem(find(vecYt<0.5)));
+            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
+            CFres = CFres - sum(vecyFitFinite);
         }
     }
     return CFres;
