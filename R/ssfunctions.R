@@ -2975,6 +2975,9 @@ likelihoodFunction <- function(C){
         # else if(any(cfType==c("LogisticD","LogisticL"))){
         #     return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
         # }
+        else if(cfType==c("TSB")){
+            return(CF(C));
+        }
         else{
             #if(cfType==c("MSE","MSEh","MSCE"))
             return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
