@@ -1201,10 +1201,10 @@ CreatorES <- function(silent=FALSE,...){
                                        mean(c(1:min(max(datafreq,12), obsNonzero))));
             if(any(cfType=="LogisticD")){
                 if(all(yot[1:min(max(datafreq,12),obsNonzero)]==0)){
-                    initialstates[1,1] <- -500;
+                    initialstates[1,1] <- -50;
                 }
                 else if(all(yot[1:min(max(datafreq,12),obsNonzero)]==1)){
-                    initialstates[1,1] <- 500;
+                    initialstates[1,1] <- 50;
                 }
                 else{
                     initialstates[1,1] <- (initialstates[1,1] - 0.5);
@@ -1235,6 +1235,14 @@ CreatorES <- function(silent=FALSE,...){
             initialstates <- matrix(rep(mean(yot[1:min(max(datafreq,12),obsNonzero)]),4),nrow=1);
             if(any(cfType=="LogisticL") & any(initialstates==0)){
                 initialstates[initialstates==0] <- 0.001;
+            }
+            if(any(cfType=="LogisticD")){
+                if(all(yot[1:min(max(datafreq,12),obsNonzero)]==0)){
+                    initialstates[,] <- -50;
+                }
+                else if(all(yot[1:min(max(datafreq,12),obsNonzero)]==1)){
+                    initialstates[,] <- 50;
+                }
             }
         }
         else{
