@@ -2374,6 +2374,12 @@ ssForecaster <- function(...){
                                    matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX)),
                     start=yForecastStart,frequency=datafreq);
 
+        if(any(cfType==c("LogisticL","LogisticD"))){
+            if(any(is.nan(y.for)) | any(is.infinite(y.for))){
+                y.for[] <- matvt[obsInsample,1];
+            }
+        }
+
         if(any(is.nan(y.for))){
             warning(paste0("NaNs were produced in the forecast.\n",
                            "This could happen if you used multiplicative model on non-positive data. Please, use a different model."),call.=FALSE);
@@ -2385,28 +2391,6 @@ ssForecaster <- function(...){
             if(intervals){
                 warning("And don't expect anything reasonable from the prediction intervals!",call.=FALSE);
             }
-        }
-
-        # Bias correction for the MZZ models and log-normality assumption
-        # This only works for pure multiplicative models.
-        # The mixed models can go to hell right now...
-        if(Etype=="M" & h>1){
-            ### This is the conditional mean of ETS(M,N,N)
-            # y.for <- y.for * c((1-vecg + vecg*exp(s2/2))^c(0:(h-1))*exp(s2/2));
-        #     # logErrorBias <- log(((1-vecg)+vecg*exp(s2/2))^2 /
-        #                             # sqrt(vecg^2*exp(s2)*(exp(s2)-1)+((1-vecg)+vecg*exp(s2/2))^2));
-        #     logErrorBias <- rowMeans(log(1 + vecg %*% as.vector(errors*ot)))
-        #     yForBias <- rep(NA,h);
-        #     yForBias[1] <- 0;
-        #     for(i in 2:h){
-        #         yForBias[i] <- matw %*% matrixPowerWrap(matF,i-1) %*% logErrorBias;
-        #     }
-        #     yForBias <- ts(cumsum(yForBias),start=yForecastStart,frequency=datafreq);
-        #     y.for <- y.for*exp(yForBias);
-        #
-        #     if(any(y.for<0)){
-        #         y.for[y.for<0] <- 1e-5;
-        #     }
         }
 
         # Write down the forecasting intervals
@@ -2972,11 +2956,8 @@ likelihoodFunction <- function(C){
         else if(any(cfType==c("TFL","aTFL"))){
             return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
         }
-        # else if(any(cfType==c("LogisticD","LogisticL"))){
-        #     return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
-        # }
-        else if(cfType==c("TSB")){
-            return(CF(C));
+        else if(any(cfType==c("LogisticD","LogisticL","TSB"))){
+            return(-CF(C));
         }
         else{
             #if(cfType==c("MSE","MSEh","MSCE"))

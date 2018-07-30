@@ -1075,8 +1075,14 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
         lagrows = i * nComponents - lagsInternal + nComponents - 1;
 
 /* # Measurement equation and the error term */
-        vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
-                                                         matrixXt.row(i-maxlag), matrixAt.col(i-1));
+        vecYfit(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+                                                     matrixXt.row(i-maxlag), matrixAt.col(i-1));
+
+        // This is a failsafe for cases of ridiculously high and ridiculously low values
+        if(vecYfit(i-maxlag) > 1e+100){
+            vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
+        }
+
         vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -1096,6 +1102,9 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
             }
         }
+        if(any(matrixVt.col(i)>1e+100)){
+            matrixVt.col(i) = matrixVt(lagrows);
+        }
 
 /* Renormalise components if the seasonal model is chosen */
         if(S!='N'){
@@ -1113,10 +1122,21 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
         lagrows = i * nComponents - lagsInternal + nComponents - 1;
         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
         matrixAt.col(i) = matrixFX * matrixAt.col(i-1);
-    }
 
-    // matrixVt = matrixVt.t();
-    // matrixAt = matrixAt.t();
+/* Failsafe for cases when unreasonable value for state vector was produced */
+        if(!matrixVt.col(i).is_finite()){
+            matrixVt.col(i) = matrixVt(lagrows);
+        }
+        if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+            matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
+        }
+        if(T=='M'){
+            if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
+                matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
+            }
+        }
+    }
 
     if(E=='D'){
         // This is a logistic additive error
@@ -1124,9 +1144,11 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
         // If there are very large values, substitute them by 1 / 0 respectively
         if(arma::any(vecYfit> 500)){
             vecYfitNew(find(vecYfit> 500)).fill(1);
+            matrixVt(find(matrixVt>500)).fill(500);
         }
         if(arma::any(vecYfit< -500)){
             vecYfitNew(find(vecYfit< -500)).fill(0);
+            matrixVt(find(matrixVt< -500)).fill(-500);
         }
         vecYfit = vecYfitNew;
     }
@@ -1215,9 +1237,20 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents - (lagsInternal + lagsModifier) + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
-                                                             matrixXt.row(i-maxlag), matrixAt.col(i-1));
+            vecYfit(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+                                                         matrixXt.row(i-maxlag), matrixAt.col(i-1));
+
+            // This is a failsafe for cases of ridiculously high and ridiculously low values
+            if(vecYfit(i-maxlag) > 1e+100){
+                vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
+            }
+
             vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+
+            // This is a failsafe for cases of ridiculously high and ridiculously low values
+            if(!vecYfit.row(i-maxlag).is_finite()){
+                vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
+            }
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
@@ -1235,6 +1268,9 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                     matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
+            }
+            if(any(matrixVt.col(i)>1e+100)){
+                matrixVt.col(i) = matrixVt(lagrows);
             }
 
 /* Renormalise components if the seasonal model is chosen */
@@ -1253,6 +1289,23 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents - (lagsInternal + lagsModifier) + nComponents - 1;
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
             matrixAt.col(i) = matrixFX * matrixAt.col(i-1);
+
+/* Failsafe for cases when unreasonable value for state vector was produced */
+            if(!matrixVt.col(i).is_finite()){
+                matrixVt.col(i) = matrixVt(lagrows);
+            }
+            if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+                matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
+            }
+            if(T=='M'){
+                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                    matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
+                    matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
+                }
+            }
+            if(any(matrixVt.col(i)>1e+100)){
+                matrixVt.col(i) = matrixVt(lagrows);
+            }
         }
 
 /* # If this is the last loop, stop here and don't do backcast */
@@ -1267,6 +1320,12 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 /* # Measurement equation and the error term */
             vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i+1));
+
+            // This is for cases of ridiculously high and ridiculously low values
+            if(vecYfit(i-maxlag) > 1e+100){
+                vecYfit.col(i-maxlag) = vecYfit(i-maxlag+1);
+            }
+
             vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
 
 /* # Transition equation */
@@ -1286,6 +1345,9 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
             }
+            if(any(matrixVt.col(i)>1e+100)){
+                matrixVt.col(i) = matrixVt(lagrows);
+            }
 
 /* Skipping renormalisation of components in backcasting */
 
@@ -1298,12 +1360,39 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S);
             matrixAt.col(i) = matrixFX * matrixAt.col(i+1);
+
+/* Failsafe for cases when unreasonable value for state vector was produced */
+            if(!matrixVt.col(i).is_finite()){
+                matrixVt.col(i) = matrixVt(lagrows);
+            }
+            if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+                matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
+            }
+            if(T=='M'){
+                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                    matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
+                    matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
+                }
+            }
+            if(any(matrixVt.col(i)>1e+100)){
+                matrixVt.col(i) = matrixVt(lagrows);
+            }
         }
     }
 
     if(E=='D'){
         // This is a logistic additive error
-        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
+        arma::vec vecYfitNew = exp(vecYfit) / (1 + exp(vecYfit));
+        // If there are very large values, substitute them by 1 / 0 respectively
+        if(arma::any(vecYfit> 500)){
+            vecYfitNew(find(vecYfit> 500)).fill(1);
+            matrixVt(find(matrixVt>500)).fill(500);
+        }
+        if(arma::any(vecYfit< -500)){
+            vecYfitNew(find(vecYfit< -500)).fill(0);
+            matrixVt(find(matrixVt< -500)).fill(-500);
+        }
+        vecYfit = vecYfitNew;
     }
     else if(E=='L'){
         // This is a logistic multiplicative error
@@ -1749,13 +1838,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         // TSB
         case 22:
-            arma::vec vecyFitFinite;
-            vecyFitFinite = log(vecYfit.elem(find(vecYt>=0.5)));
-            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
-            CFres = -sum(vecyFitFinite);
-            vecyFitFinite = log(1-vecYfit.elem(find(vecYt<0.5)));
-            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
-            CFres = CFres - sum(vecyFitFinite);
+            CFres = -sum(log(vecYfit.elem(find(vecYt>=0.5)))) - sum(log(1-vecYfit.elem(find(vecYt<0.5))));
         }
     break;
     case 'M':
@@ -1861,13 +1944,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         // TSB
         case 22:
-            arma::vec vecyFitFinite;
-            vecyFitFinite = log(vecYfit.elem(find(vecYt>=0.5)));
-            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
-            CFres = -sum(vecyFitFinite);
-            vecyFitFinite = log(1-vecYfit.elem(find(vecYt<0.5)));
-            vecyFitFinite = vecyFitFinite.elem(arma::find_finite(vecyFitFinite));
-            CFres = CFres - sum(vecyFitFinite);
+            CFres = -sum(log(vecYfit.elem(find(vecYt>=0.5)))) - sum(log(1-vecYfit.elem(find(vecYt<0.5))));
         }
     }
     return CFres;

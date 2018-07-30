@@ -1233,6 +1233,9 @@ CreatorES <- function(silent=FALSE,...){
     else{
         if(initialType!="p"){
             initialstates <- matrix(rep(mean(yot[1:min(max(datafreq,12),obsNonzero)]),4),nrow=1);
+            if(any(cfType=="LogisticL") & any(initialstates==0)){
+                initialstates[initialstates==0] <- 0.001;
+            }
         }
         else{
             initialstates <- matrix(rep(initialValue,4),nrow=1);
