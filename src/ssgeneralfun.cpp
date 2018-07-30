@@ -139,15 +139,9 @@ arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
     }
     else if(E=='D'){
         // This is an additive logistic error
-        if(any(vectorise(yfit) > 500)){
-            yfit(find(yfit > 500)).fill(1);
-        }
-        else if(any(vectorise(yfit) > 500)){
-            yfit(find(yfit< -500)).fill(0);
-        }
-        else{
-            yfit = exp(yfit) / (1 + exp(yfit));
-        }
+        yfit = clamp(yfit, -500,500);
+        yfit = exp(yfit) / (1 + exp(yfit));
+
         return log((1 + yact - yfit)/(1 - yact + yfit));
     }
     else if(E=='L'){
@@ -1106,6 +1100,11 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
             matrixVt.col(i) = matrixVt(lagrows);
         }
 
+        if(E=='D'){
+            // This is a restriction of values for logistic additive error model
+            matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
+        }
+
 /* Renormalise components if the seasonal model is chosen */
         if(S!='N'){
             if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
@@ -1136,21 +1135,17 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
             }
         }
+
+        if(E=='D'){
+            // This is a restriction of values for logistic additive error model
+            matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
+        }
     }
 
     if(E=='D'){
         // This is a logistic additive error
-        arma::vec vecYfitNew = exp(vecYfit) / (1 + exp(vecYfit));
-        // If there are very large values, substitute them by 1 / 0 respectively
-        if(arma::any(vecYfit> 500)){
-            vecYfitNew(find(vecYfit> 500)).fill(1);
-            matrixVt(find(matrixVt>500)).fill(500);
-        }
-        if(arma::any(vecYfit< -500)){
-            vecYfitNew(find(vecYfit< -500)).fill(0);
-            matrixVt(find(matrixVt< -500)).fill(-500);
-        }
-        vecYfit = vecYfitNew;
+        vecYfit = clamp(vecYfit, -500,500);
+        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
     }
     else if(E=='L'){
         // This is a logistic multiplicative error
@@ -1273,6 +1268,11 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt.col(i) = matrixVt(lagrows);
             }
 
+            if(E=='D'){
+                // This is a restriction of values for logistic additive error model
+                matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
+            }
+
 /* Renormalise components if the seasonal model is chosen */
             if(S!='N'){
                 if(double(i+1) / double(maxlag) == double((i+1) / maxlag)){
@@ -1305,6 +1305,11 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             }
             if(any(matrixVt.col(i)>1e+100)){
                 matrixVt.col(i) = matrixVt(lagrows);
+            }
+
+            if(E=='D'){
+                // This is a restriction of values for logistic additive error model
+                matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
             }
         }
 
@@ -1349,6 +1354,11 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt.col(i) = matrixVt(lagrows);
             }
 
+            if(E=='D'){
+                // This is a restriction of values for logistic additive error model
+                matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
+            }
+
 /* Skipping renormalisation of components in backcasting */
 
 /* # Transition equation for xreg */
@@ -1377,22 +1387,18 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             if(any(matrixVt.col(i)>1e+100)){
                 matrixVt.col(i) = matrixVt(lagrows);
             }
+
+            if(E=='D'){
+                // This is a restriction of values for logistic additive error model
+                matrixVt.col(i) = clamp(matrixVt.col(i), -500,500);
+            }
         }
     }
 
     if(E=='D'){
         // This is a logistic additive error
-        arma::vec vecYfitNew = exp(vecYfit) / (1 + exp(vecYfit));
-        // If there are very large values, substitute them by 1 / 0 respectively
-        if(arma::any(vecYfit> 500)){
-            vecYfitNew(find(vecYfit> 500)).fill(1);
-            matrixVt(find(matrixVt>500)).fill(500);
-        }
-        if(arma::any(vecYfit< -500)){
-            vecYfitNew(find(vecYfit< -500)).fill(0);
-            matrixVt(find(matrixVt< -500)).fill(-500);
-        }
-        vecYfit = vecYfitNew;
+        vecYfit = clamp(vecYfit, -500,500);
+        vecYfit = exp(vecYfit) / (1 + exp(vecYfit));
     }
     else if(E=='L'){
         // This is a logistic multiplicative error
