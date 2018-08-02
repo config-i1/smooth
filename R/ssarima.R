@@ -937,7 +937,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         FI <- -numDeriv::hessian(likelihoodFunction,C);
         rownames(FI) <- colnames(FI) <- names(C);
         if(initialType=="o"){
-            # Leave only AR and MA parameters. Forget about the initials
+            # Leave only AR and MA parameters. Forget about the initials and exogenous
             FI <- FI[!is.na(rownames(FI)),!is.na(colnames(FI))];
         }
     }
