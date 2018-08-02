@@ -35,9 +35,7 @@
 #' \item \link[smooth]{orders} - extracts orders of the fitted model.
 #' \item \link[smooth]{lags} - extracts lags of the fitted model.
 #' \item \link[smooth]{modelType} - extracts type of the fitted model.
-#' \item \link[smooth]{errorType} - extracts type of the error in the model.
 #' \item \link[smooth]{forecast} - produces forecast using provided model.
-#' \item \link[smooth]{pointLik} - returns the likelihood values for each in-sample observation.
 #' \item \link[smooth]{covar} - returns covariance matrix of multiple steps ahead forecast errors.
 #' \item \link[smooth]{pls} - returns Prediction Likelihood Score.
 #' \item \link[greybox]{nParam} - returns number of the estimated parameters.

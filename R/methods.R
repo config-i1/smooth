@@ -1,7 +1,7 @@
 #' Functions that extract values from the fitted model
 #'
 #' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
-#' type of model from \code{es()} and \code{ces()} and error type of all the above.
+#' type of model from \code{es()} and \code{ces()} and name of model.
 #'
 #' \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
 #' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
@@ -18,7 +18,7 @@
 #' @aliases orders
 #' @param object Model estimated using one of the functions of smooth package.
 #' @param ... Currently nothing is accepted via ellipsis.
-#' @return     Either vector or list with values is returned.
+#' @return     Either vector, scalar or list with values is returned.
 #' \code{orders()} in case of ssarima returns list of values:
 #' \itemize{
 #' \item \code{ar} - AR orders.
@@ -37,7 +37,6 @@
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
-#' errorType(ourModel)
 #' modelName(ourModel)
 #'
 #' # And as another example it does the opposite for ges() and ssarima()
@@ -45,7 +44,6 @@
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
-#' errorType(ourModel)
 #' modelName(ourModel)
 #'
 #' # Finally these values can be used for simulate functions or original functions.
@@ -76,15 +74,9 @@ modelName <- function(object, ...) UseMethod("modelName")
 #' @export modelType
 modelType <- function(object, ...) UseMethod("modelType")
 
-
 modelLags <- function(object, ...) UseMethod("modelLags")
 
 smoothType <- function(object, ...) UseMethod("smoothType")
-
-#' @aliases errorType
-#' @rdname orders
-#' @export errorType
-errorType <- function(object, ...) UseMethod("errorType")
 
 ##### Likelihood function and stuff #####
 
@@ -572,63 +564,19 @@ pls.smooth <- function(object, holdout=NULL, ...){
     return(plsValue);
 }
 
-
-#' Point likelihood values
-#'
-#' This function returns a vector of logarithms of likelihoods for each observation
-#'
-#' Instead of taking the expected log-likelihood for the whole series, this function
-#' calculates the individual value for each separate observation. Note that these
-#' values are biased, so you would possibly need to take number of degrees of freedom
-#' into account in order to have an unbiased estimator.
-#'
-#' This value is based on the general likelihood (not its concentrated version), so
-#' the sum of these values may slightly differ from the output of logLik.
-#'
-#' @aliases pointLik
-#' @param object Time series model.
-#' @param ...  Some stuff.
-#' @return This function returns a vector.
-#' @template ssAuthor
-#' @seealso \link[stats]{AIC}, \link[stats]{BIC}
-#' @keywords htest
-#' @examples
-#'
-#' ourModel <- ces(rnorm(100,0,1),h=10)
-#'
-#' pointLik(ourModel)
-#'
-#' # Bias correction
-#' pointLik(ourModel) - nParam(ourModel)
-#'
-#' # Bias correction in AIC style
-#' 2*(nParam(ourModel)/nobs(ourModel) - pointLik(ourModel))
-#'
-#' # BIC calculation based on pointLik
-#' log(nobs(ourModel))*nParam(ourModel) - 2*sum(pointLik(ourModel))
-#'
-#' @export pointLik
-pointLik <- function(object, ...) UseMethod("pointLik")
-
+#' @importFrom stats sigma
 #' @export
-pointLik.default <- function(object, ...){
-    obs <- nobs(object);
-    errors <- residuals(object);
-    likValues <- dnorm(errors, 0, sigma(object), TRUE);
-
-    return(likValues);
+sigma.smooth <- function(object, ...){
+    return(sqrt(object$s2));
 }
 
 #' @export
-pointLik.ets <- function(object, ...){
-    likValues <- pointLik.default(object);
-    if(errorType(object)=="M"){
-        likValues <- likValues - log(abs(fitted(object)));
-    }
-
-    return(likValues);
+sigma.ets <- function(object, ...){
+    return(sqrt(object$sigma2));
 }
 
+#### pointLik for smooth ####
+#' @importFrom greybox pointLik
 #' @export
 pointLik.smooth <- function(object, ...){
     obs <- nobs(object);
@@ -654,53 +602,6 @@ pointLik.smooth <- function(object, ...){
     likValues <- ts(as.vector(likValues), start=start(errors), frequency=frequency(errors));
 
     return(likValues);
-}
-
-#' Point AIC
-#'
-#' This function returns a vector of AIC values for the in-sample observations
-#'
-#' This is based on \link[smooth]{pointLik} function. The formula for this is:
-#' pAIC_t = 2 * k - 2 * T * l_t ,
-#' where k is the number of parameters, T is the number of observations and l_t is
-#' the point likelihood. This way we preserve the property that AIC = mean(pAIC).
-#'
-#' @aliases pAIC
-#' @param object Time series model.
-#' @param ...  Some stuff.
-#' @return The function returns the vector of point AIC values.
-#' @template ssAuthor
-#' @seealso \link[smooth]{pointLik}
-#' @keywords htest
-#' @examples
-#'
-#' ourModel <- ces(rnorm(100,0,1),h=10)
-#'
-#' pAICValues <- pAIC(ourModel)
-#'
-#' mean(pAICValues)
-#' AIC(ourModel)
-#'
-#' @export pAIC
-pAIC <- function(object, ...) UseMethod("pAIC")
-
-#' @export
-pAIC.default <- function(object, ...){
-    obs <- nobs(object);
-    k <- nParam(object);
-    return(2*k - 2 * obs * pointLik(object));
-}
-
-
-#' @importFrom stats sigma
-#' @export
-sigma.smooth <- function(object, ...){
-    return(sqrt(object$s2));
-}
-
-#' @export
-sigma.ets <- function(object, ...){
-    return(sqrt(object$sigma2));
 }
 
 #### Extraction of parameters of models ####
@@ -967,21 +868,7 @@ lags.smooth <- function(object, ...){
 lags.smooth.sim <- lags.smooth;
 
 #### Function extracts type of error in the model: "A" or "M" ####
-#' @export
-errorType.default <- function(object, ...){
-    return("A");
-}
-
-#' @export
-errorType.ets <- function(object, ...){
-    if(substr(object$method,5,5)=="M"){
-        return("M");
-    }
-    else{
-        return("A");
-    }
-}
-
+#' @importFrom greybox errorType
 #' @export
 errorType.smooth <- function(object, ...){
     smoothType <- smoothType(object);

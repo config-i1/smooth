@@ -5,7 +5,6 @@
 \alias{lags}
 \alias{modelName}
 \alias{modelType}
-\alias{errorType}
 \title{Functions that extract values from the fitted model}
 \usage{
 orders(object, ...)
@@ -15,8 +14,6 @@ lags(object, ...)
 modelName(object, ...)
 
 modelType(object, ...)
-
-errorType(object, ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
@@ -24,7 +21,7 @@ errorType(object, ...)
 \item{...}{Currently nothing is accepted via ellipsis.}
 }
 \value{
-Either vector or list with values is returned.
+Either vector, scalar or list with values is returned.
 \code{orders()} in case of ssarima returns list of values:
 \itemize{
 \item \code{ar} - AR orders.
@@ -36,7 +33,7 @@ All the other functions return strings of character.
 }
 \description{
 These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
-type of model from \code{es()} and \code{ces()} and error type of all the above.
+type of model from \code{es()} and \code{ces()} and name of model.
 }
 \details{
 \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
@@ -57,7 +54,6 @@ ourModel <- ces(x, h=10)
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
-errorType(ourModel)
 modelName(ourModel)
 
 # And as another example it does the opposite for ges() and ssarima()
@@ -65,7 +61,6 @@ ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)
-errorType(ourModel)
 modelName(ourModel)
 
 # Finally these values can be used for simulate functions or original functions.
