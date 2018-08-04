@@ -322,8 +322,7 @@ logLik.smooth <- function(object,...){
         return(NULL);
     }
     else{
-        obs <- nobs(object);
-        return(structure(object$logLik,nobs=obs,df=nParam(object),class="logLik"));
+        return(structure(object$logLik,nobs=nobs(object),df=nParam(object),class="logLik"));
     }
 }
 #' @export

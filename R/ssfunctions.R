@@ -2763,7 +2763,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                             xreg <- matrix(xreg[,-removexreg],ncol=ncol(xreg)-length(removexreg),
                                            dimnames=list(NULL,c(colnames(xreg)[-removexreg])));
                         }
-                        nExovars <- ncol(xreg)
+                        nExovars <- ncol(xreg);
                         warning("Some exogenous variables were perfectly correlated. We've dropped them out.",
                                 call.=FALSE);
                     }
