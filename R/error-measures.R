@@ -412,7 +412,6 @@ Accuracy <- function(holdout, forecast, actual, digits=NULL){
     benchmark <- rep(actual[length(actual)],length(holdout));
     errormeasures <- c(MAE(holdout,forecast,digits=digits),
                        MSE(holdout,forecast,digits=digits),
-                       MRE(holdout,forecast,digits=digits),
                        MPE(holdout,forecast,digits=digits),
                        MAPE(holdout,forecast,digits=digits),
                        MASE(holdout,forecast,mean(abs(diff(actual))),digits=digits),
