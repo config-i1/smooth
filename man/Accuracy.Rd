@@ -48,13 +48,13 @@ Accuracy(y[91:100],esmodel$forecast,y[1:90],digits=5)
 }
 \references{
 \itemize{
-\item Fildes, R. (1992). The evaluation of
+\item Svetunkov, I. (2017). Naughty APEs and the quest for the holy grail.
+\url{https://forecasting.svetunkov.ru/en/2017/07/29/naughty-apes-and-the-quest-for-the-holy-grail/}
+\item Fildes R. (1992). The evaluation of
 extrapolative forecasting methods. International Journal of Forecasting, 8,
 pp.81-98.
 \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
 forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
-\item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
-concerns. International Journal of Forecasting, 9, pp.527-529.
 \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
 intermittent demand. Journal of the Operational Research Society, 66,
 pp.914-924.

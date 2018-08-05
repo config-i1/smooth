@@ -1,15 +1,27 @@
 #' Error measures
 #'
-#' Functions allow to calculate different types of errors: \enumerate{ \item MPE
-#' - Mean Percentage Error, \item MAPE - Mean Absolute Percentage Error,
-#' \item SMAPE - Symmetric Mean Absolute Percentage Error, \item MASE - Mean
-#' Absolute Scaled Error, \item RelMAE - Relative Mean Absolute Error,
-#' \item RelMSE - Relative Mean Squared Error, \item RelAME - Relative
-#' Absolute Mean Error, \item sMSE - Scaled Mean Squared Error,
-#' \item sPIS- Scaled Periods-In-Stock, \item sCE - Scaled Cumulative Error.  }
+#' Functions allow to calculate different types of errors:
+#' \enumerate{
+#' \item MAE - Mean Absolute Error,
+#' \item MSE - Mean Squared Error,
+#' \item MRE - Mean Root Error,
+#' \item MPE - Mean Percentage Error,
+#' \item MAPE - Mean Absolute Percentage Error,
+#' \item SMAPE - Symmetric Mean Absolute Percentage Error,
+#' \item MASE - Mean Absolute Scaled Error,
+#' \item RelMAE - Relative Mean Absolute Error,
+#' \item RelMSE - Relative Mean Squared Error,
+#' \item RelAME - Relative Absolute Mean Error,
+#' \item sMSE - Scaled Mean Squared Error,
+#' \item sPIS- Scaled Periods-In-Stock,
+#' \item sCE - Scaled Cumulative Error.
+#' }
 #'
 #' In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical
 #' one -- squared mean value of in-sample actuals.
+#'
+#' SMAPE is biased and prefers when you overforecast, so be careful when
+#' using it.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
@@ -25,19 +37,23 @@
 #' @param digits Number of digits of the output.
 #' @return All the functions return the scalar value.
 #' @references \itemize{
-#' \item Fildes, R. (1992). The evaluation of
+#' \item Svetunkov, I. (2017). Naughty APEs and the quest for the holy grail.
+#' \url{https://forecasting.svetunkov.ru/en/2017/07/29/naughty-apes-and-the-quest-for-the-holy-grail/}
+#' \item Fildes R. (1992). The evaluation of
 #' extrapolative forecasting methods. International Journal of Forecasting, 8,
 #' pp.81-98.
 #' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
 #' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
-#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
-#' concerns. International Journal of Forecasting, 9, pp.527-529.
 #' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
 #' intermittent demand. Journal of the Operational Research Society, 66,
 #' pp.914-924.
 #' \item Wallstrom P., Segerstedt A. (2010). Evaluation of forecasting error
 #' measurements and techniques for intermittent demand. International Journal
 #' of Production Economics, 128, pp.625-636.
+#' \item Davydenko, A., Fildes, R. (2013). Measuring Forecasting Accuracy:
+#' The Case Of Judgmental Adjustments To Sku-Level Demand Forecasts.
+#' International Journal of Forecasting, 29(3), 510-522.
+#' \url{https://doi.org/10.1016/j.ijforecast.2012.09.002}
 #' }
 #' @examples
 #'
@@ -45,9 +61,11 @@
 #' y <- rnorm(100,10,2)
 #' esmodel <- es(y[1:90],model="ANN",h=10)
 #'
+#' MAE(y[91:100],esmodel$forecast,digits=5)
+#' MSE(y[91:100],esmodel$forecast,digits=5)
+#'
 #' MPE(y[91:100],esmodel$forecast,digits=5)
 #' MAPE(y[91:100],esmodel$forecast,digits=5)
-#' SMAPE(y[91:100],esmodel$forecast,digits=5)
 #' MASE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
 #' MASE(y[91:100],esmodel$forecast,mean(abs(diff(y[1:90]))),digits=5)
 #'
@@ -62,6 +80,60 @@
 #'
 #' @rdname error-measures
 
+
+#' @rdname error-measures
+#' @export MAE
+#' @aliases MAE
+MAE <- function(actual,forecast,digits=3){
+# This function calculates Mean Absolute Error
+# actual - actual values,
+# forecast - forecasted values.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        return(round(mean(abs(actual-forecast),na.rm=TRUE),digits=digits));
+    }
+}
+
+#' @rdname error-measures
+#' @export MSE
+#' @aliases MSE
+MSE <- function(actual,forecast,digits=3){
+# This function calculates Mean squared Error
+# actual - actual values,
+# forecast - forecasted values.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        return(round(mean((actual-forecast)^2,na.rm=TRUE),digits=digits));
+    }
+}
+
+#' @rdname error-measures
+#' @export MRE
+#' @aliases MRE
+MRE <- function(actual,forecast,digits=3){
+# This function calculates Mean squared Error
+# actual - actual values,
+# forecast - forecasted values.
+    if(length(actual) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        return(round(mean(sqrt(as.complex(actual-forecast)),na.rm=TRUE),digits=digits));
+    }
+}
 
 #' @rdname error-measures
 #' @export MPE
@@ -303,13 +375,13 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' }
 #' For the details on these errors, see \link[smooth]{Errors}.
 #' @references \itemize{
-#' \item Fildes, R. (1992). The evaluation of
+#' \item Svetunkov, I. (2017). Naughty APEs and the quest for the holy grail.
+#' \url{https://forecasting.svetunkov.ru/en/2017/07/29/naughty-apes-and-the-quest-for-the-holy-grail/}
+#' \item Fildes R. (1992). The evaluation of
 #' extrapolative forecasting methods. International Journal of Forecasting, 8,
 #' pp.81-98.
 #' \item Hyndman R.J., Koehler A.B. (2006). Another look at measures of
 #' forecast accuracy. International Journal of Forecasting, 22, pp.679-688.
-#' \item Makridakis, S. (1993). Accuracy measures: Theoretical and practical
-#' concerns. International Journal of Forecasting, 9, pp.527-529.
 #' \item Petropoulos F., Kourentzes N. (2015). Forecast combinations for
 #' intermittent demand. Journal of the Operational Research Society, 66,
 #' pp.914-924.
@@ -338,7 +410,10 @@ Accuracy <- function(holdout, forecast, actual, digits=NULL){
     forecast <- as.vector(forecast);
     actual <- as.vector(actual);
     benchmark <- rep(actual[length(actual)],length(holdout));
-    errormeasures <- c(MPE(holdout,forecast,digits=digits),
+    errormeasures <- c(MAE(holdout,forecast,digits=digits),
+                       MSE(holdout,forecast,digits=digits),
+                       MRE(holdout,forecast,digits=digits),
+                       MPE(holdout,forecast,digits=digits),
                        MAPE(holdout,forecast,digits=digits),
                        MASE(holdout,forecast,mean(abs(diff(actual))),digits=digits),
                        MASE(holdout,forecast,mean(abs(actual)),digits=digits),
@@ -349,7 +424,9 @@ Accuracy <- function(holdout, forecast, actual, digits=NULL){
                        RelAME(holdout,forecast,benchmark,digits=digits),
                        cbias(holdout-forecast,0,digits=digits),
                        sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
-    names(errormeasures) <- c("MPE","MAPE","MASE","sMAE","sMSE","sCE",
+    names(errormeasures) <- c("MAE","MSE","MRE",
+                              "MPE","MAPE",
+                              "MASE","sMAE","sMSE","sCE",
                               "RelMAE","RelMSE","RelAME","cbias","sPIS");
 
     return(errormeasures);
