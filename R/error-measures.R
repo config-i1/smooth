@@ -423,7 +423,7 @@ Accuracy <- function(holdout, forecast, actual, digits=NULL){
                        RelAME(holdout,forecast,benchmark,digits=digits),
                        cbias(holdout-forecast,0,digits=digits),
                        sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
-    names(errormeasures) <- c("MAE","MSE","MRE",
+    names(errormeasures) <- c("MAE","MSE",
                               "MPE","MAPE",
                               "MASE","sMAE","sMSE","sCE",
                               "RelMAE","RelMSE","RelAME","cbias","sPIS");
