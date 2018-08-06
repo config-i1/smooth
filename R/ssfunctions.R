@@ -1649,6 +1649,11 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima","auto.
     }
     else{
         obsNonzero <- sum((y!=0)*1);
+        if(obsNonzero<=5){
+            warning("Not enough non-zero observations for the minimum model. Switching intermittent to 'n'.",
+                    call.=FALSE);
+            intermittent <- "n";
+        }
         intermittent <- intermittent[1];
         if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
             warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
