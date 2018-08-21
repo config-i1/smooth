@@ -19,7 +19,7 @@
 #' @param legend If \code{TRUE}, the legend is drawn.
 #' @param cumulative If \code{TRUE}, then the forecast is treated as
 #' cumulative and value per period is plotted.
-#' @param vline Whether to draw the vertical line, spliiting the in-sample
+#' @param vline Whether to draw the vertical line, splitting the in-sample
 #' and the holdout sample.
 #' @param ... Other parameters passed to \code{plot()} function.
 #' @return Function does not return anything.

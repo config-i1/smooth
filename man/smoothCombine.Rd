@@ -4,15 +4,16 @@
 \alias{smoothCombine}
 \title{Combination of forecasts of state space models}
 \usage{
-smoothCombine(data, models = NULL, initial = c("optimal", "backcasting"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
-  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, bins = 200,
-  intervalsCombine = c("quantile", "probability"), intermittent = c("none",
-  "auto", "fixed", "interval", "probability", "sba", "logistic"),
-  imodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
-  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+smoothCombine(data, models = NULL, initial = c("optimal",
+  "backcasting"), ic = c("AICc", "AIC", "BIC", "BICc"),
+  cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"),
+  h = 10, holdout = FALSE, cumulative = FALSE,
+  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  level = 0.95, bins = 200, intervalsCombine = c("quantile",
+  "probability"), intermittent = c("none", "auto", "fixed", "interval",
+  "probability", "sba", "logistic"), imodel = "MNN",
+  bounds = c("admissible", "none"), silent = c("all", "graph",
+  "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
   transitionX = NULL, ...)
 }

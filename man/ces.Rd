@@ -8,13 +8,13 @@ ces(data, seasonality = c("none", "simple", "partial", "full"),
   initial = c("optimal", "backcasting"), A = NULL, B = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, intervals = c("none", "parametric", "semiparametric",
-  "nonparametric"), level = 0.95, intermittent = c("none", "auto", "fixed",
-  "interval", "probability", "sba", "logistic"), imodel = "MNN",
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
-  initialX = NULL, updateX = FALSE, persistenceX = NULL,
-  transitionX = NULL, ...)
+  cumulative = FALSE, intervals = c("none", "parametric",
+  "semiparametric", "nonparametric"), level = 0.95,
+  intermittent = c("none", "auto", "fixed", "interval", "probability",
+  "sba", "logistic"), imodel = "MNN", bounds = c("admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
+  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
+  persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}

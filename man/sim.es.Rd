@@ -5,9 +5,10 @@
 \title{Simulate Exponential Smoothing}
 \usage{
 sim.es(model = "ANN", obs = 10, nsim = 1, frequency = 1,
-  persistence = NULL, phi = 1, initial = NULL, initialSeason = NULL,
-  bounds = c("usual", "admissible", "restricted"), randomizer = c("rnorm",
-  "rlnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
+  persistence = NULL, phi = 1, initial = NULL,
+  initialSeason = NULL, bounds = c("usual", "admissible",
+  "restricted"), randomizer = c("rnorm", "rlnorm", "rt", "rlaplace",
+  "rs"), iprob = 1, ...)
 }
 \arguments{
 \item{model}{Type of ETS model according to [Hyndman et. al., 2008]

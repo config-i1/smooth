@@ -4,11 +4,11 @@
 \alias{viss}
 \title{Vector Intermittent State Space}
 \usage{
-viss(data, intermittent = c("logistic", "none", "fixed"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
+viss(data, intermittent = c("logistic", "none", "fixed"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
   probability = c("dependent", "independent"), model = "ANN",
-  persistence = NULL, transition = NULL, phi = NULL, initial = NULL,
-  initialSeason = NULL, xreg = NULL)
+  persistence = NULL, transition = NULL, phi = NULL,
+  initial = NULL, initialSeason = NULL, xreg = NULL)
 }
 \arguments{
 \item{data}{The matrix with data, where series are in columns and

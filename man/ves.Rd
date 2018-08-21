@@ -9,11 +9,12 @@ ves(data, model = "ANN", persistence = c("group", "independent",
   phi = c("group", "individual"), initial = c("individual", "group"),
   initialSeason = c("group", "individual"), cfType = c("likelihood",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, intervals = c("none", "conditional", "unconditional",
-  "independent"), level = 0.95, cumulative = FALSE,
+  holdout = FALSE, intervals = c("none", "conditional",
+  "unconditional", "independent"), level = 0.95, cumulative = FALSE,
   intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
-  iprobability = c("dependent", "independent"), bounds = c("admissible",
-  "usual", "none"), silent = c("all", "graph", "output", "none"), ...)
+  iprobability = c("dependent", "independent"),
+  bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
+  "output", "none"), ...)
 }
 \arguments{
 \item{data}{The matrix with data, where series are in columns and

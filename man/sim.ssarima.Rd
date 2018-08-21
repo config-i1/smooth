@@ -5,8 +5,8 @@
 \title{Simulate SSARIMA}
 \usage{
 sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, obs = 10,
-  nsim = 1, frequency = 1, AR = NULL, MA = NULL, constant = FALSE,
-  initial = NULL, bounds = c("admissible", "none"),
+  nsim = 1, frequency = 1, AR = NULL, MA = NULL,
+  constant = FALSE, initial = NULL, bounds = c("admissible", "none"),
   randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
 }
 \arguments{
