@@ -1659,7 +1659,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     int CFSwitch = CFtypeswitch(CFtypeNew);
 
     arma::uvec nonzeroes = find(vecOt>0);
-    int obs = nonzeroes.n_rows;
+    unsigned int obs = nonzeroes.n_rows;
     double CFres = 0;
     int matobs = obs - hor;
 
@@ -1667,7 +1667,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     double yactsum = 0;
     if((CFSwitch==7) | (CFSwitch==11) | (CFSwitch==15)){
         arma::vec vecYtNonZero = vecYt.elem(nonzeroes);
-        for(int i=0; i<(obs-hor); ++i){
+        for(unsigned int i=0; i<(obs-hor); ++i){
             yactsum += log(sum(vecYtNonZero.rows(i,i+hor)));
         }
     }
