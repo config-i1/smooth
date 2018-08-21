@@ -25,9 +25,8 @@ list, then it is assumed to be equal to zero. At least one variable should
 have the same length as \code{lags}.}
 
 \item{lags}{Defines lags for the corresponding orders (see examples). The
-length of \code{lags} must correspond to the length of either
-\code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no
-restrictions on the length of \code{lags} vector.}
+length of \code{lags} must correspond to the length of \code{orders}. There
+is no restrictions on the length of \code{lags} vector.}
 
 \item{combine}{If \code{TRUE}, then resulting ARIMA is combined using AIC
 weights.}

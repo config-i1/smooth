@@ -94,7 +94,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     }
     models <- substr(models,1,1);
 
-    datafreq <- frequency(data);
+    dataFreq <- frequency(data);
 
     # Define maximum needed number of parameters
     if(any(models=="n")){
@@ -107,7 +107,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     if(any(models=="p")){
         nParamMax <- 4;
         if(initialType=="o"){
-            nParamMax <- nParamMax + 2 + datafreq;
+            nParamMax <- nParamMax + 2 + dataFreq;
         }
         if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use partial seasonal model.",call.=FALSE);
@@ -117,7 +117,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     if(any(models=="s")){
         nParamMax <- 3;
         if(initialType=="o"){
-            nParamMax <- nParamMax + 2*datafreq;
+            nParamMax <- nParamMax + 2*dataFreq;
         }
         if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use simple seasonal model.",call.=FALSE);
@@ -127,7 +127,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     if(any(models=="f")){
         nParamMax <- 5;
         if(initialType=="o"){
-            nParamMax <- nParamMax + 2 + 2*datafreq;
+            nParamMax <- nParamMax + 2 + 2*dataFreq;
         }
         if(obsNonzero <= nParamMax){
             warning("The sample is too small. We cannot use full seasonal model.",call.=FALSE);
@@ -135,7 +135,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
         }
     }
 
-    if(datafreq==1){
+    if(dataFreq==1){
         if(!silentText){
             message("The data is not seasonal. Simple CES was the only solution here.");
         }
@@ -153,15 +153,15 @@ auto.ces <- function(data, models=c("none","simple","full"),
     }
 
 # Check the number of observations and number of parameters.
-    if(any(models=="f") & (obsNonzero <= datafreq*2 + 2 + 4 + 1)){
+    if(any(models=="f") & (obsNonzero <= dataFreq*2 + 2 + 4 + 1)){
         warning("Sorry, but you don't have enough observations for CES(f).",call.=FALSE);
         models <- models[models!="f"];
     }
-    if(any(models=="p") & (obsNonzero <= datafreq + 2 + 3 + 1)){
+    if(any(models=="p") & (obsNonzero <= dataFreq + 2 + 3 + 1)){
         warning("Sorry, but you don't have enough observations for CES(p).",call.=FALSE);
         models <- models[models!="p"];
     }
-    if(any(models=="s") & (obsNonzero <= datafreq*2 + 2 + 1)){
+    if(any(models=="s") & (obsNonzero <= dataFreq*2 + 2 + 1)){
         warning("Sorry, but you don't have enough observations for CES(s).",call.=FALSE);
         models <- models[models!="s"];
     }
@@ -192,10 +192,10 @@ auto.ces <- function(data, models=c("none","simple","full"),
 
     bestModel <- CESModel[[which(IC.vector==min(IC.vector))]];
 
-    y.fit <- bestModel$fitted;
-    y.for <- bestModel$forecast;
-    y.high <- bestModel$upper;
-    y.low <- bestModel$lower;
+    yFitted <- bestModel$fitted;
+    yForecast <- bestModel$forecast;
+    yUpper <- bestModel$upper;
+    yLower <- bestModel$lower;
     modelname <- bestModel$model;
 
     if(!silentText){
@@ -206,23 +206,23 @@ auto.ces <- function(data, models=c("none","simple","full"),
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq)
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

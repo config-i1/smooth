@@ -254,10 +254,10 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                      xreg=xreg, xregDo=xregDo, initialX=initialX,
                      updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
 
-    y.fit <- bestModel$fitted;
-    y.for <- bestModel$forecast;
-    y.high <- bestModel$upper;
-    y.low <- bestModel$lower;
+    yFitted <- bestModel$fitted;
+    yForecast <- bestModel$forecast;
+    yUpper <- bestModel$upper;
+    yLower <- bestModel$lower;
     modelname <- bestModel$model;
 
     bestModel$timeElapsed <- Sys.time()-startTime;
@@ -268,23 +268,23 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq);
+            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq);
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq);
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq);
+                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq);
+                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq);
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

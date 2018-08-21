@@ -251,13 +251,13 @@ msarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             MA <- model$MA;
             constant <- model$constant;
             model <- model$model;
-            arima.orders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+            arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
                                    ,collapse=";");
-            comas <- unlist(gregexpr("\\,",arima.orders));
-            semicolons <- unlist(gregexpr("\\;",arima.orders));
-            ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
-            i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
-            ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+            comas <- unlist(gregexpr("\\,",arimaOrders));
+            semicolons <- unlist(gregexpr("\\;",arimaOrders));
+            ar.orders <- as.numeric(substring(arimaOrders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+            i.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+            ma.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
             if(any(unlist(gregexpr("\\[",model))!=-1)){
                 lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
             }
@@ -463,9 +463,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         modellags <- matrix(1,1,1);
     }
 
-##### Preset y.fit, y.for, errors and basic parameters #####
-    y.fit <- rep(NA,obsInsample);
-    y.for <- rep(NA,h);
+##### Preset yFitted, yForecast, errors and basic parameters #####
+    yFitted <- rep(NA,obsInsample);
+    yForecast <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
@@ -762,7 +762,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;
@@ -829,34 +829,34 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         MAterms <- NULL;
     }
 
-    n.coef <- ar.coef <- ma.coef <- 0;
-    ar.i <- ma.i <- 1;
+    nCoef <- arCoef <- maCoef <- 0;
+    arIndex <- maIndex <- 1;
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
             if(AREstimate){
-                ARterms[1:ar.orders[i],ar.i] <- C[n.coef+(1:ar.orders[i])];
-                names(C)[n.coef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[ar.i]);
-                n.coef <- n.coef + ar.orders[i];
+                ARterms[1:ar.orders[i],arIndex] <- C[nCoef+(1:ar.orders[i])];
+                names(C)[nCoef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[arIndex]);
+                nCoef <- nCoef + ar.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ar.orders[i];
             }
             else{
-                ARterms[1:ar.orders[i],ar.i] <- ARValue[ar.coef+(1:ar.orders[i])];
-                ar.coef <- ar.coef + ar.orders[i];
+                ARterms[1:ar.orders[i],arIndex] <- ARValue[arCoef+(1:ar.orders[i])];
+                arCoef <- arCoef + ar.orders[i];
             }
-            ar.i <- ar.i + 1;
+            arIndex <- arIndex + 1;
         }
         if(ma.orders[i]!=0){
             if(MAEstimate){
-                MAterms[1:ma.orders[i],ma.i] <- C[n.coef+(1:ma.orders[i])];
-                names(C)[n.coef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[ma.i]);
-                n.coef <- n.coef + ma.orders[i];
+                MAterms[1:ma.orders[i],maIndex] <- C[nCoef+(1:ma.orders[i])];
+                names(C)[nCoef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[maIndex]);
+                nCoef <- nCoef + ma.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ma.orders[i];
             }
             else{
-                MAterms[1:ma.orders[i],ma.i] <- MAValue[ma.coef+(1:ma.orders[i])];
-                ma.coef <- ma.coef + ma.orders[i];
+                MAterms[1:ma.orders[i],maIndex] <- MAValue[maCoef+(1:ma.orders[i])];
+                maCoef <- maCoef + ma.orders[i];
             }
-            ma.i <- ma.i + 1;
+            maIndex <- maIndex + 1;
         }
     }
 
@@ -932,42 +932,42 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### Deal with the holdout sample #####
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
-            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
+            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(y.holdout,y.for,y);
+            errormeasures <- Accuracy(yHoldout,yForecast,y);
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
+            yHoldout <- ts(sum(yHoldout),start=yForecastStart,frequency=dataFreq);
         }
     }
     else{
-        y.holdout <- NA;
+        yHoldout <- NA;
         errormeasures <- NA;
     }
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -979,9 +979,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber, modelLags=modellags,
-                  fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                  fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=y.holdout,imodel=imodel,
+                  actuals=data,holdout=yHoldout,imodel=imodel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class=c("smooth","msarima")));

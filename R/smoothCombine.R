@@ -217,10 +217,10 @@ smoothCombine <- function(data, models=NULL,
                               xreg=xreg);
 
     yForecast <- as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"mean")));
-    yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=datafreq);
+    yForecast <- ts(c(yForecast %*% icWeights),start=yForecastStart,frequency=dataFreq);
 
     yFitted <- as.matrix(as.data.frame(lapply(models,fitted)));
-    yFitted <- ts(c(yFitted %*% icWeights),start=dataStart,frequency=datafreq);
+    yFitted <- ts(c(yFitted %*% icWeights),start=dataStart,frequency=dataFreq);
 
     lower <- upper <- NA;
 
@@ -315,8 +315,8 @@ smoothCombine <- function(data, models=NULL,
                                                                                     `[[`,"upper"))));
         }
 
-        lower <- ts(quantilesReturned[1,],start=yForecastStart,frequency=datafreq);
-        upper <- ts(quantilesReturned[2,],start=yForecastStart,frequency=datafreq);
+        lower <- ts(quantilesReturned[1,],start=yForecastStart,frequency=dataFreq);
+        upper <- ts(quantilesReturned[2,],start=yForecastStart,frequency=dataFreq);
     }
 
     y <- y[1:length(yFitted)];
@@ -333,7 +333,7 @@ smoothCombine <- function(data, models=NULL,
         }
 
         if(cumulative){
-            yHoldout <- ts(sum(yHoldout),start=yForecastStart,frequency=datafreq);
+            yHoldout <- ts(sum(yHoldout),start=yForecastStart,frequency=dataFreq);
         }
     }
     else{
@@ -345,10 +345,10 @@ smoothCombine <- function(data, models=NULL,
         upperNew <- upper;
         lowerNew <- lower;
         if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
             if(intervals){
-                upperNew <- ts(rep(upper/h,h),start=yForecastStart,frequency=datafreq)
-                lowerNew <- ts(rep(lower/h,h),start=yForecastStart,frequency=datafreq)
+                upperNew <- ts(rep(upper/h,h),start=yForecastStart,frequency=dataFreq)
+                lowerNew <- ts(rep(lower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 

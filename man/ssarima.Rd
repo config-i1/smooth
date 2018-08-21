@@ -165,9 +165,6 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 
 \item{...}{Other non-documented parameters.
 
-Vectors of orders can be passed here using \code{ar.orders}, \code{i.orders}
-and \code{ma.orders}. \code{orders} variable needs to be NULL in this case.
-
 Parameter \code{model} can accept a previously estimated SSARIMA model and
 use all its parameters.
 

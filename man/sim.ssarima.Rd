@@ -17,10 +17,9 @@ provided in the list, then it is assumed to be equal to zero. At least one
 variable should have the same length as \code{lags}.}
 
 \item{lags}{Defines lags for the corresponding orders (see examples above).
-The length of \code{lags} must correspond to the length of either
-\code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no
-restrictions on the length of \code{lags} vector. It is recommended to order
-\code{lags} ascending.}
+The length of \code{lags} must correspond to the length of \code{orders}.
+There is no restrictions on the length of \code{lags} vector.
+It is recommended to order \code{lags} ascending.}
 
 \item{obs}{Number of observations in each generated time series.}
 
@@ -66,12 +65,7 @@ generation. This can be a vector, implying that probability varies in time
 \item{...}{Additional parameters passed to the chosen randomizer. All the
 parameters should be passed in the order they are used in chosen randomizer.
 For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
-to the call \code{rnorm(obs, mean=0.5, sd=1)}.
-
-A list of orders can be passed here using \code{orders} parameter instead of
-\code{ar.orders}, \code{i.orders} and \code{ma.orders}. This should be handy
-when using extraction function \code{orders()}. See vignettes on simulate
-functions for examples.}
+to the call \code{rnorm(obs, mean=0.5, sd=1)}.}
 }
 \value{
 List of the following values is returned:

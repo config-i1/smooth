@@ -1,6 +1,6 @@
 utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
                          "persistenceEstimate","obsAll","obsInsample","multisteps","ot","obsNonzero","ICs","cfObjective",
-                         "y.for","y.low","y.high","normalizer","yForecastStart"));
+                         "yForecast","yLower","yUpper","normalizer","yForecastStart"));
 
 #' Generalised Univariate Model
 #'
@@ -441,10 +441,10 @@ CreatorGUM <- function(silentText=FALSE,...){
     return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
-##### Preset y.fit, y.for, errors and basic parameters #####
+##### Preset yFitted, yForecast, errors and basic parameters #####
     matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
-    y.fit <- rep(NA,obsInsample);
-    y.for <- rep(NA,h);
+    yFitted <- rep(NA,obsInsample);
+    yForecast <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
 ##### Prepare exogenous variables #####
@@ -542,8 +542,8 @@ CreatorGUM <- function(silentText=FALSE,...){
     }
 
 ##### Preset values of matvt ######
-    slope <- cov(yot[1:min(max(12,datafreq),obsNonzero),],c(1:min(max(12,datafreq),obsNonzero)))/var(c(1:min(max(12,datafreq),obsNonzero)));
-    intercept <- sum(yot[1:min(max(12,datafreq),obsNonzero),])/min(max(12,datafreq),obsNonzero) - slope * (sum(c(1:min(max(12,datafreq),obsNonzero)))/min(max(12,datafreq),obsNonzero) - 1);
+    slope <- cov(yot[1:min(max(12,dataFreq),obsNonzero),],c(1:min(max(12,dataFreq),obsNonzero)))/var(c(1:min(max(12,dataFreq),obsNonzero)));
+    intercept <- sum(yot[1:min(max(12,dataFreq),obsNonzero),])/min(max(12,dataFreq),obsNonzero) - slope * (sum(c(1:min(max(12,dataFreq),obsNonzero)))/min(max(12,dataFreq),obsNonzero) - 1);
 
     vtvalues <- intercept;
     if((orders %*% lags)>1){
@@ -747,10 +747,10 @@ CreatorGUM <- function(silentText=FALSE,...){
 
     if(modelIsMultiplicative){
         y <- exp(y);
-        y.fit <- exp(y.fit);
-        y.for <- exp(y.for);
-        y.low <- exp(y.low);
-        y.high <- exp(y.high);
+        yFitted <- exp(yFitted);
+        yForecast <- exp(yForecast);
+        yLower <- exp(yLower);
+        yUpper <- exp(yUpper);
 
         environment(likelihoodFunction) <- environment();
         environment(ICFunction) <- environment();
@@ -800,7 +800,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;
@@ -850,20 +850,20 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 ##### Deal with the holdout sample #####
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
-            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
+            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(y.holdout,y.for,y);
+            errormeasures <- Accuracy(yHoldout,yForecast,y);
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
+            yHoldout <- ts(sum(yHoldout),start=yForecastStart,frequency=dataFreq);
         }
     }
     else{
-        y.holdout <- NA;
+        yHoldout <- NA;
         errormeasures <- NA;
     }
 
@@ -898,23 +898,23 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -924,9 +924,9 @@ CreatorGUM <- function(silentText=FALSE,...){
                   states=matvt,measurement=matw,transition=matF,persistence=vecg,
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber,
-                  fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                  fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=y.holdout,imodel=imodel,
+                  actuals=data,holdout=yHoldout,imodel=imodel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));

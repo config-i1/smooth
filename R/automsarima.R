@@ -30,9 +30,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' list, then it is assumed to be equal to zero. At least one variable should
 #' have the same length as \code{lags}.
 #' @param lags Defines lags for the corresponding orders (see examples). The
-#' length of \code{lags} must correspond to the length of either
-#' \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no
-#' restrictions on the length of \code{lags} vector.
+#' length of \code{lags} must correspond to the length of \code{orders}. There
+#' is no restrictions on the length of \code{lags} vector.
 #' @param combine If \code{TRUE}, then resulting ARIMA is combined using AIC
 #' weights.
 #' @param workFast If \code{TRUE}, then some of the orders of ARIMA are
@@ -97,49 +96,49 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     list2env(list(...),environment());
 
     if(!is.null(orders)){
-        ar.max <- orders$ar;
-        i.max <- orders$i;
-        ma.max <- orders$ma;
+        arMax <- orders$ar;
+        iMax <- orders$i;
+        maMax <- orders$ma;
     }
 
-# If orders are provided in ellipsis via ar.max, write them down.
+# If orders are provided in ellipsis via arMax, write them down.
     if(exists("ar.orders",inherits=FALSE)){
         if(is.null(ar.orders)){
-            ar.max <- 0;
+            arMax <- 0;
         }
         else{
-            ar.max <- ar.orders;
+            arMax <- ar.orders;
         }
     }
     else{
         if(is.null(orders)){
-            ar.max <- 0;
+            arMax <- 0;
         }
     }
     if(exists("i.orders",inherits=FALSE)){
         if(is.null(i.orders)){
-            i.max <- 0;
+            iMax <- 0;
         }
         else{
-            i.max <- i.orders;
+            iMax <- i.orders;
         }
     }
     else{
         if(is.null(orders)){
-            i.max <- 0;
+            iMax <- 0;
         }
     }
     if(exists("ma.orders",inherits=FALSE)){
         if(is.null(ma.orders)){
-            ma.max <- 0;
+            maMax <- 0;
         }
         else{
-            ma.max <- ma.orders
+            maMax <- ma.orders
         }
     }
     else{
         if(is.null(orders)){
-            ma.max <- 0;
+            maMax <- 0;
         }
     }
 
@@ -164,11 +163,11 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
     }
 
-    if(any(is.complex(c(ar.max,i.max,ma.max,lags)))){
+    if(any(is.complex(c(arMax,iMax,maMax,lags)))){
         stop("Come on! Be serious! This is ARIMA, not CES!",call.=FALSE);
     }
 
-    if(any(c(ar.max,i.max,ma.max)<0)){
+    if(any(c(arMax,iMax,maMax)<0)){
         stop("Funny guy! How am I gonna construct a model with negative order?",call.=FALSE);
     }
 
@@ -178,33 +177,33 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
     # If there are zero lags, drop them
     if(any(lags==0)){
-        ar.max <- ar.max[lags!=0];
-        i.max <- i.max[lags!=0];
-        ma.max <- ma.max[lags!=0];
+        arMax <- arMax[lags!=0];
+        iMax <- iMax[lags!=0];
+        maMax <- maMax[lags!=0];
         lags <- lags[lags!=0];
     }
 
     # Define maxorder and make all the values look similar (for the polynomials)
-    maxorder <- max(length(ar.max),length(i.max),length(ma.max));
-    if(length(ar.max)!=maxorder){
-        ar.max <- c(ar.max,rep(0,maxorder-length(ar.max)));
+    maxorder <- max(length(arMax),length(iMax),length(maMax));
+    if(length(arMax)!=maxorder){
+        arMax <- c(arMax,rep(0,maxorder-length(arMax)));
     }
-    if(length(i.max)!=maxorder){
-        i.max <- c(i.max,rep(0,maxorder-length(i.max)));
+    if(length(iMax)!=maxorder){
+        iMax <- c(iMax,rep(0,maxorder-length(iMax)));
     }
-    if(length(ma.max)!=maxorder){
-        ma.max <- c(ma.max,rep(0,maxorder-length(ma.max)));
+    if(length(maMax)!=maxorder){
+        maMax <- c(maMax,rep(0,maxorder-length(maMax)));
     }
 
     # If zeroes are defined as orders for some lags, drop them.
-    if(any((ar.max + i.max + ma.max)==0)){
-        orders2leave <- (ar.max + i.max + ma.max)!=0;
+    if(any((arMax + iMax + maMax)==0)){
+        orders2leave <- (arMax + iMax + maMax)!=0;
         if(all(!orders2leave)){
             orders2leave <- lags==min(lags);
         }
-        ar.max <- ar.max[orders2leave];
-        i.max <- i.max[orders2leave];
-        ma.max <- ma.max[orders2leave];
+        arMax <- arMax[orders2leave];
+        iMax <- iMax[orders2leave];
+        maMax <- maMax[orders2leave];
         lags <- lags[orders2leave];
     }
 
@@ -213,65 +212,65 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         if(frequency(data)!=1){
             warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
         }
-        lags.new <- unique(lags);
-        ar.max.new <- i.max.new <- ma.max.new <- lags.new;
-        for(i in 1:length(lags.new)){
-            ar.max.new[i] <- max(ar.max[which(lags==lags.new[i])],na.rm=TRUE);
-            i.max.new[i] <- max(i.max[which(lags==lags.new[i])],na.rm=TRUE);
-            ma.max.new[i] <- max(ma.max[which(lags==lags.new[i])],na.rm=TRUE);
+        lagsNew <- unique(lags);
+        arMaxNew <- iMaxNew <- maMaxNew <- lagsNew;
+        for(i in 1:length(lagsNew)){
+            arMaxNew[i] <- max(arMax[which(lags==lagsNew[i])],na.rm=TRUE);
+            iMaxNew[i] <- max(iMax[which(lags==lagsNew[i])],na.rm=TRUE);
+            maMaxNew[i] <- max(maMax[which(lags==lagsNew[i])],na.rm=TRUE);
         }
-        ar.max <- ar.max.new;
-        i.max <- i.max.new;
-        ma.max <- ma.max.new;
-        lags <- lags.new;
+        arMax <- arMaxNew;
+        iMax <- iMaxNew;
+        maMax <- maMaxNew;
+        lags <- lagsNew;
     }
 
     # Order things, so we would deal with the lowest level of seasonality first
-    ar.max <- ar.max[order(lags,decreasing=FALSE)];
-    i.max <- i.max[order(lags,decreasing=FALSE)];
-    ma.max <- ma.max[order(lags,decreasing=FALSE)];
+    arMax <- arMax[order(lags,decreasing=FALSE)];
+    iMax <- iMax[order(lags,decreasing=FALSE)];
+    maMax <- maMax[order(lags,decreasing=FALSE)];
     lags <- sort(lags,decreasing=FALSE);
 
 # 1 stands for constant, the other one stands for variance
-    nParamMax <- (1 + max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags)
-                  + sum(ar.max) + sum(ma.max) + constantCheck);
+    nParamMax <- (1 + max(arMax %*% lags + iMax %*% lags,maMax %*% lags)
+                  + sum(arMax) + sum(maMax) + constantCheck);
 
 # Try to figure out if the number of parameters can be tuned in order to fit something smaller on small samples
 # Don't try to fix anything if the number of seasonalities is greater than 2
     if(length(lags)<=2){
         if(obsNonzero <= nParamMax){
-            arma.length <- length(ar.max);
+            armaLength <- length(arMax);
             while(obsNonzero <= nParamMax){
-                if(any(c(ar.max[arma.length],ma.max[arma.length])>0)){
-                    ar.max[arma.length] <- max(0,ar.max[arma.length] - 1);
-                    nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                if(any(c(arMax[armaLength],maMax[armaLength])>0)){
+                    arMax[armaLength] <- max(0,arMax[armaLength] - 1);
+                    nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                     if(obsNonzero <= nParamMax){
-                        ma.max[arma.length] <- max(0,ma.max[arma.length] - 1);
-                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                        maMax[armaLength] <- max(0,maMax[armaLength] - 1);
+                        nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                     }
                 }
                 else{
-                    if(arma.length==2){
-                        ar.max[1] <- ar.max[1] - 1;
-                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                    if(armaLength==2){
+                        arMax[1] <- arMax[1] - 1;
+                        nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                         if(obsNonzero <= nParamMax){
-                            ma.max[1] <- ma.max[1] - 1;
-                            nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                            maMax[1] <- maMax[1] - 1;
+                            nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                         }
                     }
                     else{
                         break;
                     }
                 }
-                if(all(c(ar.max,ma.max)==0)){
-                    if(i.max[arma.length]>0){
-                        i.max[arma.length] <- max(0,i.max[arma.length] - 1);
-                        nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                if(all(c(arMax,maMax)==0)){
+                    if(iMax[armaLength]>0){
+                        iMax[armaLength] <- max(0,iMax[armaLength] - 1);
+                        nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                     }
-                    else if(i.max[1]>0){
+                    else if(iMax[1]>0){
                         if(obsNonzero <= nParamMax){
-                            i.max[1] <- max(0,i.max[1] - 1);
-                            nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                            iMax[1] <- max(0,iMax[1] - 1);
+                            nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
                         }
                     }
                     else{
@@ -280,7 +279,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 }
 
             }
-                nParamMax <- max(ar.max %*% lags + i.max %*% lags,ma.max %*% lags) + sum(ar.max) + sum(ma.max) + 1 + 1;
+                nParamMax <- max(arMax %*% lags + iMax %*% lags,maMax %*% lags) + sum(arMax) + sum(maMax) + 1 + 1;
         }
     }
 
@@ -291,11 +290,11 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     }
 
 # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
-    if(all(ma.max==0)){
-        nModels <- prod(i.max + 1) * (1 + sum(ar.max)) + constantCheck;
+    if(all(maMax==0)){
+        nModels <- prod(iMax + 1) * (1 + sum(arMax)) + constantCheck;
     }
     else{
-        nModels <- prod(i.max + 1) * (1 + sum(ma.max*(1 + sum(ar.max)))) + constantCheck;
+        nModels <- prod(iMax + 1) * (1 + sum(maMax*(1 + sum(arMax)))) + constantCheck;
     }
     testModel <- list(NA);
 # Array with elements x maxorders x horizon x point/lower/upper
@@ -312,9 +311,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     m <- 0;
     # constant <- TRUE;
 
-    test.lags <- ma.test <- ar.test <- i.test <- rep(0,length(lags));
-    ar.best <- ma.best <- i.best <- rep(0,length(lags));
-    ar.best.local <- ma.best.local <- i.best.local <- ar.best;
+    lagsTest <- maTest <- arTest <- rep(0,length(lags));
+    arBest <- maBest <- iBest <- rep(0,length(lags));
+    arBestLocal <- maBestLocal <- arBest;
 
 #### Function corrects IC taking number of parameters on previous step ####
     icCorrector <- function(icValue, nParam, obsNonzero, nParamNew){
@@ -343,9 +342,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     }
 
 ### If for some reason we have model with zeroes for orders, return it.
-    if(all(c(ar.max,i.max,ma.max)==0)){
+    if(all(c(arMax,iMax,maMax)==0)){
         cat("\b\b\b\bDone!\n");
-        bestModel <- msarima(data, orders=list(ar=ar.best,i=(i.best),ma=(ma.best)), lags=(lags),
+        bestModel <- msarima(data, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
                              constant=constantValue, initial=initialType, cfType=cfType,
                              h=h, holdout=holdout, cumulative=cumulative,
                              intervals=intervalsType, level=level,
@@ -356,21 +355,21 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         return(bestModel);
     }
 
-    i.orders <- matrix(0,prod(i.max+1),ncol=length(i.max));
+    iOrders <- matrix(0,prod(iMax+1),ncol=length(iMax));
 
 ##### Loop for differences #####
-    if(any(i.max!=0)){
+    if(any(iMax!=0)){
         # Prepare table with differences
-        i.orders[,1] <- rep(c(0:i.max[1]),times=prod(i.max[-1]+1));
-        if(length(i.max)>1){
-            for(seasLag in 2:length(i.max)){
-                i.orders[,seasLag] <- rep(c(0:i.max[seasLag]),each=prod(i.max[1:(seasLag-1)]+1))
+        iOrders[,1] <- rep(c(0:iMax[1]),times=prod(iMax[-1]+1));
+        if(length(iMax)>1){
+            for(seasLag in 2:length(iMax)){
+                iOrders[,seasLag] <- rep(c(0:iMax[seasLag]),each=prod(iMax[1:(seasLag-1)]+1))
             }
         }
     }
 
     # Start the loop with differences
-    for(d in 1:nrow(i.orders)){
+    for(d in 1:nrow(iOrders)){
         m <- m + 1;
         if(!silentText){
             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
@@ -378,9 +377,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
         nParamOriginal <- 1;
         if(silent[1]=="d"){
-            cat("I: ");cat(i.orders[d,]);cat(", ");
+            cat("I: ");cat(iOrders[d,]);cat(", ");
         }
-        testModel <- msarima(data, orders=list(ar=0,i=i.orders[d,],ma=0), lags=lags,
+        testModel <- msarima(data, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
                              constant=constantValue, initial=initialType, cfType=cfType,
                              h=h, holdout=holdout, cumulative=cumulative,
                              intervals=intervalsType, level=level,
@@ -407,7 +406,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         if(m==1){
             bestIC <- ICValue;
             dataMA <- dataI <- testModel$residuals;
-            i.best <- i.orders[d,];
+            iBest <- iOrders[d,];
             bestICAR <- bestICI <- bestICMA <- bestIC;
         }
         else{
@@ -415,39 +414,39 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 bestICI <- ICValue;
                 dataMA <- dataI <- testModel$residuals;
                 if(ICValue < bestIC){
-                    i.best <- i.orders[d,];
+                    iBest <- iOrders[d,];
                     bestIC <- ICValue;
-                    ma.best <- ar.best <- rep(0,length(ar.test));
+                    maBest <- arBest <- rep(0,length(arTest));
                 }
             }
             else{
                 if(workFast){
-                    m <- m + sum(ma.max*(1 + sum(ar.max)));
+                    m <- m + sum(maMax*(1 + sum(arMax)));
                     next;
                 }
             }
         }
 
         ##### Loop for MA #####
-        if(any(ma.max!=0)){
+        if(any(maMax!=0)){
             bestICMA <- bestICI;
-            ma.best.local <- ma.test <- rep(0,length(ma.test));
+            maBestLocal <- maTest <- rep(0,length(maTest));
             for(seasSelectMA in 1:length(lags)){
-                if(ma.max[seasSelectMA]!=0){
-                    for(maSelect in 1:ma.max[seasSelectMA]){
+                if(maMax[seasSelectMA]!=0){
+                    for(maSelect in 1:maMax[seasSelectMA]){
                         m <- m + 1;
                         if(!silentText){
                             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                             cat(paste0(round((m)/nModels,2)*100,"%"));
                         }
-                        ma.test[seasSelectMA] <- ma.max[seasSelectMA] - maSelect + 1;
-                        nParamMA <- sum(ma.test);
+                        maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
+                        nParamMA <- sum(maTest);
                         nParamNew <- nParamOriginal + nParamMA;
 
                         if(silent[1]=="d"){
-                            cat("MA: ");cat(ma.test);cat(", ");
+                            cat("MA: ");cat(maTest);cat(", ");
                         }
-                        testModel <- msarima(dataI, orders=list(ar=0,i=0,ma=ma.test), lags=lags,
+                        testModel <- msarima(dataI, orders=list(ar=0,i=0,ma=maTest), lags=lags,
                                              constant=FALSE, initial=initialType, cfType=cfType,
                                              h=h, holdout=FALSE,
                                              intervals=intervalsType, level=level,
@@ -473,47 +472,47 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                         }
                         if(ICValue < bestICMA){
                             bestICMA <- ICValue;
-                            ma.best.local <- ma.test;
+                            maBestLocal <- maTest;
                             if(ICValue < bestIC){
                                 bestIC <- bestICMA;
-                                i.best <- i.orders[d,];
-                                ma.best <- ma.test;
-                                ar.best <- rep(0,length(ar.test));
+                                iBest <- iOrders[d,];
+                                maBest <- maTest;
+                                arBest <- rep(0,length(arTest));
                             }
                             dataMA <- testModel$residuals;
                         }
                         else{
                             if(workFast){
-                                m <- m + ma.test[seasSelectMA] * (1 + sum(ar.max)) - 1;
-                                ma.test <- ma.best.local;
+                                m <- m + maTest[seasSelectMA] * (1 + sum(arMax)) - 1;
+                                maTest <- maBestLocal;
                                 break;
                             }
                             else{
-                                ma.test <- ma.best.local;
+                                maTest <- maBestLocal;
                             }
                         }
 
                         ##### Loop for AR #####
-                        if(any(ar.max!=0)){
+                        if(any(arMax!=0)){
                             bestICAR <- bestICMA;
-                            ar.best.local <- ar.test <- rep(0,length(ar.test));
+                            arBestLocal <- arTest <- rep(0,length(arTest));
                             for(seasSelectAR in 1:length(lags)){
-                                test.lags[seasSelectAR] <- lags[seasSelectAR];
-                                if(ar.max[seasSelectAR]!=0){
-                                    for(arSelect in 1:ar.max[seasSelectAR]){
+                                lagsTest[seasSelectAR] <- lags[seasSelectAR];
+                                if(arMax[seasSelectAR]!=0){
+                                    for(arSelect in 1:arMax[seasSelectAR]){
                                         m <- m + 1;
                                         if(!silentText){
                                             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                                             cat(paste0(round((m)/nModels,2)*100,"%"));
                                         }
-                                        ar.test[seasSelectAR] <- ar.max[seasSelectAR] - arSelect + 1;
-                                        nParamAR <- sum(ar.test);
+                                        arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
+                                        nParamAR <- sum(arTest);
                                         nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
                                         if(silent[1]=="d"){
-                                            cat("AR: ");cat(ar.test);cat(", ");
+                                            cat("AR: ");cat(arTest);cat(", ");
                                         }
-                                        testModel <- msarima(dataMA, orders=list(ar=ar.test,i=0,ma=0), lags=lags,
+                                        testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
                                                              constant=FALSE, initial=initialType, cfType=cfType,
                                                              h=h, holdout=FALSE,
                                                              intervals=intervalsType, level=level,
@@ -539,22 +538,22 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                         }
                                         if(ICValue < bestICAR){
                                             bestICAR <- ICValue;
-                                            ar.best.local <- ar.test;
+                                            arBestLocal <- arTest;
                                             if(ICValue < bestIC){
                                                 bestIC <- ICValue;
-                                                i.best <- i.orders[d,];
-                                                ar.best <- ar.test;
-                                                ma.best <- ma.test;
+                                                iBest <- iOrders[d,];
+                                                arBest <- arTest;
+                                                maBest <- maTest;
                                             }
                                         }
                                         else{
                                             if(workFast){
-                                                m <- m + ar.test[seasSelectAR] - 1;
-                                                ar.test <- ar.best.local;
+                                                m <- m + arTest[seasSelectAR] - 1;
+                                                arTest <- arBestLocal;
                                                 break;
                                             }
                                             else{
-                                                ar.test <- ar.best.local;
+                                                arTest <- arBestLocal;
                                             }
                                         }
                                     }
@@ -567,26 +566,26 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
         else{
             ##### Loop for AR #####
-            if(any(ar.max!=0)){
+            if(any(arMax!=0)){
                 bestICAR <- bestICMA;
-                ar.best.local <- ar.test <- rep(0,length(ar.test));
+                arBestLocal <- arTest <- rep(0,length(arTest));
                 for(seasSelectAR in 1:length(lags)){
-                    test.lags[seasSelectAR] <- lags[seasSelectAR];
-                    if(ar.max[seasSelectAR]!=0){
-                        for(arSelect in 1:ar.max[seasSelectAR]){
+                    lagsTest[seasSelectAR] <- lags[seasSelectAR];
+                    if(arMax[seasSelectAR]!=0){
+                        for(arSelect in 1:arMax[seasSelectAR]){
                             m <- m + 1;
                             if(!silentText){
                                 cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
                                 cat(paste0(round((m)/nModels,2)*100,"%"));
                             }
-                            ar.test[seasSelectAR] <- ar.max[seasSelectAR] - arSelect + 1;
-                            nParamAR <- sum(ar.test);
+                            arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
+                            nParamAR <- sum(arTest);
                             nParamNew <- nParamOriginal + nParamAR;
 
                             if(silent[1]=="d"){
-                                cat("AR: ");cat(ar.test);cat(", ");
+                                cat("AR: ");cat(arTest);cat(", ");
                             }
-                            testModel <- msarima(dataMA, orders=list(ar=ar.test,i=0,ma=0), lags=lags,
+                            testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
                                                  constant=FALSE, initial=initialType, cfType=cfType,
                                                  h=h, holdout=FALSE,
                                                  intervals=intervalsType, level=level,
@@ -612,22 +611,22 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                             }
                             if(ICValue < bestICAR){
                                 bestICAR <- ICValue;
-                                ar.best.local <- ar.test;
+                                arBestLocal <- arTest;
                                 if(ICValue < bestIC){
                                     bestIC <- ICValue;
-                                    i.best <- i.orders[d,];
-                                    ar.best <- ar.test;
-                                    ma.best <- ma.test;
+                                    iBest <- iOrders[d,];
+                                    arBest <- arTest;
+                                    maBest <- maTest;
                                 }
                             }
                             else{
                                 if(workFast){
-                                    m <- m + ar.test[seasSelectAR] - 1;
-                                    ar.test <- ar.best.local;
+                                    m <- m + arTest[seasSelectAR] - 1;
+                                    arTest <- arBestLocal;
                                     break;
                                 }
                                 else{
-                                    ar.test <- ar.best.local;
+                                    arTest <- arBestLocal;
                                 }
                             }
                         }
@@ -645,8 +644,8 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             cat(paste0(round((m)/nModels,2)*100,"%"));
         }
 
-        if(any(c(ar.best,i.best,ma.best)!=0)){
-            testModel <- msarima(data, orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)), lags=(lags),
+        if(any(c(arBest,iBest,maBest)!=0)){
+            testModel <- msarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
                                  constant=FALSE, initial=initialType, cfType=cfType,
                                  h=h, holdout=holdout, cumulative=cumulative,
                                  intervals=intervalsType, level=level,
@@ -707,24 +706,24 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testFittedNew[,i] <- testFitted[,j] + testFitted[,k] + testFitted[,i];
             }
         }
-        y.for <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=datafreq);
-        y.low <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=datafreq);
-        y.high <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=datafreq);
-        y.fit <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=datafreq);
+        yForecast <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=dataFreq);
+        yLower <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=dataFreq);
+        yUpper <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=dataFreq);
+        yFitted <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=dataFreq);
         modelname <- "ARIMA combined";
 
-        errors <- ts(y-c(y.fit),start=start(y.fit),frequency=frequency(y.fit));
-        y.holdout <- ts(data[(obsNonzero+1):obsAll],start=start(testModel$forecast),frequency=datafreq);
+        errors <- ts(y-c(yFitted),start=start(yFitted),frequency=frequency(yFitted));
+        yHoldout <- ts(data[(obsNonzero+1):obsAll],start=start(testModel$forecast),frequency=dataFreq);
         s2 <- mean(errors^2);
-        errormeasures <- Accuracy(y.holdout,y.for,y);
+        errormeasures <- Accuracy(yHoldout,yForecast,y);
         ICs <- c(t(testICs) %*% icWeights);
         names(ICs) <- ic;
 
         bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
-                          fitted=y.fit,forecast=y.for,cumulative=cumulative,
-                          lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervalsType,level=level,
-                          actuals=data,holdout=y.holdout,intermittent=intermittent,
+                          fitted=yFitted,forecast=yForecast,cumulative=cumulative,
+                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,intervals=intervalsType,level=level,
+                          actuals=data,holdout=yHoldout,intermittent=intermittent,
                           xreg=xreg, xregDo=xregDo, initialX=initialX,
                           updateX=updateX, persistenceX=persistenceX, transitionX=transitionX,
                           ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
@@ -733,7 +732,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
     }
     else{
         #### Reestimate the best model in order to get rid of bias ####
-        bestModel <- msarima(data, orders=list(ar=(ar.best),i=(i.best),ma=(ma.best)), lags=(lags),
+        bestModel <- msarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
                              constant=constantValue, initial=initialType, cfType=cfType,
                              h=h, holdout=holdout, cumulative=cumulative,
                              intervals=intervalsType, level=level,
@@ -742,10 +741,10 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
 
-        y.fit <- bestModel$fitted;
-        y.for <- bestModel$forecast;
-        y.high <- bestModel$upper;
-        y.low <- bestModel$lower;
+        yFitted <- bestModel$fitted;
+        yForecast <- bestModel$forecast;
+        yUpper <- bestModel$upper;
+        yLower <- bestModel$lower;
         modelname <- bestModel$model;
 
         bestModel$timeElapsed <- Sys.time()-startTime;
@@ -757,23 +756,23 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=start(y.for),frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=start(y.for),frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=start(y.for),frequency=datafreq)
+                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq)
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

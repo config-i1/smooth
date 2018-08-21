@@ -16,10 +16,9 @@
 #' provided in the list, then it is assumed to be equal to zero. At least one
 #' variable should have the same length as \code{lags}.
 #' @param lags Defines lags for the corresponding orders (see examples above).
-#' The length of \code{lags} must correspond to the length of either
-#' \code{ar.orders} or \code{i.orders} or \code{ma.orders}. There is no
-#' restrictions on the length of \code{lags} vector. It is recommended to order
-#' \code{lags} ascending.
+#' The length of \code{lags} must correspond to the length of \code{orders}.
+#' There is no restrictions on the length of \code{lags} vector.
+#' It is recommended to order \code{lags} ascending.
 #' @param initial Vector of initial values for state matrix. If \code{NULL},
 #' then generated using advanced, sophisticated technique - uniform
 #' distribution.
@@ -43,10 +42,6 @@
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 #' to the call \code{rnorm(obs, mean=0.5, sd=1)}.
 #'
-#' A list of orders can be passed here using \code{orders} parameter instead of
-#' \code{ar.orders}, \code{i.orders} and \code{ma.orders}. This should be handy
-#' when using extraction function \code{orders()}. See vignettes on simulate
-#' functions for examples.
 #' @return List of the following values is returned:
 #' \itemize{
 #' \item \code{model} - Name of SSARIMA model.

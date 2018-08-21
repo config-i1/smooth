@@ -1,4 +1,4 @@
-utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","datafreq","initialType",
+utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dataFreq","initialType",
                          "yot","maxlag","silent","allowMultiplicative","modelCurrent",
                          "nParamIntermittent","matF","matw","pForecast","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
@@ -581,7 +581,7 @@ BasicMakerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Ttype, Stype, dataFreq, obsInsample, obsAll, y,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
     list2env(basicparams,ParentEnvironment);
 }
@@ -1193,17 +1193,17 @@ CreatorES <- function(silent=FALSE,...){
     if(Ttype!="N"){
         if(initialType!="p"){
             initialstates <- matrix(NA,1,4);
-            initialstates[1,2] <- (cov(yot[1:min(max(datafreq,12),obsNonzero)],
-                                       c(1:min(max(datafreq,12),obsNonzero)))/
-                                       var(c(1:min(max(datafreq,12),obsNonzero))));
-            initialstates[1,1] <- (mean(yot[1:min(max(datafreq,12),obsNonzero)]) -
+            initialstates[1,2] <- (cov(yot[1:min(max(dataFreq,12),obsNonzero)],
+                                       c(1:min(max(dataFreq,12),obsNonzero)))/
+                                       var(c(1:min(max(dataFreq,12),obsNonzero))));
+            initialstates[1,1] <- (mean(yot[1:min(max(dataFreq,12),obsNonzero)]) -
                                        initialstates[1,2] *
-                                       mean(c(1:min(max(datafreq,12), obsNonzero))));
+                                       mean(c(1:min(max(dataFreq,12), obsNonzero))));
             if(any(cfType=="LogisticD")){
-                if(all(yot[1:min(max(datafreq,12),obsNonzero)]==0)){
+                if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
                     initialstates[1,1] <- -50;
                 }
-                else if(all(yot[1:min(max(datafreq,12),obsNonzero)]==1)){
+                else if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==1)){
                     initialstates[1,1] <- 50;
                 }
                 else{
@@ -1217,12 +1217,12 @@ CreatorES <- function(silent=FALSE,...){
                     initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
                 }
                 else{
-                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(datafreq,12),obsNonzero)]),
-                                                  c(1:min(max(datafreq,12),obsNonzero)))/
-                                                  var(c(1:min(max(datafreq,12),obsNonzero))));
-                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(datafreq,12),obsNonzero)])) -
+                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(dataFreq,12),obsNonzero)]),
+                                                  c(1:min(max(dataFreq,12),obsNonzero)))/
+                                                  var(c(1:min(max(dataFreq,12),obsNonzero))));
+                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(dataFreq,12),obsNonzero)])) -
                                                   log(initialstates[1,4]) *
-                                                  mean(c(1:min(max(datafreq,12),obsNonzero))));
+                                                  mean(c(1:min(max(dataFreq,12),obsNonzero))));
                 }
             }
         }
@@ -1232,15 +1232,15 @@ CreatorES <- function(silent=FALSE,...){
     }
     else{
         if(initialType!="p"){
-            initialstates <- matrix(rep(mean(yot[1:min(max(datafreq,12),obsNonzero)]),4),nrow=1);
+            initialstates <- matrix(rep(mean(yot[1:min(max(dataFreq,12),obsNonzero)]),4),nrow=1);
             if(any(cfType=="LogisticL") & any(initialstates==0)){
                 initialstates[initialstates==0] <- 0.001;
             }
             if(any(cfType=="LogisticD")){
-                if(all(yot[1:min(max(datafreq,12),obsNonzero)]==0)){
+                if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
                     initialstates[,] <- -50;
                 }
-                else if(all(yot[1:min(max(datafreq,12),obsNonzero)]==1)){
+                else if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==1)){
                     initialstates[,] <- 50;
                 }
             }
@@ -1255,9 +1255,9 @@ CreatorES <- function(silent=FALSE,...){
     if(Stype!="N"){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
-            seasonalCoefs <- decompose(ts(c(y),frequency=datafreq),type="additive")$seasonal[1:datafreq];
-            decompositionM <- decompose(ts(c(y),frequency=datafreq), type="multiplicative");
-            seasonalCoefs <- cbind(seasonalCoefs,decompositionM$seasonal[1:datafreq]);
+            seasonalCoefs <- decompose(ts(c(y),frequency=dataFreq),type="additive")$seasonal[1:dataFreq];
+            decompositionM <- decompose(ts(c(y),frequency=dataFreq), type="multiplicative");
+            seasonalCoefs <- cbind(seasonalCoefs,decompositionM$seasonal[1:dataFreq]);
             seasonalRandomness <- c(min(decompositionM$random,na.rm=TRUE),
                                     max(decompositionM$random,na.rm=TRUE));
         }
@@ -1289,12 +1289,12 @@ CreatorES <- function(silent=FALSE,...){
         }
     }
 
-##### Preset y.fit, y.for, errors and basic parameters #####
-    y.fit <- rep(NA,obsInsample);
-    y.for <- rep(NA,h);
+##### Preset yFitted, yForecast, errors and basic parameters #####
+    yFitted <- rep(NA,obsInsample);
+    yForecast <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
-    basicparams <- initparams(Ttype, Stype, datafreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Ttype, Stype, dataFreq, obsInsample, obsAll, y,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Prepare exogenous variables #####
@@ -1381,14 +1381,14 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
             # We have enough observations for seasonal model
-            if((obsNonzero > (2*datafreq)) & datafreq!=1){
+            if((obsNonzero > (2*dataFreq)) & dataFreq!=1){
                 modelsPool <- c(modelsPool,"ANA");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"ANM","MNA","MNM");
                 }
             }
             # We have enough observations for seasonal model with trend
-            if((obsNonzero > (6 + datafreq + nParamExo + nParamIntermittent)) & (obsNonzero > 2*datafreq) & datafreq!=1){
+            if((obsNonzero > (6 + dataFreq + nParamExo + nParamIntermittent)) & (obsNonzero > 2*dataFreq) & dataFreq!=1){
                 modelsPool <- c(modelsPool,"AAA");
                 if(allowMultiplicative){
                     modelsPool <- c(modelsPool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
@@ -1414,19 +1414,19 @@ CreatorES <- function(silent=FALSE,...){
         else if(obsNonzero > (3 + nParamExo + nParamIntermittent) & !is.null(modelsPool)){
             modelsPool.new <- modelsPool;
             # We don't have enough observations for seasonal models with damped trend
-            if((obsNonzero <= (6 + datafreq + 1 + nParamExo + nParamIntermittent))){
+            if((obsNonzero <= (6 + dataFreq + 1 + nParamExo + nParamIntermittent))){
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="A")];
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="M")];
             }
             # We don't have enough observations for seasonal models with trend
-            if((obsNonzero <= (5 + datafreq + 1 + nParamExo + nParamIntermittent))){
+            if((obsNonzero <= (5 + dataFreq + 1 + nParamExo + nParamIntermittent))){
                 modelsPool <- modelsPool[!(substr(modelsPool,2,2)!="N" &
                                                substr(modelsPool,nchar(modelsPool),nchar(modelsPool))!="N")];
             }
             # We don't have enough observations for seasonal models
-            if(obsNonzero <= 2*datafreq){
+            if(obsNonzero <= 2*dataFreq){
                 modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N"];
             }
             # We don't have enough observations for damped trend
@@ -1949,9 +1949,9 @@ CreatorES <- function(silent=FALSE,...){
         # Produce the forecasts using AIC weights
         modelsNumber <- nrow(icWeights);
         model.current <- rep(NA,modelsNumber);
-        fitted.list <- matrix(NA,obsInsample,modelsNumber);
-        errors.list <- matrix(NA,obsInsample,modelsNumber);
-        forecasts.list <- matrix(NA,h,modelsNumber);
+        fittedList <- matrix(NA,obsInsample,modelsNumber);
+        # errorsList <- matrix(NA,obsInsample,modelsNumber);
+        forecastsList <- matrix(NA,h,modelsNumber);
         if(intervals){
              lowerList <- matrix(NA,h,modelsNumber);
              upperList <- matrix(NA,h,modelsNumber);
@@ -1995,31 +1995,31 @@ CreatorES <- function(silent=FALSE,...){
             ssFitter(ParentEnvironment=environment());
             ssForecaster(ParentEnvironment=environment());
 
-            fitted.list[,i] <- y.fit;
-            forecasts.list[,i] <- y.for;
+            fittedList[,i] <- yFitted;
+            forecastsList[,i] <- yForecast;
             if(intervals){
-                lowerList[,i] <- y.low;
-                upperList[,i] <- y.high;
+                lowerList[,i] <- yLower;
+                upperList[,i] <- yUpper;
             }
             phi <- NULL;
         }
-        badStuff <- apply(is.na(rbind(fitted.list,forecasts.list)),2,any);
-        fitted.list <- fitted.list[,!badStuff];
-        forecasts.list <- forecasts.list[,!badStuff];
+        badStuff <- apply(is.na(rbind(fittedList,forecastsList)),2,any);
+        fittedList <- fittedList[,!badStuff];
+        forecastsList <- forecastsList[,!badStuff];
         model.current <- model.current[!badStuff];
-        y.fit <- ts(fitted.list %*% icWeights[!badStuff,ic],start=dataStart,frequency=datafreq);
-        y.for <- ts(forecasts.list %*% icWeights[!badStuff,ic],start=time(data)[obsInsample]+deltat(data),frequency=datafreq);
-        errors <- ts(c(y) - y.fit,start=dataStart,frequency=datafreq);
+        yFitted <- ts(fittedList %*% icWeights[!badStuff,ic],start=dataStart,frequency=dataFreq);
+        yForecast <- ts(forecastsList %*% icWeights[!badStuff,ic],start=time(data)[obsInsample]+deltat(data),frequency=dataFreq);
+        errors <- ts(c(y) - yFitted,start=dataStart,frequency=dataFreq);
         s2 <- mean(errors^2);
         if(intervals){
             lowerList <- lowerList[,!badStuff];
             upperList <- upperList[,!badStuff];
-            y.low <- ts(lowerList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=datafreq);
-            y.high <- ts(upperList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=datafreq);
+            yLower <- ts(lowerList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=dataFreq);
+            yUpper <- ts(upperList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=dataFreq);
         }
         else{
-            y.low <- NA;
-            y.high <- NA;
+            yLower <- NA;
+            yUpper <- NA;
         }
         model <- modelOriginal;
 
@@ -2039,7 +2039,7 @@ CreatorES <- function(silent=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;
@@ -2071,20 +2071,20 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Now let's deal with holdout #####
     if(holdout){
-        y.holdout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=datafreq);
+        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- Accuracy(sum(y.holdout),y.for,h*y);
+            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(y.holdout,y.for,y);
+            errormeasures <- Accuracy(yHoldout,yForecast,y);
         }
 
         if(cumulative){
-            y.holdout <- ts(sum(y.holdout),start=yForecastStart,frequency=datafreq);
+            yHoldout <- ts(sum(yHoldout),start=yForecastStart,frequency=dataFreq);
         }
     }
     else{
-        y.holdout <- NA;
+        yHoldout <- NA;
         errormeasures <- NA;
     }
 
@@ -2109,23 +2109,23 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Make a plot #####
     if(!silentGraph){
-        y.for.new <- y.for;
-        y.high.new <- y.high;
-        y.low.new <- y.low;
+        yForecastNew <- yForecast;
+        yUpperNew <- yUpper;
+        yLowerNew <- yLower;
         if(cumulative){
-            y.for.new <- ts(rep(y.for/h,h),start=yForecastStart,frequency=datafreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
             if(intervals){
-                y.high.new <- ts(rep(y.high/h,h),start=yForecastStart,frequency=datafreq)
-                y.low.new <- ts(rep(y.low/h,h),start=yForecastStart,frequency=datafreq)
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
         if(intervals){
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit, lower=y.low.new,upper=y.high.new,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=y.for.new,fitted=y.fit,
+            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -2137,9 +2137,9 @@ CreatorES <- function(silent=FALSE,...){
                       measurement=matw,
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=parametersNumber,
-                      fitted=y.fit,forecast=y.for,lower=y.low,upper=y.high,residuals=errors,
+                      fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                       errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                      actuals=data,holdout=y.holdout,imodel=imodel,
+                      actuals=data,holdout=yHoldout,imodel=imodel,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                       ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
@@ -2147,10 +2147,10 @@ CreatorES <- function(silent=FALSE,...){
     else{
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       initialType=initialType,
-                      fitted=y.fit,forecast=y.for,
-                      lower=y.low,upper=y.high,residuals=errors,s2=s2,intervals=intervalsType,level=level,
+                      fitted=yFitted,forecast=yForecast,
+                      lower=yLower,upper=yUpper,residuals=errors,s2=s2,intervals=intervalsType,level=level,
                       cumulative=cumulative,
-                      actuals=data,holdout=y.holdout,imodel=imodel,
+                      actuals=data,holdout=yHoldout,imodel=imodel,
                       xreg=xreg,updateX=updateX,
                       ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
         return(structure(model,class="smooth"));

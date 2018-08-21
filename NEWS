@@ -14,6 +14,8 @@ Changes:
 * Added MAE, MSE and MRE in the Accuracy function.
 * auto functions now switch to intermittent="n", when there's not enough non-zero observations.
 * ges() is now renamed to gum() - Generalised Univariate Model.
+* The code for prediction intervals in case of intermittent model is now simplified.
+* Renamed several internal variables (y.for -> yForecast, y.fit -> yFitted, datafreq -> dataFreq etc) for the consitency purpose and convenience.
 
 Bugfixes
 * Fixed a bug for logistic intemittent model, when the probability of occurrence was becoming 0 or 1.

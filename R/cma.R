@@ -190,7 +190,7 @@ cma <- function(data, order=NULL, silent=TRUE){
     model$ICs <- ICs;
 
     if(!silent){
-        graphmaker(data, yForecast, model$fitted, legend=FALSE, vline=FALSE,
+        graphmaker(data, yForecast, yFitted, legend=FALSE, vline=FALSE,
                    main=model$model);
     }
 
