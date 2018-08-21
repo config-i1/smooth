@@ -12,10 +12,10 @@ gum(data, orders = c(1, 1), lags = c(1, frequency(data)), type = c("A",
   h = 10, holdout = FALSE, cumulative = FALSE, intervals = c("none",
   "parametric", "semiparametric", "nonparametric"), level = 0.95,
   intermittent = c("none", "auto", "fixed", "interval", "probability", "sba",
-  "logistic"), imodel = "MNN", bounds = c("admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  "logistic"), imodel = "MNN", bounds = c("restricted", "admissible",
+  "none"), silent = c("all", "graph", "legend", "output", "none"),
+  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 
 ges(...)
 }

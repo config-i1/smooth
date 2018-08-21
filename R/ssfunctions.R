@@ -670,7 +670,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
-    if(bounds!="u" & bounds!="a" & bounds!="n"){
+    if(all(bounds!=c("n","a","r","u"))){
         warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
         bounds <- "a";
     }
@@ -1544,7 +1544,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
     # Check if "bounds" parameter makes any sense
-    if(bounds!="n" & bounds!="a"){
+    if(all(bounds!=c("n","a","r"))){
         warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
         bounds <- "a";
     }

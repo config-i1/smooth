@@ -1,7 +1,7 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 2.4.6.41015
+Version: 2.4.6
 Date: 2018-08-21
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
@@ -31,6 +31,5 @@ Suggests:
     testthat,
     knitr,
     rmarkdown
-Remotes: config-i1/greybox
 VignetteBuilder: knitr
 RoxygenNote: 6.0.1
