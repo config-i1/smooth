@@ -166,7 +166,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
                 imodel="MNN",
-                bounds=c("admissible","none"),
+                bounds=c("restricted","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                 updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
@@ -340,17 +340,25 @@ CreatorGUM <- function(silentText=FALSE,...){
 # matw, matF, vecg, vt
             if(measurementEstimate){
                 C <- c(C,rep(1,nComponents));
-                Clb <- c(Clb,rep(0,nComponents));
-                Cub <- c(Cub,rep(1,nComponents));
-                # Clb <- c(Clb,rep(-Inf,nComponents));
-                # Cub <- c(Cub,rep(Inf,nComponents));
+                if(bounds=="r"){
+                    Clb <- c(Clb,rep(0,nComponents));
+                    Cub <- c(Cub,rep(1,nComponents));
+                }
+                else{
+                    Clb <- c(Clb,rep(-Inf,nComponents));
+                    Cub <- c(Cub,rep(Inf,nComponents));
+                }
             }
             if(transitionEstimate){
                 C <- c(C,rep(1,nComponents^2));
-                Clb <- c(Clb,rep(0,nComponents^2));
-                Cub <- c(Cub,rep(1,nComponents^2));
-                # Clb <- c(Clb,rep(-Inf,nComponents^2));
-                # Cub <- c(Cub,rep(Inf,nComponents^2));
+                if(bounds=="r"){
+                    Clb <- c(Clb,rep(0,nComponents^2));
+                    Cub <- c(Cub,rep(1,nComponents^2));
+                }
+                else{
+                    Clb <- c(Clb,rep(-Inf,nComponents^2));
+                    Cub <- c(Cub,rep(Inf,nComponents^2));
+                }
             }
             if(persistenceEstimate){
                 C <- c(C,rep(0.1,nComponents));
@@ -885,7 +893,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 ##### Print output #####
     if(!silentText){
         if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
-            if(bounds!="a"){
+            if(bounds=="n"){
                 warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",
                         call.=FALSE);
             }

@@ -42,5 +42,5 @@ test_that("Select exogenous variables for GUMX on N1457 with selection", {
 
 # Use automatic GUM
 test_that("Use automatic GUM on N1234$x", {
-    expect_equal(auto.gum(Mcomp::M3$N1234, silent=TRUE)$model, "GUM(1[1],1[3])");
+    expect_equal(auto.gum(Mcomp::M3$N1234, silent=TRUE, bounds="r")$model, "GUM(1[1],1[3])");
 })

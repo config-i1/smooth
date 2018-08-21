@@ -2108,7 +2108,7 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
             }
         }
     }
-    else if(boundtype=='a'){
+    else if((boundtype=='a') | boundtype=='r'){
         if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
             if(max(abs(eigval))> (1 + 1E-50)){
                 return wrap(max(abs(eigval))*1E+100);
@@ -2299,7 +2299,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
 
     char boundtype = as<char>(bounds);
 
-    if((nComponents>0) & (boundtype=='a')){
+    if((nComponents>0) & ((boundtype=='a') | (boundtype=='r'))){
         arma::cx_vec eigval;
 
 // Check stability condition
