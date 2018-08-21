@@ -619,7 +619,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     environment(ssForecaster) <- environment();
     environment(ssFitter) <- environment();
 
-    # If auto intermittent, then estimate model with intermittent="n" first.
+    # If auto intermittent, then estimate model with intermittent="n" first
     if(any(intermittent==c("a","n"))){
         intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
     }
