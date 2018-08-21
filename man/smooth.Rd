@@ -16,21 +16,21 @@ included in the package:
 \itemize{
 \item \link[smooth]{es} - Exponential Smoothing in Single Source of Errors State Space form.
 \item \link[smooth]{ces} - Complex Exponential Smoothing.
-\item \link[smooth]{ges} - Generalised Exponential Smoothing.
+\item \link[smooth]{gum} - Generalised Exponential Smoothing.
 \item \link[smooth]{ssarima} - SARIMA in state space framework.
 % \item \link[smooth]{nus} - Non-Uniform Smoothing.
 \item \link[smooth]{auto.ces} - Automatic selection between seasonal and non-seasonal CES.
 \item \link[smooth]{auto.ssarima} - Automatic selection of ARIMA orders.
 \item \link[smooth]{sma} - Simple Moving Average in state space form.
 \item \link[smooth]{smoothCombine} - the function that combines forecasts from es(),
-ces(), ges(), ssarima() and sma() functions.
+ces(), gum(), ssarima() and sma() functions.
 \item \link[smooth]{cma} - Centered Moving Average. This is for smoothing time series,
 not for forecasting.
 \item \link[smooth]{ves} - Vector Exponential Smoothing.
 \item \link[smooth]{sim.es} - simulate time series using ETS as a model.
 \item \link[smooth]{sim.ces} - simulate time series using CES as a model.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
-\item \link[smooth]{sim.ges} - simulate time series using GES as a model.
+\item \link[smooth]{sim.gum} - simulate time series using GUM as a model.
 \item \link[smooth]{sim.sma} - simulate time series using SMA.
 \item \link[smooth]{iss} - intermittent data state space model. This
 function models the part with data occurrences using one of three methods.
@@ -64,7 +64,7 @@ is passed).
 \dontrun{y <- ts(rnorm(100,10,3),frequency=12)
 
 es(y,h=20,holdout=TRUE)
-ges(y,h=20,holdout=TRUE)
+gum(y,h=20,holdout=TRUE)
 auto.ces(y,h=20,holdout=TRUE)
 auto.ssarima(y,h=20,holdout=TRUE)}
 
@@ -122,7 +122,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 }
 \seealso{
 \code{\link[forecast:forecast]{forecast}, \link[smooth]{es},
-\link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{ges}}
+\link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{gum}}
 }
 \author{
 Ivan Svetunkov

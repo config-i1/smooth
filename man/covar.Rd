@@ -35,7 +35,7 @@ Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
 }
 \description{
 This function extracts covariance matrix of 1 to h steps ahead forecast errors for
-\code{ssarima()}, \code{ges()}, \code{sma()}, \code{es()} and \code{ces()} models.
+\code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and \code{ces()} models.
 }
 \details{
 The function returns either scalar (if it is a non-smooth model)

@@ -32,11 +32,11 @@ Either vector, scalar or list with values is returned.
 All the other functions return strings of character.
 }
 \description{
-These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
+These functions allow extracting orders and lags for \code{ssarima()}, \code{gum()} and \code{sma()},
 type of model from \code{es()} and \code{ces()} and name of model.
 }
 \details{
-\code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
+\code{orders()} and \code{lags()} are useful only for SSARIMA, GUM and SMA. They return \code{NA} for other functions.
 This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
 This can also be applied to \code{ets()} function from forecast package. \code{errorType}
@@ -56,8 +56,8 @@ lags(ourModel)
 modelType(ourModel)
 modelName(ourModel)
 
-# And as another example it does the opposite for ges() and ssarima()
-ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
+# And as another example it does the opposite for gum() and ssarima()
+ourModel <- gum(x, h=10, orders=c(1,1), lags=c(1,4))
 orders(ourModel)
 lags(ourModel)
 modelType(ourModel)

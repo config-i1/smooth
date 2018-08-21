@@ -51,7 +51,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @return Object of class "smooth" is returned. See \link[smooth]{msarima} for
 #' details.
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
-#' \link[smooth]{sim.es}, \link[smooth]{ges}, \link[smooth]{msarima}}
+#' \link[smooth]{sim.es}, \link[smooth]{gum}, \link[smooth]{msarima}}
 #'
 #' @examples
 #'

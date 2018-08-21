@@ -4,8 +4,8 @@ utils::globalVariables(c("h","holdout","orders","lags","transition","measurement
                          "constant","AR","MA","data","y.fit","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
-ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
-    # This is universal function needed in order to check the passed arguments to es(), ges(), ces() and ssarima()
+ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
+    # This is universal function needed in order to check the passed arguments to es(), gum(), ces() and ssarima()
 
     smoothType <- smoothType[1];
 
@@ -489,8 +489,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         nParamMax <- 0;
     }
 
-    ##### Lags and components for GES #####
-    if(smoothType=="ges"){
+    ##### Lags and components for GUM #####
+    if(smoothType=="gum"){
         if(any(is.complex(c(orders,lags)))){
             stop("Complex values? Right! Come on! Be real!",call.=FALSE);
         }
@@ -793,7 +793,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             obsNonzero <- sum(ot);
             yot <- matrix(y[y!=0],obsNonzero,1);
             pt <- matrix(mean(ot),obsInsample,1);
-            pt.for <- matrix(1,h,1);
+            pForecast <- matrix(1,h,1);
             nParamIntermittent <- 1;
         }
         else{
@@ -808,14 +808,14 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             yot <- matrix(y[y!=0],obsNonzero,1);
             if(length(intermittent)==obsAll){
                 pt <- intermittent[1:obsInsample];
-                pt.for <- intermittent[(obsInsample+1):(obsInsample+h)];
+                pForecast <- intermittent[(obsInsample+1):(obsInsample+h)];
             }
             else{
                 pt <- matrix(ot,obsInsample,1);
-                pt.for <- matrix(intermittent,h,1);
+                pForecast <- matrix(intermittent,h,1);
             }
 
-            iprob <- pt.for[1];
+            iprob <- pForecast[1];
             # "p" stand for "provided", meaning that we have been provided the future data
             intermittent <- "provided";
             nParamIntermittent <- 0;
@@ -908,8 +908,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         }
     }
 
-    if(any(smoothType==c("es","ges"))){
-        ##### persistence for ES & GES #####
+    if(any(smoothType==c("es","gum"))){
+        ##### persistence for ES & GUM #####
         if(!is.null(persistence)){
             if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
                 warning(paste0("Persistence is not a numeric vector!\n",
@@ -948,7 +948,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
                         }
                     }
                 }
-                else if(smoothType=="ges"){
+                else if(smoothType=="gum"){
                     if(length(persistence) != nComponents){
                         warning(paste0("Wrong length of persistence vector. Should be ",nComponents,
                                        " instead of ",length(persistence),".\n",
@@ -1032,7 +1032,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
                     }
                 }
             }
-            else if(smoothType=="ges"){
+            else if(smoothType=="gum"){
                 if(length(initialValue) != (nComponents*max(lags))){
                     warning(paste0("Wrong length of initial vector. Should be ",(nComponents*max(lags)),
                                    " instead of ",length(initial),".\n",
@@ -1183,8 +1183,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         }
     }
 
-    if(smoothType=="ges"){
-        ##### transition for GES #####
+    if(smoothType=="gum"){
+        ##### transition for GUM #####
         # Check the provided vector of initials: length and provided values.
         if(!is.null(transition)){
             if((!is.numeric(transition) | !is.vector(transition)) & !is.matrix(transition)){
@@ -1207,7 +1207,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
             transitionEstimate <- TRUE;
         }
 
-        ##### measurement for GES #####
+        ##### measurement for GUM #####
         if(!is.null(measurement)){
             if((!is.numeric(measurement) | !is.vector(measurement)) & !is.matrix(measurement)){
                 warning(paste0("Measurement vector is not numeric!\n",
@@ -1252,7 +1252,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
                           (1 + (Ttype!="N"))*(initialType=="o") + phiEstimate*damped +
                           datafreq*(Stype!="N")*initialSeasonEstimate*(initialType!="b"));
     }
-    else if(smoothType=="ges"){
+    else if(smoothType=="gum"){
         nParamMax <- (1 + nComponents*measurementEstimate + nComponents*persistenceEstimate +
                           (nComponents^2)*transitionEstimate + (orders %*% lags)*(initialType=="o"));
     }
@@ -1346,7 +1346,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
     assign("ot",ot,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
-    assign("pt.for",pt.for,ParentEnvironment);
+    assign("pForecast",pForecast,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
     assign("imodelProvided",imodelProvided,ParentEnvironment);
@@ -1373,7 +1373,7 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("phiEstimate",phiEstimate,ParentEnvironment);
         assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
     }
-    else if(smoothType=="ges"){
+    else if(smoothType=="gum"){
         assign("transitionEstimate",transitionEstimate,ParentEnvironment);
         assign("measurementEstimate",measurementEstimate,ParentEnvironment);
         assign("orders",orders,ParentEnvironment);
@@ -1403,12 +1403,12 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
         assign("B",B,ParentEnvironment);
     }
 
-    if(any(smoothType==c("es","ges"))){
+    if(any(smoothType==c("es","gum"))){
         assign("persistence",persistence,ParentEnvironment);
         assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
     }
 
-    if(any(smoothType==c("ges","ssarima","ces","msarima"))){
+    if(any(smoothType==c("gum","ssarima","ces","msarima"))){
         assign("nComponents",nComponents,ParentEnvironment);
         assign("maxlag",maxlag,ParentEnvironment);
         assign("modellags",modellags,ParentEnvironment);
@@ -1416,8 +1416,8 @@ ssInput <- function(smoothType=c("es","ges","ces","ssarima","smoothC"),...){
 }
 
 ##### *Checker for auto. functions* #####
-ssAutoInput <- function(smoothType=c("auto.ces","auto.ges","auto.ssarima","auto.msarima"),...){
-    # This is universal function needed in order to check the passed arguments to auto.ces(), auto.ges() and auto.ssarima()
+ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.msarima"),...){
+    # This is universal function needed in order to check the passed arguments to auto.ces(), auto.gum() and auto.ssarima()
 
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -2455,7 +2455,7 @@ ssForecaster <- function(...){
                     materrors <- exp(materrors) - 1;
                 }
                 if(all(intermittent!=c("n","p"))){
-                    matot <- matrix(rbinom(h*nSamples,1,pt.for),h,nSamples);
+                    matot <- matrix(rbinom(h*nSamples,1,pForecast),h,nSamples);
                 }
                 else{
                     matot <- matrix(1,h,nSamples);
@@ -2485,7 +2485,7 @@ ssForecaster <- function(...){
                     y.simulated <- y.simulated + matrix(y.exo.for,nrow=h,ncol=nSamples);
                     quantileType <- 7;
                 }
-                y.for <- c(pt.for)*y.for;
+                y.for <- c(pForecast)*y.for;
 
                 if(cumulative){
                     y.for <- ts(sum(y.for),start=yForecastStart,frequency=datafreq);
@@ -2520,7 +2520,7 @@ ssForecaster <- function(...){
                 }
 
                 if(!(intervalsType=="sp" & Etype=="M")){
-                    y.for <- c(pt.for)*y.for;
+                    y.for <- c(pForecast)*y.for;
                 }
 
                 if(cumulative){
@@ -2552,7 +2552,7 @@ ssForecaster <- function(...){
             if(rounded){
                 y.for <- ceiling(y.for);
             }
-            y.for <- c(pt.for)*y.for;
+            y.for <- c(pForecast)*y.for;
             if(cumulative){
                 y.for <- ts(sum(y.for),start=yForecastStart,frequency=datafreq);
             }
@@ -3072,8 +3072,8 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             else if(gregexpr("CES",modelname)!=-1){
                 model <- "CES";
             }
-            else if(gregexpr("GES",modelname)!=-1){
-                model <- "GES";
+            else if(gregexpr("GUM",modelname)!=-1){
+                model <- "GUM";
             }
             else if(gregexpr("ARIMA",modelname)!=-1){
                 model <- "ARIMA";
@@ -3117,7 +3117,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     }
 
 ### Stuff for ETS
-    if(any(model==c("ETS","GES"))){
+    if(any(model==c("ETS","GUM"))){
         if(!is.null(persistence)){
             cat(paste0("Persistence vector g:\n"));
             if(is.matrix(persistence)){
@@ -3134,8 +3134,8 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-### Stuff for GES
-    if(model=="GES"){
+### Stuff for GUM
+    if(model=="GUM"){
         if(!is.null(transition)){
             cat("Transition matrix F: \n");
             print(round(transition,3));

@@ -21,7 +21,7 @@ The package includes the following functions:
 1. [es() - Exponential Smoothing](es.html);
 2. [ssarima() - State-Space ARIMA](ssarima.html), also known as Several Seasonalities ARIMA;
 3. [ces() - Complex Exponential Smoothing](ces.html);
-4. [ges() - Generalised Exponential Smoothing](ges.html);
+4. [gum() - Generalised Univariate Model](gum.html);
 5. [ves() - Vector Exponential Smoothing](ves.html);
 6. [sma() - Simple Moving Average in state-space form](sma.html);
 7. [Simulate functions of the package](simulate.html).
@@ -50,8 +50,8 @@ There are several functions that can be used together with the forecasing functi
 12. `nParam(ourModel)` -- number of estimated parameters (originally from `greybox` package);
 13. `pointLik(ourModel)` -- likelihood values for each separate observation;
 14. `sigma(ourModel)` -- variance of the residuals of the model;
-15. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `ges()`);
-16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `ges()` and `sma()`);
+15. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `gum()`);
+16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `gum()` and `sma()`);
 17. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()`, `ves()` and `ets()`;
 18. `errorType(ourModel)` -- the type of the error of a model (additive or multiplicative);
 19. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;

@@ -19,14 +19,14 @@ details.}
 \item{level}{Confidence level. Defines width of prediction interval.}
 
 \item{...}{Other arguments accepted by either \link[smooth]{es},
-\link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima}.}
+\link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}
 }
 \value{
 Returns object of class "smooth.forecast", which contains:
 
 \itemize{
-\item \code{model} - the estimated model (ES / CES / GES / SSARIMA).
-\item \code{method} - the name of the estimated model (ES / CES / GES / SSARIMA).
+\item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
+\item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
 \item \code{fitted} - fitted values of the model.
 \item \code{actuals} - actuals provided in the call of the model.
 \item \code{forecast} aka \code{mean} - point forecasts of the model
@@ -44,7 +44,7 @@ Hyndman's "forecast" package
 }
 \details{
 This is not a compulsory function. You can simply use \link[smooth]{es},
-\link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without
+\link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima} without
 \code{forecast.smooth}. But if you are really used to \code{forecast}
 function, then go ahead!
 }

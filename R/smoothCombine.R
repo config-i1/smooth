@@ -1,6 +1,6 @@
 #' Combination of forecasts of state space models
 #'
-#' Function constructs ETS, SSARIMA, CES, GES and SMA and combines their
+#' Function constructs ETS, SSARIMA, CES, GUM and SMA and combines their
 #' forecasts using IC weights.
 #'
 #' The combination of these models using information criteria weights is
@@ -71,7 +71,7 @@
 #' }
 #'
 #' @seealso \code{\link[smooth]{es}, \link[smooth]{auto.ssarima},
-#' \link[smooth]{auto.ces}, \link[smooth]{auto.ges}, \link[smooth]{sma}}
+#' \link[smooth]{auto.ces}, \link[smooth]{auto.gum}, \link[smooth]{sma}}
 #'
 #' @examples
 #'
@@ -178,9 +178,9 @@ smoothCombine <- function(data, models=NULL,
                                      xreg=xreg,xregDo=xregDo,updateX=updateX,
                                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
-            cat(", GES");
+            cat(", GUM");
         }
-        gesModel <- auto.ges(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
+        gumModel <- auto.gum(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
                              cumulative=cumulative,intervals="n",intermittent=intermittent,
                              imodel=imodel,bounds=bounds,silent=TRUE,
                              xreg=xreg,xregDo=xregDo,updateX=updateX,
@@ -193,8 +193,8 @@ smoothCombine <- function(data, models=NULL,
         if(!silentText){
             cat(". Done!\n");
         }
-        models <- list(esModel, cesModel, ssarimaModel, gesModel, smaModel);
-        names(models) <- c("ETS","CES","SSARIMA","GES","SMA");
+        models <- list(esModel, cesModel, ssarimaModel, gumModel, smaModel);
+        names(models) <- c("ETS","CES","SSARIMA","GUM","SMA");
     }
 
     yForecastTest <- forecast(models[[1]],h=h,intervals="none",holdout=holdout);

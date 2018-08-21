@@ -1,6 +1,6 @@
 utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","datafreq","initialType",
                          "yot","maxlag","silent","allowMultiplicative","modelCurrent",
-                         "nParamIntermittent","matF","matw","pt.for","errors.mat",
+                         "nParamIntermittent","matF","matw","pForecast","errors.mat",
                          "iprob","results","s2","FI","intermittent","normalizer",
                          "persistenceEstimate","initial","multisteps","ot",
                          "silentText","silentGraph","silentLegend","yForecastStart",
@@ -2039,7 +2039,7 @@ CreatorES <- function(silent=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
     # Write down the probabilities from intermittent models
-    pt <- ts(c(as.vector(pt),as.vector(pt.for)),start=dataStart,frequency=datafreq);
+    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=datafreq);
     # Write down the number of parameters of imodel
     if(all(intermittent!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- imodel$nParam;

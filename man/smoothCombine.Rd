@@ -181,7 +181,7 @@ cumulative error) and Bias coefficient.
 }}
 }
 \description{
-Function constructs ETS, SSARIMA, CES, GES and SMA and combines their
+Function constructs ETS, SSARIMA, CES, GUM and SMA and combines their
 forecasts using IC weights.
 }
 \details{
@@ -238,7 +238,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 }
 \seealso{
 \code{\link[smooth]{es}, \link[smooth]{auto.ssarima},
-\link[smooth]{auto.ces}, \link[smooth]{auto.ges}, \link[smooth]{sma}}
+\link[smooth]{auto.ces}, \link[smooth]{auto.gum}, \link[smooth]{sma}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

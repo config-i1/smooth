@@ -1,6 +1,6 @@
 #' Simulate Generalised Exponential Smoothing
 #'
-#' Function generates data using GES with Single Source of Error as a data
+#' Function generates data using GUM with Single Source of Error as a data
 #' generating process.
 #'
 #'
@@ -35,12 +35,12 @@
 #'
 #' @return List of the following values is returned:
 #' \itemize{
-#' \item \code{model} - Name of GES model.
+#' \item \code{model} - Name of GUM model.
 #' \item \code{measurement} - Matrix w.
 #' \item \code{transition} - Matrix F.
 #' \item \code{persistence} - Persistence vector. This is the place, where
 #' smoothing parameters live.
-#' \item \code{initial} - Initial values of GES in a form of matrix. If \code{nsim>1},
+#' \item \code{initial} - Initial values of GUM in a form of matrix. If \code{nsim>1},
 #' then this is an array.
 #' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the generated
 #' series.
@@ -54,22 +54,22 @@
 #' }
 #'
 #' @seealso \code{\link[smooth]{sim.es}, \link[smooth]{sim.ssarima},
-#' \link[smooth]{sim.ces}, \link[smooth]{ges}, \link[stats]{Distributions}}
+#' \link[smooth]{sim.ces}, \link[smooth]{gum}, \link[stats]{Distributions}}
 #'
 #' @examples
 #'
-#' # Create 120 observations from GES(1[1]). Generate 100 time series of this kind.
-#' x <- sim.ges(orders=c(1),lags=c(1),obs=120,nsim=100)
+#' # Create 120 observations from GUM(1[1]). Generate 100 time series of this kind.
+#' x <- sim.gum(orders=c(1),lags=c(1),obs=120,nsim=100)
 #'
-#' # Generate similar thing for seasonal series of GES(1[1],1[4]])
-#' x <- sim.ges(orders=c(1,1),lags=c(1,4),frequency=4,obs=80,nsim=100,transition=c(1,0,0.9,0.9))
+#' # Generate similar thing for seasonal series of GUM(1[1],1[4]])
+#' x <- sim.gum(orders=c(1,1),lags=c(1,4),frequency=4,obs=80,nsim=100,transition=c(1,0,0.9,0.9))
 #'
 #' # Estimate model and then generate 10 time series from it
-#' ourModel <- ges(rnorm(100,100,5))
+#' ourModel <- gum(rnorm(100,100,5))
 #' simulate(ourModel,nsim=10)
 #'
-#' @export sim.ges
-sim.ges <- function(orders=c(1), lags=c(1),
+#' @export sim.gum
+sim.gum <- function(orders=c(1), lags=c(1),
                     obs=10, nsim=1,
                     frequency=1, measurement=NULL,
                     transition=NULL, persistence=NULL, initial=NULL,
@@ -81,11 +81,11 @@ sim.ges <- function(orders=c(1), lags=c(1),
     args <- list(...);
 
 # Function generates values of measurement, transition and persistence
-    gesGenerator <- function(nsim=nsim){
-        GESNotStable <- TRUE;
+    gumGenerator <- function(nsim=nsim){
+        GUMNotStable <- TRUE;
         for(i in 1:nsim){
-            GESNotStable <- TRUE;
-            while(GESNotStable){
+            GUMNotStable <- TRUE;
+            while(GUMNotStable){
                 if(transitionGenerate){
                     arrF[,,i] <- runif(componentsNumber^2,-1,1);
                 }
@@ -97,7 +97,7 @@ sim.ges <- function(orders=c(1), lags=c(1),
                 }
                 matD <- arrF[,,i] - matrix(matg[,i],ncol=1) %*% matw[i,];
                 if(all(abs(eigen(matD)$values)<=1) & all(abs(eigen(arrF[,,i])$values)<=1)){
-                    GESNotStable <- FALSE;
+                    GUMNotStable <- FALSE;
                 }
             }
         }
@@ -273,7 +273,7 @@ sim.ges <- function(orders=c(1), lags=c(1),
         matg[,] <- persistenceValue;
     }
     if(any(measurementGenerate,transitionGenerate,persistenceGenerate)){
-        generatedParameters <- gesGenerator(nsim);
+        generatedParameters <- gumGenerator(nsim);
         arrF <- generatedParameters$arrF;
         matg <- generatedParameters$matg;
         matw <- generatedParameters$matw;
@@ -370,7 +370,7 @@ sim.ges <- function(orders=c(1), lags=c(1),
         matot <- ts(matot,frequency=frequency);
     }
 
-    modelname <- "GES";
+    modelname <- "GUM";
     modelname <- paste0(modelname,"(",paste(orders,"[",lags,"]",collapse=",",sep=""),")");
     if(any(iprob!=1)){
         modelname <- paste0("i",modelname);

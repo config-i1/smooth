@@ -22,7 +22,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         yot <- matrix(y[y!=0],obsNonzero,1);
         if(!imodelProvided){
             pt <- matrix(mean(ot),obsInsample,1);
-            pt.for <- matrix(1,h,1);
+            pForecast <- matrix(1,h,1);
         }
         else{
             if(length(imodel$fitted)>obsInsample){
@@ -38,14 +38,14 @@ intermittentParametersSetter <- function(intermittent="n",...){
             }
 
             if(length(imodel$forecast)>=h){
-                pt.for <- matrix(imodel$forecast[1:h],h,1);
+                pForecast <- matrix(imodel$forecast[1:h],h,1);
             }
             else{
-                pt.for <- matrix(c(imodel$forecast,
+                pForecast <- matrix(c(imodel$forecast,
                                    rep(imodel$forecast[1],h-length(imodel$forecast))),h,1);
             }
 
-            iprob <- c(pt,pt.for);
+            iprob <- c(pt,pForecast);
         }
     }
     else{
@@ -66,7 +66,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
         obsNonzero <- obsInsample;
         yot <- y;
         pt <- matrix(1,obsInsample,1);
-        pt.for <- matrix(1,h,1);
+        pForecast <- matrix(1,h,1);
         nParamIntermittent <- 0;
     }
     iprob <- pt[1];
@@ -76,7 +76,7 @@ intermittentParametersSetter <- function(intermittent="n",...){
     assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
-    assign("pt.for",pt.for,ParentEnvironment);
+    assign("pForecast",pForecast,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
 }
@@ -97,8 +97,8 @@ intermittentMaker <- function(intermittent="n",...){
         }
         nParamIntermittent <- imodel$nParam;
         pt[,] <- imodel$fitted;
-        pt.for <- imodel$forecast;
-        iprob <- pt.for[1];
+        pForecast <- imodel$forecast;
+        iprob <- pForecast[1];
     }
     else{
         imodel <- NULL;
@@ -106,7 +106,7 @@ intermittentMaker <- function(intermittent="n",...){
     }
 
     assign("pt",pt,ParentEnvironment);
-    assign("pt.for",pt.for,ParentEnvironment);
+    assign("pForecast",pForecast,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
     assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
     assign("imodel",imodel,ParentEnvironment);
@@ -256,11 +256,11 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
             pt <- ts(matrix(rep(iprob,obsInsample),obsInsample,1), start=start(y), frequency=frequency(y));
         }
         names(initial) <- "level";
-        pt.for <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
+        pForecast <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=frequency(y));
         errors <- ts(ot-iprob, start=start(y), frequency=frequency(y));
 
-        output <- list(model=model, fitted=pt, forecast=pt.for, states=pt,
-                       variance=pt.for*(1-pt.for), logLik=NA, nParam=1,
+        output <- list(model=model, fitted=pt, forecast=pForecast, states=pt,
+                       variance=pForecast*(1-pForecast), logLik=NA, nParam=1,
                        residuals=errors, actuals=otAll,
                        persistence=NULL, initial=initial, initialSeason=NULL);
     }
@@ -292,31 +292,31 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
         tailNumber <- obsInsample - length(pt);
         if(tailNumber>0){
-            pt.for <- crostonModel$forecast[1:tailNumber];
-            if(any(pt.for<1)){
-                pt.for[pt.for<1] <- 1;
+            pForecast <- crostonModel$forecast[1:tailNumber];
+            if(any(pForecast<1)){
+                pForecast[pForecast<1] <- 1;
             }
-            pt <- c(pt,pt.for);
+            pt <- c(pt,pForecast);
         }
-        pt.for <- crostonModel$forecast[(tailNumber+1):newh];
-        if(any(pt.for<1)){
-            pt.for[pt.for<1] <- 1;
+        pForecast <- crostonModel$forecast[(tailNumber+1):newh];
+        if(any(pForecast<1)){
+            pForecast[pForecast<1] <- 1;
         }
 
         if(sbaCorrection){
             pt <- ts((1-sum(crostonModel$persistence)/2)/pt,start=start(y),frequency=frequency(y));
-            pt.for <- ts((1-sum(crostonModel$persistence)/2)/pt.for, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            pForecast <- ts((1-sum(crostonModel$persistence)/2)/pForecast, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
             states <- 1/crostonModel$states;
             intermittent <- "s";
         }
         else{
             pt <- ts(1/pt,start=start(y),frequency=frequency(y));
-            pt.for <- ts(1/pt.for, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+            pForecast <- ts(1/pForecast, start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
             states <- 1/crostonModel$states;
         }
 
-        output <- list(model=model, fitted=pt, forecast=pt.for, states=states,
-                       variance=pt.for*(1-pt.for), logLik=NA, nParam=nParam(crostonModel),
+        output <- list(model=model, fitted=pt, forecast=pForecast, states=states,
+                       variance=pForecast*(1-pForecast), logLik=NA, nParam=nParam(crostonModel),
                        residuals=crostonModel$residuals, actuals=otAll,
                        persistence=crostonModel$persistence, initial=crostonModel$initial,
                        initialSeason=crostonModel$initialSeason);
@@ -433,9 +433,9 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 #### None ####
     else{
         pt <- ts(y,start=start(y),frequency=frequency(y));
-        pt.for <- ts(rep(y[obsInsample],h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
+        pForecast <- ts(rep(y[obsInsample],h), start=time(y)[obsInsample]+deltat(y),frequency=frequency(y));
         errors <- ts(rep(0,obsInsample), start=start(y), frequency=frequency(y));
-        output <- list(model=NULL, fitted=pt, forecast=pt.for, states=pt,
+        output <- list(model=NULL, fitted=pt, forecast=pForecast, states=pt,
                        variance=rep(0,h), logLik=NA, nParam=0,
                        residuals=errors, actuals=pt,
                        persistence=NULL, initial=NULL, initialSeason=NULL);

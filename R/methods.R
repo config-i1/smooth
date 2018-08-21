@@ -1,9 +1,9 @@
 #' Functions that extract values from the fitted model
 #'
-#' These functions allow extracting orders and lags for \code{ssarima()}, \code{ges()} and \code{sma()},
+#' These functions allow extracting orders and lags for \code{ssarima()}, \code{gum()} and \code{sma()},
 #' type of model from \code{es()} and \code{ces()} and name of model.
 #'
-#' \code{orders()} and \code{lags()} are useful only for SSARIMA, GES and SMA. They return \code{NA} for other functions.
+#' \code{orders()} and \code{lags()} are useful only for SSARIMA, GUM and SMA. They return \code{NA} for other functions.
 #' This can also be applied to \code{arima()}, \code{Arima()} and \code{auto.arima()} functions from stats and forecast packages.
 #' \code{modelType()} is useful only for ETS and CES. They return \code{NA} for other functions.
 #' This can also be applied to \code{ets()} function from forecast package. \code{errorType}
@@ -39,8 +39,8 @@
 #' modelType(ourModel)
 #' modelName(ourModel)
 #'
-#' # And as another example it does the opposite for ges() and ssarima()
-#' ourModel <- ges(x, h=10, orders=c(1,1), lags=c(1,4))
+#' # And as another example it does the opposite for gum() and ssarima()
+#' ourModel <- gum(x, h=10, orders=c(1,1), lags=c(1,4))
 #' orders(ourModel)
 #' lags(ourModel)
 #' modelType(ourModel)
@@ -124,7 +124,7 @@ BICc.smooth <- function(object, ...){
 #' Function returns the covariance matrix of conditional multiple steps ahead forecast errors
 #'
 #' This function extracts covariance matrix of 1 to h steps ahead forecast errors for
-#' \code{ssarima()}, \code{ges()}, \code{sma()}, \code{es()} and \code{ces()} models.
+#' \code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and \code{ces()} models.
 #'
 #' The function returns either scalar (if it is a non-smooth model)
 #' or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
@@ -246,9 +246,9 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         if(smoothType=="ETS"){
             smoothFunction <- es;
         }
-        # GES models
-        else if(smoothType=="GES"){
-            smoothFunction <- ges;
+        # GUM models
+        else if(smoothType=="GUM"){
+            smoothFunction <- gum;
         }
         # SSARIMA models
         else if(smoothType=="ARIMA"){
@@ -622,7 +622,7 @@ coef.smooth <- function(object, ...)
             parameters <- NULL;
         }
     }
-    else if(smoothType=="GES"){
+    else if(smoothType=="GUM"){
         parameters <- c(object$measurement,object$transition,object$persistence,object$initial);
         names(parameters) <- c(paste0("Measurement ",c(1:length(object$measurement))),
                                paste0("Transition ",c(1:length(object$transition))),
@@ -681,7 +681,7 @@ NULL
 #' Hyndman's "forecast" package
 #'
 #' This is not a compulsory function. You can simply use \link[smooth]{es},
-#' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima} without
+#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima} without
 #' \code{forecast.smooth}. But if you are really used to \code{forecast}
 #' function, then go ahead!
 #'
@@ -692,12 +692,12 @@ NULL
 #' details.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param ...  Other arguments accepted by either \link[smooth]{es},
-#' \link[smooth]{ces}, \link[smooth]{ges} or \link[smooth]{ssarima}.
+#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
 #' @return Returns object of class "smooth.forecast", which contains:
 #'
 #' \itemize{
-#' \item \code{model} - the estimated model (ES / CES / GES / SSARIMA).
-#' \item \code{method} - the name of the estimated model (ES / CES / GES / SSARIMA).
+#' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
+#' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
 #' \item \code{fitted} - fitted values of the model.
 #' \item \code{actuals} - actuals provided in the call of the model.
 #' \item \code{forecast} aka \code{mean} - point forecasts of the model
@@ -735,8 +735,8 @@ forecast.smooth <- function(object, h=10,
     else if(smoothType=="CES"){
         newModel <- ces(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
-    else if(smoothType=="GES"){
-        newModel <- ges(object$actuals,model=object,type=errorType(object),h=h,intervals=intervals,level=level,silent="all",...);
+    else if(smoothType=="GUM"){
+        newModel <- gum(object$actuals,model=object,type=errorType(object),h=h,intervals=intervals,level=level,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
@@ -756,7 +756,7 @@ forecast.smooth <- function(object, h=10,
         newModel <- sma(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
     }
     else{
-        stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GES', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
+        stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GUM', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
     }
     output <- list(model=object,method=object$model,fitted=newModel$fitted,actuals=newModel$actuals,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
@@ -806,7 +806,7 @@ lags.smooth <- function(object, ...){
     model <- object$model;
     smoothType <- smoothType(object);
     if(!is.null(model)){
-        if(smoothType=="GES"){
+        if(smoothType=="GUM"){
             lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
         }
         else if(smoothType=="ARIMA"){
@@ -884,8 +884,8 @@ errorType.smooth <- function(object, ...){
                  call.=FALSE);
         }
     }
-    # GES models
-    else if(smoothType=="GES"){
+    # GUM models
+    else if(smoothType=="GUM"){
         if(substr(modelName(object),1,1)=="M"){
             Etype <- "M";
         }
@@ -935,7 +935,7 @@ modelLags.default <- function(object, ...){
         if(smoothType=="ETS"){
             modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
-        else if(smoothType=="GES"){
+        else if(smoothType=="GUM"){
             modelLags <- matrix(rep(lags(object),times=orders(object)),ncol=1);
         }
         else if(smoothType=="ARIMA"){
@@ -1062,7 +1062,7 @@ orders.smooth <- function(object, ...){
     smoothType <- smoothType(object);
     model <- object$model;
     if(!is.null(model)){
-        if(smoothType=="GES"){
+        if(smoothType=="GUM"){
             orders <- as.numeric(substring(model,unlist(gregexpr("\\[",model))-1,unlist(gregexpr("\\[",model))-1));
         }
         else if(smoothType=="ARIMA"){
@@ -1643,12 +1643,12 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
 
         simulatedData <- do.call("sim.ces",args);
     }
-    else if(smoothType=="GES"){
+    else if(smoothType=="GUM"){
         args <- c(args,list(orders=orders(object), lags=lags(object),
                             measurement=object$measurement, transition=object$transition,
                             persistence=object$persistence));
 
-        simulatedData <- do.call("sim.ges",args);
+        simulatedData <- do.call("sim.gum",args);
     }
     else if(smoothType=="SMA"){
         args <- c(args,list(order=orders(object)));
@@ -1679,8 +1679,8 @@ smoothType.smooth <- function(object, ...){
         else if(gregexpr("ARIMA",object$model)!=-1){
             smoothType <- "ARIMA";
         }
-        else if(gregexpr("GES",object$model)!=-1){
-            smoothType <- "GES";
+        else if(gregexpr("GUM",object$model)!=-1){
+            smoothType <- "GUM";
         }
         else if(gregexpr("SMA",object$model)!=-1){
             smoothType <- "SMA";

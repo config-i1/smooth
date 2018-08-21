@@ -1,16 +1,16 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
 
-#' Automatic GES
+#' Automatic GUM
 #'
-#' Function selects the order of GES model based on information criteria,
+#' Function selects the order of GUM model based on information criteria,
 #' using fancy branch and bound mechanism.
 #'
-#' The function checks several GES models (see \link[smooth]{ges} documentation)
+#' The function checks several GUM models (see \link[smooth]{gum} documentation)
 #' and selects the best one based on the specified information criterion.
 #'
-#' The resulting model can be complicated and not straightforward, because GES
+#' The resulting model can be complicated and not straightforward, because GUM
 #' allows capturing hidden orders that no ARIMA model can. It is advised to use
-#' \code{initial="b"}, because optimising GES of arbitrary order is not a simple
+#' \code{initial="b"}, because optimising GUM of arbitrary order is not a simple
 #' task.
 #'
 #' @template ssBasicParam
@@ -28,31 +28,31 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @param lagMax The value of the maximum lag to check. This should usually be
 #' a maximum frequency of the data.
 #' @param type Type of model. Can either be \code{"Additive"} or
-#' \code{"Multiplicative"}. The latter means that the GES is fitted on
+#' \code{"Multiplicative"}. The latter means that the GUM is fitted on
 #' log-transformed data. If \code{"Z"}, then this is selected automatically,
 #' which may slow down things twice.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of parameters of the model.
-#' @return Object of class "smooth" is returned. See \link[smooth]{ges} for
+#' @return Object of class "smooth" is returned. See \link[smooth]{gum} for
 #' details.
-#' @seealso \code{\link[smooth]{ges}, \link[forecast]{ets}, \link[smooth]{es},
+#' @seealso \code{\link[smooth]{gum}, \link[forecast]{ets}, \link[smooth]{es},
 #' \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ssarima}}
 #'
 #' @examples
 #'
 #' x <- rnorm(50,100,3)
 #'
-#' # The best GES model for the data
-#' ourModel <- auto.ges(x,orderMax=2,lagMax=4,h=18,holdout=TRUE,intervals="np")
+#' # The best GUM model for the data
+#' ourModel <- auto.gum(x,orderMax=2,lagMax=4,h=18,holdout=TRUE,intervals="np")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
 #'
-#' @export auto.ges
-auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z"),
+#' @export auto.gum
+auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z"),
                      initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                      cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
@@ -63,7 +63,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                      silent=c("all","graph","legend","output","none"),
                      xreg=NULL, xregDo=c("use","select"), initialX=NULL,
                      updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
-# Function estimates several GES models and selects the best one using the selected information criterion.
+# Function estimates several GUM models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2017 - Inf  Ivan Svetunkov
 
@@ -75,10 +75,10 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
-    ssAutoInput("auto.ges",ParentEnvironment=environment());
+    ssAutoInput("auto.gum",ParentEnvironment=environment());
 
     if(any(is.complex(c(orderMax,lagMax)))){
-        stop("Complex numbers? Really? Be serious! This is GES, not CES!",call.=FALSE);
+        stop("Complex numbers? Really? Be serious! This is GUM, not CES!",call.=FALSE);
     }
 
     if(any(c(orderMax)<0)){
@@ -90,7 +90,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
     }
 
     if(any(c(lagMax,orderMax)==0)){
-        stop("Sorry, but we cannot construct GES model with zero lags / orders.",call.=FALSE);
+        stop("Sorry, but we cannot construct GUM model with zero lags / orders.",call.=FALSE);
     }
 
     type <- substr(type[1],1,1);
@@ -134,7 +134,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             cat(paste0(rep(" ",9+nchar(lagMax)),collapse=""));
         }
         for(i in 1:lagMax){
-            gesModel <- ges(data,orders=c(1),lags=c(i),type=type[t],
+            gumModel <- gum(data,orders=c(1),lags=c(i),type=type[t],
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
@@ -143,7 +143,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-            ics[i] <- gesModel$ICs[ic];
+            ics[i] <- gumModel$ICs[ic];
             if(!silentText){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lagMax))),collapse=""));
                 cat(paste0(i," out of ",lagMax));
@@ -175,7 +175,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                     ics[i] <- 1E100;
                     next;
                 }
-                gesModel <- ges(data,orders=ordersTest,lags=lagsTest,type=type[t],
+                gumModel <- gum(data,orders=ordersTest,lags=lagsTest,type=type[t],
                                 silent=TRUE,h=h,holdout=holdout,
                                 initial=initial,cfType=cfType,
                                 cumulative=cumulative,
@@ -184,7 +184,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                                 bounds=bounds,
                                 xreg=xreg, xregDo=xregDo, initialX=initialX,
                                 updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-                ics[i] <- gesModel$ICs[ic];
+                ics[i] <- gumModel$ICs[ic];
             }
             if(!any(which(ics==min(ics))==lagsBest)){
                 lagsBest <- c(which(ics==min(ics)),lagsBest);
@@ -217,7 +217,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                 ics[i] <- NA;
                 next;
             }
-            gesModel <- ges(data,orders=ordersTest,lags=lagsBest,type=type[t],
+            gumModel <- gum(data,orders=ordersTest,lags=lagsBest,type=type[t],
                             silent=TRUE,h=h,holdout=holdout,
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
@@ -226,7 +226,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
-            ics[i] <- gesModel$ICs[ic];
+            ics[i] <- gumModel$ICs[ic];
         }
         ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE)
         if(!silentText){
@@ -244,7 +244,7 @@ auto.ges <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
         cat("Reestimating the model. ");
     }
 
-    bestModel <- ges(data,orders=ordersFinal[[t]],lags=lagsFinal[[t]],type=type[t],
+    bestModel <- gum(data,orders=ordersFinal[[t]],lags=lagsFinal[[t]],type=type[t],
                      silent=TRUE,h=h,holdout=holdout,
                      initial=initial,cfType=cfType,
                      cumulative=cumulative,
