@@ -149,7 +149,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             }
             else{
                 modelsPoolCombiner <- (substr(model,1,1)=="C" | substr(model,2,2)=="C" |
-                                         substr(model,3,3)=="C" | substr(model,4,4)=="C");
+                                           substr(model,3,3)=="C" | substr(model,4,4)=="C");
                 modelsPool <- model[!modelsPoolCombiner];
                 if(any(modelsPoolCombiner)){
                     if(any(substr(model,nchar(model),nchar(model))!="N")){
@@ -342,7 +342,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 }
                 if(sum(ar.orders)!=ARLength){
                     warning(paste0("Wrong number of non-zero elements of AR. Should be ",sum(ar.orders),
-                                    " instead of ",length(ARValue[ARValue!=0]),".\n",
+                                   " instead of ",length(ARValue[ARValue!=0]),".\n",
                                    "AR will be estimated."),call.=FALSE);
                     ARRequired <- AREstimate <- TRUE;
                     ARValue <- NULL;
@@ -384,7 +384,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 }
                 if(sum(ma.orders)!=MALength){
                     warning(paste0("Wrong number of non-zero elements of MA. Should be ",sum(ma.orders),
-                                    " instead of ",length(MAValue[MAValue!=0]),".\n",
+                                   " instead of ",length(MAValue[MAValue!=0]),".\n",
                                    "MA will be estimated."),call.=FALSE);
                     MARequired <- MAEstimate <- TRUE;
                     MAValue <- NULL;
@@ -1086,8 +1086,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                     initialType <- "p";
                     initialValue <- initial;
                     parametersNumber[2,1] <- (parametersNumber[2,1] + 2*(seasonality!="s") +
-                                              maxlag*(seasonality!="n") +
-                                              maxlag*any(seasonality==c("f","s")));
+                                                  maxlag*(seasonality!="n") +
+                                                  maxlag*any(seasonality==c("f","s")));
                 }
             }
             else if(smoothType=="smoothC"){
@@ -1123,8 +1123,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             }
             else{
                 if(length(initialSeason)!=dataFreq){
-                warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.\n",
-                               "Values of initialSeason vector will be estimated."),call.=FALSE);
+                    warning(paste0("The length of initialSeason vector is wrong! It should correspond to the frequency of the data.\n",
+                                   "Values of initialSeason vector will be estimated."),call.=FALSE);
                     initialSeason <- NULL;
                     initialSeasonEstimate <- TRUE
                 }
@@ -1162,7 +1162,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             }
             else if(is.numeric(phi) & (phi<0 | phi>2)){
                 warning(paste0("Damping parameter should lie in (0, 2) region. ",
-                        "Changing to the estimation of phi."),call.=FALSE);
+                               "Changing to the estimation of phi."),call.=FALSE);
                 phi <- NULL;
                 phiEstimate <- TRUE;
             }
@@ -1501,22 +1501,22 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### Observations #####
-# Define obs, the number of observations of in-sample
+    # Define obs, the number of observations of in-sample
     obsInsample <- length(data) - holdout*h;
 
-# Define obsAll, the overal number of observations (in-sample + holdout)
+    # Define obsAll, the overal number of observations (in-sample + holdout)
     obsAll <- length(data) + (1 - holdout)*h;
 
     y <- data[1:obsInsample];
     dataFreq <- frequency(data);
     dataStart <- start(data);
 
-# This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
+    # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
     if(obsInsample < 4){
         stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
     }
 
-# Check the provided vector of initials: length and provided values.
+    # Check the provided vector of initials: length and provided values.
     initialValue <- initial;
     if(is.character(initialValue)){
         initialValue <- substring(initialValue[1],1,1);
@@ -1787,9 +1787,9 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         modellags=NULL, states=NULL, cumulative=FALSE, cfType="MSE",
                         yForecast=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
                         iprob=1, ivar=1){
-# Function constructs intervals based on the provided random variable.
-# If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
-# based on errors the horison is estimated as ncol(errors)
+    # Function constructs intervals based on the provided random variable.
+    # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
+    # based on errors the horison is estimated as ncol(errors)
 
     matrixpower <- function(A,n){
         if(n==0){
@@ -1843,149 +1843,149 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         }
     }
 
-# Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
-quantfunc <- function(A){
-    ee <- ye - (A[1]*xe^A[2]);
-    return((1-quant)*sum(abs(ee[which(ee<0)]))+quant*sum(abs(ee[which(ee>=0)])));
-}
-
-# Function allows to find the quantiles of Bernoulli-lognormal cumulative distribution
-# qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
-#     if(Etype=="M"){
-#         quantiles <- iprob * plnorm(quant, meanlog=meanVec, sdlog=sdVec) + (1 - iprob);
-#     }
-#     else{
-#         if(cfType=="MAE"){
-#             quantiles <- iprob * plaplace(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
-#         }
-#         else if(cfType=="HAM"){
-#             quantiles <- iprob * ps(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
-#         }
-#         else{
-#             quantiles <- iprob * pnorm(quant, mean=meanVec, sd=sdVec) + (1 - iprob)*(quant>0);
-#         }
-#     }
-#     CF <- (level-quantiles)^2;
-#     return(CF)
-# }
-
-# Function returns quantiles of Bernoulli-lognormal cumulative distribution for a predefined parameters
-qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
-
-    levelResidual <- (level - (1-iprob)) / iprob
-
-    lowerquant <- upperquant <- rep(0,length(sdVec));
-
-    if(cfType=="MAE"){
-        sdVec <- sqrt(sdVec/2);
-    }
-    else if(cfType=="HAM"){
-        sdVec <- (sdVec/120)^0.25;
+    # Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
+    quantfunc <- function(A){
+        ee[] <- ye - (A[1]*xe^A[2]);
+        return((1-quant)*sum(abs(ee[ee<0]))+quant*sum(abs(ee[ee>=0])));
     }
 
-# Produce lower quantiles if the probability is still lower than the lower P
-    if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+    # Function allows to find the quantiles of Bernoulli-lognormal cumulative distribution
+    # qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
+    #     if(Etype=="M"){
+    #         quantiles <- iprob * plnorm(quant, meanlog=meanVec, sdlog=sdVec) + (1 - iprob);
+    #     }
+    #     else{
+    #         if(cfType=="MAE"){
+    #             quantiles <- iprob * plaplace(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
+    #         }
+    #         else if(cfType=="HAM"){
+    #             quantiles <- iprob * ps(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
+    #         }
+    #         else{
+    #             quantiles <- iprob * pnorm(quant, mean=meanVec, sd=sdVec) + (1 - iprob)*(quant>0);
+    #         }
+    #     }
+    #     CF <- (level-quantiles)^2;
+    #     return(CF)
+    # }
+
+    # Function returns quantiles of Bernoulli-lognormal cumulative distribution for a predefined parameters
+    qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
+
+        levelResidual <- (level - (1-iprob)) / iprob
+
+        lowerquant <- upperquant <- rep(0,length(sdVec));
+
+        if(cfType=="MAE"){
+            sdVec <- sqrt(sdVec/2);
+        }
+        else if(cfType=="HAM"){
+            sdVec <- (sdVec/120)^0.25;
+        }
+
+        # Produce lower quantiles if the probability is still lower than the lower P
+        if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+            if(Etype=="M"){
+                if(cfType=="MAE"){
+                    for(i in 1:length(levelResidual)){
+                        lowerquant[i] <- exp(qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    }
+                    # quantInitials <- exp(qlaplace((1-level)/2,meanVec,sdVec));
+                }
+                else if(cfType=="HAM"){
+                    for(i in 1:length(levelResidual)){
+                        lowerquant[i] <- exp(qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    }
+                    # quantInitials <- exp(qs((1-level)/2,meanVec,sdVec));
+                }
+                else{
+                    lowerquant <- qlnorm((1-levelResidual)/2,meanVec,sdVec);
+                    # quantInitials <- qlnorm((1-level)/2,meanVec,sdVec);
+                }
+            }
+            else{
+                if(cfType=="MAE"){
+                    for(i in 1:length(levelResidual)){
+                        lowerquant[i] <- qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    }
+                    # quantInitials <- qlaplace((1-level)/2,meanVec,sdVec);
+                }
+                else if(cfType=="HAM"){
+                    for(i in 1:length(levelResidual)){
+                        lowerquant[i] <- qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    }
+                    # quantInitials <- qs((1-level)/2,meanVec,sdVec);
+                }
+                else{
+                    lowerquant <- qnorm((1-levelResidual)/2,meanVec,sdVec);
+                    # quantInitials <- qnorm((1-level)/2,meanVec,sdVec);
+                }
+            }
+
+            # for(i in 1:length(sdVec)){
+            #     if(quantInitials[i]==0){
+            #         lowerquant[i] <- 0;
+            #     }
+            #     else{
+            #         lowerquant[i] <- optimize(qlnormBinCF, c(quantInitials[i],0), tol=1e-10, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
+            #     }
+            #     # lowerquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
+            # }
+            levelNew <- (1+levelResidual)/2;
+        }
+        else{
+            levelNew <- levelResidual;
+        }
+
+        # Produce upper quantiles
         if(Etype=="M"){
             if(cfType=="MAE"){
                 for(i in 1:length(levelResidual)){
-                    lowerquant[i] <- exp(qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    upperquant[i] <- exp(qlaplace(levelNew[i],meanVec[i],sdVec[i]));
                 }
-                # quantInitials <- exp(qlaplace((1-level)/2,meanVec,sdVec));
+                # quantInitials <- exp(qlaplace(levelNew,meanVec,sdVec));
             }
             else if(cfType=="HAM"){
                 for(i in 1:length(levelResidual)){
-                    lowerquant[i] <- exp(qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    upperquant[i] <- exp(qs(levelNew[i],meanVec[i],sdVec[i]));
                 }
-                # quantInitials <- exp(qs((1-level)/2,meanVec,sdVec));
+                # quantInitials <- exp(qs(levelNew,meanVec,sdVec));
             }
             else{
-                lowerquant <- qlnorm((1-levelResidual)/2,meanVec,sdVec);
-                # quantInitials <- qlnorm((1-level)/2,meanVec,sdVec);
+                upperquant <- qlnorm(levelNew,meanVec,sdVec);
+                # quantInitials <- qlnorm(levelNew,meanVec,sdVec);
             }
         }
         else{
             if(cfType=="MAE"){
                 for(i in 1:length(levelResidual)){
-                    lowerquant[i] <- qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    upperquant[i] <- qlaplace(levelNew[i],meanVec[i],sdVec[i]);
                 }
-                # quantInitials <- qlaplace((1-level)/2,meanVec,sdVec);
+                # quantInitials <- qlaplace(levelNew,meanVec,sdVec)
             }
             else if(cfType=="HAM"){
                 for(i in 1:length(levelResidual)){
-                    lowerquant[i] <- qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    upperquant[i] <- qs(levelNew[i],meanVec[i],sdVec[i]);
                 }
-                # quantInitials <- qs((1-level)/2,meanVec,sdVec);
+                # quantInitials <- qs(levelNew,meanVec,sdVec)
             }
             else{
-                lowerquant <- qnorm((1-levelResidual)/2,meanVec,sdVec);
-                # quantInitials <- qnorm((1-level)/2,meanVec,sdVec);
+                upperquant <- qnorm(levelNew,meanVec,sdVec);
+                # quantInitials <- qnorm(levelNew,meanVec,sdVec)
             }
         }
-
         # for(i in 1:length(sdVec)){
         #     if(quantInitials[i]==0){
-        #         lowerquant[i] <- 0;
+        #         upperquant[i] <- 0;
         #     }
         #     else{
-        #         lowerquant[i] <- optimize(qlnormBinCF, c(quantInitials[i],0), tol=1e-10, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
+        #         upperquant[i] <- optimize(qlnormBinCF, c(0,quantInitials[i]), tol=1e-10, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
+        #         upperquant[i] <- max(0,upperquant[i]);
         #     }
-        #     # lowerquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
         # }
-        levelNew <- (1+levelResidual)/2;
-    }
-    else{
-        levelNew <- levelResidual;
-    }
 
-# Produce upper quantiles
-    if(Etype=="M"){
-        if(cfType=="MAE"){
-            for(i in 1:length(levelResidual)){
-                upperquant[i] <- exp(qlaplace(levelNew[i],meanVec[i],sdVec[i]));
-            }
-            # quantInitials <- exp(qlaplace(levelNew,meanVec,sdVec));
-        }
-        else if(cfType=="HAM"){
-            for(i in 1:length(levelResidual)){
-                upperquant[i] <- exp(qs(levelNew[i],meanVec[i],sdVec[i]));
-            }
-            # quantInitials <- exp(qs(levelNew,meanVec,sdVec));
-        }
-        else{
-            upperquant <- qlnorm(levelNew,meanVec,sdVec);
-            # quantInitials <- qlnorm(levelNew,meanVec,sdVec);
-        }
+        return(list(lower=lowerquant,upper=upperquant));
     }
-    else{
-        if(cfType=="MAE"){
-            for(i in 1:length(levelResidual)){
-                upperquant[i] <- qlaplace(levelNew[i],meanVec[i],sdVec[i]);
-            }
-            # quantInitials <- qlaplace(levelNew,meanVec,sdVec)
-        }
-        else if(cfType=="HAM"){
-            for(i in 1:length(levelResidual)){
-                upperquant[i] <- qs(levelNew[i],meanVec[i],sdVec[i]);
-            }
-            # quantInitials <- qs(levelNew,meanVec,sdVec)
-        }
-        else{
-            upperquant <- qnorm(levelNew,meanVec,sdVec);
-            # quantInitials <- qnorm(levelNew,meanVec,sdVec)
-        }
-    }
-    # for(i in 1:length(sdVec)){
-    #     if(quantInitials[i]==0){
-    #         upperquant[i] <- 0;
-    #     }
-    #     else{
-    #         upperquant[i] <- optimize(qlnormBinCF, c(0,quantInitials[i]), tol=1e-10, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
-    #         upperquant[i] <- max(0,upperquant[i]);
-    #     }
-    # }
-
-    return(list(lower=lowerquant,upper=upperquant));
-}
 
     if(cfType=="MAE"){
         upperquant <- qlaplace((1+level)/2,0,1);
@@ -1996,8 +1996,8 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         lowerquant <- qs((1-level)/2,0,1);
     }
     else{
-    #if(cfType=="MSE")
-# If degrees of freedom are provided, use Student's distribution. Otherwise stick with normal.
+        #if(cfType=="MSE")
+        # If degrees of freedom are provided, use Student's distribution. Otherwise stick with normal.
         if(is.null(df)){
             upperquant <- qnorm((1+level)/2,0,1);
             lowerquant <- qnorm((1-level)/2,0,1);
@@ -2014,7 +2014,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         }
     }
 
-##### If they want us to produce several steps ahead #####
+    ##### If they want us to produce several steps ahead #####
     if(is.matrix(errors) | is.data.frame(errors)){
         if(!cumulative){
             nVariables <- ncol(errors);
@@ -2034,7 +2034,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
         upper <- rep(NA,nVariables);
         lower <- rep(NA,nVariables);
 
-#### Asymmetric intervals using HM ####
+        #### Asymmetric intervals using HM ####
         if(intervalsType=="a"){
             if(!cumulative){
                 for(i in 1:nVariables){
@@ -2053,7 +2053,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             varVec <- NULL;
         }
 
-#### Semiparametric intervals using the variance of errors ####
+        #### Semiparametric intervals using the variance of errors ####
         else if(intervalsType=="sp"){
             if(Etype=="M"){
                 errors[errors < -1] <- -0.999;
@@ -2156,16 +2156,16 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             }
         }
 
-#### Nonparametric intervals using Taylor and Bunn, 1999 ####
+        #### Nonparametric intervals using Taylor and Bunn, 1999 ####
         else if(intervalsType=="np"){
-            ye <- errors;
+            nonNAobs <- apply(!is.na(errors),1,all);
+            ye <- errors[nonNAobs,];
             if(Etype=="M"){
                 ye <- 1 + ye;
             }
             if(!cumulative){
-                xe <- matrix(c(1:nVariables),byrow=TRUE,ncol=nVariables,nrow=nrow(errors));
-                xe <- xe[!is.na(errors)];
-                ye <- ye[!is.na(ye)];
+                ee <- ye;
+                xe <- matrix(c(1:nVariables),nrow=sum(nonNAobs),ncol=nVariables,byrow=TRUE);
 
                 A <- rep(1,2);
                 quant <- (1+level)/2;
@@ -2185,14 +2185,14 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             varVec <- NULL;
         }
 
-#### Parametric intervals ####
+        #### Parametric intervals ####
         else if(intervalsType=="p"){
             h <- length(yForecast);
 
             # Vector of final variances
             varVec <- rep(NA,h);
 
-#### Pure Multiplicative models ####
+            #### Pure Multiplicative models ####
             if(Etype=="M"){
                 # This is just an approximation of the true intervals
                 covarMat <- covarAnal(modellags, h, measurement, transition, persistence, s2);
@@ -2250,7 +2250,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                             lower <- exp(qs((1-level)/2,0,varVec));
                         }
                         else{
-                        # Produce quantiles for log-normal dist with the specified variance
+                            # Produce quantiles for log-normal dist with the specified variance
                             upper <- qlnorm((1+level)/2,0,sqrt(varVec));
                             lower <- qlnorm((1-level)/2,0,sqrt(varVec));
                         }
@@ -2259,10 +2259,10 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
                     }
                 }
             }
-#### Multiplicative error and additive trend / seasonality
+            #### Multiplicative error and additive trend / seasonality
             # else if(Etype=="M" & all(c(Ttype,Stype)!="M") & all(c(Ttype,Stype)!="N")){
             # }
-#### Pure Additive models ####
+            #### Pure Additive models ####
             else{
                 covarMat <- covarAnal(modellags, h, measurement, transition, persistence, s2);
 
@@ -2296,7 +2296,7 @@ qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
             }
         }
     }
-##### If we were asked to produce 1 value #####
+    ##### If we were asked to produce 1 value #####
     else if(is.numeric(errors) & length(errors)>1 & !is.array(errors)){
         if(length(ev)>1){
             stop("Provided expected value doesn't correspond to the dimension of errors.", call.=FALSE);
@@ -2389,7 +2389,7 @@ ssForecaster <- function(...){
         df <- obsNonzero;
     }
 
-# If error additive, estimate as normal. Otherwise - lognormal
+    # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
         s2 <- as.vector(sum((errors*ot)^2)/df);
         s2g <- 1;
@@ -2445,8 +2445,8 @@ ssForecaster <- function(...){
             }
 
             # We don't simulate pure additive models, pure multiplicative and
-            # additive models with multiplicative error on non-intermittent data,
-            # because they can be approximated by pure additive
+            # additive models with multiplicative error,
+            # because they can be approximated by the pure additive ones
             if(intervalsType=="p"){
                 if(all(c(Etype,Stype,Ttype)!="M") |
                    all(c(Etype,Stype,Ttype)!="A") |
@@ -2462,19 +2462,10 @@ ssForecaster <- function(...){
             }
 
             # It is not possible to produce parametric / semi / non intervals for cumulative values
-            # So we use simulations instead.
+            # of multiplicative model. So we use simulations instead.
             if(cumulative & Etype=="M"){
                 simulateIntervals <- TRUE;
             }
-
-            # if(Etype=="M"){
-            #     simulateIntervals <- TRUE;
-            # }
-
-            #If this is integer-valued model, then do simulations
-            # if(rounded){
-                # simulateIntervals <- TRUE;
-            # }
 
             if(simulateIntervals){
                 nSamples <- 10000;
@@ -2494,11 +2485,11 @@ ssForecaster <- function(...){
                 }
 
                 ySimulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
-                                             Etype,Ttype,Stype,modellags)$matyt;
+                                            Etype,Ttype,Stype,modellags)$matyt;
                 if(!is.null(xreg)){
                     yForecastExo <- c(yForecast) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
-                                                               matF, matw, h, Etype, Ttype, Stype, modellags,
-                                                               matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
+                                                                  matF, matw, h, Etype, Ttype, Stype, modellags,
+                                                                  matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
                 }
                 else{
                     yForecastExo <- rep(0,h);
@@ -2525,15 +2516,6 @@ ssForecaster <- function(...){
                     yUpper <- ts(quantile(colSums(ySimulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=dataFreq);
                 }
                 else{
-                    # if(Etype=="M"){
-                    #     # This thing returns mode for the log-normal distribution
-                    #     # yForecast <- exp(apply(log(ySimulated),1,mean) -
-                    #     #                  apply(log(ySimulated),1,var));
-                    #     # This thing returns mean for the log-normal distribution
-                    #     # yForecast <- apply(ySimulated,1,mean);
-                    #     # This thing returns median for the log-normal distribution
-                    #     yForecast <- apply(ySimulated,1,median);
-                    # }
                     yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
                     yLower <- ts(apply(ySimulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + yForecastExo,start=yForecastStart,frequency=dataFreq);
                     yUpper <- ts(apply(ySimulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + yForecastExo,start=yForecastStart,frequency=dataFreq);
@@ -2643,7 +2625,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
                    obsInsample, obsAll, obsStates, maxlag=1, h=1, xregDo="u", silent=FALSE,
                    allowMultiplicative=FALSE){
-# The function does general checks needed for exogenouse variables and returns the list of necessary parameters
+    # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
 
     if(!is.null(xreg)){
         xreg <- as.matrix(xreg);
@@ -2658,12 +2640,12 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             }
             if(length(dim(xreg))>2){
                 stop(paste0("Sorry, but we don't deal with multidimensional arrays as exogenous variables here.\n",
-                     "Pleas think of your behaviour and come back with matrix!"),call.=FALSE);
+                            "Pleas think of your behaviour and come back with matrix!"),call.=FALSE);
             }
         }
-##### The case with vectors and ts objects, but not matrices
+        ##### The case with vectors and ts objects, but not matrices
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
-# Check if xreg contains something meaningful
+            # Check if xreg contains something meaningful
             if(is.null(initialX)){
                 if(all(xreg[1:obsInsample]==xreg[1])){
                     warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
@@ -2695,13 +2677,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     xreg <- NULL;
                 }
 
-# Number of exogenous variables
+                # Number of exogenous variables
                 nExovars <- 1;
-# Define matrix w for exogenous variables
+                # Define matrix w for exogenous variables
                 matxt <- matrix(xreg,ncol=1);
-# Define the second matat to fill in the coefs of the exogenous vars
+                # Define the second matat to fill in the coefs of the exogenous vars
                 matatMultiplicative <- matat <- matrix(NA,obsStates,1);
-# Fill in the initial values for exogenous coefs using OLS
+                # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="M"){
                         matat[1:maxlag,] <- cov(log(data[1:obsInsample][ot==1]),
@@ -2728,7 +2710,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             }
             xreg <- as.matrix(xreg);
         }
-##### The case with matrices and data frames
+        ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
             if(is.data.frame(xreg)){
                 xreg <- as.matrix(xreg);
@@ -2772,7 +2754,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
             nExovars <- ncol(xreg);
 
-# If initialX is provided, then probably we don't need to check the xreg on variability and multicollinearity
+            # If initialX is provided, then probably we don't need to check the xreg on variability and multicollinearity
             if(is.null(initialX)){
                 checkvariability <- apply(matrix(xreg[1:obsInsample,][ot==1,]==rep(xreg[ot==1,][1,],each=sum(ot)),sum(ot),nExovars),2,all);
                 if(any(checkvariability)){
@@ -2791,7 +2773,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 }
 
                 if(!is.null(xreg)){
-# Check for multicollinearity and drop something if there is a perfect one
+                    # Check for multicollinearity and drop something if there is a perfect one
                     corMatrix <- cor(xreg);
                     corCheck <- upper.tri(corMatrix) & abs(corMatrix)>=0.999;
                     if(any(corCheck)){
@@ -2832,13 +2814,13 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             }
 
             if(!is.null(xreg)){
-# mat.x is needed for the initial values of coefs estimation using OLS
+                # mat.x is needed for the initial values of coefs estimation using OLS
                 mat.x <- as.matrix(cbind(rep(1,obsAll),xreg));
-# Define the second matat to fill in the coefs of the exogenous vars
+                # Define the second matat to fill in the coefs of the exogenous vars
                 matatMultiplicative <- matat <- matrix(NA,obsStates,nExovars);
-# Define matrix w for exogenous variables
+                # Define matrix w for exogenous variables
                 matxt <- as.matrix(xreg);
-# Fill in the initial values for exogenous coefs using OLS
+                # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="M"){
                         matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
@@ -2884,7 +2866,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         }
         xregEstimate <- TRUE;
 
-# Check the provided initialX vector
+        # Check the provided initialX vector
         if(!is.null(initialX)){
             if(!is.numeric(initialX) & !is.vector(initialX) & !is.matrix(initialX)){
                 stop("The initials for exogenous are not a numeric vector or a matrix!", call.=FALSE);
@@ -2908,9 +2890,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         updateX <- FALSE;
     }
 
-##### In case we changed xreg to null or if it was like that...
+    ##### In case we changed xreg to null or if it was like that...
     if(is.null(xreg)){
-# "1" is needed for the final forecast simplification
+        # "1" is needed for the final forecast simplification
         nExovars <- 1;
         matxt <- matrix(1,obsStates,1);
         matatMultiplicative <- matat <- matrix(0,obsStates,1);
@@ -2922,9 +2904,9 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         initialXEstimate <- FALSE;
     }
 
-# Now check transition and persistence of exogenous variables
+    # Now check transition and persistence of exogenous variables
     if(xregEstimate & updateX){
-# First - transition matrix
+        # First - transition matrix
         if(!is.null(transitionX)){
             if(!is.numeric(transitionX) & !is.vector(transitionX) & !is.matrix(transitionX)){
                 stop("Transition matrix for exogenous is not a numeric vector or a matrix!", call.=FALSE);
@@ -2944,7 +2926,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
             matFX <- diag(nExovars);
             FXEstimate <- TRUE;
         }
-# Now - persistence vector
+        # Now - persistence vector
         if(!is.null(persistenceX)){
             if(!is.numeric(persistenceX) & !is.vector(persistenceX) & !is.matrix(persistenceX)){
                 stop("Persistence vector for exogenous is not numeric!", call.=FALSE);
@@ -2985,7 +2967,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
 ##### *Likelihood function* #####
 likelihoodFunction <- function(C){
-#### Basic logLikelihood based on C and CF ####
+    #### Basic logLikelihood based on C and CF ####
     logLikFromCF <- function(C, cfType){
         if(any(cfType==c("MAE","MAEh","MACE"))){
             return(- obsNonzero*(log(2*exp(1)) + log(CF(C))));
@@ -3049,16 +3031,16 @@ likelihoodFunction <- function(C){
 ##### *Function calculates ICs* #####
 ICFunction <- function(nParam=nParam,nParamIntermittent=nParamIntermittent,
                        C,Etype=Etype){
-# Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
-# And it is based on the mean of the sum squared residuals either than sum.
-# Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
+    # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
+    # And it is based on the mean of the sum squared residuals either than sum.
+    # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
     nParamOverall <- nParam + nParamIntermittent;
     llikelihood <- likelihoodFunction(C);
 
-# max here is needed in order to take into account cases with higher
-## number of parameters than observations
-### AICc and BICc are incorrect in case of non-normal residuals!
+    # max here is needed in order to take into account cases with higher
+    ## number of parameters than observations
+    ### AICc and BICc are incorrect in case of non-normal residuals!
     if(cfType=="TFL"){
         coefAIC <- 2*nParamOverall*h - 2*llikelihood;
         coefBIC <- log(obsNonzero)*nParamOverall*h - 2*llikelihood;
@@ -3091,7 +3073,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
                      intermittent="n"){
-# Function forms the generic output for state space models.
+    # Function forms the generic output for state space models.
     if(!is.null(modelname)){
         if(is.list(modelname)){
             model <- "smoothC";
@@ -3148,7 +3130,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat(paste0("Intermittent data provided for holdout.\n"));
     }
 
-### Stuff for ETS
+    ### Stuff for ETS
     if(any(model==c("ETS","GUM"))){
         if(!is.null(persistence)){
             cat(paste0("Persistence vector g:\n"));
@@ -3166,7 +3148,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-### Stuff for GUM
+    ### Stuff for GUM
     if(model=="GUM"){
         if(!is.null(transition)){
             cat("Transition matrix F: \n");
@@ -3177,7 +3159,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-### Stuff for ARIMA
+    ### Stuff for ARIMA
     if(model=="ARIMA"){
         if(all(!is.null(ARterms))){
             cat("Matrix of AR terms:\n");
@@ -3193,7 +3175,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             }
         }
     }
-### Stuff for CES
+    ### Stuff for CES
     if(model=="CES"){
         if(!is.null(A)){
             cat(paste0("a0 + ia1: ",round(A,5),"\n"));
