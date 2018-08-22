@@ -1348,7 +1348,7 @@ CreatorES <- function(silent=FALSE,...){
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
                                       nrow(vecgX)*(!is.null(persistenceX)) +
-                                      ncol(matat)*(!is.null(initialX)) - nParamExo);
+                                      ncol(matat)*(!is.null(initialX)));
     }
 
 ##### Check number of observations vs number of max parameters #####
@@ -2130,6 +2130,7 @@ CreatorES <- function(silent=FALSE,...){
         }
     }
 
+    print(parametersNumber)
 ##### Return values #####
     if(modelDo!="combine"){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,

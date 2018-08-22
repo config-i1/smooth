@@ -27,6 +27,7 @@ Bugfixes
 * Fixed cases, when level of an intermittent model was becoming too large or too small.
 * Fixed a bug, when auto-functions constructed only parametric prediction intervals.
 * Functions failed with xregDo="s" when xreg was data.frame.
+* nParam sometimes contained negative values for the "Provided" row.
 
 
 smooth v2.4.5 (Release data: 2018-07-03)
