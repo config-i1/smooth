@@ -2130,7 +2130,6 @@ CreatorES <- function(silent=FALSE,...){
         }
     }
 
-    print(parametersNumber)
 ##### Return values #####
     if(modelDo!="combine"){
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
