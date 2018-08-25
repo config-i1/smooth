@@ -1,7 +1,7 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "21 August 2018"
+date: "25 August 2018"
 output: html_document
 ---
 ## Version
