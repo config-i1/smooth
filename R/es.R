@@ -650,7 +650,8 @@ EstimatorES <- function(...){
     C <- res$solution;
 
     # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them eqaul to zero.
-    if(any(C==Cs$C)){
+    if(any(C==Cs$C) | any(res$objective==c(1e+100,1e+300))){
+        noSolutionFound <- any(res$objective==c(1e+100,1e+300));
         if(C[1]==Cs$C[1]){
             C[1] <- max(0,CLower[1]);
         }
@@ -671,6 +672,14 @@ EstimatorES <- function(...){
                 }
             }
         }
+
+        # If the optimiser fails, then it's probably due to the mixed models. So make all the initials
+        if(noSolutionFound){
+            if(any(c(Etype,Ttype,Stype)=="M")){
+                C <- abs(C);
+            }
+        }
+
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
         C <- res$solution;
