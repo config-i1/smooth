@@ -9,8 +9,8 @@ polyMultwrap <- function(polyVec1, polyVec2) {
     .Call('_smooth_polyMultwrap', PACKAGE = 'smooth', polyVec1, polyVec2)
 }
 
-initparams <- function(Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs) {
-    .Call('_smooth_initparams', PACKAGE = 'smooth', Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
+initparams <- function(Etype, Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs) {
+    .Call('_smooth_initparams', PACKAGE = 'smooth', Etype, Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs)
 }
 
 etsmatrices <- function(matvt, vecg, phi, Cvalues, ncomponentsR, modellags, fittertype, Ttype, Stype, nexovars, matat, estimpersistence, estimphi, estiminit, estiminitseason, estimxreg, matFX, vecgX, gowild, estimFX, estimgX, estiminitX) {

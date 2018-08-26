@@ -437,9 +437,10 @@ arma::mat normaliser(arma::mat Vt, int &obsall, unsigned int &maxlag, char const
 
 /* # initparams - function that initialises the basic parameters of ETS */
 // [[Rcpp::export]]
-RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt,
+RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt,
                            SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs){
 
+    char E = as<char>(Etype);
     char T = as<char>(Ttype);
     char S = as<char>(Stype);
     int freq = as<int>(datafreq);
@@ -520,7 +521,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
 //    matrixVt.resize(obs+maxlag, ncomponents);
 
     if(persistence.n_rows < ncomponents){
-        if((T=='M') | (S=='M')){
+        if((E=='M') | (T=='M') | (S=='M')){
             vecG = persistence.submat(0,1,persistence.n_rows-1,1);
         }
         else{
@@ -528,7 +529,7 @@ RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEX
         }
     }
     else{
-        if((T=='M') | (S=='M')){
+        if((E=='M') | (T=='M') | (S=='M')){
             vecG = persistence.submat(0,1,ncomponents-1,1);
         }
         else{

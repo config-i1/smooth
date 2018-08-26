@@ -31,11 +31,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // initparams
-RcppExport SEXP initparams(SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt, SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs);
-RcppExport SEXP _smooth_initparams(SEXP TtypeSEXP, SEXP StypeSEXP, SEXP datafreqSEXP, SEXP obsRSEXP, SEXP obsallRSEXP, SEXP ytSEXP, SEXP dampedSEXP, SEXP phiSEXP, SEXP smoothingparametersSEXP, SEXP initialstatesSEXP, SEXP seasonalcoefsSEXP) {
+RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt, SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs);
+RcppExport SEXP _smooth_initparams(SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP datafreqSEXP, SEXP obsRSEXP, SEXP obsallRSEXP, SEXP ytSEXP, SEXP dampedSEXP, SEXP phiSEXP, SEXP smoothingparametersSEXP, SEXP initialstatesSEXP, SEXP seasonalcoefsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type datafreq(datafreqSEXP);
@@ -47,7 +48,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type smoothingparameters(smoothingparametersSEXP);
     Rcpp::traits::input_parameter< SEXP >::type initialstates(initialstatesSEXP);
     Rcpp::traits::input_parameter< SEXP >::type seasonalcoefs(seasonalcoefsSEXP);
-    rcpp_result_gen = Rcpp::wrap(initparams(Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs));
+    rcpp_result_gen = Rcpp::wrap(initparams(Etype, Ttype, Stype, datafreq, obsR, obsallR, yt, damped, phi, smoothingparameters, initialstates, seasonalcoefs));
     return rcpp_result_gen;
 END_RCPP
 }

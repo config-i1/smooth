@@ -2,6 +2,16 @@ smooth v2.4.6 (Release data: 2018-08-25)
 ==============
 
 Changes:
+*
+
+Bugfixes
+* ETS(M,A,A) sometimes could not be optimised because of the too high smoothing parameters values. This should be fixed now.
+
+
+smooth v2.4.6 (Release data: 2018-08-25)
+==============
+
+Changes:
 * All the multisteps estimators now have what they were supposed to originally have: smaller sample of T-h.
 * graphmaker() function is now more flexible, allowing to tune parameters of plot.
 * Centered Moving Average function is now available. This is not a model, but just a transfer function of SMA.

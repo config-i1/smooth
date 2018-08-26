@@ -581,7 +581,7 @@ BasicMakerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    basicparams <- initparams(Ttype, Stype, dataFreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInsample, obsAll, y,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
     list2env(basicparams,ParentEnvironment);
 }
@@ -1294,7 +1294,7 @@ CreatorES <- function(silent=FALSE,...){
     yForecast <- rep(NA,h);
     errors <- rep(NA,obsInsample);
 
-    basicparams <- initparams(Ttype, Stype, dataFreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInsample, obsAll, y,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Prepare exogenous variables #####

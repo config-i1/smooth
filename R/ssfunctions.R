@@ -277,6 +277,10 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             lags <- lags[lags!=0];
         }
 
+        if(any(lags>48) & (smoothType=="ssarima")){
+            warning("SSARIMA is quite slow with lags greater than 48. It is recommended to use MSARIMA in this case instead.",call.=FALSE);
+        }
+
         # Define maxorder and make all the values look similar (for the polynomials)
         maxorder <- max(length(ar.orders),length(i.orders),length(ma.orders));
         if(length(ar.orders)!=maxorder){
