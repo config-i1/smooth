@@ -5,7 +5,7 @@ Changes:
 *
 
 Bugfixes
-* ETS(M,A,A) sometimes could not be optimised because of the too high smoothing parameters values. This should be fixed now.
+* ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.
 
 
 smooth v2.4.6 (Release data: 2018-08-25)
