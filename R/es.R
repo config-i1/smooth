@@ -649,34 +649,37 @@ EstimatorES <- function(...){
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
     C <- res$solution;
 
-    # If the optimisation failed, then probably this is because of smoothing parameters in mixed models. Set them equal to zero.
-    noSolutionFound <- any(res$objective==c(1e+100,1e+300));
-    if(any(C==Cs$C) | noSolutionFound){
-        if(C[1]==Cs$C[1]){
-            C[1] <- max(0,CLower[1]);
-        }
+    # If the optimisation failed, then probably this is because of mixed models...
+    if(any(res$objective==c(1e+100,1e+300))){
+        # Reset the smoothing parameters
+        j <- 1;
+        C[j] <- max(0.1,CLower[j]);
         if(Ttype!="N"){
-            if(C[2]==Cs$C[2]){
-                C[2] <- max(0,CLower[2]);
-            }
+            j <- j+1;
+            C[j] <- max(0.05,CLower[j]);
             if(Stype!="N"){
-                if(C[3]==Cs$C[3]){
-                    C[3] <- max(0,CLower[3]);
-                }
+                j <- j+1;
+                C[j] <- max(0.1,CLower[j]);
             }
         }
         else{
             if(Stype!="N"){
-                if(C[2]==Cs$C[2]){
-                    C[2] <- max(0,CLower[2]);
-                }
+                j <- j+1;
+                C[j] <- max(0.05,CLower[j]);
             }
         }
 
         # If the optimiser fails, then it's probably due to the mixed models. So make all the initials non-negative
-        if(noSolutionFound){
-            if(any(c(Etype,Ttype,Stype)=="M")){
-                C <- abs(C);
+        if(any(c(Etype,Ttype,Stype)=="M")){
+            C <- abs(C);
+            if(Ttype=="A"){
+                if(damped & phiEstimate){
+                    j <- j+1;
+                }
+                j <- j+1;
+                C[j] <- mean(y[1:dataFreq]);
+                j <- j+1;
+                C[j] <- 0;
             }
         }
 
