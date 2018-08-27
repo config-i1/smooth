@@ -422,7 +422,13 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                     CUpper <- c(CUpper,Inf);
                 }
                 else{
-                    C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                    if(Ttype=="A"){
+                        # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
+                        C <- c(C,mean(y[1:dataFreq]),0);
+                    }
+                    else{
+                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                    }
                     CLower <- c(CLower,1E-10);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -463,12 +469,19 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Etype=="A"){
+                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
                 else{
+                    if(Ttype=="A"){
+                        # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
+                        C <- c(C,mean(y[1:dataFreq]),0);
+                    }
+                    else{
+                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                    }
                     CLower <- c(CLower,0.1);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -509,12 +522,19 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
-                C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                 if(Etype=="A"){
+                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
                 else{
+                    if(Ttype=="A"){
+                        # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
+                        C <- c(C,mean(y[1:dataFreq]),0);
+                    }
+                    else{
+                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                    }
                     CLower <- c(CLower,0.1);
                     CUpper <- c(CUpper,Inf);
                 }
