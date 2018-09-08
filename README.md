@@ -24,10 +24,9 @@ Here is the list of the included functions:
 16. iss - intermittent data state space model. This function models the part with data occurrences using one of the following methods: Croston's, TSB, fixed, SBA or logistic probability.
 17. viss - the vector counterpart of iss.
 18. Accuracy - the vector of the error measures for the provided forecasts and the holdout.
-19. graphmaker - plots the original series, the fitted values and the forecasts.
-20. sowhat - returns the ultimate answer to any question.
-21. smoothCombine - the function that combines forecasts from es(), ces(), gum(), ssarima() and sma() functions.
-22. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
+19. sowhat - returns the ultimate answer to any question.
+20. smoothCombine - the function that combines forecasts from es(), ces(), gum(), ssarima() and sma() functions.
+21. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
 
 Future works:
 

@@ -41,7 +41,6 @@
 #' \item \link[greybox]{nParam} - returns number of the estimated parameters.
 #' \item \link[smooth]{Accuracy} - returns vector of error measures for the provided forecasts
 #' and holdout.
-#' \item \link[smooth]{graphmaker} - plots the original series, the fitted values and the forecasts.
 #' \item fitted - extracts fitted values from provided model.
 #' \item getResponse - returns actual values from the provided model.
 #' \item residuals - extracts residuals of provided model.
@@ -82,7 +81,7 @@
 #' @importFrom graphics abline layout legend lines par points polygon
 #' @importFrom stats AIC BIC cov dbeta decompose deltat end frequency is.ts median coef optimize nlminb cor qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif start time ts var simulate lm as.formula residuals plnorm pnorm
 #' @importFrom utils packageVersion
-#' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace
+#' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace graphmaker
 #' @useDynLib smooth
 NULL
 

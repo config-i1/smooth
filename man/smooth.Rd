@@ -48,7 +48,6 @@ There are also several methods implemented in the package for the classes
 \item \link[greybox]{nParam} - returns number of the estimated parameters.
 \item \link[smooth]{Accuracy} - returns vector of error measures for the provided forecasts
 and holdout.
-\item \link[smooth]{graphmaker} - plots the original series, the fitted values and the forecasts.
 \item fitted - extracts fitted values from provided model.
 \item getResponse - returns actual values from the provided model.
 \item residuals - extracts residuals of provided model.
