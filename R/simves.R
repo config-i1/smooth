@@ -78,13 +78,23 @@ utils::globalVariables(c("mvrnorm"));
 #'
 #' # Create 40 observations of quarterly data using AAA model with errors
 #' # from normal distribution
-#' \dontrun{VES.AAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
+#' \dontrun{VESAAA <- sim.ves(model="AAA",frequency=4,obs=40,nSeries=3,
 #'                    randomizer="rnorm",mean=0,sd=100)}
 #'
 #' # You can also use mvrnorm function from MASS package as randomizer,
 #' # but you need to provide mu and Sigma explicitly
-#' \dontrun{VES.ANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=2,
+#' \dontrun{VESANN <- sim.ves(model="ANN",frequency=4,obs=40,nSeries=2,
 #'                    randomizer="mvrnorm",mu=c(100,50),Sigma=matrix(c(40,20,20,30),2,2))}
+#'
+#' # When generating the data with multiplicative model a more diligent definitiion
+#' # of parameters is needed. Here's an example with MMM model:
+#'
+#' VESMMM <- sim.ves("AAA", obs=120, nSeries=2, frequency=12, initial=c(10,0),
+#'           persistence=c(0.06,0.05,0.2), mean=0, sd=0.03)
+#' VESMMM$data <- exp(VESMMM$data)
+#'
+#' # Note that smoothing parameters should be low and the standard diviation should
+#' # definitely be less than 0.1. Otherwise you might face the explosions.
 #'
 #' @export sim.ves
 sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
