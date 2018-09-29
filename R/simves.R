@@ -11,9 +11,8 @@ utils::globalVariables(c("mvrnorm"));
 #'
 #' @param model Type of ETS model. This can consist of 3 or 4 chars:
 #' \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA} etc.
-#' Only pure additive and pure multiplicative models are supported. In the
-#' latter case the data is generated using additive model and then
-#' exponentiated.
+#' Only pure additive models are supported. If you want to have multiplicative
+#' one, then just take exponent of the generated data.
 #' @param obs Number of observations in each generated time series.
 #' @param nsim Number of series to generate (number of simulations to do).
 #' @param nSeries Number of series in each generated group of series.
@@ -452,7 +451,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
     else{
         for(i in 1:nSeries){
-            arrayStates[((i-1)*nComponentsNonSeasonal)+(1:nComponentsNonSeasonal),1:modelLagsMax,] <-
+            arrayStates[((i-1)*nComponentsAll)+(1:nComponentsNonSeasonal),1:modelLagsMax,] <-
                 initial[(i-1)*nComponentsNonSeasonal+(1:nComponentsNonSeasonal),1];
         }
     }
@@ -491,7 +490,9 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             arrayErrors[,,] <- rs(nsim*obs*nSeries);
         }
         # Make variance sort of meaningful
-        arrayErrors <- arrayErrors * sqrt(abs(arrayStates[1,1,1]));
+        if(arrayStates[1,1,1]!=0){
+            arrayErrors <- arrayErrors * sqrt(abs(arrayStates[1,1,1]));
+        }
     }
 
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!

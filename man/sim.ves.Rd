@@ -13,9 +13,8 @@ sim.ves(model = "ANN", obs = 10, nsim = 1, nSeries = 2,
 \arguments{
 \item{model}{Type of ETS model. This can consist of 3 or 4 chars:
 \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA} etc.
-Only pure additive and pure multiplicative models are supported. In the
-latter case the data is generated using additive model and then
-exponentiated.}
+Only pure additive models are supported. If you want to have multiplicative
+one, then just take exponent of the generated data.}
 
 \item{obs}{Number of observations in each generated time series.}
 
