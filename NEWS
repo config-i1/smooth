@@ -1,8 +1,9 @@
-smooth v2.4.7 (Release data: 2018-09-29)
+smooth v2.4.7 (Release data: 2018-09-30)
 ==============
 
 Changes:
 * graphmaker() is now moved to greybox package.
+* Moved sigma.ets() to greybox package.
 
 Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.

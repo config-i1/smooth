@@ -569,11 +569,6 @@ sigma.smooth <- function(object, ...){
     return(sqrt(object$s2));
 }
 
-#' @export
-sigma.ets <- function(object, ...){
-    return(sqrt(object$sigma2));
-}
-
 #### pointLik for smooth ####
 #' @importFrom greybox pointLik
 #' @export
