@@ -2974,20 +2974,20 @@ likelihoodFunction <- function(C){
     #### Basic logLikelihood based on C and CF ####
     logLikFromCF <- function(C, cfType){
         if(any(cfType==c("MAE","MAEh","MACE"))){
-            return(- obsNonzero*(log(2*exp(1)) + log(CF(C))));
+            return(- obsNonzero*(log(2) + 1 + log(CF(C))));
         }
         else if(any(cfType==c("HAM","HAMh","CHAM"))){
-            return(- 2*obsNonzero*(log(2*exp(1)) + log(0.5*CF(C))));
+            return(- 2*obsNonzero*(log(2) + 1 + log(0.5*CF(C))));
         }
         else if(any(cfType==c("TFL","aTFL"))){
-            return(- obsNonzero/2 *(h*log(2*pi*exp(1)) + CF(C)));
+            return(- obsNonzero/2 *(h*log(2*pi) + 1 + CF(C)));
         }
         else if(any(cfType==c("LogisticD","LogisticL","TSB"))){
             return(-CF(C));
         }
         else{
             #if(cfType==c("MSE","MSEh","MSCE"))
-            return(- obsNonzero/2 *(log(2*pi*exp(1)) + log(CF(C))));
+            return(- obsNonzero/2 *(log(2*pi) + 1 + log(CF(C))));
         }
     }
 
