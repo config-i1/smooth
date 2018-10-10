@@ -1,9 +1,10 @@
-smooth v2.4.7 (Release data: 2018-09-30)
+smooth v2.4.7 (Release data: 2018-10-10)
 ==============
 
 Changes:
 * graphmaker() is now moved to greybox package.
 * Moved sigma.ets() to greybox package.
+* pls.smooth() returns more or less reasonable values, when the model overfits the data.
 
 Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.

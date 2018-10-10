@@ -497,6 +497,16 @@ pls.smooth <- function(object, holdout=NULL, ...){
                 plsValue <- -as.vector((log(2*pi)+(abs(determinant(covarMat)$modulus)))/2 +
                                            (t(errors) %*% solve(covarMat) %*% errors) / 2);
             }
+            # This is the case with overfitting the data
+            else if(det(covarMat)==0){
+                # If there is any non-zero error, then it means that the model is completely wrong (because it predicts that sigma=0)
+                if(any(errors!=0)){
+                    plsValue <- -Inf;
+                }
+                else{
+                    plsValue <- 0;
+                }
+            }
             else{
                 # Here and later in the code the abs() is needed for weird cases of wrong covarMat
                 plsValue <- -as.vector(log(2*pi*abs(det(covarMat)))/2 +
