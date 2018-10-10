@@ -666,7 +666,7 @@ EstimatorES <- function(...){
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
+                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
     C <- res$solution;
 
     # If the optimisation failed, then probably this is because of mixed models...
@@ -704,7 +704,7 @@ EstimatorES <- function(...){
         }
 
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval));
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
         C <- res$solution;
     }
     # Change C if it is out of the bounds
@@ -718,8 +718,9 @@ EstimatorES <- function(...){
     if(rounded){
         cfType <- "Rounded";
     }
+
     res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
-                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval));
+                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval, print_level=0));
 
     # This condition is needed in order to make sure that we did not make the solution worse
     if((res2$objective <= res$objective) | rounded){
