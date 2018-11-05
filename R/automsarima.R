@@ -728,7 +728,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                           updateX=updateX, persistenceX=persistenceX, transitionX=transitionX,
                           ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
 
-        bestModel <- structure(bestModel,class="smooth");
+        bestModel <- structure(bestModel,class=c("smooth","msarima"));
     }
     else{
         #### Reestimate the best model in order to get rid of bias ####

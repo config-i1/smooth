@@ -194,7 +194,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
     ic <- ic[1];
 
-    if(class(data)=="smooth.sim"){
+    if(is.smooth.sim(data)){
         data <- data$data;
     }
 

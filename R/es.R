@@ -254,26 +254,26 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
     startTime <- Sys.time();
 
     #This overrides the similar thing in ssfunctions.R but only for data generated from sim.es()
-    if(class(data)=="smooth.sim"){
+    if(is.smooth.sim(data)){
         if(smoothType(data)=="ETS"){
             model <- data;
             data <- data$data;
         }
     }
-    else if(class(data)=="smooth"){
+    else if(is.smooth(data)){
         model <- data;
         data <- data$actuals;
     }
 
 # If a previous model provided as a model, write down the variables
-    if(any(class(model)=="smooth") | any(class(model)=="smooth.sim")){
+    if(any(is.smooth(model)) | any(is.smooth.sim(model))){
         if(smoothType(model)!="ETS"){
             stop("The provided model is not ETS.",call.=FALSE);
         }
         if(!is.null(model$imodel)){
             imodel <- model$imodel;
         }
-        if(class(model)=="smooth.sim" & !is.null(dim(model$data))){
+        if(is.smooth.sim(model) & !is.null(dim(model$data))){
             warning("The provided model has several submodels. Choosing a random one.",call.=FALSE);
             i <- round(runif(1,1:length(model$persistence)));
             persistence <- model$persistence[,i];
@@ -317,7 +317,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             initial <- "o";
         }
     }
-    else if(any(class(model)=="ets")){
+    else if(is.ets(model)){
         # Extract smoothing parameters
         i <- 1;
         persistence <- coef(model)[i];
@@ -361,7 +361,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
         }
         model <- modelType(model);
     }
-    else if(any(class(model)=="character")){
+    else if(is.character(model)){
         # Everything is okay
     }
     else{

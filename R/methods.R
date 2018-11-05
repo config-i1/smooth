@@ -177,7 +177,7 @@ covar.default <- function(object, type=c("analytical","empirical","simulated"), 
 covar.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
 
-    if(any(class(object)=="smoothC")){
+    if(is.smoothC(object)){
         stop("Sorry, but covariance matrix is not available for the combinations.",
             call.=FALSE)
     }
@@ -442,7 +442,7 @@ pls.default <- function(object, holdout=NULL, ...){
 #' @aliases pls.smooth
 #' @export
 pls.smooth <- function(object, holdout=NULL, ...){
-    if(any(class(object)=="smoothC")){
+    if(is.smoothC(object)){
         stop("Sorry, but PLS is not available for the combinations.",
              call.=FALSE)
     }
@@ -745,7 +745,7 @@ forecast.smooth <- function(object, h=10,
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
-            if(any(class(object)=="msarima")){
+            if(is.msarima(object)){
                 newModel <- msarima(object$actuals,model=object,h=h,intervals=intervals,level=level,silent="all",...);
             }
             else{
@@ -932,7 +932,7 @@ errorType.iss <- function(object, ...){
 ##### Function returns the modellags from the model - internal function #####
 modelLags.default <- function(object, ...){
     modelLags <- NA;
-    if(any(class(object)=="msarima")){
+    if(is.msarima(object)){
         modelLags <- object$modelLags;
     }
     else{
@@ -1364,11 +1364,11 @@ print.smooth <- function(x, ...){
             }
         }
     }
-    if(class(x$imodel)!="iss"){
-        intermittent <- "n";
+    if(is.iss(x$imodel)){
+        intermittent <- x$imodel$intermittent;
     }
     else{
-        intermittent <- x$imodel$intermittent;
+        intermittent <- "n";
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,

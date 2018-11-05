@@ -108,7 +108,7 @@ smoothCombine <- function(data, models=NULL,
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    if(any(class(models)=="smoothC")){
+    if(any(is.smoothC(models))){
         ourQuantiles <- models$quantiles;
         models <- models$models;
     }

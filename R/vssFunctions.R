@@ -60,7 +60,7 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     #### Check data ####
-    if(any(class(data)=="vsmooth.sim")){
+    if(any(is.vsmooth.sim(data))){
         data <- data$data;
         if(length(dim(data))==3){
             warning("Simulated data contains several samples. Selecting a random one.",call.=FALSE);
@@ -227,15 +227,15 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     ##### imodel #####
-    if(class(imodel)!="viss"){
-        intermittentModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
-    }
-    else{
+    if(is.viss(imodel)){
         intermittentModel <- imodel$model;
         intermittent <- imodel$intermittent;
         imodelProvided <- TRUE;
+    }
+    else{
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
     }
 
     ##### intermittent #####

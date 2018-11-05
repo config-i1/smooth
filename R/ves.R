@@ -168,7 +168,7 @@ ves <- function(data, model="ANN", persistence=c("group","independent","dependen
     startTime <- Sys.time();
 
 # If a previous model provided as a model, write down the variables
-    if(any(class(model)=="vsmooth")){
+    if(any(is.vsmooth(model))){
         if(smoothType(model)!="VES"){
             stop("The provided model is not VES.",call.=FALSE);
         }

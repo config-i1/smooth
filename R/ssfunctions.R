@@ -65,7 +65,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### data #####
-    if(any(class(data)=="smooth.sim")){
+    if(any(is.smooth.sim(data))){
         data <- data$data;
     }
     else if(any(class(data)=="Mdata")){
@@ -773,15 +773,15 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### imodel #####
-    if(class(imodel)!="iss"){
-        intermittentModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
-    }
-    else{
+    if(is.iss(imodel)){
         intermittentModel <- imodel$model;
         intermittent <- imodel$intermittent;
         imodelProvided <- TRUE;
+    }
+    else{
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
     }
 
     ##### intermittent #####
@@ -1484,7 +1484,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### data #####
-    if(any(class(data)=="smooth.sim")){
+    if(any(is.smooth.sim(data))){
         data <- data$data;
     }
     else if(any(class(data)=="Mdata")){
@@ -1622,15 +1622,15 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### imodel #####
-    if(class(imodel)!="iss"){
-        intermittentModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
-    }
-    else{
+    if(is.iss(imodel)){
         intermittentModel <- imodel$model;
         intermittent <- imodel$intermittent;
         imodelProvided <- TRUE;
+    }
+    else{
+        intermittentModel <- imodel;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
     }
 
     ##### intermittent #####
@@ -2467,12 +2467,12 @@ ssForecaster <- function(...){
 
             # It is not possible to produce parametric / semi / non intervals for cumulative values
             # of multiplicative model. So we use simulations instead.
-            if(cumulative & Etype=="M"){
+            if(Etype=="M"){
                 simulateIntervals <- TRUE;
             }
 
             if(simulateIntervals){
-                nSamples <- 10000;
+                nSamples <- 100000;
                 matg <- matrix(vecg,nComponents,nSamples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
                 arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],nSamples);
@@ -2490,6 +2490,11 @@ ssForecaster <- function(...){
 
                 ySimulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
                                             Etype,Ttype,Stype,modellags)$matyt;
+
+                if(Etype=="M"){
+                    yForecast <- apply(ySimulated, 1, mean);
+                }
+
                 if(!is.null(xreg)){
                     yForecastExo <- c(yForecast) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                                                   matF, matw, h, Etype, Ttype, Stype, modellags,

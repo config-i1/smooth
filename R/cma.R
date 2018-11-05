@@ -90,7 +90,7 @@ cma <- function(data, order=NULL, silent=TRUE){
     }
 
     ##### data #####
-    if(any(class(data)=="smooth.sim")){
+    if(any(is.smooth.sim(data))){
         data <- data$data;
     }
     else if(class(data)=="Mdata"){
