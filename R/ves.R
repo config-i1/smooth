@@ -619,9 +619,6 @@ EstimatorVES <- function(...){
     if(cfType=="l"){
         nParam <- nSeries * (nSeries + 1) / 2 + length(A);
     }
-    else if(cfType=="d"){
-        nParam <- nSeries + length(A);
-    }
     else{
         nParam <- nSeries + length(A);
     }
