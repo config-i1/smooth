@@ -111,6 +111,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{initial} - The initial values of the non-seasonal components;
 #' \item \code{initialSeason} - The initial values of the seasonal components;
 #' \item \code{nParam} - The number of estimated parameters;
+#' \item \code{imodel} - The intermittent model estimated with VES;
 #' \item \code{actuals} - The matrix with the original data;
 #' \item \code{fitted} - The matrix of the fitted values;
 #' \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
@@ -435,12 +436,12 @@ BasicMakerVES <- function(...){
         else{
             # Matrix of dummies for seasons
             XValues <- matrix(rep(diag(maxlag),ceiling(obsInSample/maxlag)),maxlag)[,1:obsInSample];
-            if(Stype=="A"){
+            # if(Stype=="A"){
                 initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
-            }
-            else{
-                initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
-            }
+            # }
+            # else{
+            #     initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+            # }
             if(initialSeasonType=="g"){
                 initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,maxlag);
             }
