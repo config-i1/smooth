@@ -105,7 +105,7 @@ Function generates data using VES model as a data generating process.
 # of parameters is needed. Here's an example with MMM model:
 
 VESMMM <- sim.ves("AAA", obs=120, nSeries=2, frequency=12, initial=c(10,0),
-          persistence=c(0.06,0.05,0.2), mean=0, sd=0.03)
+          initialSeason=runif(12,-1,1), persistence=c(0.06,0.05,0.2), mean=0, sd=0.03)
 VESMMM$data <- exp(VESMMM$data)
 
 # Note that smoothing parameters should be low and the standard diviation should
