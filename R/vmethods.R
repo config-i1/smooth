@@ -1,15 +1,25 @@
 #' @export
+logLik.vsmooth <- function(object,...){
+    obs <- nobs(object);
+    # Division by nSeries gives the df per series, which agrees with Lutkepohl (2005), p.75
+    nParamPerSeries <- nParam(object) / ncol(object$actuals);
+    structure(object$logLik,nobs=obs,df=nParamPerSeries,class="logLik");
+}
+
+#' @export
 logLik.viss <- function(object,...){
     obs <- nobs(object);
-    structure(object$logLik,nobs=obs,df=nParam(object),class="logLik");
+    # Division by nSeries gives the df per series, which agrees with Lutkepohl (2005), p.75
+    nParamPerSeries <- nParam(object) / ncol(object$actuals);
+    structure(object$logLik,nobs=obs,df=nParamPerSeries,class="logLik");
 }
 
 #' @export
 AICc.vsmooth <- function(object, ...){
     llikelihood <- logLik(object);
-    nParamAll <- nParam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
+    nParamAll <- nParam(object) / nSeries;
 
     obs <- nobs(object);
     IC <- -2*llikelihood + ((2*obs*(nParamAll*nSeries + nSeries*(nSeries+1)/2)) /
@@ -21,9 +31,9 @@ AICc.vsmooth <- function(object, ...){
 #' @export
 BICc.vsmooth <- function(object, ...){
     llikelihood <- logLik(object);
-    nParamAll <- nParam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
+    nParamAll <- nParam(object) / nSeries;
 
     obs <- nobs(object);
     IC <- -2*llikelihood + (((nParamAll + nSeries*(nSeries+1)/2) *
@@ -233,10 +243,10 @@ print.vsmooth <- function(x, ...){
     }
     if(!is.null(x$nParam)){
         if(x$nParam[1,4]==1){
-            cat(paste0(x$nParam[1,4]," parameter was estimated in the process\n"));
+            cat(paste0(x$nParam[1,4]," parameter was estimated for ", ncol(x$actuals) ," time series in the process\n"));
         }
         else{
-            cat(paste0(x$nParam[1,4]," parameters were estimated in the process\n"));
+            cat(paste0(x$nParam[1,4]," parameters were estimated for ", ncol(x$actuals) ," time series in the process\n"));
         }
 
         if(x$nParam[2,4]>1){

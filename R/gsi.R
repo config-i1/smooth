@@ -370,9 +370,6 @@ EstimatorGSI <- function(...){
     if(cfType=="l"){
         nParam <- nSeries * (nSeries + 1) / 2 + length(A);
     }
-    else if(cfType=="d"){
-        nParam <- nSeries + length(A);
-    }
     else{
         nParam <- nSeries + length(A);
     }
@@ -646,7 +643,7 @@ CreatorGSI <- function(silent=FALSE,...){
     rownames(persistenceValue)[1:(nSeries*nComponentsAll)] <- paste0(rep(dataNames,each=nComponentsAll), "_", persistenceNames);
     rownames(persistenceValue)[nSeries*nComponentsAll+1] <- "seasonal";
     colnames(persistenceValue) <- dataNames;
-    parametersNumber[1,1] <- parametersNumber[1,1] + nSeries*nComponentsAll;
+    parametersNumber[1,1] <- parametersNumber[1,1] + nSeries*nComponentsAll + 1;
 
     initialPlaces <- c(nComponentsAll*(c(1:nSeries)-1)+1, nComponentsAll*(c(1:nSeries)-1)+2);
     initialPlaces <- sort(initialPlaces);
@@ -656,8 +653,7 @@ CreatorGSI <- function(silent=FALSE,...){
     parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialValue)));
 
     initialPlaces <- nComponentsAll*nSeries + 1;
-    initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
-    rownames(initialSeasonValue) <- dataNames;
+    initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],1,maxlag);
     colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
     parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialSeasonValue)));
 
