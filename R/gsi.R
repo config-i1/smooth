@@ -116,6 +116,14 @@
 #' # The simplest model applied to the data with the default values
 #' gsi(Y, h=10, holdout=TRUE, interval="u")
 #'
+#' # An example with MASS package and correlated errors
+#' \dontrun{library(MASS)}
+#' \dontrun{Y <- sim.ves("AAA", obs=120, nSeries=2, frequency=12,
+#'          initial=c(5,0), initialSeason=initialSeason-mean(initialSeason),
+#'          persistence=c(0.02,0.01,0.1), randomizer="mvrnorm", mu=c(0,0),
+#'          Sigma=matrix(c(0.2,0.1,0.1,0.1),2,2))}
+#' \dontrun{Y$data <- exp(Y$data)}
+#' \dontrun{gsi(Y, h=10, holdout=TRUE, interval="u", silent=FALSE)}
 #'
 #' @export
 gsi <- function(data, model="MNM", weights=1/ncol(data),
