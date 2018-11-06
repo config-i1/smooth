@@ -932,7 +932,8 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
                          nComponents=1, nSeries=1, h=1){
 
     maxlag <- max(modelLags);
-    nElements <- nComponents*nSeries;
+    # nElements <- nComponents*nSeries;
+    nElements <- length(modelLags);
 
     # This is a temporary solution, needed while we work on other types.
     if(intervalsType!="i"){

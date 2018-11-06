@@ -2,9 +2,9 @@
 % Please edit documentation in R/gsi.R
 \name{gsi}
 \alias{gsi}
-\title{Exponential smoothing model with Group Seasonal Indices}
+\title{Vector exponential smoothing model with Group Seasonal Indices}
 \usage{
-gsi(data, model = "ANN", weights = 1/ncol(data),
+gsi(data, model = "MNM", weights = 1/ncol(data), type = c(3, 2, 1),
   cfType = c("likelihood", "diagonal", "trace"), ic = c("AICc", "AIC",
   "BIC", "BICc"), h = 10, holdout = FALSE, intervals = c("none",
   "conditional", "unconditional", "independent"), level = 0.95,
@@ -15,11 +15,12 @@ gsi(data, model = "ANN", weights = 1/ncol(data),
 \item{data}{The matrix with data, where series are in columns and
 observations are in rows.}
 
-\item{model}{The type of seasonal ETS model. Currently only the following models
-are accepted: "MNM", "MMM" and "MMdM".}
+\item{model}{The type of seasonal ETS model. Currently only "MMM" is available.}
 
 \item{weights}{The vector of weights for seasonal indices of the length equal to
 the number of time series in the model.}
+
+\item{type}{Type of the GSI model. Can be "Model 1", "Model 2" or "Model 3".}
 
 \item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
 be:
@@ -92,9 +93,6 @@ values:
 \item \code{timeElapsed} - The time elapsed for the construction of the model;
 \item \code{states} - The matrix of states with components in columns and time in rows;
 \item \code{persistence} - The persistence matrix;
-\item \code{transition} - The transition matrix;
-\item \code{measurement} - The measurement matrix;
-\item \code{phi} - The damping parameter value;
 \item \code{coefficients} - The vector of all the estimated coefficients;
 \item \code{initial} - The initial values of the non-seasonal components;
 \item \code{initialSeason} - The initial values of the seasonal components;
@@ -119,10 +117,10 @@ for the number of degrees of freedom);
 }
 }
 \description{
-Function constructs ETS model with restrictions on seasonal indices
+Function constructs VES model with restrictions on seasonal indices
 }
 \details{
-Function estimates ETS in a form of the Single Source of Error state space
+Function estimates VES in a form of the Single Source of Error state space
 model, restricting the seasonal indices. The model is based on \link[smooth]{ves}
 
 In case of multiplicative model, instead of the vector y_t we use its logarithms.
@@ -130,10 +128,14 @@ As a result the multiplicative model is much easier to work with.
 }
 \examples{
 
-Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)),frequency=12)
+initialSeason <- runif(12,-1,1)
+Y <- sim.ves("AAA", obs=120, nSeries=2, frequency=12, initial=c(10,0),
+             initialSeason=initialSeason-mean(initialSeason),
+             persistence=c(0.06,0.05,0.2), mean=0, sd=0.03)
+Y$data <- exp(Y$data)
 
 # The simplest model applied to the data with the default values
-\dontrun{gsi(Y,model="ANN",h=10,holdout=TRUE)}
+gsi(Y, h=10, holdout=TRUE, interval="u")
 
 
 }

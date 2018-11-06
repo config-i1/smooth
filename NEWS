@@ -1,4 +1,4 @@
-smooth v2.4.7 (Release data: 2018-11-05)
+smooth v2.4.7 (Release data: 2018-11-06)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * Moved sigma.ets() to greybox package.
 * pls.smooth() returns more or less reasonable values, when the model overfits the data.
 * A set of is-functions, checking whether the object is produced by smooth functions.
+* New function - gsi() - ETS with Group Seasonal Indices. This is based on VES with some restrictions. The work in progress...
 
 Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.
