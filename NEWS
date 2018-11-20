@@ -1,4 +1,4 @@
-smooth v2.4.7 (Release data: 2018-11-06)
+smooth v2.4.7 (Release data: 2018-11-20)
 ==============
 
 Changes:
@@ -14,6 +14,7 @@ Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.
 * sim.ves() wasn't working correctly in case of AAA models and provided initials.
 * The error generated in sim.ves() was always multiplied by the initial state, so if it was zero, then nothing would happen.
+* Found bug due to which the exogenous variables wer ignored for the forecasts from ETS(M,Z,Z) models.
 
 
 smooth v2.4.6 (Release data: 2018-08-25)

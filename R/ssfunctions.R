@@ -2491,10 +2491,6 @@ ssForecaster <- function(...){
                 ySimulated <- simulatorwrap(arrvt,materrors,matot,array(matF,c(dim(matF),nSamples)),matw,matg,
                                             Etype,Ttype,Stype,modellags)$matyt;
 
-                if(Etype=="M"){
-                    yForecast <- apply(ySimulated, 1, mean);
-                }
-
                 if(!is.null(xreg)){
                     yForecastExo <- c(yForecast) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
                                                                   matF, matw, h, Etype, Ttype, Stype, modellags,
@@ -2502,6 +2498,10 @@ ssForecaster <- function(...){
                 }
                 else{
                     yForecastExo <- rep(0,h);
+                }
+
+                if(Etype=="M"){
+                    yForecast <- apply(ySimulated, 1, mean);
                 }
 
                 if(rounded){
@@ -2517,6 +2517,8 @@ ssForecaster <- function(...){
                     ySimulated <- ySimulated + matrix(yForecastExo,nrow=h,ncol=nSamples);
                     quantileType <- 7;
                 }
+
+                yForecast <- yForecast + yForecastExo;
                 yForecast <- c(pForecast)*yForecast;
 
                 if(cumulative){
