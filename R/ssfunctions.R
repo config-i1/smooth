@@ -1853,26 +1853,6 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         return((1-quant)*sum(abs(ee[ee<0]))+quant*sum(abs(ee[ee>=0])));
     }
 
-    # Function allows to find the quantiles of Bernoulli-lognormal cumulative distribution
-    # qlnormBinCF <- function(quant, iprob, level=0.95, Etype="M", meanVec=0, sdVec){
-    #     if(Etype=="M"){
-    #         quantiles <- iprob * plnorm(quant, meanlog=meanVec, sdlog=sdVec) + (1 - iprob);
-    #     }
-    #     else{
-    #         if(cfType=="MAE"){
-    #             quantiles <- iprob * plaplace(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
-    #         }
-    #         else if(cfType=="HAM"){
-    #             quantiles <- iprob * ps(quant, meanVec, sdVec) + (1 - iprob)*(quant>0);
-    #         }
-    #         else{
-    #             quantiles <- iprob * pnorm(quant, mean=meanVec, sd=sdVec) + (1 - iprob)*(quant>0);
-    #         }
-    #     }
-    #     CF <- (level-quantiles)^2;
-    #     return(CF)
-    # }
-
     # Function returns quantiles of Bernoulli-lognormal cumulative distribution for a predefined parameters
     qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
@@ -1880,6 +1860,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
         lowerquant <- upperquant <- rep(0,length(sdVec));
 
+        # If this is Laplace or S, then get b values
         if(cfType=="MAE"){
             sdVec <- sqrt(sdVec/2);
         }
@@ -1891,50 +1872,39 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
             if(Etype=="M"){
                 if(cfType=="MAE"){
-                    for(i in 1:length(levelResidual)){
-                        lowerquant[i] <- exp(qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
-                    }
-                    # quantInitials <- exp(qlaplace((1-level)/2,meanVec,sdVec));
+                    lowerquant[] <- exp(qlaplace((1-levelResidual)/2,meanVec,sdVec));
+                    # for(i in 1:length(levelResidual)){
+                    #     lowerquant[i] <- exp(qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    # }
                 }
                 else if(cfType=="HAM"){
-                    for(i in 1:length(levelResidual)){
-                        lowerquant[i] <- exp(qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
-                    }
-                    # quantInitials <- exp(qs((1-level)/2,meanVec,sdVec));
+                    lowerquant[] <- exp(qs((1-levelResidual)/2,meanVec,sdVec));
+                    # for(i in 1:length(levelResidual)){
+                    #     lowerquant[i] <- exp(qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
+                    # }
                 }
                 else{
-                    lowerquant <- qlnorm((1-levelResidual)/2,meanVec,sdVec);
-                    # quantInitials <- qlnorm((1-level)/2,meanVec,sdVec);
+                    lowerquant[] <- qlnorm((1-levelResidual)/2,meanVec,sdVec);
                 }
             }
             else{
                 if(cfType=="MAE"){
-                    for(i in 1:length(levelResidual)){
-                        lowerquant[i] <- qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
-                    }
-                    # quantInitials <- qlaplace((1-level)/2,meanVec,sdVec);
+                    lowerquant[] <- qlaplace((1-levelResidual)/2,meanVec,sdVec);
+                    # for(i in 1:length(levelResidual)){
+                    #     lowerquant[i] <- qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    # }
                 }
                 else if(cfType=="HAM"){
-                    for(i in 1:length(levelResidual)){
-                        lowerquant[i] <- qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
-                    }
-                    # quantInitials <- qs((1-level)/2,meanVec,sdVec);
+                    lowerquant[] <- qs((1-levelResidual)/2,meanVec,sdVec);
+                    # for(i in 1:length(levelResidual)){
+                    #     lowerquant[i] <- qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
+                    # }
                 }
                 else{
-                    lowerquant <- qnorm((1-levelResidual)/2,meanVec,sdVec);
-                    # quantInitials <- qnorm((1-level)/2,meanVec,sdVec);
+                    lowerquant[] <- qnorm((1-levelResidual)/2,meanVec,sdVec);
                 }
             }
 
-            # for(i in 1:length(sdVec)){
-            #     if(quantInitials[i]==0){
-            #         lowerquant[i] <- 0;
-            #     }
-            #     else{
-            #         lowerquant[i] <- optimize(qlnormBinCF, c(quantInitials[i],0), tol=1e-10, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
-            #     }
-            #     # lowerquant[i] <- nlminb(quantInitials[i], qlnormBinCF, iprob=iprob, level=(1-level)/2, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])$par;
-            # }
             levelNew <- (1+levelResidual)/2;
         }
         else{
@@ -1944,49 +1914,38 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         # Produce upper quantiles
         if(Etype=="M"){
             if(cfType=="MAE"){
-                for(i in 1:length(levelResidual)){
-                    upperquant[i] <- exp(qlaplace(levelNew[i],meanVec[i],sdVec[i]));
-                }
-                # quantInitials <- exp(qlaplace(levelNew,meanVec,sdVec));
+                upperquant[] <- exp(qlaplace(levelNew,meanVec,sdVec));
+                # for(i in 1:length(levelResidual)){
+                #     upperquant[i] <- exp(qlaplace(levelNew[i],meanVec[i],sdVec[i]));
+                # }
             }
             else if(cfType=="HAM"){
-                for(i in 1:length(levelResidual)){
-                    upperquant[i] <- exp(qs(levelNew[i],meanVec[i],sdVec[i]));
-                }
-                # quantInitials <- exp(qs(levelNew,meanVec,sdVec));
+                upperquant[] <- exp(qs(levelNew,meanVec,sdVec));
+                # for(i in 1:length(levelResidual)){
+                #     upperquant[i] <- exp(qs(levelNew[i],meanVec[i],sdVec[i]));
+                # }
             }
             else{
-                upperquant <- qlnorm(levelNew,meanVec,sdVec);
-                # quantInitials <- qlnorm(levelNew,meanVec,sdVec);
+                upperquant[] <- qlnorm(levelNew,meanVec,sdVec);
             }
         }
         else{
             if(cfType=="MAE"){
-                for(i in 1:length(levelResidual)){
-                    upperquant[i] <- qlaplace(levelNew[i],meanVec[i],sdVec[i]);
-                }
-                # quantInitials <- qlaplace(levelNew,meanVec,sdVec)
+                upperquant[] <- qlaplace(levelNew,meanVec,sdVec);
+                # for(i in 1:length(levelResidual)){
+                #     upperquant[i] <- qlaplace(levelNew[i],meanVec[i],sdVec[i]);
+                # }
             }
             else if(cfType=="HAM"){
-                for(i in 1:length(levelResidual)){
-                    upperquant[i] <- qs(levelNew[i],meanVec[i],sdVec[i]);
-                }
-                # quantInitials <- qs(levelNew,meanVec,sdVec)
+                upperquant[] <- qs(levelNew,meanVec,sdVec);
+                # for(i in 1:length(levelResidual)){
+                #     upperquant[i] <- qs(levelNew[i],meanVec[i],sdVec[i]);
+                # }
             }
             else{
-                upperquant <- qnorm(levelNew,meanVec,sdVec);
-                # quantInitials <- qnorm(levelNew,meanVec,sdVec)
+                upperquant[] <- qnorm(levelNew,meanVec,sdVec);
             }
         }
-        # for(i in 1:length(sdVec)){
-        #     if(quantInitials[i]==0){
-        #         upperquant[i] <- 0;
-        #     }
-        #     else{
-        #         upperquant[i] <- optimize(qlnormBinCF, c(0,quantInitials[i]), tol=1e-10, iprob=iprob, level=levelNew, Etype=Etype, meanVec=meanVec[i], sdVec=sdVec[i])[[1]];
-        #         upperquant[i] <- max(0,upperquant[i]);
-        #     }
-        # }
 
         return(list(lower=lowerquant,upper=upperquant));
     }
@@ -2164,27 +2123,51 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         else if(intervalsType=="np"){
             nonNAobs <- apply(!is.na(errors),1,all);
             ye <- errors[nonNAobs,];
+
             if(Etype=="M"){
                 ye <- 1 + ye;
             }
+
+            # Define the correct bounds for the intermittent model
+            levelResidual <- (level - (1-iprob)) / iprob;
+            lower <- upper <- rep(0,length(yForecast));
+
             if(!cumulative){
                 ee <- ye;
                 xe <- matrix(c(1:nVariables),nrow=sum(nonNAobs),ncol=nVariables,byrow=TRUE);
 
+                if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+                    A <- rep(1,2);
+                    quant <- (1-levelResidual)/2;
+                    A <- nlminb(A,quantfunc)$par;
+                    lower <- A[1]*c(1:nVariables)^A[2];
+
+                    levelNew <- (1+levelResidual)/2;
+                }
+                else{
+                    levelNew <- levelResidual;
+                }
+
                 A <- rep(1,2);
-                quant <- (1+level)/2;
+                quant <- levelNew;
                 A <- nlminb(A,quantfunc)$par;
                 upper <- A[1]*c(1:nVariables)^A[2];
 
-                A <- rep(1,2);
-                quant <- (1-level)/2;
-                A <- nlminb(A,quantfunc)$par;
-                lower <- A[1]*c(1:nVariables)^A[2];
+                if(Etype=="M"){
+                    upper <- yForecast * upper;
+                    lower <- yForecast * lower;
+                }
             }
             else{
-                #This is wrong. And there's not way to make it right.
-                upper <- quantile(rowSums(ye),(1+level)/2);
-                lower <- quantile(rowSums(ye),(1-level)/2);
+                if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+                #This is wrong. And there's no way to make it right.
+                    lower <- quantile(rowSums(ye),(1-levelResidual)/2);
+                    levelNew <- (1+levelResidual)/2;
+                }
+                else{
+                    levelNew <- levelResidual;
+                }
+                upper <- quantile(rowSums(ye),levelNew);
             }
             varVec <- NULL;
         }
@@ -2467,9 +2450,9 @@ ssForecaster <- function(...){
 
             # It is not possible to produce parametric / semi / non intervals for cumulative values
             # of multiplicative model. So we use simulations instead.
-            if(Etype=="M"){
-                simulateIntervals <- TRUE;
-            }
+            # if(Etype=="M"){
+            #     simulateIntervals <- TRUE;
+            # }
 
             if(simulateIntervals){
                 nSamples <- 100000;
@@ -2544,9 +2527,9 @@ ssForecaster <- function(...){
                     yForecast <- ceiling(yForecast);
                 }
 
-                if(!(intervalsType=="sp" & Etype=="M")){
+                # if(!(intervalsType=="sp" & Etype=="M")){
                     yForecast <- c(pForecast)*yForecast;
-                }
+                # }
 
                 if(cumulative){
                     yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
@@ -2557,10 +2540,10 @@ ssForecaster <- function(...){
                     yUpper <- ts(c(yForecast) + quantvalues$upper,start=yForecastStart,frequency=dataFreq);
                 }
                 else{
-                    if(any(intervalsType==c("np","sp","a"))){
-                        quantvalues$upper <- quantvalues$upper * yForecast;
-                        quantvalues$lower <- quantvalues$lower * yForecast;
-                    }
+                    # if(any(intervalsType==c("np","sp","a"))){
+                    #     quantvalues$upper <- quantvalues$upper * yForecast;
+                    #     quantvalues$lower <- quantvalues$lower * yForecast;
+                    # }
                     yLower <- ts(quantvalues$lower,start=yForecastStart,frequency=dataFreq);
                     yUpper <- ts(quantvalues$upper,start=yForecastStart,frequency=dataFreq);
                 }

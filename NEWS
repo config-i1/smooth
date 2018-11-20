@@ -9,6 +9,7 @@ Changes:
 * New function - gsi() - ETS with Group Seasonal Indices. This is based on VES with some restrictions. The work in progress...
 * The number of degrees of freedom in vector models (ves and gsi) is now calculated per series, not overall. This corresponds to Lutkepohl (2005), p.75.
 * Minor updates in the vignettes for ves with references to Lutkepohl and a couple of papers.
+* ETS(M,Z,Z) now returns correct semi and non parametric intervals in case of intermittent data.
 
 Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.
