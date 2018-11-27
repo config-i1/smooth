@@ -484,13 +484,13 @@ pls.smooth <- function(object, holdout=NULL, ...){
     densityFunction <- function(cfType, ...){
         if(cfType=="MAE"){
         # This is a simplification. The real multivariate Laplace is bizarre!
-            b <- sqrt(diag(covarMat)/2);
-            plsValue <- sum(dlaplace(errors, 0, b, log=TRUE));
+            scale <- sqrt(diag(covarMat)/2);
+            plsValue <- sum(dlaplace(errors, 0, scale, log=TRUE));
         }
         else if(cfType=="HAM"){
         # This is a simplification. We don't have multivariate HAM yet.
-            b <- (diag(covarMat)/120)^0.25;
-            plsValue <- sum(ds(errors, 0, b, log=TRUE));
+            scale <- (diag(covarMat)/120)^0.25;
+            plsValue <- sum(ds(errors, 0, scale, log=TRUE));
         }
         else{
             if(is.infinite(det(covarMat))){
@@ -1567,11 +1567,11 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             args$mu <- 0;
         }
 
-        if(!is.null(ellipsis$b)){
-            args$b <- ellipsis$b;
+        if(!is.null(ellipsis$scale)){
+            args$scale <- ellipsis$scale;
         }
         else{
-            args$b <- mean(abs(residuals(object)));
+            args$scale <- mean(abs(residuals(object)));
         }
     }
     else if(any(cfType==c("HAM","HAMh","THAM","GTHAM","CHAM"))){
@@ -1583,11 +1583,11 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             args$mu <- 0;
         }
 
-        if(!is.null(ellipsis$b)){
-            args$b <- ellipsis$b;
+        if(!is.null(ellipsis$scale)){
+            args$scale <- ellipsis$scale;
         }
         else{
-            args$b <- mean(sqrt(abs(residuals(object))));
+            args$scale <- mean(sqrt(abs(residuals(object))));
         }
     }
     else{

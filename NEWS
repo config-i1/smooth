@@ -1,4 +1,4 @@
-smooth v2.4.7 (Release data: 2018-11-20)
+smooth v2.4.7 (Release data: 2018-11-21)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * The number of degrees of freedom in vector models (ves and gsi) is now calculated per series, not overall. This corresponds to Lutkepohl (2005), p.75.
 * Minor updates in the vignettes for ves with references to Lutkepohl and a couple of papers.
 * ETS(M,Z,Z) now returns correct semi and non parametric intervals in case of intermittent data.
+* Given the recent update in greybox, changed the "b" to "scale" in distribution functions.
 
 Bugfixes
 * ETS(M,X,X) sometimes could not be optimised because of the too high smoothing parameters values and negative initials. This should be fixed now.
