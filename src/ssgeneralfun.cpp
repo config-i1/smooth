@@ -1816,7 +1816,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors / normalize) * (matErrors / normalize) / matobs))) +
                     hor * log(pow(normalize,2)));
             }
-            catch(const std::runtime_error){
+            catch(const std::runtime_error&){
                 CFres = double(log(arma::det(arma::trans(matErrors / normalize) * (matErrors / normalize) / matobs)) +
                     hor * log(pow(normalize,2)));
             }
@@ -1834,7 +1834,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                 CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
             }
-            catch(const std::runtime_error){
+            catch(const std::runtime_error&){
                 CFres = log(arma::det(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                           )) + hor*log(pow(normalize,2));
             }
@@ -1918,7 +1918,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors) * (matErrors) / matobs))));
             }
-            catch(const std::runtime_error){
+            catch(const std::runtime_error&){
                 CFres = double(log(arma::det(arma::trans(matErrors) * matErrors / double(matobs))));
             }
             CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
@@ -1939,7 +1939,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                 CFres = double(log(arma::prod(eig_sym(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                                           ))) + hor*log(pow(normalize,2)));
             }
-            catch(const std::runtime_error){
+            catch(const std::runtime_error&){
                 CFres = log(arma::det(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                           )) + hor*log(pow(normalize,2));
             }
