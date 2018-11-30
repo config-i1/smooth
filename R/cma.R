@@ -76,19 +76,6 @@ cma <- function(data, order=NULL, silent=TRUE){
     holdout <- FALSE;
     h <- 0;
 
-    # If a previous model provided as a model, write down the variables
-    if(exists("model")){
-        if(is.null(model$model)){
-            stop("The provided model is not a Centered Moving Average!",call.=FALSE);
-        }
-        else if(smoothType(model)!="CMA"){
-            stop("The provided model is not a Centered Moving Average!",call.=FALSE);
-        }
-        else{
-            order <- model$order;
-        }
-    }
-
     ##### data #####
     if(any(is.smooth.sim(data))){
         data <- data$data;

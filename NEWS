@@ -1,3 +1,13 @@
+smooth v2.4.8 (Release data: 2018-11-30)
+==============
+
+Changes:
+*
+
+Bugfixes:
+* sma and cma did not check the existance of model correctly. Now it is restricted with their environment only.
+
+
 smooth v2.4.7 (Release data: 2018-11-30)
 ==============
 

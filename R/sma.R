@@ -112,7 +112,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     list2env(list(...),environment());
 
 # If a previous model provided as a model, write down the variables
-    if(exists("model")){
+    if(exists("model",inherits=FALSE)){
         if(is.null(model$model)){
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
