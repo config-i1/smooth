@@ -7,6 +7,7 @@ Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("au
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
 BugReports: https://github.com/config-i1/smooth/issues
+Language: en-GB
 Description: Functions implementing Single Source of Error state space models for purposes
              of time series analysis and forecasting. The package includes Exponential Smoothing,
              SARIMA, Complex Exponential Smoothing, Simple Moving Average, Vector Exponential

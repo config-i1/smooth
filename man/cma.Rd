@@ -44,7 +44,7 @@ AR model. Includes AIC, AICc, BIC and BICc.
 Function constructs centered moving average based on state space SMA
 }
 \details{
-If the otder is odd, then the function constructs SMA(order) and
+If the order is odd, then the function constructs SMA(order) and
 shifts it back in time. Otherwise an AR(order+1) model is constructed
 with the preset parameters:
 

@@ -36,7 +36,7 @@ ves(Y, h=18, holdout=TRUE, silent=FALSE)
 
 The output tells us how much time the estimation took, what model we estimated, how many parameters were estimated, the cost function type used and its value and finally the information criteria. Currently we do not provide error measures for the holdout, this functionality will be available with newer releases of `smooth`.
 
-In some cases we may decide that the series should be connecte with each other. In this case we can ask function to use "dependent" persistence. This means that along with the individual smoothing parameters, we will estimate cross-series ones. Here's the example:
+In some cases we may decide that the series should be connected with each other. In this case we can ask function to use "dependent" persistence. This means that along with the individual smoothing parameters, we will estimate cross-series ones. Here's the example:
 ```{r ves_AAN_persistence_dep}
 ourModel <- ves(Y, "AAN", persistence="d", h=18, holdout=TRUE, silent=FALSE)
 ```
@@ -48,15 +48,15 @@ ourModel$persistence
 
 Note that some of the values of smoothing parameters are negative and the others are greater than one. This is a normal behaviour for VES model in this implementation. Currently we only have bounds derived from the stability region (`bounds="admissible"`) and we do not do traditional restrictions yet (and not sure if we ever will).
 
-Curently we have pure additive and pure multiplicative models only, and I don't intend introducing mixed models for VES at all, because I think that they are evil. The multiplicative model implemented in VES is in fact just an additive model applied to the data in logarithms. Let's see how the damped trend multiplicative seasonal model with individual damping and smoothing parameters looks like:
+Currently we have pure additive and pure multiplicative models only, and I don't intend introducing mixed models for VES at all, because I think that they are evil. The multiplicative model implemented in VES is in fact just an additive model applied to the data in logarithms. Let's see how the damped trend multiplicative seasonal model with individual damping and smoothing parameters looks like:
 ```{r ves_MMdM}
 ourModel <- ves(Y, "MMdM", phi="i", persistence="i", h=18, holdout=TRUE)
 ```
 
-Number of estimated parameters in the model can be extracted via `nParam()` method. However, when it comes to the calculation of the number of degrees of freedom in the model, this value is divided by the number of series [@Lutkepohl2005]. So both `ourModel$Sigma` and all the information criteria rely on the $df = T - k_m$, where $T$ is the number of obsrevations and $k_m = \frac{k}{m}$ is the number of parameters $k$ per series ($m$ is the number of series).
+Number of estimated parameters in the model can be extracted via `nParam()` method. However, when it comes to the calculation of the number of degrees of freedom in the model, this value is divided by the number of series [@Lutkepohl2005]. So both `ourModel$Sigma` and all the information criteria rely on the $df = T - k_m$, where $T$ is the number of observations and $k_m = \frac{k}{m}$ is the number of parameters $k$ per series ($m$ is the number of series).
 
 AICc and BICc for the vector models are calculated as proposed in [@Bedrick1994] and [@Tremblay2004].
 
-Currently we don't do model selection, don't have exogenous variables and don't produce conditional prediction intervalls. But at least it works and allows you to play around with it :).
+Currently we don't do model selection, don't have exogenous variables and don't produce conditional prediction intervals. But at least it works and allows you to play around with it :).
 
 ### References

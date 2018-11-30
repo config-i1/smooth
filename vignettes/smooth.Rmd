@@ -34,7 +34,7 @@ The functions (1) - (4) and (6) return object of class `smooth`, (5) returns the
 
 ## Methods for the class `smooth`
 
-There are several functions that can be used together with the forecasing functions of the package. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with brief explanations:
+There are several functions that can be used together with the forecasting functions of the package. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with brief explanations:
 
 1. `summary(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
 2. `fitted(ourModel)` -- fitted values of the model;

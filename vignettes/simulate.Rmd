@@ -84,7 +84,7 @@ par(mfcol=c(1,1))
 As we see the level is the same and variance is similar for both series. Achievement unlocked!
 
 ## SARIMA
-Let's start from something simple. By default `sim.ssarima()` generates data from ARIMA(0,1,1). Let's produce 10 time serie with 120 observations of that:
+Let's start from something simple. By default `sim.ssarima()` generates data from ARIMA(0,1,1). Let's produce 10 time series with 120 observations of that:
 ```{r sim_ssarima_(0,1,1)}
 ourSimulation <- sim.ssarima(frequency=12, obs=120, nsim=10)
 ```
@@ -183,7 +183,7 @@ ourSimulation <- sim.ces("p",B=0.2,frequency=12, obs=240, nsim=10)
 plot(ourSimulation)
 ```
 
-Finally, the most complicated CES model is the one with "full" seasonality, implyin that there are two complex exponential smoothing models inside: one for seasonal and the other for non-seasonal part:
+Finally, the most complicated CES model is the one with "full" seasonality, implying that there are two complex exponential smoothing models inside: one for seasonal and the other for non-seasonal part:
 ```{r sim_ces_(f)}
 ourSimulation <- sim.ces("f",frequency=12, obs=240, nsim=10)
 plot(ourSimulation)
