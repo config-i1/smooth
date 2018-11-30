@@ -247,7 +247,7 @@ double vOptimiser(arma::mat const &matrixY, arma::mat &matrixV, arma::mat const 
                 CFres = double(log(arma::prod(eig_sym((matErrors / normalize) * arma::trans(matErrors / normalize) / matrixOtObs))) +
                     nSeries * log(pow(normalize,2)));
             }
-            catch(const std::runtime_error){
+            catch(const std::runtime_error&){
                 CFres = double(log(arma::det((matErrors / normalize) * arma::trans(matErrors / normalize) / matrixOtObs)) +
                     nSeries * log(pow(normalize,2)));
             }
