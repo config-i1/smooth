@@ -5,7 +5,7 @@ date: "30 November 2018"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.4.6
+This is ``smooth`` package, v2.4.7. It fixes the bug caused by the recent upgrade of greybox package.
 
 ## Test environments
 * local ubuntu 18.04, R 3.4.4
@@ -22,5 +22,5 @@ checking installed package size ... NOTE
 0 errors | 0 warnings | 1 note
 
 ## Downstream dependencies
-I have also run R CMD check on reverse dependencies of smooth.  
-No ERRORs or WARNINGs found :)
+I have also run R CMD check on reverse dependencies of smooth.
+No ERRORs or WARNINGs found.
