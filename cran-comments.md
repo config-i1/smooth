@@ -1,7 +1,7 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "25 August 2018"
+date: "30 November 2018"
 output: html_document
 ---
 ## Version
@@ -9,7 +9,7 @@ This is ``smooth`` package, v2.4.6
 
 ## Test environments
 * local ubuntu 18.04, R 3.4.4
-* ubuntu 14.04.5 (on travis-ci), R 3.5.0
+* ubuntu 14.04.5 (on travis-ci), R 3.5.1
 * win-builder (devel and release)
 
 ## R CMD check results
