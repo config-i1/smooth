@@ -19,17 +19,19 @@ then \code{digits=100}.}
 \value{
 The functions returns the named vector of errors:
 \itemize{
+\item MAE,
+\item MSE
 \item MPE,
-\item cbias,
 \item MAPE,
 \item MASE,
 \item sMAE,
+\item sMSE,
+\item sCE,
 \item RelMAE,
 \item RelMSE,
 \item RelAME,
-\item sMSE,
-\item sPIS,
-\item sCE.
+\item cbias,
+\item sPIS.
 }
 For the details on these errors, see \link[smooth]{Errors}.
 }
