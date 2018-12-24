@@ -94,8 +94,15 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
     }
 
     type <- substr(type[1],1,1);
-    if(type=="Z"){
-        type <- c("A","M");
+    # Check if the multiplictive model is possible
+    if(any(type==c("Z","M"))){
+        if(any(y<=0)){
+            warning("Multiplicative model can only be used on positive data. Switching to the additive one.");
+            type <- "A";
+        }
+        if(type=="Z"){
+            type <- c("A","M");
+        }
     }
 
     icsFinal <- rep(NA,length(type));

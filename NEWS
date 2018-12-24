@@ -1,4 +1,4 @@
-smooth v2.4.8 (Release data: 2018-11-30)
+smooth v2.4.8 (Release data: 2018-12-24)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 
 Bugfixes:
 * sma and cma did not check the existance of model correctly. Now it is restricted with their environment only.
+* Check if the data is positive for the multiplicative types of auto.gum() and gum() functions.
 
 
 smooth v2.4.7 (Release data: 2018-11-30)
