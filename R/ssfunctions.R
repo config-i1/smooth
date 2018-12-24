@@ -538,7 +538,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         type <- substr(type[1],1,1);
         if(type=="M"){
             if(any(y<=0)){
-                warning("Multiplicative model can only be used on positive data. Switching to the additive one.");
+                warning("Multiplicative model can only be used on positive data. Switching to the additive one.",call.=FALSE);
                 modelIsMultiplicative <- FALSE;
                 type <- "A";
             }
