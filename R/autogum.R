@@ -162,7 +162,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             cat(". Done.\n");
             cat("Searching for appropriate lags:  ");
         }
-        lagsBest <- c(which(ics==min(ics))[1],lagsBest);
+        lagsBest <- c(which(ics==min(ics)),lagsBest);
         icsBest <- 1E100;
         while(min(ics)<icsBest){
             for(i in 1:lagMax){
@@ -194,7 +194,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                 ics[i] <- gumModel$ICs[ic];
             }
             if(!any(which(ics==min(ics))==lagsBest)){
-                lagsBest <- c(which(ics==min(ics))[1],lagsBest);
+                lagsBest <- c(which(ics==min(ics)),lagsBest);
             }
             icsBest <- min(ics);
         }
@@ -216,7 +216,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             if(i==1){
                 next;
             }
-            ordersTest <- which(ics==ics[i],arr.ind=TRUE)[1];
+            ordersTest <- which(ics==ics[i],arr.ind=TRUE);
             nComponents <- sum(ordersTest);
             nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
                           + (ordersTest %*% lagsBest)*(initialType=="o"));
@@ -235,7 +235,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
             ics[i] <- gumModel$ICs[ic];
         }
-        ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE)[1]
+        ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE);
         if(!silentText){
             cat("\b");
             cat("Orders found.\n");
