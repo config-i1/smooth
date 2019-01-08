@@ -164,8 +164,6 @@ intermittentMaker <- function(intermittent="n",...){
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[smooth]{es}}
-#' @keywords iss intermittent demand intermittent demand state space model
-#' exponential smoothing forecasting
 #' @examples
 #'
 #'     y <- rpois(100,0.1)
