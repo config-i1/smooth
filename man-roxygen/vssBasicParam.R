@@ -11,6 +11,8 @@
 #' \item \code{"group"} each series has the same smoothing parameters for respective
 #' components (the values of smoothing parameters are repeated, all the other values
 #' in the matrix are set to zero).
+#' \item \code{"seasonal"} - each component has its own smoothing parameter, except
+#' for the seasonal one, which is common across the time series.
 #' \item provided by user as a vector or as a matrix. The value is used by the model.
 #' }
 #' You can also use the first letter instead of writing the full word.

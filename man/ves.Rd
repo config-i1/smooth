@@ -5,16 +5,16 @@
 \title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
 ves(data, model = "ANN", persistence = c("group", "independent",
-  "dependent"), transition = c("group", "independent", "dependent"),
-  phi = c("group", "individual"), initial = c("individual", "group"),
-  initialSeason = c("group", "individual"), cfType = c("likelihood",
-  "diagonal", "trace"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, intervals = c("none", "conditional",
-  "unconditional", "independent"), level = 0.95, cumulative = FALSE,
-  intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
-  iprobability = c("dependent", "independent"),
-  bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
-  "output", "none"), ...)
+  "dependent", "seasonal"), transition = c("group", "independent",
+  "dependent"), phi = c("group", "individual"),
+  initial = c("individual", "group"), initialSeason = c("group",
+  "individual"), cfType = c("likelihood", "diagonal", "trace"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
+  intervals = c("none", "conditional", "unconditional", "independent"),
+  level = 0.95, cumulative = FALSE, intermittent = c("none", "fixed",
+  "logistic"), imodel = "ANN", iprobability = c("dependent",
+  "independent"), bounds = c("admissible", "usual", "none"),
+  silent = c("all", "graph", "output", "none"), ...)
 }
 \arguments{
 \item{data}{The matrix with data, where series are in columns and
@@ -46,6 +46,8 @@ interactions between the series are modelled (the whole matrix is estimated);
 \item \code{"group"} each series has the same smoothing parameters for respective
 components (the values of smoothing parameters are repeated, all the other values
 in the matrix are set to zero).
+\item \code{"seasonal"} - each component has its own smoothing parameter, except
+for the seasonal one, which is common across the time series.
 \item provided by user as a vector or as a matrix. The value is used by the model.
 }
 You can also use the first letter instead of writing the full word.}

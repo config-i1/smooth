@@ -303,7 +303,8 @@ vssInput <- function(smoothType=c("ves"),...){
     nParamMax <- 1;
 
     ##### Persistence matrix ####
-    # persistence type can be: "i" - independent, "d" - dependent, "g" - group.
+    # persistence type can be: "i" - independent, "d" - dependent, "g" - group,
+    # "s" - seasonal gamma is the same
     persistenceValue <- persistence;
     if(is.null(persistenceValue)){
         warning("persistence value is not selected. Switching to group.");
@@ -313,12 +314,18 @@ vssInput <- function(smoothType=c("ves"),...){
     else{
         if(is.character(persistenceValue)){
             persistenceValue <- substring(persistenceValue[1],1,1);
-            if(all(persistenceValue!=c("g","i","d"))){
+            if(all(persistenceValue!=c("g","i","d","s"))){
                 warning("You asked for a strange persistence value. We don't do that here. Switching to group",
                         call.=FALSE);
                 persistenceType <- "g";
             }
             else{
+                if(persistenceValue=="s" & Stype=="N"){
+                    warning(paste0("Non-seasonal model is selected, but you've asked for common ",
+                                   "seasonal smoothing parameter. Switching to persistence='individual'."),
+                            call.=FALSE);
+                    persistenceValue <- "i";
+                }
                 persistenceType <- persistenceValue;
             }
             persistenceValue <- NULL;
@@ -377,8 +384,9 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
-    if(any(persistenceType==c("g","i"))){
-        # Whether individual or group, this thing reduces number of degrees of freedom in the same way.
+    if(any(persistenceType==c("g","i","s"))){
+        # Whether individual, seasonal or group, this thing reduces number of
+        # degrees of freedom in the same way.
         nParamMax <- nParamMax + nComponentsAll;
     }
     else if(persistenceType=="d"){

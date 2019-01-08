@@ -152,7 +152,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' ves(Y,model="MNN",h=10,holdout=TRUE,intermittent="l")
 #'
 #' @export
-ves <- function(data, model="ANN", persistence=c("group","independent","dependent"),
+ves <- function(data, model="ANN", persistence=c("group","independent","dependent","seasonal"),
                 transition=c("group","independent","dependent"), phi=c("group","individual"),
                 initial=c("individual","group"), initialSeason=c("group","individual"),
                 cfType=c("likelihood","diagonal","trace"),
@@ -241,6 +241,9 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         }
         else if(persistenceType=="d"){
             persistenceLength <- nComponentsAll*nSeries^2;
+        }
+        else if(persistenceType=="s"){
+            persistenceLength <- (nComponentsAll-1)*nSeries+1;
         }
         A <- c(A,rep(0.1,persistenceLength));
         if(bounds=="u"){
@@ -492,6 +495,17 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             persistenceValue <- A[1:(nComponentsAll*nSeries^2)];
             nCoefficients <- nComponentsAll*nSeries^2;
         }
+        # Grouped seasonal values
+        else if(persistenceType=="s"){
+                persistenceValue <- A[1:((nComponentsAll-1)*nSeries+1)];
+                persistenceSeasonal <- persistenceValue[length(persistenceValue)];
+                nCoefficients <- ((nComponentsAll-1)*nSeries+1);
+                for(i in 1:nSeries){
+                    persistenceBuffer[1:(nComponentsAll-1)+nComponentsAll*(i-1),i] <- persistenceValue[1:(nComponentsAll-1)+(nComponentsAll-1)*(i-1)];
+                    persistenceBuffer[nComponentsAll+nComponentsAll*(i-1),i] <- persistenceSeasonal;
+                }
+                persistenceValue <- persistenceBuffer;
+            }
         matG[,] <- persistenceValue;
     }
 
@@ -776,6 +790,9 @@ CreatorVES <- function(silent=FALSE,...){
         }
         else if(persistenceType=="i"){
             parametersNumber[1,1] <- parametersNumber[1,1] + nSeries*nComponentsAll;
+        }
+        else if(persistenceType=="s"){
+            parametersNumber[1,1] <- parametersNumber[1,1] + nSeries*(nComponentsAll-1)+1;
         }
         else{
             parametersNumber[1,1] <- parametersNumber[1,1] + length(matG);
