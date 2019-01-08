@@ -693,13 +693,13 @@ CreatorGSI <- function(silent=FALSE,...){
         yHoldout <- ts(data[(obsInSample+1):obsAll,],start=forecastStart,frequency=dataFreq);
         colnames(yHoldout) <- dataNames;
 
-        measureFirst <- Accuracy(yHoldout[,1],yForecast[,1],y[,1]);
+        measureFirst <- Accuracy(yHoldout[,1],yForecast[,1],y[1,]);
         errorMeasures <- matrix(NA,nSeries,length(measureFirst));
         rownames(errorMeasures) <- dataNames;
         colnames(errorMeasures) <- names(measureFirst);
         errorMeasures[1,] <- measureFirst;
         for(i in 2:nSeries){
-            errorMeasures[i,] <- Accuracy(yHoldout[,i],yForecast[,i],y[,i]);
+            errorMeasures[i,] <- Accuracy(yHoldout[,i],yForecast[,i],y[i,]);
         }
     }
     else{
