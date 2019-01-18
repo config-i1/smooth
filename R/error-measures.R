@@ -487,3 +487,47 @@ cbias <- function(x,C=mean(x),digits=5,...){
     result <- round(1 - Arg(result)/(pi/4),digits);
     return(result);
 }
+
+#' Pinball function
+#'
+#' The function returns the value from the pinball function for the specified level and
+#' the type of loss
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @param holdout The vector or matrix of the holdout values.
+#' @param forecast The forecast of prediction interval (should be the same length as the
+#' holdout).
+#' @param level The level of the prediction interval associated with the forecast.
+#' @param loss The type of loss to use. The number which corresponds to L1, L2 etc.
+#' @param digits Number of digits of the output.
+#' @return The function returns the scalar value.
+#' @examples
+#' y <- rnorm(100,10,2)
+#' esmodel <- es(y,model="ANN",h=10,holdout=TRUE,intervals=TRUE,level=0.95)
+#'
+#' # Pinball with the L1 (quantile value)
+#' pinball(esmodel$holdout,esmodel$upper,level=0.975,loss=1,digits=5)
+#' pinball(esmodel$holdout,esmodel$lower,level=0.025,loss=1,digits=5)
+#'
+#' # Pinball with the L2 (expectile value)
+#' pinball(esmodel$holdout,esmodel$upper,level=0.975,loss=2,digits=5)
+#' pinball(esmodel$holdout,esmodel$lower,level=0.025,loss=2,digits=5)
+#'
+#' @export pinball
+pinball <- function(holdout, forecast, level, loss=1, digits=5,...){
+    # This function calculates pinball cost function for the bound of prediction interval
+    if(length(holdout) != length(forecast)){
+        message("The length of the provided data differs.");
+        message(paste0("Length of holdout: ",length(holdout)));
+        message(paste0("Length of forecast: ",length(forecast)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        result <- round((1-level)*sum(abs((holdout-forecast))^loss * (holdout<=forecast)) +
+                            level*sum(abs((holdout-forecast))^loss * (holdout>forecast)),
+                        digits);
+        return(result);
+    }
+}

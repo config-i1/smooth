@@ -3,6 +3,7 @@ smooth v2.4.8 (Release data: 2019-01-18)
 
 Changes:
 * ves() now has an option of producing persistence="seasonal". Seasonal smoothing parameter will be common across the series in this case.
+* New function - pinball(), which returns the value of the loss (either quantile, or expectile, or any other one).
 
 Bugfixes:
 * sma and cma did not check the existance of model correctly. Now it is restricted with their environment only.
