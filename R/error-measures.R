@@ -516,7 +516,7 @@ cbias <- function(x,C=mean(x),digits=5,...){
 #' pinball(esmodel$holdout,esmodel$lower,level=0.025,loss=2,digits=5)
 #'
 #' @export pinball
-pinball <- function(holdout, forecast, level, loss=1, digits=5,...){
+pinball <- function(holdout, forecast, level, loss=1, digits=5){
     # This function calculates pinball cost function for the bound of prediction interval
     if(length(holdout) != length(forecast)){
         message("The length of the provided data differs.");

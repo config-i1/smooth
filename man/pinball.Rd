@@ -4,7 +4,7 @@
 \alias{pinball}
 \title{Pinball function}
 \usage{
-pinball(holdout, forecast, level, loss = 1, digits = 5, ...)
+pinball(holdout, forecast, level, loss = 1, digits = 5)
 }
 \arguments{
 \item{holdout}{The vector or matrix of the holdout values.}
