@@ -1,4 +1,4 @@
-smooth v2.4.8 (Release data: 2019-01-08)
+smooth v2.4.8 (Release data: 2019-01-18)
 ==============
 
 Changes:
@@ -9,6 +9,7 @@ Bugfixes:
 * Check if the data is positive for the multiplicative types of auto.gum() and gum() functions.
 * auto.gum() sometimes failed, when IC values were the same.
 * Accuracy has been calculated incorrectly for ves() models.
+* gsi() now checks the provided weights for NAs.
 
 
 smooth v2.4.7 (Release data: 2018-11-30)

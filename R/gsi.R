@@ -520,6 +520,15 @@ CreatorGSI <- function(silent=FALSE,...){
                                dimnames=list(c("Estimated","Provided"),
                                              c("nParamInternal","nParamXreg","nParamIntermittent","nParamAll")));
 
+    if(any(is.null(weights))){
+        warning("The weights are not provided. Substituting them by equal ones.", call.=FALSE);
+        weights <- rep(1/nSeries, nSeries);
+    }
+    else if(any(is.na(weights))){
+        warning("The weights are NAs. Substituting them by equal ones.", call.=FALSE);
+        weights <- rep(1/nSeries, nSeries);
+    }
+
 ##### Cost function type #####
     cfType <- cfType[1];
     if(!any(cfType==c("likelihood","diagonal","trace","l","d","t"))){
