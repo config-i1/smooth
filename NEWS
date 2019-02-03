@@ -5,6 +5,7 @@ Changes:
 * ves() now has an option of producing persistence="seasonal". Seasonal smoothing parameter will be common across the series in this case.
 * New function - pinball(), which returns the value of the loss (either quantile, or expectile, or any other one).
 * IMPORTANT!!! The variance of errors in the smooth functions is now calculated without the bias correction. This is because we claim that we use likelihood in the estimation. Expect the increase in prediction intervals!
+* The number of parameters is now correctly taken into account in the calculation of AIC, AICc, BIC and BICc of ves().
 
 Bugfixes:
 * sma and cma did not check the existance of model correctly. Now it is restricted with their environment only.
