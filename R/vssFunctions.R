@@ -1085,25 +1085,27 @@ vssForecaster <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     # Division by nSeries gives the df per series, which agrees with Lutkepohl (2005), p.75
-    nParamPerSeries <- nParam / nSeries;
+    # nParamPerSeries <- nParam / nSeries;
+    # df <- (otObs - nParamPerSeries);
+    # if(any(df<=0)){
+    #     warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
+    #     df <- otObs;
+    # }
 
-    df <- (otObs - nParamPerSeries);
-    if(any(df<=0)){
-        warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
-        df <- otObs;
-    }
+    df <- otObs
+
     # If error additive, estimate as normal. Otherwise - lognormal
     Sigma <- (errors %*% t(errors)) / df;
     rownames(Sigma) <- colnames(Sigma) <- dataNames;
 
-    if(any((otObs - nParamPerSeries)<=0)){
-        df <- 0;
-    }
-    else{
-        #### The number of degrees of freedom needs to be amended in cases of intermittent models ####
-        # Should it be a matrix?
-        df <- min(df);
-    }
+    # if(any((otObs - nParamPerSeries)<=0)){
+    #     df <- 0;
+    # }
+    # else{
+    #     #### The number of degrees of freedom needs to be amended in cases of intermittent models ####
+    #     # Should it be a matrix?
+    #     df <- min(df);
+    # }
 
     PI <- NA;
 

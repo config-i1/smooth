@@ -2371,17 +2371,18 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    df <- (obsNonzero - nParam);
-    if(df<=0){
-        warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
-        df <- obsNonzero;
-    }
-    else if(df<5){
-        warning(paste0("Low number of degrees of freedom, the estimate of variance might be unreliable.\n",
-                       "Using T instead of T-k in the denominator."),
-                call.=FALSE);
-        df <- obsNonzero;
-    }
+    # df <- (obsNonzero - nParam);
+    # if(df<=0){
+    #     warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
+    #     df <- obsNonzero;
+    # }
+    # else if(df<5){
+    #     warning(paste0("Low number of degrees of freedom, the estimate of variance might be unreliable.\n",
+    #                    "Using T instead of T-k in the denominator."),
+    #             call.=FALSE);
+    #     df <- obsNonzero;
+    # }
+    df <- obsNonzero;
 
     # If error additive, estimate as normal. Otherwise - lognormal
     if(Etype=="A"){
@@ -2392,9 +2393,9 @@ ssForecaster <- function(...){
         s2 <- as.vector(sum(log(1 + errors*ot)^2)/df);
         s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/df;
     }
-    if((obsNonzero - nParam)<=0){
-        df <- 0;
-    }
+    # if((obsNonzero - nParam)<=0){
+    #     df <- 0;
+    # }
 
     yForecastStart <- time(data)[obsInsample]+deltat(data);
 
