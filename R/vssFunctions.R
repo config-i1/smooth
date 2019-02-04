@@ -1094,7 +1094,7 @@ vssForecaster <- function(...){
 
     df <- otObs
 
-    # If error additive, estimate as normal. Otherwise - lognormal
+    # Divide each element by each degree of freedom
     Sigma <- (errors %*% t(errors)) / df;
     rownames(Sigma) <- colnames(Sigma) <- dataNames;
 
@@ -1102,9 +1102,8 @@ vssForecaster <- function(...){
     #     df <- 0;
     # }
     # else{
-    #     #### The number of degrees of freedom needs to be amended in cases of intermittent models ####
-    #     # Should it be a matrix?
-    #     df <- min(df);
+    # Take the minimum df for the purposes of intervals construction
+        df <- min(df);
     # }
 
     PI <- NA;
