@@ -13,6 +13,7 @@ Bugfixes:
 * auto.gum() sometimes failed, when IC values were the same.
 * Accuracy has been calculated incorrectly for ves() models.
 * gsi() now checks the provided weights for NAs.
+* gum() would not work correctly, when length(lags)>length(orders).
 
 
 smooth v2.4.7 (Release data: 2018-11-30)

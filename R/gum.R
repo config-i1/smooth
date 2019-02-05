@@ -224,6 +224,10 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
 
     orders <- orders[order(lags)];
     lags <- sort(lags);
+    # Remove redundant lags (if present)
+    lags <- lags[!is.na(orders)];
+    # Remove NAs (if lags are longer than orders)
+    orders <- orders[!is.na(orders)];
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
