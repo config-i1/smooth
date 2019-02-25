@@ -29,7 +29,7 @@ We will use to time series from the M3 united in a vector:
 Y <- cbind(M3$N2570$x,M3$N2571$x);
 ```
 
-`ves()` function allows constructing Vector Exponential Smoothing in either pure additive or pure multiplicative form. The function has several elements that can either be individual or grouped. The former means that all the time series use the same value. For example, `persistence="g"` means that the smoothing parameters for all the series are the same. A simple call for `ves()` results in estimation of VES(A,N,N) with grouped smoothing parameters, transition matrix and individual initials:
+`ves()` function allows constructing Vector Exponential Smoothing [aka "VISTS" discussed by @Silva2010] in either pure additive or pure multiplicative form. The function has several elements that can either be individual or grouped. The former means that all the time series use the same value. For example, `persistence="g"` means that the smoothing parameters for all the series are the same. A simple call for `ves()` results in estimation of VES(A,N,N) with grouped smoothing parameters, transition matrix and individual initials:
 ```{r ves_basic}
 ves(Y, h=18, holdout=TRUE, silent=FALSE)
 ```
