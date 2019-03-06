@@ -10,7 +10,7 @@
 \alias{SMAPE}
 \alias{MASE}
 \alias{RelMAE}
-\alias{RelMSE}
+\alias{RelRMSE}
 \alias{RelAME}
 \alias{sMSE}
 \alias{sPIS}
@@ -33,7 +33,7 @@ MASE(actual, forecast, scale, digits = 3)
 
 RelMAE(actual, forecast, benchmark, digits = 3)
 
-RelMSE(actual, forecast, benchmark, digits = 3)
+RelRMSE(actual, forecast, benchmark, digits = 3)
 
 RelAME(actual, forecast, benchmark, digits = 3)
 
@@ -71,7 +71,7 @@ Functions allow to calculate different types of errors:
 \item SMAPE - Symmetric Mean Absolute Percentage Error,
 \item MASE - Mean Absolute Scaled Error,
 \item RelMAE - Relative Mean Absolute Error,
-\item RelMSE - Relative Mean Squared Error,
+\item RelRMSE - Relative Root Mean Squared Error,
 \item RelAME - Relative Absolute Mean Error,
 \item sMSE - Scaled Mean Squared Error,
 \item sPIS- Scaled Periods-In-Stock,

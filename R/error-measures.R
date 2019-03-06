@@ -10,7 +10,7 @@
 #' \item SMAPE - Symmetric Mean Absolute Percentage Error,
 #' \item MASE - Mean Absolute Scaled Error,
 #' \item RelMAE - Relative Mean Absolute Error,
-#' \item RelMSE - Relative Mean Squared Error,
+#' \item RelRMSE - Relative Root Mean Squared Error,
 #' \item RelAME - Relative Absolute Mean Error,
 #' \item sMSE - Scaled Mean Squared Error,
 #' \item sPIS- Scaled Periods-In-Stock,
@@ -236,9 +236,9 @@ RelMAE <-function(actual,forecast,benchmark,digits=3){
 }
 
 #' @rdname error-measures
-#' @export RelMSE
-#' @aliases RelMSE
-RelMSE <-function(actual,forecast,benchmark,digits=3){
+#' @export RelRMSE
+#' @aliases RelRMSE
+RelRMSE <-function(actual,forecast,benchmark,digits=3){
     # This function calculates Relative MSE
     # actual - actual values,
     # forecast - forecasted or fitted values.
@@ -255,8 +255,8 @@ RelMSE <-function(actual,forecast,benchmark,digits=3){
             return(1);
         }
         else{
-            return(round(mean((actual-forecast)^2,na.rm=TRUE)/
-                             mean((actual-benchmark)^2,na.rm=TRUE),digits=digits));
+            return(round(sqrt(mean((actual-forecast)^2,na.rm=TRUE)/
+                             mean((actual-benchmark)^2,na.rm=TRUE)),digits=digits));
         }
     }
 }
@@ -370,7 +370,7 @@ sCE <- function(actual,forecast,scale,digits=3){
 #' \item sMSE,
 #' \item sCE,
 #' \item RelMAE,
-#' \item RelMSE,
+#' \item RelRMSE,
 #' \item RelAME,
 #' \item cbias,
 #' \item sPIS.
@@ -421,14 +421,14 @@ Accuracy <- function(holdout, forecast, actual, digits=NULL){
                        sMSE(holdout,forecast,mean(abs(actual[actual!=0]))^2,digits=digits),
                        sCE(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits),
                        RelMAE(holdout,forecast,benchmark,digits=digits),
-                       RelMSE(holdout,forecast,benchmark,digits=digits),
+                       RelRMSE(holdout,forecast,benchmark,digits=digits),
                        RelAME(holdout,forecast,benchmark,digits=digits),
                        cbias(holdout-forecast,0,digits=digits),
                        sPIS(holdout,forecast,mean(abs(actual[actual!=0])),digits=digits));
     names(errormeasures) <- c("MAE","MSE",
                               "MPE","MAPE",
                               "MASE","sMAE","sMSE","sCE",
-                              "RelMAE","RelMSE","RelAME","cbias","sPIS");
+                              "RelMAE","RelRMSE","RelAME","cbias","sPIS");
 
     return(errormeasures);
 }

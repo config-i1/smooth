@@ -1,4 +1,4 @@
-smooth v2.4.8 (Release data: 2019-02-03)
+smooth v2.4.8 (Release data: 2019-03-06)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * New function - pinball(), which returns the value of the loss (either quantile, or expectile, or any other one).
 * IMPORTANT!!! The variance of errors in the smooth functions is now calculated without the bias correction. This is because we claim that we use likelihood in the estimation. Expect the increase in prediction intervals!
 * The number of parameters is now correctly taken into account in the calculation of AIC, AICc, BIC and BICc of ves().
+* RelMSE is now substituted by RelRMSE in the accuracy calculation.
 
 Bugfixes:
 * sma and cma did not check the existance of model correctly. Now it is restricted with their environment only.
