@@ -317,7 +317,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
             initial <- "o";
         }
     }
-    else if(is.ets(model)){
+    else if(forecast::is.ets(model)){
         # Extract smoothing parameters
         i <- 1;
         persistence <- coef(model)[i];
@@ -424,7 +424,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        C <- c(C,mean(y[1:dataFreq]),0);
+                        C <- c(C,mean(y[1:min(dataFreq,obsInsample)]),0);
                     }
                     else{
                         C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
@@ -1445,7 +1445,6 @@ CreatorES <- function(silent=FALSE,...){
             }
         }
         else if(obsNonzero > (3 + nParamExo + nParamIntermittent) & !is.null(modelsPool)){
-            modelsPool.new <- modelsPool;
             # We don't have enough observations for seasonal models with damped trend
             if((obsNonzero <= (6 + dataFreq + 1 + nParamExo + nParamIntermittent))){
                 modelsPool <- modelsPool[!(nchar(modelsPool)==4 &
@@ -1471,6 +1470,7 @@ CreatorES <- function(silent=FALSE,...){
                 modelsPool <- modelsPool[substr(modelsPool,2,2)=="N"];
             }
 
+            modelsPool <- unique(modelsPool);
             warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what we can...",call.=FALSE);
             if(modelDo=="combine"){
                 model <- "CNN";

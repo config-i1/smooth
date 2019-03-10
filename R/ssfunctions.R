@@ -151,6 +151,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 modelsPoolCombiner <- (substr(model,1,1)=="C" | substr(model,2,2)=="C" |
                                            substr(model,3,3)=="C" | substr(model,4,4)=="C");
                 modelsPool <- model[!modelsPoolCombiner];
+                modelsPool <- unique(modelsPool);
                 if(any(modelsPoolCombiner)){
                     if(any(substr(model,nchar(model),nchar(model))!="N")){
                         model <- "CCC";
@@ -160,7 +161,14 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                     }
                 }
                 else{
-                    model <- "ZZZ";
+                    model <- c("Z","Z","Z");
+                    if(all(substr(modelsPool,nchar(modelsPool),nchar(modelsPool))=="N")){
+                        model[3] <- "N";
+                    }
+                    if(all(substr(modelsPool,2,2)=="N")){
+                        model[2] <- "N";
+                    }
+                    model <- paste0(model,collapse="");
                 }
             }
         }
