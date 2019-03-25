@@ -197,7 +197,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     }
 
     ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=otAll, Etype=Etype, xreg=xreg, updateX=updateX, ot=rep(1,obsInsample),
+    xregdata <- ssXreg(data=otAll, Etype="A", xreg=xreg, updateX=updateX, ot=rep(1,obsInsample),
                        persistenceX=NULL, transitionX=NULL, initialX=NULL,
                        obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=1, h=h, xregDo=xregDo, silent=silentText,
@@ -261,7 +261,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             # Define initial states. The initials are set here!
             if(initialType!="p"){
                 initialStates <- rep(0, nComponentsNonSeasonal);
-                initialStates[1] <- mean(ot[1:max(dataFreq,12)]);
+                initialStates[1] <- mean(ot);
                 if(Ttype=="M"){
                     initialStates[2] <- 1;
                 }
@@ -372,7 +372,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 i[] <- i + modelLagsMax;
             }
             if(xregEstimate){
-                matat[,1] <- A[i+c(1:nExovars)];
+                matat[,1:modelLagsMax] <- A[i+c(1:nExovars)];
                 i[] <- i + nExovars;
                 if(updateX){
                     matFX[] <- A[i+c(1:(nExovars^2))];
@@ -564,7 +564,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 }
             }
 
-            # Explanatory variables
+            #### Explanatory variables ####
             if(xregEstimate){
                 # Initial values of at
                 A <- c(A,matat[xregNames,1]);
@@ -717,7 +717,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                                                    matxt[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                                    t(matat[,(obsAll-h+1):(obsAll),drop=FALSE]), elements$matFX));
 
-                if(Etype=="M" & any(yForecast<=0)){
+                if(Etype=="M" && any(yForecast<0)){
                     pForecast[pForecast<=0] <- 1E-10;
                     warning(paste0("Negative values were produced in the forecast. ",
                                    "This is unreasonable for the model with the multiplicative error, so we trimmed them out."),
@@ -760,10 +760,16 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             stop("The model selection and combinations are not implemented in oes just yet", call.=FALSE);
         }
 
+        # Merge states of vt and at if the xreg was provided
+        if(!is.null(xreg)){
+            matvt <- rbind(matvt,matat);
+        }
+
         output <- list(fitted=pFitted, forecast=pForecast, states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax), frequency=dataFreq),
                        nParam=parametersNumber, residuals=errors, actuals=otAll,
                        persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
-                       initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted, forecastBeta=yForecast);
+                       initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted, forecastBeta=yForecast,
+                       initialX=matat[,1]);
     }
 #### Auto ####
     else if(occurrence=="a"){
