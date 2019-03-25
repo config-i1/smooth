@@ -96,8 +96,11 @@ of occurrence variable (probability).}
 estimated, introducing non-linear interactions between parameters.
 Prerequisite - non-NULL \code{xreg}.}
 
-\item{...}{The parameters passed to the optimiser, such as \code{maxeval}
-and \code{xtol_rel}.}
+\item{...}{The parameters passed to the optimiser, such as \code{maxeval},
+\code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
+these is printed out by \code{nloptr.print.options()} function from the \code{nloptr}
+package. The default values in the oes function are \code{maxeval=500},
+\code{xtol_rel=1E-8}, \code{algorithm="NLOPT_LN_SBPLX"} and \code{print_level=0}.}
 }
 \value{
 The object of class "occurrence" is returned. It contains following list of

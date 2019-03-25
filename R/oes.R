@@ -75,8 +75,11 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' @param updateX If \code{TRUE}, transition matrix for exogenous variables is
 #' estimated, introducing non-linear interactions between parameters.
 #' Prerequisite - non-NULL \code{xreg}.
-#' @param ... The parameters passed to the optimiser, such as \code{maxeval}
-#' and \code{xtol_rel}.
+#' @param ... The parameters passed to the optimiser, such as \code{maxeval},
+#' \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
+#' these is printed out by \code{nloptr.print.options()} function from the \code{nloptr}
+#' package. The default values in the oes function are \code{maxeval=500},
+#' \code{xtol_rel=1E-8}, \code{algorithm="NLOPT_LN_SBPLX"} and \code{print_level=0}.
 #' @return The object of class "occurrence" is returned. It contains following list of
 #' values:
 #'
@@ -151,6 +154,18 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     }
     else{
         xtol_rel <- 1e-8;
+    }
+    if(any(names(ellipsis)=="algorithm")){
+        algorithm <- ellipsis$algorithm;
+    }
+    else{
+        algorithm <- "NLOPT_LN_SBPLX";
+    }
+    if(any(names(ellipsis)=="print_level")){
+        print_level <- ellipsis$print_level;
+    }
+    else{
+        print_level <- 0;
     }
 
     #### These are needed in order for ssInput to go forward
@@ -444,7 +459,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         else{
                             A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
                         }
-                        ALower <- c(ALower,0.1);
+                        ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
                     }
                     if(Ttype=="A"){
@@ -452,7 +467,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         AUpper <- c(AUpper,Inf);
                     }
                     else if(Ttype=="M"){
-                        ALower <- c(ALower,0.01);
+                        ALower <- c(ALower,1E-20);
                         AUpper <- c(AUpper,3);
                     }
                     # Initial seasonals
@@ -500,7 +515,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         else{
                             A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
                         }
-                        ALower <- c(ALower,0.1);
+                        ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
                     }
                     if(Ttype=="A"){
@@ -508,7 +523,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         AUpper <- c(AUpper,Inf);
                     }
                     else if(Ttype=="M"){
-                        ALower <- c(ALower,0.01);
+                        ALower <- c(ALower,1E-20);
                         AUpper <- c(AUpper,3);
                     }
                     # Initial seasonals
@@ -625,8 +640,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             if(any(c(persistenceEstimate,initialType=="o",initialSeasonEstimate,xregEstimate))){
                 # Run the optimisation
                 res <- nloptr(A$A, CF, lb=A$ALower, ub=A$AUpper,
-                              # opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0),
-                              opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0),
+                              opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
                               modelLags=modelLags, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
                               nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars, modelLagsMax=modelLagsMax,
                               persistenceEstimate=persistenceEstimate, initialType=initialType, initialSeasonEstimate=initialSeasonEstimate,
