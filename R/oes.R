@@ -315,14 +315,23 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                             initialSeasonValue <- (1 - initialSeasonValue) / initialSeasonValue;
                         }
 
-                        # Transform to the adequate scale and normalise
+                        # Transform to the adequate scale
                         if(Stype=="A"){
                             initialSeasonValue <- log(initialSeasonValue);
-                            initialSeasonValue <- initialSeasonValue - mean(initialSeasonValue);
                         }
-                        else{
-                            initialSeasonValue <- exp(log(initialSeasonValue) - mean(log(initialSeasonValue)));
+                    }
+                    else{
+                        if(Stype=="M"){
+                            initialSeasonValue <- exp(initialSeasonValue);
                         }
+                    }
+
+                    # Normalise the initials
+                    if(Stype=="A"){
+                        initialSeasonValue <- initialSeasonValue - mean(initialSeasonValue);
+                    }
+                    else{
+                        initialSeasonValue <- exp(log(initialSeasonValue) - mean(log(initialSeasonValue)));
                     }
 
                     # Write down the initial seasons into the state matrix
@@ -650,6 +659,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                          modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
                          vecg, matvt, matat);
 
+            #### Start the optimisation ####
             if(any(c(persistenceEstimate,initialType=="o",initialSeasonEstimate,xregEstimate))){
                 # Run the optimisation
                 res <- nloptr(A$A, CF, lb=A$ALower, ub=A$AUpper,
