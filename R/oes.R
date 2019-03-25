@@ -212,6 +212,9 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     xregNames <- colnames(matxt);
     xreg <- xregdata$xreg;
 
+    # The start time for the forecasts
+    yForecastStart <- time(data)[obsInsample]+deltat(data);
+
     if(any(occurrence==c("g","o","i","p"))){
         ##### Initialiser of oes #####
         # This creates the states, transition, persistence and measurement matrices
@@ -606,6 +609,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
 ##### Fixed probability #####
     if(occurrence=="f"){
+        model <- "MNN";
         if(initialType!="o"){
             pt <- ts(matrix(rep(initial,obsInsample),obsInsample,1), start=dataStart, frequency=dataFreq);
         }
@@ -614,7 +618,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             pt <- ts(matrix(rep(initial,obsInsample),obsInsample,1), start=dataStart, frequency=dataFreq);
         }
         names(initial) <- "level";
-        pForecast <- ts(rep(pt[1],h), start=time(y)[obsInsample]+deltat(y), frequency=dataFreq);
+        pForecast <- ts(rep(pt[1],h), start=yForecastStart, frequency=dataFreq);
         errors <- ts(ot-iprob, start=dataStart, frequency=dataFreq);
 
         parametersNumber[1,c(1,4)] <- 1;
@@ -695,8 +699,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         call.=FALSE);
             }
 
-            yForecastStart <- time(data)[obsInsample]+deltat(data);
-
             # Produce forecasts
             if(h>0){
                 # yForecast is the underlying forecast, while pForecast is the probability forecast
@@ -753,10 +755,46 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
                        initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted, forecastBeta=yForecast);
     }
+#### Auto ####
+    else if(occurrence=="a"){
+        IC <- switch(ic,
+                     "AIC"=AIC,
+                     "AICc"=AICc,
+                     "BIC"=BIC,
+                     "BICc"=BICc);
+
+        # occurrencePool <- c("f","o","i","p","g");
+        occurrencePool <- c("f","o","i","p");
+        occurrencePoolLength <- length(occurrencePool);
+        occurrenceModels <- vector("list",occurrencePoolLength);
+        for(i in 1:occurrencePoolLength){
+            occurrenceModels[[i]] <- oes(data=data,model=model,occurrence=occurrencePool[i],
+                                         ic=ic, h=h, holdout=holdout,
+                                         intervals=intervals, level=level,
+                                         bounds=bounds,
+                                         silent=TRUE,
+                                         xreg=xreg, xregDo=xregDo, updateX=updateX, ...);
+        }
+        ICBest <- which.min(sapply(occurrenceModels, IC))[1]
+        occurrence <- occurrencePool[ICBest];
+
+        if(!silentGraph){
+            graphmaker(actuals=otAll,forecast=occurrenceModels[[ICBest]]$forecast,fitted=occurrenceModels[[ICBest]]$fitted,
+                       legend=!silentLegend,main=paste0(occurrenceModels[[ICBest]]$model,"_",toupper(occurrence)));
+        }
+        return(occurrenceModels[[ICBest]]);
+
+        # return(oes(data=data,model=modelType(occurrenceModels[[ICBest]]),occurrence=occurrence,
+        #            ic=ic, h=h, holdout=holdout,
+        #            intervals=intervals, level=level,
+        #            bounds=bounds,
+        #            silent=silent,
+        #            xreg=xreg, xregDo=xregDo, updateX=updateX, ...));
+    }
 #### None ####
     else{
         pt <- ts(ot,start=dataStart,frequency=dataFreq);
-        pForecast <- ts(rep(ot[obsInsample],h), start=time(y)[obsInsample]+deltat(y),frequency=dataFreq);
+        pForecast <- ts(rep(ot[obsInsample],h), start=yForecastStart, frequency=dataFreq);
         errors <- ts(rep(0,obsInsample), start=dataStart, frequency=dataFreq);
         parametersNumber[] <- 0;
         output <- list(fitted=pt, forecast=pForecast, states=pt,
@@ -781,7 +819,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         # }
         # else{
             graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
-                       legend=!silentLegend,main=paste0(output$model,"_",occurrence));
+                       legend=!silentLegend,main=paste0(output$model,"_",toupper(occurrence)));
         # }
     }
 
