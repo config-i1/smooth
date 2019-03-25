@@ -1,6 +1,5 @@
 #include <RcppArmadillo.h>
 #include <iostream>
-#include <cmath>
 #include "ssGeneral.h"
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -113,9 +112,13 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
     arma::vec vecYfit(obs, arma::fill::zeros);
     // The vector for the fitted probabilities
     arma::vec vecPfit(obs, arma::fill::zeros);
-
+    // The vector of errors
     arma::vec vecErrors(obs, arma::fill::zeros);
+    // The buffer for the calculation of transition for explanatory part
     arma::vec bufferforat(vecGX.n_rows);
+    // The warning level:
+    // true - the states became negative or the value was rediculous, so we substituted it with the previous one;
+    bool warning = false;
 
     for(unsigned int i=maxlag; i<obs+maxlag; i=i+1) {
         lagrows = i * nComponents - lagsInternal + nComponents - 1;
@@ -126,6 +129,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
         if(vecYfit(i-maxlag) > 1e+100){
+            warning = true;
             vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
         }
 
@@ -138,18 +142,20 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
         if(!matrixVt.col(i).is_finite()){
+            warning = true;
             matrixVt.col(i) = matrixVt(lagrows);
         }
-        if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+        if((S=='M') && (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+            warning = true;
             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
         }
-        if(T=='M'){
-            if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+        if(T=='M' && ((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0))){
+                warning = true;
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
-            }
         }
         if(any(matrixVt.col(i)>1e+100)){
+            warning = true;
             matrixVt.col(i) = matrixVt(lagrows);
         }
 
@@ -172,21 +178,23 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
 
 /* Failsafe for cases when unreasonable value for state vector was produced */
         if(!matrixVt.col(i).is_finite()){
+            warning = true;
             matrixVt.col(i) = matrixVt(lagrows);
         }
-        if((S=='M') & (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+        if((S=='M') && (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+            warning = true;
             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
         }
-        if(T=='M'){
-            if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+        if(T=='M' && ((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0))){
+                warning = true;
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
-            }
         }
     }
 
     vecPfit = vecYfit;
-    if(E=='M'){
+    if(E=='M' && any(vecPfit<0)){
+        warning = true;
         vecPfit.elem(find(vecPfit<0)).fill(1E-10);
     }
 
@@ -195,6 +203,9 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             switch(E){
                 case 'A':
                     vecPfit = exp(vecPfit) / (1+exp(vecPfit));
+                    // This is needed for cases when huge numbers were generated
+                    // vecPfit.elem(find_nonfinite(vecPfit)).replace(1.0-1E-10);
+                    vecPfit.replace(NA_REAL, 1.0-1E-10);
                 break;
                 case 'M':
                     vecPfit = vecPfit / (1+vecPfit);
@@ -205,6 +216,9 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             switch(E){
                 case 'A':
                     vecPfit = 1 / (1+exp(vecPfit));
+                    // This is needed for cases when huge numbers were generated
+                    // vecPfit.elem(find_nonfinite(vecPfit)).replace(1.0-1E-10);
+                    vecPfit.replace(NA_REAL, 1.0-1E-10);
                 break;
                 case 'M':
                     vecPfit = 1 / (1+vecPfit);
@@ -221,7 +235,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
     }
 
     return List::create(Named("matvt") = matrixVt, Named("yfit") = vecYfit, Named("pfit") = vecPfit,
-                        Named("errors") = vecErrors, Named("matat") = matrixAt);
+                        Named("errors") = vecErrors, Named("matat") = matrixAt, Named("warning") = warning);
 }
 
 

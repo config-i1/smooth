@@ -242,7 +242,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             # Persistence vector. The initials are set here!
             if(persistenceEstimate){
-                vecg <- matrix(0.05, nComponentsAll, 1);
+                vecg <- matrix(0.01, nComponentsAll, 1);
             }
             else{
                 vecg <- matrix(persistence, nComponentsAll, 1);
@@ -259,8 +259,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             if(initialType!="p"){
                 initialStates <- rep(0, nComponentsNonSeasonal);
                 initialStates[1] <- mean(ot[1:max(dataFreq,12)]);
-                if(Ttype!="N"){
-                    initialStates[2] <- 1e-5;
+                if(Ttype=="M"){
+                    initialStates[2] <- 1;
+                }
+                else if(Ttype=="A"){
+                    initialStates[2] <- 0;
                 }
                 if(occurrence=="o"){
                     initialStates[1] <- initialStates[1] / (1 - initialStates[1]);
@@ -268,8 +271,9 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 else if(occurrence=="i"){
                     initialStates[1] <- (1-initialStates[1]) / initialStates[1];
                 }
-                if(Etype=="M"){
-                    initialStates <- exp(initialStates);
+                # Initials specifically for ETS(A,M,N) and alike
+                if(Etype=="A" && any(occurrence==c("o","i")) && Ttype=="M" && (initialStates[1]>1)){
+                    initialStates[1] <- log(initialStates[1]);
                 }
 
                 matvt[1,1:modelLagsMax] <- initialStates[1];
@@ -299,7 +303,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                             initialSeasonValue[initialSeasonValue==1] <- 1 - 1E-10;
                             initialSeasonValue[initialSeasonValue==-1] <- -1 + 1E-10;
                         }
-                        # Transform this into the underlying scale
+                        # Transform this into the probability scale
                         initialSeasonValue <- (initialSeasonValue + 1) / 2;
                         if(occurrence=="o"){
                             initialSeasonValue <- initialSeasonValue / (1 - initialSeasonValue);
@@ -308,8 +312,13 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                             initialSeasonValue <- (1 - initialSeasonValue) / initialSeasonValue;
                         }
 
+                        # Transform to the adequate scale and normalise
                         if(Stype=="A"){
                             initialSeasonValue <- log(initialSeasonValue);
+                            initialSeasonValue <- initialSeasonValue - mean(initialSeasonValue);
+                        }
+                        else{
+                            initialSeasonValue <- exp(log(initialSeasonValue) - mean(log(initialSeasonValue)));
                         }
                     }
 
@@ -343,7 +352,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 matw[,nComponentsNonSeasonal] <- A[i];
             }
             if(initialType=="o"){
-                matvt[1:nComponentsNonSeasonal,modelLagsMax] <- A[i+c(1:nComponentsNonSeasonal)];
+                matvt[1:nComponentsNonSeasonal,1:modelLagsMax] <- A[i+c(1:nComponentsNonSeasonal)];
                 i[] <- i + nComponentsNonSeasonal;
             }
             if(initialSeasonEstimate){
@@ -447,7 +456,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 # Initial states
                 if(initialType=="o"){
                     if(Etype=="A"){
-                        A <- c(A,matvt[modelLagsMax,1:nComponentsNonSeasonal]);
+                        A <- c(A,matvt[1:nComponentsNonSeasonal,modelLagsMax]);
                         ALower <- c(ALower,-Inf);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -457,7 +466,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                             A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
                         }
                         else{
-                            A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
+                            A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
                         }
                         ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
@@ -503,7 +512,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 # Initial states
                 if(initialType=="o"){
                     if(Etype=="A"){
-                        A <- c(A,matvt[modelLagsMax,1:nComponentsNonSeasonal]);
+                        A <- c(A,matvt[1:nComponentsNonSeasonal,modelLagsMax]);
                         ALower <- c(ALower,-Inf);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -513,7 +522,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                             A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
                         }
                         else{
-                            A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
+                            A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
                         }
                         ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
@@ -680,6 +689,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             yFitted <- ts(fitting$yfit,start=dataStart,frequency=dataFreq);
             errors <- ts(fitting$errors,start=dataStart,frequency=dataFreq);
 
+            if(fitting$warning){
+                warning(paste0("Unreasonable values of states were produced in the estimation. ",
+                               "So, we substituted them with the previous values.\nThis is because the model ETS(",model,") is unstable."),
+                        call.=FALSE);
+            }
+
             yForecastStart <- time(data)[obsInsample]+deltat(data);
 
             # Produce forecasts
@@ -705,6 +720,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                                    "M"=1/(1+pForecast),
                                                    "A"=1/(1+exp(pForecast))),
                                       "p" = sapply(sapply(as.vector(pForecast),min,1),max,0));
+                # This is usually due to the exp(big number), which corresponds to 1
+                if(any(occurrence==c("i","o")) && Etype=="A" && any(is.nan(pForecast))){
+                    pForecast[is.nan(pForecast)] <- 1;
+                }
+
                 pForecast <- ts(pForecast, start=yForecastStart, frequency=dataFreq);
                 yForecast <- ts(yForecast, start=yForecastStart, frequency=dataFreq);
             }
@@ -761,7 +781,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         # }
         # else{
             graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
-                       legend=!silentLegend,main=output$model);
+                       legend=!silentLegend,main=paste0(output$model,"_",occurrence));
         # }
     }
 
