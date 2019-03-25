@@ -368,7 +368,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 i[] <- i + nComponentsNonSeasonal;
             }
             if(initialSeasonEstimate){
-                matvt[nComponentsAll,1:modelLagsMax] <- A[i+modelLagsMax]
+                matvt[nComponentsAll,1:modelLagsMax] <- A[i+c(1:modelLagsMax)];
                 i[] <- i + modelLagsMax;
             }
             if(xregEstimate){
