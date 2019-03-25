@@ -1542,6 +1542,45 @@ print.iss <- function(x, ...){
     print(ICs);
 }
 
+#' @export
+print.oes <- function(x, ...){
+    occurrence <- x$occurrence
+    if(occurrence=="g"){
+        occurrence <- "General";
+    }
+    else if(occurrence=="p"){
+        occurrence <- "Probability-based";
+    }
+    else if(occurrence=="f"){
+        occurrence <- "Fixed probability";
+    }
+    else if(occurrence=="i"){
+        occurrence <- "Inverse odds ratio";
+    }
+    else if(occurrence=="o"){
+        occurrence <- "Odds ratio";
+    }
+    else{
+        occurrence <- "None";
+    }
+    ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
+    names(ICs) <- c("AIC","AICc","BIC","BICc");
+    cat(paste0("Intermittent state space model estimated: ",occurrence,"\n"));
+    if(!is.null(x$model)){
+        cat(paste0("Underlying ETS model: ",x$model,"\n"));
+    }
+    if(!is.null(x$persistence)){
+        cat("Smoothing parameters:\n");
+        print(round(x$persistence[,1],3));
+    }
+    if(!is.null(x$initial)){
+        cat("Vector of initials:\n");
+        print(round(x$initial,3));
+    }
+    cat("Information criteria: \n");
+    print(ICs);
+}
+
 #### Simulate data using provided object ####
 #' @export
 simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){

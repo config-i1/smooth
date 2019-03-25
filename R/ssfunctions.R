@@ -110,7 +110,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                                dimnames=list(c("Estimated","Provided"),
                                              c("nParamInternal","nParamXreg","nParamIntermittent","nParamAll")));
 
-    if(smoothType=="es"){
+    if(any(smoothType==c("es","oes"))){
         ##### model for ES #####
         if(!is.character(model)){
             stop(paste0("Something strange is provided instead of character object in model: ",
@@ -457,7 +457,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         seasonality <- substring(seasonality[1],1,1);
     }
 
-    if(smoothType=="es"){
+    if(any(smoothType==c("es","oes"))){
         # Check if the data is ts-object
         if(!is.ts(data) & Stype!="N"){
             if(!silentText){
@@ -559,7 +559,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             modelIsMultiplicative <- FALSE;
         }
     }
-    else if(smoothType=="es"){
+    else if(any(smoothType==c("es","oes"))){
         maxlag <- dataFreq * (Stype!="N") + 1 * (Stype=="N");
     }
     else if(smoothType=="ces"){
@@ -800,97 +800,87 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### intermittent #####
-    if(is.numeric(intermittent)){
-        # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
-        if(all(length(c(intermittent))!=c(h,obsAll))){
-            warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
-                           " while length of forecasting horizon is ",h,".\n",
-                           "Where should we plug in the future occurences anyway?\n",
-                           "Switching to intermittent='fixed'."),call.=FALSE);
-            intermittent <- "f";
-            ot <- (y!=0)*1;
-            obsNonzero <- sum(ot);
-            yot <- matrix(y[y!=0],obsNonzero,1);
-            pt <- matrix(mean(ot),obsInsample,1);
-            pForecast <- matrix(1,h,1);
-            nParamIntermittent <- 1;
+    if(smoothType!="oes"){
+        if(is.numeric(intermittent)){
+            # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
+            if(all(length(c(intermittent))!=c(h,obsAll))){
+                warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
+                               " while length of forecasting horizon is ",h,".\n",
+                               "Where should we plug in the future occurences anyway?\n",
+                               "Switching to intermittent='fixed'."),call.=FALSE);
+                intermittent <- "f";
+                ot <- (y!=0)*1;
+                obsNonzero <- sum(ot);
+                yot <- matrix(y[y!=0],obsNonzero,1);
+                pt <- matrix(mean(ot),obsInsample,1);
+                pForecast <- matrix(1,h,1);
+                nParamIntermittent <- 1;
+            }
+            else{
+                if(any(intermittent<0,intermittent>1)){
+                    warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
+                                   "Converting to appropriate vector."),call.=FALSE);
+                    intermittent <- (intermittent!=0)*1;
+                }
+
+                ot <- (y!=0)*1;
+                obsNonzero <- sum(ot);
+                yot <- matrix(y[y!=0],obsNonzero,1);
+                if(length(intermittent)==obsAll){
+                    pt <- intermittent[1:obsInsample];
+                    pForecast <- intermittent[(obsInsample+1):(obsInsample+h)];
+                }
+                else{
+                    pt <- matrix(ot,obsInsample,1);
+                    pForecast <- matrix(intermittent,h,1);
+                }
+
+                iprob <- pForecast[1];
+                # "p" stand for "provided", meaning that we have been provided the future data
+                intermittent <- "provided";
+                nParamIntermittent <- 0;
+            }
         }
         else{
-            if(any(intermittent<0,intermittent>1)){
-                warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
-                               "Converting to appropriate vector."),call.=FALSE);
-                intermittent <- (intermittent!=0)*1;
-            }
-
-            ot <- (y!=0)*1;
-            obsNonzero <- sum(ot);
-            yot <- matrix(y[y!=0],obsNonzero,1);
-            if(length(intermittent)==obsAll){
-                pt <- intermittent[1:obsInsample];
-                pForecast <- intermittent[(obsInsample+1):(obsInsample+h)];
-            }
-            else{
-                pt <- matrix(ot,obsInsample,1);
-                pForecast <- matrix(intermittent,h,1);
-            }
-
-            iprob <- pForecast[1];
-            # "p" stand for "provided", meaning that we have been provided the future data
-            intermittent <- "provided";
-            nParamIntermittent <- 0;
-        }
-    }
-    else{
-        intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
-            ##### !!! This stuff should be removed by 2.5.0 #####
-            if(any(intermittent==c("c","croston"))){
-                warning(paste0("You are using the old value of intermittent parameter. ",
-                               "Please, use 'i' instead of '",intermittent,"'."),
-                        call.=FALSE);
-                intermittent <- "i";
-            }
-            else if(any(intermittent==c("t","tsb"))){
-                warning(paste0("You are using the old value of intermittent parameter. ",
-                               "Please, use 'p' instead of '",intermittent,"'."),
-                        call.=FALSE);
-                intermittent <- "p";
-            }
-            else{
+            intermittent <- intermittent[1];
+            if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
                 warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
                         call.=FALSE);
                 intermittent <- "f";
             }
+            intermittent <- substring(intermittent[1],1,1);
+
+            environment(intermittentParametersSetter) <- environment();
+            intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+
+            if(obsNonzero <= nParamIntermittent & intermittent!="l"){
+                warning(paste0("Not enough observations for estimation of occurence probability.\n",
+                               "Switching to simpler model."),
+                        call.=FALSE);
+                if(obsNonzero > 1){
+                    intermittent <- "f";
+                    nParamIntermittent <- 1;
+                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+                }
+                else{
+                    intermittent <- "n";
+                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+                }
+            }
         }
-        intermittent <- substring(intermittent[1],1,1);
 
-        environment(intermittentParametersSetter) <- environment();
-        intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+        # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
+        if(var(ot)==0 & all(intermittent!=c("n","provided"))){
+            intermittent <- "n";
+            imodelProvided <- FALSE;
+        }
 
-        if(obsNonzero <= nParamIntermittent & intermittent!="l"){
-            warning(paste0("Not enough observations for estimation of occurence probability.\n",
-                           "Switching to simpler model."),
-                    call.=FALSE);
-            if(obsNonzero > 1){
-                intermittent <- "f";
-                nParamIntermittent <- 1;
-                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-            }
-            else{
-                intermittent <- "n";
-                intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-            }
+        if(imodelProvided){
+            parametersNumber[2,3] <- imodel$nParam;
         }
     }
-
-    # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(var(ot)==0 & all(intermittent!=c("n","provided"))){
-        intermittent <- "n";
-        imodelProvided <- FALSE;
-    }
-
-    if(imodelProvided){
-        parametersNumber[2,3] <- imodel$nParam;
+    else{
+        obsNonzero <- obsInsample;
     }
 
     if(any(smoothType==c("es"))){
@@ -927,7 +917,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
     }
 
-    if(any(smoothType==c("es","gum"))){
+    if(any(smoothType==c("es","gum","oes"))){
         ##### persistence for ES & GUM #####
         if(!is.null(persistence)){
             if((!is.numeric(persistence) | !is.vector(persistence)) & !is.matrix(persistence)){
@@ -937,7 +927,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 persistenceEstimate <- TRUE;
             }
             else{
-                if(smoothType=="es"){
+                if(any(smoothType==c("es","oes"))){
                     if(modelDo!="estimate"){
                         warning(paste0("Predefined persistence vector can only be used with preselected ETS model.\n",
                                        "Changing to estimation of persistence vector values."),call.=FALSE);
@@ -1021,7 +1011,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             initialType <- "o";
         }
         else{
-            if(smoothType=="es"){
+            if(any(smoothType==c("es","oes"))){
                 if(modelDo!="estimate"){
                     warning(paste0("Predefined initials vector can only be used with preselected ETS model.\n",
                                    "Changing to estimation of initials."),call.=FALSE);
@@ -1045,7 +1035,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                         }
                         else{
                             initialType <- "p";
-                            initialValue <- initial;
+                            # initialValue <- initial;
                             parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
                         }
                     }
@@ -1089,7 +1079,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 }
                 else{
                     initialType <- "p";
-                    initialValue <- initial;
+                    # initialValue <- initial;
                     parametersNumber[2,1] <- parametersNumber[2,1] + length(initial);
                 }
             }
@@ -1103,7 +1093,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 }
                 else{
                     initialType <- "p";
-                    initialValue <- initial;
+                    # initialValue <- initial;
                     parametersNumber[2,1] <- (parametersNumber[2,1] + 2*(seasonality!="s") +
                                                   maxlag*(seasonality!="n") +
                                                   maxlag*any(seasonality==c("f","s")));
@@ -1118,7 +1108,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
     }
 
-    if(any(smoothType==c("es"))){
+    if(any(smoothType==c("es","oes"))){
         # If model selection is chosen, forget about the initial values and persistence
         if(any(Etype=="Z",any(Ttype==c("X","Y","Z")),Stype=="Z")){
             if(any(!is.null(initialValue),!is.null(initialSeason),!is.null(persistence),!is.null(phi))){
@@ -1261,7 +1251,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### Calculate nParamMax for checks #####
-    if(smoothType=="es"){
+    if(any(smoothType==c("es","oes"))){
         # 1: estimation of variance;
         # 1 - 3: persitence vector;
         # 1 - 2: initials;
@@ -1359,16 +1349,6 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     assign("multisteps",multisteps,ParentEnvironment);
     assign("intervalsType",intervalsType,ParentEnvironment);
     assign("intervals",intervals,ParentEnvironment);
-    assign("intermittent",intermittent,ParentEnvironment);
-    assign("intermittentModel",intermittentModel,ParentEnvironment);
-    assign("imodel",imodel,ParentEnvironment);
-    assign("ot",ot,ParentEnvironment);
-    assign("yot",yot,ParentEnvironment);
-    assign("pt",pt,ParentEnvironment);
-    assign("pForecast",pForecast,ParentEnvironment);
-    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
-    assign("iprob",iprob,ParentEnvironment);
-    assign("imodelProvided",imodelProvided,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
@@ -1379,7 +1359,21 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     assign("parametersNumber",parametersNumber,ParentEnvironment);
     assign("ic",ic,ParentEnvironment);
 
-    if(smoothType=="es"){
+    #### intermittent part of the model... outdated ####
+    if(smoothType!="oes"){
+        assign("intermittent",intermittent,ParentEnvironment);
+        assign("intermittentModel",intermittentModel,ParentEnvironment);
+        assign("imodel",imodel,ParentEnvironment);
+        assign("ot",ot,ParentEnvironment);
+        assign("yot",yot,ParentEnvironment);
+        assign("pt",pt,ParentEnvironment);
+        assign("pForecast",pForecast,ParentEnvironment);
+        assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
+        assign("iprob",iprob,ParentEnvironment);
+        assign("imodelProvided",imodelProvided,ParentEnvironment);
+    }
+
+    if(any(smoothType==c("es","oes"))){
         assign("model",model,ParentEnvironment);
         assign("modelsPool",modelsPool,ParentEnvironment);
         assign("Etype",Etype,ParentEnvironment);
@@ -1390,7 +1384,9 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         assign("initialSeason",initialSeason,ParentEnvironment);
         assign("phi",phi,ParentEnvironment);
         assign("phiEstimate",phiEstimate,ParentEnvironment);
-        assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
+        if(smoothType=="es"){
+            assign("allowMultiplicative",allowMultiplicative,ParentEnvironment);
+        }
     }
     else if(smoothType=="gum"){
         assign("transitionEstimate",transitionEstimate,ParentEnvironment);
@@ -1422,7 +1418,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         assign("B",B,ParentEnvironment);
     }
 
-    if(any(smoothType==c("es","gum"))){
+    if(any(smoothType==c("es","oes","gum"))){
         assign("persistence",persistence,ParentEnvironment);
         assign("persistenceEstimate",persistenceEstimate,ParentEnvironment);
     }
