@@ -1835,24 +1835,24 @@ CreatorES <- function(silent=FALSE,...){
         ssFitter(ParentEnvironment=environment());
         ssForecaster(ParentEnvironment=environment());
 
-        component.names <- "level";
+        componentNames <- "level";
         if(Ttype!="N"){
-            component.names <- c(component.names,"trend");
+            componentNames <- c(componentNames,"trend");
         }
         if(Stype!="N"){
-            component.names <- c(component.names,"seasonal");
+            componentNames <- c(componentNames,"seasonal");
         }
 
         if(!is.null(xregNames)){
             matvt <- cbind(matvt,matat[1:nrow(matvt),]);
-            colnames(matvt) <- c(component.names,xregNames);
+            colnames(matvt) <- c(componentNames,xregNames);
             if(updateX){
                 rownames(vecgX) <- xregNames;
                 dimnames(matFX) <- list(xregNames,xregNames);
             }
         }
         else{
-            colnames(matvt) <- c(component.names);
+            colnames(matvt) <- c(componentNames);
         }
 
 # Write down the initials. Done especially for Nikos and issue #10
