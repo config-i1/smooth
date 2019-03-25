@@ -185,24 +185,29 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
         }
     }
 
+    vecPfit = vecYfit;
+    if(E=='M'){
+        vecPfit.elem(find(vecPfit<0)).fill(1E-10);
+    }
+
     switch(O){
         case 'o':
             switch(E){
                 case 'A':
-                    vecPfit = exp(vecYfit) / (1+exp(vecYfit));
+                    vecPfit = exp(vecPfit) / (1+exp(vecPfit));
                 break;
                 case 'M':
-                    vecPfit = vecYfit / (1+vecYfit);
+                    vecPfit = vecPfit / (1+vecPfit);
                 break;
             }
         break;
         case 'i':
             switch(E){
                 case 'A':
-                    vecPfit = 1 / (1+exp(vecYfit));
+                    vecPfit = 1 / (1+exp(vecPfit));
                 break;
                 case 'M':
-                    vecPfit = 1 / (1+vecYfit);
+                    vecPfit = 1 / (1+vecPfit);
                 break;
             }
         break;

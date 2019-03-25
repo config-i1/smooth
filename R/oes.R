@@ -225,7 +225,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 matF[1,2] <- 1;
             }
 
-            # Persistence vector
+            # Persistence vector. The initials are set here!
             if(persistenceEstimate){
                 vecg <- matrix(0.05, nComponentsAll, 1);
             }
@@ -240,12 +240,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             # The matrix of states
             matvt <- matrix(NA, nComponentsAll, obsStates, dimnames=list(statesNames, NULL));
 
-            # Define initial states
+            # Define initial states. The initials are set here!
             if(initialType!="p"){
                 initialStates <- rep(0, nComponentsNonSeasonal);
                 initialStates[1] <- mean(ot[1:max(dataFreq,12)]);
                 if(Ttype!="N"){
-                    initialStates[2] <- 0;
+                    initialStates[2] <- 1e-5;
                 }
                 if(occurrence=="o"){
                     initialStates[1] <- initialStates[1] / (1 - initialStates[1]);
@@ -383,7 +383,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     else{
                         if(Ttype=="A"){
                             # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                            A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),0);
+                            A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
                         }
                         else{
                             A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
@@ -439,7 +439,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     else{
                         if(Ttype=="A"){
                             # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                            A <- c(A,mean(ot[1:dataFreq]),0);
+                            A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
                         }
                         else{
                             A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
@@ -495,7 +495,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     else{
                         if(Ttype=="A"){
                             # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                            A <- c(A,mean(ot[1:dataFreq]),0);
+                            A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
                         }
                         else{
                             A <- c(A,abs(matvt[modelLagsMax,1:nComponentsNonSeasonal]));
@@ -625,7 +625,8 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             if(any(c(persistenceEstimate,initialType=="o",initialSeasonEstimate,xregEstimate))){
                 # Run the optimisation
                 res <- nloptr(A$A, CF, lb=A$ALower, ub=A$AUpper,
-                              opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0),
+                              # opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0),
+                              opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0),
                               modelLags=modelLags, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
                               nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars, modelLagsMax=modelLagsMax,
                               persistenceEstimate=persistenceEstimate, initialType=initialType, initialSeasonEstimate=initialSeasonEstimate,
@@ -637,6 +638,13 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             # Parameters estimated + variance
             parametersNumber[1,1] <- length(A) + 1;
+
+            if(damped){
+                phi <- A[nComponentsAll+1];
+            }
+            else{
+                phi <- NA;
+            }
 
             elements <- oesElements(A, modelLags, Ttype, Stype,
                                     nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
@@ -662,10 +670,18 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             # Produce forecasts
             if(h>0){
-                pForecast <- as.vector(forecasterwrap(t(matvt[,(obsInsample+1):(obsInsample+modelLagsMax),drop=FALSE]),
-                                                      elements$matF, elements$matw, h, Etype, Ttype, Stype, modelLags,
-                                                      matxt[(obsAll-h+1):(obsAll),,drop=FALSE],
-                                                      t(matat[,(obsAll-h+1):(obsAll),drop=FALSE]), elements$matFX));
+                # yForecast is the underlying forecast, while pForecast is the probability forecast
+                pForecast <- yForecast <- as.vector(forecasterwrap(t(matvt[,(obsInsample+1):(obsInsample+modelLagsMax),drop=FALSE]),
+                                                                   elements$matF, elements$matw, h, Etype, Ttype, Stype, modelLags,
+                                                                   matxt[(obsAll-h+1):(obsAll),,drop=FALSE],
+                                                                   t(matat[,(obsAll-h+1):(obsAll),drop=FALSE]), elements$matFX));
+
+                if(Etype=="M" & any(yForecast<=0)){
+                    pForecast[pForecast<=0] <- 1E-10;
+                    warning(paste0("Negative values were produced in the forecast. ",
+                                   "This is unreasonable for the model with the multiplicative error, so we trimmed them out."),
+                            call.=FALSE);
+                }
 
                 pForecast[] <- switch(occurrence,
                                       "o" = switch(Etype,
@@ -673,12 +689,13 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                                    "A"=exp(pForecast)/(1+exp(pForecast))),
                                       "i" = switch(Etype,
                                                    "M"=1/(1+pForecast),
-                                                   "A"=1 / (1+exp(pForecast))),
+                                                   "A"=1/(1+exp(pForecast))),
                                       "p" = sapply(sapply(as.vector(pForecast),min,1),max,0));
                 pForecast <- ts(pForecast, start=yForecastStart, frequency=dataFreq);
+                yForecast <- ts(yForecast, start=yForecastStart, frequency=dataFreq);
             }
             else{
-                pForecast <- ts(NA,start=yForecastStart,frequency=dataFreq);
+                yForecast <- pForecast <- ts(NA,start=yForecastStart,frequency=dataFreq);
             }
 
             parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
@@ -699,8 +716,8 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
         output <- list(fitted=pFitted, forecast=pForecast, states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax), frequency=dataFreq),
                        nParam=parametersNumber, residuals=errors, actuals=otAll,
-                       persistence=vecg, initial=matvt[1:nComponentsNonSeasonal,1],
-                       initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted);
+                       persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
+                       initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted, forecastBeta=yForecast);
     }
 #### None ####
     else{
