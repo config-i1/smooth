@@ -354,6 +354,10 @@ CreatorGUM <- function(silentText=FALSE,...){
                 }
             }
             if(transitionEstimate){
+                # matFInterim <- diag(nComponents);
+                # matFInterim[upper.tri(matFInterim)] <- 1;
+                # matFInterim[lower.tri(matFInterim)] <- 1;
+                # C <- c(C,c(matFInterim));
                 C <- c(C,rep(1,nComponents^2));
                 if(bounds=="r"){
                     Clb <- c(Clb,rep(0,nComponents^2));
