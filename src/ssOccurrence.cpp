@@ -187,10 +187,24 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
 
     switch(O){
         case 'o':
-            vecPfit = vecYfit / (1+vecYfit);
+            switch(E){
+                case 'A':
+                    vecPfit = exp(vecYfit) / (1+exp(vecYfit));
+                break;
+                case 'M':
+                    vecPfit = vecYfit / (1+vecYfit);
+                break;
+            }
         break;
         case 'i':
-            vecPfit = 1 / (1+vecYfit);
+            switch(E){
+                case 'A':
+                    vecPfit = 1 / (1+exp(vecYfit));
+                break;
+                case 'M':
+                    vecPfit = 1 / (1+vecYfit);
+                break;
+            }
         break;
         case 'p':
             vecPfit = vecYfit;

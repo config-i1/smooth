@@ -668,8 +668,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                                       t(matat[,(obsAll-h+1):(obsAll),drop=FALSE]), elements$matFX));
 
                 pForecast[] <- switch(occurrence,
-                                      "o" = pForecast / (1+pForecast),
-                                      "i" = 1 / (1+pForecast),
+                                      "o" = switch(Etype,
+                                                   "M"=pForecast/(1+pForecast),
+                                                   "A"=exp(pForecast)/(1+exp(pForecast))),
+                                      "i" = switch(Etype,
+                                                   "M"=1/(1+pForecast),
+                                                   "A"=1 / (1+exp(pForecast))),
                                       "p" = sapply(sapply(as.vector(pForecast),min,1),max,0));
                 pForecast <- ts(pForecast, start=yForecastStart, frequency=dataFreq);
             }
