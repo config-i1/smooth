@@ -108,7 +108,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     # Number of parameters to estimate / provided
     parametersNumber <- matrix(0,2,4,
                                dimnames=list(c("Estimated","Provided"),
-                                             c("nParamInternal","nParamXreg","nParamIntermittent","nParamAll")));
+                                             c("nParamInternal","nParamXreg","nParamOccurrence","nParamAll")));
 
     if(any(smoothType==c("es","oes"))){
         ##### model for ES #####
@@ -458,12 +458,14 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     if(any(smoothType==c("es","oes"))){
+        modelIsSeasonal <- Stype!="N";
         # Check if the data is ts-object
-        if(!is.ts(data) & Stype!="N"){
+        if(!is.ts(data) & modelIsSeasonal){
             if(!silentText){
                 message("The provided data is not ts object. Only non-seasonal models are available.");
             }
             Stype <- "N";
+            modelIsSeasonal <- FALSE;
             substr(model,nchar(model),nchar(model)) <- "N";
         }
 
@@ -473,19 +475,22 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                            "Setting to 'Z'."),call.=FALSE);
             if(dataFreq==1){
                 Stype <- "N";
+                modelIsSeasonal <- FALSE;
             }
             else{
                 Stype <- "Z";
                 modelDo <- "select";
             }
         }
-        if(all(Stype!="N",dataFreq==1)){
+        if(all(modelIsSeasonal,dataFreq==1)){
             if(all(Stype!=c("Z","X","Y"))){
                 warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
                                "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
             }
             Stype <- "N";
+            modelIsSeasonal <- FALSE;
         }
+
     }
     else if(smoothType=="sma"){
         maxlag <- 1;
@@ -560,7 +565,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
     }
     else if(any(smoothType==c("es","oes"))){
-        maxlag <- dataFreq * (Stype!="N") + 1 * (Stype=="N");
+        maxlag <- dataFreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
     }
     else if(smoothType=="ces"){
         A <- list(value=A);
@@ -788,95 +793,107 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### imodel #####
-    if(is.iss(imodel)){
-        intermittentModel <- imodel$model;
-        intermittent <- imodel$intermittent;
+    if(is.oes(imodel)){
+        occurrenceModel <- modelType(imodel);
+        occurrence <- imodel$occurrence;
         imodelProvided <- TRUE;
     }
+    else if(is.list(imodel)){
+        warning("imodel is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
+                call.=FALSE);
+        occurrenceModel <- modelType(imodel);
+        occurrence <- imodel$occurrence;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
+    }
     else{
-        intermittentModel <- imodel;
+        occurrenceModel <- imodel;
         imodelProvided <- FALSE;
         imodel <- NULL;
     }
 
-    ##### intermittent #####
+    ##### Occurrence part of the model #####
     if(smoothType!="oes"){
-        if(is.numeric(intermittent)){
+        if(exists("intermittent",envir=ParentEnvironment,inherits=FALSE)){
+            if(!is.null(intermittent)){
+                intermittent <- substr(intermittent[1],1,1);
+                warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
+                occurrence <- switch(intermittent,
+                                     "l"="o",
+                                     "p"="p",
+                                     "f"="f",
+                                     "n"="n",
+                                     "a"="a",
+                                     "i"=,
+                                     "s"="i");
+            }
+            else{
+                occurrence <- intermittent;
+            }
+        }
+
+        if(is.numeric(occurrence)){
             # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
-            if(all(length(c(intermittent))!=c(h,obsAll))){
-                warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
+            if(all(length(c(occurrence))!=c(h,obsAll))){
+                warning(paste0("Length of the provided future occurrences is ",length(c(occurrence)),
                                " while length of forecasting horizon is ",h,".\n",
                                "Where should we plug in the future occurences anyway?\n",
-                               "Switching to intermittent='fixed'."),call.=FALSE);
-                intermittent <- "f";
+                               "Switching to occurrence='fixed'."),call.=FALSE);
+                occurrence <- "f";
                 ot <- (y!=0)*1;
                 obsNonzero <- sum(ot);
                 yot <- matrix(y[y!=0],obsNonzero,1);
                 pt <- matrix(mean(ot),obsInsample,1);
                 pForecast <- matrix(1,h,1);
-                nParamIntermittent <- 1;
+                nParamOccurrence <- 1;
             }
             else{
-                if(any(intermittent<0,intermittent>1)){
-                    warning(paste0("Parameter 'intermittent' should contain values between zero and one.\n",
+                if(any(occurrence<0,occurrence>1)){
+                    warning(paste0("Parameter 'occurrence' should contain values between zero and one.\n",
                                    "Converting to appropriate vector."),call.=FALSE);
-                    intermittent <- (intermittent!=0)*1;
+                    occurrence <- (occurrence!=0)*1;
                 }
 
                 ot <- (y!=0)*1;
                 obsNonzero <- sum(ot);
                 yot <- matrix(y[y!=0],obsNonzero,1);
-                if(length(intermittent)==obsAll){
-                    pt <- intermittent[1:obsInsample];
-                    pForecast <- intermittent[(obsInsample+1):(obsInsample+h)];
+                if(length(occurrence)==obsAll){
+                    pt <- occurrence[1:obsInsample];
+                    pForecast <- occurrence[(obsInsample+1):(obsInsample+h)];
                 }
                 else{
                     pt <- matrix(ot,obsInsample,1);
-                    pForecast <- matrix(intermittent,h,1);
+                    pForecast <- matrix(occurrence,h,1);
                 }
 
                 iprob <- pForecast[1];
                 # "p" stand for "provided", meaning that we have been provided the future data
-                intermittent <- "provided";
-                nParamIntermittent <- 0;
+                occurrence <- "provided";
+                nParamOccurrence <- 0;
             }
         }
         else{
-            intermittent <- intermittent[1];
-            if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
-                warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
+            occurrence <- occurrence[1];
+            if(all(occurrence!=c("n","a","f","g","o","i","p",
+                                 "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"))){
+                warning(paste0("Strange type of occurrence model defined: '",occurrence,"'. Switching to 'fixed'."),
                         call.=FALSE);
-                intermittent <- "f";
+                occurrence <- "f";
             }
-            intermittent <- substring(intermittent[1],1,1);
+            occurrence <- substring(occurrence[1],1,1);
 
             environment(intermittentParametersSetter) <- environment();
-            intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-
-            if(obsNonzero <= nParamIntermittent & intermittent!="l"){
-                warning(paste0("Not enough observations for estimation of occurence probability.\n",
-                               "Switching to simpler model."),
-                        call.=FALSE);
-                if(obsNonzero > 1){
-                    intermittent <- "f";
-                    nParamIntermittent <- 1;
-                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-                }
-                else{
-                    intermittent <- "n";
-                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-                }
-            }
+            intermittentParametersSetter(occurrence,ParentEnvironment=environment());
         }
 
-        # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-        if(var(ot)==0 & all(intermittent!=c("n","provided"))){
-            intermittent <- "n";
+        # If the data is not occurrence, let's assume that the parameter was switched unintentionally.
+        if(all(ot==1) & all(occurrence!=c("n","provided"))){
+            occurrence <- "n";
             imodelProvided <- FALSE;
         }
 
         if(imodelProvided){
-            parametersNumber[2,3] <- imodel$nParam;
+            parametersNumber[2,3] <- nParam(imodel);
         }
     }
     else{
@@ -885,7 +902,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     if(any(smoothType==c("es"))){
         # Check if multiplicative models can be fitted
-        allowMultiplicative <- !((any(y<=0) & intermittent=="n")| (intermittent!="n" & any(y<0)));
+        allowMultiplicative <- !((any(y<=0) && occurrence=="n") | (occurrence!="n" && any(y<0)));
         if(any(cfType==c("LogisticL","LogisticD"))){
             allowMultiplicative <- TRUE;
         }
@@ -942,8 +959,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                             persistenceEstimate <- TRUE;
                         }
                         else{
-                            if(length(persistence)!=(1 + (Ttype!="N") + (Stype!="N"))){
-                                warning(paste0("Wrong length of persistence vector. Should be ",(1 + (Ttype!="N") + (Stype!="N")),
+                            if(length(persistence)!=(1 + (Ttype!="N") + (modelIsSeasonal))){
+                                warning(paste0("Wrong length of persistence vector. Should be ",(1 + (Ttype!="N") + (modelIsSeasonal)),
                                                " instead of ",length(persistence),".\n",
                                                "Changing to estimation of persistence vector values."),call.=FALSE);
                                 persistence <- NULL;
@@ -1151,12 +1168,13 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
         # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
         if(is.null(modelsPool)){
-            if((Stype!="N" & (obsInsample <= 2*dataFreq) & is.null(initialSeason)) |
-               (Stype!="N" & (obsInsample <= dataFreq) & is.null(initialSeason) & is.null(persistence))){
+            if((modelIsSeasonal & (obsInsample <= 2*dataFreq) & is.null(initialSeason)) |
+               (modelIsSeasonal & (obsInsample <= dataFreq) & is.null(initialSeason) & is.null(persistence))){
                 if(is.null(initialSeason)){
                     warning(paste0("Sorry, but we don't have enough observations for the seasonal model!\n",
                                    "Switching to non-seasonal."),call.=FALSE);
                     Stype <- "N";
+                    modelIsSeasonal <- FALSE;
                     initialSeasonEstimate <- FALSE;
                 }
             }
@@ -1257,9 +1275,9 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         # 1 - 2: initials;
         # 1 - 1 phi value;
         # dataFreq: dataFreq initials for seasonal component;
-        nParamMax <- (1 + (1 + (Ttype!="N") + (Stype!="N"))*persistenceEstimate +
+        nParamMax <- (1 + (1 + (Ttype!="N") + (modelIsSeasonal))*persistenceEstimate +
                           (1 + (Ttype!="N"))*(initialType=="o") + phiEstimate*damped +
-                          dataFreq*(Stype!="N")*initialSeasonEstimate*(initialType!="b"));
+                          dataFreq*(modelIsSeasonal)*initialSeasonEstimate*(initialType!="b"));
     }
     else if(smoothType=="gum"){
         nParamMax <- (1 + nComponents*measurementEstimate + nComponents*persistenceEstimate +
@@ -1361,16 +1379,20 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     #### intermittent part of the model... outdated ####
     if(smoothType!="oes"){
-        assign("intermittent",intermittent,ParentEnvironment);
-        assign("intermittentModel",intermittentModel,ParentEnvironment);
+        assign("occurrence",occurrence,ParentEnvironment);
+        assign("occurrenceModel",occurrenceModel,ParentEnvironment);
         assign("imodel",imodel,ParentEnvironment);
         assign("ot",ot,ParentEnvironment);
         assign("yot",yot,ParentEnvironment);
         assign("pt",pt,ParentEnvironment);
         assign("pForecast",pForecast,ParentEnvironment);
-        assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
+        assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
         assign("iprob",iprob,ParentEnvironment);
         assign("imodelProvided",imodelProvided,ParentEnvironment);
+    }
+    else{
+        assign("initialSeasonEstimate",initialSeasonEstimate,ParentEnvironment);
+        assign("modelIsSeasonal",modelIsSeasonal,ParentEnvironment);
     }
 
     if(any(smoothType==c("es","oes"))){
@@ -1633,72 +1655,75 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### imodel #####
-    if(is.iss(imodel)){
-        intermittentModel <- imodel$model;
-        intermittent <- imodel$intermittent;
+    if(is.oes(imodel)){
+        occurrenceModel <- modelType(imodel);
+        occurrence <- imodel$occurrence;
         imodelProvided <- TRUE;
     }
+    else if(is.list(imodel)){
+        warning("imodel is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
+                call.=FALSE);
+        occurrenceModel <- modelType(imodel);
+        occurrence <- imodel$occurrence;
+        imodelProvided <- FALSE;
+        imodel <- NULL;
+    }
     else{
-        intermittentModel <- imodel;
+        occurrenceModel <- imodel;
         imodelProvided <- FALSE;
         imodel <- NULL;
     }
 
-    ##### intermittent #####
-    if(is.numeric(intermittent)){
+    ##### Occurrence part of the model #####
+    if(exists("intermittent",envir=ParentEnvironment,inherits=FALSE)){
+        intermittent <- substr(intermittent[1],1,1);
+        warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
+        occurrence <- switch(intermittent,
+                             "l"="o",
+                             "p"="p",
+                             "f"="f",
+                             "n"="n",
+                             "a"="a",
+                             "i"=,
+                             "s"="i");
+    }
+
+    if(is.numeric(occurrence)){
         obsNonzero <- sum((y!=0)*1);
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
-        if(all(length(c(intermittent))!=c(h,obsAll))){
-            warning(paste0("Length of the provided future occurrences is ",length(c(intermittent)),
+        if(all(length(c(occurrence))!=c(h,obsAll))){
+            warning(paste0("Length of the provided future occurrences is ",length(c(occurrence)),
                            " while length of forecasting horizon is ",h,".\n",
                            "Where should we plug in the future occurences anyway?\n",
-                           "Switching to intermittent='fixed'."),call.=FALSE);
-            intermittent <- "f";
+                           "Switching to occurrence='fixed'."),call.=FALSE);
+            occurrence <- "f";
         }
 
-        if(any(intermittent!=0 & intermittent!=1)){
-            warning(paste0("Parameter 'intermittent' should contain only zeroes and ones.\n",
+        if(any(occurrence!=0 & occurrence!=1)){
+            warning(paste0("Parameter 'occurrence' should contain only zeroes and ones.\n",
                            "Converting to appropriate vector."),call.=FALSE);
-            intermittent <- (intermittent!=0)*1;
+            occurrence <- (occurrence!=0)*1;
         }
     }
     else{
         obsNonzero <- sum((y!=0)*1);
-        if(obsNonzero<=5){
-            warning("Not enough non-zero observations for the minimum model. Switching intermittent to 'n'.",
+        occurrence <- occurrence[1];
+        if(all(occurrence!=c("n","a","f","g","o","i","p",
+                             "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"))){
+            warning(paste0("Strange type of occurrence model defined: '",occurrence,"'. Switching to 'fixed'."),
                     call.=FALSE);
-            intermittent <- "n";
+            occurrence <- "f";
         }
-        intermittent <- intermittent[1];
-        if(all(intermittent!=c("n","f","i","p","a","s","l","none","fixed","interval","probability","auto","sba","logistic"))){
-            warning(paste0("Strange type of intermittency defined: '",intermittent,"'. Switching to 'fixed'."),
-                    call.=FALSE);
-            intermittent <- "f";
-        }
-        intermittent <- substring(intermittent,1,1);
-        if(any(intermittent!="n")){
-            obsNonzero <- sum((y!=0)*1);
-            environment(intermittentParametersSetter) <- environment();
-            intermittentParametersSetter(intermittent,ParentEnvironment=environment());
+        occurrence <- substring(occurrence,1,1);
 
-            if(obsNonzero <= nParamIntermittent & intermittent!="l"){
-                warning(paste0("Not enough observations for estimation of occurence probability.\n",
-                               "Switching to simpler model."),
-                        call.=FALSE);
-                if(obsNonzero > 1){
-                    intermittent <- "f";
-                    nParamIntermittent <- 1;
-                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-                }
-                else{
-                    intermittent <- "n";
-                    intermittentParametersSetter(intermittent,ParentEnvironment=environment());
-                }
-            }
-        }
-        else{
-            obsNonzero <- obsInsample;
-        }
+        environment(intermittentParametersSetter) <- environment();
+        intermittentParametersSetter(occurrence,ParentEnvironment=environment());
+    }
+
+    # If the data is not occurrence, let's assume that the parameter was switched unintentionally.
+    if(all(ot==1) & all(occurrence!=c("n","provided"))){
+        occurrence <- "n";
+        imodelProvided <- FALSE;
     }
 
     ##### Define xregDo #####
@@ -1730,7 +1755,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     assign("multisteps",multisteps,ParentEnvironment);
     assign("intervals",intervals,ParentEnvironment);
     assign("intervalsType",intervalsType,ParentEnvironment);
-    assign("intermittent",intermittent,ParentEnvironment);
+    assign("occurrence",occurrence,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("data",data,ParentEnvironment);
     assign("dataFreq",dataFreq,ParentEnvironment);
@@ -2476,7 +2501,7 @@ ssForecaster <- function(...){
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
-                if(all(intermittent!=c("n","p"))){
+                if(all(occurrence!=c("n","provided"))){
                     matot <- matrix(rbinom(h*nSamples,1,pForecast),h,nSamples);
                 }
                 else{
@@ -2665,10 +2690,11 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     warning("xreg did not contain values for the holdout, so we had to predict missing values.", call.=FALSE);
                     # If this is a binary variable, use iss function.
                     if(all((xreg==0) | (xreg==1))){
-                        xregForecast <- iss(xreg,model="XXX",h=obsAll-length(xreg),intermittent="l",ic="AICc")$forecast;
+                        # xregForecast <- iss(xreg,model="XXX",h=obsAll-length(xreg),intermittent="l",ic="AICc")$forecast;
+                        xregForecast <- oes(xreg,model="MNN",h=obsAll-length(xreg),occurrence="o",ic="AIC")$forecast;
                     }
                     else{
-                        xregForecast <- es(xreg,h=obsAll-length(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                        xregForecast <- es(xreg,h=obsAll-length(xreg),occurrence="auto",ic="AICc",silent=TRUE)$forecast;
                     }
                     xreg <- c(as.vector(xreg),as.vector(xregForecast));
                 }
@@ -2735,10 +2761,10 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     }
 
                     if(all((xreg[,j]==0) | (xreg[,j]==1))){
-                        xregForecast[,j] <- iss(xreg[,j],model="XXX",h=obsAll-nrow(xreg),intermittent="l",ic="AICc")$forecast;
+                        xregForecast[,j] <- oes(xreg[,j],model="MNN",h=obsAll-nrow(xreg),occurrence="o",ic="AIC")$forecast;
                     }
                     else{
-                        xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),intermittent="auto",ic="AICc",silent=TRUE)$forecast;
+                        xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),occurrence="auto",ic="AICc",silent=TRUE)$forecast;
                     }
                 }
                 xreg <- rbind(xreg,xregForecast);
@@ -2993,7 +3019,7 @@ likelihoodFunction <- function(C){
         }
     }
 
-    if(any(intermittent==c("n","provided"))){
+    if(any(occurrence==c("n","provided"))){
         return(logLikFromCF(C, cfType));
     }
     else{
@@ -3035,13 +3061,13 @@ likelihoodFunction <- function(C){
 }
 
 ##### *Function calculates ICs* #####
-ICFunction <- function(nParam=nParam,nParamIntermittent=nParamIntermittent,
+ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
                        C,Etype=Etype){
     # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
     # And it is based on the mean of the sum squared residuals either than sum.
     # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
-    nParamOverall <- nParam + nParamIntermittent;
+    nParamOverall <- nParam + nParamOccurrence;
     llikelihood <- likelihoodFunction(C);
 
     # max here is needed in order to take into account cases with higher
@@ -3078,7 +3104,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      cfType="MSE", cfObjective=NULL, intervals=FALSE, cumulative=FALSE,
                      intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
-                     intermittent="n"){
+                     occurrence="n"){
     # Function forms the generic output for state space models.
     if(!is.null(modelname)){
         if(is.list(modelname)){
@@ -3113,27 +3139,50 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
-    if(all(intermittent!=c("n","none","provided"))){
-        if(any(intermittent==c("f","fixed"))){
-            intermittent <- "Fixed probability";
+    # if(all(intermittent!=c("n","none","provided"))){
+    #     if(any(intermittent==c("f","fixed"))){
+    #         intermittent <- "Fixed probability";
+    #     }
+    #     else if(any(intermittent==c("i","interval"))){
+    #         intermittent <- "Interval-based";
+    #     }
+    #     else if(any(intermittent==c("p","probability"))){
+    #         intermittent <- "Probability-based";
+    #     }
+    #     else if(any(intermittent==c("s","sba"))){
+    #         intermittent <- "SBA";
+    #     }
+    #     else if(any(intermittent==c("l","logistic"))){
+    #         intermittent <- "Logistic";
+    #     }
+    #     cat(paste0("Intermittent model type: ",intermittent));
+    #     cat("\n");
+    # }
+    # else if(any(intermittent==c("provided"))){
+    #     cat(paste0("Intermittent data provided for holdout.\n"));
+    # }
+
+    if(all(occurrence!=c("n","none","provided"))){
+        if(any(occurrence==c("f","fixed"))){
+            occurrence <- "Fixed probability";
         }
-        else if(any(intermittent==c("i","interval"))){
-            intermittent <- "Interval-based";
+        else if(any(occurrence==c("o","odds-ratio"))){
+            occurrence <- "Odds ratio";
         }
-        else if(any(intermittent==c("p","probability"))){
-            intermittent <- "Probability-based";
+        else if(any(occurrence==c("i","inverse-odds-ratio"))){
+            occurrence <- "Inverse odds ratio";
         }
-        else if(any(intermittent==c("s","sba"))){
-            intermittent <- "SBA";
+        else if(any(occurrence==c("p","probability"))){
+            occurrence <- "Probability";
         }
-        else if(any(intermittent==c("l","logistic"))){
-            intermittent <- "Logistic";
+        else if(any(occurrence==c("g","general"))){
+            occurrence <- "General";
         }
-        cat(paste0("Intermittent model type: ",intermittent));
+        cat(paste0("Occurrence model type: ",occurrence));
         cat("\n");
     }
-    else if(any(intermittent==c("provided"))){
-        cat(paste0("Intermittent data provided for holdout.\n"));
+    else if(any(occurrence==c("provided"))){
+        cat(paste0("Occurrence data provided for the holdout.\n"));
     }
 
     ### Stuff for ETS
@@ -3279,7 +3328,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
             cat(paste0(round(insideintervals,0), "% of values are in the prediction interval\n"));
         }
         cat("Forecast errors:\n");
-        if(any(intermittent==c("none","n"))){
+        if(any(occurrence==c("none","n"))){
             cat(paste(paste0("MPE: ",round(errormeasures["MPE"],3)*100,"%"),
                       paste0("sCE: ",round(errormeasures["sCE"],3)*100,"%"),
                       paste0("Bias: ",round(errormeasures["cbias"],3)*100,"%"),

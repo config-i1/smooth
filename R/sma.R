@@ -125,7 +125,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     }
 
     initial <- "backcasting";
-    intermittent <- "none";
+    occurrence <- "none";
     imodel <- NULL;
     bounds <- "admissible";
     cfType <- "MSE";
@@ -223,7 +223,7 @@ CreatorSMA <- function(silentText=FALSE,...){
     C <- NULL;
     cfObjective <- CF(C);
 
-    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+    ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
                            C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;

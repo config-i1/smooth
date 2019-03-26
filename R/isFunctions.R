@@ -13,7 +13,7 @@
 #' function (currently applies only to \link[smooth]{smoothCombine});
 #' \item \code{is.vsmooth()} tests if the object was produced by a vector model (e.g.
 #' \link[smooth]{ves} / \link[smooth]{gsi});
-#' \item \code{is.iss()} tests if the object was produced by \link[smooth]{iss}
+#' \item \code{is.oes()} tests if the object was produced by \link[smooth]{oes}
 #' function;
 #' \item \code{is.viss()} tests if the object was produced by \link[smooth]{viss}
 #' function;
@@ -68,6 +68,12 @@ is.msarima <- function(x){
 #' @export
 is.iss <- function(x){
     return(inherits(x,"iss"))
+}
+
+#' @rdname isFunctions
+#' @export
+is.oes <- function(x){
+    return(inherits(x,"oes"))
 }
 
 #' @rdname isFunctions

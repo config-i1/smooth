@@ -11,11 +11,12 @@ auto.msarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3,
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
   holdout = FALSE, cumulative = FALSE, intervals = c("none",
   "parametric", "semiparametric", "nonparametric"), level = 0.95,
-  intermittent = c("none", "auto", "fixed", "interval", "probability",
-  "sba"), imodel = "MNN", bounds = c("admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
+  "inverse-odds-ratio", "probability"), imodel = "MNN",
+  bounds = c("admissible", "none"), silent = c("all", "graph",
+  "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
+  transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -94,20 +95,18 @@ quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{intermittent}{Defines type of intermittent model used. Can be: 1.
-\code{none}, meaning that the data should be considered as non-intermittent;
-2. \code{fixed}, taking into account constant Bernoulli distribution of
-demand occurrences; 3. \code{interval}, Interval-based model, underlying
-Croston, 1972 method; 4. \code{probability}, Probability-based model,
-underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
-of intermittency type based on information criteria. The first letter can be
-used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
-method (bias correction) discussed in Syntetos and Boylan, 2005. 7.
-\code{"logistic"} - the probability is estimated based on logistic regression
-model principles.}
+\item{occurrence}{Type of model used in probability estimation. Can be
+\code{"none"} - none,
+\code{"fixed"} - constant probability,
+\code{"general"} - the general Beta model with two parameters,
+\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
+\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
+\code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+mechanism a+b=1,
+\code{"auto"} - the automatically selected type of occurrence model.}
 
 \item{imodel}{Type of ETS model used for the modelling of the time varying
-probability. Object of the class "iss" can be provided here, and its parameters
+probability. Object of the class "oes" can be provided here, and its parameters
 would be used in iETS model.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first

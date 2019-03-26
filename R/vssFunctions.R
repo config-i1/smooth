@@ -1,4 +1,4 @@
-utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobability"));
+utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobability","intermittent","intermittentModel"));
 
 ##### *Checker of input of vector functions* #####
 vssInput <- function(smoothType=c("ves"),...){

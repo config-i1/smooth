@@ -5,7 +5,7 @@
 \title{Occurrence ETS model}
 \usage{
 oes(data, model = "MNN", persistence = NULL, initial = "o",
-  initialSeason = NULL, occurrence = c("general", "fixed",
+  initialSeason = NULL, occurrence = c("fixed", "general",
   "odds-ratio", "inverse-odds-ratio", "probability", "auto", "none"),
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),

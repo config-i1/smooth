@@ -1354,7 +1354,7 @@ print.smooth <- function(x, ...){
             if(any(smoothType==c("SMA","CMA"))){
                 x$iprob <- 1;
                 x$initialType <- "b";
-                intermittent <- "n";
+                occurrence <- "n";
             }
             else if(smoothType=="ETS"){
                 # If cumulative forecast and Etype=="M", report that this was "parameteric" interval
@@ -1364,11 +1364,11 @@ print.smooth <- function(x, ...){
             }
         }
     }
-    if(is.iss(x$imodel)){
-        intermittent <- x$imodel$intermittent;
+    if(is.oes(x$imodel)){
+        occurrence <- x$imodel$occurrence;
     }
     else{
-        intermittent <- "n";
+        occurrence <- "n";
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
@@ -1377,7 +1377,7 @@ print.smooth <- function(x, ...){
              cfType=x$cfType, cfObjective=x$cf, intervals=intervals, cumulative=cumulative,
              intervalsType=intervalsType, level=x$level, ICs=x$ICs,
              holdout=holdout, insideintervals=insideintervals, errormeasures=x$accuracy,
-             intermittent=intermittent);
+             occurrence=occurrence);
 }
 
 #' @export
@@ -1402,8 +1402,8 @@ print.smooth.sim <- function(x, ...){
             if(x$phi!=1){
                 cat(paste0("Phi: ",x$phi,"\n"));
             }
-            if(x$intermittent!="n"){
-                cat(paste0("Intermittence type: ",x$intermittent,"\n"));
+            if(x$occurrence!="n"){
+                cat(paste0("Occurrence model type: ",x$occurrence,"\n"));
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }
@@ -1565,7 +1565,7 @@ print.oes <- function(x, ...){
     }
     ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
     names(ICs) <- c("AIC","AICc","BIC","BICc");
-    cat(paste0("Intermittent state space model estimated: ",occurrence,"\n"));
+    cat(paste0("Occurrence state space model estimated: ",occurrence,"\n"));
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));
     }

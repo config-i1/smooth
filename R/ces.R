@@ -75,7 +75,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{imodel} - model of the class "iss" if intermittent model was estimated.
+#' \item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
 #' If the model is non-intermittent, then imodel is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
@@ -133,8 +133,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' # Intermittent data example
 #' x <- rpois(100,0.2)
-#' # Best type of intermittent model based on iETS(Z,Z,N)
-#' ourModel <- ces(x,intermittent="auto")
+#' # Best type of the occurrence model based on iETS(Z,Z,N)
+#' ourModel <- ces(x,occurrence="auto")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
@@ -146,7 +146,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
                 cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
+                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
                 imodel="MNN",
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
@@ -404,14 +404,14 @@ CreatorCES <- function(silentText=FALSE,...){
         nParam <- 1;
     }
 
-    ICValues <- ICFunction(nParam=nParam,nParamIntermittent=nParamIntermittent,
+    ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
                            C=C,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
-    bestIC <- ICs[ic];
+    icBest <- ICs[ic];
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,bestIC=bestIC,nParam=nParam,logLik=logLik));
+    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
@@ -515,8 +515,8 @@ CreatorCES <- function(silentText=FALSE,...){
 
     # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamIntermittent <- all(intermittent!=c("n","provided"))*1;
-    nParamMax <- nParamMax + nParamExo + nParamIntermittent;
+    nParamOccurrence <- all(occurrence!=c("n","provided"))*1;
+    nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
     if(xregDo=="u"){
         parametersNumber[1,2] <- nParamExo;
@@ -555,7 +555,7 @@ CreatorCES <- function(silentText=FALSE,...){
         return(es(data,"ANN",initial=initial,cfType=cfType,
                   h=h,holdout=holdout,cumulative=cumulative,
                   intervals=intervals,level=level,
-                  intermittent=intermittent,
+                  occurrence=occurrence,
                   imodel=imodel,
                   bounds="u",
                   silent=silent,
@@ -569,63 +569,44 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(ssForecaster) <- environment();
     environment(ssFitter) <- environment();
 
-    # If auto intermittent, then estimate model with intermittent="n" first.
-    if(any(intermittent==c("a","n"))){
-        intermittentParametersSetter(intermittent="n",ParentEnvironment=environment());
+##### If occurrence=="a", run a loop and select the best one #####
+    if(occurrence=="a"){
+        if(!silentText){
+            cat("Selecting the best occurrence model...\n");
+        }
+        # First produce the auto model
+        intermittentParametersSetter(occurrence="a",ParentEnvironment=environment());
+        intermittentMaker(occurrence="a",ParentEnvironment=environment());
+        intermittentModel <- CreatorCES(silent=silentText);
+        occurrenceBest <- occurrence;
+
+        if(!silentText){
+            cat("Comparing it with the best non-intermittent model...\n");
+        }
+        # Then fit the model without the occurrence part
+        occurrence[] <- "n";
+        intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
+        intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
+        nonIntermittentModel <- CreatorCES(silent=silentText);
+
+        # Compare the results and return the best
+        if(nonIntermittentModel$icBest[ic] <= intermittentModel$icBest[ic]){
+            cesValues <- nonIntermittentModel;
+        }
+        # If this is the "auto", then use the selected occurrence to reset the parameters
+        else{
+            cesValues <- intermittentModel;
+            occurrence[] <- occurrenceBest;
+            intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
+            intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
+        }
+        rm(intermittentModel,nonIntermittentModel);
     }
     else{
-        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
-        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
-    }
+        intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
+        intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
 
-    cesValues <- CreatorCES(silentText=silentText);
-
-##### If intermittent=="a", run a loop and select the best one #####
-    if(intermittent=="a"){
-        if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
-                          "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
-            warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. A wrong intermittent model may be selected"),call.=FALSE);
-        }
-        if(!silentText){
-            cat("Selecting appropriate type of intermittency... ");
-        }
-# Prepare stuff for intermittency selection
-        intermittentModelsPool <- c("n","f","i","p","s","l");
-        intermittentCFs <- intermittentICs <- rep(NA,length(intermittentModelsPool));
-        intermittentModelsList <- list(NA);
-        intermittentICs[1] <- cesValues$bestIC[ic];
-        intermittentCFs[1] <- cesValues$cfObjective;
-
-        for(i in 2:length(intermittentModelsPool)){
-            intermittentParametersSetter(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentMaker(intermittent=intermittentModelsPool[i],ParentEnvironment=environment());
-            intermittentModelsList[[i]] <- CreatorCES(silentText=TRUE);
-            intermittentICs[i] <- intermittentModelsList[[i]]$bestIC[ic];
-            intermittentCFs[i] <- intermittentModelsList[[i]]$cfObjective;
-        }
-        intermittentICs[is.nan(intermittentICs) | is.na(intermittentICs)] <- 1e+100;
-        intermittentCFs[is.nan(intermittentCFs) | is.na(intermittentCFs)] <- 1e+100;
-        # In cases when the data is binary, choose between intermittent models only
-        if(any(intermittentCFs==0)){
-            if(all(intermittentCFs[2:length(intermittentModelsPool)]==0)){
-                intermittentICs[1] <- Inf;
-            }
-        }
-        iBest <- which(intermittentICs==min(intermittentICs))[1];
-
-        if(!silentText){
-            cat("Done!\n");
-        }
-        if(iBest!=1){
-            intermittent <- intermittentModelsPool[iBest];
-            cesValues <- intermittentModelsList[[iBest]];
-        }
-        else{
-            intermittent <- "n"
-        }
-
-        intermittentParametersSetter(intermittent=intermittent,ParentEnvironment=environment());
-        intermittentMaker(intermittent=intermittent,ParentEnvironment=environment());
+        cesValues <- CreatorCES(silent=silentText);
     }
 
     list2env(cesValues,environment());
@@ -648,7 +629,7 @@ CreatorCES <- function(silentText=FALSE,...){
         colnames(xregNew)[1] <- "errors";
         colnames(xregNew)[-1] <- xregNames;
         xregNew <- as.data.frame(xregNew);
-        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamIntermittent-1);
+        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamOccurrence-1);
         xregNames <- names(coef(xregResults))[-1];
         nExovars <- length(xregNames);
         if(nExovars>0){
@@ -737,27 +718,11 @@ CreatorCES <- function(silentText=FALSE,...){
     # Add variance estimation
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
-    # Write down the probabilities from intermittent models
+    # Write down the probabilities from the occurrence models
     pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
-    if(all(intermittent!=c("n","provided")) & !imodelProvided){
-        parametersNumber[1,3] <- imodel$nParam;
-    }
-    # Make nice names for intermittent
-    if(intermittent=="f"){
-        intermittent <- "fixed";
-    }
-    else if(intermittent=="i"){
-        intermittent <- "interval";
-    }
-    else if(intermittent=="p"){
-        intermittent <- "probability";
-    }
-    else if(intermittent=="l"){
-        intermittent <- "logistic";
-    }
-    else if(intermittent=="n"){
-        intermittent <- "none";
+    if(all(occurrence!=c("n","provided")) & !imodelProvided){
+        parametersNumber[1,3] <- nParam(imodel);
     }
 
     if(!is.null(xreg)){
@@ -807,7 +772,7 @@ CreatorCES <- function(silentText=FALSE,...){
     }
     modelname <- paste0(modelname,"(",seasonality,")");
 
-    if(all(intermittent!=c("n","none"))){
+    if(all(occurrence!=c("n","none"))){
         modelname <- paste0("i",modelname);
     }
 

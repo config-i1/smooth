@@ -1,25 +1,31 @@
-context("Tests for iss() function");
+context("Tests for oes() function");
 
 # ISS with fixed probability
-testModel <- iss(rpois(100,0.2), intermittent="f");
-test_that("Test ISS with fixed probability", {
-    expect_equal(testModel$intermittent, "f");
+testModel <- oes(rpois(100,0.2), occurrence="f");
+test_that("Test oes with fixed probability", {
+    expect_equal(testModel$occurrence, "f");
 })
 
-# ISS with Croston's probability
-testModel <- iss(rpois(100,0.2), intermittent="i");
-test_that("Test ISS with Croston's probability", {
-    expect_equal(testModel$intermittent, "i");
+# oes with Inverse odds ratio probability
+testModel <- oes(rpois(100,0.2), occurrence="i");
+test_that("Test oes with Iverse odds ratio probability", {
+    expect_equal(testModel$occurrence, "i");
 })
 
-# ISS with TSB probability
-testModel <- iss(rpois(100,0.2), intermittent="p");
-test_that("Test ISS with TSB probability", {
-    expect_equal(testModel$intermittent, "p");
+# oes with odds ratio probability
+testModel <- oes(rpois(100,0.2), occurrence="o");
+test_that("Test oes with Odds ratio probability", {
+    expect_equal(testModel$occurrence, "o");
 })
 
-# ISS with Croston's probability and ETS(MMN)
-testModel <- iss(rpois(100,0.2), intermittent="i", model="MMN");
-test_that("Test ISS with Croston's probability and underlying ETS(MMN)", {
+# oes with odds ratio probability and ETS(MMN)
+testModel <- oes(rpois(100,0.2), occurrence="o", model="MMN");
+test_that("Test oes with Odds ratio probability and ETS(MMN)", {
     expect_equal(length(testModel$persistence), 2);
+})
+
+# oes with automatically selected type of model and ETS(MMN)
+testModel <- oes(rpois(100,0.2), occurrence="a");
+test_that("Test oes with auto probability selected", {
+    expect_equal(length(testModel$persistence), 1);
 })

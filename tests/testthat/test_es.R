@@ -64,7 +64,7 @@ test_that("Select exogenous variables for ETSX combined on N1457", {
 
 # iETS test
 x <- c(0,1,2,0,0,0,1,0,0,1,0,0,0,2,0,0,0,1,0,0);
-testModel <- es(x, "MNN", intermittent="a", silent=TRUE, ic="AIC");
+testModel <- es(x, "MNN", occurrence="a", silent=TRUE, ic="AIC");
 test_that("Test ETS selection on N1234$x", {
     expect_match(testModel$model, "iETS");
 })

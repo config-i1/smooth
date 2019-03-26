@@ -56,7 +56,7 @@
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{imodel} - model of the class "iss" if intermittent model was estimated.
+#' \item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
 #' If the model is non-intermittent, then imodel is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
 #' then this value will contain only selected exogenous variables.
@@ -96,7 +96,7 @@ smoothCombine <- function(data, models=NULL,
                           h=10, holdout=FALSE, cumulative=FALSE,
                           intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                           bins=200, intervalsCombine=c("quantile","probability"),
-                          intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
+                          occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
                           imodel="MNN",
                           bounds=c("admissible","none"),
                           silent=c("all","graph","legend","output","none"),
@@ -157,7 +157,7 @@ smoothCombine <- function(data, models=NULL,
             cat("ES");
         }
         esModel <- es(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                      cumulative=cumulative,intervals="n",intermittent=intermittent,
+                      cumulative=cumulative,intervals="n",occurrence=occurrence,
                       imodel=imodel,bounds=bounds,silent=TRUE,
                       xreg=xreg,xregDo=xregDo,updateX=updateX,
                       initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
@@ -165,7 +165,7 @@ smoothCombine <- function(data, models=NULL,
             cat(", CES");
         }
         cesModel <- auto.ces(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                             cumulative=cumulative,intervals="n",intermittent=intermittent,
+                             cumulative=cumulative,intervals="n",occurrence=occurrence,
                              imodel=imodel,bounds=bounds,silent=TRUE,
                              xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
@@ -173,7 +173,7 @@ smoothCombine <- function(data, models=NULL,
             cat(", SSARIMA");
         }
         ssarimaModel <- auto.ssarima(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                                     cumulative=cumulative,intervals="n",intermittent=intermittent,
+                                     cumulative=cumulative,intervals="n",occurrence=occurrence,
                                      imodel=imodel,bounds=bounds,silent=TRUE,
                                      xreg=xreg,xregDo=xregDo,updateX=updateX,
                                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
@@ -181,7 +181,7 @@ smoothCombine <- function(data, models=NULL,
             cat(", GUM");
         }
         gumModel <- auto.gum(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                             cumulative=cumulative,intervals="n",intermittent=intermittent,
+                             cumulative=cumulative,intervals="n",occurrence=occurrence,
                              imodel=imodel,bounds=bounds,silent=TRUE,
                              xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);

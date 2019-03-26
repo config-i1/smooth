@@ -15,19 +15,17 @@
 #' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
 #' @param bounds What type of bounds to use in the model estimation. The first
 #' letter can be used instead of the whole word.
-#' @param intermittent Defines type of intermittent model used. Can be: 1.
-#' \code{none}, meaning that the data should be considered as non-intermittent;
-#' 2. \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurrences; 3. \code{interval}, Interval-based model, underlying
-#' Croston, 1972 method; 4. \code{probability}, Probability-based model,
-#' underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
-#' of intermittency type based on information criteria. The first letter can be
-#' used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
-#' method (bias correction) discussed in Syntetos and Boylan, 2005. 7.
-#' \code{"logistic"} - the probability is estimated based on logistic regression
-#' model principles.
+#' @param occurrence Type of model used in probability estimation. Can be
+#' \code{"none"} - none,
+#' \code{"fixed"} - constant probability,
+#' \code{"general"} - the general Beta model with two parameters,
+#' \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
+#' \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
+#' \code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+#' mechanism a+b=1,
+#' \code{"auto"} - the automatically selected type of occurrence model.
 #' @param imodel Type of ETS model used for the modelling of the time varying
-#' probability. Object of the class "iss" can be provided here, and its parameters
+#' probability. Object of the class "oes" can be provided here, and its parameters
 #' would be used in iETS model.
 #' @param xreg Vector (either numeric or time series) or matrix (or data.frame)
 #' of exogenous variables that should be included in the model. If matrix

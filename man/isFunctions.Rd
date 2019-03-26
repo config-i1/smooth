@@ -6,6 +6,7 @@
 \alias{is.smoothC}
 \alias{is.msarima}
 \alias{is.iss}
+\alias{is.oes}
 \alias{is.viss}
 \alias{is.smooth.sim}
 \alias{is.vsmooth.sim}
@@ -21,6 +22,8 @@ is.smoothC(x)
 is.msarima(x)
 
 is.iss(x)
+
+is.oes(x)
 
 is.viss(x)
 
@@ -51,7 +54,7 @@ The list of functions includes:
 function (currently applies only to \link[smooth]{smoothCombine});
 \item \code{is.vsmooth()} tests if the object was produced by a vector model (e.g.
 \link[smooth]{ves} / \link[smooth]{gsi});
-\item \code{is.iss()} tests if the object was produced by \link[smooth]{iss}
+\item \code{is.oes()} tests if the object was produced by \link[smooth]{oes}
 function;
 \item \code{is.viss()} tests if the object was produced by \link[smooth]{viss}
 function;

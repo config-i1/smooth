@@ -57,7 +57,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                      cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
                      intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                     intermittent=c("none","auto","fixed","interval","probability","sba","logistic"),
+                     occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
                      imodel="MNN",
                      bounds=c("restricted","admissible","none"),
                      silent=c("all","graph","legend","output","none"),
@@ -146,7 +146,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
                             intervals=intervalsType, level=level,
-                            intermittent=intermittent, imodel=imodel,
+                            occurrence=occurrence, imodel=imodel,
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
@@ -187,7 +187,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                                 initial=initial,cfType=cfType,
                                 cumulative=cumulative,
                                 intervals=intervalsType, level=level,
-                                intermittent=intermittent, imodel=imodel,
+                                occurrence=occurrence, imodel=imodel,
                                 bounds=bounds,
                                 xreg=xreg, xregDo=xregDo, initialX=initialX,
                                 updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
@@ -229,7 +229,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                             initial=initial,cfType=cfType,
                             cumulative=cumulative,
                             intervals=intervalsType, level=level,
-                            intermittent=intermittent, imodel=imodel,
+                            occurrence=occurrence, imodel=imodel,
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
@@ -256,7 +256,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                      initial=initial,cfType=cfType,
                      cumulative=cumulative,
                      intervals=intervalsType, level=level,
-                     intermittent=intermittent, imodel=imodel,
+                     occurrence=occurrence, imodel=imodel,
                      bounds=bounds,
                      xreg=xreg, xregDo=xregDo, initialX=initialX,
                      updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);

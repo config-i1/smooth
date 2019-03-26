@@ -1,24 +1,24 @@
-utils::globalVariables(c("y","obs","imodelProvided","intermittentModel","imodel"))
+utils::globalVariables(c("y","obs","imodelProvided","occurrenceModel","imodel"))
 
-intermittentParametersSetter <- function(intermittent="n",...){
-# Function returns basic parameters based on intermittent type
+intermittentParametersSetter <- function(occurrence="n",...){
+# Function returns basic parameters based on occurrence type
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(all(intermittent!=c("n","provided"))){
+    if(all(occurrence!=c("n","provided"))){
         ot <- (y!=0)*1;
         obsNonzero <- sum(ot);
-        # 1 parameter for estimating initial probability
-        nParamIntermittent <- 1;
-        if(intermittent=="p"){
-            # In TSB we only need to estimate smoothing parameter - we do not
-            # estimate any parameters of the Beta distribution.
-            nParamIntermittent <- nParamIntermittent + 1;
+        # 1 parameter for estimating initial probability. Works for the fixed probability model
+        nParamOccurrence <- 1;
+        if(any(occurrence==c("o","i","p"))){
+            # The minimum number of parameters for these models is 2: level, alpha
+            nParamOccurrence <- nParamOccurrence + 1;
         }
-        else if(any(intermittent==c("i","a"))){
-            # In Croston we also need to estimate smoothing parameter and variance
-            nParamIntermittent <- nParamIntermittent + 2;
+        else if(any(occurrence==c("g","a"))){
+            # In "general" and "auto" the max number is 4
+            nParamOccurrence <- nParamOccurrence + 3;
         }
+        # Demand sizes
         yot <- matrix(y[y!=0],obsNonzero,1);
         if(!imodelProvided){
             pt <- matrix(mean(ot),obsInsample,1);
@@ -52,22 +52,13 @@ intermittentParametersSetter <- function(intermittent="n",...){
         obsNonzero <- obsInsample;
     }
 
-    if(all(intermittent!=c("n","l","p"))){
-# If number of observations is low, set intermittency to "none"
-        if(obsNonzero < 3){
-            warning(paste0("Not enough non-zero observations for intermittent state space model. We need at least 5.\n",
-                           "Changing intermittent to 'n'."),call.=FALSE);
-            intermittent <- "n";
-        }
-    }
-
-    if(intermittent=="n"){
+    if(occurrence=="n"){
         ot <- rep(1,obsInsample);
         obsNonzero <- obsInsample;
         yot <- y;
         pt <- matrix(1,obsInsample,1);
         pForecast <- matrix(1,h,1);
-        nParamIntermittent <- 0;
+        nParamOccurrence <- 0;
     }
     iprob <- pt[1];
     ot <- ts(ot,start=dataStart,frequency=dataFreq);
@@ -77,38 +68,41 @@ intermittentParametersSetter <- function(intermittent="n",...){
     assign("yot",yot,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);
-    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
+    assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
 }
 
-intermittentMaker <- function(intermittent="n",...){
-# Function returns all the necessary stuff from intermittent models
+intermittentMaker <- function(occurrence="n",...){
+# Function returns all the necessary stuff from occurrence models
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-##### If intermittent is not auto, then work normally #####
-    if(all(intermittent!=c("n","provided","a"))){
+##### If occurrence is not absent or provided, then work normally #####
+    if(all(occurrence!=c("n","provided"))){
         if(!imodelProvided){
-            imodel <- iss(ot, model=intermittentModel, intermittent=intermittent, h=h);
+            imodel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h);
         }
         else{
-            imodel <- iss(ot, model=intermittentModel, intermittent=intermittent, h=h,
-                          persistence=imodel$persistence, initial=imodel$initial);
+            imodel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h,
+                          persistence=imodel$persistence, initial=imodel$initial,
+                          initialSeason=imodel$initialSeason, xreg=imodel$xreg, updateX=imodel$updateX);
         }
-        nParamIntermittent <- imodel$nParam;
+        nParamOccurrence <- nParam(imodel);
         pt[,] <- imodel$fitted;
         pForecast <- imodel$forecast;
         iprob <- pForecast[1];
+        occurrence <- imodel$occurrence;
     }
     else{
         imodel <- NULL;
-        nParamIntermittent <- 0;
+        nParamOccurrence <- 0;
     }
 
+    assign("occurrence",occurrence,ParentEnvironment);
     assign("pt",pt,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);
     assign("iprob",iprob,ParentEnvironment);
-    assign("nParamIntermittent",nParamIntermittent,ParentEnvironment);
+    assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
     assign("imodel",imodel,ParentEnvironment);
 }
 

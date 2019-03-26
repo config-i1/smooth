@@ -21,7 +21,7 @@ Here is the list of the included functions:
 13. sim.gum - simulation functions for GUM.
 14. sim.sma - simulates data from SMA.
 15. sim.ves - simulates data from VES.
-16. iss - intermittent data state space model. This function models the part with data occurrences using one of the following methods: Croston's, TSB, fixed, SBA or logistic probability.
+16. oes - occurrence state space exponential smoothing model. This function models the part with data occurrences using one of the following methods: fixed, odds ratio, inverse odds ratio, direct or general. It can also select the most appropriate between the five.
 17. viss - the vector counterpart of iss.
 18. Accuracy - the vector of the error measures for the provided forecasts and the holdout.
 19. sowhat - returns the ultimate answer to any question.

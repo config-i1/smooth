@@ -10,8 +10,8 @@ smoothCombine(data, models = NULL, initial = c("optimal",
   h = 10, holdout = FALSE, cumulative = FALSE,
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, bins = 200, intervalsCombine = c("quantile",
-  "probability"), intermittent = c("none", "auto", "fixed", "interval",
-  "probability", "sba", "logistic"), imodel = "MNN",
+  "probability"), occurrence = c("none", "auto", "fixed", "general",
+  "odds-ratio", "inverse-odds-ratio", "probability"), imodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
@@ -87,20 +87,18 @@ number.}
 quantile-wise (\code{"quantile"}) or probability-wise
 (\code{"probability"}).}
 
-\item{intermittent}{Defines type of intermittent model used. Can be: 1.
-\code{none}, meaning that the data should be considered as non-intermittent;
-2. \code{fixed}, taking into account constant Bernoulli distribution of
-demand occurrences; 3. \code{interval}, Interval-based model, underlying
-Croston, 1972 method; 4. \code{probability}, Probability-based model,
-underlying Teunter et al., 2011 method. 5. \code{auto} - automatic selection
-of intermittency type based on information criteria. The first letter can be
-used instead. 6. \code{"sba"} - Syntetos-Boylan Approximation for Croston's
-method (bias correction) discussed in Syntetos and Boylan, 2005. 7.
-\code{"logistic"} - the probability is estimated based on logistic regression
-model principles.}
+\item{occurrence}{Type of model used in probability estimation. Can be
+\code{"none"} - none,
+\code{"fixed"} - constant probability,
+\code{"general"} - the general Beta model with two parameters,
+\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
+\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
+\code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+mechanism a+b=1,
+\code{"auto"} - the automatically selected type of occurrence model.}
 
 \item{imodel}{Type of ETS model used for the modelling of the time varying
-probability. Object of the class "iss" can be provided here, and its parameters
+probability. Object of the class "oes" can be provided here, and its parameters
 would be used in iETS model.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
@@ -167,7 +165,7 @@ then NA is returned.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
-\item \code{imodel} - model of the class "iss" if intermittent model was estimated.
+\item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
 If the model is non-intermittent, then imodel is \code{NULL}.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
 then this value will contain only selected exogenous variables.
