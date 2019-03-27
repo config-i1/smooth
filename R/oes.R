@@ -16,20 +16,25 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' @template ssKeywords
 #'
 #' @param data Either numeric vector or time series vector.
-#' @param occurrence Type of model used in probability estimation. Can be
+#' @param model The type of ETS model used for the estimation. Normally this should
+#' be \code{"MNN"} or any other pure multiplicative model.
+#' @param occurrence The type of model used in probability estimation. Can be
 #' \code{"none"} - none,
 #' \code{"fixed"} - constant probability,
-#' \code{"general"} - the general Beta model with two parameters,
 #' \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 #' \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
 #' \code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
 #' mechanism a+b=1,
-#' \code{"auto"} - the automatically selected type of occurrence model.
-#' @param ic Information criteria to use in case of model selection.
-#' @param h Forecast horizon.
+#' \code{"auto"} - the automatically selected type of occurrence model,
+#' \code{"general"} - the general Beta model with two parameters. This will call
+#' \code{oesg()} function with two similar ETS models and the same provided
+#' parameters (initials and smoothing).
+#' @param phi The value of the damping parameter. Used only for damped-trend models.
+#' @param ic The information criteria to use in case of model selection.
+#' @param h The forecast horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
-#' @param intervals Type of intervals to construct. This can be:
+#' @param intervals The type of intervals to construct. This can be:
 #'
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
@@ -49,7 +54,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \code{none}.
 #' If the forecasts of the models were combined, then the intervals are combined
 #' quantile-wise (Lichtendahl et al., 2013).
-#' @param level Confidence level. Defines width of prediction interval.
+#' @param level The confidence level. Defines width of prediction interval.
 #' @param bounds What type of bounds to use in the model estimation. The first
 #' letter can be used instead of the whole word.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
@@ -62,11 +67,9 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \code{silent="all"}, while \code{silent=FALSE} is equivalent to
 #' \code{silent="none"}. The parameter also accepts first letter of words ("n",
 #' "a", "g", "l", "o").
-#' @param model Type of ETS model used for the estimation. Normally this should
-#' be either \code{"MNN"}.
-#' @param initialSeason Initial vector of seasonal components. If \code{NULL},
+#' @param initialSeason The vector of the initial seasonal components. If \code{NULL},
 #' then it is estimated.
-#' @param xreg Vector of matrix of exogenous variables, explaining some parts
+#' @param xreg The vector or the matrix of exogenous variables, explaining some parts
 #' of occurrence variable (probability).
 #' @param xregDo Variable defines what to do with the provided xreg:
 #' \code{"use"} means that all of the data should be used, while
@@ -85,14 +88,19 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #'
 #' \itemize{
 #' \item \code{model} - the type of the estimated ETS model;
-#' \item \code{fitted} - fitted values of the constructed model;
-#' \item \code{forecast} - forecast for \code{h} observations ahead;
-#' \item \code{states} - values of states (currently level only);
-#' \item \code{logLik} - likelihood value for the model
-#' \item \code{nParam} - number of parameters used in the model;
-#' \item \code{residuals} - residuals of the model;
-#' \item \code{actuals} - actual values of probabilities (zeros and ones).
+#' \item \code{fitted} - the fitted values for the probability;
+#' \item \code{fittedBeta} - the fitted values of the underlying ETS model, where applicable
+#' (only for occurrence=c("o","i","p"));
+#' \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
+#' \item \code{forecastBeta} - the forecast of the underlying ETS model, where applicable
+#' (only for occurrence=c("o","i","p"));
+#' \item \code{states} - the values of the state vector;
+#' \item \code{logLik} - the log-likelihood value of the model;
+#' \item \code{nParam} - the number of parameters in the model (the matrix is returned);
+#' \item \code{residuals} - the residuals of the model;
+#' \item \code{actuals} - actual values of occurrence (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
+#' \item \code{phi} - the value of the damped trend parameter;
 #' \item \code{initial} - initial values of the state vector;
 #' \item \code{initialSeason} - the matrix of initials seasonal states;
 #' \item \code{occurrence} - the type of the occurrence model.
@@ -109,7 +117,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' oes(y, occurrence="f")
 #'
 #' @export
-oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=NULL,
+oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=NULL, phi=NULL,
                 occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio",
                                    "probability","auto","none"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
@@ -129,9 +137,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
     ##### Preparations #####
     occurrence <- substring(occurrence[1],1,1);
-    if(all(occurrence!=c("g","f","o","i","p","a","n"))){
-        warning(paste0("Unknown value of occurrence provided: '",occurrence,"'. Changing to 'fixed'"),call.=FALSE);
-        occurrence <- "f";
+    if(occurrence=="g"){
+        return(oesg(data, modelA=model, modelB=model, persistenceA=persistence, persistenceB=persistence,
+                    initialA=initial, initialB=initial, initialSeasonA=initialSeason, initialSeasonB=initialSeason,
+                    ic=ic, h=h, holdout=holdout, intervals=intervals, level=level, bounds=bounds,
+                    silent=silent, xregA=xreg, xregB=xreg, xregDo=xregDo, updateX=updateX, ...));
     }
 
     if(is.smooth.sim(data)){
@@ -171,7 +181,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     #### These are needed in order for ssInput to go forward
     cfType <- "MSE";
     imodel <- NULL;
-    phi <- NULL;
 
     ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
@@ -208,10 +217,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     # The start time for the forecasts
     yForecastStart <- time(data)[obsInsample]+deltat(data);
 
-    if(any(occurrence==c("g","o","i","p"))){
+    #### The functions for the O, I, and P models ####
+    if(any(occurrence==c("o","i","p"))){
         ##### Initialiser of oes #####
         # This creates the states, transition, persistence and measurement matrices
-        oesInitialiser <- function(Etype, Ttype, Stype, damped, occurrence,
+        oesInitialiser <- function(Etype, Ttype, Stype, damped, phiEstimate, occurrence,
                                    dataFreq, obsInsample, obsAll, obsStates, ot,
                                    persistenceEstimate, persistence, initialType, initialValue,
                                    initialSeasonEstimate, initialSeason){
@@ -236,6 +246,14 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 matF[1,2] <- 1;
             }
 
+            # Measurement vector
+            matw <- matrix(1, 1, nComponentsAll, dimnames=list(NULL, statesNames));
+
+            if(damped && !phiEstimate){
+                matF[c(1,2),2] <- phi;
+                matw[2] <- phi;
+            }
+
             # Persistence vector. The initials are set here!
             if(persistenceEstimate){
                 vecg <- matrix(0.01, nComponentsAll, 1);
@@ -244,9 +262,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 vecg <- matrix(persistence, nComponentsAll, 1);
             }
             rownames(vecg) <- statesNames;
-
-            # Measurement vector
-            matw <- matrix(1, 1, nComponentsAll, dimnames=list(NULL, statesNames));
 
             # The matrix of states
             matvt <- matrix(NA, nComponentsAll, obsStates, dimnames=list(statesNames, NULL));
@@ -342,16 +357,17 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
         ##### Fill in the elements of oes #####
         # This takes the existing matrices and fills them in
-        oesElements <- function(A, modelLags, Ttype, Stype,
+        oesElements <- function(A, modelLags, Ttype, Stype, damped,
                                 nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
-                                persistenceEstimate, initialType, initialSeasonEstimate, xregEstimate, updateX,
+                                persistenceEstimate, initialType, phiEstimate, initialSeasonEstimate,
+                                xregEstimate, updateX,
                                 matvt, vecg, matF, matw, matat, matFX, vecgX){
             i <- 0;
             if(persistenceEstimate){
                 vecg[] <- A[1:nComponentsAll];
                 i[] <- nComponentsAll;
             }
-            if(damped){
+            if(damped && phiEstimate){
                 i[] <- i + 1;
                 matF[,nComponentsNonSeasonal] <- A[i];
                 matw[,nComponentsNonSeasonal] <- A[i];
@@ -381,7 +397,9 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
         ##### A values for estimation #####
         # Function constructs default bounds where A values should lie
-        AValues <- function(bounds, Ttype, Stype,
+        AValues <- function(bounds, Ttype, Stype, damped, phiEstimate, persistenceEstimate,
+                            initialType, modelIsSeasonal, initialSeasonEstimate,
+                            xregEstimate, updateX,
                             modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
                             vecg, matvt, matat){
             A <- NA;
@@ -397,7 +415,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     AUpper <- c(AUpper,rep(1,nComponentsAll));
                 }
                 # Phi
-                if(damped){
+                if(damped && phiEstimate){
                     A <- c(A,0.95);
                     ALower <- c(ALower,0);
                     AUpper <- c(AUpper,1);
@@ -453,7 +471,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     AUpper <- c(AUpper,rep(5,nComponentsAll));
                 }
                 # Phi
-                if(damped){
+                if(damped && phiEstimate){
                     A <- c(A,0.95);
                     ALower <- c(ALower,0);
                     AUpper <- c(AUpper,1);
@@ -509,7 +527,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                     AUpper <- c(AUpper,rep(Inf,nComponentsAll));
                 }
                 # Phi
-                if(damped){
+                if(damped && phiEstimate){
                     A <- c(A,0.95);
                     ALower <- c(ALower,-Inf);
                     AUpper <- c(AUpper,Inf);
@@ -585,15 +603,17 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         }
 
 ##### Cost Function for oes #####
-        CF <- function(A, modelLags, Etype, Ttype, Stype, occurrence,
+        CF <- function(A, modelLags, Etype, Ttype, Stype, occurrence, damped,
                        nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
-                       persistenceEstimate, initialType, initialSeasonEstimate, xregEstimate, updateX,
+                       persistenceEstimate, initialType, phiEstimate, initialSeasonEstimate,
+                       xregEstimate, updateX,
                        matvt, vecg, matF, matw, matat, matFX, vecgX, matxt,
                        ot, bounds){
 
-            elements <- oesElements(A, modelLags, Ttype, Stype,
+            elements <- oesElements(A, modelLags, Ttype, Stype, damped,
                                     nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
-                                    persistenceEstimate, initialType, initialSeasonEstimate, xregEstimate, updateX,
+                                    persistenceEstimate, initialType, phiEstimate, initialSeasonEstimate,
+                                    xregEstimate, updateX,
                                     matvt, vecg, matF, matw, matat, matFX, vecgX);
 
             cfRes <- occurrenceOptimizerWrap(elements$matvt, elements$matF, elements$matw, elements$vecg, ot,
@@ -609,7 +629,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         }
     }
 
-##### Fixed probability #####
+    ##### Fixed probability #####
     if(occurrence=="f"){
         model <- "MNN";
         if(initialType!="o"){
@@ -630,11 +650,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        persistence=matrix(0,1,1,dimnames=list("level",NULL)),
                        initial=initial, initialSeason=NULL);
     }
-##### Odds-ratio, inverse and probability models #####
+    ##### Odds-ratio, inverse and probability models #####
     else if(any(occurrence==c("o","i","p"))){
         if(modelDo=="estimate"){
             # Initialise the model
-            basicparams <- oesInitialiser(Etype, Ttype, Stype, damped, occurrence,
+            basicparams <- oesInitialiser(Etype, Ttype, Stype, damped, phiEstimate, occurrence,
                                           dataFreq, obsInsample, obsAll, obsStates, ot,
                                           persistenceEstimate, persistence, initialType, initialValue,
                                           initialSeasonEstimate, initialSeason);
@@ -648,7 +668,9 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             }
 
             # Prepare the parameters
-            A <- AValues(bounds, Ttype, Stype,
+            A <- AValues(bounds, Ttype, Stype, damped, phiEstimate, persistenceEstimate,
+                         initialType, modelIsSeasonal, initialSeasonEstimate,
+                         xregEstimate, updateX,
                          modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
                          vecg, matvt, matat);
 
@@ -658,8 +680,10 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 res <- nloptr(A$A, CF, lb=A$ALower, ub=A$AUpper,
                               opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
                               modelLags=modelLags, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
-                              nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars, modelLagsMax=modelLagsMax,
-                              persistenceEstimate=persistenceEstimate, initialType=initialType, initialSeasonEstimate=initialSeasonEstimate,
+                              nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
+                              modelLagsMax=modelLagsMax, damped=damped,
+                              persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
+                              initialSeasonEstimate=initialSeasonEstimate,
                               xregEstimate=xregEstimate, updateX=updateX,
                               matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
                               ot=ot, bounds=bounds);
@@ -669,16 +693,16 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                 parametersNumber[1,1] <- length(A);
             }
 
-            if(damped){
+            # Write down phi if it was estimated
+            if(damped && phiEstimate){
                 phi <- A[nComponentsAll+1];
             }
-            else{
-                phi <- NA;
-            }
 
-            elements <- oesElements(A, modelLags, Ttype, Stype,
+            ##### Deal with the fitting and the forecasts #####
+            elements <- oesElements(A, modelLags, Ttype, Stype, damped,
                                     nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
-                                    persistenceEstimate, initialType, initialSeasonEstimate, xregEstimate, updateX,
+                                    persistenceEstimate, initialType, phiEstimate, initialSeasonEstimate,
+                                    xregEstimate, updateX,
                                     matvt, vecg, matF, matw, matat, matFX, vecgX);
             matF[] <- elements$matF;
             matw[] <- elements$matw;
@@ -698,7 +722,8 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             if(fitting$warning){
                 warning(paste0("Unreasonable values of states were produced in the estimation. ",
-                               "So, we substituted them with the previous values.\nThis is because the model ETS(",model,") is unstable."),
+                               "So, we substituted them with the previous values.\nThis is because the model ETS(",
+                               model,") is unstable."),
                         call.=FALSE);
             }
 
@@ -759,7 +784,8 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             xreg <- matxt;
         }
 
-        output <- list(fitted=pFitted, forecast=pForecast, states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax), frequency=dataFreq),
+        output <- list(fitted=pFitted, forecast=pForecast, states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax),
+                                                                     frequency=dataFreq),
                        nParam=parametersNumber, residuals=errors, actuals=otAll,
                        persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
                        initialSeason=matvt[nComponentsAll,1:modelLagsMax], fittedBeta=yFitted, forecastBeta=yForecast,
@@ -793,13 +819,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        legend=!silentLegend,main=paste0(occurrenceModels[[ICBest]]$model,"_",toupper(occurrence)));
         }
         return(occurrenceModels[[ICBest]]);
-
-        # return(oes(data=data,model=modelType(occurrenceModels[[ICBest]]),occurrence=occurrence,
-        #            ic=ic, h=h, holdout=holdout,
-        #            intervals=intervals, level=level,
-        #            bounds=bounds,
-        #            silent=silent,
-        #            xreg=xreg, xregDo=xregDo, updateX=updateX, ...));
     }
 #### None ####
     else{
@@ -811,7 +830,8 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        nParam=parametersNumber, residuals=errors, actuals=pt,
                        persistence=NULL, initial=NULL, initialSeason=NULL);
     }
-    # Occurrence and model name
+
+    # Occurrence and the model name
     if(!is.null(xreg)){
         modelname <- "oETSX";
     }
