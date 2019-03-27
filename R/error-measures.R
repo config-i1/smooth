@@ -1,27 +1,29 @@
 #' Error measures
 #'
-#' Functions allow to calculate different types of errors:
+#' Functions allow to calculate different types of errors for point and
+#' interval predictions:
 #' \enumerate{
 #' \item MAE - Mean Absolute Error,
 #' \item MSE - Mean Squared Error,
-#' \item MRE - Mean Root Error,
+#' \item MRE - Mean Root Error (Kourentzes, 2014),
+#' \item MIS - Mean Interval Score (Gneiting & Raftery, 2007),
 #' \item MPE - Mean Percentage Error,
-#' \item MAPE - Mean Absolute Percentage Error,
-#' \item SMAPE - Symmetric Mean Absolute Percentage Error,
-#' \item MASE - Mean Absolute Scaled Error,
-#' \item RelMAE - Relative Mean Absolute Error,
+#' \item MAPE - Mean Absolute Percentage Error (See Svetunkov, 2017 for
+#' the critique),
+#' \item MASE - Mean Absolute Scaled Error (Hyndman & Koehler, 2006)),
+#' \item RelMAE - Relative Mean Absolute Error (Davydenko & Fildes, 2013),
 #' \item RelRMSE - Relative Root Mean Squared Error,
 #' \item RelAME - Relative Absolute Mean Error,
-#' \item sMSE - Scaled Mean Squared Error,
-#' \item sPIS- Scaled Periods-In-Stock,
-#' \item sCE - Scaled Cumulative Error.
+#' \item RelMIS - Relative Mean Interval Score,
+#' \item sMSE - Scaled Mean Squared Error (Petropoulos & Kourentzes, 2015),
+#' \item sPIS- Scaled Periods-In-Stock (Wallstrom & Segerstedt, 2010),
+#' \item sCE - Scaled Cumulative Error,
+#' \item sMIS - Scaled Mean Interval Score.
 #' }
 #'
 #' In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical
 #' one -- squared mean value of in-sample actuals.
 #'
-#' SMAPE is biased and prefers when you overforecast, so be careful when
-#' using it.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
@@ -29,14 +31,23 @@
 #' @aliases Errors
 #' @param actual The vector or matrix of actual values.
 #' @param forecast The vector or matrix of forecasts values.
+#' @param lower The lower bound of the prediction interval.
+#' @param upper The upper bound of the prediction interval.
 #' @param scale The value that should be used in the denominator of MASE. Can
 #' be anything but advised values are: mean absolute deviation of in-sample one
 #' step ahead Naive error or mean absolute value of the in-sample actuals.
 #' @param benchmark The vector or matrix of the forecasts of the benchmark
 #' model.
+#' @param benchmarkLower The lower bound of the prediction interval of the
+#' benchmark model.
+#' @param benchmarkUpper The upper bound of the prediction interval of the
+#' benchmark model.
+#' @param level The confidence level of the constructed interval.
 #' @param digits Number of digits of the output.
 #' @return All the functions return the scalar value.
 #' @references \itemize{
+#' \item Kourentzes N. (2014). The Bias Coefficient: a new metric for forecast bias
+#' \url{https://kourentzes.com/forecasting/2014/12/17/the-bias-coefficient-a-new-metric-for-forecast-bias/}
 #' \item Svetunkov, I. (2017). Naughty APEs and the quest for the holy grail.
 #' \url{https://forecasting.svetunkov.ru/en/2017/07/29/naughty-apes-and-the-quest-for-the-holy-grail/}
 #' \item Fildes R. (1992). The evaluation of
@@ -54,6 +65,9 @@
 #' The Case Of Judgmental Adjustments To Sku-Level Demand Forecasts.
 #' International Journal of Forecasting, 29(3), 510-522.
 #' \url{https://doi.org/10.1016/j.ijforecast.2012.09.002}
+#' \item Gneiting, T., & Raftery, A. E. (2007). Strictly proper scoring rules,
+#' prediction, and estimation. Journal of the American Statistical Association,
+#' 102(477), 359–378. \url{https://doi.org/10.1198/016214506000001437}
 #' }
 #' @examples
 #'
@@ -136,6 +150,34 @@ MRE <- function(actual,forecast,digits=3){
 }
 
 #' @rdname error-measures
+#' @export MIS
+#' @aliases MIS
+MIS <- function(actual,lower,upper,level=0.95){
+# This function calculates Mean Interval Score from Gneiting & Raftery, 2007
+# actual - actual values,
+# lower - the lower bound of the interval,
+# upper - the upper bound of the interval,
+    if(level>1){
+        level[] <- level / 100;
+    }
+    alpha <- 1-level;
+    lengthsVector <- c(length(actual),length(upper),length(lower))
+    if(any(lengthsVector>min(lengthsVector))){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of lower: ",length(lower)));
+        message(paste0("Length of upper: ",length(upper)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        h <- length(actual);
+        MISValue <- sum(upper-lower) + 2/alpha*(sum((lower-actual)*(actual<lower)) + sum((actual-upper)*(actual>upper)));
+        MISValue[] <- MISValue / h;
+        return(MISValue);
+    }
+}
+
+#' @rdname error-measures
 #' @export MPE
 #' @aliases MPE
 MPE <- function(actual,forecast,digits=3){
@@ -168,25 +210,6 @@ MAPE <- function(actual,forecast,digits=3){
     }
     else{
         return(round(mean(abs((actual-forecast)/actual),na.rm=TRUE),digits=digits));
-    }
-}
-
-#' @rdname error-measures
-#' @export SMAPE
-#' @aliases SMAPE
-SMAPE <- function(actual,forecast,digits=3){
-# This function calculates Symmetric Mean / Median Absolute Percentage Error with
-# sum of absolute values in the denominator
-# actual - actual values,
-# forecast - forecasted or fitted values.
-    if(length(actual) != length(forecast)){
-        message("The length of the provided data differs.");
-        message(paste0("Length of actual: ",length(actual)));
-        message(paste0("Length of forecast: ",length(forecast)));
-        stop("Cannot proceed.",call.=FALSE);
-    }
-    else{
-        return(round(mean(2*abs(actual-forecast)/(abs(actual)+abs(forecast)),na.rm=TRUE),digits=digits));
     }
 }
 
@@ -288,6 +311,29 @@ RelAME <-function(actual,forecast,benchmark,digits=3){
 }
 
 #' @rdname error-measures
+#' @export RelMAE
+#' @aliases RelMAE
+RelMIS <-function(actual,lower,upper,benchmarkLower,benchmarkUpper,level=0.95){
+# This function calculates scaled MIS
+# actual - actual values,
+# forecast - forecasted values.
+# scale - the measure to scale errors with.
+# lower - the lower bound of the interval,
+# upper - the upper bound of the interval,
+# benchmarkLower - the lower bound of the interval of the benchmark method.
+# benchmarkUpper - the upper bound of the interval of the benchmark method.
+    lengthsVector <- c(length(actual),length(upper),length(lower),length(benchmarkLower),length(benchmarkUpper));
+    if(any(lengthsVector>min(lengthsVector))){
+        message("The length of the provided data differs.");
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        return(MIS(actual=actual,lower=lower,upper=upper,level=level) /
+                   MIS(actual=actual,lower=benchmarkLower,upper=benchmarkUpper,level=level));
+    }
+}
+
+#' @rdname error-measures
 #' @export sMSE
 #' @aliases sMSE
 sMSE <- function(actual,forecast,scale,digits=3){
@@ -342,6 +388,30 @@ sCE <- function(actual,forecast,scale,digits=3){
     }
     else{
         return(round(sum(forecast-actual)/scale,digits=digits));
+    }
+}
+
+#' @rdname error-measures
+#' @export sMIS
+#' @aliases sMIS
+sMIS <- function(actual,lower,upper,scale,level=0.95){
+# This function calculates scaled MIS
+# actual - actual values,
+# forecast - forecasted values.
+# scale - the measure to scale errors with.
+# lower - the lower bound of the interval,
+# upper - the upper bound of the interval,
+# scale - the measure to scale errors with.
+    lengthsVector <- c(length(actual),length(upper),length(lower))
+    if(any(lengthsVector>min(lengthsVector))){
+        message("The length of the provided data differs.");
+        message(paste0("Length of actual: ",length(actual)));
+        message(paste0("Length of lower: ",length(lower)));
+        message(paste0("Length of upper: ",length(upper)));
+        stop("Cannot proceed.",call.=FALSE);
+    }
+    else{
+        return(MIS(actual=actual,lower=lower,upper=upper,level=level)/scale);
     }
 }
 

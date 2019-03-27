@@ -5,16 +5,18 @@
 \alias{Errors}
 \alias{MSE}
 \alias{MRE}
+\alias{MIS}
 \alias{MPE}
 \alias{MAPE}
-\alias{SMAPE}
 \alias{MASE}
 \alias{RelMAE}
 \alias{RelRMSE}
 \alias{RelAME}
+\alias{RelMIS}
 \alias{sMSE}
 \alias{sPIS}
 \alias{sCE}
+\alias{sMIS}
 \title{Error measures}
 \usage{
 MAE(actual, forecast, digits = 3)
@@ -23,11 +25,11 @@ MSE(actual, forecast, digits = 3)
 
 MRE(actual, forecast, digits = 3)
 
+MIS(actual, lower, upper, level = 0.95)
+
 MPE(actual, forecast, digits = 3)
 
 MAPE(actual, forecast, digits = 3)
-
-SMAPE(actual, forecast, digits = 3)
 
 MASE(actual, forecast, scale, digits = 3)
 
@@ -37,11 +39,16 @@ RelRMSE(actual, forecast, benchmark, digits = 3)
 
 RelAME(actual, forecast, benchmark, digits = 3)
 
+RelMIS(actual, lower, upper, benchmarkLower, benchmarkUpper,
+  level = 0.95)
+
 sMSE(actual, forecast, scale, digits = 3)
 
 sPIS(actual, forecast, scale, digits = 3)
 
 sCE(actual, forecast, scale, digits = 3)
+
+sMIS(actual, lower, upper, scale, level = 0.95)
 }
 \arguments{
 \item{actual}{The vector or matrix of actual values.}
@@ -50,40 +57,53 @@ sCE(actual, forecast, scale, digits = 3)
 
 \item{digits}{Number of digits of the output.}
 
+\item{lower}{The lower bound of the prediction interval.}
+
+\item{upper}{The upper bound of the prediction interval.}
+
+\item{level}{The confidence level of the constructed interval.}
+
 \item{scale}{The value that should be used in the denominator of MASE. Can
 be anything but advised values are: mean absolute deviation of in-sample one
 step ahead Naive error or mean absolute value of the in-sample actuals.}
 
 \item{benchmark}{The vector or matrix of the forecasts of the benchmark
 model.}
+
+\item{benchmarkLower}{The lower bound of the prediction interval of the
+benchmark model.}
+
+\item{benchmarkUpper}{The upper bound of the prediction interval of the
+benchmark model.}
 }
 \value{
 All the functions return the scalar value.
 }
 \description{
-Functions allow to calculate different types of errors:
+Functions allow to calculate different types of errors for point and
+interval predictions:
 \enumerate{
 \item MAE - Mean Absolute Error,
 \item MSE - Mean Squared Error,
-\item MRE - Mean Root Error,
+\item MRE - Mean Root Error (Kourentzes, 2014),
+\item MIS - Mean Interval Score (Gneiting & Raftery, 2007),
 \item MPE - Mean Percentage Error,
-\item MAPE - Mean Absolute Percentage Error,
-\item SMAPE - Symmetric Mean Absolute Percentage Error,
-\item MASE - Mean Absolute Scaled Error,
-\item RelMAE - Relative Mean Absolute Error,
+\item MAPE - Mean Absolute Percentage Error (See Svetunkov, 2017 for
+the critique),
+\item MASE - Mean Absolute Scaled Error (Hyndman & Koehler, 2006)),
+\item RelMAE - Relative Mean Absolute Error (Davydenko & Fildes, 2013),
 \item RelRMSE - Relative Root Mean Squared Error,
 \item RelAME - Relative Absolute Mean Error,
-\item sMSE - Scaled Mean Squared Error,
-\item sPIS- Scaled Periods-In-Stock,
-\item sCE - Scaled Cumulative Error.
+\item RelMIS - Relative Mean Interval Score,
+\item sMSE - Scaled Mean Squared Error (Petropoulos & Kourentzes, 2015),
+\item sPIS- Scaled Periods-In-Stock (Wallstrom & Segerstedt, 2010),
+\item sCE - Scaled Cumulative Error,
+\item sMIS - Scaled Mean Interval Score.
 }
 }
 \details{
 In case of \code{sMSE}, \code{scale} needs to be a squared value. Typical
 one -- squared mean value of in-sample actuals.
-
-SMAPE is biased and prefers when you overforecast, so be careful when
-using it.
 }
 \examples{
 
@@ -111,6 +131,8 @@ sCE(y[91:100],esmodel$forecast,mean(abs(y[1:90])),digits=5)
 }
 \references{
 \itemize{
+\item Kourentzes N. (2014). The Bias Coefficient: a new metric for forecast bias
+\url{https://kourentzes.com/forecasting/2014/12/17/the-bias-coefficient-a-new-metric-for-forecast-bias/}
 \item Svetunkov, I. (2017). Naughty APEs and the quest for the holy grail.
 \url{https://forecasting.svetunkov.ru/en/2017/07/29/naughty-apes-and-the-quest-for-the-holy-grail/}
 \item Fildes R. (1992). The evaluation of
@@ -128,6 +150,9 @@ of Production Economics, 128, pp.625-636.
 The Case Of Judgmental Adjustments To Sku-Level Demand Forecasts.
 International Journal of Forecasting, 29(3), 510-522.
 \url{https://doi.org/10.1016/j.ijforecast.2012.09.002}
+\item Gneiting, T., & Raftery, A. E. (2007). Strictly proper scoring rules,
+prediction, and estimation. Journal of the American Statistical Association,
+102(477), 359–378. \url{https://doi.org/10.1198/016214506000001437}
 }
 }
 \author{
