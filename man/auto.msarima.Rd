@@ -47,7 +47,7 @@ produced using backcasting procedure.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
+\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
@@ -95,7 +95,7 @@ quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{occurrence}{Type of model used in probability estimation. Can be
+\item{occurrence}{The type of model used in probability estimation. Can be
 \code{"none"} - none,
 \code{"fixed"} - constant probability,
 \code{"general"} - the general Beta model with two parameters,
@@ -105,7 +105,7 @@ quantile-wise (Lichtendahl et al., 2013).}
 mechanism a+b=1,
 \code{"auto"} - the automatically selected type of occurrence model.}
 
-\item{imodel}{Type of ETS model used for the modelling of the time varying
+\item{imodel}{The type of ETS model used for the modelling of the time varying
 probability. Object of the class "oes" can be provided here, and its parameters
 would be used in iETS model.}
 
@@ -123,31 +123,31 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \code{silent="none"}. The parameter also accepts first letter of words ("n",
 "a", "g", "l", "o").}
 
-\item{xreg}{Vector (either numeric or time series) or matrix (or data.frame)
-of exogenous variables that should be included in the model. If matrix
-included than columns should contain variables and rows - observations. Note
-that \code{xreg} should have number of observations equal either to
+\item{xreg}{The vector (either numeric or time series) or the matrix (or
+data.frame) of exogenous variables that should be included in the model. If
+matrix included than columns should contain variables and rows - observations.
+Note that \code{xreg} should have number of observations equal either to
 in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{Variable defines what to do with the provided xreg:
+\item{xregDo}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
-\item{initialX}{Vector of initial parameters for exogenous variables.
+\item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
 
 \item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
 estimated, introducing non-linear interactions between parameters.
 Prerequisite - non-NULL \code{xreg}.}
 
-\item{persistenceX}{Persistence vector \eqn{g_X}, containing smoothing
+\item{persistenceX}{The persistence vector \eqn{g_X}, containing smoothing
 parameters for exogenous variables. If \code{NULL}, then estimated.
 Prerequisite - non-NULL \code{xreg}.}
 
-\item{transitionX}{Transition matrix \eqn{F_x} for exogenous variables. Can
+\item{transitionX}{The transition matrix \eqn{F_x} for exogenous variables. Can
 be provided as a vector. Matrix will be formed using the default
 \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
 state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
