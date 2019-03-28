@@ -311,8 +311,8 @@ RelAME <-function(actual,forecast,benchmark,digits=3){
 }
 
 #' @rdname error-measures
-#' @export RelMAE
-#' @aliases RelMAE
+#' @export RelMIS
+#' @aliases RelMIS
 RelMIS <-function(actual,lower,upper,benchmarkLower,benchmarkUpper,level=0.95){
 # This function calculates scaled MIS
 # actual - actual values,

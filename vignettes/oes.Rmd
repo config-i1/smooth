@@ -1,0 +1,103 @@
+---
+title: "Occurence part of iETS model"
+author: "Ivan Svetunkov"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Occurrence part of iETS model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
+                      warning=FALSE, message=FALSE)
+```
+
+This vignette documents how the occurrence part of the iETS model is implemented in the `smooth` package.
+
+The general iETS model (called iETS$_G$) can be summarised as:
+\begin{equation} \label{eq:iETS} \tag{1}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Beta-Bernoulli} \left(a_t, b_t \right) \\
+		a_t = w(v_{a,t-L}) + r(v_{a,t-L}) \epsilon_{a,t} \\
+		v_{a,t} = f(v_{a,t-L}) + g(v_{a,t-L}) \epsilon_{a,t} \\
+		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
+		b_t = w(v_{b,t-L}) + r(v_{b,t-L}) \epsilon_{b,t} \\
+		v_{b,t} = f(v_{b,t-L}) + g(v_{b,t-L}) \epsilon_{b,t} \\
+		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
+    \end{matrix},
+\end{equation}
+where $y_t$ is the observed values, $o_t$ is a binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$) and can be calculated using $p_t = \frac{a_t}{a_t + b_t}$, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms. Also, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function. These four functions define how the elements of the vector $v_{t}$ interact with each other. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This is because this type of model is positively defined, which is essential for the values of $a_t$ and $b_t$. An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N)(M,N,N):
+\begin{equation} \label{eq:iETSGExample}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		z_t = l_{z,t-1} \left(1 + \epsilon_{z,t} \right) \\
+		l_{z,t} = l_{z,t-1}( 1  + \alpha_{z} \epsilon_{z,t}) \\
+		(1 + \epsilon_{t}) \sim \text{log}\mathcal{N}(0, \sigma_\epsilon^2) \\
+		\\
+		o_t \sim \text{Beta-Bernoulli} \left(a_t, b_t \right) \\
+		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
+		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} \epsilon_{a,t}) \\
+		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
+		b_t = l_{b,t-1} \left(1 + \epsilon_{b,t} \right) \\
+		l_{b,t} = l_{b,t-1}( 1  + \alpha_{b} \epsilon_{b,t}) \\
+		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
+    \end{matrix},
+\end{equation}
+where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. 
+Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS models:
+
+1. iETS$_F$: $a_t = \text{const}$, $b_t = \text{const}$ - the model with the fixed probability of occurrence;
+2. iETS$_O$: $b_t = 1$ - the "odds ratio" model, based on the logistic transform of the $o_t$ variable;
+3. iETS$_I$: $a_t = 1$ - the "inverse odds ratio" model, based on the inverse logistic transform of the $o_t$ variable;
+4. iETS$_P$: $a_t + b_t = 1$, $a_t \leq 1$ - the probability based model, where the $p_t$ is calculated directly from the occurrence variable $o_t$;
+5. iETS$_G$: No restrictions - the model based on the evolution of both $a_t$ and $b_t$.
+
+Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts.
+
+## iETS$_F$
+In case of the fixed $a_t$ and $b_t$, the iETS$_G$ model reduces to:
+\begin{equation} \label{eq:ISSETS(MNN)Fixed} \tag{2}
+	\begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Beta-Bernoulli}(a, b)
+	\end{matrix} .
+\end{equation}
+
+The conditional h-steps ahead median of the demand occurrence probability is calculated as:
+\begin{equation} \label{eq:pt_fixed_expectation} \tag{3}
+	\mu_{o,t+h|t} = \tilde{p}_{t+h|t} = \frac{a}{a+b} .
+\end{equation}
+
+The likelihood function used in the first step of the estimation of iETS can be simplified to:
+\begin{equation} \label{eq:ISSETS(MNN)FixedLikelihood} \tag{4}
+	\ell \left(a,b | o_t \right) = {\sum_{t=1}^T} \log \left( \frac{ \text{B} (o_t + a, 1 - o_t + b) }{ \text{B}(a,b) } \right) .
+\end{equation}
+
+Note, however that there can be combinations of $a$ and $b$ that will lead to the same fixed probability of occurrence $p$, so there is no point in estimating the model (2) \ref{eq:ISSETS(MNN)Fixed} based on (4) \ref{eq:ISSETS(MNN)FixedLikelihood}. Instead, the simpler version of the iETS$_F$ is fitted in the `oes()` function of the `smooth` package:
+\begin{equation} \label{eq:ISSETS(MNN)FixedSmooth}
+	\begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Bernoulli}(p)
+	\end{matrix} ,
+\end{equation}
+so that the estimate of the probability $p$ is calculated based on the maximisation of the following log-likelihood function:
+\begin{equation} \label{eq:ISSETS(MNN)FixedLikelihoodSmooth}
+	\ell \left(p | o_t \right) = T_1 \log p + T_0 \log (1-p) ,
+\end{equation}
+where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k+1$, where $k$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
+
+## iETS$_O$
+The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ variable, which simplifies the iETS$_G$ model to:
+\begin{equation} \label{eq:iETSO} \tag{5}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Beta-Bernoulli} \left(a_t, 1 \right) \\
+		a_t = w(v_{a,t-L}) + r(v_{a,t-L}) \epsilon_{a,t} \\
+		v_{a,t} = f(v_{a,t-L}) + g(v_{a,t-L}) \epsilon_{a,t} \\
+		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2)
+    \end{matrix},
+\end{equation}
+

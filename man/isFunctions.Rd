@@ -7,6 +7,7 @@
 \alias{is.msarima}
 \alias{is.iss}
 \alias{is.oes}
+\alias{is.oesg}
 \alias{is.viss}
 \alias{is.smooth.sim}
 \alias{is.vsmooth.sim}
@@ -24,6 +25,8 @@ is.msarima(x)
 is.iss(x)
 
 is.oes(x)
+
+is.oesg(x)
 
 is.viss(x)
 

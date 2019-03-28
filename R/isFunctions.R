@@ -78,6 +78,12 @@ is.oes <- function(x){
 
 #' @rdname isFunctions
 #' @export
+is.oesg <- function(x){
+    return(inherits(x,"oesg"))
+}
+
+#' @rdname isFunctions
+#' @export
 is.viss <- function(x){
     return(inherits(x,"viss"))
 }

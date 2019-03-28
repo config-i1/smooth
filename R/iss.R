@@ -83,9 +83,7 @@ intermittentMaker <- function(occurrence="n",...){
             imodel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h);
         }
         else{
-            imodel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h,
-                          persistence=imodel$persistence, initial=imodel$initial,
-                          initialSeason=imodel$initialSeason, xreg=imodel$xreg, updateX=imodel$updateX);
+            imodel <- oes(ot, model=imodel, h=h);
         }
         nParamOccurrence <- nParam(imodel);
         pt[,] <- imodel$fitted;
