@@ -1896,90 +1896,70 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
         lowerquant <- upperquant <- rep(0,length(sdVec));
 
-        # If this is Laplace or S, then get b values
-        if(cfType=="MAE"){
-            sdVec <- sqrt(sdVec/2);
-        }
-        else if(cfType=="HAM"){
-            sdVec <- (sdVec/120)^0.25;
-        }
+        positiveLevels <- levelResidual>0;
 
-        # Produce lower quantiles if the probability is still lower than the lower P
-        if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+        if(any(positiveLevels)){
+            # If this is Laplace or S, then get b values
+            if(cfType=="MAE"){
+                sdVec <- sqrt(sdVec/2);
+            }
+            else if(cfType=="HAM"){
+                sdVec <- (sdVec/120)^0.25;
+            }
+
+            # Produce lower quantiles if the probability is still lower than the lower P
+            if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+                if(Etype=="M"){
+                    if(cfType=="MAE"){
+                        lowerquant[positiveLevels] <- exp(qlaplace((1-levelResidual[positiveLevels])/2,meanVec,sdVec));
+                    }
+                    else if(cfType=="HAM"){
+                        lowerquant[positiveLevels] <- exp(qs((1-levelResidual[positiveLevels])/2,meanVec,sdVec));
+                    }
+                    else{
+                        lowerquant[positiveLevels] <- qlnorm((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
+                    }
+                }
+                else{
+                    if(cfType=="MAE"){
+                        lowerquant[positiveLevels] <- qlaplace((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
+                    }
+                    else if(cfType=="HAM"){
+                        lowerquant[positiveLevels] <- qs((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
+                    }
+                    else{
+                        lowerquant[positiveLevels] <- qnorm((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
+                    }
+                }
+
+                levelNew <- (1+levelResidual[positiveLevels])/2;
+            }
+            else{
+                levelNew <- levelResidual[positiveLevels];
+            }
+
+            # Produce upper quantiles
             if(Etype=="M"){
                 if(cfType=="MAE"){
-                    lowerquant[] <- exp(qlaplace((1-levelResidual)/2,meanVec,sdVec));
-                    # for(i in 1:length(levelResidual)){
-                    #     lowerquant[i] <- exp(qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
-                    # }
+                    upperquant[positiveLevels] <- exp(qlaplace(levelNew,meanVec,sdVec));
                 }
                 else if(cfType=="HAM"){
-                    lowerquant[] <- exp(qs((1-levelResidual)/2,meanVec,sdVec));
-                    # for(i in 1:length(levelResidual)){
-                    #     lowerquant[i] <- exp(qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]));
-                    # }
+                    upperquant[positiveLevels] <- exp(qs(levelNew,meanVec,sdVec));
                 }
                 else{
-                    lowerquant[] <- qlnorm((1-levelResidual)/2,meanVec,sdVec);
+                    upperquant[positiveLevels] <- qlnorm(levelNew,meanVec,sdVec);
                 }
             }
             else{
                 if(cfType=="MAE"){
-                    lowerquant[] <- qlaplace((1-levelResidual)/2,meanVec,sdVec);
-                    # for(i in 1:length(levelResidual)){
-                    #     lowerquant[i] <- qlaplace((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
-                    # }
+                    upperquant[positiveLevels] <- qlaplace(levelNew,meanVec,sdVec);
                 }
                 else if(cfType=="HAM"){
-                    lowerquant[] <- qs((1-levelResidual)/2,meanVec,sdVec);
-                    # for(i in 1:length(levelResidual)){
-                    #     lowerquant[i] <- qs((1-levelResidual[i])/2,meanVec[i],sdVec[i]);
-                    # }
+                    upperquant[positiveLevels] <- qs(levelNew,meanVec,sdVec);
                 }
                 else{
-                    lowerquant[] <- qnorm((1-levelResidual)/2,meanVec,sdVec);
+                    upperquant[positiveLevels] <- qnorm(levelNew,meanVec,sdVec);
                 }
-            }
-
-            levelNew <- (1+levelResidual)/2;
-        }
-        else{
-            levelNew <- levelResidual;
-        }
-
-        # Produce upper quantiles
-        if(Etype=="M"){
-            if(cfType=="MAE"){
-                upperquant[] <- exp(qlaplace(levelNew,meanVec,sdVec));
-                # for(i in 1:length(levelResidual)){
-                #     upperquant[i] <- exp(qlaplace(levelNew[i],meanVec[i],sdVec[i]));
-                # }
-            }
-            else if(cfType=="HAM"){
-                upperquant[] <- exp(qs(levelNew,meanVec,sdVec));
-                # for(i in 1:length(levelResidual)){
-                #     upperquant[i] <- exp(qs(levelNew[i],meanVec[i],sdVec[i]));
-                # }
-            }
-            else{
-                upperquant[] <- qlnorm(levelNew,meanVec,sdVec);
-            }
-        }
-        else{
-            if(cfType=="MAE"){
-                upperquant[] <- qlaplace(levelNew,meanVec,sdVec);
-                # for(i in 1:length(levelResidual)){
-                #     upperquant[i] <- qlaplace(levelNew[i],meanVec[i],sdVec[i]);
-                # }
-            }
-            else if(cfType=="HAM"){
-                upperquant[] <- qs(levelNew,meanVec,sdVec);
-                # for(i in 1:length(levelResidual)){
-                #     upperquant[i] <- qs(levelNew[i],meanVec[i],sdVec[i]);
-                # }
-            }
-            else{
-                upperquant[] <- qnorm(levelNew,meanVec,sdVec);
             }
         }
 
