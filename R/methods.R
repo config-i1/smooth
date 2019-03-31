@@ -1056,6 +1056,11 @@ modelType.iss <- function(object, ...){
     return(object$model);
 }
 
+#' @export
+modelType.oesg <- function(object, ...){
+    return(modelType(object$modelA));
+}
+
 #### Function extracts orders of provided model ####
 #' @export
 orders.default <- function(object, ...){

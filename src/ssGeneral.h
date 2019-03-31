@@ -296,3 +296,49 @@ inline arma::mat normaliser(arma::mat Vt, int &obsall, unsigned int &maxlag, cha
 
     return(Vt);
 }
+
+
+
+/* # The function checks for the bounds conditions and returns either zeo (everything is fine) or a huge number (not) */
+inline double boundsTester(char const &boundtype, char const &T, char const &S,
+                           arma::vec const &vecG, arma::rowvec const &rowvecW, arma::mat const &matrixF){
+
+    if(boundtype=='u'){
+// alpha in (0,1)
+        if((vecG(0)>1) || (vecG(0)<0)){
+            return 1E+300;
+        }
+        if(T!='N'){
+// beta in (0,alpha)
+            if((vecG(1)>vecG(0)) || (vecG(1)<0)){
+                return 1E+300;
+            }
+            if(S!='N'){
+// gamma in (0,1-alpha)
+                if((vecG(2)>(1-vecG(0))) || (vecG(2)<0)){
+                    return 1E+300;
+                }
+            }
+        }
+        if(S!='N'){
+// gamma in (0,1-alpha)
+            if((vecG(1)>(1-vecG(0))) || (vecG(1)<0)){
+                return 1E+300;
+            }
+        }
+    }
+    else if((boundtype=='a') | (boundtype=='r')){
+        // Values needed for eigenvalues calculation
+        arma::cx_vec eigval;
+        if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
+            if(max(abs(eigval))> (1 + 1E-50)){
+                return max(abs(eigval))*1E+100;
+            }
+        }
+        else{
+            return 1E+300;
+        }
+    }
+
+    return 0;
+}

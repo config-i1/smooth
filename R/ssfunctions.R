@@ -2705,6 +2705,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     else{
                         matat[1:maxlag,] <- cov(data[1:obsInsample][ot==1],xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
                     }
+                    matat[] <- matat[1,]
 
                     # If Etype=="Z" or "C", estimate multiplicative stuff.
                     if(allowMultiplicative & all(Etype!=c("M","A"))){
@@ -2845,6 +2846,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                                                       t(mat.x[1:obsInsample,][ot==1,]) %*% data[1:obsInsample][ot==1])[2:(nExovars+1)],
                                                 each=maxlag);
                     }
+                    matat[-1,] <- rep(matat[1,],each=obsStates-1);
 
                     # If Etype=="Z" or "C", estimate multiplicative stuff.
                     if(allowMultiplicative & all(Etype!=c("M","A"))){
@@ -3326,5 +3328,12 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                       paste0("sPIS: ",round(errormeasures["sPIS"],3)*100,"%"),
                       paste0("sCE: ",round(errormeasures["sCE"],3)*100,"%\n"),sep="; "));
         }
+    }
+}
+
+debugger <- function(){
+    continue <- readline(prompt="Continue? ")
+    if(continue=="n"){
+        stop("The user asked to stop the calculations.");
     }
 }

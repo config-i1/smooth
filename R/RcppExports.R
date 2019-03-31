@@ -41,12 +41,20 @@ costfuncARIMA <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA,
     .Call('_smooth_costfuncARIMA', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds, ssarimaOld, nonZeroARI, nonZeroMA)
 }
 
-occurenceFitterWrap <- function(matvt, matF, matw, vecg, yt, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX) {
-    .Call('_smooth_occurenceFitterWrap', PACKAGE = 'smooth', matvt, matF, matw, vecg, yt, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX)
+occurenceFitterWrap <- function(matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX) {
+    .Call('_smooth_occurenceFitterWrap', PACKAGE = 'smooth', matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX)
 }
 
-occurrenceOptimizerWrap <- function(matvt, matF, matw, vecg, yt, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX, bounds) {
-    .Call('_smooth_occurrenceOptimizerWrap', PACKAGE = 'smooth', matvt, matF, matw, vecg, yt, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX, bounds)
+occurrenceOptimizerWrap <- function(matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX, bounds) {
+    .Call('_smooth_occurrenceOptimizerWrap', PACKAGE = 'smooth', matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX, bounds)
+}
+
+occurenceGeneralFitterWrap <- function(ot, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB) {
+    .Call('_smooth_occurenceGeneralFitterWrap', PACKAGE = 'smooth', ot, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB)
+}
+
+occurrenceGeneralOptimizerWrap <- function(ot, bounds, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB) {
+    .Call('_smooth_occurrenceGeneralOptimizerWrap', PACKAGE = 'smooth', ot, bounds, modellagsA, EtypeA, TtypeA, StypeA, matvtA, matFA, matwA, vecgA, matxtA, matatA, matFXA, vecgXA, modellagsB, EtypeB, TtypeB, StypeB, matvtB, matFB, matwB, vecgB, matxtB, matatB, matFXB, vecgXB)
 }
 
 matrixPowerWrap <- function(matA, power) {

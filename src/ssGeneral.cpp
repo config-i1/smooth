@@ -1776,62 +1776,19 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
     char boundtype = as<char>(bounds);
 
-// Values needed for eigenvalues calculation
-    arma::cx_vec eigval;
-
-    if(boundtype=='u'){
-// alpha in (0,1)
-        if((vecG(0)>1) || (vecG(0)<0)){
-            // vecG.zeros();
-            // matrixVt.zeros();
-            return wrap(1E+300);
-        }
-        if(T!='N'){
-// beta in (0,alpha)
-            if((vecG(1)>vecG(0)) || (vecG(1)<0)){
-                // vecG.zeros();
-                // matrixVt.zeros();
-                return wrap(1E+300);
-            }
-            if(S!='N'){
-// gamma in (0,1-alpha)
-                if((vecG(2)>(1-vecG(0))) || (vecG(2)<0)){
-                    // vecG.zeros();
-                    // matrixVt.zeros();
-                    return wrap(1E+300);
-                }
-            }
-        }
-        if(S!='N'){
-// gamma in (0,1-alpha)
-            if((vecG(1)>(1-vecG(0))) || (vecG(1)<0)){
-                // vecG.zeros();
-                // matrixVt.zeros();
-                return wrap(1E+300);
-            }
-        }
-    }
-    else if((boundtype=='a') | (boundtype=='r')){
-        if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
-            if(max(abs(eigval))> (1 + 1E-50)){
-                return wrap(max(abs(eigval))*1E+100);
-            }
-        }
-        else{
-            return wrap(1E+300);
-        }
+    // Test the bounds for the ETS elements
+    double boundsTestResult = boundsTester(boundtype, T, S, vecG, rowvecW, matrixF);
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
     }
 
     if(matrixAt(0,0)!=0){
+        // Test the bounds for the explanatory part
         arma::rowvec rowvecWX(matFX_n.nrow(), arma::fill::ones);
-        if(arma::eig_gen(eigval, matrixFX - vecGX * rowvecWX)){
-            if(max(abs(eigval))> (1 + 1E-50)){
-                return wrap(max(abs(eigval))*1E+100);
-            }
-        }
-        else{
-            return wrap(1E+300);
-        }
+        boundsTestResult = boundsTester('a', T, S, vecGX, rowvecWX, matrixFX);
+    }
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
     }
 
     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
@@ -1927,27 +1884,11 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
     IntegerVector modellags_n(modellags);
     arma::uvec modelLags = as<arma::uvec>(modellags_n);
 
-    // IntegerMatrix nonZeroARI_n(nonZeroARI);
-    // arma::imat ARILagsSigned(nonZeroARI_n.begin(), nonZeroARI_n.nrow(), nonZeroARI_n.ncol());
-    // arma::umat ARILags = arma::conv_to<arma::umat>::from(ARILagsSigned);
-    //
-    // IntegerMatrix nonZeroMA_n(nonZeroMA);
-    // arma::imat MALagsSigned(nonZeroMA_n.begin(), nonZeroMA_n.nrow(), nonZeroMA_n.ncol());
-    // arma::umat MALags = arma::conv_to<arma::umat>::from(MALagsSigned);
-
     IntegerMatrix nonZeroARI_n(nonZeroARI);
     arma::umat ARILags = as<arma::umat>(nonZeroARI_n);
 
     IntegerMatrix nonZeroMA_n(nonZeroMA);
     arma::umat MALags = as<arma::umat>(nonZeroMA_n);
-
-    // IntegerMatrix nonZeroARI_n(nonZeroARI);
-    // arma::imat ARIStuff(nonZeroARI_n.begin(), nonZeroARI_n.nrow(), nonZeroARI_n.ncol(), false);
-    // arma::umat ARILags = arma::conv_to<arma::umat>::from(ARIStuff);
-    //
-    // IntegerMatrix nonZeroMA_n(nonZeroMA);
-    // arma::imat MAStuff(nonZeroMA_n.begin(), nonZeroMA_n.nrow(), nonZeroMA_n.ncol(), false);
-    // arma::umat MALags = arma::conv_to<arma::umat>::from(MAStuff);
 
 // Initialise ARIMA
     List polynomials = polysos(arOrders, maOrders, iOrders, lagsARIMA, nComponents,

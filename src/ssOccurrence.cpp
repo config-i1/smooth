@@ -9,7 +9,7 @@ using namespace Rcpp;
 /* # Function returns a and b errors as a vector, depending on the types of E, O and the others */
 // In case of O=="p", the error is provided in the first element of the vector
 // In case of O=="i", the error is moved in the first element.
-std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit, char const &E, char const &O){
+std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit, char const &EA, char const &EB, char const &O){
 // aFit is the fitted values of a, bFit is the same for the b. O is the type of occurrence.
 // In cases of O!="g", the aFit is used as a variable.
 
@@ -23,9 +23,13 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
     std::vector<double> output(2);
 
 // Correct the fitted depending on the type of the error
-    switch(E){
+    switch(EA){
         case 'A':
             aFit = exp(aFit);
+        break;
+    }
+    switch(EB){
+        case 'A':
             bFit = exp(bFit);
         break;
     }
@@ -50,7 +54,8 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
     error = (1 + yAct - pfit) / 2;
     switch(O){
         case 'g':
-            output[0] = bFit * error / (1 - error);
+            output[0] = error / (1 - error);
+            // output[0] = bFit * error / (1 - error);
         break;
         case 'o':
             output[0] = error / (1 - error);
@@ -63,15 +68,23 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
             output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
         break;
     }
-    output[1] = aFit * (1 - error) / error;
+    // output[1] = aFit * (1 - error) / error;
+    output[1] = (1 - error) / error;
 
-    switch(E){
+    switch(EA){
         case 'M':
             output[0] = output[0] - 1;
-            output[1] = output[1] - 1;
         break;
         case 'A':
             output[0] = log(output[0]);
+        break;
+    }
+
+    switch(EB){
+        case 'M':
+            output[1] = output[1] - 1;
+        break;
+        case 'A':
             output[1] = log(output[1]);
         break;
     }
@@ -81,7 +94,7 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
 
 // # Fitter for the occurrence part of the univariate models. This does not include iETS_G model
 List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecG,
-                     arma::vec const &vecYt, arma::uvec &lags, char const &E, char const &T, char const &S, char const &O,
+                     arma::vec const &vecOt, arma::uvec &lags, char const &E, char const &T, char const &S, char const &O,
                      arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX){
     /* # matrixVt should have a length of obs + maxlag.
     * # rowvecW should have 1 row.
@@ -93,7 +106,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
 
     arma::mat matrixXtTrans = matrixXt.t();
 
-    int obs = vecYt.n_rows;
+    int obs = vecOt.n_rows;
     int obsall = matrixVt.n_cols;
     unsigned int nComponents = matrixVt.n_rows;
     arma::uvec lagsInternal = lags;
@@ -134,7 +147,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
         }
 
         // For O==c("o","i","p") the bFit is set to 1 and aFit is the variable under consideration
-        vecErrors(i-maxlag) = occurrenceError(vecYt(i-maxlag), vecYfit(i-maxlag), 1.0, E, O)[0];
+        vecErrors(i-maxlag) = occurrenceError(vecOt(i-maxlag), vecYfit(i-maxlag), 1.0, E, 'M', O)[0];
 
 /* # Transition equation */
         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
@@ -145,9 +158,9 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             warning = true;
             matrixVt.col(i) = matrixVt(lagrows);
         }
-        if((S=='M') && (matrixVt(matrixVt.n_rows-1,i) <= 0)){
+        if((S=='M') && (matrixVt(nComponents-1,i) <= 0)){
             warning = true;
-            matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
+            matrixVt(nComponents-1,i) = arma::as_scalar(matrixVt(lagrows.row(nComponents-1)));
         }
         if(T=='M' && ((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0))){
                 warning = true;
@@ -238,10 +251,9 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
                         Named("errors") = vecErrors, Named("matat") = matrixAt, Named("warning") = warning);
 }
 
-
 /* # Wrapper for fitter */
 // [[Rcpp::export]]
-RcppExport SEXP occurenceFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg, SEXP yt,
+RcppExport SEXP occurenceFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg, SEXP ot,
                                     SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP Otype,
                                     SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX) {
 
@@ -254,8 +266,8 @@ RcppExport SEXP occurenceFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg,
     NumericMatrix matw_n(matw);
     arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
 
-    NumericMatrix yt_n(yt);
-    arma::vec vecYt(yt_n.begin(), yt_n.nrow(), false);
+    NumericMatrix ot_n(ot);
+    arma::vec vecOt(ot_n.begin(), ot_n.nrow(), false);
 
     NumericMatrix vecg_n(vecg);
     arma::vec vecG(vecg_n.begin(), vecg_n.nrow(), false);
@@ -281,42 +293,32 @@ RcppExport SEXP occurenceFitterWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg,
     NumericMatrix vecgX_n(vecgX);
     arma::vec vecGX(vecgX_n.begin(), vecgX_n.nrow(), false);
 
-    return wrap(occurenceFitter(matrixVt, matrixF, rowvecW, vecG, vecYt, lags, E, T, S, O,
+    return wrap(occurenceFitter(matrixVt, matrixF, rowvecW, vecG, vecOt, lags, E, T, S, O,
                                 matrixXt, matrixAt, matrixFX, vecGX));
 }
 
-// # Fitter for the occurrence part of the univariate models. General Beta model
-// List occurenceFitterGeneral(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecG,
-//                      arma::vec const &vecYt, arma::uvec &lags, char const &E, char const &T, char const &S, char const &O,
-//                      arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX){
-//
-//     return List::create(Named("matvt") = matrixVt.t(), Named("yfit") = vecYfit,
-//                         Named("errors") = vecErrors, Named("matat") = matrixAt.t());
-// }
-
-
 /* # Function returns the chosen Cost Function based on the chosen model and produced errors */
 double occurrenceOptimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW,
-                           arma::vec const &vecG, arma::vec const &vecYt,
+                           arma::vec const &vecG, arma::vec const &vecOt,
                            arma::uvec &lags, char const &E, char const &T, char const &S, char const &O,
                            arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX){
 
-    List fitting = occurenceFitter(matrixVt, matrixF, rowvecW, vecG, vecYt, lags, E, T, S, O,
+    List fitting = occurenceFitter(matrixVt, matrixF, rowvecW, vecG, vecOt, lags, E, T, S, O,
                                    matrixXt, matrixAt, matrixFX, vecGX);
 
     NumericMatrix pfitfromfit = as<NumericMatrix>(fitting["pfit"]);
     arma::vec vecPfit = as<arma::vec>(pfitfromfit);
 
     // 0.5 is needed for cases, when the variable is continuous in (0, 1)
-    double CFres = -sum(log(vecPfit.elem(find(vecYt>=0.5)))) - sum(log(1-vecPfit.elem(find(vecYt<0.5))));
+    double CFres = -sum(log(vecPfit.elem(find(vecOt>=0.5)))) - sum(log(1-vecPfit.elem(find(vecOt<0.5))));
 
     return CFres;
 }
 
-/* # Function is used in cases when the persistence vector needs to be estimated.
-# If bounds are violated, it returns variance of yt. */
+/* # Function is used for the occurrence model of the types "I", "O" and "P"
+# If bounds are violated, it returns variance of ot. */
 // [[Rcpp::export]]
-RcppExport SEXP occurrenceOptimizerWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg, SEXP yt,
+RcppExport SEXP occurrenceOptimizerWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg, SEXP ot,
                                         SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP Otype,
                                         SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX,
                                         SEXP bounds) {
@@ -330,8 +332,8 @@ RcppExport SEXP occurrenceOptimizerWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP v
     NumericMatrix matw_n(matw);
     arma::rowvec rowvecW(matw_n.begin(), matw_n.ncol(), false);
 
-    NumericMatrix yt_n(yt);
-    arma::vec vecYt(yt_n.begin(), yt_n.nrow(), false);
+    NumericMatrix ot_n(ot);
+    arma::vec vecOt(ot_n.begin(), ot_n.nrow(), false);
 
     NumericMatrix vecg_n(vecg);
     arma::vec vecG(vecg_n.begin(), vecg_n.nrow(), false);
@@ -359,65 +361,496 @@ RcppExport SEXP occurrenceOptimizerWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP v
 
     char boundtype = as<char>(bounds);
 
-// Values needed for eigenvalues calculation
-    arma::cx_vec eigval;
-
-    if(boundtype=='u'){
-// alpha in (0,1)
-        if((vecG(0)>1) || (vecG(0)<0)){
-            // vecG.zeros();
-            // matrixVt.zeros();
-            return wrap(1E+300);
-        }
-        if(T!='N'){
-// beta in (0,alpha)
-            if((vecG(1)>vecG(0)) || (vecG(1)<0)){
-                // vecG.zeros();
-                // matrixVt.zeros();
-                return wrap(1E+300);
-            }
-            if(S!='N'){
-// gamma in (0,1-alpha)
-                if((vecG(2)>(1-vecG(0))) || (vecG(2)<0)){
-                    // vecG.zeros();
-                    // matrixVt.zeros();
-                    return wrap(1E+300);
-                }
-            }
-        }
-        if(S!='N'){
-// gamma in (0,1-alpha)
-            if((vecG(1)>(1-vecG(0))) || (vecG(1)<0)){
-                // vecG.zeros();
-                // matrixVt.zeros();
-                return wrap(1E+300);
-            }
-        }
-    }
-    else if((boundtype=='a') | (boundtype=='r')){
-        if(arma::eig_gen(eigval, matrixF - vecG * rowvecW)){
-            if(max(abs(eigval))> (1 + 1E-50)){
-                return wrap(max(abs(eigval))*1E+100);
-            }
-        }
-        else{
-            return wrap(1E+300);
-        }
+    // Test the bounds for the ETS elements
+    double boundsTestResult = boundsTester(boundtype, T, S, vecG, rowvecW, matrixF);
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
     }
 
     if(matrixAt(0,0)!=0){
+        // Test the bounds for the explanatory part
         arma::rowvec rowvecWX(matFX_n.nrow(), arma::fill::ones);
-        if(arma::eig_gen(eigval, matrixFX - vecGX * rowvecWX)){
-            if(max(abs(eigval))> (1 + 1E-50)){
-                return wrap(max(abs(eigval))*1E+100);
+        boundsTestResult = boundsTester('a', T, S, vecGX, rowvecWX, matrixFX);
+    }
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
+    }
+
+    return wrap(occurrenceOptimizer(matrixVt, matrixF, rowvecW, vecG, vecOt,
+                                    lags, E, T, S, O,
+                                    matrixXt, matrixAt, matrixFX, vecGX));
+}
+
+
+// # Fitter for the occurrence part of the univariate models. This does not include iETS_G model
+List occurenceGeneralFitter(arma::vec const &vecOt,
+                            arma::uvec &lagsA, char const &EA, char const &TA, char const &SA,
+                            arma::mat &matrixVtA, arma::mat const &matrixFA, arma::rowvec const &rowvecWA, arma::vec const &vecGA,
+                            arma::mat const &matrixXtA, arma::mat &matrixAtA, arma::mat const &matrixFXA, arma::vec const &vecGXA,
+                            arma::uvec &lagsB, char const &EB, char const &TB, char const &SB,
+                            arma::mat &matrixVtB, arma::mat const &matrixFB, arma::rowvec const &rowvecWB, arma::vec const &vecGB,
+                            arma::mat const &matrixXtB, arma::mat &matrixAtB, arma::mat const &matrixFXB, arma::vec const &vecGXB){
+
+    /* # matrixVt should have a length of obs + maxlag.
+    * # rowvecW should have 1 row.
+    * # vecG should be a vector
+    * # lags is a vector of lags
+    * # matrixXt is the matrix with the exogenous variables
+    * # matrixAt is the matrix with the parameters for the exogenous
+    */
+
+    arma::mat matrixXtATrans = matrixXtA.t();
+    arma::mat matrixXtBTrans = matrixXtB.t();
+
+    // The parameters for the fitter
+    int obs = vecOt.n_rows;
+    int obsallA = matrixVtA.n_cols;
+    int obsallB = matrixVtB.n_cols;
+    unsigned int nComponentsA = matrixVtA.n_rows;
+    unsigned int nComponentsB = matrixVtB.n_rows;
+    arma::uvec lagsInternalA = lagsA;
+    arma::uvec lagsInternalB = lagsB;
+    unsigned int maxlagA = max(lagsInternalA);
+    unsigned int maxlagB = max(lagsInternalB);
+    int lagslengthA = lagsInternalA.n_rows;
+    int lagslengthB = lagsInternalB.n_rows;
+
+    lagsInternalA = lagsInternalA * nComponentsA;
+    lagsInternalB = lagsInternalB * nComponentsB;
+
+    for(int i=0; i<lagslengthA; i=i+1){
+        lagsInternalA(i) = lagsInternalA(i) + (lagslengthA - i - 1);
+    }
+    for(int i=0; i<lagslengthB; i=i+1){
+        lagsInternalB(i) = lagsInternalB(i) + (lagslengthB - i - 1);
+    }
+
+    arma::uvec lagrowsA(lagslengthA, arma::fill::zeros);
+    arma::uvec lagrowsB(lagslengthB, arma::fill::zeros);
+
+    // The vector for the fitted values of A
+    arma::vec vecAfit(obs, arma::fill::zeros);
+    // The vector for the fitted values of B
+    arma::vec vecBfit(obs, arma::fill::zeros);
+    // The vector for the fitted probabilities
+    arma::vec vecPfit(obs, arma::fill::zeros);
+    // The vector of errors of the model A
+    arma::vec vecErrorsA(obs, arma::fill::zeros);
+    // The vector of errors of the model B
+    arma::vec vecErrorsB(obs, arma::fill::zeros);
+
+    // The buffer for the calculation of transition for explanatory part
+    arma::vec bufferforat(vecGXA.n_rows);
+    // The warning level:
+    // true - the states became negative or the value was rediculous, so we substituted it with the previous one;
+    bool warning = false;
+
+    //
+    std::vector<double> bufferForErrors;
+
+    for(unsigned int i=0; i<obs; i=i+1){
+        lagrowsA = (i+maxlagA+1) * nComponentsA - lagsInternalA - 1;
+        lagrowsB = (i+maxlagB+1) * nComponentsB - lagsInternalB - 1;
+
+/* # Measurement equation and the error term */
+        vecAfit(i) = wvalue(matrixVtA(lagrowsA), rowvecWA, EA, TA, SA,
+                                   matrixXtA.row(i), matrixAtA.col(i+maxlagA));
+        vecBfit(i) = wvalue(matrixVtB(lagrowsB), rowvecWB, EB, TB, SB,
+                                   matrixXtB.row(i), matrixAtB.col(i+maxlagB));
+
+        // This is a failsafe for cases of ridiculously high and ridiculously low values
+        if(vecAfit(i) > 1e+100){
+            warning = true;
+            vecAfit(i) = vecAfit(i-1);
+        }
+        if(vecBfit(i) > 1e+100){
+            warning = true;
+            vecBfit(i) = vecBfit(i-1);
+        }
+
+        // For O==c("o","i","p") the bFit is set to 1 and aFit is the variable under consideration
+        bufferForErrors = occurrenceError(vecOt(i), vecAfit(i), vecBfit(i), EA, EB, 'g');
+        vecErrorsA(i) = bufferForErrors[0];
+        vecErrorsB(i) = bufferForErrors[1];
+
+/* # Transition equation */
+        matrixVtA.col(i+maxlagA) = fvalue(matrixVtA(lagrowsA), matrixFA, TA, SA) +
+                          gvalue(matrixVtA(lagrowsA), matrixFA, rowvecWA, EA, TA, SA) % vecGA * vecErrorsA(i);
+        matrixVtB.col(i+maxlagB) = fvalue(matrixVtB(lagrowsB), matrixFB, TB, SB) +
+                          gvalue(matrixVtB(lagrowsB), matrixFB, rowvecWB, EB, TB, SB) % vecGB * vecErrorsB(i);
+
+
+/* Failsafe for cases when unreasonable value for state vector was produced */
+        if(!matrixVtA.col(i+maxlagA).is_finite()){
+            warning = true;
+            matrixVtA.col(i+maxlagA) = matrixVtA(lagrowsA);
+        }
+        if(!matrixVtB.col(i+maxlagB).is_finite()){
+            warning = true;
+            matrixVtB.col(i+maxlagB) = matrixVtB(lagrowsB);
+        }
+        if((SA=='M') && (matrixVtA(nComponentsA-1,i+maxlagA) <= 0)){
+            warning = true;
+            matrixVtA(nComponentsA-1,i+maxlagA) = arma::as_scalar(matrixVtA(lagrowsA.row(nComponentsA-1)));
+        }
+        if((SB=='M') && (matrixVtB(nComponentsB-1,i+maxlagB) <= 0)){
+            warning = true;
+            matrixVtB(nComponentsB-1,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(nComponentsB-1)));
+        }
+        if(TA=='M' && ((matrixVtA(0,i+maxlagA) <= 0) | (matrixVtA(1,i+maxlagA) <= 0))){
+                warning = true;
+                matrixVtA(0,i+maxlagA) = arma::as_scalar(matrixVtA(lagrowsA.row(0)));
+                matrixVtA(1,i+maxlagA) = arma::as_scalar(matrixVtA(lagrowsA.row(1)));
+        }
+        if(TB=='M' && ((matrixVtB(0,i+maxlagB) <= 0) | (matrixVtB(1,i+maxlagB) <= 0))){
+                warning = true;
+                matrixVtB(0,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(0)));
+                matrixVtB(1,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(1)));
+        }
+        if(any(matrixVtA.col(i+maxlagA)>1e+100)){
+            warning = true;
+            matrixVtA.col(i+maxlagA) = matrixVtA(lagrowsA);
+        }
+        if(any(matrixVtB.col(i+maxlagB)>1e+100)){
+            warning = true;
+            matrixVtB.col(i+maxlagB) = matrixVtB(lagrowsB);
+        }
+
+/* Renormalise components if the seasonal model is chosen */
+        if(SA!='N'){
+            if(double(i+1) / double(maxlagA) == double((i+1) / maxlagA)){
+                matrixVtA.cols(i-maxlagA+1,i) = normaliser(matrixVtA.cols(i-maxlagA+1,i), obsallA, maxlagA, SA, TA);
             }
         }
-        else{
-            return wrap(1E+300);
+        if(SB!='N'){
+            if(double(i+1) / double(maxlagB) == double((i+1) / maxlagB)){
+                matrixVtB.cols(i-maxlagB+1,i) = normaliser(matrixVtB.cols(i-maxlagB+1,i), obsallB, maxlagB, SB, TB);
+            }
+        }
+
+/* # Transition equation for xreg */
+        bufferforat = gXvalue(matrixXtATrans.col(i), vecGXA, vecErrorsA.row(i), EA);
+        matrixAtA.col(i+maxlagA) = matrixFXA * matrixAtA.col(i) + bufferforat;
+        bufferforat = gXvalue(matrixXtBTrans.col(i), vecGXB, vecErrorsB.row(i), EB);
+        matrixAtB.col(i+maxlagB) = matrixFXB * matrixAtB.col(i) + bufferforat;
+    }
+
+    // The tail for the states of the model A
+    for(int i=obs+maxlagA; i<obsallA; i=i+1){
+        lagrowsA = (i+1) * nComponentsA - lagsInternalA - 1;
+        matrixVtA.col(i) = fvalue(matrixVtA(lagrowsA), matrixFA, TA, SA);
+        matrixAtA.col(i) = matrixFXA * matrixAtA.col(i-1);
+
+/* Failsafe for cases when unreasonable value for state vector was produced */
+        if(!matrixVtA.col(i).is_finite()){
+            warning = true;
+            matrixVtA.col(i) = matrixVtA(lagrowsA);
+        }
+        if((SA=='M') && (matrixVtA(matrixVtA.n_rows-1,i) <= 0)){
+            warning = true;
+            matrixVtA(matrixVtA.n_rows-1,i) = arma::as_scalar(matrixVtA(lagrowsA.row(matrixVtA.n_rows-1)));
+        }
+        if(TA=='M' && ((matrixVtA(0,i) <= 0) | (matrixVtA(1,i) <= 0))){
+                warning = true;
+                matrixVtA(0,i) = arma::as_scalar(matrixVtA(lagrowsA.row(0)));
+                matrixVtA(1,i) = arma::as_scalar(matrixVtA(lagrowsA.row(1)));
         }
     }
 
-    return wrap(occurrenceOptimizer(matrixVt, matrixF, rowvecW, vecG, vecYt,
-                                    lags, E, T, S, O,
-                                    matrixXt, matrixAt, matrixFX, vecGX));
+    // The tail for the states of the model B
+    for(int i=obs+maxlagB; i<obsallB; i=i+1){
+        lagrowsB = (i+1) * nComponentsB - lagsInternalB - 1;
+        matrixVtB.col(i) = fvalue(matrixVtB(lagrowsB), matrixFB, TB, SB);
+        matrixAtB.col(i) = matrixFXB * matrixAtB.col(i-1);
+
+/* Failsafe for cases when unreasonable value for state vector was produced */
+        if(!matrixVtB.col(i).is_finite()){
+            warning = true;
+            matrixVtB.col(i) = matrixVtB(lagrowsB);
+        }
+        if((SB=='M') && (matrixVtB(matrixVtB.n_rows-1,i) <= 0)){
+            warning = true;
+            matrixVtB(matrixVtB.n_rows-1,i) = arma::as_scalar(matrixVtB(lagrowsB.row(matrixVtB.n_rows-1)));
+        }
+        if(TB=='M' && ((matrixVtB(0,i) <= 0) | (matrixVtB(1,i) <= 0))){
+                warning = true;
+                matrixVtB(0,i) = arma::as_scalar(matrixVtB(lagrowsB.row(0)));
+                matrixVtB(1,i) = arma::as_scalar(matrixVtB(lagrowsB.row(1)));
+        }
+    }
+
+    // Check the fitted values and produce the probability
+    if(EA=='M' && any(vecAfit<0)){
+        warning = true;
+        vecAfit.elem(find(vecAfit<0)).fill(1E-10);
+    }
+    if(EB=='M' && any(vecBfit<0)){
+        warning = true;
+        vecBfit.elem(find(vecBfit<0)).fill(1E-10);
+    }
+
+    switch(EA){
+        case 'A':
+            switch(EB){
+                case 'A':
+                    vecPfit = exp(vecAfit) / (exp(vecAfit) + exp(vecBfit));
+                break;
+                case 'M':
+                    vecPfit = exp(vecAfit) / (exp(vecAfit) + vecBfit);
+                break;
+            }
+        break;
+        case 'M':
+            switch(EB){
+                case 'A':
+                    vecPfit = vecAfit / (vecAfit + exp(vecBfit));
+                break;
+                case 'M':
+                    vecPfit = vecAfit / (vecAfit + vecBfit);
+                break;
+            }
+        break;
+    }
+    // This is needed for cases when huge numbers were generated
+    // vecPfit.elem(find_nonfinite(vecPfit)).replace(1.0-1E-10);
+    vecPfit.replace(NA_REAL, 1.0-1E-10);
+
+    return List::create(Named("pfit") = vecPfit,
+                        Named("afit") = vecAfit, Named("matvtA") = matrixVtA,
+                        Named("errorsA") = vecErrorsA, Named("matatA") = matrixAtA,
+                        Named("bfit") = vecBfit, Named("matvtB") = matrixVtB,
+                        Named("errorsB") = vecErrorsB, Named("matatB") = matrixAtB,
+                        Named("warning") = warning);
+}
+
+/* # Wrapper for fitter */
+// [[Rcpp::export]]
+RcppExport SEXP occurenceGeneralFitterWrap(SEXP ot,
+                                           SEXP modellagsA, SEXP EtypeA, SEXP TtypeA, SEXP StypeA,
+                                           SEXP matvtA, SEXP matFA, SEXP matwA, SEXP vecgA,
+                                           SEXP matxtA, SEXP matatA, SEXP matFXA, SEXP vecgXA,
+                                           SEXP modellagsB, SEXP EtypeB, SEXP TtypeB, SEXP StypeB,
+                                           SEXP matvtB, SEXP matFB, SEXP matwB, SEXP vecgB,
+                                           SEXP matxtB, SEXP matatB, SEXP matFXB, SEXP vecgXB){
+
+    NumericMatrix ot_n(ot);
+    arma::vec vecOt(ot_n.begin(), ot_n.nrow(), false);
+
+    //// #### The model A #### ////
+    IntegerVector modellagsA_n(modellagsA);
+    arma::uvec lagsA = as<arma::uvec>(modellagsA_n);
+
+    char EA = as<char>(EtypeA);
+    char TA = as<char>(TtypeA);
+    char SA = as<char>(StypeA);
+
+    NumericMatrix matvtA_n(matvtA);
+    arma::mat matrixVtA(matvtA_n.begin(), matvtA_n.nrow(), matvtA_n.ncol());
+
+    NumericMatrix matFA_n(matFA);
+    arma::mat matrixFA(matFA_n.begin(), matFA_n.nrow(), matFA_n.ncol(), false);
+
+    NumericMatrix matwA_n(matwA);
+    arma::rowvec rowvecWA(matwA_n.begin(), matwA_n.ncol(), false);
+
+    NumericMatrix vecgA_n(vecgA);
+    arma::vec vecGA(vecgA_n.begin(), vecgA_n.nrow(), false);
+
+    NumericMatrix matxtA_n(matxtA);
+    arma::mat matrixXtA(matxtA_n.begin(), matxtA_n.nrow(), matxtA_n.ncol(), false);
+
+    NumericMatrix matatA_n(matatA);
+    arma::mat matrixAtA(matatA_n.begin(), matatA_n.nrow(), matatA_n.ncol());
+
+    NumericMatrix matFXA_n(matFXA);
+    arma::mat matrixFXA(matFXA_n.begin(), matFXA_n.nrow(), matFXA_n.ncol(), false);
+
+    NumericMatrix vecgXA_n(vecgXA);
+    arma::vec vecGXA(vecgXA_n.begin(), vecgXA_n.nrow(), false);
+
+    //// #### The model B #### ////
+    IntegerVector modellagsB_n(modellagsB);
+    arma::uvec lagsB = as<arma::uvec>(modellagsB_n);
+
+    char EB = as<char>(EtypeB);
+    char TB = as<char>(TtypeB);
+    char SB = as<char>(StypeB);
+
+    NumericMatrix matvtB_n(matvtB);
+    arma::mat matrixVtB(matvtB_n.begin(), matvtB_n.nrow(), matvtB_n.ncol());
+
+    NumericMatrix matFB_n(matFB);
+    arma::mat matrixFB(matFB_n.begin(), matFB_n.nrow(), matFB_n.ncol(), false);
+
+    NumericMatrix matwB_n(matwB);
+    arma::rowvec rowvecWB(matwB_n.begin(), matwB_n.ncol(), false);
+
+    NumericMatrix vecgB_n(vecgB);
+    arma::vec vecGB(vecgB_n.begin(), vecgB_n.nrow(), false);
+
+    NumericMatrix matxtB_n(matxtB);
+    arma::mat matrixXtB(matxtB_n.begin(), matxtB_n.nrow(), matxtB_n.ncol(), false);
+
+    NumericMatrix matatB_n(matatB);
+    arma::mat matrixAtB(matatB_n.begin(), matatB_n.nrow(), matatB_n.ncol());
+
+    NumericMatrix matFXB_n(matFXB);
+    arma::mat matrixFXB(matFXB_n.begin(), matFXB_n.nrow(), matFXB_n.ncol(), false);
+
+    NumericMatrix vecgXB_n(vecgXB);
+    arma::vec vecGXB(vecgXB_n.begin(), vecgXB_n.nrow(), false);
+
+    return wrap(occurenceGeneralFitter(vecOt,
+                                       lagsA, EA, TA, SA,
+                                       matrixVtA, matrixFA, rowvecWA, vecGA,
+                                       matrixXtA, matrixAtA, matrixFXA, vecGXA,
+                                       lagsB, EB, TB, SB,
+                                       matrixVtB, matrixFB, rowvecWB, vecGB,
+                                       matrixXtB, matrixAtB, matrixFXB, vecGXB));
+}
+
+/* # Function returns the chosen Cost Function based on the chosen model and produced errors */
+double occurrenceGeneralOptimizer(arma::vec const &vecOt,
+                                  arma::uvec &lagsA, char const &EA, char const &TA, char const &SA,
+                                  arma::mat &matrixVtA, arma::mat const &matrixFA, arma::rowvec const &rowvecWA, arma::vec const &vecGA,
+                                  arma::mat const &matrixXtA, arma::mat &matrixAtA, arma::mat const &matrixFXA, arma::vec const &vecGXA,
+                                  arma::uvec &lagsB, char const &EB, char const &TB, char const &SB,
+                                  arma::mat &matrixVtB, arma::mat const &matrixFB, arma::rowvec const &rowvecWB, arma::vec const &vecGB,
+                                  arma::mat const &matrixXtB, arma::mat &matrixAtB, arma::mat const &matrixFXB, arma::vec const &vecGXB){
+
+    List fitting = occurenceGeneralFitter(vecOt,
+                                          lagsA, EA, TA, SA,
+                                          matrixVtA, matrixFA, rowvecWA, vecGA,
+                                          matrixXtA, matrixAtA, matrixFXA, vecGXA,
+                                          lagsB, EB, TB, SB,
+                                          matrixVtB, matrixFB, rowvecWB, vecGB,
+                                          matrixXtB, matrixAtB, matrixFXB, vecGXB);
+
+    NumericMatrix pfitfromfit = as<NumericMatrix>(fitting["pfit"]);
+    arma::vec vecPfit = as<arma::vec>(pfitfromfit);
+
+    // 0.5 is needed for cases, when the variable is continuous in (0, 1)
+    double CFres = -sum(log(vecPfit.elem(find(vecOt>=0.5)))) - sum(log(1-vecPfit.elem(find(vecOt<0.5))));
+
+    return CFres;
+}
+
+/* # Function is used for the occurrence model of type "G"
+# If bounds are violated, it returns variance of ot. */
+// [[Rcpp::export]]
+RcppExport SEXP occurrenceGeneralOptimizerWrap(SEXP ot, SEXP bounds,
+                                               SEXP modellagsA, SEXP EtypeA, SEXP TtypeA, SEXP StypeA,
+                                               SEXP matvtA, SEXP matFA, SEXP matwA, SEXP vecgA,
+                                               SEXP matxtA, SEXP matatA, SEXP matFXA, SEXP vecgXA,
+                                               SEXP modellagsB, SEXP EtypeB, SEXP TtypeB, SEXP StypeB,
+                                               SEXP matvtB, SEXP matFB, SEXP matwB, SEXP vecgB,
+                                               SEXP matxtB, SEXP matatB, SEXP matFXB, SEXP vecgXB){
+
+    NumericMatrix ot_n(ot);
+    arma::vec vecOt(ot_n.begin(), ot_n.nrow(), false);
+
+    char boundtype = as<char>(bounds);
+
+    //// #### The model A #### ////
+    IntegerVector modellagsA_n(modellagsA);
+    arma::uvec lagsA = as<arma::uvec>(modellagsA_n);
+
+    char EA = as<char>(EtypeA);
+    char TA = as<char>(TtypeA);
+    char SA = as<char>(StypeA);
+
+    NumericMatrix matvtA_n(matvtA);
+    arma::mat matrixVtA(matvtA_n.begin(), matvtA_n.nrow(), matvtA_n.ncol());
+
+    NumericMatrix matFA_n(matFA);
+    arma::mat matrixFA(matFA_n.begin(), matFA_n.nrow(), matFA_n.ncol(), false);
+
+    NumericMatrix matwA_n(matwA);
+    arma::rowvec rowvecWA(matwA_n.begin(), matwA_n.ncol(), false);
+
+    NumericMatrix vecgA_n(vecgA);
+    arma::vec vecGA(vecgA_n.begin(), vecgA_n.nrow(), false);
+
+    NumericMatrix matxtA_n(matxtA);
+    arma::mat matrixXtA(matxtA_n.begin(), matxtA_n.nrow(), matxtA_n.ncol(), false);
+
+    NumericMatrix matatA_n(matatA);
+    arma::mat matrixAtA(matatA_n.begin(), matatA_n.nrow(), matatA_n.ncol());
+
+    NumericMatrix matFXA_n(matFXA);
+    arma::mat matrixFXA(matFXA_n.begin(), matFXA_n.nrow(), matFXA_n.ncol(), false);
+
+    NumericMatrix vecgXA_n(vecgXA);
+    arma::vec vecGXA(vecgXA_n.begin(), vecgXA_n.nrow(), false);
+
+    // Test the bounds for the ETS elements
+    double boundsTestResult = boundsTester(boundtype, TA, SA, vecGA, rowvecWA, matrixFA);
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
+    }
+
+    if(matrixAtA(0,0)!=0){
+        // Test the bounds for the explanatory part
+        arma::rowvec rowvecWX(matFXA_n.nrow(), arma::fill::ones);
+        boundsTestResult = boundsTester(boundtype, TA, SA, vecGXA, rowvecWX, matrixFXA);
+    }
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
+    }
+
+
+    //// #### The model B #### ////
+    IntegerVector modellagsB_n(modellagsB);
+    arma::uvec lagsB = as<arma::uvec>(modellagsB_n);
+
+    char EB = as<char>(EtypeB);
+    char TB = as<char>(TtypeB);
+    char SB = as<char>(StypeB);
+
+    NumericMatrix matvtB_n(matvtB);
+    arma::mat matrixVtB(matvtB_n.begin(), matvtB_n.nrow(), matvtB_n.ncol());
+
+    NumericMatrix matFB_n(matFB);
+    arma::mat matrixFB(matFB_n.begin(), matFB_n.nrow(), matFB_n.ncol(), false);
+
+    NumericMatrix matwB_n(matwB);
+    arma::rowvec rowvecWB(matwB_n.begin(), matwB_n.ncol(), false);
+
+    NumericMatrix vecgB_n(vecgB);
+    arma::vec vecGB(vecgB_n.begin(), vecgB_n.nrow(), false);
+
+    NumericMatrix matxtB_n(matxtB);
+    arma::mat matrixXtB(matxtB_n.begin(), matxtB_n.nrow(), matxtB_n.ncol(), false);
+
+    NumericMatrix matatB_n(matatB);
+    arma::mat matrixAtB(matatB_n.begin(), matatB_n.nrow(), matatB_n.ncol());
+
+    NumericMatrix matFXB_n(matFXB);
+    arma::mat matrixFXB(matFXB_n.begin(), matFXB_n.nrow(), matFXB_n.ncol(), false);
+
+    NumericMatrix vecgXB_n(vecgXB);
+    arma::vec vecGXB(vecgXB_n.begin(), vecgXB_n.nrow(), false);
+
+    // Test the bounds for the ETS elements
+    boundsTestResult = boundsTester(boundtype, TB, SB, vecGB, rowvecWB, matrixFB);
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
+    }
+
+    if(matrixAtB(0,0)!=0){
+        // Test the bounds for the explanatory part
+        arma::rowvec rowvecWX(matFXB_n.nrow(), arma::fill::ones);
+        boundsTestResult = boundsTester(boundtype, TB, SB, vecGXB, rowvecWX, matrixFXB);
+    }
+    if(boundsTestResult!=0){
+        return wrap(boundsTestResult);
+    }
+
+    return wrap(occurrenceGeneralOptimizer(vecOt,
+                                           lagsA, EA, TA, SA,
+                                           matrixVtA, matrixFA, rowvecWA, vecGA,
+                                           matrixXtA, matrixAtA, matrixFXA, vecGXA,
+                                           lagsB, EB, TB, SB,
+                                           matrixVtB, matrixFB, rowvecWB, vecGB,
+                                           matrixXtB, matrixAtB, matrixFXB, vecGXB));
 }

@@ -171,8 +171,7 @@ using separate ETS models.
 \examples{
 
 y <- rpois(100,0.1)
-# oesg(y, occurrence="g")
-
+oesg(y, modelA="MNN", modelB="ANN")
 
 }
 \seealso{

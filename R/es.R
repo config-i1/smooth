@@ -14,7 +14,6 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' Function estimates ETS in a form of the Single Source of Error state space
 #' model of the following type:
 #'
-#' \deqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}
 #'
 #' \deqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
 #'
@@ -802,6 +801,7 @@ XregSelector <- function(listToReturn){
             providedC <- c(C,coef(xregResults)[-1]);
         }
         phi <- NULL;
+
         res <- EstimatorES(ParentEnvironment=environment());
         icBest <- res$ICs[ic];
         logLik <- res$logLik;
@@ -1176,6 +1176,7 @@ CreatorES <- function(silent=FALSE,...){
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs,
                              nParam=res$nParam,FI=FI,logLik=res$logLik,xreg=xreg,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
+
         if(xregDo!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }

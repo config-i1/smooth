@@ -283,8 +283,6 @@ and matrix of states.
 Function estimates ETS in a form of the Single Source of Error state space
 model of the following type:
 
-\deqn{y_{t} = o_{t} (w(v_{t-l}) + x_t a_{t-1} + r(v_{t-l}) \epsilon_{t})}
-
 \deqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
 
 \deqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}

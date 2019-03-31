@@ -1,10 +1,11 @@
-smooth v2.5.0 (Release data: 2019-03-26)
+smooth v2.5.0 (Release data: 2019-03-30)
 ==============
 
 Changes:
 * New function - oes(). This will eventually substitute iss(). This aligns with the IJF paper by Svetunkov & Boylan (TBA). Only "fixed", "odds-ratio", "inverse-odds-ratio" and "probability" models are available at the moment. "general" is expected to arrive in several days...
 * es(), ces(), ssarima(), msarima() and gum() now use "occurrence" parameter instead of "interemittent" and respectively oes() function instead of iss().
 * New error measures: MIS, sMIS and RelMIS - based on the Interval Score of Gneiting and Raftery, 2017. This will be moved to greybox in the next version of smooth.
+* New function - oesg(), implementing the General Beta-Bernoulli exponential smoothing model for the occurrence part of the data. This makes occurrence="g" available for the oes(), es() and all the other functions.
 
 
 smooth v2.4.8 (Release data: 2019-03-10)
