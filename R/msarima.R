@@ -742,8 +742,6 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     # Add variance estimation
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
-    # Write down the probabilities from the occurrence models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(occurrence!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- nParam(imodel);

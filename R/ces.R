@@ -422,7 +422,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
 ##### Define parameters for different seasonality types #####
     # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
-    #   matvt - the matrix with the components, lags is the lags used in pt matrix.
+    #   matvt - the matrix with the components, lags is the lags used in pFitted matrix.
     if(seasonality=="n"){
         # No seasonality
         matF <- matrix(1,2,2);
@@ -718,8 +718,6 @@ CreatorCES <- function(silentText=FALSE,...){
     # Add variance estimation
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
-    # Write down the probabilities from the occurrence models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(occurrence!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- nParam(imodel);

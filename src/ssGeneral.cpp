@@ -770,7 +770,8 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
         lagrows = i * nComponents - lagsInternal + nComponents - 1;
 
 /* # Measurement equation and the error term */
-        vecYfit(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+        // vecOt(i-maxlag) *
+        vecYfit(i-maxlag) = wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                      matrixXt.row(i-maxlag), matrixAt.col(i-1));
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
@@ -778,7 +779,13 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
             vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
         }
 
-        vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+        // If this is zero (intermittent), then set error to zero
+        if(vecOt(i-maxlag)==0){
+            vecErrors(i-maxlag) = 0;
+        }
+        else{
+            vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+        }
 
 /* # Transition equation */
         matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
@@ -933,7 +940,8 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents - (lagsInternal + lagsModifier) + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            vecYfit(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+            // vecOt(i-maxlag) *
+            vecYfit(i-maxlag) = wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                          matrixXt.row(i-maxlag), matrixAt.col(i-1));
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
@@ -941,7 +949,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
             }
 
-            vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+            // If this is zero (intermittent), then set error to zero
+            if(vecOt(i-maxlag)==0){
+                vecErrors(i-maxlag) = 0;
+            }
+            else{
+                vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+            }
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
             if(!vecYfit.row(i-maxlag).is_finite()){
@@ -1024,7 +1038,8 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             lagrows = i * nComponents + lagsInternal - lagsModifier + nComponents - 1;
 
 /* # Measurement equation and the error term */
-            vecYfit.row(i-maxlag) = vecOt(i-maxlag) * wvalue(matrixVt(lagrows), rowvecW, E, T, S,
+            // vecOt(i-maxlag) *
+            vecYfit.row(i-maxlag) = wvalue(matrixVt(lagrows), rowvecW, E, T, S,
                                                              matrixXt.row(i-maxlag), matrixAt.col(i+1));
 
             // This is for cases of ridiculously high and ridiculously low values
@@ -1032,7 +1047,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 vecYfit.col(i-maxlag) = vecYfit(i-maxlag+1);
             }
 
-            vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+            // If this is zero (intermittent), then set error to zero
+            if(vecOt(i-maxlag)==0){
+                vecErrors(i-maxlag) = 0;
+            }
+            else{
+                vecErrors(i-maxlag) = errorf(vecYt(i-maxlag), vecYfit(i-maxlag), E);
+            }
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +

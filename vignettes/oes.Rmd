@@ -29,7 +29,17 @@ The general iETS model (called iETS$_G$) can be summarised as:
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $y_t$ is the observed values, $o_t$ is a binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$) and can be calculated using $p_t = \frac{a_t}{a_t + b_t}$, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms. Also, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function. These four functions define how the elements of the vector $v_{t}$ interact with each other. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This is because this type of model is positively defined, which is essential for the values of $a_t$ and $b_t$. An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N)(M,N,N):
+where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
+\begin{equation} \label{eq:oETS(MZZ)}
+    p_t = \frac{a_t}{a_t+b_t} ,
+\end{equation}
+while for the additive error it is:
+\begin{equation} \label{eq:oETS(AZZ)}
+    p_t = \frac{\exp(a_t)}{\exp(a_t)+\exp(b_t)} .
+\end{equation}
+This is because both $a_t$ and $b_t$ need to be positive, and the additive error models support the real plane. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This is because this type of model is positively defined for any values of error, trend and seasonality, which is essential for the values of $a_t$ and $b_t$. Also, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function. These four functions define how the elements of the vector $v_{t}$ interact with each other.
+
+An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N)(M,N,N):
 \begin{equation} \label{eq:iETSGExample}
     \begin{matrix}
         y_t = o_t z_t \\
@@ -46,7 +56,8 @@ where $y_t$ is the observed values, $o_t$ is a binary occurrence variable (1 - d
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. 
+where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters.
+
 Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS models:
 
 1. iETS$_F$: $a_t = \text{const}$, $b_t = \text{const}$ - the model with the fixed probability of occurrence;
@@ -55,7 +66,11 @@ Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS mode
 4. iETS$_P$: $a_t + b_t = 1$, $a_t \leq 1$ - the probability based model, where the $p_t$ is calculated directly from the occurrence variable $o_t$;
 5. iETS$_G$: No restrictions - the model based on the evolution of both $a_t$ and $b_t$.
 
+The demand occurrence part of the model is denoted as "oETS" in `smooth`, pointing out what the ETS model is applied to.
+
 Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts.
+
+In this vignette we will use ETS(M,N,N) model as a base for the different parts of the models. Although, this is a simplification, it allows better understanding the basics of the different types of iETS model, without the loss of generality.
 
 ## iETS$_F$
 In case of the fixed $a_t$ and $b_t$, the iETS$_G$ model reduces to:
@@ -83,9 +98,9 @@ Note, however that there can be combinations of $a$ and $b$ that will lead to th
 		o_t \sim \text{Bernoulli}(p)
 	\end{matrix} ,
 \end{equation}
-so that the estimate of the probability $p$ is calculated based on the maximisation of the following log-likelihood function:
+so that the estimate of the probability $p$ is calculated based on the maximisation of the following concentrated log-likelihood function:
 \begin{equation} \label{eq:ISSETS(MNN)FixedLikelihoodSmooth}
-	\ell \left(p | o_t \right) = T_1 \log p + T_0 \log (1-p) ,
+	\ell \left(\hat{p} | o_t \right) = T_1 \log \hat{p} + T_0 \log (1-\hat{p}) ,
 \end{equation}
 where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k+1$, where $k$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
 
@@ -95,9 +110,17 @@ The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ v
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Beta-Bernoulli} \left(a_t, 1 \right) \\
-		a_t = w(v_{a,t-L}) + r(v_{a,t-L}) \epsilon_{a,t} \\
-		v_{a,t} = f(v_{a,t-L}) + g(v_{a,t-L}) \epsilon_{a,t} \\
+		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
+		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} \epsilon_{a,t}) \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2)
-    \end{matrix},
+    \end{matrix}.
 \end{equation}
+The probability of occurrence in this model is equal to:
+\begin{equation} \label{eq:oETS_O(MNN)}
+    p_t = \frac{a_t}{a_t+1} .
+\end{equation}
+
+In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{a,0}=\frac{\bar{p}}{1+\bar{p}}$, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative type.
+
+
 

@@ -6,6 +6,7 @@ Changes:
 * es(), ces(), ssarima(), msarima() and gum() now use "occurrence" parameter instead of "interemittent" and respectively oes() function instead of iss().
 * New error measures: MIS, sMIS and RelMIS - based on the Interval Score of Gneiting and Raftery, 2017. This will be moved to greybox in the next version of smooth.
 * New function - oesg(), implementing the General Beta-Bernoulli exponential smoothing model for the occurrence part of the data. This makes occurrence="g" available for the oes(), es() and all the other functions.
+* The fitted values are now multiplied by the probability of occurrence in the case of intermittent model.
 
 
 smooth v2.4.8 (Release data: 2019-03-10)

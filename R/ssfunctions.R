@@ -1,5 +1,5 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
-                         "obsStates","obsNonzero","pt","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
+                         "obsStates","obsNonzero","pFitted","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
                          "constant","AR","MA","data","yFitted","cumulative","rounded"));
 
@@ -843,7 +843,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 ot <- (y!=0)*1;
                 obsNonzero <- sum(ot);
                 yot <- matrix(y[y!=0],obsNonzero,1);
-                pt <- matrix(mean(ot),obsInsample,1);
+                pFitted <- matrix(mean(ot),obsInsample,1);
                 pForecast <- matrix(1,h,1);
                 nParamOccurrence <- 1;
             }
@@ -858,11 +858,11 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 obsNonzero <- sum(ot);
                 yot <- matrix(y[y!=0],obsNonzero,1);
                 if(length(occurrence)==obsAll){
-                    pt <- occurrence[1:obsInsample];
+                    pFitted <- occurrence[1:obsInsample];
                     pForecast <- occurrence[(obsInsample+1):(obsInsample+h)];
                 }
                 else{
-                    pt <- matrix(ot,obsInsample,1);
+                    pFitted <- matrix(ot,obsInsample,1);
                     pForecast <- matrix(occurrence,h,1);
                 }
 
@@ -1384,7 +1384,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         assign("imodel",imodel,ParentEnvironment);
         assign("ot",ot,ParentEnvironment);
         assign("yot",yot,ParentEnvironment);
-        assign("pt",pt,ParentEnvironment);
+        assign("pFitted",pFitted,ParentEnvironment);
         assign("pForecast",pForecast,ParentEnvironment);
         assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
         assign("iprob",iprob,ParentEnvironment);
@@ -1813,6 +1813,9 @@ ssFitter <- function(...){
     else{
         errors.mat <- NA;
     }
+
+    # Correct the fitted values for the cases of intermittent models.
+    yFitted[] <- yFitted * pFitted;
 
     assign("matvt",matvt,ParentEnvironment);
     assign("yFitted",yFitted,ParentEnvironment);
@@ -3006,10 +3009,10 @@ likelihoodFunction <- function(C){
     }
     else{
         #Failsafe for exceptional cases when the probability is equal to zero / one, when it should not have been.
-        if(any(c(1-pt[ot==0]==0,pt[ot==1]==0))){
+        if(any(c(1-pFitted[ot==0]==0,pFitted[ot==1]==0))){
             # return(-Inf);
-            ptNew <- pt[(pt!=0) & (pt!=1)];
-            otNew <- ot[(pt!=0) & (pt!=1)];
+            ptNew <- pFitted[(pFitted!=0) & (pFitted!=1)];
+            otNew <- ot[(pFitted!=0) & (pFitted!=1)];
             if(length(ptNew)==0){
                 return(logLikFromCF(C, cfType));
             }
@@ -3021,22 +3024,22 @@ likelihoodFunction <- function(C){
         #Failsafe for cases, when data has no variability when ot==1.
         if(CF(C)==0){
             if(cfType=="TFL" | cfType=="aTFL"){
-                return(sum(log(pt[ot==1]))*h + sum(log(1-pt[ot==0]))*h);
+                return(sum(log(pFitted[ot==1]))*h + sum(log(1-pFitted[ot==0]))*h);
             }
             else{
-                return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])));
+                return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])));
             }
         }
         if(rounded){
-            return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0])) - CF(C));
+            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C));
         }
         if(cfType=="TFL" | cfType=="aTFL"){
-            return(sum(log(pt[ot==1]))*h
-                   + sum(log(1-pt[ot==0]))*h
+            return(sum(log(pFitted[ot==1]))*h
+                   + sum(log(1-pFitted[ot==0]))*h
                    + logLikFromCF(C, cfType));
         }
         else{
-            return(sum(log(pt[ot==1])) + sum(log(1-pt[ot==0]))
+            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0]))
                    + logLikFromCF(C, cfType));
         }
     }

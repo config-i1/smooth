@@ -113,7 +113,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{nParam} - table with the number of estimated / provided parameters.
 #' If a previous model was reused, then its initials are reused and the number of
 #' provided parameters will take this into account.
-#' \item \code{fitted} - fitted values of ETS.
+#' \item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
+#' fitted are multiplied by the probability of occurrence.
 #' \item \code{forecast} - point forecast of ETS.
 #' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
 #' then NA is returned.
@@ -2066,9 +2067,6 @@ CreatorES <- function(silent=FALSE,...){
     }
 
 ##### Do final check and make some preparations for output #####
-
-    # Write down the probabilities from the occurrence models
-    pt <- ts(c(as.vector(pt),as.vector(pForecast)),start=dataStart,frequency=dataFreq);
     # Write down the number of parameters of imodel
     if(all(occurrence!=c("n","provided")) & !imodelProvided){
         parametersNumber[1,3] <- nParam(imodel);

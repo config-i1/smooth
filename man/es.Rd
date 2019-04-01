@@ -209,7 +209,8 @@ smoothing parameters live.
 \item \code{nParam} - table with the number of estimated / provided parameters.
 If a previous model was reused, then its initials are reused and the number of
 provided parameters will take this into account.
-\item \code{fitted} - fitted values of ETS.
+\item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
+fitted are multiplied by the probability of occurrence.
 \item \code{forecast} - point forecast of ETS.
 \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
 then NA is returned.
