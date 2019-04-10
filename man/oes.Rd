@@ -6,13 +6,13 @@
 \usage{
 oes(data, model = "MNN", persistence = NULL, initial = "o",
   initialSeason = NULL, phi = NULL, occurrence = c("fixed",
-  "general", "odds-ratio", "inverse-odds-ratio", "probability", "auto",
-  "none"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, intervals = c("none", "parametric",
-  "semiparametric", "nonparametric"), level = 0.95, bounds = c("usual",
-  "admissible", "none"), silent = c("all", "graph", "legend", "output",
-  "none"), xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
-  updateX = FALSE, transitionX = NULL, persistenceX = NULL, ...)
+  "general", "odds-ratio", "inverse-odds-ratio", "direct", "auto", "none"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
+  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  level = 0.95, bounds = c("usual", "admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
+  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
+  transitionX = NULL, persistenceX = NULL, ...)
 }
 \arguments{
 \item{data}{Either numeric vector or time series vector.}
@@ -38,7 +38,7 @@ then it is estimated.}
 \code{"fixed"} - constant probability,
 \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 mechanism a+b=1,
 \code{"auto"} - the automatically selected type of occurrence model,
 \code{"general"} - the general Beta model with two parameters. This will call
@@ -128,10 +128,10 @@ values:
 \item \code{model} - the type of the estimated ETS model;
 \item \code{fitted} - the fitted values for the probability;
 \item \code{fittedBeta} - the fitted values of the underlying ETS model, where applicable
-(only for occurrence=c("o","i","p"));
+(only for occurrence=c("o","i","d"));
 \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
 \item \code{forecastBeta} - the forecast of the underlying ETS model, where applicable
-(only for occurrence=c("o","i","p"));
+(only for occurrence=c("o","i","d"));
 \item \code{states} - the values of the state vector;
 \item \code{logLik} - the log-likelihood value of the model;
 \item \code{nParam} - the number of parameters in the model (the matrix is returned);

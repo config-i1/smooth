@@ -12,7 +12,7 @@ auto.msarima(data, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3,
   holdout = FALSE, cumulative = FALSE, intervals = c("none",
   "parametric", "semiparametric", "nonparametric"), level = 0.95,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
-  "inverse-odds-ratio", "probability"), imodel = "MNN",
+  "inverse-odds-ratio", "direct"), imodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
@@ -101,7 +101,7 @@ quantile-wise (Lichtendahl et al., 2013).}
 \code{"general"} - the general Beta model with two parameters,
 \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 mechanism a+b=1,
 \code{"auto"} - the automatically selected type of occurrence model.}
 

@@ -29,16 +29,16 @@ errorerwrap <- function(matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags
     .Call('_smooth_errorerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, h, Etype, Ttype, Stype, modellags, matxt, matat, matFX, ot)
 }
 
-optimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot) {
-    .Call('_smooth_optimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot)
+optimizerwrap <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, SDerror) {
+    .Call('_smooth_optimizerwrap', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, SDerror)
 }
 
-costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, bounds) {
-    .Call('_smooth_costfunc', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, bounds)
+costfunc <- function(matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, bounds, SDerror) {
+    .Call('_smooth_costfunc', PACKAGE = 'smooth', matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, matxt, matat, matFX, vecgX, ot, bounds, SDerror)
 }
 
-costfuncARIMA <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds, ssarimaOld, nonZeroARI, nonZeroMA) {
-    .Call('_smooth_costfuncARIMA', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds, ssarimaOld, nonZeroARI, nonZeroMA)
+costfuncARIMA <- function(ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds, ssarimaOld, nonZeroARI, nonZeroMA, SDerror) {
+    .Call('_smooth_costfuncARIMA', PACKAGE = 'smooth', ARorders, MAorders, Iorders, ARIMAlags, nComp, AR, MA, constant, Cvalues, matvt, matF, matw, yt, vecg, h, modellags, Etype, Ttype, Stype, multisteps, CFt, normalizer, fittertype, nexovars, matxt, matat, matFX, vecgX, ot, estimAR, estimMA, requireConst, estimConst, estimxreg, gowild, estimFX, estimgX, estiminitX, bounds, ssarimaOld, nonZeroARI, nonZeroMA, SDerror)
 }
 
 occurenceFitterWrap <- function(matvt, matF, matw, vecg, ot, modellags, Etype, Ttype, Stype, Otype, matxt, matat, matFX, vecgX) {

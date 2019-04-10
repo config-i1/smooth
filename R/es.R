@@ -242,7 +242,7 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-               occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
+               occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                imodel="MNN",
                bounds=c("usual","admissible","none"),
                silent=c("all","graph","legend","output","none"),
@@ -388,7 +388,7 @@ CF <- function(C){
                       h, modellags, Etype, Ttype, Stype,
                       multisteps, cfType, normalizer, initialType,
                       matxt, elements$matat, elements$matFX, elements$vecgX, ot,
-                      bounds);
+                      bounds, elements$errorSD);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+500;
@@ -717,6 +717,10 @@ EstimatorES <- function(...){
     }
 
     if(rounded){
+        # Take the estimate of RMSE as an initial estimate of SD
+        C <- c(C,sqrt(CF(C)));
+        CLower <- c(CLower,0);
+        CUpper <- c(CUpper,Inf);
         cfType <- "Rounded";
     }
 
@@ -729,7 +733,7 @@ EstimatorES <- function(...){
     }
     C <- res$solution;
 
-    if(all(C==Cs$C) & (initialType!="b")){
+    if(!rounded && (initialType!="b") && all(C==Cs$C)){
         if(any(persistenceEstimate,gXEstimate,FXEstimate)){
             warning(paste0("Failed to optimise the model ETS(", modelCurrent,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
@@ -739,7 +743,7 @@ EstimatorES <- function(...){
     }
 
     # Parameters estimated + variance
-    nParam <- length(C) + 1;
+    nParam <- length(C) + 1*(!rounded);
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
                            C=res$solution,Etype=Etype);
@@ -1732,7 +1736,7 @@ CreatorES <- function(silent=FALSE,...){
 
     #### The occurrence model ####
 # If auto occurrence, then estimate model with occurrence="n" first.
-    if(any(occurrence==c("a"))){
+    if(occurrence=="a"){
         if(!silentText){
             cat("Selecting the best occurrence model...\n");
         }
@@ -1830,6 +1834,11 @@ CreatorES <- function(silent=FALSE,...){
         }
 
         ssFitter(ParentEnvironment=environment());
+        # If this was rounded values, extract the variance
+        if(rounded){
+            s2 <- C[length(C)]^2;
+            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInsample;
+        }
         ssForecaster(ParentEnvironment=environment());
 
         componentNames <- "level";

@@ -197,7 +197,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                    occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
+                    occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                     imodel="MNN",
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
@@ -329,7 +329,7 @@ CF <- function(C){
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                            bounds,
                            # The last bit is "ssarimaOld"
-                           TRUE, nonZeroARI, nonZeroMA);
+                           TRUE, nonZeroARI, nonZeroMA, 0);
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
         cfRes <- 1e+100;
@@ -577,7 +577,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     environment(ssFitter) <- environment();
 
 ##### If occurrence=="a", run a loop and select the best one #####
-    if(any(occurrence==c("a"))){
+    if(occurrence=="a"){
         if(!silentText){
             cat("Selecting the best occurrence model...\n");
         }

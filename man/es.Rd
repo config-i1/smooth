@@ -11,11 +11,10 @@ es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   cumulative = FALSE, intervals = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
-  "inverse-odds-ratio", "probability"), imodel = "MNN",
-  bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
-  "legend", "output", "none"), xreg = NULL, xregDo = c("use",
-  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
-  transitionX = NULL, ...)
+  "inverse-odds-ratio", "direct"), imodel = "MNN", bounds = c("usual",
+  "admissible", "none"), silent = c("all", "graph", "legend", "output",
+  "none"), xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  updateX = FALSE, persistenceX = NULL, transitionX = NULL, ...)
 }
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
@@ -120,7 +119,7 @@ quantile-wise (Lichtendahl et al., 2013).}
 \code{"general"} - the general Beta model with two parameters,
 \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 mechanism a+b=1,
 \code{"auto"} - the automatically selected type of occurrence model.}
 

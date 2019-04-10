@@ -164,7 +164,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
                 cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
+                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                 imodel="MNN",
                 bounds=c("restricted","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
@@ -322,7 +322,7 @@ CF <- function(C){
                        h, modellags, Etype, Ttype, Stype,
                        multisteps, cfType, normalizer, initialType,
                        matxt, matat, matFX, vecgX, ot,
-                       bounds);
+                       bounds, 0);
 
     if(is.nan(cfRes) | is.na(cfRes)){
         cfRes <- 1e100;
@@ -628,7 +628,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     environment(ssFitter) <- environment();
 
 ##### If occurrence=="a", run a loop and select the best one #####
-    if(any(occurrence==c("a"))){
+    if(occurrence=="a"){
         if(!silentText){
             cat("Selecting the best occurrence model...\n");
         }

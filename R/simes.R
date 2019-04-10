@@ -475,7 +475,10 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
             }
             else if(Etype=="A"){
 # Change variance to make some sense. Errors should not be rediculously high and not too low.
-                materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+                if(arrvt[1,1,]!=0){
+                    materrors <- materrors * sqrt(abs(arrvt[1,1,]));
+                }
+
                 if(randomizer=="rs"){
                     materrors <- materrors / 4;
                 }

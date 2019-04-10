@@ -1,4 +1,4 @@
-smooth v2.5.0 (Release data: 2019-03-30)
+smooth v2.5.0 (Release data: 2019-04-10)
 ==============
 
 Changes:
@@ -7,6 +7,9 @@ Changes:
 * New error measures: MIS, sMIS and RelMIS - based on the Interval Score of Gneiting and Raftery, 2017. This will be moved to greybox in the next version of smooth.
 * New function - oesg(), implementing the General Beta-Bernoulli exponential smoothing model for the occurrence part of the data. This makes occurrence="g" available for the oes(), es() and all the other functions.
 * The fitted values are now multiplied by the probability of occurrence in the case of intermittent model.
+* The new likelihood for iETS models, which takes the missing values into account via EM-algorithm.
+* The new estimate of the variance of the error for the iETS, based on the likelihood. It is obviously biased, but consistent and more efficient.
+* Corrected optimisation of the iETS with rounded values, maximising SD directly in the function.
 
 
 smooth v2.4.8 (Release data: 2019-03-10)

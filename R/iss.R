@@ -8,9 +8,10 @@ intermittentParametersSetter <- function(occurrence="n",...){
     if(all(occurrence!=c("n","provided"))){
         ot <- (y!=0)*1;
         obsNonzero <- sum(ot);
+        obsZero <- obsInsample - obsNonzero;
         # 1 parameter for estimating initial probability. Works for the fixed probability model
         nParamOccurrence <- 1;
-        if(any(occurrence==c("o","i","p"))){
+        if(any(occurrence==c("o","i","d"))){
             # The minimum number of parameters for these models is 2: level, alpha
             nParamOccurrence <- nParamOccurrence + 1;
         }
@@ -50,6 +51,7 @@ intermittentParametersSetter <- function(occurrence="n",...){
     }
     else{
         obsNonzero <- obsInsample;
+        obsZero <- 0;
     }
 
     if(occurrence=="n"){
@@ -65,6 +67,7 @@ intermittentParametersSetter <- function(occurrence="n",...){
 
     assign("ot",ot,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
+    assign("obsZero",obsZero,ParentEnvironment);
     assign("yot",yot,ParentEnvironment);
     assign("pFitted",pFitted,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);

@@ -1,5 +1,5 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
-                         "obsStates","obsNonzero","pFitted","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
+                         "obsStates","obsNonzero","obsZero","pFitted","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
                          "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
                          "constant","AR","MA","data","yFitted","cumulative","rounded"));
 
@@ -820,7 +820,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
                 occurrence <- switch(intermittent,
                                      "l"="o",
-                                     "p"="p",
+                                     "p"="d",
                                      "f"="f",
                                      "n"="n",
                                      "a"="a",
@@ -842,6 +842,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 occurrence <- "f";
                 ot <- (y!=0)*1;
                 obsNonzero <- sum(ot);
+                obsZero <- obsInsample - obsNonzero;
                 yot <- matrix(y[y!=0],obsNonzero,1);
                 pFitted <- matrix(mean(ot),obsInsample,1);
                 pForecast <- matrix(1,h,1);
@@ -856,6 +857,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
                 ot <- (y!=0)*1;
                 obsNonzero <- sum(ot);
+                obsZero <- obsInsample - obsNonzero;
                 yot <- matrix(y[y!=0],obsNonzero,1);
                 if(length(occurrence)==obsAll){
                     pFitted <- occurrence[1:obsInsample];
@@ -874,8 +876,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
         else{
             occurrence <- occurrence[1];
-            if(all(occurrence!=c("n","a","f","g","o","i","p",
-                                 "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"))){
+            if(all(occurrence!=c("n","a","f","g","o","i","d",
+                                 "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"))){
                 warning(paste0("Strange type of occurrence model defined: '",occurrence,"'. Switching to 'fixed'."),
                         call.=FALSE);
                 occurrence <- "f";
@@ -898,6 +900,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
     else{
         obsNonzero <- obsInsample;
+        obsZero <- 0;
     }
 
     if(any(smoothType==c("es"))){
@@ -1357,6 +1360,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     assign("obsAll",obsAll,ParentEnvironment);
     assign("obsStates",obsStates,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
+    assign("obsZero",obsZero,ParentEnvironment);
     assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
     assign("dataFreq",dataFreq,ParentEnvironment);
@@ -1680,7 +1684,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
         occurrence <- switch(intermittent,
                              "l"="o",
-                             "p"="p",
+                             "p"="d",
                              "f"="f",
                              "n"="n",
                              "a"="a",
@@ -1708,8 +1712,8 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     else{
         obsNonzero <- sum((y!=0)*1);
         occurrence <- occurrence[1];
-        if(all(occurrence!=c("n","a","f","g","o","i","p",
-                             "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"))){
+        if(all(occurrence!=c("n","a","f","g","o","i","d",
+                             "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"))){
             warning(paste0("Strange type of occurrence model defined: '",occurrence,"'. Switching to 'fixed'."),
                     call.=FALSE);
             occurrence <- "f";
@@ -2383,31 +2387,17 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    # df <- (obsNonzero - nParam);
-    # if(df<=0){
-    #     warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
-    #     df <- obsNonzero;
-    # }
-    # else if(df<5){
-    #     warning(paste0("Low number of degrees of freedom, the estimate of variance might be unreliable.\n",
-    #                    "Using T instead of T-k in the denominator."),
-    #             call.=FALSE);
-    #     df <- obsNonzero;
-    # }
-    df <- obsNonzero;
-
-    # If error additive, estimate as normal. Otherwise - lognormal
-    if(Etype=="A"){
-        s2 <- as.vector(sum((errors*ot)^2)/df);
-        s2g <- 1;
+    if(!exists("s2",ParentEnvironment)){
+        # If error additive, estimate as normal. Otherwise - lognormal
+        if(Etype=="A"){
+            s2 <- as.vector(sum((errors*ot)^2)/obsInsample);
+            s2g <- 1;
+        }
+        else{
+            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsInsample);
+            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInsample;
+        }
     }
-    else{
-        s2 <- as.vector(sum(log(1 + errors*ot)^2)/df);
-        s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/df;
-    }
-    # if((obsNonzero - nParam)<=0){
-    #     df <- 0;
-    # }
 
     yForecastStart <- time(data)[obsInsample]+deltat(data);
 
@@ -2536,16 +2526,12 @@ ssForecaster <- function(...){
                 }
             }
             else{
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=df,
+                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=obsInsample,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
                                            cumulative=cumulative, cfType=cfType,
                                            yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                            iprob=pForecast, ivar=ivar);
-
-                if(rounded){
-                    yForecast <- ceiling(yForecast);
-                }
 
                 # if(!(intervalsType=="sp" & Etype=="M")){
                     yForecast <- c(pForecast)*yForecast;
@@ -2984,23 +2970,32 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
 ##### *Likelihood function* #####
 likelihoodFunction <- function(C){
-    #### Basic logLikelihood based on C and CF ####
+    #### Concentrated logLikelihood based on C and CF ####
     logLikFromCF <- function(C, cfType){
+        yotSumLog <- switch(Etype,
+                            "M" = sum(log(yot)),
+                            "A" = 0);
+        if(Etype=="M" && any(cfType==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
+                                       "TFL","aTMSE","aGTMSE","aTFL"))){
+            yotSumLog <- yotSumLog * h;
+        }
+
         if(any(cfType==c("MAE","MAEh","MACE"))){
-            return(- obsNonzero*(log(2) + 1 + log(CF(C))));
+            return(- (obsInsample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
         else if(any(cfType==c("HAM","HAMh","CHAM"))){
-            return(- 2*obsNonzero*(log(2) + 1 + log(0.5*CF(C))));
+            #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
+            return(- 2*(obsInsample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
         else if(any(cfType==c("TFL","aTFL"))){
-            return(- obsNonzero/2 *(h*log(2*pi) + 1 + CF(C)));
+            return(- 0.5 *(obsInsample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
         }
-        else if(any(cfType==c("LogisticD","LogisticL","TSB"))){
+        else if(any(cfType==c("LogisticD","LogisticL","TSB","Rounded"))){
             return(-CF(C));
         }
         else{
-            #if(cfType==c("MSE","MSEh","MSCE"))
-            return(- obsNonzero/2 *(log(2*pi) + 1 + log(CF(C))));
+            #if(cfType==c("MSE","MSEh","MSCE")) obsNonzero
+            return(- 0.5 *(obsInsample*(log(2*pi) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
     }
 
@@ -3031,7 +3026,7 @@ likelihoodFunction <- function(C){
             }
         }
         if(rounded){
-            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C));
+            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C) - obsZero/2*(log(2*pi*C[length(C)]^2)+1));
         }
         if(cfType=="TFL" | cfType=="aTFL"){
             return(sum(log(pFitted[ot==1]))*h
@@ -3157,8 +3152,8 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         else if(any(occurrence==c("i","inverse-odds-ratio"))){
             occurrence <- "Inverse odds ratio";
         }
-        else if(any(occurrence==c("p","probability"))){
-            occurrence <- "Probability";
+        else if(any(occurrence==c("d","direct"))){
+            occurrence <- "Direct";
         }
         else if(any(occurrence==c("g","general"))){
             occurrence <- "General";

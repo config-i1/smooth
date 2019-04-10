@@ -23,7 +23,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \code{"fixed"} - constant probability,
 #' \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 #' \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-#' \code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+#' \code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 #' mechanism a+b=1,
 #' \code{"auto"} - the automatically selected type of occurrence model,
 #' \code{"general"} - the general Beta model with two parameters. This will call
@@ -100,10 +100,10 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \item \code{model} - the type of the estimated ETS model;
 #' \item \code{fitted} - the fitted values for the probability;
 #' \item \code{fittedBeta} - the fitted values of the underlying ETS model, where applicable
-#' (only for occurrence=c("o","i","p"));
+#' (only for occurrence=c("o","i","d"));
 #' \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
 #' \item \code{forecastBeta} - the forecast of the underlying ETS model, where applicable
-#' (only for occurrence=c("o","i","p"));
+#' (only for occurrence=c("o","i","d"));
 #' \item \code{states} - the values of the state vector;
 #' \item \code{logLik} - the log-likelihood value of the model;
 #' \item \code{nParam} - the number of parameters in the model (the matrix is returned);
@@ -132,8 +132,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #'
 #' @export
 oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=NULL, phi=NULL,
-                occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio",
-                                   "probability","auto","none"),
+                occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio","direct","auto","none"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 bounds=c("usual","admissible","none"),
@@ -147,7 +146,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     # O: M / A odds-ratio - "odds-ratio"
     # I: - M / A inverse-odds-ratio - "inverse-odds-ratio"
     # G: - M / A general model - "general" <- This should rely on a vector-based model
-    # P: - M Probability based (TSB like) - "probability"
+    # P: - M Probability based (TSB like) - "direct"
     # Not in the fitter:
     # F: - fixed
 
@@ -256,7 +255,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     yForecastStart <- time(data)[obsInsample]+deltat(data);
 
     #### The functions for the O, I, and P models ####
-    if(any(occurrence==c("o","i","p"))){
+    if(any(occurrence==c("o","i","d"))){
         ##### Initialiser of oes #####
         # This creates the states, transition, persistence and measurement matrices
         oesInitialiser <- function(Etype, Ttype, Stype, damped, phiEstimate, occurrence,
@@ -699,7 +698,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        initial=initial, initialSeason=NULL);
     }
     ##### Odds-ratio, inverse and probability models #####
-    else if(any(occurrence==c("o","i","p"))){
+    else if(any(occurrence==c("o","i","d"))){
         if(modelDo=="estimate"){
             # Initialise the model
             basicparams <- oesInitialiser(Etype, Ttype, Stype, damped, phiEstimate, occurrence,
@@ -797,7 +796,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                       "i" = switch(Etype,
                                                    "M"=1/(1+pForecast),
                                                    "A"=1/(1+exp(pForecast))),
-                                      "p" = sapply(sapply(as.vector(pForecast),min,1),max,0));
+                                      "d" = sapply(sapply(as.vector(pForecast),min,1),max,0));
                 # This is usually due to the exp(big number), which corresponds to 1
                 if(any(occurrence==c("i","o")) && Etype=="A" && any(is.nan(pForecast))){
                     pForecast[is.nan(pForecast)] <- 1;
@@ -855,7 +854,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                      "BIC"=BIC,
                      "BICc"=BICc);
 
-        occurrencePool <- c("f","o","i","p","g");
+        occurrencePool <- c("f","o","i","d","g");
         occurrencePoolLength <- length(occurrencePool);
         occurrenceModels <- vector("list",occurrencePoolLength);
         for(i in 1:occurrencePoolLength){

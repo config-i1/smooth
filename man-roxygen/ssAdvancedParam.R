@@ -21,7 +21,7 @@
 #' \code{"general"} - the general Beta model with two parameters,
 #' \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
 #' \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-#' \code{"probability"} - the TSB-like (Teunter et al., 2011) probability update
+#' \code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 #' mechanism a+b=1,
 #' \code{"auto"} - the automatically selected type of occurrence model.
 #' @param imodel The type of ETS model used for the modelling of the time varying

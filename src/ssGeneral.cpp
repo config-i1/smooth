@@ -37,9 +37,8 @@ RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
 }
 
 /* # Function returns value of CDF-based likelihood function for the whole series */
-double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, arma::vec const &matErrors, char const &E){
+double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &errorSD, char const &E){
 
-    double errorSD = arma::as_scalar(sqrt(mean(pow(matErrors,2))));
     double CF = 0.0;
     double CFbuffer;
     int obs = vecYt.n_rows;
@@ -279,6 +278,9 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 
     NumericMatrix Cv(Cvalues);
     arma::rowvec C(Cv.begin(), Cv.ncol(), false);
+    // This is needed for rounded cases, when variance needs to be optimised as well.
+    int CLength = Cv.ncol();
+    double errorSD = 0.0;
 
     int ncomponents = as<int>(ncomponentsR);
 
@@ -376,6 +378,10 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         }
     }
 
+    if(currentelement!=CLength){
+        errorSD = C(currentelement);
+    }
+
 /* # The default values of matrices are set for ZNN  models */
     switch(S){
     case 'N':
@@ -425,7 +431,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 
     return wrap(List::create(Named("matF") = matrixF, Named("matw") = rowvecW, Named("vecg") = vecG,
                              Named("phi") = phivalue, Named("matvt") = matrixVt, Named("matat") = matrixAt,
-                             Named("matFX") = matrixFX, Named("vecgX") = vecGX));
+                             Named("matFX") = matrixFX, Named("vecgX") = vecGX, Named("errorSD") = errorSD));
 }
 
 /*
@@ -1360,7 +1366,8 @@ int CFtypeswitch (std::string const& CFtype) {
 double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &rowvecW, arma::vec const &vecYt, arma::vec const &vecG,
                  unsigned int const &hor, arma::uvec &lags, char const &E, char const &T, char const &S,
                  bool const &multi, std::string const &CFtype, double const &normalize, char const &fitterType,
-                 arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt){
+                 arma::mat const &matrixXt, arma::mat &matrixAt, arma::mat const &matrixFX, arma::vec const &vecGX, arma::vec const &vecOt,
+                 double const &errorSD){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
     arma::set_cerr_stream(nullstream);
@@ -1381,7 +1388,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     int CFSwitch = CFtypeswitch(CFtypeNew);
 
     arma::uvec nonzeroes = find(vecOt>0);
-    unsigned int obs = nonzeroes.n_rows;
+    unsigned int obs = vecYt.n_rows;
     double CFres = 0;
     int matobs = obs - hor;
 
@@ -1484,13 +1491,13 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         switch(CFSwitch){
         // Basic one-step aheads
         case 1:
-            CFres = arma::as_scalar(mean(pow(matErrors,2)));
+            CFres = arma::as_scalar(sum(pow(matErrors,2)) / double(obs));
         break;
         case 2:
-            CFres = arma::as_scalar(mean(abs(matErrors)));
+            CFres = arma::as_scalar(sum(abs(matErrors)) / double(obs));
         break;
         case 3:
-            CFres = arma::as_scalar(mean(sqrt(abs(matErrors))));
+            CFres = arma::as_scalar(sum(sqrt(abs(matErrors))) / (2*double(obs)));
         break;
         // MSE based multisteps:
         case 4:
@@ -1562,7 +1569,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         break;
         // Rounded
         case 21:
-            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
+            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), errorSD, E);
         break;
         // TSB
         case 22:
@@ -1576,64 +1583,52 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         switch(CFSwitch){
         // Basic one-step aheads
         case 1:
-            CFres = arma::as_scalar(exp(log(mean(pow(matErrors,2))) + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(pow(matErrors,2)) / double(obs));
         break;
         case 2:
-            CFres = arma::as_scalar(exp(log(mean(abs(matErrors))) + (1 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(abs(matErrors)) / double(obs));
         break;
         case 3:
-            CFres = arma::as_scalar(exp(log(mean(sqrt(abs(matErrors)))) + (1 / (2*double(obs))) * yactsum));
+            CFres = arma::as_scalar(sum(sqrt(abs(matErrors))) / (2*double(obs)));
         break;
         // MSE based multisteps:
         case 4:
-            CFres = arma::as_scalar(exp(log(sum(pow(matErrors.col(hor-1),2)) / double(matobs))
-                                        + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(pow(matErrors.col(hor-1),2)) / double(matobs));
         break;
         case 5:
-            CFres = arma::as_scalar(exp(log(sum(sum(pow(matErrors,2)) / double(matobs), 1))
-                        + (2 / double(obs)) * double(hor) * yactsum));
+            CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(matobs), 1));
         break;
         case 6:
-            CFres = arma::as_scalar(exp(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1)
-                    + (2 / double(obs)) * double(hor) * yactsum));
+            CFres = arma::as_scalar(exp(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1)));
         break;
         case 7:
-            CFres = arma::as_scalar(exp(log(sum(pow(sum(matErrors,1),2) / double(matobs)))
-                        + (2 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs)));
         break;
         // MAE based multisteps:
         case 8:
-            CFres = arma::as_scalar(exp(log(sum(abs(matErrors.col(hor-1))) / double(matobs))
-                                        + (1 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(abs(matErrors.col(hor-1))) / double(matobs));
         break;
         case 9:
-            CFres = arma::as_scalar(exp(log(sum(sum(abs(matErrors)) / double(matobs), 1))
-                        + (1 / double(obs)) * double(hor) * yactsum));
+            CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1));
         break;
         case 10:
-            CFres = arma::as_scalar(exp(log(sum(log(sum(abs(matErrors)) / double(matobs)), 1))
-                    + (1 / double(obs)) * double(hor) * yactsum));
+            CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1));
         break;
         case 11:
-            CFres = arma::as_scalar(exp(log(sum(abs(sum(matErrors,1)) / double(matobs)))
-                        + (1 / double(obs)) * yactsum));
+            CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs)));
         break;
         // HAM based multisteps:
         case 12:
-            CFres = arma::as_scalar(exp(log(sum(sqrt(abs(matErrors.col(hor-1)))) / double(matobs))
-                                        + (1 / (2*double(obs))) * yactsum));
+            CFres = arma::as_scalar(sum(sqrt(abs(matErrors.col(hor-1)))) / double(matobs));
         break;
         case 13:
-            CFres = arma::as_scalar(exp(log(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1))
-                        + (1 / (2*double(obs))) * double(hor) * yactsum));
+            CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1));
         break;
         case 14:
-            CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1))
-                    + (1 / (2*double(obs))) * double(hor) * yactsum;
+            CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1));
         break;
         case 15:
-            CFres = arma::as_scalar(exp(log(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)))
-                        + (1 / (2*double(obs))) * yactsum));
+            CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));
         break;
         // TFL
         case 16:
@@ -1643,17 +1638,16 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             catch(const std::runtime_error&){
                 CFres = double(log(arma::det(arma::trans(matErrors) * matErrors / double(matobs))));
             }
-            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+            // CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         // Analytical multisteps
         case 17:
             CFres = (as_scalar(mean(pow(matErrors,2))) * matrixSigma(hor-1,hor-1));
-            CFres = CFres + (2 / double(matobs)) * yactsum;
+            // CFres = CFres + (2 / double(matobs)) * yactsum;
         break;
         case 18:
-            CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma
-                                    );
-            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+            CFres = arma::trace(as_scalar(mean(pow(matErrors,2))) * matrixSigma);
+            // CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         case 19:
         case 20:
@@ -1665,11 +1659,11 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                 CFres = log(arma::det(as_scalar(mean(pow(matErrors / normalize,2))) * matrixSigma
                                           )) + hor*log(pow(normalize,2));
             }
-            CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
+            // CFres = CFres + (2 / double(matobs)) * double(hor) * yactsum;
         break;
         // Rounded
         case 21:
-            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), matErrors, E);
+            CFres = -cdf(vecYt.elem(nonzeroes), vecYfit.elem(nonzeroes), errorSD, E);
         break;
         // TSB
         case 22:
@@ -1685,7 +1679,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
 RcppExport SEXP optimizerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
                               SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
                               SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP fittertype,
-                              SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot) {
+                              SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot, SEXP SDerror) {
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
 
@@ -1733,10 +1727,12 @@ RcppExport SEXP optimizerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP ve
     NumericVector ot_n(ot);
     arma::vec vecOt(ot_n.begin(), ot_n.size(), false);
 
+    double errorSD = as<double>(SDerror);
+
     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
                           hor, lags, E, T, S,
                           multi, CFtype, normalize, fitterType,
-                          matrixXt, matrixAt, matrixFX, vecGX, vecOt));
+                          matrixXt, matrixAt, matrixFX, vecGX, vecOt, errorSD));
 }
 
 /* # Function is used in cases when the persistence vector needs to be estimated.
@@ -1746,7 +1742,7 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
                               SEXP h, SEXP modellags, SEXP Etype, SEXP Ttype, SEXP Stype,
                               SEXP multisteps, SEXP CFt, SEXP normalizer, SEXP fittertype,
                               SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
-                              SEXP bounds) {
+                              SEXP bounds, SEXP SDerror) {
 /* Function is needed to implement admissible constrains on smoothing parameters */
     NumericMatrix matvt_n(matvt);
     arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol());
@@ -1797,6 +1793,8 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
 
     char boundtype = as<char>(bounds);
 
+    double errorSD = as<double>(SDerror);
+
     // Test the bounds for the ETS elements
     double boundsTestResult = boundsTester(boundtype, T, S, vecG, rowvecW, matrixF);
     if(boundsTestResult!=0){
@@ -1815,7 +1813,7 @@ RcppExport SEXP costfunc(SEXP matvt, SEXP matF, SEXP matw, SEXP yt, SEXP vecg,
     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
                           hor, lags, E, T, S,
                           multi, CFtype, normalize, fitterType,
-                          matrixXt, matrixAt, matrixFX, vecGX, vecOt));
+                          matrixXt, matrixAt, matrixFX, vecGX, vecOt, errorSD));
 }
 
 
@@ -1829,7 +1827,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
                               SEXP nexovars, SEXP matxt, SEXP matat, SEXP matFX, SEXP vecgX, SEXP ot,
                               SEXP estimAR, SEXP estimMA, SEXP requireConst, SEXP estimConst,
                               SEXP estimxreg, SEXP gowild, SEXP estimFX, SEXP estimgX, SEXP estiminitX,
-                              SEXP bounds, SEXP ssarimaOld, SEXP nonZeroARI, SEXP nonZeroMA) {
+                              SEXP bounds, SEXP ssarimaOld, SEXP nonZeroARI, SEXP nonZeroMA, SEXP SDerror) {
 
     IntegerVector ARorders_n(ARorders);
     arma::uvec arOrders = as<arma::uvec>(ARorders_n);
@@ -1964,6 +1962,8 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
 
     char boundtype = as<char>(bounds);
 
+    double errorSD = as<double>(SDerror);
+
     if((nComponents>0) & ((boundtype=='a') | (boundtype=='r'))){
         arma::cx_vec eigval;
 
@@ -2009,7 +2009,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
     return wrap(optimizer(matrixVt, matrixF, rowvecW, vecYt, vecG,
                           hor, modelLags, E, T, S,
                           multi, CFtype, normalize, fitterType,
-                          matrixXt, matrixAt, matrixFX, vecGX, vecOt));
+                          matrixXt, matrixAt, matrixFX, vecGX, vecOt, errorSD));
 }
 
 /*

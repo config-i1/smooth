@@ -80,7 +80,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                          cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          h=10, holdout=FALSE, cumulative=FALSE,
                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                         occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
+                         occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                          imodel="MNN",
                          bounds=c("admissible","none"),
                          silent=c("all","graph","legend","output","none"),
