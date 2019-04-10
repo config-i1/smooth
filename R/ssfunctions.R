@@ -2387,7 +2387,7 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(!exists("s2",ParentEnvironment)){
+    if(!rounded){
         # If error additive, estimate as normal. Otherwise - lognormal
         if(Etype=="A"){
             s2 <- as.vector(sum((errors*ot)^2)/obsInsample);
