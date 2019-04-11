@@ -3055,20 +3055,20 @@ ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
     ### AICc and BICc are incorrect in case of non-normal residuals!
     if(cfType=="TFL"){
         coefAIC <- 2*nParamOverall*h - 2*llikelihood;
-        coefBIC <- log(obsNonzero)*nParamOverall*h - 2*llikelihood;
-        coefAICc <- (2*obsNonzero*(nParam*h + (h*(h+1))/2) /
-                         max(obsNonzero - nParam - 1 - h,0)
+        coefBIC <- log(obsInsample)*nParamOverall*h - 2*llikelihood;
+        coefAICc <- (2*obsInsample*(nParam*h + (h*(h+1))/2) /
+                         max(obsInsample - nParam - 1 - h,0)
                      -2*llikelihood);
         coefBICc <- (((nParam + (h*(h+1))/2)*
-                          log(obsNonzero*h)*obsNonzero*h) /
-                         max(obsNonzero*h - nParam - (h*(h+1))/2,0)
+                          log(obsInsample*h)*obsInsample*h) /
+                         max(obsInsample*h - nParam - (h*(h+1))/2,0)
                      -2*llikelihood);
     }
     else{
         coefAIC <- 2*nParamOverall - 2*llikelihood;
-        coefBIC <- log(obsNonzero)*nParamOverall - 2*llikelihood;
-        coefAICc <- coefAIC + 2*nParam*(nParam+1) / max(obsNonzero-nParam-1,0);
-        coefBICc <- (nParam * log(obsNonzero) * obsNonzero) / (obsNonzero - nParam - 1) -2*llikelihood;
+        coefBIC <- log(obsInsample)*nParamOverall - 2*llikelihood;
+        coefAICc <- coefAIC + 2*nParam*(nParam+1) / max(obsInsample-nParam-1,0);
+        coefBICc <- (nParam * log(obsInsample) * obsInsample) / (obsInsample - nParam - 1) -2*llikelihood;
     }
 
     ICs <- c(coefAIC, coefAICc, coefBIC, coefBICc);
