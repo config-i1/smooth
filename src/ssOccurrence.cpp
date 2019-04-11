@@ -45,7 +45,7 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
         case 'i':
             pfit = 1 / (1 + aFit);
         break;
-        case 'p':
+        case 'd':
             pfit = aFit;
         break;
     }
@@ -63,7 +63,7 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
         case 'i':
             output[0] = (1 - error) / error;
         break;
-        case 'p':
+        case 'd':
             // If this is "probability" model, calculate the error differently
             output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
         break;
@@ -146,7 +146,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
         }
 
-        // For O==c("o","i","p") the bFit is set to 1 and aFit is the variable under consideration
+        // For O==c("o","i","d") the bFit is set to 1 and aFit is the variable under consideration
         vecErrors(i-maxlag) = occurrenceError(vecOt(i-maxlag), vecYfit(i-maxlag), 1.0, E, 'M', O)[0];
 
 /* # Transition equation */
@@ -238,7 +238,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
                 break;
             }
         break;
-        case 'p':
+        case 'd':
             vecPfit = vecYfit;
             // This is not correct statistically. See the (50) - (52) in order to see how this needs to be done properly.
             // But this works and I don't have time to do that 100% correctly.
@@ -315,7 +315,7 @@ double occurrenceOptimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::
     return CFres;
 }
 
-/* # Function is used for the occurrence model of the types "I", "O" and "P"
+/* # Function is used for the occurrence model of the types "I", "O" and "D"
 # If bounds are violated, it returns variance of ot. */
 // [[Rcpp::export]]
 RcppExport SEXP occurrenceOptimizerWrap(SEXP matvt, SEXP matF, SEXP matw, SEXP vecg, SEXP ot,
@@ -468,7 +468,7 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
             vecBfit(i) = vecBfit(i-1);
         }
 
-        // For O==c("o","i","p") the bFit is set to 1 and aFit is the variable under consideration
+        // Generate occurrence error for the model
         bufferForErrors = occurrenceError(vecOt(i), vecAfit(i), vecBfit(i), EA, EB, 'g');
         vecErrorsA(i) = bufferForErrors[0];
         vecErrorsB(i) = bufferForErrors[1];
