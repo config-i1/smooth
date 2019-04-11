@@ -1158,6 +1158,18 @@ orders.Arima <- function(object, ...){
 #### Plots of smooth objects ####
 #' @importFrom graphics plot
 #' @export
+plot.oes <- function(x, ...){
+    ellipsis <- list(...);
+
+    if(is.null(ellipsis$main)){
+        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,main=paste0(x$model,"_",toupper(x$occurrence)),...);
+    }
+    else{
+        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper, ...);
+    }
+}
+
+#' @export
 plot.smooth <- function(x, ...){
     ellipsis <- list(...);
     parDefault <- par(no.readonly = TRUE);

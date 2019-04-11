@@ -3119,28 +3119,6 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
-    # if(all(intermittent!=c("n","none","provided"))){
-    #     if(any(intermittent==c("f","fixed"))){
-    #         intermittent <- "Fixed probability";
-    #     }
-    #     else if(any(intermittent==c("i","interval"))){
-    #         intermittent <- "Interval-based";
-    #     }
-    #     else if(any(intermittent==c("p","probability"))){
-    #         intermittent <- "Probability-based";
-    #     }
-    #     else if(any(intermittent==c("s","sba"))){
-    #         intermittent <- "SBA";
-    #     }
-    #     else if(any(intermittent==c("l","logistic"))){
-    #         intermittent <- "Logistic";
-    #     }
-    #     cat(paste0("Intermittent model type: ",intermittent));
-    #     cat("\n");
-    # }
-    # else if(any(intermittent==c("provided"))){
-    #     cat(paste0("Intermittent data provided for holdout.\n"));
-    # }
 
     if(all(occurrence!=c("n","none","provided"))){
         if(any(occurrence==c("f","fixed"))){
@@ -3304,7 +3282,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     }
 
     if(holdout){
-        if(intervals & !is.null(insideintervals)){
+        if(intervals && !is.null(insideintervals)){
             cat(paste0(round(insideintervals,0), "% of values are in the prediction interval\n"));
         }
         cat("Forecast errors:\n");
