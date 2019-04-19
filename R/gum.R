@@ -558,8 +558,11 @@ CreatorGUM <- function(silentText=FALSE,...){
     }
 
 ##### Preset values of matvt ######
-    slope <- cov(yot[1:min(max(12,dataFreq),obsNonzero),],c(1:min(max(12,dataFreq),obsNonzero)))/var(c(1:min(max(12,dataFreq),obsNonzero)));
-    intercept <- sum(yot[1:min(max(12,dataFreq),obsNonzero),])/min(max(12,dataFreq),obsNonzero) - slope * (sum(c(1:min(max(12,dataFreq),obsNonzero)))/min(max(12,dataFreq),obsNonzero) - 1);
+    slope <- (cov(yot[1:min(max(12,dataFreq),obsNonzero),],c(1:min(max(12,dataFreq),obsNonzero)))/
+                  var(c(1:min(max(12,dataFreq),obsNonzero))));
+    intercept <- (sum(yot[1:min(max(12,dataFreq),obsNonzero),])/min(max(12,dataFreq),obsNonzero) -
+                      slope * (sum(c(1:min(max(12,dataFreq),obsNonzero)))/
+                                   min(max(12,dataFreq),obsNonzero) - 1));
 
     vtvalues <- intercept;
     if((orders %*% lags)>1){
@@ -798,7 +801,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
     # Write down the number of parameters of imodel
     if(all(occurrence!=c("n","provided")) & !imodelProvided){
-        parametersNumber[1,3] <- nParam(imodel);
+        parametersNumber[1,3] <- nparam(imodel);
     }
 
 # Make some preparations
@@ -831,10 +834,10 @@ CreatorGUM <- function(silentText=FALSE,...){
     if(holdout){
         yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
         if(cumulative){
-            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,y);
         }
 
         if(cumulative){

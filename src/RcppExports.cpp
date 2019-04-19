@@ -6,18 +6,6 @@
 
 using namespace Rcpp;
 
-// polyMultwrap
-RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2);
-RcppExport SEXP _smooth_polyMultwrap(SEXP polyVec1SEXP, SEXP polyVec2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type polyVec1(polyVec1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type polyVec2(polyVec2SEXP);
-    rcpp_result_gen = Rcpp::wrap(polyMultwrap(polyVec1, polyVec2));
-    return rcpp_result_gen;
-END_RCPP
-}
 // initparams
 RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SEXP obsR, SEXP obsallR, SEXP yt, SEXP damped, SEXP phi, SEXP smoothingparameters, SEXP initialstates, SEXP seasonalcoefs);
 RcppExport SEXP _smooth_initparams(SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP datafreqSEXP, SEXP obsRSEXP, SEXP obsallRSEXP, SEXP ytSEXP, SEXP dampedSEXP, SEXP phiSEXP, SEXP smoothingparametersSEXP, SEXP initialstatesSEXP, SEXP seasonalcoefsSEXP) {

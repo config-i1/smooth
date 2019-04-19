@@ -955,7 +955,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
 
         if(holdout){
             yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
-            errormeasures <- Accuracy(yHoldout,pForecast,ot);
+            errormeasures <- measures(yHoldout,pForecast,ot);
         }
         else{
             yHoldout <- NA;
@@ -1033,6 +1033,16 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     output <- list(model=paste0(modelname,"(",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", actuals=otAll,
                    fitted=pFitted, forecast=pForecast, modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);
+
+    # If there was a holdout, measure the accuracy
+    if(holdout){
+        yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+        output$accuracy <- measures(yHoldout,pForecast,ot);
+    }
+    else{
+        yHoldout <- NA;
+        output$accuracy <- NA;
+    }
 
     ##### Make a plot #####
     if(!silentGraph){

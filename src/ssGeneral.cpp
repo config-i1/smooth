@@ -24,18 +24,6 @@ arma::vec polyMult(arma::vec const &poly1, arma::vec const &poly2){
     return poly3;
 }
 
-/* # Function allows to multiply polinomails */
-// [[Rcpp::export]]
-RcppExport SEXP polyMultwrap(SEXP polyVec1, SEXP polyVec2){
-    NumericVector polyVec1_n(polyVec1);
-    arma::vec poly1(polyVec1_n.begin(), polyVec1_n.size(), false);
-
-    NumericVector polyVec2_n(polyVec2);
-    arma::vec poly2(polyVec2_n.begin(), polyVec2_n.size(), false);
-
-    return wrap(polyMult(poly1, poly2));
-}
-
 /* # Function returns value of CDF-based likelihood function for the whole series */
 double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &errorSD, char const &E){
 

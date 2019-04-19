@@ -326,10 +326,10 @@ smoothCombine <- function(data, models=NULL,
     ##### Now let's deal with holdout #####
     if(holdout){
         if(cumulative){
-            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,y);
         }
 
         if(cumulative){

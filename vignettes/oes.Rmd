@@ -12,6 +12,7 @@ vignette: >
 ```{r global_options, include=FALSE}
 knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hold',
                       warning=FALSE, message=FALSE)
+library(smooth)
 ```
 
 This vignette documents how the occurrence part of the iETS model is implemented in the `smooth` package.
@@ -56,7 +57,13 @@ An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters.
+where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. More advanced models can be constructing by specifying the ETS models for each part and / or adding explanatory variables.
+
+The concentrated likelihood function for this model is:
+\begin{equation} \label{eq:LogNormalConcentratedLogLikelihood} \tag{2}
+	\ell(\boldsymbol{\theta}, \hat{\sigma}_\epsilon^2 | \textbf{Y}) = - \frac{1}{2} \left( T \log(2 \pi e \hat{\sigma}_\epsilon^2) + T_0 \right) - {\sum_{o_t=1}} \log(z_t) + {\sum_{o_t=1}} \log(\hat{p}_t) + {\sum_{o_t=0}} \log(1-\hat{p}_t) ,
+\end{equation}
+where $\textbf{Y}$ is the vector of all the in-sample observations, $\boldsymbol{\theta}$ is the vector of parameters to estimate (initial values and smoothing parameters), $T$ is the number of all observations, $T_0$ is the number of zero observations, $\hat{\sigma_\epsilon}^2 = \frac{1}{T} \sum_{o_t=1} \log^2 \left(1 + \epsilon_t \right)$ is the scale parameter of the one-step-ahead forecast error for the demand sizes and $\hat{p}_t$ is the estimated probability of a non-zero demand at time $t$. This likelihood is used for the estimation of all the special cases of the iETS$_G$ model.
 
 Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS models:
 
@@ -72,9 +79,17 @@ Depending on the type of the model, there are different mechanisms of the model 
 
 In this vignette we will use ETS(M,N,N) model as a base for the different parts of the models. Although, this is a simplification, it allows better understanding the basics of the different types of iETS model, without the loss of generality.
 
+We will use an artificial data in order to see how the functions work:
+```{r artificialData}
+y <- ts(c(rpois(20,0.25),rpois(20,0.5),rpois(20,1),rpois(20,2),rpois(20,3),rpois(20,5)))
+```
+
+All the models, discussed in this vignette, are implemented in the functions `oes()` and `oesg()`. The only missing element in all of this at the moment is the model selection mechanism for the demand occurrence part. So neither `oes()` nor `oesg()` currently support "ZZZ" ETS models.
+
+
 ## iETS$_F$
 In case of the fixed $a_t$ and $b_t$, the iETS$_G$ model reduces to:
-\begin{equation} \label{eq:ISSETS(MNN)Fixed} \tag{2}
+\begin{equation} \label{eq:ISSETS(MNN)Fixed} \tag{3}
 	\begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Beta-Bernoulli}(a, b)
@@ -82,7 +97,7 @@ In case of the fixed $a_t$ and $b_t$, the iETS$_G$ model reduces to:
 \end{equation}
 
 The conditional h-steps ahead median of the demand occurrence probability is calculated as:
-\begin{equation} \label{eq:pt_fixed_expectation} \tag{3}
+\begin{equation} \label{eq:pt_fixed_expectation}
 	\mu_{o,t+h|t} = \tilde{p}_{t+h|t} = \frac{a}{a+b} .
 \end{equation}
 
@@ -91,7 +106,7 @@ The likelihood function used in the first step of the estimation of iETS can be 
 	\ell \left(a,b | o_t \right) = {\sum_{t=1}^T} \log \left( \frac{ \text{B} (o_t + a, 1 - o_t + b) }{ \text{B}(a,b) } \right) .
 \end{equation}
 
-Note, however that there can be combinations of $a$ and $b$ that will lead to the same fixed probability of occurrence $p$, so there is no point in estimating the model (2) \ref{eq:ISSETS(MNN)Fixed} based on (4) \ref{eq:ISSETS(MNN)FixedLikelihood}. Instead, the simpler version of the iETS$_F$ is fitted in the `oes()` function of the `smooth` package:
+Note, however that there can be combinations of $a$ and $b$ that will lead to the same fixed probability of occurrence $p$, so there is no point in estimating the model (3) \ref{eq:ISSETS(MNN)Fixed} based on (4) \ref{eq:ISSETS(MNN)FixedLikelihood}. Instead, the simpler version of the iETS$_F$ is fitted in the `oes()` function of the `smooth` package:
 \begin{equation} \label{eq:ISSETS(MNN)FixedSmooth}
 	\begin{matrix}
         y_t = o_t z_t \\
@@ -102,11 +117,24 @@ so that the estimate of the probability $p$ is calculated based on the maximisat
 \begin{equation} \label{eq:ISSETS(MNN)FixedLikelihoodSmooth}
 	\ell \left(\hat{p} | o_t \right) = T_1 \log \hat{p} + T_0 \log (1-\hat{p}) ,
 \end{equation}
-where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k+1$, where $k$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
+where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k_z+1$, where $k_z$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
+
+The occurrence part of the model iETS$_F$ is constructed using `oes()` function:
+```{r iETSFExample1}
+iETSFModel1 <- oes(y, occurrence="fixed", h=10, holdout=TRUE)
+iETSFModel1
+plot(iETSFModel1)
+```
+
+All the smooth forecasting functions support the occurrence part of the model. For example, here's how the iETS(M,M,N)$_F$ can be constructed:
+```{r iETSFExample2}
+es(y, "MMN", occurrence="fixed", h=10, holdout=TRUE, silent=FALSE)
+```
+
 
 ## iETS$_O$
-The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ variable, which simplifies the iETS$_G$ model to:
-\begin{equation} \label{eq:iETSO} \tag{5}
+The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ variable, which simplifies the iETS$_G$ model. For example, for the iETS$_O$(M,N,N):
+\begin{equation} \label{eq:iETSO}
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Beta-Bernoulli} \left(a_t, 1 \right) \\
@@ -120,7 +148,38 @@ The probability of occurrence in this model is equal to:
     p_t = \frac{a_t}{a_t+1} .
 \end{equation}
 
-In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{a,0}=\frac{\bar{p}}{1+\bar{p}}$, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative type.
+In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{a,0}=\frac{\bar{p}}{1-\bar{p}}$ for multiplicative error model and $l_{a,0} = \log l_{a,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. In cases of seasonal models, the regression with dummy variables is fitted, and its parameters are then used for the initials of the seasonal indices after the transformations  similar to the level ones.
+
+The construction of the model is done via the set of equations (example with iETS$_O$(M,N,N)):
+\begin{equation} \label{eq:iETSOEstimation}
+    \begin{matrix}
+        \hat{p}_t = \frac{\hat{a}_t}{\hat{a}_t+1} \\
+		\hat{a}_t = l_{a,t-1} \\
+		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} e_{a,t}) \\
+		1+e_{a,t} = \frac{u_t}{1-u_t} \\
+		u_{t} = \frac{1 + o_t - \hat{p}_t}{2}
+    \end{matrix}.
+\end{equation}
+
+Given that the model is estimated using the likelihood (2), it has $k_z+k_a$ parameters to estimate, where $k_z$ includes all the initial values, the smoothing parameters and the scale of the error of the demand sizes part of the model, and $k_a$ includes only initial values and the smoothing parameters of the model for the demand occurrence. In case of iETS$_O$(M,N,N) this number is equal to 5.
+
+The occurrence part of the model iETS$_O$ is constructed using the very same `oes()` function, but also allows specifying the ETS model to use. Foe example, here's the ETS(M,M,N) model:
+```{r iETSOExample1}
+iETSOModel1 <- oes(y, model="MMN", occurrence="o", h=10, holdout=TRUE)
+iETSOModel1
+plot(iETSOModel1)
+```
+
+And here's the full iETS(M,M,N)$_O$(M,M,N) model:
+```{r iETSOExample2}
+es(y, "MMN", occurrence="o", imodel="MMN", h=10, holdout=TRUE, silent=FALSE)
+```
 
 
+## iETS$_I$
 
+## iETS$_D$
+
+## iETS$_G$
+
+## iETS$_A$

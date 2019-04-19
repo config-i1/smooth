@@ -146,7 +146,8 @@ values:
 estimated as well.
 \item \code{initialX} - initial values for parameters of exogenous variables.
 \item \code{persistenceX} - persistence vector g for exogenous variables.
-\item \code{transitionX} - transition matrix F for exogenous variables..
+\item \code{transitionX} - transition matrix F for exogenous variables.
+\item \code{accuracy} - The error measures for the forecast (in case of \code{holdout=TRUE}).
 }
 }
 \description{

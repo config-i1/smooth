@@ -895,7 +895,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
 
         if(imodelProvided){
-            parametersNumber[2,3] <- nParam(imodel);
+            parametersNumber[2,3] <- nparam(imodel);
         }
     }
     else{

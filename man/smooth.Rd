@@ -45,9 +45,7 @@ There are also several methods implemented in the package for the classes
 \item \link[smooth]{forecast} - produces forecast using provided model.
 \item \link[smooth]{covar} - returns covariance matrix of multiple steps ahead forecast errors.
 \item \link[smooth]{pls} - returns Prediction Likelihood Score.
-\item \link[greybox]{nParam} - returns number of the estimated parameters.
-\item \link[smooth]{Accuracy} - returns vector of error measures for the provided forecasts
-and holdout.
+\item \link[greybox]{nparam} - returns number of the estimated parameters.
 \item fitted - extracts fitted values from provided model.
 \item getResponse - returns actual values from the provided model.
 \item residuals - extracts residuals of provided model.

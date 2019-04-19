@@ -720,7 +720,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     # Write down the number of parameters of imodel
     if(all(occurrence!=c("n","provided")) & !imodelProvided){
-        parametersNumber[1,3] <- nParam(imodel);
+        parametersNumber[1,3] <- nparam(imodel);
     }
 
     if(!is.null(xreg)){
@@ -790,10 +790,10 @@ CreatorCES <- function(silentText=FALSE,...){
     if(holdout){
         yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- Accuracy(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
         }
         else{
-            errormeasures <- Accuracy(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,y);
         }
 
         if(cumulative){

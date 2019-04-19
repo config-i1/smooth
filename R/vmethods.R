@@ -1,14 +1,14 @@
 #' @export
 logLik.vsmooth <- function(object,...){
     obs <- nobs(object);
-    nParamPerSeries <- nParam(object);
+    nParamPerSeries <- nparam(object);
     structure(object$logLik,nobs=obs,df=nParamPerSeries,class="logLik");
 }
 
 #' @export
 logLik.viss <- function(object,...){
     obs <- nobs(object);
-    nParamPerSeries <- nParam(object);
+    nParamPerSeries <- nparam(object);
     structure(object$logLik,nobs=obs,df=nParamPerSeries,class="logLik");
 }
 
@@ -18,7 +18,7 @@ AICc.vsmooth <- function(object, ...){
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
     # Remove covariances in the number of parameters
-    nParamAll <- nParam(object) / nSeries - switch(object$cfType,
+    nParamAll <- nparam(object) / nSeries - switch(object$cfType,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
                                                    "trace" = ,
                                                    "diagonal" = 1);
@@ -36,7 +36,7 @@ BICc.vsmooth <- function(object, ...){
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
     # Remove covariances in the number of parameters
-    nParamAll <- nParam(object) / nSeries - switch(object$cfType,
+    nParamAll <- nparam(object) / nSeries - switch(object$cfType,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
                                                    "trace" = ,
                                                    "diagonal" = 1);
@@ -59,7 +59,7 @@ nobs.viss <- function(object, ...){
 }
 
 #' @export
-nParam.viss <- function(object, ...){
+nparam.viss <- function(object, ...){
     nParamReturn <- object$nParam[1,4];
     return(nParamReturn);
 }

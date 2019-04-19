@@ -118,7 +118,8 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
 #' \item \code{persistenceX} - persistence vector g for exogenous variables.
-#' \item \code{transitionX} - transition matrix F for exogenous variables..
+#' \item \code{transitionX} - transition matrix F for exogenous variables.
+#' \item \code{accuracy} - The error measures for the forecast (in case of \code{holdout=TRUE}).
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{oesg}, \link[smooth]{es}}
 #' @keywords iss intermittent demand intermittent demand state space model
@@ -811,15 +812,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
             parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
-
-            if(holdout){
-                yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
-                errormeasures <- Accuracy(yHoldout,pForecast,ot);
-            }
-            else{
-                yHoldout <- NA;
-                errormeasures <- NA;
-            }
         }
         else{
             stop("The model selection and combinations are not implemented in oes just yet", call.=FALSE);
@@ -883,6 +875,16 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         output <- list(fitted=pt, forecast=pForecast, states=pt,
                        nParam=parametersNumber, residuals=errors, actuals=pt,
                        persistence=NULL, initial=NULL, initialSeason=NULL);
+    }
+
+    # If there was a holdout, measure the accuracy
+    if(holdout){
+        yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+        output$accuracy <- measures(yHoldout,pForecast,ot);
+    }
+    else{
+        yHoldout <- NA;
+        output$accuracy <- NA;
     }
 
     # Occurrence and the model name

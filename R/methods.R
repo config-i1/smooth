@@ -84,7 +84,7 @@ smoothType <- function(object, ...) UseMethod("smoothType")
 #' @export
 AICc.smooth <- function(object, ...){
     llikelihood <- logLik(object);
-    nParamAll <- nParam(object);
+    nParamAll <- nparam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
 
     if(!is.null(object$imodel)){
@@ -105,7 +105,7 @@ AICc.smooth <- function(object, ...){
 #' @export
 BICc.smooth <- function(object, ...){
     llikelihood <- logLik(object);
-    nParamAll <- nParam(object);
+    nParamAll <- nparam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
 
     if(!is.null(object$imodel)){
@@ -209,12 +209,12 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         if(!is.null(object$imodel)){
             obs <- t((errors!=0)*1) %*% (errors!=0)*1;
             obs[obs==0] <- 1;
-            df <- obs - nParam(object);
+            df <- obs - nparam(object);
             df[df<=0] <- obs[df<=0];
         }
         else{
             obs <- matrix(nobs(object),ncol(errors),ncol(errors));
-            df <- obs - nParam(object);
+            df <- obs - nparam(object);
             df[df<=0] <- obs[df<=0];
         }
         covarMat <- t(errors) %*% errors / df;
@@ -322,7 +322,7 @@ logLik.smooth <- function(object,...){
         return(NULL);
     }
     else{
-        return(structure(object$logLik,nobs=nobs(object),df=nParam(object),class="logLik"));
+        return(structure(object$logLik,nobs=nobs(object),df=nparam(object),class="logLik"));
     }
 }
 #' @export
@@ -338,7 +338,7 @@ logLik.iss <- function(object,...){
     }
     else{
         obs <- nobs(object);
-        return(structure(object$logLik,nobs=obs,df=nParam(object),class="logLik"));
+        return(structure(object$logLik,nobs=obs,df=nparam(object),class="logLik"));
     }
 }
 
@@ -362,10 +362,10 @@ nobs.iss <- function(object, ...){
     return(length(object$fitted));
 }
 
-#' @importFrom greybox nParam
+#' @importFrom greybox nparam
 
 #' @export
-nParam.smooth <- function(object, ...){
+nparam.smooth <- function(object, ...){
     if(is.null(object$nParam)){
         warning("Number of parameters of the model is unavailable. Hint: did you use combinations?",
                 call.=FALSE);
@@ -377,7 +377,7 @@ nParam.smooth <- function(object, ...){
 }
 
 #' @export
-nParam.iss <- function(object, ...){
+nparam.iss <- function(object, ...){
     return(object$nParam);
 }
 

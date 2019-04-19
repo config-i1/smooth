@@ -38,9 +38,7 @@
 #' \item \link[smooth]{forecast} - produces forecast using provided model.
 #' \item \link[smooth]{covar} - returns covariance matrix of multiple steps ahead forecast errors.
 #' \item \link[smooth]{pls} - returns Prediction Likelihood Score.
-#' \item \link[greybox]{nParam} - returns number of the estimated parameters.
-#' \item \link[smooth]{Accuracy} - returns vector of error measures for the provided forecasts
-#' and holdout.
+#' \item \link[greybox]{nparam} - returns number of the estimated parameters.
 #' \item fitted - extracts fitted values from provided model.
 #' \item getResponse - returns actual values from the provided model.
 #' \item residuals - extracts residuals of provided model.
@@ -81,7 +79,7 @@
 #' @importFrom graphics abline layout legend lines par points polygon
 #' @importFrom stats AIC BIC cov dbeta decompose deltat end frequency is.ts median coef optimize nlminb cor qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif start time ts var simulate lm as.formula residuals plnorm pnorm
 #' @importFrom utils packageVersion
-#' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace graphmaker
+#' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace graphmaker measures hm
 #' @importFrom forecast is.ets
 #' @useDynLib smooth
 NULL

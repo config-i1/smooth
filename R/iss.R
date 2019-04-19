@@ -88,7 +88,7 @@ intermittentMaker <- function(occurrence="n",...){
         else{
             imodel <- oes(ot, model=imodel, h=h);
         }
-        nParamOccurrence <- nParam(imodel);
+        nParamOccurrence <- nparam(imodel);
         pFitted[,] <- imodel$fitted;
         pForecast <- imodel$forecast;
         iprob <- pForecast[1];
@@ -309,7 +309,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
 
         output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
-                       variance=pForecast*(1-pForecast), logLik=NA, nParam=nParam(crostonModel),
+                       variance=pForecast*(1-pForecast), logLik=NA, nParam=nparam(crostonModel),
                        residuals=crostonModel$residuals, actuals=otAll,
                        persistence=crostonModel$persistence, initial=crostonModel$initial,
                        initialSeason=crostonModel$initialSeason);
@@ -354,7 +354,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
 
         output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
-                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=NA, nParam=nParam(tsbModel)-1,
+                       variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=NA, nParam=nparam(tsbModel)-1,
                        residuals=tsbModel$residuals, actuals=otAll,
                        persistence=tsbModel$persistence, initial=tsbModel$initial,
                        initialSeason=tsbModel$initialSeason);
@@ -418,7 +418,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         }
 
         output <- list(model=modelType(logisticModel), fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
-                       variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=NA, nParam=nParam(logisticModel),
+                       variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=NA, nParam=nparam(logisticModel),
                        residuals=logisticModel$residuals, actuals=otAll,
                        persistence=logisticModel$persistence, initial=logisticModel$initial,
                        initialSeason=logisticModel$initialSeason);
