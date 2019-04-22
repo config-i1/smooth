@@ -40,7 +40,10 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' Due to the flexibility of the model, multiple seasonalities can be used. For
 #' example, something crazy like this can be constructed:
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take some finite time...
+#' take some finite time... If you plan estimating a model with more than one
+#' seasonality, it is recommended to consider doing it using \link[smooth]{msarima}.
+#'
+#' The model selection for SSARIMA is done by the \link[smooth]{auto.ssarima} function.
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -148,7 +151,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' }
 #'
 #' @seealso \code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
-#' \link[smooth]{lags}, \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
+#' \link[smooth]{lags}, \link[smooth]{msarima}, \link[smooth]{auto.msarima},
+#' \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
 #'
 #' @examples
 #'

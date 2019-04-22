@@ -169,7 +169,8 @@ details.
 \description{
 Function selects the best State Space ARIMA based on information criteria,
 using fancy branch and bound mechanism. The resulting model can be not
-optimal in IC meaning, but it is usually reasonable.
+optimal in IC meaning, but it is usually reasonable. This mechanism is
+described in Svetunkov & Boylan (2019).
 }
 \details{
 The function constructs bunch of ARIMAs in Single Source of Error
@@ -180,7 +181,7 @@ best one based on information criterion. It works faster than
 Due to the flexibility of the model, multiple seasonalities can be used. For
 example, something crazy like this can be constructed:
 SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-take a lot of time...
+take some time...
 }
 \examples{
 
@@ -224,6 +225,12 @@ Operational Research, 214, 606-615.
 demands. Operational Research Quarterly, 23(3), 289-303.
 \item Syntetos, A., Boylan J. (2005) The accuracy of intermittent demand
 estimates. International Journal of Forecasting, 21(2), 303-314.
+}
+
+\itemize{
+\item Svetunkov, I., & Boylan, J. E. (2019). State-space ARIMA for supply-chain forecasting.
+International Journal of Production Research, 0(0), 1–10.
+\url{https://doi.org/10.1080/00207543.2019.1600764}
 }
 }
 \seealso{

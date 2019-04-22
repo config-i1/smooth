@@ -4,7 +4,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' Function selects the best State Space ARIMA based on information criteria,
 #' using fancy branch and bound mechanism. The resulting model can be not
-#' optimal in IC meaning, but it is usually reasonable.
+#' optimal in IC meaning, but it is usually reasonable. This mechanism is
+#' described in Svetunkov & Boylan (2019).
 #'
 #' The function constructs bunch of ARIMAs in Single Source of Error
 #' state space form (see \link[smooth]{msarima} documentation) and selects the
@@ -14,7 +15,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' Due to the flexibility of the model, multiple seasonalities can be used. For
 #' example, something crazy like this can be constructed:
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take a lot of time...
+#' take some time...
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -24,6 +25,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
+#' @template ssARIMARef
 #'
 #' @param orders List of maximum orders to check, containing vector variables
 #' \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the

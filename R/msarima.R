@@ -7,6 +7,10 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' Function constructs Multiple Seasonal State Space ARIMA, estimating AR, MA
 #' terms and initial states.
 #'
+#' The model, implemented in this function differs from the one in
+#' \link[smooth]{ssarima} function (Svetunkov & Boylan, 2019), but it is more
+#' efficient and better fitting the data (which might be a limitation).
+#'
 #' The basic ARIMA(p,d,q) used in the function has the following form:
 #'
 #' \eqn{(1 - B)^d (1 - a_1 B - a_2 B^2 - ... - a_p B^p) y_[t] = (1 + b_1 B +
@@ -53,6 +57,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @template ssIntervalsRef
 #' @template ssGeneralRef
+#' @template ssARIMARef
 #'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:
@@ -388,6 +393,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # Optimise model. First run
         res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         C <- res$solution;
+
 # Optimise model. Second run
         res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
         # This condition is needed in order to make sure that we did not make the solution worse

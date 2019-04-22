@@ -180,7 +180,8 @@ Svetunkov & Boylan (2019).
 Due to the flexibility of the model, multiple seasonalities can be used. For
 example, something crazy like this can be constructed:
 SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-take a lot of time...
+take a lot of time... It is recommended to use \link[smooth]{auto.msarima} in
+cases with more than one seasonality and high frequencies.
 }
 \examples{
 
