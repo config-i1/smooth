@@ -157,7 +157,7 @@ Function returns the general occurrence model of the of iETS model.
 The function estimates probability of demand occurrence, based on the iETS_G
 state-space model. It involves the estimation and modelling of the two
 simultaneous state space equations. Thus two parts for the model type,
-persistence, intials etc. Although the function accepts all types
+persistence, initials etc. Although the function accepts all types
 of ETS models, only the pure multiplicative models make sense.
 
 The model is based on:

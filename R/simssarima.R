@@ -9,6 +9,7 @@
 #' @template ssKeywords
 #'
 #' @template ssGeneralRef
+#' @template ssARIMARef
 #'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:
@@ -51,7 +52,7 @@
 #' matrix.
 #' \item \code{constant} - Value of constant term. If \code{nsim>1}, then this
 #' is a vector.
-#' \item \code{initial} - Initial values of SSARIM. If \code{nsim>1}, then this
+#' \item \code{initial} - Initial values of SSARIMA. If \code{nsim>1}, then this
 #' is a matrix.
 #' \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the
 #' generated series.

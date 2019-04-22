@@ -1,5 +1,5 @@
 ---
-title: "Occurence part of iETS model"
+title: "Occurrence part of iETS model"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -33,7 +33,7 @@ The canonical general iETS model (called iETS$_G$) can be summarised as:
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function (the subscripts allow separating the functions for different parts of the model). These four functions define how the elements of the vector $v_{t}$ interact with each other. Furthermore, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
+where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persistence function (the subscripts allow separating the functions for different parts of the model). These four functions define how the elements of the vector $v_{t}$ interact with each other. Furthermore, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
 \begin{equation} \label{eq:oETS(MZZ)}
     p_t = \frac{a_t}{a_t+b_t} ,
 \end{equation}
@@ -41,7 +41,7 @@ while for the additive error it is:
 \begin{equation} \label{eq:oETS(AZZ)}
     p_t = \frac{\exp(a_t)}{\exp(a_t)+\exp(b_t)} .
 \end{equation}
-This is because both $a_t$ and $b_t$ need to be positive, and the additive error models support the real plane. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This type of model is positively defined for any values of error, trend and seasonality, which is essential for the values of $a_t$ and $b_t$. If a combination of additive and multiplicative error models is used, then the additive part is expontiated prior to the usage of the formulae for the calculation of the probability.
+This is because both $a_t$ and $b_t$ need to be positive, and the additive error models support the real plane. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This type of model is positively defined for any values of error, trend and seasonality, which is essential for the values of $a_t$ and $b_t$. If a combination of additive and multiplicative error models is used, then the additive part is exponentiated prior to the usage of the formulae for the calculation of the probability.
 
 An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N)(M,N,N):
 \begin{equation} \label{eq:iETSGExample}
@@ -62,7 +62,7 @@ An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N
 \end{equation}
 where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. More advanced models can be constructing by specifying the ETS models for each part and / or adding explanatory variables.
 
-In the notation of the model iETS(M,N,N)$_G$(M,N,N)(M,N,N), the first brackets describe the ETS model for the demand sizes, the underscore letter points out at the specific subtype of model (see below), the second barckets describe the ETS model, underlying the variable $a_t$ and the last ones stand for the model for the $b_t$. If only one variable is needed (either $a_t$ or $b_t$), then the redundant brackets are dropped, so that the notation simplifies, for example, to: iETS(M,N,N)$_O$(M,N,N). If the same type of model is used for both demand sizes and demand occurrence, then the second brackets can be dropped as well, simplifying the view to: iETS(M,N,N)$_G$. Furthermore, the notation without any brackets, such as iETS$_G$ stands for a general class of a specific subtype of iETS model (so any error / trend / seasonality). Also, given that iETS$_G$ is the most general model of all iETS models, the "$G$" can be dropped, when the properties are applicable to all subtypes. Finally, the "oETS" notation is used when the occurrence part of the model is discussed explicitly, skipping the demand sizes.
+In the notation of the model iETS(M,N,N)$_G$(M,N,N)(M,N,N), the first brackets describe the ETS model for the demand sizes, the underscore letter points out at the specific subtype of model (see below), the second brackets describe the ETS model, underlying the variable $a_t$ and the last ones stand for the model for the $b_t$. If only one variable is needed (either $a_t$ or $b_t$), then the redundant brackets are dropped, so that the notation simplifies, for example, to: iETS(M,N,N)$_O$(M,N,N). If the same type of model is used for both demand sizes and demand occurrence, then the second brackets can be dropped as well, simplifying the view to: iETS(M,N,N)$_G$. Furthermore, the notation without any brackets, such as iETS$_G$ stands for a general class of a specific subtype of iETS model (so any error / trend / seasonality). Also, given that iETS$_G$ is the most general model of all iETS models, the "$G$" can be dropped, when the properties are applicable to all subtypes. Finally, the "oETS" notation is used when the occurrence part of the model is discussed explicitly, skipping the demand sizes.
 
 The concentrated likelihood function for the iETS model is:
 \begin{equation} \label{eq:LogNormalConcentratedLogLikelihood} \tag{2}
@@ -262,7 +262,7 @@ An option with the additive model in this case has a different, more complicated
 \end{equation}
 The conditional expectation and variance for the demand occurrence part in this case is quite nasty, although it has an analytical solution. In case of the additive model it might cause problems, so **the implementation in `smooth` is not accurate** and needs to be fixed. However, in case of multiplicative model, the medians are used, which are much simpler, and, as a result, the point forecasts for several steps ahead correspond to the ones from the ETS models, restricted with the [0, 1] region. So, I would recommend either sticking with the multiplicative error models or using some other iETS subtypes.
 
-The estimation of the multiplicative error model is done using the following set of equaions:
+The estimation of the multiplicative error model is done using the following set of equations:
 \begin{equation} \label{eq:ISSETS(MNN)_probability_estimate}
 	\begin{matrix}
 		\hat{y}_t = o_t \hat{l}_{z,t-1} \\

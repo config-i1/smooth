@@ -77,7 +77,7 @@ matrix.
 matrix.
 \item \code{constant} - Value of constant term. If \code{nsim>1}, then this
 is a vector.
-\item \code{initial} - Initial values of SSARIM. If \code{nsim>1}, then this
+\item \code{initial} - Initial values of SSARIMA. If \code{nsim>1}, then this
 is a matrix.
 \item \code{data} - Time series vector (or matrix if \code{nsim>1}) of the
 generated series.
@@ -116,6 +116,12 @@ Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
+}
+
+\itemize{
+\item Svetunkov, I., & Boylan, J. E. (2019). State-space ARIMA for supply-chain forecasting.
+International Journal of Production Research, 0(0), 1–10.
+\url{https://doi.org/10.1080/00207543.2019.1600764}
 }
 }
 \seealso{
