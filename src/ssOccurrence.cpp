@@ -22,80 +22,104 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
 // The returned value. The first one is the aError, the second one is the bError.
     std::vector<double> output(2);
 
-    // The direct probability model
-    if(O=='d'){
-        pfit = std::max(std::min(aFit,1.0),0.0);
-
-        switch(EA){
-        case 'M':
-            output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
-            break;
-        case 'A':
-            output[0] = yAct - pfit;
-            break;
-        }
-    }
-    // All odds ratio, inverse and general models
-    else{
-        // Correct the fitted depending on the type of the error
-        switch(EA){
-            case 'A':
-                aFit = exp(aFit);
-            break;
-        }
-        switch(EB){
-            case 'A':
-                bFit = exp(bFit);
-            break;
-        }
-
-        // Produce fitted values
-        switch(O){
-            case 'g':
-                pfit = aFit / (aFit + bFit);
-            break;
-            case 'o':
-                pfit = aFit / (aFit + 1);
-            break;
-            case 'i':
-                pfit = 1 / (1 + aFit);
-            break;
-        }
-
-        // Calculate the error and the respective a and b errors
-        error = (1 + yAct - pfit) / 2;
-        switch(O){
-            case 'g':
-                output[0] = error / (1 - error);
-            // output[0] = bFit * error / (1 - error);
-            break;
-            case 'o':
-                output[0] = error / (1 - error);
-            break;
-            case 'i':
-                output[0] = (1 - error) / error;
-            break;
-        }
-        // output[1] = aFit * (1 - error) / error;
-        output[1] = (1 - error) / error;
-
-        switch(EA){
-        case 'M':
-            output[0] = output[0] - 1;
-            break;
-        case 'A':
-            output[0] = log(output[0]);
-            break;
-        }
-
-        switch(EB){
-        case 'M':
-            output[1] = output[1] - 1;
-            break;
-        case 'A':
-            output[1] = log(output[1]);
-            break;
-        }
+    switch(O){
+        // The direct probability model
+        case 'd':
+            // Produce fitted values
+            pfit = std::max(std::min(aFit,1.0),0.0);
+            // Calculate the error
+            switch(EA){
+                case 'M':
+                    output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
+                break;
+                case 'A':
+                    output[0] = yAct - pfit;
+                break;
+            }
+        break;
+        // The odds-ratio probability model
+        case 'o':
+            // Correct the fitted depending on the type of the error
+            switch(EA){
+                case 'A':
+                    aFit = exp(aFit);
+                break;
+            }
+            // Produce fitted values
+            pfit = aFit / (aFit + 1);
+            // Calculate the u error and the respective a error
+            error = (1 + yAct - pfit) / 2;
+            output[0] = error / (1 - error);
+            // Do the final transform into et
+            switch(EA){
+                case 'M':
+                    output[0] = output[0] - 1;
+                break;
+                case 'A':
+                    output[0] = log(output[0]);
+                break;
+            }
+        break;
+        // The inverse-odds-ratio probability model
+        case 'i':
+            // Correct the fitted depending on the type of the error
+            switch(EA){
+                case 'A':
+                    aFit = exp(aFit);
+                break;
+            }
+            // Produce fitted values
+            pfit = 1 / (1 + aFit);
+            // Calculate the u error and the respective b error
+            error = (1 + yAct - pfit) / 2;
+            output[0] = (1 - error) / error;
+            // Do the final transform into et
+            switch(EA){
+                case 'M':
+                    output[0] = output[0] - 1;
+                break;
+                case 'A':
+                    output[0] = log(output[0]);
+                break;
+            }
+        break;
+        // The general model
+        case 'g':
+            // Correct the fitted depending on the type of the error
+            switch(EA){
+                case 'A':
+                    aFit = exp(aFit);
+                break;
+            }
+            switch(EB){
+                case 'A':
+                    bFit = exp(bFit);
+                break;
+            }
+            // Produce fitted values
+            pfit = aFit / (aFit + bFit);
+            // Calculate the u error and the respective a and b errors
+            error = (1 + yAct - pfit) / 2;
+            output[0] = error / (1 - error);
+            output[1] = (1 - error) / error;
+            // Do the final transform into et
+            switch(EA){
+                case 'M':
+                    output[0] = output[0] - 1;
+                break;
+                case 'A':
+                    output[0] = log(output[0]);
+                break;
+            }
+            switch(EB){
+                case 'M':
+                    output[1] = output[1] - 1;
+                break;
+                case 'A':
+                    output[1] = log(output[1]);
+                break;
+            }
+        break;
     }
 
     return output;

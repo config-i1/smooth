@@ -911,7 +911,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         # }
         # else{
             graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
-                       legend=!silentLegend,main=paste0(output$model,"_",toupper(occurrence)));
+                       legend=!silentLegend,main=paste0(output$model));
         # }
     }
 

@@ -162,7 +162,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
             constant <- NULL;
             constantCheck <- TRUE;
             constantValue <- TRUE;
-            warning("Strange value of constant parameter. We changed it to default value.");
+            warning("Strange value of constant parameter. We changed it to the default value.");
         }
     }
 
