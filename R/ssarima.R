@@ -7,6 +7,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' Function constructs State Space ARIMA, estimating AR, MA terms and initial
 #' states.
 #'
+#' The model, implemented in this function, is discussed in Svetunkov & Boylan
+#' (2019).
+#'
 #' The basic ARIMA(p,d,q) used in the function has the following form:
 #'
 #' \eqn{(1 - B)^d (1 - a_1 B - a_2 B^2 - ... - a_p B^p) y_[t] = (1 + b_1 B +
@@ -47,6 +50,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @template ssIntervalsRef
 #' @template ssGeneralRef
+#' @template ssARIMARef
 #'
 #' @param orders List of orders, containing vector variables \code{ar},
 #' \code{i} and \code{ma}. Example:

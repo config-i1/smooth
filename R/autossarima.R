@@ -8,7 +8,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' The function constructs bunch of ARIMAs in Single Source of Error
 #' state space form (see \link[smooth]{ssarima} documentation) and selects the
-#' best one based on information criterion.
+#' best one based on information criterion. The mechanism is described in
+#' Svetunkov & Boylan (2019).
 #'
 #' Due to the flexibility of the model, multiple seasonalities can be used. For
 #' example, something crazy like this can be constructed:
@@ -23,6 +24,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
+#' @template ssARIMARef
 #'
 #' @param orders List of maximum orders to check, containing vector variables
 #' \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the

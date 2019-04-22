@@ -7,6 +7,7 @@ vignette: >
   %\VignetteIndexEntry{Occurrence part of iETS model}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+bibliography: library.bib
 ---
 
 ```{r global_options, include=FALSE}
@@ -15,9 +16,11 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
 library(smooth)
 ```
 
-This vignette documents how the occurrence part of the iETS model is implemented in the `smooth` package.
+`smooth` package has a mechanism of treating the data with zero values. This might be useful for cases of intermittent demand (the demand that happens at random). All the univariate functions in the package have a parameter `occurrence` that allows handling this type of data. The canonical model, used in `smooth`, is called "iETS" - intermittent exponential smoothing model. This vignette explains how the iETS model and its occurrence part are implemented in the `smooth` package.
 
-The general iETS model (called iETS$_G$) can be summarised as:
+
+## The basics
+The canonical general iETS model (called iETS$_G$) can be summarised as:
 \begin{equation} \label{eq:iETS} \tag{1}
     \begin{matrix}
         y_t = o_t z_t \\
@@ -59,7 +62,7 @@ An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N
 \end{equation}
 where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. More advanced models can be constructing by specifying the ETS models for each part and / or adding explanatory variables.
 
-In the notation of the model iETS(M,N,N)$_G$(M,N,N)(M,N,N), the first brackets describe the ETS model for the demand sizes, the underscore letter points out at the specific subtype of model (see below), the second barckets describe the ETS model, underlying the variable $a_t$ and the last ones stand for the model for the $b_t$. If only one variable is needed (either $a_t$ or $b_t$), then the redundant brackets are dropped, so that the notation simplifies, for example, to: iETS(M,N,N)$_O$(M,N,N). If the same type of model is used for both demand sizes and demand occurrence, then the second brackets can be dropped, simplifying the view to: iETS(M,N,N)$_G$. Finally, the notation without any brackets, such as iETS$_G$ stands for a general class of a specific subtype of iETS model (so any error / trend / seasonality). Given that iETS$_G$ is the most general model of all iETS models, the $_G$ can be dropped, when the properties are applicable to all subtypes. The oETS notation is used when the occurrence part of the model is discussed explicitly, skipping the demand sizes.
+In the notation of the model iETS(M,N,N)$_G$(M,N,N)(M,N,N), the first brackets describe the ETS model for the demand sizes, the underscore letter points out at the specific subtype of model (see below), the second barckets describe the ETS model, underlying the variable $a_t$ and the last ones stand for the model for the $b_t$. If only one variable is needed (either $a_t$ or $b_t$), then the redundant brackets are dropped, so that the notation simplifies, for example, to: iETS(M,N,N)$_O$(M,N,N). If the same type of model is used for both demand sizes and demand occurrence, then the second brackets can be dropped as well, simplifying the view to: iETS(M,N,N)$_G$. Furthermore, the notation without any brackets, such as iETS$_G$ stands for a general class of a specific subtype of iETS model (so any error / trend / seasonality). Also, given that iETS$_G$ is the most general model of all iETS models, the "$G$" can be dropped, when the properties are applicable to all subtypes. Finally, the "oETS" notation is used when the occurrence part of the model is discussed explicitly, skipping the demand sizes.
 
 The concentrated likelihood function for the iETS model is:
 \begin{equation} \label{eq:LogNormalConcentratedLogLikelihood} \tag{2}
@@ -103,8 +106,9 @@ The conditional h-steps ahead median of the demand occurrence probability is cal
 
 The likelihood function used in the first step of the estimation of iETS can be simplified to:
 \begin{equation} \label{eq:ISSETS(MNN)FixedLikelihood} \tag{4}
-	\ell \left(a,b | o_t \right) = {\sum_{t=1}^T} \log \left( \frac{ \text{B} (o_t + a, 1 - o_t + b) }{ \text{B}(a,b) } \right) .
+	\ell \left(a,b | o_t \right) = {\sum_{t=1}^T} \log \left( \frac{ \text{B} (o_t + a, 1 - o_t + b) }{ \text{B}(a,b) } \right) ,
 \end{equation}
+where $B$ is the beta function.
 
 Note, however that there can be combinations of $a$ and $b$ that will lead to the same fixed probability of occurrence $p$, so there is no point in estimating the model (3) \ref{eq:ISSETS(MNN)Fixed} based on (4) \ref{eq:ISSETS(MNN)FixedLikelihood}. Instead, the simpler version of the iETS$_F$ is fitted in the `oes()` function of the `smooth` package:
 \begin{equation} \label{eq:ISSETS(MNN)FixedSmooth}
@@ -338,3 +342,15 @@ plot(oETSAModel)
 ```
 
 The main restriction of the iETS models at the moment (`smooth` v.2.5.0) is that there is no model selection between the ETS models for the occurrence part. This needs to be done manually. Hopefully, this feature will appear in the next release of the package.
+
+
+## The integer-valued iETS
+By default, the models assume that the data is continuous, which sounds counter intuitive for the typical intermittent demand forecasting tasks. However, [@Svetunkov2017a] showed that these models perform quite well in terms of forecasting accuracy for many cases. Still, there is also an option for the rounded up values, which is implemented in the `es()` function. This is not described in the manual and can be triggered via the `rounded=TRUE` parameter provided in ellipsis. Here's an example:
+```{r iETSGRoundedExample}
+es(rpois(100,0.3), "MNN", occurrence="g", oesmodel="MNN", h=10, holdout=TRUE, silent=FALSE, intervals=TRUE, rounded=TRUE)
+```
+
+Keep in mind that the model with the rounded up values is estimated differently than it continuous counterpart and produces more adequate results for the highly intermittent data with low level of demand sizes. In all the other cases, the continuous iETS models are recommended. In fact, if you need to produce integer-valued prediction intervals, then you can produce the intervals from a continuous model and then round them up (see discussion in [@Svetunkov2017a] for details).
+
+
+## References

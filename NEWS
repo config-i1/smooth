@@ -12,6 +12,7 @@ Changes:
 * Corrected optimisation of the iETS with rounded values, maximising SD directly in the function.
 * The intermittent models are now returned in the "occurrence" rather than "imodel" parameter and should be provided in the functions via "occurrence".
 * imodel is renamed into oesmodel for the univariate models. This is done for the consistency purposes.
+* A vignette for oes() and the new intermittent model + references to the iETS and SSARIMA papers.
 
 Bugfixes:
 * Bugfix in oes with occurrence="d" and model="AZZ".

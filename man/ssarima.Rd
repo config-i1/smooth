@@ -239,6 +239,9 @@ Function constructs State Space ARIMA, estimating AR, MA terms and initial
 states.
 }
 \details{
+The model, implemented in this function, is discussed in Svetunkov & Boylan
+(2019).
+
 The basic ARIMA(p,d,q) used in the function has the following form:
 
 \eqn{(1 - B)^d (1 - a_1 B - a_2 B^2 - ... - a_p B^p) y_[t] = (1 + b_1 B +
@@ -333,6 +336,12 @@ Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
+}
+
+\itemize{
+\item Svetunkov, I., & Boylan, J. E. (2019). State-space ARIMA for supply-chain forecasting.
+International Journal of Production Research, 0(0), 1–10.
+\url{https://doi.org/10.1080/00207543.2019.1600764}
 }
 }
 \seealso{

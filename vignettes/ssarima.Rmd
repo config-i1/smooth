@@ -7,6 +7,7 @@ vignette: >
   %\VignetteIndexEntry{ssarima() - State-Space ARIMA}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+bibliography: library.bib
 ---
 
 ```{r global_options, include=FALSE}
@@ -14,7 +15,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both names show what happens in the heart of the function: it constructs ARIMA in a state-space form and allows to model several (actually more than several) seasonalities. `ssarima()` is a function included in [smooth package](smooth.html). This vignette covers `ssarima()` and `auto.ssarima()` functions. 
+SSARIMA stands for "State-space ARIMA" or "Several Seasonalities ARIMA". Both names show what happens in the heart of the function: it constructs ARIMA in a state-space form and allows to model several (actually more than several) seasonalities. `ssarima()` is a function included in [smooth package](smooth.html). This vignette covers `ssarima()` and `auto.ssarima()` functions. For more details about the underlying model, read [@Svetunkov2019].
 
 As usual, we will use data from `Mcomp` package, so it is advised to install it.
 
@@ -76,3 +77,6 @@ Finally, we can combine several SARIMA models:
 ```{r auto_ssarima_N2457_combination}
 ssarima(M3$N2457$x, h=18, holdout=FALSE, intervals=TRUE, combine=TRUE)
 ```
+
+
+## References
