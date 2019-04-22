@@ -74,7 +74,7 @@ series.
 columns, time is in rows.
 \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 depending on \code{nsim}.
-\item \code{occurrences} - Values of occurrence variable. Once again, can be either
+\item \code{occurrence} - Values of occurrence variable. Once again, can be either
 a vector or a matrix...
 \item \code{logLik} - Log-likelihood of the constructed model.
 }

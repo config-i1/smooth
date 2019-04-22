@@ -11,7 +11,7 @@ smoothCombine(data, models = NULL, initial = c("optimal",
   intervals = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, bins = 200, intervalsCombine = c("quantile",
   "probability"), occurrence = c("none", "auto", "fixed", "general",
-  "odds-ratio", "inverse-odds-ratio", "probability"), imodel = "MNN",
+  "odds-ratio", "inverse-odds-ratio", "probability"), oesmodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
@@ -97,7 +97,7 @@ quantile-wise (\code{"quantile"}) or probability-wise
 mechanism a+b=1,
 \code{"auto"} - the automatically selected type of occurrence model.}
 
-\item{imodel}{The type of ETS model used for the modelling of the time varying
+\item{oesmodel}{The type of ETS model used for the modelling of the time varying
 probability. Object of the class "oes" can be provided here, and its parameters
 would be used in iETS model.}
 
@@ -165,8 +165,8 @@ then NA is returned.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
-\item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
-If the model is non-intermittent, then imodel is \code{NULL}.
+\item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
+If the model is non-intermittent, then occurrence is \code{NULL}.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
 then this value will contain only selected exogenous variables.
 \item \code{updateX} - boolean, defining, if the states of exogenous variables were

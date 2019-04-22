@@ -95,8 +95,8 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
-#' If the model is non-intermittent, then imodel is \code{NULL}.
+#' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
+#' If the model is non-intermittent, then occurrence is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous variables.
 #' \item \code{updateX} - boolean, defining, if the states of exogenous variables
@@ -165,7 +165,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                imodel="MNN",
+                oesmodel="MNN",
                 bounds=c("restricted","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -191,8 +191,8 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("A","M"),
 
         type <- errorType(model);
 
-        if(!is.null(model$imodel)){
-            imodel <- model$imodel;
+        if(!is.null(model$occurrence)){
+            occurrence <- model$occurrence;
         }
         initial <- model$initial;
         persistence <- model$persistence;
@@ -509,7 +509,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamOccurrence <- all(occurrence!=c("n","provided"))*1;
+    nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
     if(xregDo=="u"){
@@ -550,7 +550,7 @@ CreatorGUM <- function(silentText=FALSE,...){
                   h=h,holdout=holdout,cumulative=cumulative,
                   intervals=intervals,level=level,
                   occurrence=occurrence,
-                  imodel=imodel,
+                  oesmodel=oesmodel,
                   bounds="u",
                   silent=silent,
                   xreg=xreg,xregDo=xregDo,initialX=initialX,
@@ -640,6 +640,7 @@ CreatorGUM <- function(silentText=FALSE,...){
         intermittentMaker(occurrence="a",ParentEnvironment=environment());
         intermittentModel <- CreatorGUM(silent=silentText);
         occurrenceBest <- occurrence;
+        occurrenceModelBest <- occurrenceModel;
 
         if(!silentText){
             cat("Comparing it with the best non-intermittent model...\n");
@@ -658,10 +659,11 @@ CreatorGUM <- function(silentText=FALSE,...){
         else{
             gumValues <- intermittentModel;
             occurrence[] <- occurrenceBest;
+            occurrenceModel <- occurrenceModelBest;
             intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
             intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
         }
-        rm(intermittentModel,nonIntermittentModel);
+        rm(intermittentModel,nonIntermittentModel,occurrenceModelBest);
     }
     else{
         intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
@@ -799,9 +801,9 @@ CreatorGUM <- function(silentText=FALSE,...){
     # Add variance estimation
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
-    # Write down the number of parameters of imodel
-    if(all(occurrence!=c("n","provided")) & !imodelProvided){
-        parametersNumber[1,3] <- nparam(imodel);
+    # Write down the number of parameters of occurrence
+    if(all(occurrence!=c("n","p")) & !occurrenceModelProvided){
+        parametersNumber[1,3] <- nparam(occurrenceModel);
     }
 
 # Make some preparations
@@ -908,7 +910,7 @@ CreatorGUM <- function(silentText=FALSE,...){
                   nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,imodel=imodel,
+                  actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));

@@ -51,7 +51,7 @@
 #' columns, time is in rows.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 #' depending on \code{nsim}.
-#' \item \code{occurrences} - Values of occurrence variable. Once again, can be either
+#' \item \code{occurrence} - Values of occurrence variable. Once again, can be either
 #' a vector or a matrix...
 #' \item \code{logLik} - Log-likelihood of the constructed model.
 #' }
@@ -419,6 +419,6 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     model <- list(model=modelname,
                   A=AValue, B=BValue, initial=matInitialValue,
                   data=matyt, states=arrvt, residuals=materrors,
-                  occurrences=matot, logLik=veclikelihood);
+                  occurrence=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

@@ -151,6 +151,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     # Not in the fitter:
     # F: - fixed
 
+    # If the model was passed in the occurrence part, deal with it
+    if(is.oes(occurrence)){
+        model <- occurrence;
+    }
+
+    # If the model is oes or oesg, use it
     if(is.oesg(model)){
         return(oesg(data, modelA=model$modelA, modelB=model$modelB, h=h, holdout=holdout,
                     intervals=intervals, level=level, bounds=bounds,
@@ -217,7 +223,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
     #### These are needed in order for ssInput to go forward
     cfType <- "MSE";
-    imodel <- NULL;
+    oesmodel <- NULL;
 
     ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
@@ -698,7 +704,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                        persistence=matrix(0,1,1,dimnames=list("level",NULL)),
                        initial=initial, initialSeason=NULL);
     }
-    ##### Odds-ratio, inverse and probability models #####
+    ##### Odds-ratio, inverse and direct models #####
     else if(any(occurrence==c("o","i","d"))){
         if(modelDo=="estimate"){
             # Initialise the model
@@ -895,7 +901,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         modelname <- "oETS";
     }
     output$occurrence <- occurrence;
-    output$model <- paste0(modelname,"(",model,")");
+    output$model <- paste0(modelname,"[",toupper(occurrence),"](",model,")");
 
     ##### Make a plot #####
     if(!silentGraph){

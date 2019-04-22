@@ -1,11 +1,11 @@
-utils::globalVariables(c("y","obs","imodelProvided","occurrenceModel","imodel"))
+utils::globalVariables(c("y","obs","occurrenceModelProvided","occurrenceModel","occurrenceModel"))
 
 intermittentParametersSetter <- function(occurrence="n",...){
 # Function returns basic parameters based on occurrence type
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(all(occurrence!=c("n","provided"))){
+    if(all(occurrence!=c("n","p"))){
         ot <- (y!=0)*1;
         obsNonzero <- sum(ot);
         obsZero <- obsInsample - obsNonzero;
@@ -21,32 +21,31 @@ intermittentParametersSetter <- function(occurrence="n",...){
         }
         # Demand sizes
         yot <- matrix(y[y!=0],obsNonzero,1);
-        if(!imodelProvided){
+        if(!occurrenceModelProvided){
             pFitted <- matrix(mean(ot),obsInsample,1);
             pForecast <- matrix(1,h,1);
         }
         else{
-            if(length(imodel$fitted)>obsInsample){
-                pFitted <- matrix(imodel$fitted[1:obsInsample],obsInsample,1);
+            if(length(fitted(occurrenceModel))>obsInsample){
+                pFitted <- matrix(fitted(occurrenceModel)[1:obsInsample],obsInsample,1);
             }
-            else if(length(imodel$fitted)<obsInsample){
-                pFitted <- matrix(c(imodel$fitted,
-                               rep(imodel$fitted[length(imodel$fitted)],obsInsample-length(imodel$fitted))),
+            else if(length(fitted(occurrenceModel))<obsInsample){
+                pFitted <- matrix(c(fitted(occurrenceModel),
+                               rep(fitted(occurrenceModel)[length(fitted(occurrenceModel))],obsInsample-length(fitted(occurrenceModel)))),
                              obsInsample,1);
             }
             else{
-                pFitted <- matrix(imodel$fitted,obsInsample,1);
+                pFitted <- matrix(fitted(occurrenceModel),obsInsample,1);
             }
 
-            if(length(imodel$forecast)>=h){
-                pForecast <- matrix(imodel$forecast[1:h],h,1);
+            if(length(occurrenceModel$forecast)>=h){
+                pForecast <- matrix(occurrenceModel$forecast[1:h],h,1);
             }
             else{
-                pForecast <- matrix(c(imodel$forecast,
-                                   rep(imodel$forecast[1],h-length(imodel$forecast))),h,1);
+                pForecast <- matrix(c(occurrenceModel$forecast,
+                                   rep(occurrenceModel$forecast[1],h-length(occurrenceModel$forecast))),h,1);
             }
 
-            iprob <- c(pFitted,pForecast);
         }
     }
     else{
@@ -62,7 +61,6 @@ intermittentParametersSetter <- function(occurrence="n",...){
         pForecast <- matrix(1,h,1);
         nParamOccurrence <- 0;
     }
-    iprob <- pFitted[1];
     ot <- ts(ot,start=dataStart,frequency=dataFreq);
 
     assign("ot",ot,ParentEnvironment);
@@ -72,7 +70,6 @@ intermittentParametersSetter <- function(occurrence="n",...){
     assign("pFitted",pFitted,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);
     assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
-    assign("iprob",iprob,ParentEnvironment);
 }
 
 intermittentMaker <- function(occurrence="n",...){
@@ -81,30 +78,28 @@ intermittentMaker <- function(occurrence="n",...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
 ##### If occurrence is not absent or provided, then work normally #####
-    if(all(occurrence!=c("n","provided"))){
-        if(!imodelProvided){
-            imodel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h);
+    if(all(occurrence!=c("n","p"))){
+        if(!occurrenceModelProvided){
+            occurrenceModel <- oes(ot, model=occurrenceModel, occurrence=occurrence, h=h);
         }
         else{
-            imodel <- oes(ot, model=imodel, h=h);
+            occurrenceModel <- oes(ot, model=occurrenceModel, h=h);
         }
-        nParamOccurrence <- nparam(imodel);
-        pFitted[,] <- imodel$fitted;
-        pForecast <- imodel$forecast;
-        iprob <- pForecast[1];
-        occurrence <- imodel$occurrence;
+        nParamOccurrence <- nparam(occurrenceModel);
+        pFitted[,] <- fitted(occurrenceModel);
+        pForecast <- occurrenceModel$forecast;
+        occurrence <- occurrenceModel$occurrence;
     }
     else{
-        imodel <- NULL;
+        occurrenceModel <- NULL;
         nParamOccurrence <- 0;
     }
 
     assign("occurrence",occurrence,ParentEnvironment);
     assign("pFitted",pFitted,ParentEnvironment);
     assign("pForecast",pForecast,ParentEnvironment);
-    assign("iprob",iprob,ParentEnvironment);
     assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
-    assign("imodel",imodel,ParentEnvironment);
+    assign("occurrenceModel",occurrenceModel,ParentEnvironment);
 }
 
 

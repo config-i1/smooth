@@ -1,4 +1,4 @@
-smooth v2.5.0 (Release data: 2019-04-10)
+smooth v2.5.0 (Release data: 2019-04-22)
 ==============
 
 Changes:
@@ -10,6 +10,11 @@ Changes:
 * The new likelihood for iETS models, which takes the missing values into account via EM-algorithm.
 * The new estimate of the variance of the error for the iETS, based on the likelihood. It is obviously biased, but consistent and more efficient.
 * Corrected optimisation of the iETS with rounded values, maximising SD directly in the function.
+* The intermittent models are now returned in the "occurrence" rather than "imodel" parameter and should be provided in the functions via "occurrence".
+* imodel is renamed into oesmodel for the univariate models. This is done for the consistency purposes.
+
+Bugfixes:
+* Bugfix in oes with occurrence="d" and model="AZZ".
 
 
 smooth v2.4.8 (Release data: 2019-03-10)

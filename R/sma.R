@@ -126,12 +126,11 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 
     initial <- "backcasting";
     occurrence <- "none";
-    imodel <- NULL;
+    oesmodel <- NULL;
     bounds <- "admissible";
     cfType <- "MSE";
     xreg <- NULL;
     nExovars <- 1;
-    ivar <- 0;
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- environment();
@@ -315,7 +314,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   order=order, initial=matvt[1,], initialType=initialType, nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,imodel=NULL,
+                  actuals=data,holdout=yHoldout,occurrence=NULL,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

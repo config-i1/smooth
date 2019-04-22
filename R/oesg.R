@@ -144,6 +144,8 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     # Function returns the occurrence part of the intermittent state space model, type G
 
     ##### Preparations #####
+    occurrence <- "g";
+
     if(is.smooth.sim(data)){
         data <- data$data;
     }
@@ -151,6 +153,16 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     # Add all the variables in ellipsis to current environment
     # list2env(list(...),environment());
     ellipsis <- list(...);
+
+    # If OES_G was provided as either modelA or modelB, deal with it
+    if(is.oesg(modelA)){
+        modelB <- modelA$modelB;
+        modelA <- modelA$modelA;
+    }
+    else if(is.oesg(modelB)){
+        modelA <- modelB$modelA;
+        modelB <- modelB$modelB;
+    }
 
     if(is.oes(modelA)){
         persistenceA <- modelA$persistence;
@@ -205,7 +217,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
 
     #### These are needed in order for ssInput to go forward
     cfType <- "MSE";
-    imodel <- NULL;
+    oesmodel <- NULL;
 
     #### First call for the environment ####
     ## Set environment for ssInput and make all the checks
@@ -1030,7 +1042,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         modelname <- "oETS";
     }
     # Start forming the output
-    output <- list(model=paste0(modelname,"(",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", actuals=otAll,
+    output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", actuals=otAll,
                    fitted=pFitted, forecast=pForecast, modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);
 
@@ -1052,7 +1064,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         # }
         # else{
         graphmaker(actuals=otAll,forecast=pForecast,fitted=pFitted,
-                   legend=!silentLegend,main=paste0(output$model,"_G"));
+                   legend=!silentLegend,main=output$model);
         # }
     }
 

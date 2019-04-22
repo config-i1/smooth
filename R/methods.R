@@ -87,7 +87,7 @@ AICc.smooth <- function(object, ...){
     nParamAll <- nparam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
 
-    if(!is.null(object$imodel)){
+    if(!is.null(object$occurrence)){
         obs <- sum(object$fitted!=0);
         nParamSizes <- nParamAll - object$nParam[1,3];
         IC <- (2*nParamAll - 2*llikelihood +
@@ -108,7 +108,7 @@ BICc.smooth <- function(object, ...){
     nParamAll <- nparam(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
 
-    if(!is.null(object$imodel)){
+    if(!is.null(object$occurrence)){
         obs <- sum(object$fitted!=0);
         nParamSizes <- nParamAll - object$nParam[1,3];
         IC <- - 2*llikelihood + (nParamSizes * log(obs) * obs) / (obs - nParamSizes - 1);
@@ -192,7 +192,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         type <- "e";
     }
 
-    if(!is.null(object$imodel) & type=="e"){
+    if(!is.null(object$occurrence) & type=="e"){
         warning(paste0("Empirical covariance matrix can be very inaccurate in cases of ",
                        "intemittent models.\nWe recommend using type='s' or type='a' instead."),
                 call.=FALSE);
@@ -206,7 +206,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
         else{
             errors <- log(1 + object$errors);
         }
-        if(!is.null(object$imodel)){
+        if(!is.null(object$occurrence)){
             obs <- t((errors!=0)*1) %*% (errors!=0)*1;
             obs[obs==0] <- 1;
             df <- obs - nparam(object);
@@ -280,7 +280,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             }
 
             # Calculate covariance matrix
-            if(!is.null(object$imodel)){
+            if(!is.null(object$occurrence)){
                 obsInSample <- t((errors!=0)*1) %*% (errors!=0)*1;
                 obsInSample[obsInSample==0] <- 1;
             }
@@ -294,7 +294,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
     }
     # Analytical covariance matrix
     else if(type=="a"){
-        if(!is.null(object$imodel)){
+        if(!is.null(object$occurrence)){
             ot <- (residuals(object)!=0)*1;
         }
         else{
@@ -519,14 +519,14 @@ pls.smooth <- function(object, holdout=NULL, ...){
     # Additive models
     if(Etype=="A"){
         # Non-intermittent data
-        if(is.null(object$imodel)){
+        if(is.null(object$occurrence)){
             errors <- holdout - yForecast;
             plsValue <- densityFunction(cfType, errors, covarMat);
         }
         # Intermittent data
         else{
             ot <- holdout!=0;
-            pForecast <- object$imodel$forecast;
+            pForecast <- object$occurrence$forecast;
             errors <- holdout - yForecast / pForecast;
             if(all(ot)){
                 plsValue <- densityFunction(cfType, errors, covarMat) + sum(log(pForecast));
@@ -545,14 +545,14 @@ pls.smooth <- function(object, holdout=NULL, ...){
     # Multiplicative models
     else{
         # Non-intermittent data
-        if(is.null(object$imodel)){
+        if(is.null(object$occurrence)){
             errors <- log(holdout) - log(yForecast);
             plsValue <- densityFunction(cfType, errors, covarMat) - sum(log(holdout));
         }
         # Intermittent data
         else{
             ot <- holdout!=0;
-            pForecast <- object$imodel$forecast;
+            pForecast <- object$occurrence$forecast;
             errors <- log(holdout) - log(yForecast / pForecast);
             if(all(ot)){
                 plsValue <- (densityFunction(cfType, errors, covarMat) - sum(log(holdout)) +
@@ -1162,7 +1162,7 @@ plot.oes <- function(x, ...){
     ellipsis <- list(...);
 
     if(is.null(ellipsis$main)){
-        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,main=paste0(x$model,"_",toupper(x$occurrence)),...);
+        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,main=x$model,...);
     }
     else{
         graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper, ...);
@@ -1381,8 +1381,8 @@ print.smooth <- function(x, ...){
             }
         }
     }
-    if(is.oes(x$imodel)){
-        occurrence <- x$imodel$occurrence;
+    if(is.oes(x$occurrence)){
+        occurrence <- x$occurrence$occurrence;
     }
     else{
         occurrence <- "n";
@@ -1599,6 +1599,7 @@ print.oes <- function(x, ...){
 }
 
 #### Simulate data using provided object ####
+#' @importFrom utils tail
 #' @export
 simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     ellipsis <- list(...);
@@ -1672,7 +1673,13 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     args$obs <- obs;
     args$nsim <- nsim;
     args$initial <- object$initial;
-    args$iprob <- object$iprob[length(object$iprob)];
+    # If this is an occurrence model, use the fitted values for the probabilities
+    if(is.list(object$occurrence)){
+        args$iprob <- fitted(object$occurrence);
+    }
+    else{
+        args$iprob <- 1;
+    }
 
     if(smoothType=="ETS"){
         model <- modelType(object);

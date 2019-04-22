@@ -1,6 +1,6 @@
 utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
                          "obsStates","obsNonzero","obsZero","pFitted","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","ivar","model",
+                         "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","model","oesmodel","imodel",
                          "constant","AR","MA","data","yFitted","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
@@ -792,27 +792,24 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         level <- level / 100;
     }
 
-    ##### imodel #####
-    if(is.oes(imodel)){
-        occurrenceModel <- modelType(imodel);
-        occurrence <- imodel$occurrence;
-        imodelProvided <- TRUE;
+    ##### Occurrence part of the model #####
+    if(is.oes(occurrence)){
+        occurrenceModel <- occurrence;
+        occurrence <- occurrenceModel$occurrence;
+        occurrenceModelProvided <- TRUE;
     }
-    else if(is.list(imodel)){
-        warning("imodel is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
+    else if(is.list(occurrence)){
+        warning("occurrence is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
                 call.=FALSE);
-        occurrenceModel <- modelType(imodel);
-        occurrence <- imodel$occurrence;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
+        occurrenceModel <- modelType(occurrence);
+        occurrence <- occurrence$occurrence;
+        occurrenceModelProvided <- FALSE;
     }
     else{
-        occurrenceModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
+        occurrenceModel <- oesmodel;
+        occurrenceModelProvided <- FALSE;
     }
 
-    ##### Occurrence part of the model #####
     if(smoothType!="oes"){
         if(exists("intermittent",envir=ParentEnvironment,inherits=FALSE)){
             if(!is.null(intermittent)){
@@ -829,6 +826,15 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             }
             else{
                 occurrence <- intermittent;
+            }
+        }
+        if(exists("imodel",envir=ParentEnvironment,inherits=FALSE)){
+            if(!is.null(imodel)){
+                oesmodel <- imodel;
+                warning("The parameter \"imodel\" is obsolete. Please, use \"oesmodel\" instead");
+            }
+            else{
+                oesmodel <- imodel;
             }
         }
 
@@ -868,9 +874,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                     pForecast <- matrix(occurrence,h,1);
                 }
 
-                iprob <- pForecast[1];
                 # "p" stand for "provided", meaning that we have been provided the future data
-                occurrence <- "provided";
+                occurrence <- "p";
                 nParamOccurrence <- 0;
             }
         }
@@ -889,13 +894,13 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
 
         # If the data is not occurrence, let's assume that the parameter was switched unintentionally.
-        if(all(ot==1) & all(occurrence!=c("n","provided"))){
+        if(all(ot==1) & all(occurrence!=c("n","p","provided"))){
             occurrence <- "n";
-            imodelProvided <- FALSE;
+            occurrenceModelProvided <- FALSE;
         }
 
-        if(imodelProvided){
-            parametersNumber[2,3] <- nparam(imodel);
+        if(occurrenceModelProvided){
+            parametersNumber[2,3] <- nparam(occurrenceModel);
         }
     }
     else{
@@ -1385,14 +1390,12 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     if(smoothType!="oes"){
         assign("occurrence",occurrence,ParentEnvironment);
         assign("occurrenceModel",occurrenceModel,ParentEnvironment);
-        assign("imodel",imodel,ParentEnvironment);
         assign("ot",ot,ParentEnvironment);
         assign("yot",yot,ParentEnvironment);
         assign("pFitted",pFitted,ParentEnvironment);
         assign("pForecast",pForecast,ParentEnvironment);
         assign("nParamOccurrence",nParamOccurrence,ParentEnvironment);
-        assign("iprob",iprob,ParentEnvironment);
-        assign("imodelProvided",imodelProvided,ParentEnvironment);
+        assign("occurrenceModelProvided",occurrenceModelProvided,ParentEnvironment);
     }
     else{
         assign("initialSeasonEstimate",initialSeasonEstimate,ParentEnvironment);
@@ -1658,24 +1661,22 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         intervals <- TRUE;
     }
 
-    ##### imodel #####
-    if(is.oes(imodel)){
-        occurrenceModel <- modelType(imodel);
-        occurrence <- imodel$occurrence;
-        imodelProvided <- TRUE;
+    ##### Occurrence part of the model #####
+    if(is.oes(occurrence)){
+        occurrenceModel <- occurrence;
+        occurrence <- occurrenceModel$occurrence;
+        occurrenceModelProvided <- TRUE;
     }
-    else if(is.list(imodel)){
-        warning("imodel is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
+    else if(is.list(occurrence)){
+        warning("occurrence is not of the class oes. We will try to extract the type of model, but cannot promise anything.",
                 call.=FALSE);
-        occurrenceModel <- modelType(imodel);
-        occurrence <- imodel$occurrence;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
+        occurrenceModel <- modelType(occurrence);
+        occurrence <- occurrenceModel$occurrence;
+        occurrenceModelProvided <- FALSE;
     }
     else{
-        occurrenceModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
+        occurrenceModel <- oesmodel;
+        occurrenceModelProvided <- FALSE;
     }
 
     ##### Occurrence part of the model #####
@@ -1690,6 +1691,15 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
                              "a"="a",
                              "i"=,
                              "s"="i");
+    }
+    if(exists("imodel",envir=ParentEnvironment,inherits=FALSE)){
+        if(!is.null(imodel)){
+            oesmodel <- imodel;
+            warning("The parameter \"imodel\" is obsolete. Please, use \"oesmodel\" instead");
+        }
+        else{
+            oesmodel <- imodel;
+        }
     }
 
     if(is.numeric(occurrence)){
@@ -1725,9 +1735,9 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     # If the data is not occurrence, let's assume that the parameter was switched unintentionally.
-    if(all(ot==1) & all(occurrence!=c("n","provided"))){
+    if(all(ot==1) & all(occurrence!=c("n","p","provided"))){
         occurrence <- "n";
-        imodelProvided <- FALSE;
+        occurrenceModelProvided <- FALSE;
     }
 
     ##### Define xregDo #####
@@ -1833,7 +1843,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
                         modellags=NULL, states=NULL, cumulative=FALSE, cfType="MSE",
                         yForecast=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
-                        iprob=1, ivar=1){
+                        iprob=1){
     # Function constructs intervals based on the provided random variable.
     # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
     # based on errors the horison is estimated as ncol(errors)
@@ -2474,7 +2484,7 @@ ssForecaster <- function(...){
                 if(Etype=="M"){
                     materrors <- exp(materrors) - 1;
                 }
-                if(all(occurrence!=c("n","provided"))){
+                if(all(occurrence!=c("n","p"))){
                     matot <- matrix(rbinom(h*nSamples,1,pForecast),h,nSamples);
                 }
                 else{
@@ -2531,7 +2541,7 @@ ssForecaster <- function(...){
                                            modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
                                            cumulative=cumulative, cfType=cfType,
                                            yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
-                                           iprob=pForecast, ivar=ivar);
+                                           iprob=pForecast);
 
                 # if(!(intervalsType=="sp" & Etype=="M")){
                     yForecast <- c(pForecast)*yForecast;
@@ -2999,7 +3009,7 @@ likelihoodFunction <- function(C){
         }
     }
 
-    if(any(occurrence==c("n","provided"))){
+    if(any(occurrence==c("n","p"))){
         return(logLikFromCF(C, cfType));
     }
     else{
@@ -3120,7 +3130,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     cat(paste0("Time elapsed: ",round(as.numeric(timeelapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",modelname,"\n"));
 
-    if(all(occurrence!=c("n","none","provided"))){
+    if(all(occurrence!=c("n","none","p","provided"))){
         if(any(occurrence==c("f","fixed"))){
             occurrence <- "Fixed probability";
         }
@@ -3139,7 +3149,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat(paste0("Occurrence model type: ",occurrence));
         cat("\n");
     }
-    else if(any(occurrence==c("provided"))){
+    else if(any(occurrence==c("p"))){
         cat(paste0("Occurrence data provided for the holdout.\n"));
     }
 

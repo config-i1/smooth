@@ -22,15 +22,15 @@ The general iETS model (called iETS$_G$) can be summarised as:
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Beta-Bernoulli} \left(a_t, b_t \right) \\
-		a_t = w(v_{a,t-L}) + r(v_{a,t-L}) \epsilon_{a,t} \\
-		v_{a,t} = f(v_{a,t-L}) + g(v_{a,t-L}) \epsilon_{a,t} \\
+		a_t = w_a(v_{a,t-L}) + r_a(v_{a,t-L}) \epsilon_{a,t} \\
+		v_{a,t} = f_a(v_{a,t-L}) + g_a(v_{a,t-L}) \epsilon_{a,t} \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
-		b_t = w(v_{b,t-L}) + r(v_{b,t-L}) \epsilon_{b,t} \\
-		v_{b,t} = f(v_{b,t-L}) + g(v_{b,t-L}) \epsilon_{b,t} \\
+		b_t = w_a(v_{b,t-L}) + r_a(v_{b,t-L}) \epsilon_{b,t} \\
+		v_{b,t} = f_a(v_{b,t-L}) + g_a(v_{b,t-L}) \epsilon_{b,t} \\
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
+where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function (the subscripts allow separating the functions for different parts of the model). These four functions define how the elements of the vector $v_{t}$ interact with each other. Furthermore, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
 \begin{equation} \label{eq:oETS(MZZ)}
     p_t = \frac{a_t}{a_t+b_t} ,
 \end{equation}
@@ -38,7 +38,7 @@ while for the additive error it is:
 \begin{equation} \label{eq:oETS(AZZ)}
     p_t = \frac{\exp(a_t)}{\exp(a_t)+\exp(b_t)} .
 \end{equation}
-This is because both $a_t$ and $b_t$ need to be positive, and the additive error models support the real plane. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This is because this type of model is positively defined for any values of error, trend and seasonality, which is essential for the values of $a_t$ and $b_t$. Also, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persisitence function. These four functions define how the elements of the vector $v_{t}$ interact with each other.
+This is because both $a_t$ and $b_t$ need to be positive, and the additive error models support the real plane. The canonical iETS model assumes that the pure multiplicative model is used for the both $a_t$ and $b_t$. This type of model is positively defined for any values of error, trend and seasonality, which is essential for the values of $a_t$ and $b_t$. If a combination of additive and multiplicative error models is used, then the additive part is expontiated prior to the usage of the formulae for the calculation of the probability.
 
 An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N)(M,N,N):
 \begin{equation} \label{eq:iETSGExample}
@@ -59,7 +59,9 @@ An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N
 \end{equation}
 where $l_{a,t}$ and $l_{b,t}$ are the levels for each of the shape parameters and $\alpha_{a}$ and $\alpha_{b}$ are the smoothing parameters. More advanced models can be constructing by specifying the ETS models for each part and / or adding explanatory variables.
 
-The concentrated likelihood function for this model is:
+In the notation of the model iETS(M,N,N)$_G$(M,N,N)(M,N,N), the first brackets describe the ETS model for the demand sizes, the underscore letter points out at the specific subtype of model (see below), the second barckets describe the ETS model, underlying the variable $a_t$ and the last ones stand for the model for the $b_t$. If only one variable is needed (either $a_t$ or $b_t$), then the redundant brackets are dropped, so that the notation simplifies, for example, to: iETS(M,N,N)$_O$(M,N,N). If the same type of model is used for both demand sizes and demand occurrence, then the second brackets can be dropped, simplifying the view to: iETS(M,N,N)$_G$. Finally, the notation without any brackets, such as iETS$_G$ stands for a general class of a specific subtype of iETS model (so any error / trend / seasonality). Given that iETS$_G$ is the most general model of all iETS models, the $_G$ can be dropped, when the properties are applicable to all subtypes. The oETS notation is used when the occurrence part of the model is discussed explicitly, skipping the demand sizes.
+
+The concentrated likelihood function for the iETS model is:
 \begin{equation} \label{eq:LogNormalConcentratedLogLikelihood} \tag{2}
 	\ell(\boldsymbol{\theta}, \hat{\sigma}_\epsilon^2 | \textbf{Y}) = - \frac{1}{2} \left( T \log(2 \pi e \hat{\sigma}_\epsilon^2) + T_0 \right) - {\sum_{o_t=1}} \log(z_t) + {\sum_{o_t=1}} \log(\hat{p}_t) + {\sum_{o_t=0}} \log(1-\hat{p}_t) ,
 \end{equation}
@@ -70,12 +72,10 @@ Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS mode
 1. iETS$_F$: $a_t = \text{const}$, $b_t = \text{const}$ - the model with the fixed probability of occurrence;
 2. iETS$_O$: $b_t = 1$ - the "odds ratio" model, based on the logistic transform of the $o_t$ variable;
 3. iETS$_I$: $a_t = 1$ - the "inverse odds ratio" model, based on the inverse logistic transform of the $o_t$ variable;
-4. iETS$_P$: $a_t + b_t = 1$, $a_t \leq 1$ - the probability based model, where the $p_t$ is calculated directly from the occurrence variable $o_t$;
+4. iETS$_D$: $a_t + b_t = 1$, $a_t \leq 1$ - the direct probability model, where the $p_t$ is calculated directly from the occurrence variable $o_t$;
 5. iETS$_G$: No restrictions - the model based on the evolution of both $a_t$ and $b_t$.
 
-The demand occurrence part of the model is denoted as "oETS" in `smooth`, pointing out what the ETS model is applied to.
-
-Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts.
+Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts. The one thing uniting all the subtypes of models is that all the multiplicative error ETS models in `smooth` package rely on the conditional medians rather than on the conditional means. This is caused by the assumption of log normality of the error term and simplifies some of the calculations, preserving the main idea of ETS models (separation of components of the model).
 
 In this vignette we will use ETS(M,N,N) model as a base for the different parts of the models. Although, this is a simplification, it allows better understanding the basics of the different types of iETS model, without the loss of generality.
 
@@ -119,11 +119,11 @@ so that the estimate of the probability $p$ is calculated based on the maximisat
 \end{equation}
 where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k_z+1$, where $k_z$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
 
-The occurrence part of the model iETS$_F$ is constructed using `oes()` function:
+The occurrence part of the model oETS$_F$ is constructed using `oes()` function:
 ```{r iETSFExample1}
-iETSFModel1 <- oes(y, occurrence="fixed", h=10, holdout=TRUE)
-iETSFModel1
-plot(iETSFModel1)
+oETSFModel1 <- oes(y, occurrence="fixed", h=10, holdout=TRUE)
+oETSFModel1
+plot(oETSFModel1)
 ```
 
 All the smooth forecasting functions support the occurrence part of the model. For example, here's how the iETS(M,M,N)$_F$ can be constructed:
@@ -133,8 +133,8 @@ es(y, "MMN", occurrence="fixed", h=10, holdout=TRUE, silent=FALSE)
 
 
 ## iETS$_O$
-The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ variable, which simplifies the iETS$_G$ model. For example, for the iETS$_O$(M,N,N):
-\begin{equation} \label{eq:iETSO}
+The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ variable (setting $b_t=1$), which simplifies the iETS$_G$ model. For example, for the iETS$_O$(M,N,N):
+\begin{equation} \label{eq:iETSO} \tag{5}
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Beta-Bernoulli} \left(a_t, 1 \right) \\
@@ -150,7 +150,7 @@ The probability of occurrence in this model is equal to:
 
 In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{a,0}=\frac{\bar{p}}{1-\bar{p}}$ for multiplicative error model and $l_{a,0} = \log l_{a,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. In cases of seasonal models, the regression with dummy variables is fitted, and its parameters are then used for the initials of the seasonal indices after the transformations  similar to the level ones.
 
-The construction of the model is done via the set of equations (example with iETS$_O$(M,N,N)):
+The construction of the model is done via the following set of equations (example with oETS$_O$(M,N,N)):
 \begin{equation} \label{eq:iETSOEstimation}
     \begin{matrix}
         \hat{p}_t = \frac{\hat{a}_t}{\hat{a}_t+1} \\
@@ -165,21 +165,176 @@ Given that the model is estimated using the likelihood (2), it has $k_z+k_a$ par
 
 The occurrence part of the model iETS$_O$ is constructed using the very same `oes()` function, but also allows specifying the ETS model to use. Foe example, here's the ETS(M,M,N) model:
 ```{r iETSOExample1}
-iETSOModel1 <- oes(y, model="MMN", occurrence="o", h=10, holdout=TRUE)
-iETSOModel1
-plot(iETSOModel1)
+oETSOModel <- oes(y, model="MMN", occurrence="o", h=10, holdout=TRUE)
+oETSOModel
+plot(oETSOModel)
 ```
 
-And here's the full iETS(M,M,N)$_O$(M,M,N) model:
+And here's the full iETS(M,M,N)$_O$ model:
 ```{r iETSOExample2}
-es(y, "MMN", occurrence="o", imodel="MMN", h=10, holdout=TRUE, silent=FALSE)
+es(y, "MMN", occurrence="o", oesmodel="MMN", h=10, holdout=TRUE, silent=FALSE)
 ```
+
+This should give the same results as running, meaning that we ask explicitly for the `es()` function to use the earlier estimated model:
+```{r iETSOExample3, eval=FALSE}
+es(y, "MMN", occurrence=oETSOModel, h=10, holdout=TRUE, silent=FALSE)
+```
+This gives an additional flexibility, because the construction can be done in two steps, with a more refined model for the occurrence part (e.g. including explanatory variables).
 
 
 ## iETS$_I$
+Similarly to the odds-ratio iETS, inverse-odds-ratio model uses only one model for the occurrence part, but for the $b_t$ variable instead of $a_t$ (now $a_t=1$). Here is an example of iETS$_I$(M,N,N):
+\begin{equation} \label{eq:iETSI} \tag{6}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Beta-Bernoulli} \left(1, b_t \right) \\
+		b_t = l_{b,t-1} \left(1 + \epsilon_{b,t} \right) \\
+		l_{b,t} = l_{b,t-1}( 1  + \alpha_{b} \epsilon_{b,t}) \\
+		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
+    \end{matrix}.
+\end{equation}
+The probability of occurrence in this model is equal to:
+\begin{equation} \label{eq:oETS_I(MNN)}
+    p_t = \frac{1}{1+b_t} .
+\end{equation}
+
+In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{b,0}=\frac{1-\bar{p}}{\bar{p}}$ for multiplicative error model and $l_{b,0} = \log l_{b,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. The seasonality is treated similar to the iETS$_O$ model, but using the inverse-odds transformation.
+
+The construction of the model is done via the set of equations similar to the ones for the iETS$_O$ model:
+\begin{equation} \label{eq:iETSIEstimation}
+    \begin{matrix}
+        \hat{p}_t = \frac{\hat{b}_t}{\hat{b}_t+1} \\
+		\hat{b}_t = l_{b,t-1} \\
+		l_{b,t} = l_{b,t-1}( 1  + \alpha_{b} e_{b,t}) \\
+		1+e_{b,t} = \frac{1-u_t}{u_t} \\
+		u_{t} = \frac{1 + o_t - \hat{p}_t}{2}
+    \end{matrix}.
+\end{equation}
+
+So the model iETS$_I$ is like a mirror reflection of the model iETS$_O$. However, it produces different forecasts, because it focuses on the probability of non-occurrence, rather than the probability of occurrence. Interestingly enough, the probability of occurrence $p_t$ can also be estimated if $1+b_t$ in the denominator is set to be equal to the demand intervals (between the demand occurrences). The model (6) underlies Croston's method in this case.
+
+Once again `oes()` function is used in the construction of the model:
+```{r iETSIExample1}
+oETSIModel <- oes(y, model="MMN", occurrence="i", h=10, holdout=TRUE)
+oETSIModel
+plot(oETSIModel)
+```
+
+And here's the full iETS(M,M,N)$_O$ model:
+```{r iETSIExample2}
+es(y, "MMN", occurrence="i", oesmodel="MMN", h=10, holdout=TRUE, silent=FALSE)
+```
+
+Once again, an earlier estimated model can be used in the univariate forecasting functions:
+```{r iETSIExample3, eval=FALSE}
+es(y, "MMN", occurrence=oETSIModel, h=10, holdout=TRUE, silent=FALSE)
+```
+
 
 ## iETS$_D$
+This model appears, when a specific restriction is imposed:
+\begin{equation} \label{eq:iETSGRestriction}
+    a_t + b_t = 1, a_t \in [0, 1]
+\end{equation}
+The pure multiplicative iETS model is then transformed into:
+\begin{equation} \label{eq:iETSD} \tag{7}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Bernoulli} \left(a_t \right) \\
+		a_t = \min \left(l_{a,t-1} \left(1 + \epsilon_{a,t} \right) , 1 \right) \\
+		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} \epsilon_{a,t}) \\
+		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2)
+    \end{matrix}.
+\end{equation}
+An option with the additive model in this case has a different, more complicated form:
+\begin{equation} \label{eq:iETSDAdditive}
+    \begin{matrix}
+        y_t = o_t z_t \\
+		o_t \sim \text{Bernoulli} \left(a_t \right) \\
+		a_t = \max \left( \min \left(l_{a,t-1} + \epsilon_{a,t} , 1 \right), 0 \right) \\
+		l_{a,t} = l_{a,t-1}  + \alpha_{a} \epsilon_{a,t} \\
+		\epsilon_{a,t} \sim \mathcal{N}(0, \sigma_{a}^2)
+    \end{matrix}.
+\end{equation}
+The conditional expectation and variance for the demand occurrence part in this case is quite nasty, although it has an analytical solution. In case of the additive model it might cause problems, so **the implementation in `smooth` is not accurate** and needs to be fixed. However, in case of multiplicative model, the medians are used, which are much simpler, and, as a result, the point forecasts for several steps ahead correspond to the ones from the ETS models, restricted with the [0, 1] region. So, I would recommend either sticking with the multiplicative error models or using some other iETS subtypes.
+
+The estimation of the multiplicative error model is done using the following set of equaions:
+\begin{equation} \label{eq:ISSETS(MNN)_probability_estimate}
+	\begin{matrix}
+		\hat{y}_t = o_t \hat{l}_{z,t-1} \\
+		\hat{l}_{z,t} = \hat{l}_{z,t-1}( 1  + \alpha e_t) \\
+		\hat{a}_t = min(\hat{l}_{a,t-1}, 1) \\
+		\hat{l}_{a,t} = \hat{l}_{a,t-1}( 1  + \alpha_{a} e_{a,t})
+	\end{matrix},
+\end{equation}
+where
+\begin{equation} \label{eq:ISSETS(MNN)_TSB_model_error_approximation}
+	e_{a,t} = \frac{o_t (1 - 2 \kappa) + \kappa - \hat{a}_t}{\hat{a}_t},
+\end{equation}
+and $\kappa$ is a very small number (for example, $\kappa = 10^{-10}$), needed only in order to make the model estimable. The estimate of the error term in case of the additive model is much simpler and does not need any specific tricks to work:
+\begin{equation} \label{eq:ISSETS(MNN)_TSB_model_error_approximation2}
+	e_{a,t} = o_t - \hat{a}_t .
+\end{equation}
+
+The initials of the iETS$_D$ model are calculated directly from the data without any additional transformations
+
+Here's an example of the application of the model to the same artificial data:
+```{r iETSDExample1}
+oETSDModel <- oes(y, model="MMN", occurrence="d", h=10, holdout=TRUE)
+oETSDModel
+plot(oETSDModel)
+```
+
+The usage of the model in case of univariate forecasting functions is the same as in the cases of other occurrence models, discussed above:
+```{r iETSDExample2}
+es(y, "MMN", occurrence=oETSDModel, h=10, holdout=TRUE, silent=FALSE)
+```
+
 
 ## iETS$_G$
+This model has already been discussed above and was presented in (1). The estimation of iETS(M,N,N)$_G$ model is done via the following set of equations:
+\begin{equation} \label{eq:ISSETS(MNN)Estimated}
+	\begin{matrix}
+		\hat{y}_t = o_t \hat{z}_t \\
+		e_t = o_t \frac{y_t - \hat{z}_t}{\hat{z}_t} \\
+		\hat{z}_t = \hat{l}_{z,t-1} \\
+		\hat{l}_{z,t} = \hat{l}_{z,t-1}( 1  + \alpha_z e_t) \\
+		e_{a,t} = \frac{u_t}{1-u_t} -1 \\
+		\hat{a}_t = \hat{l}_{a,t-1} \\
+		\hat{l}_{a,t} = \hat{l}_{a,t-1}( 1  + \alpha_{a} e_{a,t}) \\
+		\hat{b}_t = \hat{l}_{b,t-1} \\
+		\hat{l}_{b,t} = \hat{l}_{b,t-1}( 1  + \alpha_{b} e_{b,t}) \\
+		e_{b,t} = \frac{1-u_t}{u_t} -1
+	\end{matrix} .
+\end{equation}
+The initialisation of the parameters of the iETS$_G$ model is done separately for the variables $a_t$ and $b_t$, based on the principles, described above for the iETS$_O$ and iETS$_I$.
+
+There is a separate function for this model, called `oesg()`. It has twice more parameters than `oes()`, because it allows fine tuning of the models for the variables $a_t$ and $b_t$. This gives an additional flexibility. For example, here is how we can use ETS(M,N,N) for the $a_t$ and ETS(A,A,N) for the $b_t$, resulting in oETS$_G$(M,N,N)(A,A,N):
+```{r iETSGExample1}
+oETSGModel1 <- oesg(y, modelA="MNN", modelB="AAN", h=10, holdout=TRUE)
+oETSGModel1
+plot(oETSGModel1)
+```
+
+The `oes()` function accepts `occurrence="g"` and in this case calls for `oesg()` with the same types of ETS models for both parts:
+```{r iETSGExample2}
+oETSGModel2 <- oes(y, model="MNN", occurrence="g", h=10, holdout=TRUE)
+oETSGModel2
+plot(oETSGModel2)
+```
+
+Finally, the more flexible way to construct iETS model would be to do it in two steps: either using `oesg()` or `oes()` and then using the `es()` with the provided model in `occurrence` variable. But a simpler option is available as well:
+```{r iETSGExample3}
+es(y, "MMN", occurrence="g", oesmodel="MMN", h=10, holdout=TRUE, silent=FALSE)
+```
+
 
 ## iETS$_A$
+Finally, there is an occurrence type selection mechanism. It tries out all the iETS subtypes of models, discussed above and selects the one that has the lowest information criterion (i.e. AIC). This subtype is called iETS$_A$ (automatic), although it does not represent any specific model. Here's an example:
+```{r iETSAExample1}
+oETSAModel <- oes(y, model="MNN", occurrence="a", h=10, holdout=TRUE)
+oETSAModel
+plot(oETSAModel)
+```
+
+The main restriction of the iETS models at the moment (`smooth` v.2.5.0) is that there is no model selection between the ETS models for the occurrence part. This needs to be done manually. Hopefully, this feature will appear in the next release of the package.

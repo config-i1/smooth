@@ -24,7 +24,7 @@
 #' \code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
 #' mechanism a+b=1,
 #' \code{"auto"} - the automatically selected type of occurrence model.
-#' @param imodel The type of ETS model used for the modelling of the time varying
+#' @param oesmodel The type of ETS model used for the modelling of the time varying
 #' probability. Object of the class "oes" can be provided here, and its parameters
 #' would be used in iETS model.
 #' @param xreg The vector (either numeric or time series) or the matrix (or

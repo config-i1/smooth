@@ -54,7 +54,7 @@
 #' \item \code{intermittent} - type of the intermittent model used.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 #' depending on \code{nsim}.
-#' \item \code{occurrences} - Values of occurrence variable. Once again, can be either
+#' \item \code{occurrence} - Values of occurrence variable. Once again, can be either
 #' a vector or a matrix...
 #' \item \code{logLik} - Log-likelihood of the constructed model.
 #' }
@@ -571,6 +571,6 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 
     model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
                   initial=initial, initialSeason=initialSeason, iprob=iprob, intermittent=intermittent,
-                  residuals=materrors, occurrences=matot, logLik=veclikelihood);
+                  residuals=materrors, occurrence=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));
 }

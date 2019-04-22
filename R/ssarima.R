@@ -117,8 +117,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{imodel} - model of the class "oes" if the occurrence model was estimated.
-#' If the model is non-intermittent, then imodel is \code{NULL}.
+#' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
+#' If the model is non-intermittent, then occurrence is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
 #' variables.
@@ -198,7 +198,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                     occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                    imodel="MNN",
+                    oesmodel="MNN",
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
                     xreg=NULL, xregDo=c("use","select"), initialX=NULL,
@@ -225,8 +225,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 # If this is a normal ARIMA, do things
         if(any(unlist(gregexpr("combine",model$model))==-1)){
-            if(!is.null(model$imodel)){
-                imodel <- model$imodel;
+            if(!is.null(model$occurrence)){
+                occurrence <- model$occurrence;
             }
             if(!is.null(model$initial)){
                 initial <- model$initial;
@@ -519,7 +519,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     # Check number of parameters vs data
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
-    nParamOccurrence <- all(occurrence!=c("n","provided"))*1;
+    nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
     if(xregDo=="u"){
@@ -563,7 +563,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                        h=h,holdout=holdout,cumulative=cumulative,
                        intervals=intervals,level=level,
                        occurrence=occurrence,
-                       imodel=imodel,
+                       oesmodel=oesmodel,
                        bounds="u",
                        silent=silent,
                        xreg=xreg,xregDo=xregDo,initialX=initialX,
@@ -586,6 +586,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         intermittentMaker(occurrence="a",ParentEnvironment=environment());
         intermittentModel <- CreatorSSARIMA(silent=silentText);
         occurrenceBest <- occurrence;
+        occurrenceModelBest <- occurrenceModel;
 
         if(!silentText){
             cat("Comparing it with the best non-intermittent model...\n");
@@ -604,10 +605,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         else{
             ssarimaValues <- intermittentModel;
             occurrence[] <- occurrenceBest;
+            occurrenceModel <- occurrenceModelBest;
             intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
             intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
         }
-        rm(intermittentModel,nonIntermittentModel);
+        rm(intermittentModel,nonIntermittentModel,occurrenceModelBest);
     }
     else{
         intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
@@ -747,9 +749,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     # Add variance estimation
     parametersNumber[1,1] <- parametersNumber[1,1] + 1;
 
-    # Write down the number of parameters of imodel
-    if(all(occurrence!=c("n","provided")) & !imodelProvided){
-        parametersNumber[1,3] <- nparam(imodel);
+    # Write down the number of parameters of occurrence model
+    if(all(occurrence!=c("n","p")) & !occurrenceModelProvided){
+        parametersNumber[1,3] <- nparam(occurrenceModel);
     }
 
 # Fill in the rest of matvt
@@ -953,7 +955,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,imodel=imodel,
+                  actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));

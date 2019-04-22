@@ -22,71 +22,80 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
 // The returned value. The first one is the aError, the second one is the bError.
     std::vector<double> output(2);
 
-// Correct the fitted depending on the type of the error
-    switch(EA){
-        case 'A':
-            aFit = exp(aFit);
-        break;
-    }
-    switch(EB){
-        case 'A':
-            bFit = exp(bFit);
-        break;
-    }
+    // The direct probability model
+    if(O=='d'){
+        pfit = std::max(std::min(aFit,1.0),0.0);
 
-// Produce fitted values
-    switch(O){
-        case 'g':
-            pfit = aFit / (aFit + bFit);
-        break;
-        case 'o':
-            pfit = aFit / (aFit + 1);
-        break;
-        case 'i':
-            pfit = 1 / (1 + aFit);
-        break;
-        case 'd':
-            pfit = aFit;
-        break;
-    }
-
-// Calculate the error and the respective a and b errors
-    error = (1 + yAct - pfit) / 2;
-    switch(O){
-        case 'g':
-            output[0] = error / (1 - error);
-            // output[0] = bFit * error / (1 - error);
-        break;
-        case 'o':
-            output[0] = error / (1 - error);
-        break;
-        case 'i':
-            output[0] = (1 - error) / error;
-        break;
-        case 'd':
-            // If this is "probability" model, calculate the error differently
+        switch(EA){
+        case 'M':
             output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
-        break;
+            break;
+        case 'A':
+            output[0] = yAct - pfit;
+            break;
+        }
     }
-    // output[1] = aFit * (1 - error) / error;
-    output[1] = (1 - error) / error;
+    // All odds ratio, inverse and general models
+    else{
+        // Correct the fitted depending on the type of the error
+        switch(EA){
+            case 'A':
+                aFit = exp(aFit);
+            break;
+        }
+        switch(EB){
+            case 'A':
+                bFit = exp(bFit);
+            break;
+        }
 
-    switch(EA){
+        // Produce fitted values
+        switch(O){
+            case 'g':
+                pfit = aFit / (aFit + bFit);
+            break;
+            case 'o':
+                pfit = aFit / (aFit + 1);
+            break;
+            case 'i':
+                pfit = 1 / (1 + aFit);
+            break;
+        }
+
+        // Calculate the error and the respective a and b errors
+        error = (1 + yAct - pfit) / 2;
+        switch(O){
+            case 'g':
+                output[0] = error / (1 - error);
+            // output[0] = bFit * error / (1 - error);
+            break;
+            case 'o':
+                output[0] = error / (1 - error);
+            break;
+            case 'i':
+                output[0] = (1 - error) / error;
+            break;
+        }
+        // output[1] = aFit * (1 - error) / error;
+        output[1] = (1 - error) / error;
+
+        switch(EA){
         case 'M':
             output[0] = output[0] - 1;
-        break;
+            break;
         case 'A':
             output[0] = log(output[0]);
-        break;
-    }
+            break;
+        }
 
-    switch(EB){
+        switch(EB){
         case 'M':
             output[1] = output[1] - 1;
-        break;
+            break;
         case 'A':
             output[1] = log(output[1]);
-        break;
+            break;
+        }
     }
 
     return output;
@@ -141,7 +150,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
                                    matrixXt.row(i-maxlag), matrixAt.col(i-1));
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
-        if(vecYfit(i-maxlag) > 1e+100){
+        if((vecYfit(i-maxlag) > 1e+100) | (vecYfit(i-maxlag) < -1e+100)){
             warning = true;
             vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
         }
