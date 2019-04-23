@@ -151,7 +151,7 @@ cma <- function(data, order=NULL, silent=TRUE){
         errors <- residuals(smaModel);
     }
     else{
-        ssarimaModel <- ssarima(y, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
+        ssarimaModel <- msarima(y, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
                          h=order, holdout=FALSE, silent=TRUE);
         yFitted <- c(ssarimaModel$fitted[-c(1:(order/2))],ssarimaModel$forecast);
         smaModel <- sma(y, order=1, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);

@@ -14,6 +14,7 @@ Changes:
 * imodel is renamed into oesmodel for the univariate models. This is done for the consistency purposes.
 * A vignette for oes() and the new intermittent model + references to the iETS and SSARIMA papers.
 * Use actuals() method from greybox instead of getResponse() from forecast.
+* cma() now relies on msarima() rather than on ssarima().
 
 Bugfixes:
 * Bugfix in oes with occurrence="d" and model="AZZ".
