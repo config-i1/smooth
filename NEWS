@@ -19,6 +19,7 @@ Bugfixes:
 * Bugfix in oes with occurrence="d" and model="AZZ".
 * Semiparametric intervals were broken.
 * Wrong model name was produced on the graph of es().
+* Fixed a bug in backcasting fitter with "Mat::col(): index out of bounds".
 
 
 smooth v2.4.8 (Release data: 2019-03-10)

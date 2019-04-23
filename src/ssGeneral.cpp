@@ -1038,7 +1038,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
             // This is for cases of ridiculously high and ridiculously low values
             if(vecYfit(i-maxlag) > 1e+100){
-                vecYfit.col(i-maxlag) = vecYfit(i-maxlag+1);
+                vecYfit(i-maxlag) = vecYfit(i-maxlag+1);
             }
 
             // If this is zero (intermittent), then set error to zero
