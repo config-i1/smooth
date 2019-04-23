@@ -227,7 +227,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             obs <- ellipsis$obs;
         }
         else{
-            obs <- length(getResponse(object));
+            obs <- length(actuals(object));
         }
         if(any(names(ellipsis)=="nsim")){
             nsim <- ellipsis$nsim;
@@ -590,7 +590,7 @@ pointLik.smooth <- function(object, ...){
 
     if(errorType(object)=="M"){
         errors <- log(1+errors);
-        likValues <- likValues - log(getResponse(object));
+        likValues <- likValues - log(actuals(object));
     }
 
     if(any(cfType==c("MAE","MAEh","TMAE","GTMAE","MACE"))){
@@ -666,9 +666,7 @@ coef.smooth <- function(object, ...)
     return(parameters);
 }
 
-#' @importFrom forecast getResponse
-#' @export
-forecast::getResponse
+#' @importFrom greybox actuals
 
 #### Fitted, forecast and actual values ####
 #' @export
@@ -771,12 +769,13 @@ forecast.smooth <- function(object, h=10,
 }
 
 #' @importFrom stats window
+#' @importFrom greybox actuals
 #' @export
-getResponse.smooth <- function(object, ...){
+actuals.smooth <- function(object, ...){
     return(window(object$actuals,start(object$actuals),end(object$fitted)));
 }
 #' @export
-getResponse.smooth.forecast <- function(object, ...){
+actuals.smooth.forecast <- function(object, ...){
     return(window(object$model$actuals,start(object$model$actuals),end(object$model$fitted)));
 }
 
@@ -791,7 +790,7 @@ lags.ets <- function(object, ...){
     modelName <- modelType(object);
     lags <- c(1);
     if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
-        lags <- c(lags,frequency(getResponse(object)));
+        lags <- c(lags,frequency(actuals(object)));
     }
     return(lags);
 }
@@ -834,12 +833,12 @@ lags.smooth <- function(object, ...){
             modelName <- modelType(object);
             lags <- c(1);
             if(substr(modelName,nchar(modelName),nchar(modelName))!="N"){
-                lags <- c(lags,frequency(getResponse(object)));
+                lags <- c(lags,frequency(actuals(object)));
             }
         }
         else if(smoothType=="CES"){
             modelName <- modelType(object);
-            dataFreq <- frequency(getResponse(object));
+            dataFreq <- frequency(actuals(object));
             if(modelName=="none"){
                 lags <- c(1);
             }

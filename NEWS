@@ -1,4 +1,4 @@
-smooth v2.5.0 (Release data: 2019-04-22)
+smooth v2.5.0 (Release data: 2019-04-23)
 ==============
 
 Changes:
@@ -13,6 +13,7 @@ Changes:
 * The intermittent models are now returned in the "occurrence" rather than "imodel" parameter and should be provided in the functions via "occurrence".
 * imodel is renamed into oesmodel for the univariate models. This is done for the consistency purposes.
 * A vignette for oes() and the new intermittent model + references to the iETS and SSARIMA papers.
+* Use actuals() method from greybox instead of getResponse() from forecast.
 
 Bugfixes:
 * Bugfix in oes with occurrence="d" and model="AZZ".
