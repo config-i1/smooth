@@ -2043,8 +2043,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                 lower <- ev + lowerquant / hsmN^2 * Im(hm(rowSums(errors),sum(ev)))^2;
             }
             if(Etype=="M"){
-                upper <- 1 + upper;
-                lower <- 1 + lower;
+                upper <- yForecast*(1 + upper);
+                lower <- yForecast*(1 + lower);
             }
             varVec <- NULL;
         }
@@ -2076,6 +2076,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                             lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
                         }
                     }
+                    upper <- yForecast*upper;
+                    lower <- yForecast*lower;
                 }
                 else{
                     #This is wrong. And there's not way to make it right.
@@ -2101,6 +2103,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                             lower <- qlnorm((1-level)/2,rep(0,nVariables),sqrt(varVec));
                         }
                     }
+                    upper <- sum(yForecast)*upper;
+                    lower <- sum(yForecast)*lower;
                 }
             }
             else{

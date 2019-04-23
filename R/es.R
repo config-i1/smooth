@@ -2116,9 +2116,12 @@ CreatorES <- function(silent=FALSE,...){
     else{
         modelname <- "ETS";
     }
-    modelname <- paste0(modelname,"(",model,")");
+    modelnameForGraph <- modelname <- paste0(modelname,"(",model,")");
     if(all(occurrence!=c("n","none"))){
         modelname <- paste0("i",modelname);
+        if(!silentGraph){
+            modelnameForGraph <- paste0(modelname,"[",toupper(occurrence),"](",modelType(occurrenceModel),")");
+        }
     }
 
 ##### Print output #####
@@ -2144,15 +2147,11 @@ CreatorES <- function(silent=FALSE,...){
 
         if(intervals){
             graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
-                       level=level,legend=!silentLegend,
-                       main=paste0(modelname,"[",toupper(occurrence),"](",modelType(occurrenceModel),")"),
-                       cumulative=cumulative);
+                       level=level,legend=!silentLegend, main=modelnameForGraph, cumulative=cumulative);
         }
         else{
             graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
-                       legend=!silentLegend,
-                       main=paste0(modelname,"[",toupper(occurrence),"](",modelType(occurrenceModel),")"),
-                       cumulative=cumulative);
+                       legend=!silentLegend, main=modelnameForGraph, cumulative=cumulative);
         }
     }
 
