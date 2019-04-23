@@ -902,7 +902,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
     }
     output$occurrence <- occurrence;
     output$model <- paste0(modelname,"[",toupper(occurrence),"]");
-    if(any(occurrence=c("o","i","d","g"))){
+    if(any(occurrence==c("o","i","d","g"))){
         output$model <- paste0(output$model,"(",model,")");
     }
 
