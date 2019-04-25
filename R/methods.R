@@ -1418,8 +1418,8 @@ print.smooth.sim <- function(x, ...){
             if(x$phi!=1){
                 cat(paste0("Phi: ",x$phi,"\n"));
             }
-            if(x$occurrence!="n"){
-                cat(paste0("Occurrence model type: ",x$occurrence,"\n"));
+            if(any(x$occurrence!=1)){
+                cat(paste0("The data is produced based on an occurrence model.\n"));
             }
             cat(paste0("True likelihood: ",round(x$logLik,3),"\n"));
         }

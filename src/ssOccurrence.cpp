@@ -481,7 +481,7 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
     //
     std::vector<double> bufferForErrors;
 
-    for(unsigned int i=0; i<obs; i=i+1){
+    for(int i=0; i<obs; i=i+1){
         lagrowsA = (i+maxlagA+1) * nComponentsA - lagsInternalA - 1;
         lagrowsB = (i+maxlagB+1) * nComponentsB - lagsInternalB - 1;
 
