@@ -1564,8 +1564,8 @@ print.oes <- function(x, ...){
     if(occurrence=="g"){
         occurrence <- "General";
     }
-    else if(occurrence=="p"){
-        occurrence <- "Probability-based";
+    else if(occurrence=="d"){
+        occurrence <- "Direct probability";
     }
     else if(occurrence=="f"){
         occurrence <- "Fixed probability";
