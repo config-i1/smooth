@@ -30,7 +30,7 @@ std::vector<double> occurrenceError(double const &yAct, double aFit, double bFit
             // Calculate the error
             switch(EA){
                 case 'M':
-                    output[0] = (yAct * (1 - 2 * kappa) + kappa) / pfit;
+                    output[0] = (yAct * (1 - 2 * kappa) + kappa - pfit) / pfit;
                 break;
                 case 'A':
                     output[0] = yAct - pfit;
