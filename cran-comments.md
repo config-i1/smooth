@@ -1,16 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "30 November 2018"
+date: "25 April 2018"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.4.7. It fixes the bug caused by the recent upgrade of greybox package.
-* I fixed the warning produced from C++ about the "polymorphic type".
+This is ``smooth`` package, v2.5.0.
 
 ## Test environments
-* local ubuntu 18.04, R 3.4.4
-* ubuntu 14.04.5 (on travis-ci), R 3.5.1
+* local ubuntu 18.04, R 3.5.1
+* ubuntu 14.04.5 (on travis-ci), R 3.5.2
 * win-builder (devel and release)
 
 ## R CMD check results
@@ -23,15 +22,18 @@ checking installed package size ... NOTE
 0 errors | 0 warnings | 1 note
 
 # Other checks
-For some reason, the automatic compilation on CRAN complains about the url in one of my vignettes:
+The automatic compilation on CRAN complains about the url in one of my vignettes:
 
 Found the following (possibly) invalid URLs:
-  URL: https://doi.org/10.2307/2533213
-    From: inst/doc/ves.html
-    Status: 403
-    Message: Forbidden
+  URL: http://www.exponentialsmoothing.net
+    From: man/forecast.smooth.Rd
+            man/gsi.Rd
+            man/sim.ves.Rd
+            man/ves.Rd
+      Status: 504
+      Message: Gateway Timeout
 
-I checked this url on several PCs and it works on all of them, it should redirect to the paper "Model Selection for Multivariate Regression in Small Samples".
+The url is currently unavailable, but it worked before.
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.

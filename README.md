@@ -11,27 +11,24 @@ Here is the list of the included functions:
 3. gum - Generalised Exponential Smoothing. Next step from CES. The paper on this is in the process.
 4. sma - Simple Moving Average in state space form.
 5. ves - Vector Exponential Smoothing. Vector form of the ETS model.
-6. ssarima - SARIMA estimated in state space framework. Allows multiple seasonalities.
-7. auto.ces - selection between seasonal and non-seasonal CES models.
-8. auto.ssarima - selection between different State-Space ARIMA models.
-9. auto.gum - automatic selection of the most appropriate GUM model.
-10. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
-11. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
-12. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
-13. sim.gum - simulation functions for GUM.
-14. sim.sma - simulates data from SMA.
-15. sim.ves - simulates data from VES.
-16. oes - occurrence state space exponential smoothing model. This function models the part with data occurrences using one of the following methods: fixed, odds ratio, inverse odds ratio, direct or general. It can also select the most appropriate between the five.
-17. viss - the vector counterpart of iss.
-18. Accuracy - the vector of the error measures for the provided forecasts and the holdout.
-19. sowhat - returns the ultimate answer to any question.
-20. smoothCombine - the function that combines forecasts from es(), ces(), gum(), ssarima() and sma() functions.
-21. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
-
-Future works:
-
-1. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
-2. sofa - Survival of the fittest algorithm applied to state space models.
+6. gsi - Vector exponential smoothing model with Group Seasonal Indices.
+7. ssarima - SARIMA estimated in state space framework.
+8. msarima - Multiple seasonal ARIMA, allows multiple seasonalities and works in a finite time.
+9. auto.ces - selection between seasonal and non-seasonal CES models.
+10. auto.ssarima - selection between different State-Space ARIMA models.
+11. auto.msarima - selection between different multiple SARIMA models.
+12. auto.gum - automatic selection of the most appropriate GUM model.
+13. sim.es - simulation of data using ETS framework with a predefined (or random) smoothing parameters and initial values.
+14. sim.ssarima - simulation of data using State-Space ARIMA framework with a predefined (or randomly generated) parameters and initial values.
+15. sim.ces - simulation of data using CES with a predefined (or random) complex smoothing parameters and initial values.
+16. sim.gum - simulation functions for GUM.
+17. sim.sma - simulates data from SMA.
+18. sim.ves - simulates data from VES.
+19. oes - occurrence state space exponential smoothing model. This function models the part with data occurrences using one of the following methods: fixed, odds ratio, inverse odds ratio, direct or general. It can also select the most appropriate between the five.
+20. viss - the vector counterpart of iss.
+21. sowhat - returns the ultimate answer to any question.
+22. smoothCombine - the function that combines forecasts from es(), ces(), gum(), ssarima() and sma() functions.
+23. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
 
 Available methods:
 
@@ -41,12 +38,12 @@ Available methods:
 4. errorType - the type of the error in the model: either additive or multiplicative;
 5. fitted;
 6. forecast;
-7. getResponse;
+7. actuals;
 8. lags - lags of the model (mainly needed for ARIMA and GUM);
 9. logLik;
 10. modelType - type of the estimated model (mainly needed for ETS and CES);
 11. nobs;
-12. nParam - number of the estimated parameters in the model;
+12. nparam - number of the estimated parameters in the model;
 13. orders - orders of the components of the model (mainly needed for ARIMA, GUM and SMA);
 14. plot;
 15. pls - Prediction Likelihood Score for the model and the provided holdout;
@@ -56,6 +53,11 @@ Available methods:
 19. sigma;
 20. simulate;
 21. summary;
+
+Future works:
+
+1. nus - Non-uniform Smoothing. The estimation method used in order to update parameters of regression models.
+2. sofa - Survival of the fittest algorithm applied to state space models.
 
 
 ## Installation
