@@ -901,10 +901,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         modelname <- "oETS";
     }
     output$occurrence <- occurrence;
-    output$model <- paste0(modelname,"[",toupper(occurrence),"]");
-    if(any(occurrence==c("o","i","d","g"))){
-        output$model <- paste0(output$model,"(",model,")");
-    }
+    output$model <- paste0(modelname,"[",toupper(occurrence),"]","(",model,")");
 
     ##### Make a plot #####
     if(!silentGraph){
