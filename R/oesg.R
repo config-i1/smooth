@@ -370,7 +370,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
 
         # Persistence vector. The initials are set here!
         if(persistenceEstimate){
-            vecg <- matrix(0.01, nComponentsAll, 1);
+            vecg <- matrix(0.05, nComponentsAll, 1);
         }
         else{
             vecg <- matrix(persistence, nComponentsAll, 1);
