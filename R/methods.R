@@ -1007,14 +1007,7 @@ modelName.smooth <- function(object, ...){
 #### Function extracts type of model. For example "AAN" from ets ####
 #' @export
 modelType.default <- function(object, ...){
-    modelType <- NA;
-    if(is.null(object$model)){
-        if(any(gregexpr("ets",object$call)!=-1)){
-            model <- object$method;
-            modelType <- gsub(",","",substring(model,5,nchar(model)-1));
-        }
-    }
-    return(modelType);
+    return(NA);
 }
 
 #' @export
@@ -1058,6 +1051,11 @@ modelType.iss <- function(object, ...){
 #' @export
 modelType.oesg <- function(object, ...){
     return(modelType(object$modelA));
+}
+
+#' @export
+modelType.ets <- function(object, ...){
+    return(gsub(",","",substring(object$method,5,nchar(object$method)-1)));
 }
 
 #### Function extracts orders of provided model ####

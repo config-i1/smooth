@@ -806,7 +806,12 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         occurrenceModelProvided <- FALSE;
     }
     else{
-        occurrenceModel <- oesmodel;
+        if(is.null(oesmodel) || is.na(oesmodel)){
+            occurrenceModel <- "MNN";
+        }
+        else{
+            occurrenceModel <- oesmodel;
+        }
         occurrenceModelProvided <- FALSE;
     }
 
@@ -1675,11 +1680,15 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         occurrenceModelProvided <- FALSE;
     }
     else{
-        occurrenceModel <- oesmodel;
+        if(is.null(oesmodel) || is.na(oesmodel)){
+            occurrenceModel <- "MNN";
+        }
+        else{
+            occurrenceModel <- oesmodel;
+        }
         occurrenceModelProvided <- FALSE;
     }
 
-    ##### Occurrence part of the model #####
     if(exists("intermittent",envir=ParentEnvironment,inherits=FALSE)){
         intermittent <- substr(intermittent[1],1,1);
         warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
