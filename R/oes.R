@@ -819,8 +819,11 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
             parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
         }
+        else if(modelDo=="select"){
+            stop("The model selection is not implemented in oes just yet", call.=FALSE);
+        }
         else{
-            stop("The model selection and combinations are not implemented in oes just yet", call.=FALSE);
+            stop("The model combination is not implemented in oes just yet", call.=FALSE);
         }
 
         # Merge states of vt and at if the xreg was provided
