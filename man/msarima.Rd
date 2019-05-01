@@ -280,6 +280,8 @@ example, something crazy like this can be constructed:
 SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
 take some time... Still this should be estimated in finite time (not like
 with \code{ssarima}).
+
+For some additional details see the vignette: \code{vignette("ssarima","smooth")}
 }
 \examples{
 

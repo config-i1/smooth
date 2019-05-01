@@ -45,6 +45,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' The model selection for SSARIMA is done by the \link[smooth]{auto.ssarima} function.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ssarima","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssInitialParam

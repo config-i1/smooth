@@ -3,6 +3,8 @@
 #' Function generates data using SMA in a Single Source of Error state space
 #' model as a data generating process.
 #'
+#' For the information about the function, see the vignette:
+#' \code{vignette("simulate","smooth")}
 #'
 #' @template ssSimParam
 #' @template ssAuthor

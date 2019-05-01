@@ -17,6 +17,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' take a lot of time... It is recommended to use \link[smooth]{auto.msarima} in
 #' cases with more than one seasonality and high frequencies.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ssarima","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssInitialParam

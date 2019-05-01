@@ -4,6 +4,9 @@ utils::globalVariables(c("mvrnorm"));
 #'
 #' Function generates data using VES model as a data generating process.
 #'
+#' For the information about the function, see the vignette:
+#' \code{vignette("simulate","smooth")}
+#'
 #' @template ssAuthor
 #' @template vssKeywords
 #'

@@ -89,6 +89,10 @@ or array, depending on \code{nsim}.
 \description{
 Function generates data using VES model as a data generating process.
 }
+\details{
+For the information about the function, see the vignette:
+\code{vignette("simulate","smooth")}
+}
 \examples{
 
 # Create 40 observations of quarterly data using AAA model with errors

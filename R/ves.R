@@ -58,6 +58,9 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' In case of multiplicative model, instead of the vector y_t we use its logarithms.
 #' As a result the multiplicative model is much easier to work with.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ves","smooth")}
+#'
 #' @template vssBasicParam
 #' @template vssAdvancedParam
 #' @template ssAuthor

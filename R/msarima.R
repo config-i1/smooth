@@ -49,6 +49,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' take some time... Still this should be estimated in finite time (not like
 #' with \code{ssarima}).
 #'
+#' For some additional details see the vignette: \code{vignette("ssarima","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssInitialParam

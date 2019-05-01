@@ -82,6 +82,10 @@ a vector or a matrix...
 Function generates data using CES with Single Source of Error as a data
 generating process.
 }
+\details{
+For the information about the function, see the vignette:
+\code{vignette("simulate","smooth")}
+}
 \examples{
 
 # Create 120 observations from CES(n). Generate 100 time series of this kind.

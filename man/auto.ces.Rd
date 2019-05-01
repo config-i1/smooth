@@ -155,6 +155,9 @@ state space 2 described in Svetunkov, Kourentzes (2015) with the information
 potential equal to the approximation error using different types of
 seasonality and chooses the one with the lowest value of information
 criterion.
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("ces","smooth")}
 }
 \examples{
 

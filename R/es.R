@@ -30,6 +30,9 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #'
 #' For the details see Hyndman et al.(2008).
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("es","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssPersistenceParam

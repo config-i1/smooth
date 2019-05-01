@@ -59,6 +59,10 @@ a vector or a matrix...
 Function generates data using SMA in a Single Source of Error state space
 model as a data generating process.
 }
+\details{
+For the information about the function, see the vignette:
+\code{vignette("simulate","smooth")}
+}
 \examples{
 
 # Create 40 observations of quarterly data using AAA model with errors from normal distribution

@@ -252,6 +252,9 @@ vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
 vector, \eqn{a_t} is the vector of parameters for exogenous variables,
 \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
 \code{persistenceX} matrix. Finally, \eqn{\epsilon_{t}} is the error term.
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("gum","smooth")}
 }
 \examples{
 

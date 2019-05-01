@@ -94,6 +94,10 @@ either a vector or a matrix...
 Function generates data using SSARIMA with Single Source of Error as a data
 generating process.
 }
+\details{
+For the information about the function, see the vignette:
+\code{vignette("simulate","smooth")}
+}
 \examples{
 
 # Create 120 observations from ARIMA(1,1,1) with drift. Generate 100 time series of this kind.

@@ -25,6 +25,8 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
 #' \code{persistenceX} matrix. Finally, \eqn{\epsilon_{t}} is the error term.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("gum","smooth")}
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam

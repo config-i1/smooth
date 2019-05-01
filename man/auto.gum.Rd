@@ -164,6 +164,9 @@ The resulting model can be complicated and not straightforward, because GUM
 allows capturing hidden orders that no ARIMA model can. It is advised to use
 \code{initial="b"}, because optimising GUM of arbitrary order is not a simple
 task.
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("gum","smooth")}
 }
 \examples{
 

@@ -10,6 +10,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' equal to the approximation error.  The estimation of initial states of xt is
 #' done using backcast.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ces","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssInitialParam

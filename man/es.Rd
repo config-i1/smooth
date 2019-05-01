@@ -298,6 +298,9 @@ function. \eqn{a_t} is the vector of parameters for exogenous variables,
 \code{persistenceX} matrix.  Finally, \eqn{\epsilon_{t}} is the error term.
 
 For the details see Hyndman et al.(2008).
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("es","smooth")}
 }
 \examples{
 

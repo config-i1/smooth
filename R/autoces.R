@@ -12,6 +12,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' seasonality and chooses the one with the lowest value of information
 #' criterion.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ces","smooth")}
+#'
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam

@@ -17,6 +17,9 @@ utils::globalVariables(c("yForecastStart"));
 #'
 #' Where \eqn{v_{t}} is a state vector.
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("sma","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAuthor
 #' @template ssKeywords

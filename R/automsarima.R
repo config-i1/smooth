@@ -17,6 +17,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
 #' take some time...
 #'
+#' For some more information about the model and its implementation, see the
+#' vignette: \code{vignette("ssarima","smooth")}
+#'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
 #' @template ssInitialParam

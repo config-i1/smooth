@@ -276,6 +276,9 @@ take some finite time... If you plan estimating a model with more than one
 seasonality, it is recommended to consider doing it using \link[smooth]{msarima}.
 
 The model selection for SSARIMA is done by the \link[smooth]{auto.ssarima} function.
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("ssarima","smooth")}
 }
 \examples{
 

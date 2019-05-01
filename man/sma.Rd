@@ -125,6 +125,9 @@ which is AR(n) process, that can be modelled using:
 \eqn{v_{t} = F v_{t-1} + g \epsilon_{t}}
 
 Where \eqn{v_{t}} is a state vector.
+
+For some more information about the model and its implementation, see the
+vignette: \code{vignette("sma","smooth")}
 }
 \examples{
 
