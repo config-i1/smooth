@@ -156,8 +156,10 @@ probability update and model types.
 }
 \details{
 The function estimates probability of demand occurrence, using the selected
-ETS state space models. Although the function accepts all types of ETS models,
-only the pure multiplicative models make sense.
+ETS state space models.
+
+For the details about the model and its implementation, see the respective
+vignette: \code{vignette("oes","smooth")}
 }
 \examples{
 

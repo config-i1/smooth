@@ -1,9 +1,10 @@
-smooth v2.5.1 (Release data: 2019-04-25)
+smooth v2.5.1 (Release data: 2019-05-01)
 ==============
 
 Changes:
 * New initials for the smoothing parameters in oes(): 0.05 instead of 0.01. This should help in the optimisation.
 * oesmodel can now be set to NA / NULL, the es(), ssarima() etc will work, resetting this to the default "MNN".
+* Corrections in the vignette for oes, according to the most recent version of our paper.
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.

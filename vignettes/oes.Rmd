@@ -24,7 +24,8 @@ The canonical general iETS model (called iETS$_G$) can be summarised as:
 \begin{equation} \label{eq:iETS} \tag{1}
     \begin{matrix}
         y_t = o_t z_t \\
-		o_t \sim \text{Beta-Bernoulli} \left(a_t, b_t \right) \\
+		o_t \sim \text{Bernoulli} \left(p_t \right) \\
+		p_t = f{a_t, b_t} \\
 		a_t = w_a(v_{a,t-L}) + r_a(v_{a,t-L}) \epsilon_{a,t} \\
 		v_{a,t} = f_a(v_{a,t-L}) + g_a(v_{a,t-L}) \epsilon_{a,t} \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
@@ -33,7 +34,7 @@ The canonical general iETS model (called iETS$_G$) can be summarised as:
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix},
 \end{equation}
-where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persistence function (the subscripts allow separating the functions for different parts of the model). These four functions define how the elements of the vector $v_{t}$ interact with each other. Furthermore, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a Beta distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{Beta} \left(a_t, b_t \right)$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
+where $y_t$ is the observed values, $z_t$ is the demand size, which is a pure multiplicative ETS model on its own, $w(\cdot)$ is the measurement function, $r(\cdot)$ is the error function, $f(\cdot)$ is the transition function and $g(\cdot)$ is the persistence function (the subscripts allow separating the functions for different parts of the model). These four functions define how the elements of the vector $v_{t}$ interact with each other. Furthermore, $\epsilon_{a,t}$ and $\epsilon_{b,t}$ are the mutually independent error terms, $o_t$ is the binary occurrence variable (1 - demand is non-zero, 0 - no demand in the period $t$) which is distributed according to Bernoulli with probability $p_t$ that has a logit-normal distribution ($o_t \sim \text{Bernoulli} \left(p_t \right)$, $p_t \sim \text{logit} \mathcal{N}$). Any ETS model can be used for $a_t$ and $b_t$, and the transformation of them into the probability $p_t$ depends on the type of the error. The general formula for the multiplicative error is:
 \begin{equation} \label{eq:oETS(MZZ)}
     p_t = \frac{a_t}{a_t+b_t} ,
 \end{equation}
@@ -51,7 +52,8 @@ An example of an iETS model is the basic local-level model iETS(M,N,N)$_G$(M,N,N
 		l_{z,t} = l_{z,t-1}( 1  + \alpha_{z} \epsilon_{z,t}) \\
 		(1 + \epsilon_{t}) \sim \text{log}\mathcal{N}(0, \sigma_\epsilon^2) \\
 		\\
-		o_t \sim \text{Beta-Bernoulli} \left(a_t, b_t \right) \\
+		o_t \sim \text{Bernoulli} \left(p_t \right) \\
+		p_t = \frac{a_t}{a_t+b_t} \\
 		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
 		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} \epsilon_{a,t}) \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
@@ -95,33 +97,24 @@ In case of the fixed $a_t$ and $b_t$, the iETS$_G$ model reduces to:
 \begin{equation} \label{eq:ISSETS(MNN)Fixed} \tag{3}
 	\begin{matrix}
         y_t = o_t z_t \\
-		o_t \sim \text{Beta-Bernoulli}(a, b)
+		o_t \sim \text{Bernoulli}(p)
 	\end{matrix} .
 \end{equation}
 
-The conditional h-steps ahead median of the demand occurrence probability is calculated as:
+The conditional h-steps ahead mean of the demand occurrence probability is calculated as:
 \begin{equation} \label{eq:pt_fixed_expectation}
-	\mu_{o,t+h|t} = \tilde{p}_{t+h|t} = \frac{a}{a+b} .
+	\mu_{o,t+h|t} = \tilde{p}_{t+h|t} = \hat{p} .
 \end{equation}
 
-The likelihood function used in the first step of the estimation of iETS can be simplified to:
-\begin{equation} \label{eq:ISSETS(MNN)FixedLikelihood} \tag{4}
-	\ell \left(a,b | o_t \right) = {\sum_{t=1}^T} \log \left( \frac{ \text{B} (o_t + a, 1 - o_t + b) }{ \text{B}(a,b) } \right) ,
-\end{equation}
-where $B$ is the beta function.
-
-Note, however that there can be combinations of $a$ and $b$ that will lead to the same fixed probability of occurrence $p$, so there is no point in estimating the model (3) \ref{eq:ISSETS(MNN)Fixed} based on (4) \ref{eq:ISSETS(MNN)FixedLikelihood}. Instead, the simpler version of the iETS$_F$ is fitted in the `oes()` function of the `smooth` package:
-\begin{equation} \label{eq:ISSETS(MNN)FixedSmooth}
-	\begin{matrix}
-        y_t = o_t z_t \\
-		o_t \sim \text{Bernoulli}(p)
-	\end{matrix} ,
-\end{equation}
-so that the estimate of the probability $p$ is calculated based on the maximisation of the following concentrated log-likelihood function:
+The estimate of the probability $p$ is calculated based on the maximisation of the following concentrated log-likelihood function:
 \begin{equation} \label{eq:ISSETS(MNN)FixedLikelihoodSmooth}
-	\ell \left(\hat{p} | o_t \right) = T_1 \log \hat{p} + T_0 \log (1-\hat{p}) ,
+	\ell \left({p} | o_t \right) = T_1 \log {p} + T_0 \log (1-{p}) ,
 \end{equation}
-where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k_z+1$, where $k_z$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$.
+where $T_0$ is the number of zero observations and $T_1$ is the number of non-zero observations in the data. The number of estimated parameters in this case is equal to $k_z+1$, where $k_z$ is the number of parameters for the demand sizes part, and 1 is for the estimation of the probability $p$. Maximising this likelihood deems the analytical solution for the $p$:
+\begin{equation} \label{eq:ISSETS(MNN)FixedLikelihoodSmoothProbability}
+	\hat{p} = \frac{1}{T} \sum_{t=1}^T o_t ,
+\end{equation}
+where $T$ is the number of all the available observations.
 
 The occurrence part of the model oETS$_F$ is constructed using `oes()` function:
 ```{r iETSFExample1}
@@ -141,15 +134,12 @@ The odds-ratio iETS uses only one model for the occurrence part, for the $a_t$ v
 \begin{equation} \label{eq:iETSO} \tag{5}
     \begin{matrix}
         y_t = o_t z_t \\
-		o_t \sim \text{Beta-Bernoulli} \left(a_t, 1 \right) \\
+		o_t \sim \text{Bernoulli} \left(p_t \right) \\
+		p_t = \frac{a_t}{a_t+1} \\
 		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
 		l_{a,t} = l_{a,t-1}( 1  + \alpha_{a} \epsilon_{a,t}) \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2)
     \end{matrix}.
-\end{equation}
-The probability of occurrence in this model is equal to:
-\begin{equation} \label{eq:oETS_O(MNN)}
-    p_t = \frac{a_t}{a_t+1} .
 \end{equation}
 
 In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{a,0}=\frac{\bar{p}}{1-\bar{p}}$ for multiplicative error model and $l_{a,0} = \log l_{a,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. In cases of seasonal models, the regression with dummy variables is fitted, and its parameters are then used for the initials of the seasonal indices after the transformations  similar to the level ones.
@@ -191,15 +181,12 @@ Similarly to the odds-ratio iETS, inverse-odds-ratio model uses only one model f
 \begin{equation} \label{eq:iETSI} \tag{6}
     \begin{matrix}
         y_t = o_t z_t \\
-		o_t \sim \text{Beta-Bernoulli} \left(1, b_t \right) \\
+		o_t \sim \text{Bernoulli} \left(p_t \right) \\
+		p_t = \frac{1}{1+b_t} \\
 		b_t = l_{b,t-1} \left(1 + \epsilon_{b,t} \right) \\
 		l_{b,t} = l_{b,t-1}( 1  + \alpha_{b} \epsilon_{b,t}) \\
 		(1 + \epsilon_{b,t}) \sim \text{log}\mathcal{N}(0, \sigma_{b}^2)
     \end{matrix}.
-\end{equation}
-The probability of occurrence in this model is equal to:
-\begin{equation} \label{eq:oETS_I(MNN)}
-    p_t = \frac{1}{1+b_t} .
 \end{equation}
 
 In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{b,0}=\frac{1-\bar{p}}{\bar{p}}$ for multiplicative error model and $l_{b,0} = \log l_{b,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. The seasonality is treated similar to the iETS$_O$ model, but using the inverse-odds transformation.
