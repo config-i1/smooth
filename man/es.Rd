@@ -20,11 +20,14 @@ es(data, model = "ZZZ", persistence = NULL, phi = NULL,
 \arguments{
 \item{data}{Vector or ts object, containing data needed to be forecasted.}
 
-\item{model}{The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
-\code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MAdM} etc.
-\code{ZZZ} means that the model will be selected based on the chosen
-information criteria type. Models pool can be restricted with additive only
-components. This is done via \code{model="XXX"}. For example, making
+\item{model}{The type of ETS model. The first letter stands for the type of
+the error term ("A" or "M"), the second (and sometimes the third as well) is for
+the trend ("N", "A", "Ad", "M" or "Md"), and the last one is for the type of
+seasonality ("N", "A" or "M"). So, the function accepts words with 3 or 4
+characters: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA},
+\code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the
+chosen information criteria type. Models pool can be restricted with additive
+only components. This is done via \code{model="XXX"}. For example, making
 selection between models with none / additive / damped additive trend
 component only (i.e. excluding multiplicative trend) can be done with
 \code{model="ZXZ"}. Furthermore, selection between multiplicative models
@@ -300,7 +303,12 @@ function. \eqn{a_t} is the vector of parameters for exogenous variables,
 For the details see Hyndman et al.(2008).
 
 For some more information about the model and its implementation, see the
-vignette: \code{vignette("es","smooth")}
+vignette: \code{vignette("es","smooth")}.
+
+Also, there are posts about the functions of the package smooth on the
+website of Ivan Svetunkov:
+\url{https://forecasting.svetunkov.ru/en/tag/smooth/} - they explain the
+underlying models and how to use the functions.
 }
 \examples{
 
