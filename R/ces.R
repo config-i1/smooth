@@ -634,7 +634,7 @@ CreatorCES <- function(silentText=FALSE,...){
         colnames(xregNew)[1] <- "errors";
         colnames(xregNew)[-1] <- xregNames;
         xregNew <- as.data.frame(xregNew);
-        xregResults <- stepwise(xregNew, ic=ic, silent=TRUE, df=nParam+nParamOccurrence-1);
+        xregResults <- stepwise(xregNew, ic=ic, quite=TRUE, df=nParam+nParamOccurrence-1);
         xregNames <- names(coef(xregResults))[-1];
         nExovars <- length(xregNames);
         if(nExovars>0){
