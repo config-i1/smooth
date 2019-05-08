@@ -184,14 +184,6 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
     ##### Preparations #####
     occurrence <- substring(occurrence[1],1,1);
-    if(occurrence=="g"){
-        return(oesg(data, modelA=model, modelB=model, persistenceA=persistence, persistenceB=persistence, phiA=phi, phiB=phi,
-                    initialA=initial, initialB=initial, initialSeasonA=initialSeason, initialSeasonB=initialSeason,
-                    ic=ic, h=h, holdout=holdout, intervals=intervals, level=level, bounds=bounds,
-                    silent=silent, xregA=xreg, xregB=xreg, xregDoA=xregDo, xregDoB=xregDo, updateXA=updateX, updateXB=updateX,
-                    persistenceXA=persistenceX, persistenceXB=persistenceX, transitionXA=transitionX, transitionXB=transitionX,
-                    initialXA=initialX, initialXB=initialX, ...));
-    }
 
     if(is.smooth.sim(data)){
         data <- data$data;
@@ -691,8 +683,17 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
     ##### Estimate the model #####
     if(modelDo=="estimate"){
+        ##### General model - from oesg() #####
+        if(occurrence=="g"){
+            return(oesg(data, modelA=model, modelB=model, persistenceA=persistence, persistenceB=persistence, phiA=phi, phiB=phi,
+                        initialA=initial, initialB=initial, initialSeasonA=initialSeason, initialSeasonB=initialSeason,
+                        ic=ic, h=h, holdout=holdout, intervals=intervals, level=level, bounds=bounds,
+                        silent=silent, xregA=xreg, xregB=xreg, xregDoA=xregDo, xregDoB=xregDo, updateXA=updateX, updateXB=updateX,
+                        persistenceXA=persistenceX, persistenceXB=persistenceX, transitionXA=transitionX, transitionXB=transitionX,
+                        initialXA=initialX, initialXB=initialX, ...));
+        }
         ##### Fixed probability #####
-        if(occurrence=="f"){
+        else if(occurrence=="f"){
             model <- "MNN";
             if(initialType!="o"){
                 pt <- ts(matrix(rep(initial,obsInsample),obsInsample,1), start=dataStart, frequency=dataFreq);
@@ -1142,9 +1143,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         output <- results[[icBest]];
         output$ICs <- icSelection;
         occurrence[] <- output$occurrence;
-        if(occurrence!="g"){
-            model[] <- modelType(output);
-        }
+        model[] <- modelsPool[icBest];
     }
     else{
         stop("The model combination is not implemented in oes just yet", call.=FALSE);
