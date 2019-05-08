@@ -977,7 +977,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         }
     }
     else{
-        stop("The model selection and combinations are not implemented in oes just yet", call.=FALSE);
+        stop("The model selection and combinations are not implemented in oesg() just yet", call.=FALSE);
     }
 
     # Merge states of vt and at if the xreg was provided

@@ -18,7 +18,11 @@ oes(data, model = "MNN", persistence = NULL, initial = "o",
 \item{data}{Either numeric vector or time series vector.}
 
 \item{model}{The type of ETS model used for the estimation. Normally this should
-be \code{"MNN"} or any other pure multiplicative model.}
+be \code{"MNN"} or any other pure multiplicative or additive model. The model
+selection is available here (although it's not fast), so you can use, for example,
+\code{"YYN"} and \code{"XXN"} for selecting between the pure multiplicative and
+pure additive models respectively. Using mixed models is possible, but not
+recommended.}
 
 \item{persistence}{Persistence vector \eqn{g}, containing smoothing
 parameters. If \code{NULL}, then estimated.}
