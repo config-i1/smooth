@@ -1111,12 +1111,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
         }
 
         ##### Check models in the smaller pool #####
-        if(!silent){
+        if(!silentText){
             cat("Estimation progress:    ");
         }
         while(j < modelsNumber){
             j <- j + 1;
-            if(!silent){
+            if(!silentText){
                 if(j==1){
                     cat("\b");
                 }
@@ -1130,7 +1130,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                                 bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
         }
 
-        if(!silent){
+        if(!silentText){
             cat("... Done! \n");
         }
 
