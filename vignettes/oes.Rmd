@@ -1,5 +1,5 @@
 ---
-title: "Occurrence part of iETS model"
+title: "oes() - occurrence part of iETS model"
 author: "Ivan Svetunkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
