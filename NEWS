@@ -1,4 +1,4 @@
-smooth v2.5.1 (Release data: 2019-05-08)
+smooth v2.5.1 (Release data: 2019-05-20)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.
+* A bugfix in the model selection mechanism for oes() (the forecast was set to 10 instead of h).
 
 
 smooth v2.5.0 (Release data: 2019-04-25)

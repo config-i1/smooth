@@ -1005,7 +1005,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
                         cat(paste0(modelCurrent,", "));
                     }
 
-                    results[[i]] <- oes(data, model=modelCurrent, occurrence=occurrence, h=10, holdout=FALSE,
+                    results[[i]] <- oes(data, model=modelCurrent, occurrence=occurrence, h=h, holdout=FALSE,
                                         bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
 
                     modelTested <- c(modelTested,modelCurrent);
@@ -1126,7 +1126,7 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
 
             modelCurrent <- modelsPool[j];
 
-            results[[j]] <- oes(data, model=modelCurrent, occurrence=occurrence, h=10, holdout=FALSE,
+            results[[j]] <- oes(data, model=modelCurrent, occurrence=occurrence, h=h, holdout=FALSE,
                                 bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
         }
 

@@ -2517,7 +2517,7 @@ ssForecaster <- function(...){
                 }
 
                 if(Etype=="M"){
-                    yForecast <- apply(ySimulated, 1, mean);
+                    yForecast[] <- apply(ySimulated, 1, mean);
                 }
 
                 if(rounded){
@@ -2534,8 +2534,8 @@ ssForecaster <- function(...){
                     quantileType <- 7;
                 }
 
-                yForecast <- yForecast + yForecastExo;
-                yForecast <- c(pForecast)*yForecast;
+                yForecast[] <- yForecast + yForecastExo;
+                yForecast[] <- pForecast * yForecast;
 
                 if(cumulative){
                     yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
@@ -2543,7 +2543,7 @@ ssForecaster <- function(...){
                     yUpper <- ts(quantile(colSums(ySimulated,na.rm=T),(1+level)/2,type=quantileType),start=yForecastStart,frequency=dataFreq);
                 }
                 else{
-                    yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
+                    # yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
                     yLower <- ts(apply(ySimulated,1,quantile,(1-level)/2,na.rm=T,type=quantileType) + yForecastExo,start=yForecastStart,frequency=dataFreq);
                     yUpper <- ts(apply(ySimulated,1,quantile,(1+level)/2,na.rm=T,type=quantileType) + yForecastExo,start=yForecastStart,frequency=dataFreq);
                 }
@@ -2557,7 +2557,7 @@ ssForecaster <- function(...){
                                            iprob=pForecast);
 
                 # if(!(intervalsType=="sp" & Etype=="M")){
-                    yForecast <- c(pForecast)*yForecast;
+                    yForecast[] <- pForecast * yForecast;
                 # }
 
                 if(cumulative){
@@ -2587,15 +2587,15 @@ ssForecaster <- function(...){
             yLower <- NA;
             yUpper <- NA;
             if(rounded){
-                yForecast <- ceiling(yForecast);
+                yForecast[] <- ceiling(yForecast);
             }
-            yForecast <- c(pForecast)*yForecast;
+            yForecast[] <- pForecast*yForecast;
             if(cumulative){
                 yForecast <- ts(sum(yForecast),start=yForecastStart,frequency=dataFreq);
             }
-            else{
-                yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
-            }
+            # else{
+            #     yForecast <- ts(yForecast,start=yForecastStart,frequency=dataFreq);
+            # }
         }
     }
     else{
