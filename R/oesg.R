@@ -117,9 +117,9 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax","updateX","xreg
 #' values:
 #'
 #' \itemize{
-#' \item \code{modelA} - the model A of the class oesg, that contains the output similar
+#' \item \code{modelA} - the model A of the class oes, that contains the output similar
 #' to the one from the \code{oes()} function;
-#' \item \code{modelB} - the model B of the class oesg, that contains the output similar
+#' \item \code{modelB} - the model B of the class oes, that contains the output similar
 #' to the one from the \code{oes()} function.
 #' }
 #' @seealso \code{\link[smooth]{es}, \link[smooth]{oes}}
@@ -1020,19 +1020,23 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
 
     #### Prepare the output ####
     # Prepare two models
-    modelA <- list(model=paste0(modelnameA,"(",modelA,")_A"), states=ts(t(matvtA), start=(time(data)[1] - deltat(data)*basicparamsA$modelLagsMax), frequency=dataFreq),
+    modelA <- list(model=paste0(modelnameA,"(",modelA,")_A"),
+                   states=ts(t(matvtA), start=(time(data)[1] - deltat(data)*basicparamsA$modelLagsMax),
+                             frequency=dataFreq),
                    nParam=parametersNumberA, residuals=errorsA, occurrence="g",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
                    initialSeason=initialSeasonA,
-                   fittedBeta=aFitted, forecastBeta=aForecast,
+                   fittedModel=aFitted, forecastModel=aForecast,
                    initialX=matatA[,1], xreg=xregA);
     class(modelA) <- c("oes","smooth");
 
-    modelB <- list(model=paste0(modelnameB,"(",modelB,")_B"), states=ts(t(matvtB), start=(time(data)[1] - deltat(data)*basicparamsB$modelLagsMax), frequency=dataFreq),
+    modelB <- list(model=paste0(modelnameB,"(",modelB,")_B"),
+                   states=ts(t(matvtB), start=(time(data)[1] - deltat(data)*basicparamsB$modelLagsMax),
+                             frequency=dataFreq),
                    nParam=parametersNumberB, residuals=errorsB, occurrence="g",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],
                    initialSeason=initialSeasonB,
-                   fittedBeta=bFitted, forecastBeta=bForecast,
+                   fittedModel=bFitted, forecastModel=bForecast,
                    initialX=matatB[,1], xreg=xregB);
     class(modelB) <- c("oes","smooth");
 
