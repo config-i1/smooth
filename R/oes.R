@@ -105,10 +105,10 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \itemize{
 #' \item \code{model} - the type of the estimated ETS model;
 #' \item \code{fitted} - the fitted values for the probability;
-#' \item \code{fittedBeta} - the fitted values of the underlying ETS model, where applicable
+#' \item \code{fittedModel} - the fitted values of the underlying ETS model, where applicable
 #' (only for occurrence=c("o","i","d"));
 #' \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
-#' \item \code{forecastBeta} - the forecast of the underlying ETS model, where applicable
+#' \item \code{forecastModel} - the forecast of the underlying ETS model, where applicable
 #' (only for occurrence=c("o","i","d"));
 #' \item \code{states} - the values of the state vector;
 #' \item \code{logLik} - the log-likelihood value of the model;
@@ -842,11 +842,12 @@ oes <- function(data, model="MNN", persistence=NULL, initial="o", initialSeason=
             }
 
             #### Form the output ####
-            output <- list(fitted=pFitted, forecast=pForecast, states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax),
-                                                                         frequency=dataFreq),
+            output <- list(fitted=pFitted, forecast=pForecast,
+                           states=ts(t(matvt), start=(time(data)[1] - deltat(data)*modelLagsMax),
+                                     frequency=dataFreq),
                            nParam=parametersNumber, residuals=errors, actuals=otAll,
                            persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
-                           initialSeason=initialSeason, fittedBeta=yFitted, forecastBeta=yForecast,
+                           initialSeason=initialSeason, fittedModel=yFitted, forecastModel=yForecast,
                            initialX=matat[,1], xreg=xreg, updateX=updateX, transitionX=matFX, persistenceX=vecgX);
         }
         #### Automatic model selection ####

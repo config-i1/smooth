@@ -131,10 +131,10 @@ values:
 \itemize{
 \item \code{model} - the type of the estimated ETS model;
 \item \code{fitted} - the fitted values for the probability;
-\item \code{fittedBeta} - the fitted values of the underlying ETS model, where applicable
+\item \code{fittedModel} - the fitted values of the underlying ETS model, where applicable
 (only for occurrence=c("o","i","d"));
 \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
-\item \code{forecastBeta} - the forecast of the underlying ETS model, where applicable
+\item \code{forecastModel} - the forecast of the underlying ETS model, where applicable
 (only for occurrence=c("o","i","d"));
 \item \code{states} - the values of the state vector;
 \item \code{logLik} - the log-likelihood value of the model;

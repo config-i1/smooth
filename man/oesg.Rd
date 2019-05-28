@@ -144,9 +144,9 @@ The object of class "occurrence" is returned. It contains following list of
 values:
 
 \itemize{
-\item \code{modelA} - the model A of the class oesg, that contains the output similar
+\item \code{modelA} - the model A of the class oes, that contains the output similar
 to the one from the \code{oes()} function;
-\item \code{modelB} - the model B of the class oesg, that contains the output similar
+\item \code{modelB} - the model B of the class oes, that contains the output similar
 to the one from the \code{oes()} function.
 }
 }

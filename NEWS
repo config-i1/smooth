@@ -1,4 +1,4 @@
-smooth v2.5.1 (Release data: 2019-05-20)
+smooth v2.5.1 (Release data: 2019-05-28)
 ==============
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * Corrections in the vignette for oes, according to the most recent version of our paper.
 * A little bit more explanation for the es() function and references to the website.
 * Model selection is now available in the oes() function. I'd recommend sticking with pure models.
+* Renamed the fitted values for the underlying models in the oes() and oesg() into "fittedModel" (former "fittedBeta").
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.
