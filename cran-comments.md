@@ -1,15 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "25 April 2018"
+date: "30 May 2019"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.5.0.
+This is ``smooth`` package, v2.5.1.
 
 ## Test environments
 * local ubuntu 18.04, R 3.5.1
-* ubuntu 14.04.5 (on travis-ci), R 3.5.2
+* ubuntu 14.04.5 (on travis-ci), R 3.6.0
 * win-builder (devel and release)
 
 ## R CMD check results
@@ -22,18 +22,15 @@ checking installed package size ... NOTE
 0 errors | 0 warnings | 1 note
 
 # Other checks
-The automatic compilation on CRAN complains about the url in one of my vignettes:
+The check on winbuild complains about the url in one of my vignettes:
 
 Found the following (possibly) invalid URLs:
-  URL: http://www.exponentialsmoothing.net
-    From: man/forecast.smooth.Rd
-            man/gsi.Rd
-            man/sim.ves.Rd
-            man/ves.Rd
-      Status: 504
-      Message: Gateway Timeout
+  URL: https://doi.org/10.2307/2533213
+    From: inst/doc/ves.html
+    Status: 403
+    Message: Forbidden
 
-The url is currently unavailable, but it worked before.
+However, the url is accessible from the browser.
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
