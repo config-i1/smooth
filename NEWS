@@ -1,4 +1,4 @@
-smooth v2.5.1 (Release data: 2019-05-28)
+smooth v2.5.1 (Release data: 2019-06-03)
 ==============
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * A little bit more explanation for the es() function and references to the website.
 * Model selection is now available in the oes() function. I'd recommend sticking with pure models.
 * Renamed the fitted values for the underlying models in the oes() and oesg() into "fittedModel" (former "fittedBeta").
+* Rolling back "quiet" into "silent". The former is more difficult than the latter.
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.
