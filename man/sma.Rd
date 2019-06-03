@@ -4,13 +4,13 @@
 \alias{sma}
 \title{Simple Moving Average}
 \usage{
-sma(data, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, cumulative = FALSE, intervals = c("none",
+sma(y, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
+  holdout = FALSE, cumulative = FALSE, interval = c("none",
   "parametric", "semiparametric", "nonparametric"), level = 0.95,
   silent = c("all", "graph", "legend", "output", "none"), ...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{order}{Order of simple moving average. If \code{NULL}, then it is
 selected automatically using information criteria.}
@@ -23,28 +23,28 @@ selected automatically using information criteria.}
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -86,23 +86,23 @@ provided parameters will take this into account.
 \item \code{fitted} - the fitted values.
 \item \code{forecast} - the point forecast.
 \item \code{lower} - the lower bound of prediction interval. When
-\code{intervals=FALSE} then NA is returned.
+\code{interval=FALSE} then NA is returned.
 \item \code{upper} - the higher bound of prediction interval. When
-\code{intervals=FALSE} then NA is returned.
+\code{interval=FALSE} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
 \item \code{errors} - The matrix of 1 to h steps ahead errors.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into
 account).
-\item \code{intervals} - type of intervals asked by user.
-\item \code{level} - confidence level for intervals.
+\item \code{interval} - type of interval asked by user.
+\item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{ICs} - values of information criteria of the model. Includes AIC,
 AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
-\item \code{cf} - Cost function value.
-\item \code{cfType} - Type of cost function used in the estimation.
+\item \code{lossValue} - Cost function value.
+\item \code{loss} - Type of loss function used in the estimation.
 \item \code{accuracy} - vector of accuracy measures for the
 holdout sample. Includes: MPE, MAPE, SMAPE, MASE, sMAE, RelMAE, sMSE and
 Bias coefficient (based on complex numbers). This is available only when
@@ -132,10 +132,10 @@ vignette: \code{vignette("sma","smooth")}
 \examples{
 
 # SMA of specific order
-ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
+ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,interval="p")
 
 # SMA of arbitrary order
-ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
+ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,interval="sp")
 
 summary(ourModel)
 forecast(ourModel)

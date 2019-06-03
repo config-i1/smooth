@@ -4,20 +4,20 @@
 \alias{ves}
 \title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
-ves(data, model = "ANN", persistence = c("group", "independent",
+ves(y, model = "ANN", persistence = c("group", "independent",
   "dependent", "seasonal"), transition = c("group", "independent",
   "dependent"), phi = c("group", "individual"),
   initial = c("individual", "group"), initialSeason = c("group",
-  "individual"), cfType = c("likelihood", "diagonal", "trace"),
+  "individual"), loss = c("likelihood", "diagonal", "trace"),
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  intervals = c("none", "conditional", "unconditional", "independent"),
+  interval = c("none", "conditional", "unconditional", "independent"),
   level = 0.95, cumulative = FALSE, intermittent = c("none", "fixed",
   "logistic"), imodel = "ANN", iprobability = c("dependent",
   "independent"), bounds = c("admissible", "usual", "none"),
   silent = c("all", "graph", "output", "none"), ...)
 }
 \arguments{
-\item{data}{The matrix with data, where series are in columns and
+\item{y}{The matrix with the data, where series are in columns and
 observations are in rows.}
 
 \item{model}{The type of ETS model. Can consist of 3 or 4 chars: \code{ANN},
@@ -83,7 +83,7 @@ a matrix, assuming that these values are provided for the whole group.}
 states. Treated the same way as \code{initial}. This means that different time
 series may share the same initial seasonal component.}
 
-\item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{Type of Loss Function used in optimization. \code{loss} can
 be:
 \itemize{
 \item \code{likelihood} - which assumes the minimisation of the determinant
@@ -103,32 +103,32 @@ is minimised in this case.
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{intervals}{Type of intervals to construct.
+\item{interval}{Type of interval to construct.
 
 This can be:
 
 \itemize{
 \item \code{"none"}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{"conditional"}, \code{c} - produces multidimensional elliptic
-intervals for each step ahead forecast. NOT AVAILABLE YET!
+interval for each step ahead forecast. NOT AVAILABLE YET!
 \item \code{"unconditional"}, \code{u} - produces separate bounds for each series
 based on ellipses for each step ahead. These bounds correspond to min and max
 values of the ellipse assuming that all the other series but one take values in
 the centre of the ellipse. This leads to less accurate estimates of bounds
-(wider intervals than needed), but these could still be useful. NOT AVAILABLE YET!
-\item \code{"independent"}, \code{i} - produces intervals based on variances of
+(wider interval than needed), but these could still be useful. NOT AVAILABLE YET!
+\item \code{"independent"}, \code{i} - produces interval based on variances of
 each separate series. This does not take vector structure into account.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-the independent intervals are constructed, while the latter is equivalent to
+the independent interval are constructed, while the latter is equivalent to
 \code{none}.
 You can also use the first letter instead of writing the full word.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
 \item{intermittent}{Defines type of intermittent model used. Can be:
@@ -194,13 +194,13 @@ the estimation);
 \item \code{Sigma} - The covariance matrix of the errors (estimated with the correction
 for the number of degrees of freedom);
 \item \code{forecast} - The matrix of point forecasts;
-\item \code{PI} - The bounds of the prediction intervals;
-\item \code{intervals} - The type of the constructed prediction intervals;
-\item \code{level} - The level of the confidence for the prediction intervals;
+\item \code{PI} - The bounds of the prediction interval;
+\item \code{interval} - The type of the constructed prediction interval;
+\item \code{level} - The level of the confidence for the prediction interval;
 \item \code{ICs} - The values of the information criteria;
 \item \code{logLik} - The log-likelihood function;
-\item \code{cf} - The value of the cost function;
-\item \code{cfType} - The type of the used cost function;
+\item \code{lossValue} - The value of the loss function;
+\item \code{loss} - The type of the used loss function;
 \item \code{accuracy} - the values of the error measures. Currently not available.
 \item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 }

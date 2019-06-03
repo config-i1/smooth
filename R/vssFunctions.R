@@ -60,61 +60,62 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     #### Check data ####
-    if(any(is.vsmooth.sim(data))){
-        data <- data$data;
-        if(length(dim(data))==3){
+    if(any(is.vsmooth.sim(y))){
+        y <- y$data;
+        if(length(dim(y))==3){
             warning("Simulated data contains several samples. Selecting a random one.",call.=FALSE);
-            data <- ts(data[,,runif(1,1,dim(data)[3])]);
+            y <- ts(y[,,runif(1,1,dim(y)[3])]);
         }
     }
 
-    if(!is.data.frame(data)){
-        if(!is.numeric(data)){
+    if(!is.data.frame(y)){
+        if(!is.numeric(y)){
             stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
         }
     }
 
-    if(is.null(dim(data))){
+    if(is.null(dim(y))){
         stop("The provided data is not a matrix or a data.frame! If it is a vector, please use es() function instead.", call.=FALSE);
     }
 
-    if(is.data.frame(data)){
-        data <- as.matrix(data);
+    if(is.data.frame(y)){
+        y <- as.matrix(y);
     }
 
     # Number of series in the matrix
-    nSeries <- ncol(data);
+    nSeries <- ncol(y);
 
-    if(is.null(ncol(data))){
+    if(is.null(ncol(y))){
         stop("The provided data is not a matrix! Use es() function instead!", call.=FALSE);
     }
-    if(ncol(data)==1){
+    if(ncol(y)==1){
         stop("The provided data contains only one column. Use es() function instead!", call.=FALSE);
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.", call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     # Define obs, the number of observations of in-sample
-    obsInSample <- nrow(data) - holdout*h;
+    obsInSample <- nrow(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- nrow(data) + (1 - holdout)*h;
+    obsAll <- nrow(y) + (1 - holdout)*h;
 
     # If obsInSample is negative, this means that we can't do anything...
     if(obsInSample<=0){
         stop("Not enough observations in sample.", call.=FALSE);
     }
     # Define the actual values. Transpose the matrix!
-    y <- matrix(data[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
-    dataFreq <- frequency(data);
-    dataDeltat <- deltat(data);
-    dataStart <- start(data);
-    dataNames <- colnames(data);
+    yInSample <- matrix(y[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
+    dataFreq <- frequency(y);
+    dataDeltat <- deltat(y);
+    dataStart <- start(y);
+    yForecastStart <- time(y)[obsInSample]+deltat(y);
+    dataNames <- colnames(y);
     if(!is.null(dataNames)){
         dataNames <- gsub(" ", "_", dataNames, fixed = TRUE);
         dataNames <- gsub(":", "_", dataNames, fixed = TRUE);
@@ -182,7 +183,7 @@ vssInput <- function(smoothType=c("ves"),...){
 
         #### Check seasonality type ####
         # Check if the data is ts-object
-        if(!is.ts(data) & Stype!="N"){
+        if(!is.ts(y) & Stype!="N"){
             warning("The provided data is not ts object. Only non-seasonal models are available.");
             Stype <- "N";
             substr(model,nchar(model),nchar(model)) <- "N";
@@ -241,8 +242,8 @@ vssInput <- function(smoothType=c("ves"),...){
     ##### intermittent #####
     intermittent <- substring(intermittent[1],1,1);
     if(intermittent!="n"){
-        ot <- (y!=0)*1;
-        # Matrix of non-zero observations for the cost function
+        ot <- (yInSample!=0)*1;
+        # Matrix of non-zero observations for the loss function
         otObs <- diag(rowSums(ot));
         for(i in 1:nSeries){
             for(j in 1:nSeries){
@@ -254,7 +255,7 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
     else{
-        ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
+        ot <- matrix(1,nrow=nrow(yInSample),ncol=ncol(yInSample));
         otObs <- matrix(obsInSample,nSeries,nSeries);
     }
 
@@ -268,11 +269,11 @@ vssInput <- function(smoothType=c("ves"),...){
 
     # Check if multiplicative model can be applied
     if(any(c(Etype,Ttype,Stype)=="M")){
-        if(all(y>0)){
+        if(all(yInSample>0)){
             if(any(c(Etype,Ttype,Stype)=="A")){
                 warning("Mixed models are not available. Switching to pure multiplicative.",call.=FALSE);
             }
-            y <- log(y);
+            yInSample <- log(yInSample);
             Etype <- "M";
             Ttype <- ifelse(Ttype=="A","M",Ttype);
             Stype <- ifelse(Stype=="A","M",Stype);
@@ -287,7 +288,7 @@ vssInput <- function(smoothType=c("ves"),...){
                 modelIsMultiplicative <- FALSE;
             }
             else{
-                y[ot==1] <- log(y[ot==1]);
+                yInSample[ot==1] <- log(yInSample[ot==1]);
                 Etype <- "M";
                 Ttype <- ifelse(Ttype=="A","M",Ttype);
                 Stype <- ifelse(Stype=="A","M",Stype);
@@ -703,15 +704,15 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
-    ##### Cost function type #####
-    cfType <- cfType[1];
-    if(!any(cfType==c("likelihood","diagonal","trace","l","d","t"))){
-        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'likelihood'."),call.=FALSE);
-        cfType <- "likelihood";
+    ##### Loss function type #####
+    loss <- loss[1];
+    if(!any(loss==c("likelihood","diagonal","trace","l","d","t"))){
+        warning(paste0("Strange loss function specified: ",loss,". Switching to 'likelihood'."),call.=FALSE);
+        loss <- "likelihood";
     }
-    cfType <- substr(cfType,1,1);
+    loss <- substr(loss,1,1);
 
-    normalizer <- sum(colMeans(abs(diff(t(y))),na.rm=TRUE));
+    normalizer <- sum(colMeans(abs(diff(t(yInSample))),na.rm=TRUE));
 
     ##### Information Criteria #####
     ic <- ic[1];
@@ -720,42 +721,42 @@ vssInput <- function(smoothType=c("ves"),...){
         ic <- "AICc";
     }
 
-    ##### intervals, intervalsType, level #####
-    intervalsType <- intervals[1];
+    ##### interval, intervalType, level #####
+    intervalType <- interval[1];
     # Check the provided type of interval
 
-    if(is.logical(intervalsType)){
-        if(intervalsType){
-            intervalsType <- "c";
+    if(is.logical(intervalType)){
+        if(intervalType){
+            intervalType <- "c";
         }
         else{
-            intervalsType <- "none";
+            intervalType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("c","u","i","n","none","conditional","unconditional","independent"))){
-        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'conditional'."),call.=FALSE);
-        intervalsType <- "c";
+    if(all(intervalType!=c("c","u","i","n","none","conditional","unconditional","independent"))){
+        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'conditional'."),call.=FALSE);
+        intervalType <- "c";
     }
 
-    if(intervalsType=="none"){
-        intervalsType <- "n";
-        intervals <- FALSE;
+    if(intervalType=="none"){
+        intervalType <- "n";
+        interval <- FALSE;
     }
-    else if(intervalsType=="conditional"){
-        intervalsType <- "c";
-        intervals <- TRUE;
+    else if(intervalType=="conditional"){
+        intervalType <- "c";
+        interval <- TRUE;
     }
-    else if(intervalsType=="unconditional"){
-        intervalsType <- "u";
-        intervals <- TRUE;
+    else if(intervalType=="unconditional"){
+        intervalType <- "u";
+        interval <- TRUE;
     }
-    else if(intervalsType=="independent"){
-        intervalsType <- "i";
-        intervals <- TRUE;
+    else if(intervalType=="independent"){
+        intervalType <- "i";
+        interval <- TRUE;
     }
     else{
-        intervals <- TRUE;
+        interval <- TRUE;
     }
 
     if(level>1){
@@ -800,11 +801,12 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("obsStates",obsStates,ParentEnvironment);
     assign("nSeries",nSeries,ParentEnvironment);
     assign("nParamMax",nParamMax,ParentEnvironment);
-    assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
+    assign("yInSample",yInSample,ParentEnvironment);
     assign("dataFreq",dataFreq,ParentEnvironment);
     assign("dataDeltat",dataDeltat,ParentEnvironment);
     assign("dataStart",dataStart,ParentEnvironment);
+    assign("yForecastStart",yForecastStart,ParentEnvironment);
     assign("dataNames",dataNames,ParentEnvironment);
     assign("parametersNumber",parametersNumber,ParentEnvironment);
 
@@ -840,13 +842,13 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("initialSeasonType",initialSeasonType,ParentEnvironment);
     assign("initialSeasonEstimate",initialSeasonEstimate,ParentEnvironment);
 
-    assign("cfType",cfType,ParentEnvironment);
+    assign("loss",loss,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
 
     assign("ic",ic,ParentEnvironment);
 
-    assign("intervalsType",intervalsType,ParentEnvironment);
-    assign("intervals",intervals,ParentEnvironment);
+    assign("intervalType",intervalType,ParentEnvironment);
+    assign("interval",interval,ParentEnvironment);
 
     assign("intermittent",intermittent,ParentEnvironment);
     assign("ot",ot,ParentEnvironment);
@@ -873,7 +875,7 @@ vLikelihoodFunction <- function(A){
         return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
     }
     else if(Etype=="M"){
-        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)) - sum(y));
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)) - sum(yInSample));
     }
     else{
         #### This is not derived yet ####
@@ -913,7 +915,7 @@ vssFitter <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    fitting <- vFitterWrap(y, matvt, matF, matW, matG,
+    fitting <- vFitterWrap(yInSample, matvt, matF, matW, matG,
                            modelLags, Etype, Ttype, Stype, ot);
     statesNames <- rownames(matvt);
     matvt <- fitting$matvt;
@@ -933,10 +935,10 @@ vssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
-##### *State space intervals* #####
+##### *State space interval* #####
 # This is not implemented yet
 #' @importFrom stats qchisq
-vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
+vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
                          measurement=NULL, transition=NULL, persistence=NULL,
                          modelLags=NULL, cumulative=FALSE, df=0,
                          nComponents=1, nSeries=1, h=1){
@@ -946,12 +948,12 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
     nElements <- length(modelLags);
 
     # This is a temporary solution, needed while we work on other types.
-    if(intervalsType!="i"){
-        intervalsType <- "i";
+    if(intervalType!="i"){
+        intervalType <- "i";
     }
 
     # In case of independent we use either t distribution or Chebyshev inequality
-    if(intervalsType=="i"){
+    if(intervalType=="i"){
         if(df>0){
             quantUpper <- qt((1+level)/2,df=df);
             quantLower <- qt((1-level)/2,df=df);
@@ -967,7 +969,7 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
     }
 
     nPoints <- 100;
-    if(intervalsType=="c"){
+    if(intervalType=="c"){
         # Nuber of points in the ellipse
         PI <- array(NA, c(h,2*nPoints^(nSeries-1),nSeries),
                     dimnames=list(paste0("h",c(1:h)), NULL,
@@ -1050,7 +1052,7 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
     }
 
     # Produce PI matrix
-    if(any(intervalsType==c("c","u"))){
+    if(any(intervalType==c("c","u"))){
         # eigensList contains eigenvalues and eigenvectors of the covariance matrix
         eigensList <- apply(varVec,1,eigen);
         # eigenLimits specify the lowest and highest ellipse points in all dimensions
@@ -1068,7 +1070,7 @@ vssIntervals <- function(level=0.95, intervalsType=c("c","u","i"), Sigma=NULL,
             }
         }
     }
-    else if(intervalsType=="i"){
+    else if(intervalType=="i"){
         variances <- apply(varVec,1,diag);
         for(i in 1:nSeries){
             PI[,2*i-1] <- quantLower * sqrt(variances[i,]);
@@ -1102,7 +1104,7 @@ vssForecaster <- function(...){
     #     df <- 0;
     # }
     # else{
-    # Take the minimum df for the purposes of intervals construction
+    # Take the minimum df for the purposes of interval construction
         df <- min(df);
     # }
 
@@ -1116,13 +1118,13 @@ vssForecaster <- function(...){
             yForecast <- rowSums(yForecast);
         }
 
-        if(intervals){
-            PI <- vssIntervals(level=level, intervalsType=intervalsType, Sigma=Sigma,
+        if(interval){
+            PI <- vssIntervals(level=level, intervalType=intervalType, Sigma=Sigma,
                                measurement=matW, transition=matF, persistence=matG,
                                modelLags=modelLags, cumulative=cumulative, df=df,
                                nComponents=nComponentsAll, nSeries=nSeries, h=h);
 
-            if(any(intervalsType==c("i","u"))){
+            if(any(intervalType==c("i","u"))){
                 for(i in 1:nSeries){
                     PI[,i*2-1] <- PI[,i*2-1] + yForecast[i,];
                     PI[,i*2] <- PI[,i*2] + yForecast[i,];

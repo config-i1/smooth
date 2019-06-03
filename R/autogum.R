@@ -1,4 +1,4 @@
-utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
+utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"));
 
 #' Automatic GUM
 #'
@@ -25,10 +25,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
 #'
-#' @param orderMax The value of the max order to check. This is the upper bound
+#' @param orders The value of the max order to check. This is the upper bound
 #' of orders, but the real orders could be lower than this because of the
 #' increasing number of parameters in the models with higher orders.
-#' @param lagMax The value of the maximum lag to check. This should usually be
+#' @param lags The value of the maximum lag to check. This should usually be
 #' a maximum frequency of the data.
 #' @param type Type of model. Can either be \code{"Additive"} or
 #' \code{"Multiplicative"}. The latter means that the GUM is fitted on
@@ -47,7 +47,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' x <- rnorm(50,100,3)
 #'
 #' # The best GUM model for the data
-#' ourModel <- auto.gum(x,orderMax=2,lagMax=4,h=18,holdout=TRUE,intervals="np")
+#' ourModel <- auto.gum(x,orders=2,lags=4,h=18,holdout=TRUE,interval="np")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
@@ -55,11 +55,11 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #'
 #' @export auto.gum
-auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z"),
+auto.gum <- function(y, orders=3, lags=frequency(y), type=c("A","M","Z"),
                      initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                     cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                     loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
-                     intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                     interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                      occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                      oesmodel="MNN",
                      bounds=c("restricted","admissible","none"),
@@ -73,6 +73,13 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
+    orders <- depricator(interval, list(...), "ordersMax");
+    lags <- depricator(interval, list(...), "lagsMax");
+
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
@@ -80,26 +87,26 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
     environment(ssAutoInput) <- environment();
     ssAutoInput("auto.gum",ParentEnvironment=environment());
 
-    if(any(is.complex(c(orderMax,lagMax)))){
+    if(any(is.complex(c(orders,lags)))){
         stop("Complex numbers? Really? Be serious! This is GUM, not CES!",call.=FALSE);
     }
 
-    if(any(c(orderMax)<0)){
+    if(any(c(orders)<0)){
         stop("Funny guy! How am I gonna construct a model with negative maximum order?",call.=FALSE);
     }
 
-    if(any(c(lagMax)<0)){
+    if(any(c(lags)<0)){
         stop("Right! Why don't you try complex lags then, mister smart guy?",call.=FALSE);
     }
 
-    if(any(c(lagMax,orderMax)==0)){
+    if(any(c(lags,orders)==0)){
         stop("Sorry, but we cannot construct GUM model with zero lags / orders.",call.=FALSE);
     }
 
     type <- substr(type[1],1,1);
     # Check if the multiplictive model is possible
     if(any(type==c("Z","M"))){
-        if(any(y<=0)){
+        if(any(yInSample<=0)){
             warning("Multiplicative model can only be used on positive data. Switching to the additive one.",call.=FALSE);
             type <- "A";
         }
@@ -113,23 +120,23 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
     ordersFinal <- list(NA);
 
     if(!silentText){
-        if(lagMax>12){
-            message(paste0("You have large lagMax: ",lagMax,". So, the calculation may take some time."));
-            if(lagMax<24){
+        if(lags>12){
+            message(paste0("You have large lags: ",lags,". So, the calculation may take some time."));
+            if(lags<24){
                 message(paste0("Go get some coffee, or tea, or whatever, while we do the work here.\n"));
             }
             else{
                 message(paste0("Go for a lunch or something, while we do the work here.\n"));
             }
         }
-        if(orderMax>3){
-            message(paste0("Beware that you have specified large orderMax: ",orderMax,
+        if(orders>3){
+            message(paste0("Beware that you have specified large orders: ",orders,
                            ". This means that the calculations may take a lot of time.\n"));
         }
     }
 
     for(t in 1:length(type)){
-        ics <- rep(NA,lagMax);
+        ics <- rep(NA,lags);
         lagsBest <- NULL
 
         if((!silentText) & length(type)!=1){
@@ -137,26 +144,26 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
         }
 
     #### Preliminary loop ####
-        #Checking all the models with lag from 1 to lagMax
+        #Checking all the models with lag from 1 to lags
         if(!silentText){
             progressBar <- c("/","\u2014","\\","|");
             cat("Starting preliminary loop: ");
-            cat(paste0(rep(" ",9+nchar(lagMax)),collapse=""));
+            cat(paste0(rep(" ",9+nchar(lags)),collapse=""));
         }
-        for(i in 1:lagMax){
-            gumModel <- gum(data,orders=c(1),lags=c(i),type=type[t],
+        for(i in 1:lags){
+            gumModel <- gum(y,orders=c(1),lags=c(i),type=type[t],
                             silent=TRUE,h=h,holdout=holdout,
-                            initial=initial,cfType=cfType,
+                            initial=initial,loss=loss,
                             cumulative=cumulative,
-                            intervals=intervalsType, level=level,
+                            interval=intervalType, level=level,
                             occurrence=occurrence, oesmodel=oesmodel,
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
             ics[i] <- gumModel$ICs[ic];
             if(!silentText){
-                cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lagMax))),collapse=""));
-                cat(paste0(i," out of ",lagMax));
+                cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
+                cat(paste0(i," out of ",lags));
             }
         }
 
@@ -168,7 +175,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
         lagsBest <- c(which(ics==min(ics)),lagsBest);
         icsBest <- 1E100;
         while(min(ics)<icsBest){
-            for(i in 1:lagMax){
+            for(i in 1:lags){
                 if(!silentText){
                     cat("\b");
                     cat(progressBar[(i/4-floor(i/4))*4+1]);
@@ -185,11 +192,11 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                     ics[i] <- 1E100;
                     next;
                 }
-                gumModel <- gum(data,orders=ordersTest,lags=lagsTest,type=type[t],
+                gumModel <- gum(y,orders=ordersTest,lags=lagsTest,type=type[t],
                                 silent=TRUE,h=h,holdout=holdout,
-                                initial=initial,cfType=cfType,
+                                initial=initial,loss=loss,
                                 cumulative=cumulative,
-                                intervals=intervalsType, level=level,
+                                interval=intervalType, level=level,
                                 occurrence=occurrence, oesmodel=oesmodel,
                                 bounds=bounds,
                                 xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -209,7 +216,7 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
             cat("Searching for appropriate orders:  ");
         }
         icsBest <- min(ics);
-        ics <- array(c(1:(orderMax^length(lagsBest))),rep(orderMax,length(lagsBest)));
+        ics <- array(c(1:(orders^length(lagsBest))),rep(orders,length(lagsBest)));
         ics[1] <- icsBest;
         for(i in 1:length(ics)){
             if(!silentText){
@@ -227,11 +234,11 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
                 ics[i] <- NA;
                 next;
             }
-            gumModel <- gum(data,orders=ordersTest,lags=lagsBest,type=type[t],
+            gumModel <- gum(y,orders=ordersTest,lags=lagsBest,type=type[t],
                             silent=TRUE,h=h,holdout=holdout,
-                            initial=initial,cfType=cfType,
+                            initial=initial,loss=loss,
                             cumulative=cumulative,
-                            intervals=intervalsType, level=level,
+                            interval=intervalType, level=level,
                             occurrence=occurrence, oesmodel=oesmodel,
                             bounds=bounds,
                             xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -254,11 +261,11 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
         cat("Reestimating the model. ");
     }
 
-    bestModel <- gum(data,orders=ordersFinal[[t]],lags=lagsFinal[[t]],type=type[t],
+    bestModel <- gum(y,orders=ordersFinal[[t]],lags=lagsFinal[[t]],type=type[t],
                      silent=TRUE,h=h,holdout=holdout,
-                     initial=initial,cfType=cfType,
+                     initial=initial,loss=loss,
                      cumulative=cumulative,
-                     intervals=intervalsType, level=level,
+                     interval=intervalType, level=level,
                      occurrence=occurrence, oesmodel=oesmodel,
                      bounds=bounds,
                      xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -282,19 +289,19 @@ auto.gum <- function(data, orderMax=3, lagMax=frequency(data), type=c("A","M","Z
         yUpperNew <- yUpper;
         yLowerNew <- yLower;
         if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq);
-            if(intervals){
-                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq);
-                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq);
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq);
+            if(interval){
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq);
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq);
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

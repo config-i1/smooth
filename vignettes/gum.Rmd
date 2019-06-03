@@ -41,7 +41,7 @@ gum(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
 
 Function `auto.gum()` is now implemented in `smooth`, but it works slowly as it needs to check a large number of models:
 ```{r Autogum_N2457_1[1]}
-auto.gum(M3[[2457]], intervals=TRUE, silent=FALSE)
+auto.gum(M3[[2457]], interval=TRUE, silent=FALSE)
 ```
 
 In addition to standard values that other functions accept, GUM accepts predefined values for transition matrix, measurement and persistence vectors. For example, something more common can be passed to the function:

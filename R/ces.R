@@ -66,15 +66,15 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{fitted} - the fitted values of CES.
 #' \item \code{forecast} - the point forecast of CES.
 #' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{intervals="none"} then NA is returned.
+#' \code{interval="none"} then NA is returned.
 #' \item \code{upper} - the upper bound of prediction interval. When
-#' \code{intervals="none"} then NA is returned.
+#' \code{interval="none"} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
 #' \item \code{errors} - The matrix of 1 to h steps ahead errors.
 #' \item \code{s2} - variance of the residuals (taking degrees of
 #' freedom into account).
-#' \item \code{intervals} - type of intervals asked by user.
-#' \item \code{level} - confidence level for intervals.
+#' \item \code{interval} - type of interval asked by user.
+#' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
@@ -91,8 +91,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{ICs} - values of information criteria of the model. Includes
 #' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{cf} - Cost function value.
-#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{lossValue} - Cost function value.
+#' \item \code{loss} - Type of loss function used in the estimation.
 #' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
 #' or when \code{FI} is not provided at all.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -112,20 +112,20 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' ces(y,h=20,holdout=FALSE)
 #'
 #' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-#' ces(y,h=20,holdout=TRUE,intervals="p",bounds="a")
+#' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 #'
 #' library("Mcomp")
 #' y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-#' ces(y,h=8,holdout=TRUE,seasonality="s",intervals="sp",level=0.8)
+#' ces(y,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 #'
 #' \dontrun{y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-#' ces(y,h=18,holdout=TRUE,seasonality="s",intervals="sp")
-#' ces(y,h=18,holdout=TRUE,seasonality="p",intervals="np")
-#' ces(y,h=18,holdout=TRUE,seasonality="f",intervals="p")}
+#' ces(y,h=18,holdout=TRUE,seasonality="s",interval="sp")
+#' ces(y,h=18,holdout=TRUE,seasonality="p",interval="np")
+#' ces(y,h=18,holdout=TRUE,seasonality="f",interval="p")}
 #'
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 #' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-#'     intervals="np",xreg=x,cfType="TMSE")}
+#'     interval="np",xreg=x,loss="TMSE")}
 #'
 #' # Exogenous variables in CES
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
@@ -144,11 +144,11 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' plot(forecast(ourModel))
 #'
 #' @export ces
-ces <- function(data, seasonality=c("none","simple","partial","full"),
+ces <- function(y, seasonality=c("none","simple","partial","full"),
                 initial=c("optimal","backcasting"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC","BICc"),
-                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
-                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                 oesmodel="MNN",
                 bounds=c("admissible","none"),
@@ -164,6 +164,11 @@ ces <- function(data, seasonality=c("none","simple","partial","full"),
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -316,9 +321,9 @@ CF <- function(C){
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
-    cfRes <- costfunc(matvt, matF, matw, y, vecg,
+    cfRes <- costfunc(matvt, matF, matw, yInSample, vecg,
                       h, modellags, Etype, Ttype, Stype,
-                      multisteps, cfType, normalizer, initialType,
+                      multisteps, loss, normalizer, initialType,
                       matxt, matat, matFX, vecgX, ot,
                       bounds, 0);
 
@@ -419,9 +424,9 @@ CreatorCES <- function(silentText=FALSE,...){
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
     matvt <- matrix(NA,nrow=obsStates,ncol=nComponents);
-    yFitted <- rep(NA,obsInsample);
+    yFitted <- rep(NA,obsInSample);
     yForecast <- rep(NA,h);
-    errors <- rep(NA,obsInsample);
+    errors <- rep(NA,obsInSample);
 
 ##### Define parameters for different seasonality types #####
     # Define "w" matrix, seasonal complex smoothing parameter, seasonality lag (if it is present).
@@ -442,7 +447,7 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0),1,2);
         matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level.s","potential.s");
-        matvt[1:maxlag,1] <- y[1:maxlag];
+        matvt[1:maxlag,1] <- yInSample[1:maxlag];
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
     }
     else if(seasonality=="p"){
@@ -453,9 +458,9 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0,1),1,3);
         matvt <- matrix(NA,obsStates,3);
         colnames(matvt) <- c("level","potential","seasonal");
-        matvt[1:maxlag,1] <- mean(y[1:maxlag]);
+        matvt[1:maxlag,1] <- mean(yInSample[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
-        matvt[1:maxlag,3] <- decompose(ts(y,frequency=maxlag),type="additive")$figure;
+        matvt[1:maxlag,3] <- decompose(ts(yInSample,frequency=maxlag),type="additive")$figure;
     }
     else if(seasonality=="f"){
         # Full seasonality with both real and imaginary parts
@@ -466,16 +471,16 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0,1,0),1,4);
         matvt <- matrix(NA,obsStates,4);
         colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
-        matvt[1:maxlag,1] <- mean(y[1:maxlag]);
+        matvt[1:maxlag,1] <- mean(yInSample[1:maxlag]);
         matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
-        matvt[1:maxlag,3] <- decompose(ts(y,frequency=maxlag),type="additive")$figure;
+        matvt[1:maxlag,3] <- decompose(ts(yInSample,frequency=maxlag),type="additive")$figure;
         matvt[1:maxlag,4] <- matvt[1:maxlag,3]/1.1;
     }
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX, ot=ot,
+    xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=maxlag, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
@@ -555,9 +560,9 @@ CreatorCES <- function(silentText=FALSE,...){
 # If this is tiny sample, use SES instead
     if(tinySample){
         warning("Not enough observations to fit CES. Switching to ETS(A,N,N).",call.=FALSE);
-        return(es(data,"ANN",initial=initial,cfType=cfType,
+        return(es(y,"ANN",initial=initial,loss=loss,
                   h=h,holdout=holdout,cumulative=cumulative,
-                  intervals=intervals,level=level,
+                  interval=interval,level=level,
                   occurrence=occurrence,
                   oesmodel=oesmodel,
                   bounds="u",
@@ -793,12 +798,12 @@ CreatorCES <- function(silentText=FALSE,...){
 
     ##### Deal with the holdout sample #####
     if(holdout){
-        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+        yHoldout <- ts(y[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*yInSample);
         }
         else{
-            errormeasures <- measures(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,yInSample);
         }
 
         if(cumulative){
@@ -830,18 +835,18 @@ CreatorCES <- function(silentText=FALSE,...){
         yLowerNew <- yLower;
         if(cumulative){
             yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(intervals){
+            if(interval){
                 yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
                 yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -854,9 +859,9 @@ CreatorCES <- function(silentText=FALSE,...){
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
-                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
+                  errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
+                  actuals=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

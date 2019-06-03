@@ -4,11 +4,11 @@
 \alias{auto.gum}
 \title{Automatic GUM}
 \usage{
-auto.gum(data, orderMax = 3, lagMax = frequency(data), type = c("A",
-  "M", "Z"), initial = c("backcasting", "optimal"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+auto.gum(y, orders = 3, lags = frequency(y), type = c("A", "M", "Z"),
+  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
+  "BICc"), loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
+  interval = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, occurrence = c("none", "auto", "fixed", "general",
   "odds-ratio", "inverse-odds-ratio", "direct"), oesmodel = "MNN",
   bounds = c("restricted", "admissible", "none"), silent = c("all",
@@ -17,13 +17,13 @@ auto.gum(data, orderMax = 3, lagMax = frequency(data), type = c("A",
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
-\item{orderMax}{The value of the max order to check. This is the upper bound
+\item{orders}{The value of the max order to check. This is the upper bound
 of orders, but the real orders could be lower than this because of the
 increasing number of parameters in the models with higher orders.}
 
-\item{lagMax}{The value of the maximum lag to check. This should usually be
+\item{lags}{The value of the maximum lag to check. This should usually be
 a maximum frequency of the data.}
 
 \item{type}{Type of model. Can either be \code{"Additive"} or
@@ -38,12 +38,12 @@ produced using backcasting procedure.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-If \code{cfType!="MSE"}, then likelihood and model selection is done based
+If \code{loss!="MSE"}, then likelihood and model selection is done based
 on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
@@ -60,28 +60,28 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -173,7 +173,7 @@ vignette: \code{vignette("gum","smooth")}
 x <- rnorm(50,100,3)
 
 # The best GUM model for the data
-ourModel <- auto.gum(x,orderMax=2,lagMax=4,h=18,holdout=TRUE,intervals="np")
+ourModel <- auto.gum(x,orders=2,lags=4,h=18,holdout=TRUE,interval="np")
 
 summary(ourModel)
 forecast(ourModel)

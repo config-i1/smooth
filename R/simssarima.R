@@ -244,7 +244,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
 
     # Get rid of duplicates in lags
     if(length(unique(lags))!=length(lags)){
-        if(frequency(data)!=1){
+        if(frequency!=1){
             warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),
                            "). Getting rid of some of them."),call.=FALSE);
         }

@@ -1,4 +1,4 @@
-utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dataFreq","initialType",
+utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","yInSample","dataFreq","initialType",
                          "yot","maxlag","silent","allowMultiplicative","modelCurrent",
                          "nParamOccurrence","matF","matw","pForecast","errors.mat",
                          "results","s2","FI","occurrence","normalizer",
@@ -128,9 +128,9 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
 #' fitted are multiplied by the probability of occurrence.
 #' \item \code{forecast} - point forecast of ETS.
-#' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
+#' \item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
 #' then NA is returned.
-#' \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"}
+#' \item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
 #' then NA is returned.
 #' \item \code{residuals} - residuals of the estimated model.
 #' \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the
@@ -138,8 +138,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' it is returned just for the information.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 #' This is an unbiased estimate of variance.
-#' \item \code{intervals} - type of intervals asked by user.
-#' \item \code{level} - confidence level for intervals.
+#' \item \code{interval} - type of interval asked by user.
+#' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
@@ -154,8 +154,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - concentrated log-likelihood of the function.
-#' \item \code{cf} - cost function value.
-#' \item \code{cfType} - type of cost function used in the estimation.
+#' \item \code{lossValue} - loss function value.
+#' \item \code{loss} - type of loss function used in the estimation.
 #' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
 #' is not provided at all.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -179,7 +179,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{upper},
 #' \item \code{residuals},
 #' \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
-#' \item \code{intervals},
+#' \item \code{interval},
 #' \item \code{level},
 #' \item \code{cumulative},
 #' \item \code{actuals},
@@ -187,7 +187,7 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' \item \code{occurrence},
 #' \item \code{ICs} - combined ic,
 #' \item \code{ICw} - ic weights used in the combination,
-#' \item \code{cfType},
+#' \item \code{loss},
 #' \item \code{xreg},
 #' \item \code{accuracy}.
 #' }
@@ -199,8 +199,8 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' library(Mcomp)
 #'
 #' # See how holdout and trace parameters influence the forecast
-#' es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="MSE")
-#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="TMSE")}
+#' es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,loss="MSE")
+#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,loss="TMSE")}
 #'
 #' # Model selection example
 #' es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
@@ -218,16 +218,16 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' # Model selection using a specified pool of models
 #' ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 #'
-#' # Redo previous model and produce prediction intervals
-#' es(M3$N1587$x,model=ourModel,h=18,intervals="p")
+#' # Redo previous model and produce prediction interval
+#' es(M3$N1587$x,model=ourModel,h=18,interval="p")
 #'
-#' # Semiparametric intervals example
-#' \dontrun{es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")}
+#' # Semiparametric interval example
+#' \dontrun{es(M3$N1587$x,h=18,holdout=TRUE,interval="sp")}
 #'
 #' # Exogenous variables in ETS example
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 #' y <- ts(c(M3$N1457$x,M3$N1457$xx),frequency=12)
-#' es(y,h=18,holdout=TRUE,xreg=x,cfType="aTMSE",intervals="np")
+#' es(y,h=18,holdout=TRUE,xreg=x,loss="aTMSE",interval="np")
 #' ourModel <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
 #'
 #' # This will be the same model as in previous line but estimated on new portion of data
@@ -249,11 +249,11 @@ utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","y","dat
 #' plot(forecast(ourModel))
 #'
 #' @export es
-es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
+es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
-               cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+               loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,
-               intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+               interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                oesmodel="MNN",
                bounds=c("usual","admissible","none"),
@@ -265,20 +265,25 @@ es <- function(data, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
+
     #This overrides the similar thing in ssfunctions.R but only for data generated from sim.es()
-    if(is.smooth.sim(data)){
-        if(smoothType(data)=="ETS"){
-            model <- data;
-            data <- data$data;
+    if(is.smooth.sim(y)){
+        if(smoothType(y)=="ETS"){
+            model <- y;
+            y <- y$data;
         }
     }
-    else if(is.smooth(data)){
-        model <- data;
-        data <- data$actuals;
+    else if(is.smooth(y)){
+        model <- y;
+        y <- y$actuals;
     }
 
 # If a previous model provided as a model, write down the variables
-    if(any(is.smooth(model)) | any(is.smooth.sim(model))){
+    if(is.smooth(model) | is.smooth.sim(model)){
         if(smoothType(model)!="ETS"){
             stop("The provided model is not ETS.",call.=FALSE);
         }
@@ -396,9 +401,9 @@ CF <- function(C){
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
-    cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, y, elements$vecg,
+    cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, yInSample, elements$vecg,
                       h, modellags, Etype, Ttype, Stype,
-                      multisteps, cfType, normalizer, initialType,
+                      multisteps, loss, normalizer, initialType,
                       matxt, elements$matat, elements$matFX, elements$vecgX, ot,
                       bounds, elements$errorSD);
 
@@ -437,7 +442,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        C <- c(C,mean(y[1:min(dataFreq,obsInsample)]),0);
+                        C <- c(C,mean(yInSample[1:min(dataFreq,obsInSample)]),0);
                     }
                     else{
                         C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
@@ -490,7 +495,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        C <- c(C,mean(y[1:dataFreq]),0);
+                        C <- c(C,mean(yInSample[1:dataFreq]),0);
                     }
                     else{
                         C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
@@ -543,7 +548,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        C <- c(C,mean(y[1:dataFreq]),0);
+                        C <- c(C,mean(yInSample[1:dataFreq]),0);
                     }
                     else{
                         C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
@@ -614,7 +619,7 @@ BasicMakerES <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInSample, obsAll, yInSample,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
     list2env(basicparams,ParentEnvironment);
 }
@@ -662,7 +667,7 @@ EstimatorES <- function(...){
     }
 
     if(rounded){
-        cfType <- "MSE";
+        loss <- "MSE";
     }
 
     if(any(is.infinite(C))){
@@ -710,7 +715,7 @@ EstimatorES <- function(...){
                     j <- j+1;
                 }
                 j <- j+1;
-                C[j] <- mean(y[1:dataFreq]);
+                C[j] <- mean(yInSample[1:dataFreq]);
                 j <- j+1;
                 C[j] <- 0;
             }
@@ -733,7 +738,7 @@ EstimatorES <- function(...){
         C <- c(C,sqrt(CF(C)));
         CLower <- c(CLower,0);
         CUpper <- c(CUpper,Inf);
-        cfType <- "Rounded";
+        loss <- "Rounded";
     }
 
     res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
@@ -779,7 +784,7 @@ XregSelector <- function(listToReturn){
     ssFitter(ParentEnvironment=environment());
 
     xregNames <- colnames(matxtOriginal);
-    xregNew <- cbind(errors,xreg[1:obsInsample,]);
+    xregNew <- cbind(errors,xreg[1:obsInSample,]);
     colnames(xregNew)[1] <- "errors";
     colnames(xregNew)[-1] <- xregNames;
     xregNew <- as.data.frame(xregNew);
@@ -1251,7 +1256,7 @@ CreatorES <- function(silent=FALSE,...){
             initialstates[1,1] <- (mean(yot[1:min(max(dataFreq,12),obsNonzero)]) -
                                        initialstates[1,2] *
                                        mean(c(1:min(max(dataFreq,12), obsNonzero))));
-            if(any(cfType=="LogisticD")){
+            if(any(loss=="LogisticD")){
                 if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
                     initialstates[1,1] <- -50;
                 }
@@ -1263,7 +1268,7 @@ CreatorES <- function(silent=FALSE,...){
                 }
             }
             if(allowMultiplicative){
-                if(any(cfType=="LogisticL")){
+                if(any(loss=="LogisticL")){
                     initialstates[1,3] <- initialstates[1,1];
                     initialstates[1,4] <- exp(initialstates[1,2]);
                     initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
@@ -1285,10 +1290,10 @@ CreatorES <- function(silent=FALSE,...){
     else{
         if(initialType!="p"){
             initialstates <- matrix(rep(mean(yot[1:min(max(dataFreq,12),obsNonzero)]),4),nrow=1);
-            if(any(cfType=="LogisticL") & any(initialstates==0)){
+            if(any(loss=="LogisticL") & any(initialstates==0)){
                 initialstates[initialstates==0] <- 0.001;
             }
-            if(any(cfType=="LogisticD")){
+            if(any(loss=="LogisticD")){
                 if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
                     initialstates[,] <- -50;
                 }
@@ -1307,8 +1312,8 @@ CreatorES <- function(silent=FALSE,...){
     if(Stype!="N"){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
-            seasonalCoefs <- decompose(ts(c(y),frequency=dataFreq),type="additive")$seasonal[1:dataFreq];
-            decompositionM <- decompose(ts(c(y),frequency=dataFreq), type="multiplicative");
+            seasonalCoefs <- decompose(ts(c(yInSample),frequency=dataFreq),type="additive")$seasonal[1:dataFreq];
+            decompositionM <- decompose(ts(c(yInSample),frequency=dataFreq), type="multiplicative");
             seasonalCoefs <- cbind(seasonalCoefs,decompositionM$seasonal[1:dataFreq]);
             seasonalRandomness <- c(min(decompositionM$random,na.rm=TRUE),
                                     max(decompositionM$random,na.rm=TRUE));
@@ -1336,23 +1341,23 @@ CreatorES <- function(silent=FALSE,...){
             smoothingParameters <- cbind(c(0.1,0.05,0.1),c(0.05,0.01,0.01));
         }
 
-        if(cfType=="HAM"){
+        if(loss=="HAM"){
             smoothingParameters <- cbind(rep(0.01,3),rep(0.01,3));
         }
     }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
-    yFitted <- rep(NA,obsInsample);
+    yFitted <- rep(NA,obsInSample);
     yForecast <- rep(NA,h);
-    errors <- rep(NA,obsInsample);
+    errors <- rep(NA,obsInSample);
 
-    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInsample, obsAll, y,
+    basicparams <- initparams(Etype, Ttype, Stype, dataFreq, obsInSample, obsAll, yInSample,
                               damped, phi, smoothingParameters, initialstates, seasonalCoefs);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
+    xregdata <- ssXreg(y=y, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=basicparams$maxlag, h=h, xregDo=xregDo, silent=silentText,
                        allowMultiplicative=allowMultiplicative);
 
@@ -1559,7 +1564,7 @@ CreatorES <- function(silent=FALSE,...){
             persistence <- 0;
             persistenceEstimate <- FALSE;
             smoothingParameters <- matrix(0,3,2);
-            initialValue <- mean(y);
+            initialValue <- mean(yInSample);
             initialType <- "p";
             initialstates <- matrix(rep(initialValue,2),nrow=1);
             warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",
@@ -1579,7 +1584,7 @@ CreatorES <- function(silent=FALSE,...){
             persistence <- 0;
             persistenceEstimate <- FALSE;
             smoothingParameters <- matrix(0,3,2);
-            initialValue <- y[y!=0];
+            initialValue <- yInSample[yInSample!=0];
             initialType <- "p";
             initialstates <- matrix(rep(initialValue,2),nrow=1);
             warning("We did not have enough of non-zero observations, so we used Naive.",call.=FALSE);
@@ -1606,14 +1611,14 @@ CreatorES <- function(silent=FALSE,...){
             modelCurrent <- model;
         }
         else{
-            if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+            if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
                               "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
                 if(modelDo=="combine"){
-                    warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'.",
+                    warning(paste0("'",loss,"' is used as loss function instead of 'MSE'.",
                                    "The produced combination weights may be wrong."),call.=FALSE);
                 }
                 else{
-                    warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. ",
+                    warning(paste0("'",loss,"' is used as loss function instead of 'MSE'. ",
                                    "The results of the model selection may be wrong."),call.=FALSE);
                 }
             }
@@ -1851,7 +1856,7 @@ CreatorES <- function(silent=FALSE,...){
         # If this was rounded values, extract the variance
         if(rounded){
             s2 <- C[length(C)]^2;
-            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInsample;
+            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInSample;
         }
         ssForecaster(ParentEnvironment=environment());
 
@@ -2002,10 +2007,10 @@ CreatorES <- function(silent=FALSE,...){
         # Produce the forecasts using AIC weights
         modelsNumber <- nrow(icWeights);
         model.current <- rep(NA,modelsNumber);
-        fittedList <- matrix(NA,obsInsample,modelsNumber);
-        # errorsList <- matrix(NA,obsInsample,modelsNumber);
+        fittedList <- matrix(NA,obsInSample,modelsNumber);
+        # errorsList <- matrix(NA,obsInSample,modelsNumber);
         forecastsList <- matrix(NA,h,modelsNumber);
-        if(intervals){
+        if(interval){
              lowerList <- matrix(NA,h,modelsNumber);
              upperList <- matrix(NA,h,modelsNumber);
         }
@@ -2050,7 +2055,7 @@ CreatorES <- function(silent=FALSE,...){
 
             fittedList[,i] <- yFitted;
             forecastsList[,i] <- yForecast;
-            if(intervals){
+            if(interval){
                 lowerList[,i] <- yLower;
                 upperList[,i] <- yUpper;
             }
@@ -2061,10 +2066,10 @@ CreatorES <- function(silent=FALSE,...){
         forecastsList <- forecastsList[,!badStuff];
         model.current <- model.current[!badStuff];
         yFitted <- ts(fittedList %*% icWeights[!badStuff,ic],start=dataStart,frequency=dataFreq);
-        yForecast <- ts(forecastsList %*% icWeights[!badStuff,ic],start=time(data)[obsInsample]+deltat(data),frequency=dataFreq);
-        errors <- ts(c(y) - yFitted,start=dataStart,frequency=dataFreq);
+        yForecast <- ts(forecastsList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=dataFreq);
+        errors <- ts(c(yInSample) - yFitted,start=dataStart,frequency=dataFreq);
         s2 <- mean(errors^2);
-        if(intervals){
+        if(interval){
             lowerList <- lowerList[,!badStuff];
             upperList <- upperList[,!badStuff];
             yLower <- ts(lowerList %*% icWeights[!badStuff,ic],start=yForecastStart,frequency=dataFreq);
@@ -2105,12 +2110,12 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Now let's deal with holdout #####
     if(holdout){
-        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+        yHoldout <- ts(y[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*yInSample);
         }
         else{
-            errormeasures <- measures(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,yInSample);
         }
 
         if(cumulative){
@@ -2151,18 +2156,18 @@ CreatorES <- function(silent=FALSE,...){
         yLowerNew <- yLower;
         if(cumulative){
             yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(intervals){
+            if(interval){
                 yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
                 yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend, main=modelnameForGraph, cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend, main=modelnameForGraph, cumulative=cumulative);
         }
     }
@@ -2175,21 +2180,21 @@ CreatorES <- function(silent=FALSE,...){
                       initialType=initialType,initial=initialValue,initialSeason=initialSeason,
                       nParam=parametersNumber,
                       fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
-                      errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                      actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
+                      errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
+                      actuals=y,holdout=yHoldout,occurrence=occurrenceModel,
                       xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                      ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                      ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }
     else{
         model <- list(model=modelname,formula=esFormula,timeElapsed=Sys.time()-startTime,
                       initialType=initialType,
                       fitted=yFitted,forecast=yForecast,
-                      lower=yLower,upper=yUpper,residuals=errors,s2=s2,intervals=intervalsType,level=level,
+                      lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
                       cumulative=cumulative,
-                      actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
+                      actuals=y,holdout=yHoldout,occurrence=occurrenceModel,
                       xreg=xreg,updateX=updateX,
-                      ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
+                      ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
         return(structure(model,class="smooth"));
     }
 }

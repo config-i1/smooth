@@ -36,7 +36,7 @@ It appears that SMA(13) is the optimal model for this time series, which is not 
 
 If we try selecting SMA order for data without substantial trend, then we will end up with some other order. For example, let's consider a seasonal time series N2568:
 ```{r sma_N2568}
-sma(M3$N2568$x, h=18)
+sma(M3$N2568$x, h=18, interval=TRUE)
 ```
 
 Here we end up with SMA(12). Note that the order of moving average corresponds to seasonal frequency, which is usually a first step in classical time series decomposition. We however do not have centred moving average, we deal with simple one, so decomposition should not be done based on this model.

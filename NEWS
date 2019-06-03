@@ -1,4 +1,4 @@
-smooth v2.5.1 (Release data: 2019-06-03)
+smooth v2.5.1 (Release data: 2019-06-04)
 ==============
 
 Changes:
@@ -9,6 +9,10 @@ Changes:
 * Model selection is now available in the oes() function. I'd recommend sticking with pure models.
 * Renamed the fitted values for the underlying models in the oes() and oesg() into "fittedModel" (former "fittedBeta").
 * Rolling back "quiet" into "silent". The former is more difficult than the latter.
+* "data" parameter is now renamed into "y" for consistency purposes (so that the input is more similar to the functions of the forecast package).
+* "cfType" is now renamed into "loss".
+* "workFast" in auto.ssarima() and auto.msarima() is now "fast" instead.
+* "intervals" (plural) is now "interval" (singular) instead. This is needed, so that the input is consistent with predict() function.
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.

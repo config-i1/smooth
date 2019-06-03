@@ -5,13 +5,13 @@
 \alias{ges}
 \title{Generalised Univariate Model}
 \usage{
-gum(data, orders = c(1, 1), lags = c(1, frequency(data)),
-  type = c("A", "M"), persistence = NULL, transition = NULL,
-  measurement = NULL, initial = c("optimal", "backcasting"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
-  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, intervals = c("none", "parametric",
-  "semiparametric", "nonparametric"), level = 0.95,
+gum(y, orders = c(1, 1), lags = c(1, frequency(y)),
+  type = c("additive", "multiplicative"), persistence = NULL,
+  transition = NULL, measurement = NULL, initial = c("optimal",
+  "backcasting"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE",
+  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
+  holdout = FALSE, cumulative = FALSE, interval = c("none",
+  "parametric", "semiparametric", "nonparametric"), level = 0.95,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), oesmodel = "MNN",
   bounds = c("restricted", "admissible", "none"), silent = c("all",
@@ -22,7 +22,7 @@ gum(data, orders = c(1, 1), lags = c(1, frequency(data)),
 ges(...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{orders}{Order of the model. Specified as vector of number of states
 with different lags. For example, \code{orders=c(1,1)} means that there are
@@ -56,12 +56,12 @@ produced using backcasting procedure.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-If \code{cfType!="MSE"}, then likelihood and model selection is done based
+If \code{loss!="MSE"}, then likelihood and model selection is done based
 on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
@@ -78,28 +78,28 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -194,15 +194,15 @@ smoothing parameters live.
 \item \code{fitted} - fitted values.
 \item \code{forecast} - point forecast.
 \item \code{lower} - lower bound of prediction interval. When
-\code{intervals="none"} then NA is returned.
+\code{interval="none"} then NA is returned.
 \item \code{upper} - higher bound of prediction interval. When
-\code{intervals="none"} then NA is returned.
+\code{interval="none"} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
 \item \code{errors} - matrix of 1 to h steps ahead errors.
 \item \code{s2} - variance of the residuals (taking degrees of freedom
 into account).
-\item \code{intervals} - type of intervals asked by user.
-\item \code{level} - confidence level for intervals.
+\item \code{interval} - type of interval asked by user.
+\item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
@@ -218,8 +218,8 @@ were estimated as well.
 \item \code{ICs} - values of information criteria of the model. Includes
 AIC, AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
-\item \code{cf} - Cost function value.
-\item \code{cfType} - Type of cost function used in the estimation.
+\item \code{lossValue} - Cost function value.
+\item \code{loss} - Type of loss function used in the estimation.
 \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or
 when \code{FI} variable is not provided at all.
 \item \code{accuracy} - vector of accuracy measures for the holdout sample.
@@ -259,20 +259,20 @@ vignette: \code{vignette("gum","smooth")}
 \examples{
 
 # Something simple:
-gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",intervals="p")
+gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval="p")
 
 # A more complicated model with seasonality
 \dontrun{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
-# Redo previous model on a new data and produce prediction intervals
-\dontrun{gum(rnorm(118,100,3),model=ourModel,h=18,intervals="sp")}
+# Redo previous model on a new data and produce prediction interval
+\dontrun{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
 
 # Produce something crazy with optimal initials (not recommended)
 \dontrun{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
 
-# Simpler model estiamted using trace forecast error cost function and its analytical analogue
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="TMSE")
-gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="aTMSE")}
+# Simpler model estiamted using trace forecast error loss function and its analytical analogue
+\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
+gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aTMSE")}
 
 # Introduce exogenous variables
 \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
@@ -281,8 +281,8 @@ gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",cfType="
 \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),updateX=TRUE)}
 
 # Do the same but now let's shrink parameters...
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,cfType="TMSE")
-ourModel <- gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,cfType="aTMSE")}
+\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,xreg=c(1:118),updateX=TRUE,loss="TMSE")
+ourModel <- gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,loss="aTMSE")}
 
 # Or select the most appropriate one
 \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")

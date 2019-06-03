@@ -5,7 +5,7 @@
 \alias{forecast}
 \title{Forecasting time series using smooth functions}
 \usage{
-\method{forecast}{smooth}(object, h = 10, intervals = c("parametric",
+\method{forecast}{smooth}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, ...)
 }
 \arguments{
@@ -13,7 +13,7 @@
 
 \item{h}{Forecast horizon}
 
-\item{intervals}{Type of intervals to construct. See \link[smooth]{es} for
+\item{interval}{Type of interval to construct. See \link[smooth]{es} for
 details.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -31,10 +31,10 @@ Returns object of class "smooth.forecast", which contains:
 \item \code{actuals} - actuals provided in the call of the model.
 \item \code{forecast} aka \code{mean} - point forecasts of the model
 (conditional mean).
-\item \code{lower} - lower bound of prediction intervals.
-\item \code{upper} - upper bound of prediction intervals.
+\item \code{lower} - lower bound of prediction interval.
+\item \code{upper} - upper bound of prediction interval.
 \item \code{level} - confidence level.
-\item \code{intervals} - binary variable (whether intervals were produced or not).
+\item \code{interval} - binary variable (whether interval were produced or not).
 \item \code{residuals} - the residuals of the original model.
 }
 }
@@ -53,8 +53,8 @@ function, then go ahead!
 ourModel <- ces(rnorm(100,0,1),h=10)
 
 forecast.smooth(ourModel,h=10)
-forecast.smooth(ourModel,h=10,intervals=TRUE)
-plot(forecast.smooth(ourModel,h=10,intervals=TRUE))
+forecast.smooth(ourModel,h=10,interval=TRUE)
+plot(forecast.smooth(ourModel,h=10,interval=TRUE))
 
 }
 \references{

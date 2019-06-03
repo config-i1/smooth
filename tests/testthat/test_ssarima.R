@@ -12,7 +12,7 @@ test_that("Reuse previous SSARIMA on N1234$x", {
 })
 
 # Test some crazy order of SSARIMA
-testModel <- ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=c(1,1,0), i.orders=c(1,0,1), ma.orders=c(0,1,1), lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, intervals=TRUE)
+testModel <- ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=c(1,1,0), i.orders=c(1,0,1), ma.orders=c(0,1,1), lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, interval=TRUE)
 test_that("Test if crazy order SSARIMA was estimated on N1234$x", {
     expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]");
 })
@@ -50,7 +50,7 @@ test_that("Test if combined ARIMA works", {
 # Test exogenous (normal + updateX) with SSARIMA
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- ssarima(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, cfType="aTMSE", intervals=TRUE)
+testModel <- ssarima(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, loss="aTMSE", interval=TRUE)
 test_that("Check exogenous variables for SSARIMAX on N1457", {
     expect_equal(suppressWarnings(ssarima(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$model), testModel$model);
     expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);

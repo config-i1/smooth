@@ -8,11 +8,11 @@
 #' framework. Due to the the complexity of some of the models, the
 #' estimation process may take some time. So be patient.
 #'
-#' The prediction intervals are combined either probability-wise or
+#' The prediction interval are combined either probability-wise or
 #' quantile-wise (Lichtendahl et al., 2013), which may take extra time,
 #' because we need to produce all the distributions for all the models.
 #' This can be sped up with the smaller value for bins parameter, but
-#' the resulting intervals may be imprecise.
+#' the resulting interval may be imprecise.
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
@@ -29,11 +29,11 @@
 #' @param initial Can be \code{"optimal"}, meaning that the initial
 #' states are optimised, or \code{"backcasting"}, meaning that the
 #' initials are produced using backcasting procedure.
-#' @param bins The number of bins for the prediction intervals.
+#' @param bins The number of bins for the prediction interval.
 #' The lower value means faster work of the function, but less
 #' precise estimates of the quantiles. This needs to be an even
 #' number.
-#' @param intervalsCombine How to average the prediction intervals:
+#' @param intervalCombine How to average the prediction interval:
 #' quantile-wise (\code{"quantile"}) or probability-wise
 #' (\code{"probability"}).
 #' @param ... This currently determines nothing.
@@ -42,17 +42,17 @@
 #' \item \code{timeElapsed} - time elapsed for the construction of the model.
 #' \item \code{initialType} - type of the initial values used.
 #' \item \code{fitted} - fitted values of ETS.
-#' \item \code{quantiles} - the 3D array of produced quantiles if \code{intervals!="none"}
+#' \item \code{quantiles} - the 3D array of produced quantiles if \code{interval!="none"}
 #' with the dimensions: (number of models) x (bins) x (h).
 #' \item \code{forecast} - point forecast of ETS.
-#' \item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
+#' \item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
 #' then NA is returned.
-#' \item \code{upper} - higher bound of prediction interval. When \code{intervals="none"}
+#' \item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
 #' then NA is returned.
 #' \item \code{residuals} - residuals of the estimated model.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
-#' \item \code{intervals} - type of intervals asked by user.
-#' \item \code{level} - confidence level for intervals.
+#' \item \code{interval} - type of interval asked by user.
+#' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - original data.
 #' \item \code{holdout} - holdout part of the original data.
@@ -77,7 +77,7 @@
 #'
 #' library(Mcomp)
 #'
-#' ourModel <- smoothCombine(M3[[578]],intervals="p")
+#' ourModel <- smoothCombine(M3[[578]],interval="p")
 #' plot(ourModel)
 #'
 #' # models parameter accepts either previously estimated smoothCombine
@@ -90,12 +90,12 @@
 #'
 #' @importFrom stats fitted
 #' @export smoothCombine
-smoothCombine <- function(data, models=NULL,
+smoothCombine <- function(y, models=NULL,
                           initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
-                          cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                          loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
-                          intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
-                          bins=200, intervalsCombine=c("quantile","probability"),
+                          interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                          bins=200, intervalCombine=c("quantile","probability"),
                           occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
                           oesmodel="MNN",
                           bounds=c("admissible","none"),
@@ -107,6 +107,11 @@ smoothCombine <- function(data, models=NULL,
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
 
     if(any(is.smoothC(models))){
         ourQuantiles <- models$quantiles;
@@ -137,8 +142,8 @@ smoothCombine <- function(data, models=NULL,
         IC <- BICc;
     }
 
-    # Grab the type of intervals combination
-    intervalsCombine <- substr(intervalsCombine[1],1,1);
+    # Grab the type of interval combination
+    intervalCombine <- substr(intervalCombine[1],1,1);
 
     modelsNotProvided <- is.null(models);
     if(modelsNotProvided){
@@ -156,40 +161,40 @@ smoothCombine <- function(data, models=NULL,
         if(!silentText){
             cat("ES");
         }
-        esModel <- es(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                      cumulative=cumulative,intervals="n",occurrence=occurrence,
+        esModel <- es(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
+                      cumulative=cumulative,interval="n",occurrence=occurrence,
                       oesmodel=oesmodel,bounds=bounds,silent=TRUE,
                       xreg=xreg,xregDo=xregDo,updateX=updateX,
                       initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", CES");
         }
-        cesModel <- auto.ces(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                             cumulative=cumulative,intervals="n",occurrence=occurrence,
+        cesModel <- auto.ces(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
+                             cumulative=cumulative,interval="n",occurrence=occurrence,
                              oesmodel=oesmodel,bounds=bounds,silent=TRUE,
                              xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", SSARIMA");
         }
-        ssarimaModel <- auto.ssarima(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                                     cumulative=cumulative,intervals="n",occurrence=occurrence,
+        ssarimaModel <- auto.ssarima(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
+                                     cumulative=cumulative,interval="n",occurrence=occurrence,
                                      oesmodel=oesmodel,bounds=bounds,silent=TRUE,
                                      xreg=xreg,xregDo=xregDo,updateX=updateX,
                                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", GUM");
         }
-        gumModel <- auto.gum(data,initial=initial,ic=ic,cfType=cfType,h=h,holdout=holdout,
-                             cumulative=cumulative,intervals="n",occurrence=occurrence,
+        gumModel <- auto.gum(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
+                             cumulative=cumulative,interval="n",occurrence=occurrence,
                              oesmodel=oesmodel,bounds=bounds,silent=TRUE,
                              xreg=xreg,xregDo=xregDo,updateX=updateX,
                              initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
         if(!silentText){
             cat(", SMA");
         }
-        smaModel <- sma(data,ic=ic,h=h,holdout=holdout,
-                        cumulative=cumulative,intervals="n",silent=TRUE);
+        smaModel <- sma(y,ic=ic,h=h,holdout=holdout,
+                        cumulative=cumulative,interval="n",silent=TRUE);
         if(!silentText){
             cat(". Done!\n");
         }
@@ -197,10 +202,9 @@ smoothCombine <- function(data, models=NULL,
         names(models) <- c("ETS","CES","SSARIMA","GUM","SMA");
     }
 
-    yForecastTest <- forecast(models[[1]],h=h,intervals="none",holdout=holdout);
-    yForecastStart <- start(yForecastTest$mean);
+    yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
     yHoldout <- yForecastTest$model$holdout;
-    y <- yForecastTest$model$actuals;
+    yInSample <- yForecastTest$model$actuals;
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
@@ -212,7 +216,7 @@ smoothCombine <- function(data, models=NULL,
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+    modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
                               level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
 
@@ -224,13 +228,13 @@ smoothCombine <- function(data, models=NULL,
 
     lower <- upper <- NA;
 
-    if(intervalsType!="n"){
-        #### This part is for combining the prediction intervals ####
+    if(intervalType!="n"){
+        #### This part is for combining the prediction interval ####
         quantilesReturned <- matrix(NA,2,h,dimnames=list(c("Lower","Upper"),paste0("h",c(1:h))));
         # Minimum and maximum quantiles
         minMaxQuantiles <- matrix(NA,2,h);
 
-        if(intervalsCombine=="p"){
+        if(intervalCombine=="p"){
             # Probability-based combination
             if((abs(bins) %% 2)<=1e-100){
                 bins <- bins-1;
@@ -251,7 +255,7 @@ smoothCombine <- function(data, models=NULL,
             # If quantiles weren't provided by the previous model, produce them
             if(quantilesRedo){
 
-                # This is needed for appropriate combination of prediction intervals
+                # This is needed for appropriate combination of prediction interval
                 ourQuantiles <- array(NA,c(nModels,bins,h),dimnames=list(names(models),
                                                                          c(1:bins)/(bins+1),
                                                                          colnames(quantilesReturned)));
@@ -260,7 +264,7 @@ smoothCombine <- function(data, models=NULL,
                 ourQuantiles[,"0.5",] <- t(as.matrix(as.data.frame(lapply(modelsForecasts,`[[`,"lower"))));
 
                 if(!silentText){
-                    cat("Constructing prediction intervals...    ");
+                    cat("Constructing prediction interval...    ");
                 }
                 # Do loop writing down all the quantiles
                 for(j in 1:((bins-1)/2)){
@@ -271,7 +275,7 @@ smoothCombine <- function(data, models=NULL,
                         cat(paste0(rep("\b",nchar(round((j-1)/((bins-1)/2),2)*100)+1),collapse=""));
                         cat(paste0(round(j/((bins-1)/2),2)*100,"%"));
                     }
-                    modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+                    modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
                                               level=j*2/(bins+1),holdout=holdout,cumulative=cumulative,
                                               xreg=xreg);
 
@@ -305,7 +309,7 @@ smoothCombine <- function(data, models=NULL,
             }
         }
         else{
-            modelsForecasts <- lapply(models,forecast,h=h,intervals=intervals,
+            modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
                                       level=level,holdout=holdout,cumulative=cumulative,
                                       xreg=xreg);
 
@@ -319,17 +323,17 @@ smoothCombine <- function(data, models=NULL,
         upper <- ts(quantilesReturned[2,],start=yForecastStart,frequency=dataFreq);
     }
 
-    y <- y[1:length(yFitted)];
-    errors <- c(y[1:length(yFitted)])-c(yFitted);
+    yInSample <- yInSample[1:length(yFitted)];
+    errors <- c(yInSample[1:length(yFitted)])-c(yFitted);
     s2 <- mean(errors^2);
 
     ##### Now let's deal with holdout #####
     if(holdout){
         if(cumulative){
-            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*yInSample);
         }
         else{
-            errormeasures <- measures(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,yInSample);
         }
 
         if(cumulative){
@@ -346,18 +350,18 @@ smoothCombine <- function(data, models=NULL,
         lowerNew <- lower;
         if(cumulative){
             yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(intervals){
+            if(interval){
                 upperNew <- ts(rep(upper/h,h),start=yForecastStart,frequency=dataFreq)
                 lowerNew <- ts(rep(lower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=lowerNew,upper=upperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=lowerNew,upper=upperNew,
                        level=level,legend=!silentLegend,main="Combined smooth forecasts",cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main="Combined smooth forecasts",cumulative=cumulative);
         }
     }
@@ -365,9 +369,9 @@ smoothCombine <- function(data, models=NULL,
     model <- list(timeElapsed=Sys.time()-startTime, models=models, initialType=initialType,
                   fitted=yFitted, quantiles=ourQuantiles,
                   forecast=yForecast, lower=lower, upper=upper, residuals=errors, s2=s2,
-                  intervals=intervalsType, level=level, cumulative=cumulative,
-                  actuals=data, holdout=yHoldout, ICs=ICs, ICw=icWeights, cfType=cfType,
-                  cf=NULL,accuracy=errormeasures);
+                  interval=intervalType, level=level, cumulative=cumulative,
+                  actuals=y, holdout=yHoldout, ICs=ICs, ICw=icWeights, loss=loss,
+                  lossValue=NULL,accuracy=errormeasures);
 
     return(structure(model,class=c("smoothC","smooth")));
 }

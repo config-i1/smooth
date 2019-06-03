@@ -23,7 +23,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax","updateX","xreg
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @param data Either numeric vector or time series vector.
+#' @param y Either numeric vector or time series vector.
 #' @param modelA The type of the ETS for the model A.
 #' @param modelB The type of the ETS for the model B.
 #' @param persistenceA The persistence vector \eqn{g}, containing smoothing
@@ -46,23 +46,23 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax","updateX","xreg
 #' @param h Forecast horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
-#' @param intervals Type of intervals to construct. This can be:
+#' @param interval Type of interval to construct. This can be:
 #'
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
-#' intervals.
+#' interval.
 #' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 #' case of mixed models this is done using simulations, which may take longer
 #' time than for the pure additive and pure multiplicative models.
-#' \item \code{semiparametric}, \code{sp} - intervals based on covariance
+#' \item \code{semiparametric}, \code{sp} - interval based on covariance
 #' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 #' distribution (depending on error type).
-#' \item \code{nonparametric}, \code{np} - intervals based on values from a
+#' \item \code{nonparametric}, \code{np} - interval based on values from a
 #' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 #' used in this process is e[j] = a j^b, where j=1,..,h.
 #' }
 #' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-#' parametric intervals are constructed, while the latter is equivalent to
+#' parametric interval are constructed, while the latter is equivalent to
 #' \code{none}.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param bounds What type of bounds to use in the model estimation. The first
@@ -131,11 +131,11 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax","updateX","xreg
 #' oesg(y, modelA="MNN", modelB="ANN")
 #'
 #' @export
-oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=NULL,
+oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=NULL,
                  phiA=NULL, phiB=NULL,
                  initialA="o", initialB="o", initialSeasonA=NULL, initialSeasonB=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                 intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                 interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                  bounds=c("usual","admissible","none"),
                  silent=c("all","graph","legend","output","none"),
                  xregA=NULL, xregB=NULL, initialXA=NULL, initialXB=NULL,
@@ -145,11 +145,18 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
                  ...){
     # Function returns the occurrence part of the intermittent state space model, type G
 
+# Start measuring the time of calculations
+    startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    interval <- depricator(interval, list(...), "intervals");
+
     ##### Preparations #####
     occurrence <- "g";
 
-    if(is.smooth.sim(data)){
-        data <- data$data;
+    if(is.smooth.sim(y)){
+        y <- y$data;
     }
 
     # Add all the variables in ellipsis to current environment
@@ -218,7 +225,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     }
 
     #### These are needed in order for ssInput to go forward
-    cfType <- "MSE";
+    loss <- "MSE";
     oesmodel <- NULL;
 
     #### First call for the environment ####
@@ -235,21 +242,21 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     ssInput("oes",ParentEnvironment=environment());
 
     ### Produce vectors with zeroes and ones, fixed probability and the number of ones.
-    ot <- (y!=0)*1;
-    otAll <- (data!=0)*1;
+    ot <- (yInSample!=0)*1;
+    otAll <- (y!=0)*1;
     iprob <- mean(ot);
     obsOnes <- sum(ot);
 
     if(all(ot==ot[1])){
         warning(paste0("There is no variability in the occurrence of the variable in-sample.\n",
                        "Switching to occurrence='none'."),call.=FALSE)
-        return(oes(data,occurrence="n"));
+        return(oes(y,occurrence="n"));
     }
 
     ### Prepare exogenous variables
-    xregdata <- ssXreg(data=otAll, Etype="A", xreg=xregA, updateX=updateXA, ot=rep(1,obsInsample),
+    xregdata <- ssXreg(y=otAll, Etype="A", xreg=xregA, updateX=updateXA, ot=rep(1,obsInSample),
                        persistenceX=persistenceXA, transitionX=transitionXA, initialX=initialXA,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=1, h=h, xregDo=xregDoA, silent=silentText,
                        allowMultiplicative=FALSE);
 
@@ -300,9 +307,9 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     ssInput("oes",ParentEnvironment=environment());
 
     ### Prepare exogenous variables
-    xregdata <- ssXreg(data=otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInsample),
+    xregdata <- ssXreg(y=otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
                        persistenceX=persistenceXB, transitionX=transitionXB, initialX=initialXB,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=1, h=h, xregDo=xregDoB, silent=silentText,
                        allowMultiplicative=FALSE);
 
@@ -339,14 +346,11 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     xregB <- xregdata$xreg;
     initialXEstimateB <- xregdata$initialXEstimate;
 
-    # The start time for the forecasts
-    yForecastStart <- time(data)[obsInsample]+deltat(data);
-
     #### The functions for the model ####
     ##### Initialiser of oes. This is called separately for each model #####
     # This creates the states, transition, persistence and measurement matrices
     oesInitialiser <- function(Etype, Ttype, Stype, damped,
-                               dataFreq, obsInsample, obsAll, obsStates, ot,
+                               dataFreq, obsInSample, obsAll, obsStates, ot,
                                persistenceEstimate, persistence, initialType, initialValue,
                                initialSeasonEstimate, initialSeason, modelType){
         # Define the lags of the model, number of components and max lag
@@ -418,7 +422,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         # Define the seasonals
         if(modelIsSeasonal){
             if(initialSeasonEstimate){
-                XValues <- matrix(rep(diag(modelLagsMax),ceiling(obsInsample/modelLagsMax)),modelLagsMax)[,1:obsInsample];
+                XValues <- matrix(rep(diag(modelLagsMax),ceiling(obsInSample/modelLagsMax)),modelLagsMax)[,1:obsInSample];
                 # The seasonal values should be between -1 and 1
                 initialSeasonValue <- solve(XValues %*% t(XValues)) %*% XValues %*% (ot - mean(ot));
                 # But make sure that it lies there
@@ -545,7 +549,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
+                        A <- c(A,mean(ot[1:min(dataFreq,obsInSample)]),1E-5);
                         ALower <- c(ALower,-Inf);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -603,7 +607,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
+                        A <- c(A,mean(ot[1:min(dataFreq,obsInSample)]),1E-5);
                         ALower <- c(ALower,-Inf);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -661,7 +665,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
                 else{
                     if(Ttype=="A"){
                         # This is something like ETS(M,A,N), so set level to mean, trend to zero for stability
-                        A <- c(A,mean(ot[1:min(dataFreq,obsInsample)]),1E-5);
+                        A <- c(A,mean(ot[1:min(dataFreq,obsInSample)]),1E-5);
                         ALower <- c(ALower,-Inf);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -774,11 +778,11 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     if(modelDo=="estimate"){
         # Initialise the model
         basicparamsA <- oesInitialiser(EtypeA, TtypeA, StypeA, dampedA,
-                                       dataFreq, obsInsample, obsAll, obsStatesA, ot,
+                                       dataFreq, obsInSample, obsAll, obsStatesA, ot,
                                        persistenceEstimateA, persistenceA, initialTypeA, initialValueA,
                                        initialSeasonEstimateA, initialSeasonA, modelType="A");
         basicparamsB <- oesInitialiser(EtypeB, TtypeB, StypeB, dampedB,
-                                       dataFreq, obsInsample, obsAll, obsStatesB, ot,
+                                       dataFreq, obsInSample, obsAll, obsStatesB, ot,
                                        persistenceEstimateB, persistenceB, initialTypeB, initialValueB,
                                        initialSeasonEstimateB, initialSeasonB, modelType="B");
 
@@ -905,12 +909,12 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         # Produce forecasts
         if(h>0){
             # aForecast is the underlying forecast of the model A
-            aForecast <- as.vector(forecasterwrap(t(matvtA[,(obsInsample+1):(obsInsample+basicparamsA$modelLagsMax),drop=FALSE]),
+            aForecast <- as.vector(forecasterwrap(t(matvtA[,(obsInSample+1):(obsInSample+basicparamsA$modelLagsMax),drop=FALSE]),
                                                   matFA, matwA, h, EtypeA, TtypeA, StypeA, basicparamsA$modelLags,
                                                   matxtA[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                   t(matatA[,(obsAll-h+1):(obsAll),drop=FALSE]), matFXA));
             # bForecast is the underlying forecast of the model B
-            bForecast <- as.vector(forecasterwrap(t(matvtB[,(obsInsample+1):(obsInsample+basicparamsB$modelLagsMax),drop=FALSE]),
+            bForecast <- as.vector(forecasterwrap(t(matvtB[,(obsInSample+1):(obsInSample+basicparamsB$modelLagsMax),drop=FALSE]),
                                                   matFB, matwB, h, EtypeB, TtypeB, StypeB, basicparamsB$modelLags,
                                                   matxtB[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                   t(matatB[,(obsAll-h+1):(obsAll),drop=FALSE]), matFXB));
@@ -968,7 +972,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
         parametersNumberB[2,4] <- sum(parametersNumberB[2,1:3]);
 
         if(holdout){
-            yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+            yHoldout <- ts(otAll[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
             errormeasures <- measures(yHoldout,pForecast,ot);
         }
         else{
@@ -1021,7 +1025,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     #### Prepare the output ####
     # Prepare two models
     modelA <- list(model=paste0(modelnameA,"(",modelA,")_A"),
-                   states=ts(t(matvtA), start=(time(data)[1] - deltat(data)*basicparamsA$modelLagsMax),
+                   states=ts(t(matvtA), start=(time(y)[1] - deltat(y)*basicparamsA$modelLagsMax),
                              frequency=dataFreq),
                    nParam=parametersNumberA, residuals=errorsA, occurrence="g",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
@@ -1031,7 +1035,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     class(modelA) <- c("oes","smooth");
 
     modelB <- list(model=paste0(modelnameB,"(",modelB,")_B"),
-                   states=ts(t(matvtB), start=(time(data)[1] - deltat(data)*basicparamsB$modelLagsMax),
+                   states=ts(t(matvtB), start=(time(y)[1] - deltat(y)*basicparamsB$modelLagsMax),
                              frequency=dataFreq),
                    nParam=parametersNumberB, residuals=errorsB, occurrence="g",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],
@@ -1051,10 +1055,11 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
     output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", actuals=otAll,
                    fitted=pFitted, forecast=pForecast, modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);
+    output$timeElapsed <- Sys.time()-startTime;
 
     # If there was a holdout, measure the accuracy
     if(holdout){
-        yHoldout <- ts(otAll[(obsInsample+1):obsAll],start=yForecastStart,frequency=dataFreq);
+        yHoldout <- ts(otAll[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         output$accuracy <- measures(yHoldout,pForecast,ot);
     }
     else{
@@ -1064,7 +1069,7 @@ oesg <- function(data, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenc
 
     ##### Make a plot #####
     if(!silentGraph){
-        # if(intervals){
+        # if(interval){
         #     graphmaker(actuals=otAll, forecast=yForecastNew, fitted=pFitted, lower=yLowerNew, upper=yUpperNew,
         #                level=level,legend=!silentLegend,main=output$model);
         # }

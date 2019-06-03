@@ -4,11 +4,11 @@
 \alias{es}
 \title{Exponential Smoothing in SSOE state space model}
 \usage{
-es(data, model = "ZZZ", persistence = NULL, phi = NULL,
+es(y, model = "ZZZ", persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), initialSeason = NULL,
-  ic = c("AICc", "AIC", "BIC", "BICc"), cfType = c("MSE", "MAE", "HAM",
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  cumulative = FALSE, intervals = c("none", "parametric",
+  cumulative = FALSE, interval = c("none", "parametric",
   "semiparametric", "nonparametric"), level = 0.95,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), oesmodel = "MNN",
@@ -18,7 +18,7 @@ es(data, model = "ZZZ", persistence = NULL, phi = NULL,
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{model}{The type of ETS model. The first letter stands for the type of
 the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -69,12 +69,12 @@ by \code{initial}.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-If \code{cfType!="MSE"}, then likelihood and model selection is done based
+If \code{loss!="MSE"}, then likelihood and model selection is done based
 on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
@@ -91,28 +91,28 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -215,9 +215,9 @@ provided parameters will take this into account.
 \item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
 fitted are multiplied by the probability of occurrence.
 \item \code{forecast} - point forecast of ETS.
-\item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
+\item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
 then NA is returned.
-\item \code{upper} - higher bound of prediction interval. When \code{intervals="none"}
+\item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
 then NA is returned.
 \item \code{residuals} - residuals of the estimated model.
 \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the
@@ -225,8 +225,8 @@ case of trace forecasts this is the matrix used in optimisation. In non-trace es
 it is returned just for the information.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 This is an unbiased estimate of variance.
-\item \code{intervals} - type of intervals asked by user.
-\item \code{level} - confidence level for intervals.
+\item \code{interval} - type of interval asked by user.
+\item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
@@ -241,8 +241,8 @@ estimated as well.
 \item \code{transitionX} - transition matrix F for exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 \item \code{logLik} - concentrated log-likelihood of the function.
-\item \code{cf} - cost function value.
-\item \code{cfType} - type of cost function used in the estimation.
+\item \code{lossValue} - loss function value.
+\item \code{loss} - type of loss function used in the estimation.
 \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
 is not provided at all.
 \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -266,7 +266,7 @@ shorter list of values is returned:
 \item \code{upper},
 \item \code{residuals},
 \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
-\item \code{intervals},
+\item \code{interval},
 \item \code{level},
 \item \code{cumulative},
 \item \code{actuals},
@@ -274,7 +274,7 @@ shorter list of values is returned:
 \item \code{occurrence},
 \item \code{ICs} - combined ic,
 \item \code{ICw} - ic weights used in the combination,
-\item \code{cfType},
+\item \code{loss},
 \item \code{xreg},
 \item \code{accuracy}.
 }
@@ -315,8 +315,8 @@ underlying models and how to use the functions.
 library(Mcomp)
 
 # See how holdout and trace parameters influence the forecast
-es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,cfType="MSE")
-\dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,cfType="TMSE")}
+es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,loss="MSE")
+\dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,loss="TMSE")}
 
 # Model selection example
 es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
@@ -334,16 +334,16 @@ es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 # Model selection using a specified pool of models
 ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 
-# Redo previous model and produce prediction intervals
-es(M3$N1587$x,model=ourModel,h=18,intervals="p")
+# Redo previous model and produce prediction interval
+es(M3$N1587$x,model=ourModel,h=18,interval="p")
 
-# Semiparametric intervals example
-\dontrun{es(M3$N1587$x,h=18,holdout=TRUE,intervals="sp")}
+# Semiparametric interval example
+\dontrun{es(M3$N1587$x,h=18,holdout=TRUE,interval="sp")}
 
 # Exogenous variables in ETS example
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 y <- ts(c(M3$N1457$x,M3$N1457$xx),frequency=12)
-es(y,h=18,holdout=TRUE,xreg=x,cfType="aTMSE",intervals="np")
+es(y,h=18,holdout=TRUE,xreg=x,loss="aTMSE",interval="np")
 ourModel <- es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)}
 
 # This will be the same model as in previous line but estimated on new portion of data

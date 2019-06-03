@@ -52,23 +52,23 @@ utils::globalVariables(c("yForecastStart"));
 #' \item \code{fitted} - the fitted values.
 #' \item \code{forecast} - the point forecast.
 #' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{intervals=FALSE} then NA is returned.
+#' \code{interval=FALSE} then NA is returned.
 #' \item \code{upper} - the higher bound of prediction interval. When
-#' \code{intervals=FALSE} then NA is returned.
+#' \code{interval=FALSE} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
 #' \item \code{errors} - The matrix of 1 to h steps ahead errors.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into
 #' account).
-#' \item \code{intervals} - type of intervals asked by user.
-#' \item \code{level} - confidence level for intervals.
+#' \item \code{interval} - type of interval asked by user.
+#' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC,
 #' AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{cf} - Cost function value.
-#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{lossValue} - Cost function value.
+#' \item \code{loss} - Type of loss function used in the estimation.
 #' \item \code{accuracy} - vector of accuracy measures for the
 #' holdout sample. Includes: MPE, MAPE, SMAPE, MASE, sMAE, RelMAE, sMSE and
 #' Bias coefficient (based on complex numbers). This is available only when
@@ -89,19 +89,19 @@ utils::globalVariables(c("yForecastStart"));
 #' @examples
 #'
 #' # SMA of specific order
-#' ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
+#' ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,interval="p")
 #'
 #' # SMA of arbitrary order
-#' ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
+#' ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,interval="sp")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
 #' @export sma
-sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
+sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 h=10, holdout=FALSE, cumulative=FALSE,
-                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 silent=c("all","graph","legend","output","none"),
                 ...){
 # Function constructs simple moving average in state space model
@@ -110,6 +110,10 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    interval <- depricator(interval, list(...), "intervals");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -131,7 +135,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     occurrence <- "none";
     oesmodel <- NULL;
     bounds <- "admissible";
-    cfType <- "MSE";
+    loss <- "MSE";
     xreg <- NULL;
     nExovars <- 1;
 
@@ -140,9 +144,9 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     ssInput("sma",ParentEnvironment=environment());
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
-    yFitted <- rep(NA,obsInsample);
+    yFitted <- rep(NA,obsInSample);
     yForecast <- rep(NA,h);
-    errors <- rep(NA,obsInsample);
+    errors <- rep(NA,obsInSample);
     maxlag <- 1;
 
 # These three are needed in order to use ssgeneralfun.cpp functions
@@ -151,7 +155,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     Stype <- "N";
 
     if(!is.null(order)){
-        if(obsInsample < order){
+        if(obsInSample < order){
             stop("Sorry, but we don't have enough observations for that order.",call.=FALSE);
         }
 
@@ -179,7 +183,7 @@ sma <- function(data, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 
 # Cost function for GES
 CF <- function(C){
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
+    fitting <- fitterwrap(matvt, matF, matw, yInSample, vecg,
                           modellags, Etype, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
 
@@ -204,7 +208,7 @@ CreatorSMA <- function(silentText=FALSE,...){
     }
     vecg <- matrix(1/nComponents,nComponents);
     matvt <- matrix(NA,obsStates,nComponents);
-    matvt[1:nComponents,1] <- rep(mean(y[1:nComponents]),nComponents);
+    matvt[1:nComponents,1] <- rep(mean(yInSample[1:nComponents]),nComponents);
     if(nComponents>1){
         for(i in 2:nComponents){
             matvt[1:(nComponents-i+1),i] <- matvt[1:(nComponents-i+1)+1,i-1] - matvt[1:(nComponents-i+1),1] * matF[i-1,1];
@@ -214,9 +218,9 @@ CreatorSMA <- function(silentText=FALSE,...){
     modellags <- rep(1,nComponents);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=NULL, updateX=FALSE,
+    xregdata <- ssXreg(y=y, xreg=NULL, updateX=FALSE,
                        persistenceX=NULL, transitionX=NULL, initialX=NULL,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
@@ -241,7 +245,7 @@ CreatorSMA <- function(silentText=FALSE,...){
     environment(ssFitter) <- environment();
 
     if(orderSelect){
-        maxOrder <- min(200,obsInsample);
+        maxOrder <- min(200,obsInSample);
         ICs <- rep(NA,maxOrder);
         smaValuesAll <- list(NA);
         for(i in 1:maxOrder){
@@ -268,12 +272,12 @@ CreatorSMA <- function(silentText=FALSE,...){
 ##### Do final check and make some preparations for output #####
 
     if(holdout==T){
-        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        yHoldout <- ts(y[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*yInSample);
         }
         else{
-            errormeasures <- measures(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,yInSample);
         }
 
         if(cumulative){
@@ -294,18 +298,18 @@ CreatorSMA <- function(silentText=FALSE,...){
         yLowerNew <- yLower;
         if(cumulative){
             yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(intervals){
+            if(interval){
                 yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
                 yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -316,8 +320,8 @@ CreatorSMA <- function(silentText=FALSE,...){
                   measurement=matw,
                   order=order, initial=matvt[1,], initialType=initialType, nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
-                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,occurrence=NULL,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errormeasures);
+                  errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
+                  actuals=y,holdout=yHoldout,occurrence=NULL,
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

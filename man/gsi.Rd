@@ -4,15 +4,15 @@
 \alias{gsi}
 \title{Vector exponential smoothing model with Group Seasonal Indices}
 \usage{
-gsi(data, model = "MNM", weights = 1/ncol(data), type = c(3, 2, 1),
-  cfType = c("likelihood", "diagonal", "trace"), ic = c("AICc", "AIC",
-  "BIC", "BICc"), h = 10, holdout = FALSE, intervals = c("none",
+gsi(y, model = "MNM", weights = 1/ncol(y), type = c(3, 2, 1),
+  loss = c("likelihood", "diagonal", "trace"), ic = c("AICc", "AIC",
+  "BIC", "BICc"), h = 10, holdout = FALSE, interval = c("none",
   "conditional", "unconditional", "independent"), level = 0.95,
   bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
   "output", "none"), ...)
 }
 \arguments{
-\item{data}{The matrix with data, where series are in columns and
+\item{y}{The matrix with data, where series are in columns and
 observations are in rows.}
 
 \item{model}{The type of seasonal ETS model. Currently only "MMM" is available.}
@@ -22,7 +22,7 @@ the number of time series in the model.}
 
 \item{type}{Type of the GSI model. Can be "Model 1", "Model 2" or "Model 3".}
 
-\item{cfType}{Type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{Type of Cost Function used in optimization. \code{loss} can
 be:
 \itemize{
 \item \code{likelihood} - which assumes the minimisation of the determinant
@@ -42,25 +42,25 @@ is minimised in this case.
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{intervals}{Type of intervals to construct. NOT AVAILABLE YET!
+\item{interval}{Type of interval to construct. NOT AVAILABLE YET!
 
 This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{conditional}, \code{c} - produces multidimensional elliptic
-intervals for each step ahead forecast.
+interval for each step ahead forecast.
 \item \code{unconditional}, \code{u} - produces separate bounds for each series
 based on ellipses for each step ahead. These bounds correspond to min and max
 values of the ellipse assuming that all the other series but one take values in
 the centre of the ellipse. This leads to less accurate estimates of bounds
-(wider intervals than needed), but these could still be useful.
-\item \code{independent}, \code{i} - produces intervals based on variances of
+(wider interval than needed), but these could still be useful.
+\item \code{independent}, \code{i} - produces interval based on variances of
 each separate series. This does not take vector structure into account.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-conditional intervals are constructed, while the latter is equivalent to
+conditional interval are constructed, while the latter is equivalent to
 \code{none}.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -105,13 +105,13 @@ the estimation);
 \item \code{Sigma} - The covariance matrix of the errors (estimated with the correction
 for the number of degrees of freedom);
 \item \code{forecast} - The matrix of point forecasts;
-\item \code{PI} - The bounds of the prediction intervals;
-\item \code{intervals} - The type of the constructed prediction intervals;
-\item \code{level} - The level of the confidence for the prediction intervals;
+\item \code{PI} - The bounds of the prediction interval;
+\item \code{interval} - The type of the constructed prediction interval;
+\item \code{level} - The level of the confidence for the prediction interval;
 \item \code{ICs} - The values of the information criteria;
 \item \code{logLik} - The log-likelihood function;
-\item \code{cf} - The value of the cost function;
-\item \code{cfType} - The type of the used cost function;
+\item \code{lossValue} - The value of the loss function;
+\item \code{loss} - The type of the used loss function;
 \item \code{accuracy} - the values of the error measures. Currently not available.
 \item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 }

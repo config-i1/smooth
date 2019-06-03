@@ -43,7 +43,7 @@ There are several functions that can be used together with the forecasting funct
 6. `plot(ourModel)` -- plots states of constructed model. If number of states is higher than 10, then several graphs are produced.
 7. `simulate(ourModel)` -- produces data simulated from provided model;
 8. `summary(forecast(ourModel))` -- prints point and interval forecasts;
-9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and intervals using `graphmaker()` function.
+9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and prediction interval using `graphmaker()` function from `greybox` package.
 10. `logLik(ourModel)` -- returns log-likelihood of the model;
 11. `nobs(ourModel)` -- returns number of observations in-sample we had;
 12. `nParam(ourModel)` -- number of estimated parameters (originally from `greybox` package);

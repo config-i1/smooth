@@ -1,4 +1,4 @@
-#' @param cfType Type of Cost Function used in optimization. \code{cfType} can
+#' @param loss Type of Loss Function used in optimization. \code{loss} can
 #' be:
 #' \itemize{
 #' \item \code{likelihood} - which assumes the minimisation of the determinant

@@ -16,7 +16,7 @@
 #'
 #' @template vssGeneralRef
 #'
-#' @param data The matrix with data, where series are in columns and
+#' @param y The matrix with data, where series are in columns and
 #' observations are in rows.
 #' @param model The type of seasonal ETS model. Currently only "MMM" is available.
 #' @param weights The vector of weights for seasonal indices of the length equal to
@@ -26,25 +26,25 @@
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
 #' @param ic The information criterion used in the model selection procedure.
-#' @param intervals Type of intervals to construct. NOT AVAILABLE YET!
+#' @param interval Type of interval to construct. NOT AVAILABLE YET!
 #'
 #' This can be:
 #'
 #' \itemize{
 #' \item \code{none}, aka \code{n} - do not produce prediction
-#' intervals.
+#' interval.
 #' \item \code{conditional}, \code{c} - produces multidimensional elliptic
-#' intervals for each step ahead forecast.
+#' interval for each step ahead forecast.
 #' \item \code{unconditional}, \code{u} - produces separate bounds for each series
 #' based on ellipses for each step ahead. These bounds correspond to min and max
 #' values of the ellipse assuming that all the other series but one take values in
 #' the centre of the ellipse. This leads to less accurate estimates of bounds
-#' (wider intervals than needed), but these could still be useful.
-#' \item \code{independent}, \code{i} - produces intervals based on variances of
+#' (wider interval than needed), but these could still be useful.
+#' \item \code{independent}, \code{i} - produces interval based on variances of
 #' each separate series. This does not take vector structure into account.
 #' }
 #' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-#' conditional intervals are constructed, while the latter is equivalent to
+#' conditional interval are constructed, while the latter is equivalent to
 #' \code{none}.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
@@ -57,7 +57,7 @@
 #' \code{silent="all"}, while \code{silent=FALSE} is equivalent to
 #' \code{silent="none"}. The parameter also accepts first letter of words ("n",
 #' "a", "g", "l", "o").
-#' @param cfType Type of Cost Function used in optimization. \code{cfType} can
+#' @param loss Type of Cost Function used in optimization. \code{loss} can
 #' be:
 #' \itemize{
 #' \item \code{likelihood} - which assumes the minimisation of the determinant
@@ -95,13 +95,13 @@
 #' \item \code{Sigma} - The covariance matrix of the errors (estimated with the correction
 #' for the number of degrees of freedom);
 #' \item \code{forecast} - The matrix of point forecasts;
-#' \item \code{PI} - The bounds of the prediction intervals;
-#' \item \code{intervals} - The type of the constructed prediction intervals;
-#' \item \code{level} - The level of the confidence for the prediction intervals;
+#' \item \code{PI} - The bounds of the prediction interval;
+#' \item \code{interval} - The type of the constructed prediction interval;
+#' \item \code{level} - The level of the confidence for the prediction interval;
 #' \item \code{ICs} - The values of the information criteria;
 #' \item \code{logLik} - The log-likelihood function;
-#' \item \code{cf} - The value of the cost function;
-#' \item \code{cfType} - The type of the used cost function;
+#' \item \code{lossValue} - The value of the loss function;
+#' \item \code{loss} - The type of the used loss function;
 #' \item \code{accuracy} - the values of the error measures. Currently not available.
 #' \item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 #' }
@@ -128,17 +128,22 @@
 #' \dontrun{gsi(Y, h=10, holdout=TRUE, interval="u", silent=FALSE)}
 #'
 #' @export
-gsi <- function(data, model="MNM", weights=1/ncol(data),
+gsi <- function(y, model="MNM", weights=1/ncol(y),
                 type=c(3,2,1),
-                cfType=c("likelihood","diagonal","trace"),
+                loss=c("likelihood","diagonal","trace"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                intervals=c("none","conditional","unconditional","independent"), level=0.95,
+                interval=c("none","conditional","unconditional","independent"), level=0.95,
                 bounds=c("admissible","usual","none"),
                 silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2018 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
 
 # If a previous model provided as a model, write down the variables
     # if(any(class(model)=="vsmooth")){
@@ -184,8 +189,8 @@ gsi <- function(data, model="MNM", weights=1/ncol(data),
 CF <- function(A){
     elements <- BasicInitialiserGSI(matvt,matF,matG,matW,A);
 
-    cfRes <- vOptimiserWrap(y, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            modelLags, "A", "A", "A", cfType, normalizer, bounds, ot, otObs);
+    cfRes <- vOptimiserWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
+                            modelLags, "A", "A", "A", loss, normalizer, bounds, ot, otObs);
     # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -275,13 +280,13 @@ BasicMakerGSI <- function(...){
                                          "_",statesNames),"seasonal"),NULL));
     ## Deal with non-seasonal part of the vector of states
     XValues <- rbind(rep(1,obsInSample),c(1:obsInSample));
-    initialValue <- y %*% t(XValues) %*% solve(XValues %*% t(XValues));
+    initialValue <- yInSample %*% t(XValues) %*% solve(XValues %*% t(XValues));
     initialValue <- matrix(as.vector(t(initialValue)),nComponentsNonSeasonal * nSeries,1);
 
     ## Deal with seasonal part of the vector of states
     # Matrix of dummies for seasons
     XValues <- matrix(rep(diag(maxlag),ceiling(obsInSample/maxlag)),maxlag)[,1:obsInSample];
-    initialSeasonValue <- (y-rowMeans(y)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
+    initialSeasonValue <- (yInSample-rowMeans(yInSample)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
     initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,maxlag);
 
     ### modelLags
@@ -369,7 +374,7 @@ EstimatorGSI <- function(...){
     names(A) <- AList$ANames;
 
     # First part is for the covariance matrix
-    if(cfType=="l"){
+    if(loss=="l"){
         nParam <- nSeries * (nSeries + 1) / 2 + length(A);
     }
     else{
@@ -446,61 +451,62 @@ CreatorGSI <- function(silent=FALSE,...){
     }
 
 #### Check data ####
-    if(any(is.vsmooth.sim(data))){
-        data <- data$data;
-        if(length(dim(data))==3){
+    if(any(is.vsmooth.sim(y))){
+        y <- y$data;
+        if(length(dim(y))==3){
             warning("Simulated data contains several samples. Selecting a random one.",call.=FALSE);
-            data <- ts(data[,,runif(1,1,dim(data)[3])]);
+            y <- ts(y[,,runif(1,1,dim(y)[3])]);
         }
     }
 
-    if(!is.data.frame(data)){
-        if(!is.numeric(data)){
+    if(!is.data.frame(y)){
+        if(!is.numeric(y)){
             stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
         }
     }
 
-    if(is.null(dim(data))){
+    if(is.null(dim(y))){
         stop("The provided data is not a matrix or a data.frame! If it is a vector, please use es() function instead.", call.=FALSE);
     }
 
-    if(is.data.frame(data)){
-        data <- as.matrix(data);
+    if(is.data.frame(y)){
+        y <- as.matrix(y);
     }
 
     # Number of series in the matrix
-    nSeries <- ncol(data);
+    nSeries <- ncol(y);
 
-    if(is.null(ncol(data))){
+    if(is.null(ncol(y))){
         stop("The provided data is not a matrix! Use es() function instead!", call.=FALSE);
     }
-    if(ncol(data)==1){
+    if(ncol(y)==1){
         stop("The provided data contains only one column. Use es() function instead!", call.=FALSE);
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.", call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     # Define obs, the number of observations of in-sample
-    obsInSample <- nrow(data) - holdout*h;
+    obsInSample <- nrow(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- nrow(data) + (1 - holdout)*h;
+    obsAll <- nrow(y) + (1 - holdout)*h;
 
     # If obsInSample is negative, this means that we can't do anything...
     if(obsInSample<=0){
         stop("Not enough observations in sample.", call.=FALSE);
     }
     # Define the actual values. Transpose the matrix!
-    y <- matrix(data[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
-    dataFreq <- frequency(data);
-    dataDeltat <- deltat(data);
-    dataStart <- start(data);
-    dataNames <- colnames(data);
+    yInSample <- matrix(y[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
+    dataFreq <- frequency(y);
+    dataDeltat <- deltat(y);
+    dataStart <- start(y);
+    yForecastStart <- time(y)[obsInSample]+deltat(y);
+    dataNames <- colnames(y);
     if(!is.null(dataNames)){
         dataNames <- gsub(" ", "_", dataNames, fixed = TRUE);
         dataNames <- gsub(":", "_", dataNames, fixed = TRUE);
@@ -510,8 +516,8 @@ CreatorGSI <- function(silent=FALSE,...){
         dataNames <- paste0("Series",c(1:nSeries));
     }
 
-    if(all(y>0)){
-        y <- log(y);
+    if(all(yInSample>0)){
+        yInSample <- log(yInSample);
     }
     else{
         stop("Cannot apply multiplicative model to the non-positive data", call.=FALSE);
@@ -532,14 +538,14 @@ CreatorGSI <- function(silent=FALSE,...){
     }
 
 ##### Cost function type #####
-    cfType <- cfType[1];
-    if(!any(cfType==c("likelihood","diagonal","trace","l","d","t"))){
-        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'likelihood'."),call.=FALSE);
-        cfType <- "likelihood";
+    loss <- loss[1];
+    if(!any(loss==c("likelihood","diagonal","trace","l","d","t"))){
+        warning(paste0("Strange loss function specified: ",loss,". Switching to 'likelihood'."),call.=FALSE);
+        loss <- "likelihood";
     }
-    cfType <- substr(cfType,1,1);
+    loss <- substr(loss,1,1);
 
-    normalizer <- sum(colMeans(abs(diff(t(y))),na.rm=TRUE));
+    normalizer <- sum(colMeans(abs(diff(t(yInSample))),na.rm=TRUE));
 
 ##### Define the main variables #####
     # For now we only have level and trend. The seasonal component is common to all the series
@@ -553,7 +559,7 @@ CreatorGSI <- function(silent=FALSE,...){
     FI <- FALSE;
 
 ##### Non-intermittent model, please!
-    ot <- matrix(1,nrow=nrow(y),ncol=ncol(y));
+    ot <- matrix(1,nrow=nrow(yInSample),ncol=ncol(yInSample));
     otObs <- matrix(obsInSample,nSeries,nSeries);
     intermittent <- "n";
     imodel <- NULL;
@@ -567,42 +573,42 @@ CreatorGSI <- function(silent=FALSE,...){
         ic <- "AICc";
     }
 
-##### intervals, intervalsType, level #####
-    intervalsType <- intervals[1];
+##### interval, intervalType, level #####
+    intervalType <- interval[1];
     # Check the provided type of interval
 
-    if(is.logical(intervalsType)){
-        if(intervalsType){
-            intervalsType <- "c";
+    if(is.logical(intervalType)){
+        if(intervalType){
+            intervalType <- "c";
         }
         else{
-            intervalsType <- "none";
+            intervalType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("c","u","i","n","none","conditional","unconditional","independent"))){
-        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'conditional'."),call.=FALSE);
-        intervalsType <- "c";
+    if(all(intervalType!=c("c","u","i","n","none","conditional","unconditional","independent"))){
+        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'conditional'."),call.=FALSE);
+        intervalType <- "c";
     }
 
-    if(intervalsType=="none"){
-        intervalsType <- "n";
-        intervals <- FALSE;
+    if(intervalType=="none"){
+        intervalType <- "n";
+        interval <- FALSE;
     }
-    else if(intervalsType=="conditional"){
-        intervalsType <- "c";
-        intervals <- TRUE;
+    else if(intervalType=="conditional"){
+        intervalType <- "c";
+        interval <- TRUE;
     }
-    else if(intervalsType=="unconditional"){
-        intervalsType <- "u";
-        intervals <- TRUE;
+    else if(intervalType=="unconditional"){
+        intervalType <- "u";
+        interval <- TRUE;
     }
-    else if(intervalsType=="independent"){
-        intervalsType <- "i";
-        intervals <- TRUE;
+    else if(intervalType=="independent"){
+        intervalType <- "i";
+        interval <- TRUE;
     }
     else{
-        intervals <- TRUE;
+        interval <- TRUE;
     }
 
     if(level>1){
@@ -618,7 +624,7 @@ CreatorGSI <- function(silent=FALSE,...){
 
 
 
-##### Preset y.fit, y.for, errors and basic parameters #####
+##### Preset yFitted, yForecast, errors and basic parameters #####
     yFitted <- matrix(NA,nSeries,obsInSample);
     yForecast <- matrix(NA,nSeries,h);
     errors <- matrix(NA,nSeries,obsInSample);
@@ -669,30 +675,30 @@ CreatorGSI <- function(silent=FALSE,...){
     parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialSeasonValue)));
 
 
-    matvt <- ts(t(matvt),start=(time(data)[1] - dataDeltat*maxlag),frequency=dataFreq);
+    matvt <- ts(t(matvt),start=(time(y)[1] - dataDeltat*maxlag),frequency=dataFreq);
     yFitted <- ts(t(yFitted),start=dataStart,frequency=dataFreq);
     errors <- ts(t(errors),start=dataStart,frequency=dataFreq);
 
-    yForecast <- ts(t(yForecast),start=time(data)[obsInSample] + dataDeltat,frequency=dataFreq);
+    yForecast <- ts(t(yForecast),start=yForecastStart,frequency=dataFreq);
     if(!is.matrix(yForecast)){
         yForecast <- as.matrix(yForecast,h,nSeries);
     }
     colnames(yForecast) <- dataNames;
-    forecastStart <- start(yForecast)
-    if(any(intervalsType==c("i","u"))){
-        PI <-  ts(PI,start=forecastStart,frequency=dataFreq);
+    yForecastStart <- start(yForecast)
+    if(any(intervalType==c("i","u"))){
+        PI <-  ts(PI,start=yForecastStart,frequency=dataFreq);
     }
 
-    if(cfType=="l"){
-        cfType <- "likelihood";
+    if(loss=="l"){
+        loss <- "likelihood";
         parametersNumber[1,1] <- parametersNumber[1,1] + nSeries * (nSeries + 1) / 2;
     }
-    else if(cfType=="d"){
-        cfType <- "diagonal";
+    else if(loss=="d"){
+        loss <- "diagonal";
         parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
     }
     else{
-        cfType <- "trace";
+        loss <- "trace";
         parametersNumber[1,1] <- parametersNumber[1,1] + nSeries;
     }
 
@@ -701,16 +707,16 @@ CreatorGSI <- function(silent=FALSE,...){
 
 ##### Now let's deal with the holdout #####
     if(holdout){
-        yHoldout <- ts(data[(obsInSample+1):obsAll,],start=forecastStart,frequency=dataFreq);
+        yHoldout <- ts(y[(obsInSample+1):obsAll,],start=yForecastStart,frequency=dataFreq);
         colnames(yHoldout) <- dataNames;
 
-        measureFirst <- measures(yHoldout[,1],yForecast[,1],y[1,]);
+        measureFirst <- measures(yHoldout[,1],yForecast[,1],yInSample[1,]);
         errorMeasures <- matrix(NA,nSeries,length(measureFirst));
         rownames(errorMeasures) <- dataNames;
         colnames(errorMeasures) <- names(measureFirst);
         errorMeasures[1,] <- measureFirst;
         for(i in 2:nSeries){
-            errorMeasures[i,] <- measures(yHoldout[,i],yForecast[,i],y[i,]);
+            errorMeasures[i,] <- measures(yHoldout[,i],yForecast[,i],yInSample[i,]);
         }
     }
     else{
@@ -746,37 +752,37 @@ CreatorGSI <- function(silent=FALSE,...){
         for(j in 1:pages){
             par(mar=c(4,4,2,1),mfcol=c(perPage,1));
             for(i in packs[j]:(packs[j+1]-1)){
-                if(any(intervalsType==c("u","i"))){
-                    plotRange <- range(min(data[,i],yForecast[,i],yFitted[,i],PI[,i*2-1]),
-                                       max(data[,i],yForecast[,i],yFitted[,i],PI[,i*2]));
+                if(any(intervalType==c("u","i"))){
+                    plotRange <- range(min(y[,i],yForecast[,i],yFitted[,i],PI[,i*2-1]),
+                                       max(y[,i],yForecast[,i],yFitted[,i],PI[,i*2]));
                 }
                 else{
-                    plotRange <- range(min(data[,i],yForecast[,i],yFitted[,i]),
-                                       max(data[,i],yForecast[,i],yFitted[,i]));
+                    plotRange <- range(min(y[,i],yForecast[,i],yFitted[,i]),
+                                       max(y[,i],yForecast[,i],yFitted[,i]));
                 }
-                plot(data[,i],main=paste0(modelname," ",dataNames[i]),ylab="Y",
-                     ylim=plotRange, xlim=range(time(data[,i])[1],time(yForecast)[max(h,1)]),
+                plot(y[,i],main=paste0(modelname," ",dataNames[i]),ylab="Y",
+                     ylim=plotRange, xlim=range(time(y[,i])[1],time(yForecast)[max(h,1)]),
                      type="l");
                 lines(yFitted[,i],col="purple",lwd=2,lty=2);
                 if(h>1){
-                    if(any(intervalsType==c("u","i"))){
+                    if(any(intervalType==c("u","i"))){
                         lines(PI[,i*2-1],col="darkgrey",lwd=3,lty=2);
                         lines(PI[,i*2],col="darkgrey",lwd=3,lty=2);
 
-                        polygon(c(seq(dataDeltat*(forecastStart[2]-1)+forecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat),
-                                  rev(seq(dataDeltat*(forecastStart[2]-1)+forecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat))),
+                        polygon(c(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat),
+                                  rev(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat))),
                                 c(as.vector(PI[,i*2]), rev(as.vector(PI[,i*2-1]))), col = "lightgray", border=NA, density=10);
                     }
                     lines(yForecast[,i],col="blue",lwd=2);
                 }
                 else{
-                    if(any(intervalsType==c("u","i"))){
+                    if(any(intervalType==c("u","i"))){
                         points(PI[,i*2-1],col="darkgrey",lwd=3,pch=4);
                         points(PI[,i*2],col="darkgrey",lwd=3,pch=4);
                     }
                     points(yForecast[,i],col="blue",lwd=2,pch=4);
                 }
-                abline(v=dataDeltat*(forecastStart[2]-2)+forecastStart[1],col="red",lwd=2);
+                abline(v=dataDeltat*(yForecastStart[2]-2)+yForecastStart[1],col="red",lwd=2);
             }
         }
         par(parDefault);
@@ -788,9 +794,9 @@ CreatorGSI <- function(silent=FALSE,...){
                   persistence=persistenceValue,
                   initial=initialValue, initialSeason=initialSeasonValue,
                   nParam=parametersNumber,
-                  actuals=data,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
-                  forecast=yForecast,PI=PI,intervals=intervalsType,level=level,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,accuracy=errorMeasures,
+                  actuals=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
+                  forecast=yForecast,PI=PI,interval=intervalType,level=level,
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errorMeasures,
                   FI=FI);
     return(structure(model,class=c("vsmooth","smooth")));
 }

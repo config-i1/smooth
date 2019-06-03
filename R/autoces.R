@@ -45,21 +45,20 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' library("Mcomp")
 #' \dontrun{y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
 #' # Selection between "none" and "full" seasonalities
-#' auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),intervals="p",level=0.8,ic="AIC")}
+#' auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),interval="p",level=0.8,ic="AIC")}
 #'
-#' y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-#' ourModel <- auto.ces(y,h=18,holdout=TRUE,intervals="sp")
+#' ourModel <- auto.ces(M3[[1683]],interval="sp")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
 #' @export auto.ces
-auto.ces <- function(data, models=c("none","simple","full"),
+auto.ces <- function(y, models=c("none","simple","full"),
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
-                cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
-                intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                 occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                 oesmodel="MNN",
                 bounds=c("admissible","none"),
@@ -75,6 +74,11 @@ auto.ces <- function(data, models=c("none","simple","full"),
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -97,7 +101,7 @@ auto.ces <- function(data, models=c("none","simple","full"),
     }
     models <- substr(models,1,1);
 
-    dataFreq <- frequency(data);
+    dataFreq <- frequency(y);
 
     # Define maximum needed number of parameters
     if(any(models=="n")){
@@ -143,11 +147,11 @@ auto.ces <- function(data, models=c("none","simple","full"),
             message("The data is not seasonal. Simple CES was the only solution here.");
         }
 
-        CESModel <- ces(data, seasonality="n",
+        CESModel <- ces(y, seasonality="n",
                         initial=initialType, ic=ic,
-                        cfType=cfType,
+                        loss=loss,
                         h=h, holdout=holdout,cumulative=cumulative,
-                        intervals=intervalsType, level=level,
+                        interval=intervalType, level=level,
                         occurrence=occurrence, oesmodel=oesmodel,
                         bounds=bounds, silent=silent,
                         xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -180,11 +184,11 @@ auto.ces <- function(data, models=c("none","simple","full"),
         if(!silentText){
             cat(paste0('"',i,'" '));
         }
-        CESModel[[j]] <- ces(data, seasonality=i,
+        CESModel[[j]] <- ces(y, seasonality=i,
                              initial=initialType, ic=ic,
-                             cfType=cfType,
+                             loss=loss,
                              h=h, holdout=holdout,cumulative=cumulative,
-                             intervals=intervalsType, level=level,
+                             interval=intervalType, level=level,
                              occurrence=occurrence, oesmodel=oesmodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -213,19 +217,19 @@ auto.ces <- function(data, models=c("none","simple","full"),
         yUpperNew <- yUpper;
         yLowerNew <- yLower;
         if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq)
-            if(intervals){
-                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq)
-                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
+            if(interval){
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

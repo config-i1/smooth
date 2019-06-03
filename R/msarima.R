@@ -118,15 +118,15 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{fitted} - the fitted values.
 #' \item \code{forecast} - the point forecast.
 #' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{intervals="none"} then NA is returned.
+#' \code{interval="none"} then NA is returned.
 #' \item \code{upper} - the higher bound of prediction interval. When
-#' \code{intervals="none"} then NA is returned.
+#' \code{interval="none"} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
 #' \item \code{errors} - The matrix of 1 to h steps ahead errors.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into
 #' account).
-#' \item \code{intervals} - type of intervals asked by user.
-#' \item \code{level} - confidence level for intervals.
+#' \item \code{interval} - type of interval asked by user.
+#' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{actuals} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
@@ -144,8 +144,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{ICs} - values of information criteria of the model. Includes
 #' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{cf} - Cost function value.
-#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{lossValue} - Cost function value.
+#' \item \code{loss} - Type of loss function used in the estimation.
 #' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
 #' or when \code{FI} is not provided at all.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample.
@@ -162,7 +162,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' @examples
 #'
 #' # The previous one is equivalent to:
-#' ourModel <- msarima(rnorm(118,100,3),orders=c(1,1,1),lags=1,h=18,holdout=TRUE,intervals="p")
+#' ourModel <- msarima(rnorm(118,100,3),orders=c(1,1,1),lags=1,h=18,holdout=TRUE,interval="p")
 #'
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
 #' msarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)
@@ -171,7 +171,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' ourModel <- msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
 #'                     lags=c(1,6,12),h=10,holdout=TRUE,FI=TRUE)
 #'
-#' # Construct the 95% confidence intervals for the parameters of the model
+#' # Construct the 95% confidence interval for the parameters of the model
 #' ourCoefs <- coef(ourModel)
 #' ourCoefsSD <- sqrt(abs(diag(solve(ourModel$FI))))
 #' # Sort values accordingly
@@ -182,9 +182,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' ourConfInt
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
+#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
 #'
-#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")
+#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")
 #'
 #' # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
 #' ourModel <- msarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
@@ -195,12 +195,12 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' plot(forecast(ourModel))
 #'
 #' @export msarima
-msarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                    cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
-                    intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                    interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                     occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                     oesmodel="MNN",
                     bounds=c("admissible","none"),
@@ -214,6 +214,11 @@ msarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    interval <- depricator(interval, list(...), "intervals");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -324,9 +329,9 @@ msarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 CF <- function(C){
     cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
                            ARValue, MAValue, constantValue, C,
-                           matvt, matF, matw, y, vecg,
+                           matvt, matF, matw, yInSample, vecg,
                            h, modellags, Etype, Ttype, Stype,
-                           multisteps, cfType, normalizer, initialType,
+                           multisteps, loss, normalizer, initialType,
                            nExovars, matxt, matat, matFX, vecgX, ot,
                            AREstimate, MAEstimate, constantRequired, constantEstimate,
                            xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
@@ -370,10 +375,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
         if(constantEstimate){
             if(all(i.orders==0)){
-                C <- c(C,sum(yot)/obsInsample);
+                C <- c(C,sum(yot)/obsInSample);
             }
             else{
-                C <- c(C,sum(diff(yot))/obsInsample);
+                C <- c(C,sum(diff(yot))/obsInSample);
             }
         }
 
@@ -459,8 +464,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         else{
             for(i in 1:nComponents){
                 nRepeats <- ceiling(maxlag/modellags[i]);
-                matvt[1:maxlag,i] <- rep(y[1:modellags[i]],nRepeats)[nRepeats*modellags[i]+(-maxlag+1):0];
-                # matvt[1:maxlag,i] <- rep(y[1:modellags[i]],nRepeats)[1:maxlag];
+                matvt[1:maxlag,i] <- rep(yInSample[1:modellags[i]],nRepeats)[nRepeats*modellags[i]+(-maxlag+1):0];
+                # matvt[1:maxlag,i] <- rep(yInSample[1:modellags[i]],nRepeats)[1:maxlag];
             }
         }
     }
@@ -472,14 +477,14 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
-    yFitted <- rep(NA,obsInsample);
+    yFitted <- rep(NA,obsInSample);
     yForecast <- rep(NA,h);
-    errors <- rep(NA,obsInsample);
+    errors <- rep(NA,obsInSample);
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(data=data, xreg=xreg, updateX=updateX, ot=ot,
+    xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
-                       obsInsample=obsInsample, obsAll=obsAll, obsStates=obsStates,
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=maxlag, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
@@ -560,11 +565,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # If this is tiny sample, use ARIMA with constant instead
     if(tinySample){
         warning("Not enough observations to fit ARIMA. Switching to ARIMA(0,0,0) with constant.",call.=FALSE);
-        return(msarima(data,orders=list(ar=0,i=0,ma=0),lags=1,
+        return(msarima(y,orders=list(ar=0,i=0,ma=0),lags=1,
                        constant=TRUE,
-                       initial=initial,cfType=cfType,
+                       initial=initial,loss=loss,
                        h=h,holdout=holdout,cumulative=cumulative,
-                       intervals=intervals,level=level,
+                       interval=interval,level=level,
                        occurrence=occurrence,
                        oesmodel=oesmodel,
                        bounds="u",
@@ -758,7 +763,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
 # Fill in the rest of matvt
-    matvt <- ts(matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=frequency(data));
+    matvt <- ts(matvt,start=(time(y)[1] - deltat(y)*maxlag),frequency=dataFreq);
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
         colnames(matvt) <- c(paste0("Component ",c(1:max(1,nComponents))),colnames(matat));
@@ -905,12 +910,12 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### Deal with the holdout sample #####
     if(holdout){
-        yHoldout <- ts(data[(obsInsample+1):obsAll],start=yForecastStart,frequency=frequency(data));
+        yHoldout <- ts(y[(obsInSample+1):obsAll],start=yForecastStart,frequency=dataFreq);
         if(cumulative){
-            errormeasures <- measures(sum(yHoldout),yForecast,h*y);
+            errormeasures <- measures(sum(yHoldout),yForecast,h*yInSample);
         }
         else{
-            errormeasures <- measures(yHoldout,yForecast,y);
+            errormeasures <- measures(yHoldout,yForecast,yInSample);
         }
 
         if(cumulative){
@@ -929,18 +934,18 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         yLowerNew <- yLower;
         if(cumulative){
             yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(intervals){
+            if(interval){
                 yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
                 yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }
@@ -953,9 +958,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   initialType=initialType,initial=initialValue,
                   nParam=parametersNumber, modelLags=modellags,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
-                  errors=errors.mat,s2=s2,intervals=intervalsType,level=level,cumulative=cumulative,
-                  actuals=data,holdout=yHoldout,occurrence=occurrenceModel,
+                  errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
+                  actuals=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                  ICs=ICs,logLik=logLik,cf=cfObjective,cfType=cfType,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
     return(structure(model,class=c("smooth","msarima")));
 }

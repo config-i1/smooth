@@ -26,14 +26,14 @@ test_that("Test VES with grouped initials and dependent persistence", {
 })
 
 # Test VES with a trace cost function
-testModel <- ves(Y,"AAN", cfType="t", silent=TRUE);
+testModel <- ves(Y,"AAN", loss="t", silent=TRUE);
 test_that("Test VES with a trace cost function", {
-    expect_match(testModel$cfType, "trace");
+    expect_match(testModel$loss, "trace");
 })
 
-# Test VES with a dependent transition and independent intervals
-testModel <- ves(Y,"AAN", transition="d", intervals="i", silent=TRUE);
-test_that("Test VES with a dependent transition and independent intervals", {
+# Test VES with a dependent transition and independent interval
+testModel <- ves(Y,"AAN", transition="d", interval="i", silent=TRUE);
+test_that("Test VES with a dependent transition and independent interval", {
     expect_false(isTRUE(all.equal(testModel$transition[1,4], 0)));
     expect_equal(dim(testModel$PI),c(10,4));
 })

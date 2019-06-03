@@ -4,11 +4,11 @@
 \alias{oesg}
 \title{Occurrence ETS, general model}
 \usage{
-oesg(data, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
+oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   persistenceB = NULL, phiA = NULL, phiB = NULL, initialA = "o",
   initialB = "o", initialSeasonA = NULL, initialSeasonB = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  interval = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, bounds = c("usual", "admissible", "none"),
   silent = c("all", "graph", "legend", "output", "none"), xregA = NULL,
   xregB = NULL, initialXA = NULL, initialXB = NULL,
@@ -18,7 +18,7 @@ oesg(data, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   ...)
 }
 \arguments{
-\item{data}{Either numeric vector or time series vector.}
+\item{y}{Either numeric vector or time series vector.}
 
 \item{modelA}{The type of the ETS for the model A.}
 
@@ -55,23 +55,23 @@ model B. If \code{NULL}, then it is estimated.}
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}

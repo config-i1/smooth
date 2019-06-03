@@ -1,7 +1,7 @@
-utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInsample","obsAll",
-                         "obsStates","obsNonzero","obsZero","pFitted","cfType","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
-                         "matvt","nExovars","matat","errors","nParam","intervals","intervalsType","level","model","oesmodel","imodel",
-                         "constant","AR","MA","data","yFitted","cumulative","rounded"));
+utils::globalVariables(c("h","holdout","orders","lags","transition","measurement","multisteps","ot","obsInSample","obsAll",
+                         "obsStates","obsNonzero","obsZero","pFitted","loss","CF","Etype","Ttype","Stype","matxt","matFX","vecgX","xreg",
+                         "matvt","nExovars","matat","errors","nParam","interval","intervalType","level","model","oesmodel","imodel",
+                         "constant","AR","MA","y","yFitted","cumulative","rounded"));
 
 ##### *Checker of input of basic functions* #####
 ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
@@ -65,45 +65,46 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     ##### data #####
-    if(any(is.smooth.sim(data))){
-        data <- data$data;
+    if(any(is.smooth.sim(y))){
+        y <- y$data;
     }
-    else if(any(class(data)=="Mdata")){
-        h <- data$h;
+    else if(any(class(y)=="Mdata")){
+        h <- y$h;
         holdout <- TRUE;
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
-    if(!is.numeric(data)){
+    if(!is.numeric(y)){
         stop("The provided data is not a vector or ts object! Can't construct any model!", call.=FALSE);
     }
-    if(!is.null(ncol(data))){
-        if(ncol(data)>1){
+    if(!is.null(ncol(y))){
+        if(ncol(y)>1){
             stop("The provided data is not a vector! Can't construct any model!", call.=FALSE);
         }
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     # Define obs, the number of observations of in-sample
-    obsInsample <- length(data) - holdout*h;
+    obsInSample <- length(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- length(data) + (1 - holdout)*h;
+    obsAll <- length(y) + (1 - holdout)*h;
 
-    # If obsInsample is negative, this means that we can't do anything...
-    if(obsInsample<=0){
+    # If obsInSample is negative, this means that we can't do anything...
+    if(obsInSample<=0){
         stop("Not enough observations in sample.",call.=FALSE);
     }
     # Define the actual values
-    y <- matrix(data[1:obsInsample],obsInsample,1);
-    dataFreq <- frequency(data);
-    dataStart <- start(data);
+    yInSample <- matrix(y[1:obsInSample],obsInSample,1);
+    dataFreq <- frequency(y);
+    dataStart <- start(y);
+    yForecastStart <- time(y)[obsInSample]+deltat(y);
 
     # Number of parameters to estimate / provided
     parametersNumber <- matrix(0,2,4,
@@ -319,7 +320,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
         # Get rid of duplicates in lags
         if(length(unique(lags))!=length(lags)){
-            if(frequency(data)!=1){
+            if(dataFreq!=1){
                 warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),
                                "). Getting rid of some of them."),call.=FALSE);
             }
@@ -442,8 +443,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
         maxlag <- 1;
 
-        if(obsInsample < nComponents){
-            warning(paste0("In-sample size is ",obsInsample,", while number of components is ",nComponents,
+        if(obsInSample < nComponents){
+            warning(paste0("In-sample size is ",obsInSample,", while number of components is ",nComponents,
                            ". Cannot fit the model."),call.=FALSE)
             stop("Not enough observations for such a complicated model.",call.=FALSE);
         }
@@ -460,7 +461,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     if(any(smoothType==c("es","oes"))){
         modelIsSeasonal <- Stype!="N";
         # Check if the data is ts-object
-        if(!is.ts(data) & modelIsSeasonal){
+        if(!is.ts(y) & modelIsSeasonal){
             if(!silentText){
                 message("The provided data is not ts object. Only non-seasonal models are available.");
             }
@@ -495,7 +496,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     else if(smoothType=="sma"){
         maxlag <- 1;
         if(is.null(order)){
-            nParamMax <- obsInsample;
+            nParamMax <- obsInSample;
         }
         else{
             nParamMax <- order;
@@ -549,14 +550,14 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         nComponents <- sum(orders);
 
         type <- substr(type[1],1,1);
-        if(type=="M"){
-            if(any(y<=0)){
+        if(type=="m"){
+            if(any(yInSample<=0)){
                 warning("Multiplicative model can only be used on positive data. Switching to the additive one.",call.=FALSE);
                 modelIsMultiplicative <- FALSE;
-                type <- "A";
+                type <- "a";
             }
             else{
-                y <- log(y);
+                yInSample <- log(yInSample);
                 modelIsMultiplicative <- TRUE;
             }
         }
@@ -674,8 +675,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
         nComponents <- length(nonZeroComponents);
 
-        if(obsInsample < nComponents){
-            warning(paste0("In-sample size is ",obsInsample,", while number of components is ",nComponents,
+        if(obsInSample < nComponents){
+            warning(paste0("In-sample size is ",obsInSample,", while number of components is ",nComponents,
                            ". Cannot fit the model."),call.=FALSE)
             stop("Not enough observations for such a complicated model.",call.=FALSE);
         }
@@ -690,7 +691,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     ##### obsStates #####
     # Define the number of rows that should be in the matvt
-    obsStates <- max(obsAll + maxlag, obsInsample + 2*maxlag);
+    obsStates <- max(obsAll + maxlag, obsInSample + 2*maxlag);
 
     ##### bounds #####
     bounds <- substring(bounds[1],1,1);
@@ -706,86 +707,86 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         ic <- "AICc";
     }
 
-    ##### Cost function type #####
-    cfType <- cfType[1];
-    if(any(cfType==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    ##### Loss function type #####
+    loss <- loss[1];
+    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM","TSB","Rounded","LogisticD","LogisticL"))){
+    else if(any(loss==c("MSE","MAE","HAM","TSB","Rounded","LogisticD","LogisticL"))){
         multisteps <- FALSE;
     }
     else{
-        if(cfType=="MSTFE"){
+        if(loss=="MSTFE"){
             warning(paste0("This estimator has recently been renamed from \"MSTFE\" to \"TMSE\". ",
                            "Please, use the new name."),call.=FALSE);
             multisteps <- TRUE;
-            cfType <- "TMSE";
+            loss <- "TMSE";
         }
-        else if(cfType=="GMSTFE"){
+        else if(loss=="GMSTFE"){
             warning(paste0("This estimator has recently been renamed from \"GMSTFE\" to \"GTMSE\". ",
                            "Please, use the new name."),call.=FALSE);
             multisteps <- TRUE;
-            cfType <- "GTMSE";
+            loss <- "GTMSE";
         }
-        else if(cfType=="aMSTFE"){
+        else if(loss=="aMSTFE"){
             warning(paste0("This estimator has recently been renamed from \"aMSTFE\" to \"aTMSE\". ",
                            "Please, use the new name."),call.=FALSE);
             multisteps <- TRUE;
-            cfType <- "aTMSE";
+            loss <- "aTMSE";
         }
-        else if(cfType=="aGMSTFE"){
+        else if(loss=="aGMSTFE"){
             warning(paste0("This estimator has recently been renamed from \"aGMSTFE\" to \"aGTMSE\". ",
                            "Please, use the new name."),call.=FALSE);
             multisteps <- TRUE;
-            cfType <- "aGTMSE";
+            loss <- "aGTMSE";
         }
         else{
-            warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
-            cfType <- "MSE";
+            warning(paste0("Strange loss function specified: ",loss,". Switching to 'MSE'."),call.=FALSE);
+            loss <- "MSE";
             multisteps <- FALSE;
         }
     }
-    cfTypeOriginal <- cfType;
+    lossOriginal <- loss;
 
-    ##### intervals, intervalsType, level #####
-    #intervalsType <- substring(intervalsType[1],1,1);
-    intervalsType <- intervals[1];
+    ##### interval, intervalType, level #####
+    #intervalType <- substring(intervalType[1],1,1);
+    intervalType <- interval[1];
     # Check the provided type of interval
 
-    if(is.logical(intervalsType)){
-        if(intervalsType){
-            intervalsType <- "p";
+    if(is.logical(intervalType)){
+        if(intervalType){
+            intervalType <- "p";
         }
         else{
-            intervalsType <- "none";
+            intervalType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
-        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
-        intervalsType <- "p";
+    if(all(intervalType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
+        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'parametric'."),call.=FALSE);
+        intervalType <- "p";
     }
 
-    if(any(intervalsType==c("none","n"))){
-        intervalsType <- "n";
-        intervals <- FALSE;
+    if(any(intervalType==c("none","n"))){
+        intervalType <- "n";
+        interval <- FALSE;
     }
-    else if(any(intervalsType==c("parametric","p"))){
-        intervalsType <- "p";
-        intervals <- TRUE;
+    else if(any(intervalType==c("parametric","p"))){
+        intervalType <- "p";
+        interval <- TRUE;
     }
-    else if(any(intervalsType==c("semiparametric","sp"))){
-        intervalsType <- "sp";
-        intervals <- TRUE;
+    else if(any(intervalType==c("semiparametric","sp"))){
+        intervalType <- "sp";
+        interval <- TRUE;
     }
-    else if(any(intervalsType==c("nonparametric","np"))){
-        intervalsType <- "np";
-        intervals <- TRUE;
+    else if(any(intervalType==c("nonparametric","np"))){
+        intervalType <- "np";
+        interval <- TRUE;
     }
     else{
-        intervals <- TRUE;
+        interval <- TRUE;
     }
 
     if(level>1){
@@ -851,11 +852,11 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                                "Where should we plug in the future occurences anyway?\n",
                                "Switching to occurrence='fixed'."),call.=FALSE);
                 occurrence <- "f";
-                ot <- (y!=0)*1;
+                ot <- (yInSample!=0)*1;
                 obsNonzero <- sum(ot);
-                obsZero <- obsInsample - obsNonzero;
-                yot <- matrix(y[y!=0],obsNonzero,1);
-                pFitted <- matrix(mean(ot),obsInsample,1);
+                obsZero <- obsInSample - obsNonzero;
+                yot <- matrix(yInSample[yInSample!=0],obsNonzero,1);
+                pFitted <- matrix(mean(ot),obsInSample,1);
                 pForecast <- matrix(1,h,1);
                 nParamOccurrence <- 1;
             }
@@ -866,16 +867,16 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                     occurrence <- (occurrence!=0)*1;
                 }
 
-                ot <- (y!=0)*1;
+                ot <- (yInSample!=0)*1;
                 obsNonzero <- sum(ot);
-                obsZero <- obsInsample - obsNonzero;
-                yot <- matrix(y[y!=0],obsNonzero,1);
+                obsZero <- obsInSample - obsNonzero;
+                yot <- matrix(yInSample[yInSample!=0],obsNonzero,1);
                 if(length(occurrence)==obsAll){
-                    pFitted <- occurrence[1:obsInsample];
-                    pForecast <- occurrence[(obsInsample+1):(obsInsample+h)];
+                    pFitted <- occurrence[1:obsInSample];
+                    pForecast <- occurrence[(obsInSample+1):(obsInSample+h)];
                 }
                 else{
-                    pFitted <- matrix(ot,obsInsample,1);
+                    pFitted <- matrix(ot,obsInSample,1);
                     pForecast <- matrix(occurrence,h,1);
                 }
 
@@ -909,14 +910,14 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
     }
     else{
-        obsNonzero <- obsInsample;
+        obsNonzero <- obsInSample;
         obsZero <- 0;
     }
 
     if(any(smoothType==c("es"))){
         # Check if multiplicative models can be fitted
-        allowMultiplicative <- !((any(y<=0) && occurrence=="n") | (occurrence!="n" && any(y<0)));
-        if(any(cfType==c("LogisticL","LogisticD"))){
+        allowMultiplicative <- !((any(yInSample<=0) && occurrence=="n") | (occurrence!="n" && any(yInSample<0)));
+        if(any(loss==c("LogisticL","LogisticD"))){
             allowMultiplicative <- TRUE;
         }
         # If non-positive values are present, check if data is intermittent, if negatives are here, switch to additive models
@@ -1181,8 +1182,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
         # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
         if(is.null(modelsPool)){
-            if((modelIsSeasonal & (obsInsample <= 2*dataFreq) & is.null(initialSeason)) |
-               (modelIsSeasonal & (obsInsample <= dataFreq) & is.null(initialSeason) & is.null(persistence))){
+            if((modelIsSeasonal & (obsInSample <= 2*dataFreq) & is.null(initialSeason)) |
+               (modelIsSeasonal & (obsInSample <= dataFreq) & is.null(initialSeason) & is.null(persistence))){
                 if(is.null(initialSeason)){
                     warning(paste0("Sorry, but we don't have enough observations for the seasonal model!\n",
                                    "Switching to non-seasonal."),call.=FALSE);
@@ -1305,17 +1306,17 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps) & (obsNonzero < h+1) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
-        warning(paste0("Do you seriously think that you can use ",cfType,
+    if((multisteps) & (obsNonzero < h+1) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+        warning(paste0("Do you seriously think that you can use ",loss,
                        " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
-        stop("Not enough observations for multisteps cost function.",call.=FALSE);
+        stop("Not enough observations for multisteps loss function.",call.=FALSE);
     }
-    else if((multisteps) & (obsNonzero < 2*h) & all(cfType!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
-        warning(paste0("Number of observations is really low for a multisteps cost function! ",
+    else if((multisteps) & (obsNonzero < 2*h) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+        warning(paste0("Number of observations is really low for a multisteps loss function! ",
                        "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
 
-    normalizer <- mean(abs(diff(c(y))));
+    normalizer <- mean(abs(diff(c(yInSample))));
 
     ##### Define xregDo #####
     if(smoothType!="sma"){
@@ -1354,8 +1355,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
         else{
             if(rounded){
-                cfType <- "Rounded";
-                cfTypeOriginal <- cfType;
+                loss <- "Rounded";
+                lossOriginal <- loss;
             }
         }
     }
@@ -1366,21 +1367,22 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     assign("silentText",silentText,ParentEnvironment);
     assign("silentGraph",silentGraph,ParentEnvironment);
     assign("silentLegend",silentLegend,ParentEnvironment);
-    assign("obsInsample",obsInsample,ParentEnvironment);
+    assign("obsInSample",obsInSample,ParentEnvironment);
     assign("obsAll",obsAll,ParentEnvironment);
     assign("obsStates",obsStates,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("obsZero",obsZero,ParentEnvironment);
-    assign("data",data,ParentEnvironment);
     assign("y",y,ParentEnvironment);
+    assign("yInSample",yInSample,ParentEnvironment);
     assign("dataFreq",dataFreq,ParentEnvironment);
     assign("dataStart",dataStart,ParentEnvironment);
+    assign("yForecastStart",yForecastStart,ParentEnvironment);
     assign("bounds",bounds,ParentEnvironment);
-    assign("cfType",cfType,ParentEnvironment);
-    assign("cfTypeOriginal",cfTypeOriginal,ParentEnvironment);
+    assign("loss",loss,ParentEnvironment);
+    assign("lossOriginal",lossOriginal,ParentEnvironment);
     assign("multisteps",multisteps,ParentEnvironment);
-    assign("intervalsType",intervalsType,ParentEnvironment);
-    assign("intervals",intervals,ParentEnvironment);
+    assign("intervalType",intervalType,ParentEnvironment);
+    assign("interval",interval,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
@@ -1529,39 +1531,40 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### data #####
-    if(any(is.smooth.sim(data))){
-        data <- data$data;
+    if(any(is.smooth.sim(y))){
+        y <- y$data;
     }
-    else if(any(class(data)=="Mdata")){
-        h <- data$h;
+    else if(any(class(y)=="Mdata")){
+        h <- y$h;
         holdout <- TRUE;
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
-    if(!is.numeric(data)){
+    if(!is.numeric(y)){
         stop("The provided data is not a vector or ts object! Can't build any model!", call.=FALSE);
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     ##### Observations #####
     # Define obs, the number of observations of in-sample
-    obsInsample <- length(data) - holdout*h;
+    obsInSample <- length(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- length(data) + (1 - holdout)*h;
+    obsAll <- length(y) + (1 - holdout)*h;
 
-    y <- data[1:obsInsample];
-    dataFreq <- frequency(data);
-    dataStart <- start(data);
+    yInSample <- y[1:obsInSample];
+    dataFreq <- frequency(y);
+    dataStart <- start(y);
+    yForecastStart <- time(y)[obsInSample]+deltat(y);
 
     # This is the critical minimum needed in order to at least fit ARIMA(0,0,0) with constant
-    if(obsInsample < 4){
+    if(obsInSample < 4){
         stop("Sorry, but your sample is too small. Come back when you have at least 4 observations...",call.=FALSE);
     }
 
@@ -1605,65 +1608,65 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         ic <- "AICc";
     }
 
-    ##### Cost function type #####
-    cfType <- cfType[1];
-    if(any(cfType==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    ##### Loss function type #####
+    loss <- loss[1];
+    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
         multisteps <- TRUE;
     }
-    else if(any(cfType==c("MSE","MAE","HAM","Rounded","TSB","LogisticD","LogisticL"))){
+    else if(any(loss==c("MSE","MAE","HAM","Rounded","TSB","LogisticD","LogisticL"))){
         multisteps <- FALSE;
     }
     else{
-        warning(paste0("Strange cost function specified: ",cfType,". Switching to 'MSE'."),call.=FALSE);
-        cfType <- "MSE";
+        warning(paste0("Strange loss function specified: ",loss,". Switching to 'MSE'."),call.=FALSE);
+        loss <- "MSE";
         multisteps <- FALSE;
     }
 
-    if(!any(cfType==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+    if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
                       "TFL","aTFL"))){
-        warning(paste0("'",cfType,"' is used as cost function instead of 'MSE'. ",
+        warning(paste0("'",loss,"' is used as loss function instead of 'MSE'. ",
                        "The results of the model selection may be wrong."),call.=FALSE);
     }
 
-    ##### intervals, intervalsType, level #####
-    #intervalsType <- substring(intervalsType[1],1,1);
-    intervalsType <- intervals[1];
+    ##### interval, intervalType, level #####
+    #intervalType <- substring(intervalType[1],1,1);
+    intervalType <- interval[1];
     # Check the provided type of interval
 
-    if(is.logical(intervalsType)){
-        if(intervalsType){
-            intervalsType <- "p";
+    if(is.logical(intervalType)){
+        if(intervalType){
+            intervalType <- "p";
         }
         else{
-            intervalsType <- "none";
+            intervalType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
-        warning(paste0("Wrong type of interval: '",intervalsType, "'. Switching to 'parametric'."),call.=FALSE);
-        intervalsType <- "p";
+    if(all(intervalType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
+        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'parametric'."),call.=FALSE);
+        intervalType <- "p";
     }
 
-    if(any(intervalsType==c("none","n"))){
-        intervalsType <- "n";
-        intervals <- FALSE;
+    if(any(intervalType==c("none","n"))){
+        intervalType <- "n";
+        interval <- FALSE;
     }
-    else if(any(intervalsType==c("parametric","p"))){
-        intervalsType <- "p";
-        intervals <- TRUE;
+    else if(any(intervalType==c("parametric","p"))){
+        intervalType <- "p";
+        interval <- TRUE;
     }
-    else if(any(intervalsType==c("semiparametric","sp"))){
-        intervalsType <- "sp";
-        intervals <- TRUE;
+    else if(any(intervalType==c("semiparametric","sp"))){
+        intervalType <- "sp";
+        interval <- TRUE;
     }
-    else if(any(intervalsType==c("nonparametric","np"))){
-        intervalsType <- "np";
-        intervals <- TRUE;
+    else if(any(intervalType==c("nonparametric","np"))){
+        intervalType <- "np";
+        interval <- TRUE;
     }
     else{
-        intervals <- TRUE;
+        interval <- TRUE;
     }
 
     ##### Occurrence part of the model #####
@@ -1712,7 +1715,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     if(is.numeric(occurrence)){
-        obsNonzero <- sum((y!=0)*1);
+        obsNonzero <- sum((yInSample!=0)*1);
         # If it is data, then it should either correspond to the whole sample (in-sample + holdout) or be equal to forecating horizon.
         if(all(length(c(occurrence))!=c(h,obsAll))){
             warning(paste0("Length of the provided future occurrences is ",length(c(occurrence)),
@@ -1729,7 +1732,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         }
     }
     else{
-        obsNonzero <- sum((y!=0)*1);
+        obsNonzero <- sum((yInSample!=0)*1);
         occurrence <- occurrence[1];
         if(all(occurrence!=c("n","a","f","g","o","i","d",
                              "none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"))){
@@ -1768,21 +1771,22 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     assign("silentLegend",silentLegend,ParentEnvironment);
     assign("bounds",bounds,ParentEnvironment);
     assign("FI",FI,ParentEnvironment);
-    assign("obsInsample",obsInsample,ParentEnvironment);
+    assign("obsInSample",obsInSample,ParentEnvironment);
     assign("obsAll",obsAll,ParentEnvironment);
     assign("obsNonzero",obsNonzero,ParentEnvironment);
     assign("initialValue",initialValue,ParentEnvironment);
     assign("initialType",initialType,ParentEnvironment);
     assign("ic",ic,ParentEnvironment);
-    assign("cfType",cfType,ParentEnvironment);
+    assign("loss",loss,ParentEnvironment);
     assign("multisteps",multisteps,ParentEnvironment);
-    assign("intervals",intervals,ParentEnvironment);
-    assign("intervalsType",intervalsType,ParentEnvironment);
+    assign("interval",interval,ParentEnvironment);
+    assign("intervalType",intervalType,ParentEnvironment);
     assign("occurrence",occurrence,ParentEnvironment);
+    assign("yInSample",yInSample,ParentEnvironment);
     assign("y",y,ParentEnvironment);
-    assign("data",data,ParentEnvironment);
     assign("dataFreq",dataFreq,ParentEnvironment);
     assign("dataStart",dataStart,ParentEnvironment);
+    assign("yForecastStart",yForecastStart,ParentEnvironment);
     assign("xregDo",xregDo,ParentEnvironment);
 }
 
@@ -1791,21 +1795,21 @@ ssFitter <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(cfType=="LogisticL"){
+    if(loss=="LogisticL"){
         EtypeNew <- "L";
     }
-    else if(cfType=="LogisticD"){
+    else if(loss=="LogisticD"){
         EtypeNew <- "D";
     }
     else{
         EtypeNew <- Etype;
     }
 
-    fitting <- fitterwrap(matvt, matF, matw, y, vecg,
+    fitting <- fitterwrap(matvt, matF, matw, yInSample, vecg,
                           modellags, EtypeNew, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
     statesNames <- colnames(matvt);
-    matvt <- ts(fitting$matvt,start=(time(data)[1] - deltat(data)*maxlag),frequency=dataFreq);
+    matvt <- ts(fitting$matvt,start=(time(y)[1] - deltat(y)*maxlag),frequency=dataFreq);
     colnames(matvt) <- statesNames;
     yFitted <- ts(fitting$yfit,start=dataStart,frequency=dataFreq);
     errors <- ts(fitting$errors,start=dataStart,frequency=dataFreq);
@@ -1827,7 +1831,7 @@ ssFitter <- function(...){
     }
 
     if(h>0){
-        errors.mat <- ts(errorerwrap(matvt, matF, matw, y,
+        errors.mat <- ts(errorerwrap(matvt, matF, matw, yInSample,
                                      h, Etype, Ttype, Stype, modellags,
                                      matxt, matat, matFX, ot),
                          start=dataStart,frequency=dataFreq);
@@ -1847,13 +1851,13 @@ ssFitter <- function(...){
     assign("errors",errors,ParentEnvironment);
 }
 
-##### *State space intervals* #####
-ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("a","p","sp","np"), df=NULL,
+##### *State space interval* #####
+ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a","p","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
-                        modellags=NULL, states=NULL, cumulative=FALSE, cfType="MSE",
+                        modellags=NULL, states=NULL, cumulative=FALSE, loss="MSE",
                         yForecast=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
                         iprob=1){
-    # Function constructs intervals based on the provided random variable.
+    # Function constructs interval based on the provided random variable.
     # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
     # based on errors the horison is estimated as ncol(errors)
 
@@ -1870,38 +1874,38 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
     }
 
     hsmN <- gamma(0.75)*pi^(-0.5)*2^(-0.75);
-    intervalsType <- intervalsType[1]
+    intervalType <- intervalType[1]
     # Check the provided type of interval
 
-    if(is.logical(intervalsType)){
-        if(intervalsType){
-            intervalsType <- "p";
+    if(is.logical(intervalType)){
+        if(intervalType){
+            intervalType <- "p";
         }
         else{
-            intervalsType <- "none";
+            intervalType <- "none";
         }
     }
 
-    if(all(intervalsType!=c("a","p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric","asymmetric"))){
-        stop(paste0("What do you mean by 'intervalsType=",intervalsType,"'? I can't work with this!"),call.=FALSE);
+    if(all(intervalType!=c("a","p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric","asymmetric"))){
+        stop(paste0("What do you mean by 'intervalType=",intervalType,"'? I can't work with this!"),call.=FALSE);
     }
 
-    if(intervalsType=="none"){
-        intervalsType <- "n";
+    if(intervalType=="none"){
+        intervalType <- "n";
     }
-    else if(intervalsType=="parametric"){
-        intervalsType <- "p";
+    else if(intervalType=="parametric"){
+        intervalType <- "p";
     }
-    else if(intervalsType=="semiparametric"){
-        intervalsType <- "sp";
+    else if(intervalType=="semiparametric"){
+        intervalType <- "sp";
     }
-    else if(intervalsType=="nonparametric"){
-        intervalsType <- "np";
+    else if(intervalType=="nonparametric"){
+        intervalType <- "np";
     }
 
-    if(intervalsType=="p"){
+    if(intervalType=="p"){
         if(any(is.null(measurement),is.null(transition),is.null(persistence),is.null(s2),is.null(modellags))){
-            stop("measurement, transition, persistence, s2 and modellags need to be provided in order to construct parametric intervals!",call.=FALSE);
+            stop("measurement, transition, persistence, s2 and modellags need to be provided in order to construct parametric interval!",call.=FALSE);
         }
 
         if(any(!is.matrix(measurement),!is.matrix(transition),!is.matrix(persistence))){
@@ -1909,7 +1913,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         }
     }
 
-    # Function allows to estimate the coefficients of the simple quantile regression. Used in intervals construction.
+    # Function allows to estimate the coefficients of the simple quantile regression. Used in interval construction.
     quantfunc <- function(A){
         ee[] <- ye - (A[1]*xe^A[2]);
         return((1-quant)*sum(abs(ee[ee<0]))+quant*sum(abs(ee[ee>=0])));
@@ -1926,20 +1930,20 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
         if(any(positiveLevels)){
             # If this is Laplace or S, then get b values
-            if(cfType=="MAE"){
+            if(loss=="MAE"){
                 sdVec <- sqrt(sdVec/2);
             }
-            else if(cfType=="HAM"){
+            else if(loss=="HAM"){
                 sdVec <- (sdVec/120)^0.25;
             }
 
             # Produce lower quantiles if the probability is still lower than the lower P
             if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
                 if(Etype=="M"){
-                    if(cfType=="MAE"){
+                    if(loss=="MAE"){
                         lowerquant[positiveLevels] <- exp(qlaplace((1-levelResidual[positiveLevels])/2,meanVec,sdVec));
                     }
-                    else if(cfType=="HAM"){
+                    else if(loss=="HAM"){
                         lowerquant[positiveLevels] <- exp(qs((1-levelResidual[positiveLevels])/2,meanVec,sdVec));
                     }
                     else{
@@ -1947,10 +1951,10 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                     }
                 }
                 else{
-                    if(cfType=="MAE"){
+                    if(loss=="MAE"){
                         lowerquant[positiveLevels] <- qlaplace((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
                     }
-                    else if(cfType=="HAM"){
+                    else if(loss=="HAM"){
                         lowerquant[positiveLevels] <- qs((1-levelResidual[positiveLevels])/2,meanVec,sdVec);
                     }
                     else{
@@ -1966,10 +1970,10 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
             # Produce upper quantiles
             if(Etype=="M"){
-                if(cfType=="MAE"){
+                if(loss=="MAE"){
                     upperquant[positiveLevels] <- exp(qlaplace(levelNew,meanVec,sdVec));
                 }
-                else if(cfType=="HAM"){
+                else if(loss=="HAM"){
                     upperquant[positiveLevels] <- exp(qs(levelNew,meanVec,sdVec));
                 }
                 else{
@@ -1977,10 +1981,10 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                 }
             }
             else{
-                if(cfType=="MAE"){
+                if(loss=="MAE"){
                     upperquant[positiveLevels] <- qlaplace(levelNew,meanVec,sdVec);
                 }
-                else if(cfType=="HAM"){
+                else if(loss=="HAM"){
                     upperquant[positiveLevels] <- qs(levelNew,meanVec,sdVec);
                 }
                 else{
@@ -1992,16 +1996,16 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         return(list(lower=lowerquant,upper=upperquant));
     }
 
-    if(cfType=="MAE"){
+    if(loss=="MAE"){
         upperquant <- qlaplace((1+level)/2,0,1);
         lowerquant <- qlaplace((1-level)/2,0,1);
     }
-    else if(cfType=="HAM"){
+    else if(loss=="HAM"){
         upperquant <- qs((1+level)/2,0,1);
         lowerquant <- qs((1-level)/2,0,1);
     }
     else{
-        #if(cfType=="MSE")
+        #if(loss=="MSE")
         # If degrees of freedom are provided, use Student's distribution. Otherwise stick with normal.
         if(is.null(df)){
             upperquant <- qnorm((1+level)/2,0,1);
@@ -2039,8 +2043,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
         upper <- rep(NA,nVariables);
         lower <- rep(NA,nVariables);
 
-        #### Asymmetric intervals using HM ####
-        if(intervalsType=="a"){
+        #### Asymmetric interval using HM ####
+        if(intervalType=="a"){
             if(!cumulative){
                 for(i in 1:nVariables){
                     upper[i] <- ev[i] + upperquant / hsmN^2 * Re(hm(errors[,i],ev[i]))^2;
@@ -2058,8 +2062,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
             varVec <- NULL;
         }
 
-        #### Semiparametric intervals using the variance of errors ####
-        else if(intervalsType=="sp"){
+        #### Semiparametric interval using the variance of errors ####
+        else if(intervalType=="sp"){
             if(Etype=="M"){
                 errors[errors < -1] <- -0.999;
                 if(!cumulative){
@@ -2070,12 +2074,12 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             varVec <- sqrt(varVec/2);
                             upper <- exp(qlaplace((1+level)/2,0,varVec));
                             lower <- exp(qlaplace((1-level)/2,0,varVec));
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             varVec <- (varVec/120)^0.25;
                             upper <- exp(qs((1+level)/2,0,varVec));
                             lower <- exp(qs((1-level)/2,0,varVec));
@@ -2097,12 +2101,12 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             varVec <- sqrt(varVec/2);
                             upper <- exp(qlaplace((1+level)/2,0,varVec));
                             lower <- exp(qlaplace((1-level)/2,0,varVec));
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             varVec <- (varVec/120)^0.25;
                             upper <- exp(qs((1+level)/2,0,varVec));
                             lower <- exp(qs((1-level)/2,0,varVec));
@@ -2126,11 +2130,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- ev + quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             # s^2 = 2 b^2 => b^2 = s^2 / 2
                             varVec <- varVec / 2;
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             # s^2 = 120 b^4 => b^4 = s^2 / 120
                             # S(mu, b) = S(mu, 1) * 50^2
                             varVec <- varVec/120;
@@ -2148,11 +2152,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- sum(ev) + quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             # s^2 = 2 b^2 => b^2 = s^2 / 2
                             varVec <- varVec / 2;
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             # s^2 = 120 b^4 => b^4 = s^2 / 120
                             # S(mu, b) = S(mu, 1) * 50^2
                             varVec <- varVec/120;
@@ -2165,8 +2169,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
             }
         }
 
-        #### Nonparametric intervals using Taylor and Bunn, 1999 ####
-        else if(intervalsType=="np"){
+        #### Nonparametric interval using Taylor and Bunn, 1999 ####
+        else if(intervalType=="np"){
             nonNAobs <- apply(!is.na(errors),1,all);
             ye <- errors[nonNAobs,];
 
@@ -2218,8 +2222,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
             varVec <- NULL;
         }
 
-        #### Parametric intervals ####
-        else if(intervalsType=="p"){
+        #### Parametric interval ####
+        else if(intervalType=="p"){
             h <- length(yForecast);
 
             # Vector of final variances
@@ -2227,7 +2231,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
 
             #### Pure Multiplicative models ####
             if(Etype=="M"){
-                # This is just an approximation of the true intervals
+                # This is just an approximation of the true interval
                 covarMat <- covarAnal(modellags, h, measurement, transition, persistence, s2);
 
                 ### Cumulative variance is different.
@@ -2241,12 +2245,12 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             varVec <- sqrt(varVec / 2);
                             upper <- exp(qlaplace((1+level)/2,0,varVec));
                             lower <- exp(qlaplace((1-level)/2,0,varVec));
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             varVec <- (varVec/120)^0.25;
                             upper <- exp(qs((1+level)/2,0,varVec));
                             lower <- exp(qs((1-level)/2,0,varVec));
@@ -2269,13 +2273,13 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                         lower <- quants$lower;
                     }
                     else{
-                        if(cfType=="MAE"){
+                        if(loss=="MAE"){
                             # s^2 = 2 b^2 => b = sqrt(s^2 / 2)
                             varVec <- sqrt(varVec / 2);
                             upper <- exp(qlaplace((1+level)/2,0,varVec));
                             lower <- exp(qlaplace((1-level)/2,0,varVec));
                         }
-                        else if(cfType=="HAM"){
+                        else if(loss=="HAM"){
                             # s^2 = 120 b^4 => b^4 = s^2 / 120
                             # S(mu, b) = S(mu, 1) * 50^2
                             varVec <- (varVec/120)^0.25;
@@ -2314,11 +2318,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                     lower <- quants$lower;
                 }
                 else{
-                    if(cfType=="MAE"){
+                    if(loss=="MAE"){
                         # s^2 = 2 b^2 => b^2 = s^2 / 2
                         varVec <- varVec / 2;
                     }
-                    else if(cfType=="HAM"){
+                    else if(loss=="HAM"){
                         # s^2 = 120 b^4 => b^4 = s^2 / 120
                         # S(mu, b) = S(mu, 1) * b^2
                         varVec <- varVec/120;
@@ -2335,11 +2339,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
             stop("Provided expected value doesn't correspond to the dimension of errors.", call.=FALSE);
         }
 
-        if(intervalsType=="a"){
+        if(intervalType=="a"){
             upper <- ev + upperquant / hsmN^2 * Re(hm(errors,ev))^2;
             lower <- ev + lowerquant / hsmN^2 * Im(hm(errors,ev))^2;
         }
-        else if(any(intervalsType==c("sp","p"))){
+        else if(any(intervalType==c("sp","p"))){
             if(Etype=="M"){
                 if(any(iprob!=1)){
                     quants <- qlnormBin(iprob, level=level, meanVec=0, sdVec=sqrt(s2), Etype="M");
@@ -2347,13 +2351,13 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                     lower <- quants$lower;
                 }
                 else{
-                    if(cfType=="MAE"){
+                    if(loss=="MAE"){
                         # s^2 = 2 b^2 => b = sqrt(s^2 / 2)
                         s2 <- sqrt(s2 / 2);
                         upper <- exp(qlaplace((1+level)/2,0,s2));
                         lower <- exp(qlaplace((1-level)/2,0,s2));
                     }
-                    else if(cfType=="HAM"){
+                    else if(loss=="HAM"){
                         # s^2 = 120 b^4 => b^4 = s^2 / 120
                         # S(mu, b) = S(mu, 1) * 50^2
                         s2 <- (s2/120)^0.25;
@@ -2375,11 +2379,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                     lower <- quants$lower;
                 }
                 else{
-                    if(cfType=="MAE"){
+                    if(loss=="MAE"){
                         # s^2 = 2 b^2 => b^2 = s^2 / 2
                         s2 <- s2 / 2;
                     }
-                    else if(cfType=="HAM"){
+                    else if(loss=="HAM"){
                         # s^2 = 120 b^4 => b^4 = s^2 / 120
                         # S(mu, b) = S(mu, 1) * 50^2
                         s2 <- s2/120;
@@ -2389,7 +2393,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalsType=c("
                 }
             }
         }
-        else if(intervalsType=="np"){
+        else if(intervalType=="np"){
             if(Etype=="M"){
                 errors <- errors + 1;
             }
@@ -2413,27 +2417,25 @@ ssForecaster <- function(...){
     if(!rounded){
         # If error additive, estimate as normal. Otherwise - lognormal
         if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/obsInsample);
+            s2 <- as.vector(sum((errors*ot)^2)/obsInSample);
             s2g <- 1;
         }
         else{
-            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsInsample);
-            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInsample;
+            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsInSample);
+            s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*% as.vector(errors*ot)))/obsInSample;
         }
     }
 
-    yForecastStart <- time(data)[obsInsample]+deltat(data);
-
     if(h>0){
-        yForecast <- ts(c(forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+        yForecast <- ts(c(forecasterwrap(matrix(matvt[(obsInSample+1):(obsInSample+maxlag),],nrow=maxlag),
                                          matF, matw, h, Etype, Ttype, Stype, modellags,
                                          matrix(matxt[(obsAll-h+1):(obsAll),],ncol=nExovars),
                                          matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX)),
                         start=yForecastStart,frequency=dataFreq);
 
-        if(any(cfType==c("LogisticL","LogisticD"))){
+        if(any(loss==c("LogisticL","LogisticD"))){
             if(any(is.nan(yForecast)) | any(is.infinite(yForecast))){
-                yForecast[] <- matvt[obsInsample,1];
+                yForecast[] <- matvt[obsInSample,1];
             }
         }
 
@@ -2445,13 +2447,13 @@ ssForecaster <- function(...){
         if(Etype=="M" & any(yForecast<0)){
             warning(paste0("Negative values produced in forecast. This does not make any sense for model with multiplicative error.\n",
                            "Please, use another model."),call.=FALSE);
-            if(intervals){
-                warning("And don't expect anything reasonable from the prediction intervals!",call.=FALSE);
+            if(interval){
+                warning("And don't expect anything reasonable from the prediction interval!",call.=FALSE);
             }
         }
 
-        # Write down the forecasting intervals
-        if(intervals){
+        # Write down the forecasting interval
+        if(interval){
             if(h==1){
                 errors.x <- as.vector(errors);
                 ev <- median(errors);
@@ -2460,14 +2462,14 @@ ssForecaster <- function(...){
                 errors.x <- errors.mat;
                 ev <- apply(errors.mat,2,median,na.rm=TRUE);
             }
-            if(intervalsType!="a"){
+            if(intervalType!="a"){
                 ev <- 0;
             }
 
             # We don't simulate pure additive models, pure multiplicative and
             # additive models with multiplicative error,
             # because they can be approximated by the pure additive ones
-            if(intervalsType=="p"){
+            if(intervalType=="p"){
                 if(all(c(Etype,Stype,Ttype)!="M") |
                    all(c(Etype,Stype,Ttype)!="A") |
                    (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
@@ -2481,7 +2483,7 @@ ssForecaster <- function(...){
                 simulateIntervals <- FALSE;
             }
 
-            # It is not possible to produce parametric / semi / non intervals for cumulative values
+            # It is not possible to produce parametric / semi / non interval for cumulative values
             # of multiplicative model. So we use simulations instead.
             # if(Etype=="M"){
             #     simulateIntervals <- TRUE;
@@ -2491,7 +2493,7 @@ ssForecaster <- function(...){
                 nSamples <- 100000;
                 matg <- matrix(vecg,nComponents,nSamples);
                 arrvt <- array(NA,c(h+maxlag,nComponents,nSamples));
-                arrvt[1:maxlag,,] <- rep(matvt[obsInsample+(1:maxlag),],nSamples);
+                arrvt[1:maxlag,,] <- rep(matvt[obsInSample+(1:maxlag),],nSamples);
                 materrors <- matrix(rnorm(h*nSamples,0,sqrt(s2)),h,nSamples);
 
                 if(Etype=="M"){
@@ -2508,7 +2510,7 @@ ssForecaster <- function(...){
                                             Etype,Ttype,Stype,modellags)$matyt;
 
                 if(!is.null(xreg)){
-                    yForecastExo <- c(yForecast) - forecasterwrap(matrix(matvt[(obsInsample+1):(obsInsample+maxlag),],nrow=maxlag),
+                    yForecastExo <- c(yForecast) - forecasterwrap(matrix(matvt[(obsInSample+1):(obsInSample+maxlag),],nrow=maxlag),
                                                                   matF, matw, h, Etype, Ttype, Stype, modellags,
                                                                   matrix(rep(1,h),ncol=1), matrix(rep(0,h),ncol=1), matrix(1,1,1));
                 }
@@ -2549,14 +2551,14 @@ ssForecaster <- function(...){
                 }
             }
             else{
-                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalsType=intervalsType, df=obsInsample,
+                quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalType=intervalType, df=obsInSample,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
-                                           modellags=modellags, states=matvt[(obsInsample-maxlag+1):obsInsample,],
-                                           cumulative=cumulative, cfType=cfType,
+                                           modellags=modellags, states=matvt[(obsInSample-maxlag+1):obsInSample,],
+                                           cumulative=cumulative, loss=loss,
                                            yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
                                            iprob=pForecast);
 
-                # if(!(intervalsType=="sp" & Etype=="M")){
+                # if(!(intervalType=="sp" & Etype=="M")){
                     yForecast[] <- pForecast * yForecast;
                 # }
 
@@ -2569,7 +2571,7 @@ ssForecaster <- function(...){
                     yUpper <- ts(c(yForecast) + quantvalues$upper,start=yForecastStart,frequency=dataFreq);
                 }
                 else{
-                    # if(any(intervalsType==c("np","sp","a"))){
+                    # if(any(intervalType==c("np","sp","a"))){
                     #     quantvalues$upper <- quantvalues$upper * yForecast;
                     #     quantvalues$lower <- quantvalues$lower * yForecast;
                     # }
@@ -2609,12 +2611,12 @@ ssForecaster <- function(...){
         warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE);
     }
 
-    if(cfType=="LogisticL"){
+    if(loss=="LogisticL"){
         yForecast <- yForecast / (1 + yForecast);
         yLower <- yLower / (1 + yLower);
         yUpper <- yUpper / (1 + yUpper);
     }
-    else if(cfType=="LogisticD"){
+    else if(loss=="LogisticD"){
         # If the values are too high (hard to take exp), substitute by 1
         yForecastNew <- exp(yForecast) / (1 + exp(yForecast));
         yLowerNew <- exp(yLower) / (1 + exp(yLower));
@@ -2640,13 +2642,12 @@ ssForecaster <- function(...){
     assign("yForecast",yForecast,ParentEnvironment);
     assign("yLower",yLower,ParentEnvironment);
     assign("yUpper",yUpper,ParentEnvironment);
-    assign("yForecastStart",yForecastStart,ParentEnvironment);
 }
 
 ##### *Check and initialisation of xreg* #####
-ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
+ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
-                   obsInsample, obsAll, obsStates, maxlag=1, h=1, xregDo="u", silent=FALSE,
+                   obsInSample, obsAll, obsStates, maxlag=1, h=1, xregDo="u", silent=FALSE,
                    allowMultiplicative=FALSE){
     # The function does general checks needed for exogenouse variables and returns the list of necessary parameters
 
@@ -2670,7 +2671,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
         if(is.vector(xreg) | (is.ts(xreg) & !is.matrix(xreg))){
             # Check if xreg contains something meaningful
             if(is.null(initialX)){
-                if(all(xreg[1:obsInsample]==xreg[1])){
+                if(all(xreg[1:obsInSample]==xreg[1])){
                     warning("The exogenous variable has no variability. Cannot do anything with that, so dropping out xreg.",
                             call.=FALSE);
                     xreg <- NULL;
@@ -2695,7 +2696,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     xreg <- xreg[1:obsAll];
                 }
 
-                if(all(data[1:obsInsample]==xreg[1:obsInsample])){
+                if(all(y[1:obsInSample]==xreg[1:obsInSample])){
                     warning("The exogenous variable and the forecasted data are exactly the same. What's the point of such a regression?",
                             call.=FALSE);
                     xreg <- NULL;
@@ -2710,19 +2711,19 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="M"){
-                        matat[1:maxlag,] <- cov(log(data[1:obsInsample][ot==1]),
-                                                xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
+                        matat[1:maxlag,] <- cov(log(y[1:obsInSample][ot==1]),
+                                                xreg[1:obsInSample][ot==1])/var(xreg[1:obsInSample][ot==1]);
                         matatMultiplicative[1:maxlag,] <- matat[1:maxlag,];
                     }
                     else{
-                        matat[1:maxlag,] <- cov(data[1:obsInsample][ot==1],xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
+                        matat[1:maxlag,] <- cov(y[1:obsInSample][ot==1],xreg[1:obsInSample][ot==1])/var(xreg[1:obsInSample][ot==1]);
                     }
                     matat[] <- matat[1,]
 
                     # If Etype=="Z" or "C", estimate multiplicative stuff.
                     if(allowMultiplicative & all(Etype!=c("M","A"))){
-                        matatMultiplicative[1:maxlag,] <- cov(log(data[1:obsInsample][ot==1]),
-                                                              xreg[1:obsInsample][ot==1])/var(xreg[1:obsInsample][ot==1]);
+                        matatMultiplicative[1:maxlag,] <- cov(log(y[1:obsInSample][ot==1]),
+                                                              xreg[1:obsInSample][ot==1])/var(xreg[1:obsInSample][ot==1]);
                     }
                 }
                 if(is.null(names(xreg))){
@@ -2770,7 +2771,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 xreg <- xreg[1:obsAll,];
             }
 
-            xregEqualToData <- apply(xreg[1:obsInsample,]==data[1:obsInsample],2,all);
+            xregEqualToData <- apply(xreg[1:obsInSample,]==y[1:obsInSample],2,all);
             if(any(xregEqualToData)){
                 warning("One of exogenous variables and the forecasted data are exactly the same. We have dropped it.",
                         call.=FALSE);
@@ -2781,7 +2782,7 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 
             # If initialX is provided, then probably we don't need to check the xreg on variability and multicollinearity
             if(is.null(initialX)){
-                checkvariability <- apply(matrix(xreg[1:obsInsample,][ot==1,]==rep(xreg[ot==1,][1,],each=sum(ot)),sum(ot),nExovars),2,all);
+                checkvariability <- apply(matrix(xreg[1:obsInSample,][ot==1,]==rep(xreg[ot==1,][1,],each=sum(ot)),sum(ot),nExovars),2,all);
                 if(any(checkvariability)){
                     if(all(checkvariability)){
                         warning("None of exogenous variables has variability. Cannot do anything with that, so dropping out xreg.",
@@ -2848,22 +2849,22 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 # Fill in the initial values for exogenous coefs using OLS
                 if(is.null(initialX)){
                     if(Etype=="M"){
-                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% log(data[1:obsInsample][ot==1]))[2:(nExovars+1)],
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInSample,][ot==1,]) %*% mat.x[1:obsInSample,][ot==1,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInSample,][ot==1,]) %*% log(y[1:obsInSample][ot==1]))[2:(nExovars+1)],
                                                 each=maxlag);
                         matatMultiplicative[1:maxlag,] <- matat[1:maxlag,];
                     }
                     else{
-                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
-                                                      t(mat.x[1:obsInsample,][ot==1,]) %*% data[1:obsInsample][ot==1])[2:(nExovars+1)],
+                        matat[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInSample,][ot==1,]) %*% mat.x[1:obsInSample,][ot==1,],tol=1e-50) %*%
+                                                      t(mat.x[1:obsInSample,][ot==1,]) %*% y[1:obsInSample][ot==1])[2:(nExovars+1)],
                                                 each=maxlag);
                     }
                     matat[-1,] <- rep(matat[1,],each=obsStates-1);
 
                     # If Etype=="Z" or "C", estimate multiplicative stuff.
                     if(allowMultiplicative & all(Etype!=c("M","A"))){
-                        matatMultiplicative[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInsample,][ot==1,]) %*% mat.x[1:obsInsample,][ot==1,],tol=1e-50) %*%
-                                                                    t(mat.x[1:obsInsample,][ot==1,]) %*% log(data[1:obsInsample][ot==1]))[2:(nExovars+1)],
+                        matatMultiplicative[1:maxlag,] <- rep(t(solve(t(mat.x[1:obsInSample,][ot==1,]) %*% mat.x[1:obsInSample,][ot==1,],tol=1e-50) %*%
+                                                                    t(mat.x[1:obsInSample,][ot==1,]) %*% log(y[1:obsInSample][ot==1]))[2:(nExovars+1)],
                                                               each=maxlag);
                     }
                 }
@@ -2994,36 +2995,36 @@ ssXreg <- function(data, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 ##### *Likelihood function* #####
 likelihoodFunction <- function(C){
     #### Concentrated logLikelihood based on C and CF ####
-    logLikFromCF <- function(C, cfType){
+    logLikFromCF <- function(C, loss){
         yotSumLog <- switch(Etype,
                             "M" = sum(log(yot)),
                             "A" = 0);
-        if(Etype=="M" && any(cfType==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
+        if(Etype=="M" && any(loss==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
                                        "TFL","aTMSE","aGTMSE","aTFL"))){
             yotSumLog <- yotSumLog * h;
         }
 
-        if(any(cfType==c("MAE","MAEh","MACE"))){
-            return(- (obsInsample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+        if(any(loss==c("MAE","MAEh","MACE"))){
+            return(- (obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
-        else if(any(cfType==c("HAM","HAMh","CHAM"))){
+        else if(any(loss==c("HAM","HAMh","CHAM"))){
             #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
-            return(- 2*(obsInsample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+            return(- 2*(obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
-        else if(any(cfType==c("TFL","aTFL"))){
-            return(- 0.5 *(obsInsample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
+        else if(any(loss==c("TFL","aTFL"))){
+            return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
         }
-        else if(any(cfType==c("LogisticD","LogisticL","TSB","Rounded"))){
+        else if(any(loss==c("LogisticD","LogisticL","TSB","Rounded"))){
             return(-CF(C));
         }
         else{
-            #if(cfType==c("MSE","MSEh","MSCE")) obsNonzero
-            return(- 0.5 *(obsInsample*(log(2*pi) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+            #if(loss==c("MSE","MSEh","MSCE")) obsNonzero
+            return(- 0.5 *(obsInSample*(log(2*pi) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
     }
 
     if(any(occurrence==c("n","p"))){
-        return(logLikFromCF(C, cfType));
+        return(logLikFromCF(C, loss));
     }
     else{
         #Failsafe for exceptional cases when the probability is equal to zero / one, when it should not have been.
@@ -3032,16 +3033,16 @@ likelihoodFunction <- function(C){
             ptNew <- pFitted[(pFitted!=0) & (pFitted!=1)];
             otNew <- ot[(pFitted!=0) & (pFitted!=1)];
             if(length(ptNew)==0){
-                return(logLikFromCF(C, cfType));
+                return(logLikFromCF(C, loss));
             }
             else{
                 return(sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]))
-                       + logLikFromCF(C, cfType));
+                       + logLikFromCF(C, loss));
             }
         }
         #Failsafe for cases, when data has no variability when ot==1.
         if(CF(C)==0){
-            if(cfType=="TFL" | cfType=="aTFL"){
+            if(loss=="TFL" | loss=="aTFL"){
                 return(sum(log(pFitted[ot==1]))*h + sum(log(1-pFitted[ot==0]))*h);
             }
             else{
@@ -3051,14 +3052,14 @@ likelihoodFunction <- function(C){
         if(rounded){
             return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C) - obsZero/2*(log(2*pi*C[length(C)]^2)+1));
         }
-        if(cfType=="TFL" | cfType=="aTFL"){
+        if(loss=="TFL" | loss=="aTFL"){
             return(sum(log(pFitted[ot==1]))*h
                    + sum(log(1-pFitted[ot==0]))*h
-                   + logLikFromCF(C, cfType));
+                   + logLikFromCF(C, loss));
         }
         else{
             return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0]))
-                   + logLikFromCF(C, cfType));
+                   + logLikFromCF(C, loss));
         }
     }
 }
@@ -3076,22 +3077,22 @@ ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
     # max here is needed in order to take into account cases with higher
     ## number of parameters than observations
     ### AICc and BICc are incorrect in case of non-normal residuals!
-    if(cfType=="TFL"){
+    if(loss=="TFL"){
         coefAIC <- 2*nParamOverall*h - 2*llikelihood;
-        coefBIC <- log(obsInsample)*nParamOverall*h - 2*llikelihood;
-        coefAICc <- (2*obsInsample*(nParam*h + (h*(h+1))/2) /
-                         max(obsInsample - nParam - 1 - h,0)
+        coefBIC <- log(obsInSample)*nParamOverall*h - 2*llikelihood;
+        coefAICc <- (2*obsInSample*(nParam*h + (h*(h+1))/2) /
+                         max(obsInSample - nParam - 1 - h,0)
                      -2*llikelihood);
         coefBICc <- (((nParam + (h*(h+1))/2)*
-                          log(obsInsample*h)*obsInsample*h) /
-                         max(obsInsample*h - nParam - (h*(h+1))/2,0)
+                          log(obsInSample*h)*obsInSample*h) /
+                         max(obsInSample*h - nParam - (h*(h+1))/2,0)
                      -2*llikelihood);
     }
     else{
         coefAIC <- 2*nParamOverall - 2*llikelihood;
-        coefBIC <- log(obsInsample)*nParamOverall - 2*llikelihood;
-        coefAICc <- coefAIC + 2*nParam*(nParam+1) / max(obsInsample-nParam-1,0);
-        coefBICc <- (nParam * log(obsInsample) * obsInsample) / (obsInsample - nParam - 1) -2*llikelihood;
+        coefBIC <- log(obsInSample)*nParamOverall - 2*llikelihood;
+        coefAICc <- coefAIC + 2*nParam*(nParam+1) / max(obsInSample-nParam-1,0);
+        coefBICc <- (nParam * log(obsInSample) * obsInSample) / (obsInSample - nParam - 1) -2*llikelihood;
     }
 
     ICs <- c(coefAIC, coefAICc, coefBIC, coefBICc);
@@ -3104,9 +3105,9 @@ ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
 ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
                      phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
-                     cfType="MSE", cfObjective=NULL, intervals=FALSE, cumulative=FALSE,
-                     intervalsType=c("n","p","sp","np","a"), level=0.95, ICs,
-                     holdout=FALSE, insideintervals=NULL, errormeasures=NULL,
+                     loss="MSE", cfObjective=NULL, interval=FALSE, cumulative=FALSE,
+                     intervalType=c("n","p","sp","np","a"), level=0.95, ICs,
+                     holdout=FALSE, insideinterval=NULL, errormeasures=NULL,
                      occurrence="n"){
     # Function forms the generic output for state space models.
     if(!is.null(modelname)){
@@ -3268,9 +3269,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-    cat(paste0("Cost function type: ",cfType))
+    cat(paste0("Loss function type: ",loss))
     if(!is.null(cfObjective)){
-        cat(paste0("; Cost function value: ",round(cfObjective,3),"\n"));
+        cat(paste0("; Loss function value: ",round(cfObjective,3),"\n"));
     }
     else{
         cat("\n");
@@ -3285,28 +3286,28 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     }
     print(round(ICs,4));
 
-    if(intervals){
-        if(intervalsType=="p"){
-            intervalsType <- "parametric";
+    if(interval){
+        if(intervalType=="p"){
+            intervalType <- "parametric";
         }
-        else if(intervalsType=="sp"){
-            intervalsType <- "semiparametric";
+        else if(intervalType=="sp"){
+            intervalType <- "semiparametric";
         }
-        else if(intervalsType=="np"){
-            intervalsType <- "nonparametric";
+        else if(intervalType=="np"){
+            intervalType <- "nonparametric";
         }
-        else if(intervalsType=="a"){
-            intervalsType <- "asymmetric";
+        else if(intervalType=="a"){
+            intervalType <- "asymmetric";
         }
         if(cumulative){
-            intervalsType <- paste0("cumulative ",intervalsType);
+            intervalType <- paste0("cumulative ",intervalType);
         }
-        cat(paste0(level*100,"% ",intervalsType," prediction intervals were constructed\n"));
+        cat(paste0(level*100,"% ",intervalType," prediction interval were constructed\n"));
     }
 
     if(holdout){
-        if(intervals && !is.null(insideintervals)){
-            cat(paste0(round(insideintervals,0), "% of values are in the prediction interval\n"));
+        if(interval && !is.null(insideinterval)){
+            cat(paste0(round(insideinterval,0), "% of values are in the prediction interval\n"));
         }
         cat("Forecast errors:\n");
         if(any(occurrence==c("none","n"))){

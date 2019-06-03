@@ -1,9 +1,9 @@
-#' @param cfType The type of Cost Function used in optimization. \code{cfType} can
+#' @param loss The type of Loss Function used in optimization. \code{loss} can
 #' be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 #' \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 #' \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 #' using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-#' If \code{cfType!="MSE"}, then likelihood and model selection is done based
+#' If \code{loss!="MSE"}, then likelihood and model selection is done based
 #' on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 #'
 #' There are also available analytical approximations for multistep functions:

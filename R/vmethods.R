@@ -18,7 +18,7 @@ AICc.vsmooth <- function(object, ...){
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
     # Remove covariances in the number of parameters
-    nParamAll <- nparam(object) / nSeries - switch(object$cfType,
+    nParamAll <- nparam(object) / nSeries - switch(object$loss,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
                                                    "trace" = ,
                                                    "diagonal" = 1);
@@ -36,7 +36,7 @@ BICc.vsmooth <- function(object, ...){
     llikelihood <- llikelihood[1:length(llikelihood)];
     nSeries <- ncol(object$actuals);
     # Remove covariances in the number of parameters
-    nParamAll <- nparam(object) / nSeries - switch(object$cfType,
+    nParamAll <- nparam(object) / nSeries - switch(object$loss,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
                                                    "trace" = ,
                                                    "diagonal" = 1);
@@ -211,16 +211,16 @@ print.viss <- function(x, ...){
 #' @export
 print.vsmooth <- function(x, ...){
     holdout <- any(!is.na(x$holdout));
-    intervals <- any(!is.na(x$PI));
+    interval <- any(!is.na(x$PI));
 
-    # if(all(holdout,intervals)){
-    #     insideintervals <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
+    # if(all(holdout,interval)){
+    #     insideinterval <- sum((x$holdout <= x$upper) & (x$holdout >= x$lower)) / length(x$forecast) * 100;
     # }
     # else{
-    #     insideintervals <- NULL;
+    #     insideinterval <- NULL;
     # }
 
-    intervalsType <- x$intervals;
+    intervalType <- x$interval;
 
     cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
@@ -263,9 +263,9 @@ print.vsmooth <- function(x, ...){
         }
     }
 
-    cat(paste0("Cost function type: ",x$cfType))
-    if(!is.null(x$cf)){
-        cat(paste0("; Cost function value: ",round(x$cf,3),"\n"));
+    cat(paste0("Loss function type: ",x$loss))
+    if(!is.null(x$lossValue)){
+        cat(paste0("; Loss function value: ",round(x$lossValue,3),"\n"));
     }
     else{
         cat("\n");
@@ -274,17 +274,17 @@ print.vsmooth <- function(x, ...){
     cat("\nInformation criteria:\n");
     print(x$ICs);
 
-    if(intervals){
-        if(x$intervals=="c"){
-            intervalsType <- "conditional";
+    if(interval){
+        if(x$interval=="c"){
+            intervalType <- "conditional";
         }
-        else if(x$intervals=="u"){
-            intervalsType <- "unconditional";
+        else if(x$interval=="u"){
+            intervalType <- "unconditional";
         }
-        else if(x$intervals=="i"){
-            intervalsType <- "independent";
+        else if(x$interval=="i"){
+            intervalType <- "independent";
         }
-        cat(paste0(x$level*100,"% ",intervalsType," prediction intervals were constructed\n"));
+        cat(paste0(x$level*100,"% ",intervalType," prediction interval were constructed\n"));
     }
 
 }

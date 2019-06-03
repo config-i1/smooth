@@ -57,6 +57,6 @@ Number of estimated parameters in the model can be extracted via `nParam()` meth
 
 AICc and BICc for the vector models are calculated as proposed in [@Bedrick1994] and [@Tremblay2004].
 
-Currently we don't do model selection, don't have exogenous variables and don't produce conditional prediction intervals. But at least it works and allows you to play around with it :).
+Currently we don't do model selection, don't have exogenous variables and don't produce conditional prediction interval. But at least it works and allows you to play around with it :).
 
 ### References

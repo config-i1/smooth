@@ -4,12 +4,12 @@
 \alias{ssarima}
 \title{State Space ARIMA}
 \usage{
-ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)),
-  lags = c(1), constant = FALSE, AR = NULL, MA = NULL,
+ssarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
+  constant = FALSE, AR = NULL, MA = NULL,
   initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
-  "BICc"), cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "BICc"), loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
+  interval = c("none", "parametric", "semiparametric", "nonparametric"),
   level = 0.95, occurrence = c("none", "auto", "fixed", "general",
   "odds-ratio", "inverse-odds-ratio", "direct"), oesmodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph",
@@ -18,7 +18,7 @@ ssarima(data, orders = list(ar = c(0), i = c(1), ma = c(1)),
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{orders}{List of orders, containing vector variables \code{ar},
 \code{i} and \code{ma}. Example:
@@ -56,12 +56,12 @@ produced using backcasting procedure.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-If \code{cfType!="MSE"}, then likelihood and model selection is done based
+If \code{loss!="MSE"}, then likelihood and model selection is done based
 on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
@@ -78,28 +78,28 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
@@ -196,15 +196,15 @@ provided parameters will take this into account.
 \item \code{fitted} - the fitted values.
 \item \code{forecast} - the point forecast.
 \item \code{lower} - the lower bound of prediction interval. When
-\code{intervals="none"} then NA is returned.
+\code{interval="none"} then NA is returned.
 \item \code{upper} - the higher bound of prediction interval. When
-\code{intervals="none"} then NA is returned.
+\code{interval="none"} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
 \item \code{errors} - The matrix of 1 to h steps ahead errors.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into
 account).
-\item \code{intervals} - type of intervals asked by user.
-\item \code{level} - confidence level for intervals.
+\item \code{interval} - type of interval asked by user.
+\item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - the original data.
 \item \code{holdout} - the holdout part of the original data.
@@ -222,8 +222,8 @@ variables.
 \item \code{ICs} - values of information criteria of the model. Includes
 AIC, AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
-\item \code{cf} - Cost function value.
-\item \code{cfType} - Type of cost function used in the estimation.
+\item \code{lossValue} - Cost function value.
+\item \code{loss} - Type of loss function used in the estimation.
 \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
 or when \code{FI} is not provided at all.
 \item \code{accuracy} - vector of accuracy measures for the holdout sample.
@@ -284,11 +284,11 @@ vignette: \code{vignette("ssarima","smooth")}
 
 # ARIMA(1,1,1) fitted to some data
 ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(1),h=18,
-                             holdout=TRUE,intervals="p")
+                             holdout=TRUE,interval="p")
 
 # The previous one is equivalent to:
 \dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
-                    holdout=TRUE,intervals="p")}
+                    holdout=TRUE,interval="p")}
 
 # Model with the same lags and orders, applied to a different data
 ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
@@ -310,8 +310,8 @@ ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
         h=10,holdout=TRUE)}
 
 # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="TMSE")
-ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,cfType="aTMSE")}
+\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
+ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")}
 
 # SARIMA(0,1,1) with exogenous variables
 ssarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,xreg=c(1:118))

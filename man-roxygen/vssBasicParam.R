@@ -1,4 +1,4 @@
-#' @param data The matrix with data, where series are in columns and
+#' @param y The matrix with the data, where series are in columns and
 #' observations are in rows.
 #' @param persistence Persistence matrix \eqn{G}, containing smoothing
 #' parameters. Can be:
@@ -34,30 +34,30 @@
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
 #' @param ic The information criterion used in the model selection procedure.
-#' @param intervals Type of intervals to construct.
+#' @param interval Type of interval to construct.
 #'
 #' This can be:
 #'
 #' \itemize{
 #' \item \code{"none"}, aka \code{n} - do not produce prediction
-#' intervals.
+#' interval.
 #' \item \code{"conditional"}, \code{c} - produces multidimensional elliptic
-#' intervals for each step ahead forecast. NOT AVAILABLE YET!
+#' interval for each step ahead forecast. NOT AVAILABLE YET!
 #' \item \code{"unconditional"}, \code{u} - produces separate bounds for each series
 #' based on ellipses for each step ahead. These bounds correspond to min and max
 #' values of the ellipse assuming that all the other series but one take values in
 #' the centre of the ellipse. This leads to less accurate estimates of bounds
-#' (wider intervals than needed), but these could still be useful. NOT AVAILABLE YET!
-#' \item \code{"independent"}, \code{i} - produces intervals based on variances of
+#' (wider interval than needed), but these could still be useful. NOT AVAILABLE YET!
+#' \item \code{"independent"}, \code{i} - produces interval based on variances of
 #' each separate series. This does not take vector structure into account.
 #' }
 #' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-#' the independent intervals are constructed, while the latter is equivalent to
+#' the independent interval are constructed, while the latter is equivalent to
 #' \code{none}.
 #' You can also use the first letter instead of writing the full word.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
-#' intervals are produced instead of the normal ones. This is useful for
+#' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
 #' printed out and drawn. \code{silent="all"} means that nothing is produced or

@@ -22,12 +22,13 @@
 #'
 #' @template smoothRef
 #'
-#' @param data Vector or ts object, containing data needed to be smoothed.
+#' @param y Vector or ts object, containing data needed to be smoothed.
 #' @param order Order of centered moving average. If \code{NULL}, then the
 #' function will try to select order of SMA based on information criteria.
 #' See \link[smooth]{sma} for details.
 #' @param silent If \code{TRUE}, then plot is not produced. Otherwise, there
 #' is a plot...
+#' @param ... Nothing. Needed only for the transition to the new name of variables.
 #' @return Object of class "smooth" is returned. It contains the list of the
 #' following values:
 #'
@@ -47,8 +48,8 @@
 #' \item \code{ICs} - values of information criteria from the respective SMA or
 #' AR model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the SMA / AR model.
-#' \item \code{cf} - Cost function value (for the SMA / AR model).
-#' \item \code{cfType} - Type of cost function used in the estimation.
+#' \item \code{lossValue} - Cost function value (for the SMA / AR model).
+#' \item \code{loss} - Type of loss function used in the estimation.
 #' }
 #'
 #' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},
@@ -57,67 +58,70 @@
 #' @keywords SARIMA ARIMA
 #' @examples
 #'
-#' # SMA of specific order
-#' ourModel <- sma(rnorm(118,100,3),order=12,h=18,holdout=TRUE,intervals="p")
+#' # CMA of specific order
+#' ourModel <- cma(rnorm(118,100,3),order=12)
 #'
-#' # SMA of arbitrary order
-#' ourModel <- sma(rnorm(118,100,3),h=18,holdout=TRUE,intervals="sp")
+#' # CMA of arbitrary order
+#' ourModel <- cma(rnorm(118,100,3))
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
 #' @export cma
-cma <- function(data, order=NULL, silent=TRUE){
+cma <- function(y, order=NULL, silent=TRUE, ...){
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
 
     holdout <- FALSE;
     h <- 0;
 
     ##### data #####
-    if(any(is.smooth.sim(data))){
-        data <- data$data;
+    if(any(is.smooth.sim(y))){
+        y <- y$data;
     }
-    else if(class(data)=="Mdata"){
-        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+    else if(class(y)=="Mdata"){
+        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
-    if(!is.numeric(data)){
+    if(!is.numeric(y)){
         stop("The provided data is not a vector or ts object! Can't construct any model!", call.=FALSE);
     }
-    if(!is.null(ncol(data))){
-        if(ncol(data)>1){
+    if(!is.null(ncol(y))){
+        if(ncol(y)>1){
             stop("The provided data is not a vector! Can't construct any model!", call.=FALSE);
         }
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     # Define obs, the number of observations of in-sample
-    obsInsample <- length(data) - holdout*h;
+    obsInSample <- length(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- length(data) + (1 - holdout)*h;
+    obsAll <- length(y) + (1 - holdout)*h;
 
-    # If obsInsample is negative, this means that we can't do anything...
-    if(obsInsample<=0){
+    # If obsInSample is negative, this means that we can't do anything...
+    if(obsInSample<=0){
         stop("Not enough observations in sample.",call.=FALSE);
     }
     # Define the actual values
-    datafreq <- frequency(data);
-    dataStart <- start(data);
-    y <- ts(data[1:obsInsample], start=dataStart, frequency=datafreq);
+    datafreq <- frequency(y);
+    dataStart <- start(y);
+    yInSample <- ts(y[1:obsInSample], start=dataStart, frequency=datafreq);
 
     # Order of the model
     if(!is.null(order)){
-        if(obsInsample < order){
+        if(obsInSample < order){
             stop("Sorry, but we don't have enough observations for that order.",call.=FALSE);
         }
 
@@ -141,35 +145,35 @@ cma <- function(data, order=NULL, silent=TRUE){
     }
 
     if(orderSelect){
-        order <- orders(sma(y));
+        order <- orders(sma(yInSample));
     }
 
     if((order %% 2)!=0){
-        smaModel <- sma(y, order=order, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+        smaModel <- sma(yInSample, order=order, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
         yFitted <- c(smaModel$fitted[-c(1:((order+1)/2))],smaModel$forecast);
         logLik <- smaModel$logLik;
         errors <- residuals(smaModel);
     }
     else{
-        ssarimaModel <- msarima(y, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
+        ssarimaModel <- msarima(yInSample, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
                          h=order, holdout=FALSE, silent=TRUE);
         yFitted <- c(ssarimaModel$fitted[-c(1:(order/2))],ssarimaModel$forecast);
-        smaModel <- sma(y, order=1, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+        smaModel <- sma(yInSample, order=1, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
         logLik <- ssarimaModel$logLik;
         errors <- residuals(ssarimaModel);
     }
     yForecast <- ts(NA, start=start(smaModel$forecast), frequency=datafreq);
-    yFitted <- ts(yFitted[1:obsInsample], start=dataStart, frequency=datafreq);
+    yFitted <- ts(yFitted[1:obsInSample], start=dataStart, frequency=datafreq);
     modelname <- paste0("CMA(",order,")");
     nParam <- smaModel$nParam;
-    s2 <- sum(errors^2)/(obsInsample - 2);
+    s2 <- sum(errors^2)/(obsInSample - 2);
     cfObjective <- mean(errors^2);
 
     model <- structure(list(model=modelname,timeElapsed=Sys.time()-startTime,
                             order=order, nParam=nParam,
                             fitted=yFitted,forecast=yForecast,residuals=errors,s2=s2,
-                            actuals=data,
-                            ICs=NULL,logLik=logLik,cf=cfObjective,cfType="MSE"),
+                            actuals=y,
+                            ICs=NULL,logLik=logLik,lossValue=cfObjective,loss="MSE"),
                        class="smooth");
 
     ICs <- c(AIC(model),AICc(model),BIC(model),BICc(model));
@@ -177,7 +181,7 @@ cma <- function(data, order=NULL, silent=TRUE){
     model$ICs <- ICs;
 
     if(!silent){
-        graphmaker(data, yForecast, yFitted, legend=FALSE, vline=FALSE,
+        graphmaker(y, yForecast, yFitted, legend=FALSE, vline=FALSE,
                    main=model$model);
     }
 

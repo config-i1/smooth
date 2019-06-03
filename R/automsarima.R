@@ -39,7 +39,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' is no restrictions on the length of \code{lags} vector.
 #' @param combine If \code{TRUE}, then resulting ARIMA is combined using AIC
 #' weights.
-#' @param workFast If \code{TRUE}, then some of the orders of ARIMA are
+#' @param fast If \code{TRUE}, then some of the orders of ARIMA are
 #' skipped. This is not advised for models with \code{lags} greater than 12.
 #' @param constant If \code{NULL}, then the function will check if constant is
 #' needed. if \code{TRUE}, then constant is forced in the model. Otherwise
@@ -63,7 +63,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' # The best ARIMA for the data
 #' ourModel <- auto.msarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-#'                      h=18,holdout=TRUE,intervals="np")
+#'                      h=18,holdout=TRUE,interval="np")
 #'
 #' # The other one using optimised states
 #' \dontrun{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
@@ -79,12 +79,12 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #'
 #' @export auto.msarima
-auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(data)),
-                         combine=FALSE, workFast=TRUE, constant=NULL,
+auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
+                         combine=FALSE, fast=TRUE, constant=NULL,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                         cfType=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                         loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          h=10, holdout=FALSE, cumulative=FALSE,
-                         intervals=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                         interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
                          occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                          oesmodel="MNN",
                          bounds=c("admissible","none"),
@@ -97,6 +97,12 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+    loss <- depricator(loss, list(...), "cfType");
+    fast <- depricator(fast, list(...), "workFast");
+    interval <- depricator(interval, list(...), "intervals");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
@@ -215,7 +221,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 
     # Get rid of duplicates in lags
     if(length(unique(lags))!=length(lags)){
-        if(frequency(data)!=1){
+        if(dataFreq!=1){
             warning(paste0("'lags' variable contains duplicates: (",paste0(lags,collapse=","),"). Getting rid of some of them."),call.=FALSE);
         }
         lagsNew <- unique(lags);
@@ -350,10 +356,10 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
 ### If for some reason we have model with zeroes for orders, return it.
     if(all(c(arMax,iMax,maMax)==0)){
         cat("\b\b\b\bDone!\n");
-        bestModel <- msarima(data, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
-                             constant=constantValue, initial=initialType, cfType=cfType,
+        bestModel <- msarima(y, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
+                             constant=constantValue, initial=initialType, loss=loss,
                              h=h, holdout=holdout, cumulative=cumulative,
-                             intervals=intervalsType, level=level,
+                             interval=intervalType, level=level,
                              occurrence=occurrence, oesmodel=oesmodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -385,10 +391,10 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         if(silent[1]=="d"){
             cat("I: ");cat(iOrders[d,]);cat(", ");
         }
-        testModel <- msarima(data, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
-                             constant=constantValue, initial=initialType, cfType=cfType,
+        testModel <- msarima(y, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
+                             constant=constantValue, initial=initialType, loss=loss,
                              h=h, holdout=holdout, cumulative=cumulative,
-                             intervals=intervalsType, level=level,
+                             interval=intervalType, level=level,
                              occurrence=occurrence, oesmodel=oesmodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -426,7 +432,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 }
             }
             else{
-                if(workFast){
+                if(fast){
                     m <- m + sum(maMax*(1 + sum(arMax)));
                     next;
                 }
@@ -453,9 +459,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                             cat("MA: ");cat(maTest);cat(", ");
                         }
                         testModel <- msarima(dataI, orders=list(ar=0,i=0,ma=maTest), lags=lags,
-                                             constant=FALSE, initial=initialType, cfType=cfType,
+                                             constant=FALSE, initial=initialType, loss=loss,
                                              h=h, holdout=FALSE,
-                                             intervals=intervalsType, level=level,
+                                             interval=intervalType, level=level,
                                              occurrence=occurrence, oesmodel=oesmodel,
                                              bounds=bounds, silent=TRUE,
                                              xreg=NULL, xregDo="use", initialX=initialX,
@@ -488,7 +494,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                             dataMA <- testModel$residuals;
                         }
                         else{
-                            if(workFast){
+                            if(fast){
                                 m <- m + maTest[seasSelectMA] * (1 + sum(arMax)) - 1;
                                 maTest <- maBestLocal;
                                 break;
@@ -519,9 +525,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                             cat("AR: ");cat(arTest);cat(", ");
                                         }
                                         testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
-                                                             constant=FALSE, initial=initialType, cfType=cfType,
+                                                             constant=FALSE, initial=initialType, loss=loss,
                                                              h=h, holdout=FALSE,
-                                                             intervals=intervalsType, level=level,
+                                                             interval=intervalType, level=level,
                                                              occurrence=occurrence, oesmodel=oesmodel,
                                                              bounds=bounds, silent=TRUE,
                                                              xreg=NULL, xregDo="use", initialX=initialX,
@@ -553,7 +559,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                             }
                                         }
                                         else{
-                                            if(workFast){
+                                            if(fast){
                                                 m <- m + arTest[seasSelectAR] - 1;
                                                 arTest <- arBestLocal;
                                                 break;
@@ -592,9 +598,9 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                 cat("AR: ");cat(arTest);cat(", ");
                             }
                             testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
-                                                 constant=FALSE, initial=initialType, cfType=cfType,
+                                                 constant=FALSE, initial=initialType, loss=loss,
                                                  h=h, holdout=FALSE,
-                                                 intervals=intervalsType, level=level,
+                                                 interval=intervalType, level=level,
                                                  occurrence=occurrence, oesmodel=oesmodel,
                                                  bounds=bounds, silent=TRUE,
                                                  xreg=NULL, xregDo="use", initialX=initialX,
@@ -626,7 +632,7 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                                 }
                             }
                             else{
-                                if(workFast){
+                                if(fast){
                                     m <- m + arTest[seasSelectAR] - 1;
                                     arTest <- arBestLocal;
                                     break;
@@ -651,10 +657,10 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         }
 
         if(any(c(arBest,iBest,maBest)!=0)){
-            testModel <- msarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
-                                 constant=FALSE, initial=initialType, cfType=cfType,
+            testModel <- msarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
+                                 constant=FALSE, initial=initialType, loss=loss,
                                  h=h, holdout=holdout, cumulative=cumulative,
-                                 intervals=intervalsType, level=level,
+                                 interval=intervalType, level=level,
                                  occurrence=occurrence, oesmodel=oesmodel,
                                  bounds=bounds, silent=TRUE,
                                  xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -712,36 +718,36 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
                 testFittedNew[,i] <- testFitted[,j] + testFitted[,k] + testFitted[,i];
             }
         }
-        yForecast <- ts(testForecastsNew[,1,] %*% icWeights,start=start(testModel$forecast),frequency=dataFreq);
-        yLower <- ts(testForecastsNew[,2,] %*% icWeights,start=start(testModel$lower),frequency=dataFreq);
-        yUpper <- ts(testForecastsNew[,3,] %*% icWeights,start=start(testModel$upper),frequency=dataFreq);
-        yFitted <- ts(testFittedNew %*% icWeights,start=start(testModel$fitted),frequency=dataFreq);
+        yForecast <- ts(testForecastsNew[,1,] %*% icWeights,start=yForecastStart,frequency=dataFreq);
+        yLower <- ts(testForecastsNew[,2,] %*% icWeights,start=yForecastStart,frequency=dataFreq);
+        yUpper <- ts(testForecastsNew[,3,] %*% icWeights,start=yForecastStart,frequency=dataFreq);
+        yFitted <- ts(testFittedNew %*% icWeights,start=dataStart,frequency=dataFreq);
         modelname <- "ARIMA combined";
 
-        errors <- ts(y-c(yFitted),start=start(yFitted),frequency=frequency(yFitted));
-        yHoldout <- ts(data[(obsNonzero+1):obsAll],start=start(testModel$forecast),frequency=dataFreq);
+        errors <- ts(yInSample-c(yFitted),start=dataStart,frequency=dataFreq);
+        yHoldout <- ts(y[(obsNonzero+1):obsAll],start=yForecastStart,frequency=dataFreq);
         s2 <- mean(errors^2);
-        errormeasures <- measures(yHoldout,yForecast,y);
+        errormeasures <- measures(yHoldout,yForecast,yInSample);
         ICs <- c(t(testICs) %*% icWeights);
         names(ICs) <- ic;
 
         bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
                           fitted=yFitted,forecast=yForecast,cumulative=cumulative,
-                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,intervals=intervalsType,level=level,
-                          actuals=data,holdout=yHoldout,occurrence=occurrence,
+                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
+                          actuals=y,holdout=yHoldout,occurrence=occurrence,
                           xreg=xreg, xregDo=xregDo, initialX=initialX,
                           updateX=updateX, persistenceX=persistenceX, transitionX=transitionX,
-                          ICs=ICs,ICw=icWeights,cf=NULL,cfType=cfType,accuracy=errormeasures);
+                          ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
 
         bestModel <- structure(bestModel,class=c("smooth","msarima"));
     }
     else{
         #### Reestimate the best model in order to get rid of bias ####
-        bestModel <- msarima(data, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
-                             constant=constantValue, initial=initialType, cfType=cfType,
+        bestModel <- msarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
+                             constant=constantValue, initial=initialType, loss=loss,
                              h=h, holdout=holdout, cumulative=cumulative,
-                             intervals=intervalsType, level=level,
+                             interval=intervalType, level=level,
                              occurrence=occurrence, oesmodel=oesmodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
@@ -766,19 +772,19 @@ auto.msarima <- function(data, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c
         yUpperNew <- yUpper;
         yLowerNew <- yLower;
         if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=start(yForecast),frequency=dataFreq)
-            if(intervals){
-                yUpperNew <- ts(rep(yUpper/h,h),start=start(yForecast),frequency=dataFreq)
-                yLowerNew <- ts(rep(yLower/h,h),start=start(yForecast),frequency=dataFreq)
+            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
+            if(interval){
+                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
             }
         }
 
-        if(intervals){
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        if(interval){
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
                        level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
         else{
-            graphmaker(actuals=data,forecast=yForecastNew,fitted=yFitted,
+            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
                        legend=!silentLegend,main=modelname,cumulative=cumulative);
         }
     }

@@ -4,21 +4,21 @@
 \alias{smoothCombine}
 \title{Combination of forecasts of state space models}
 \usage{
-smoothCombine(data, models = NULL, initial = c("optimal",
-  "backcasting"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  cfType = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"),
-  h = 10, holdout = FALSE, cumulative = FALSE,
-  intervals = c("none", "parametric", "semiparametric", "nonparametric"),
-  level = 0.95, bins = 200, intervalsCombine = c("quantile",
-  "probability"), occurrence = c("none", "auto", "fixed", "general",
-  "odds-ratio", "inverse-odds-ratio", "probability"), oesmodel = "MNN",
+smoothCombine(y, models = NULL, initial = c("optimal", "backcasting"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
+  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  cumulative = FALSE, interval = c("none", "parametric",
+  "semiparametric", "nonparametric"), level = 0.95, bins = 200,
+  intervalCombine = c("quantile", "probability"),
+  occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
+  "inverse-odds-ratio", "probability"), oesmodel = "MNN",
   bounds = c("admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
   transitionX = NULL, ...)
 }
 \arguments{
-\item{data}{Vector or ts object, containing data needed to be forecasted.}
+\item{y}{Vector or ts object, containing data needed to be forecasted.}
 
 \item{models}{List of the estimated smooth models to use in the
 combination. If \code{NULL}, then all the models are estimated
@@ -30,12 +30,12 @@ initials are produced using backcasting procedure.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 
-\item{cfType}{The type of Cost Function used in optimization. \code{cfType} can
+\item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.
-If \code{cfType!="MSE"}, then likelihood and model selection is done based
+If \code{loss!="MSE"}, then likelihood and model selection is done based
 on equivalent \code{MSE}. Model selection in this cases becomes not optimal.
 
 There are also available analytical approximations for multistep functions:
@@ -52,38 +52,38 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 the end of the data.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
-intervals are produced instead of the normal ones. This is useful for
+interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{intervals}{Type of intervals to construct. This can be:
+\item{interval}{Type of interval to construct. This can be:
 
 \itemize{
 \item \code{none}, aka \code{n} - do not produce prediction
-intervals.
+interval.
 \item \code{parametric}, \code{p} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
 time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - intervals based on covariance
+\item \code{semiparametric}, \code{sp} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - intervals based on values from a
+\item \code{nonparametric}, \code{np} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }
 The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric intervals are constructed, while the latter is equivalent to
+parametric interval are constructed, while the latter is equivalent to
 \code{none}.
-If the forecasts of the models were combined, then the intervals are combined
+If the forecasts of the models were combined, then the interval are combined
 quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{bins}{The number of bins for the prediction intervals.
+\item{bins}{The number of bins for the prediction interval.
 The lower value means faster work of the function, but less
 precise estimates of the quantiles. This needs to be an even
 number.}
 
-\item{intervalsCombine}{How to average the prediction intervals:
+\item{intervalCombine}{How to average the prediction interval:
 quantile-wise (\code{"quantile"}) or probability-wise
 (\code{"probability"}).}
 
@@ -151,17 +151,17 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 \item \code{timeElapsed} - time elapsed for the construction of the model.
 \item \code{initialType} - type of the initial values used.
 \item \code{fitted} - fitted values of ETS.
-\item \code{quantiles} - the 3D array of produced quantiles if \code{intervals!="none"}
+\item \code{quantiles} - the 3D array of produced quantiles if \code{interval!="none"}
 with the dimensions: (number of models) x (bins) x (h).
 \item \code{forecast} - point forecast of ETS.
-\item \code{lower} - lower bound of prediction interval. When \code{intervals="none"}
+\item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
 then NA is returned.
-\item \code{upper} - higher bound of prediction interval. When \code{intervals="none"}
+\item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
 then NA is returned.
 \item \code{residuals} - residuals of the estimated model.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
-\item \code{intervals} - type of intervals asked by user.
-\item \code{level} - confidence level for intervals.
+\item \code{interval} - type of interval asked by user.
+\item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{actuals} - original data.
 \item \code{holdout} - holdout part of the original data.
@@ -189,17 +189,17 @@ possible because they are all formulated in Single Source of Error
 framework. Due to the the complexity of some of the models, the
 estimation process may take some time. So be patient.
 
-The prediction intervals are combined either probability-wise or
+The prediction interval are combined either probability-wise or
 quantile-wise (Lichtendahl et al., 2013), which may take extra time,
 because we need to produce all the distributions for all the models.
 This can be sped up with the smaller value for bins parameter, but
-the resulting intervals may be imprecise.
+the resulting interval may be imprecise.
 }
 \examples{
 
 library(Mcomp)
 
-ourModel <- smoothCombine(M3[[578]],intervals="p")
+ourModel <- smoothCombine(M3[[578]],interval="p")
 plot(ourModel)
 
 # models parameter accepts either previously estimated smoothCombine

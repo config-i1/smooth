@@ -28,7 +28,7 @@ test_that("Test ETS(MXM) with AIC on N2568$x", {
 })
 
 # Test trace cost function for ETS
-testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, silent=TRUE, intervals=TRUE)
+testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, silent=TRUE, interval=TRUE)
 test_that("Test AIC of ETS on N2568$x", {
     expect_equal(as.numeric(round(AIC(testModel),2)), as.numeric(round(testModel$ICs[1,"AIC"],2)));
 })
@@ -44,9 +44,9 @@ test_that("Test initials, initialSeason and persistence of ETS on N2568$x", {
 # Test exogenous (normal + updateX) with ETS
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, intervals="np")
+testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, interval="np")
 test_that("Check exogenous variables for ETS on N1457", {
-    expect_equal(suppressWarnings(es(y, "MNN", h=18, holdout=TRUE, xreg=x, cfType="aTMSE", silent=TRUE)$model), testModel$model);
+    expect_equal(suppressWarnings(es(y, "MNN", h=18, holdout=TRUE, xreg=x, loss="aTMSE", silent=TRUE)$model), testModel$model);
     expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
 })
 

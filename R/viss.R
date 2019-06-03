@@ -10,7 +10,7 @@
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @param data The matrix with data, where series are in columns and
+#' @param y The matrix with data, where series are in columns and
 #' observations are in rows.
 #' @param intermittent Type of method used in probability estimation. Can be
 #' \code{"none"} - none, \code{"fixed"} - constant probability or
@@ -40,6 +40,7 @@
 #' If \code{NULL}, then it is estimated. See \link[smooth]{ves} for the details.
 #' @param xreg Vector of matrix of exogenous variables, explaining some parts
 #' of occurrence variable (probability).
+#' @param ... Other parameters. This is not needed for now.
 #' @return The object of class "iss" is returned. It contains following list of
 #' values:
 #'
@@ -75,14 +76,18 @@
 #'     viss(Y, intermittent="l", probability="i")
 #'
 #' @export viss
-viss <- function(data, intermittent=c("logistic","none","fixed"),
+viss <- function(y, intermittent=c("logistic","none","fixed"),
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                  probability=c("dependent","independent"),
                  model="ANN", persistence=NULL, transition=NULL, phi=NULL,
-                 initial=NULL, initialSeason=NULL, xreg=NULL){
+                 initial=NULL, initialSeason=NULL, xreg=NULL, ...){
 # Function returns intermittent State-Space model
 # probability="i" - assume that ot[,1] is independent from ot[,2], but has similar dynamics;
 # probability="d" - assume that ot[,1] and ot[,2] are dependent, so that sum(P)=1;
+
+    ##### Check if data was used instead of y. Remove by 2.6.0 #####
+    y <- depricator(y, list(...), "data");
+
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","l"))){
         warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
@@ -156,25 +161,25 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
         }
     }
 
-    if(is.data.frame(data)){
-        data <- as.matrix(data);
+    if(is.data.frame(y)){
+        y <- as.matrix(y);
     }
 
     # Number of series in the matrix
-    nSeries <- ncol(data);
+    nSeries <- ncol(y);
 
-    if(is.null(ncol(data))){
+    if(is.null(ncol(y))){
         stop("The provided data is not a matrix! Use iss() function instead!", call.=FALSE);
     }
-    if(ncol(data)==1){
+    if(ncol(y)==1){
         stop("The provided data contains only one column. Use iss() function instead!", call.=FALSE);
     }
     # Check the data for NAs
-    if(any(is.na(data))){
+    if(any(is.na(y))){
         if(!silentText){
             warning("Data contains NAs. These observations will be substituted by zeroes.", call.=FALSE);
         }
-        data[is.na(data)] <- 0;
+        y[is.na(y)] <- 0;
     }
 
     if(intermittent=="n"){
@@ -182,23 +187,24 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
     }
 
     # Define obs, the number of observations of in-sample
-    obsInSample <- nrow(data) - holdout*h;
+    obsInSample <- nrow(y) - holdout*h;
 
     # Define obsAll, the overal number of observations (in-sample + holdout)
-    obsAll <- nrow(data) + (1 - holdout)*h;
+    obsAll <- nrow(y) + (1 - holdout)*h;
 
     # If obsInSample is negative, this means that we can't do anything...
     if(obsInSample<=2){
         stop("Not enough observations in sample.", call.=FALSE);
     }
     # Define the actual values.
-    dataFreq <- frequency(data);
-    dataDeltat <- deltat(data);
-    dataStart <- start(data);
-    y <- ts(matrix(data[1:obsInSample,],obsInSample,nSeries),start=dataStart,frequency=dataFreq);
+    dataFreq <- frequency(y);
+    dataDeltat <- deltat(y);
+    dataStart <- start(y);
+    yInSample <- ts(matrix(y[1:obsInSample,],obsInSample,nSeries),start=dataStart,frequency=dataFreq);
+    yForecastStart <- time(y)[obsInSample]+deltat(y);
 
-    ot <- (y!=0)*1;
-    otAll <- (data!=0)*1;
+    ot <- (yInSample!=0)*1;
+    otAll <- (y!=0)*1;
     obsOnes <- apply(ot,2,sum);
 
     pFitted <- matrix(NA,obsInSample,nSeries);
@@ -322,7 +328,7 @@ viss <- function(data, intermittent=c("logistic","none","fixed"),
 
     states <- ts(states, start=dataStart, frequency=dataFreq);
     pFitted <- ts(pFitted, start=dataStart, frequency=dataFreq);
-    pForecast <- ts(pForecast, start=time(data)[obsInSample] + dataDeltat, frequency=dataFreq);
+    pForecast <- ts(pForecast, start=time(y)[obsInSample] + dataDeltat, frequency=dataFreq);
 
     output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
                    variance=pForecast*(1-pForecast), logLik=logLik, nParam=nParam,
