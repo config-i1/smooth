@@ -4,13 +4,14 @@
 \alias{auto.gum}
 \title{Automatic GUM}
 \usage{
-auto.gum(y, orders = 3, lags = frequency(y), type = c("A", "M", "Z"),
-  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
-  "BICc"), loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  interval = c("none", "parametric", "semiparametric", "nonparametric"),
-  level = 0.95, occurrence = c("none", "auto", "fixed", "general",
-  "odds-ratio", "inverse-odds-ratio", "direct"), oesmodel = "MNN",
+auto.gum(y, orders = 3, lags = frequency(y), type = c("additive",
+  "multiplicative", "select"), initial = c("backcasting", "optimal"),
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
+  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  cumulative = FALSE, interval = c("none", "parametric",
+  "semiparametric", "nonparametric"), level = 0.95,
+  occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
+  "inverse-odds-ratio", "direct"), oesmodel = "MNN",
   bounds = c("restricted", "admissible", "none"), silent = c("all",
   "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
   "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
@@ -26,9 +27,9 @@ increasing number of parameters in the models with higher orders.}
 \item{lags}{The value of the maximum lag to check. This should usually be
 a maximum frequency of the data.}
 
-\item{type}{Type of model. Can either be \code{"Additive"} or
-\code{"Multiplicative"}. The latter means that the GUM is fitted on
-log-transformed data. If \code{"Z"}, then this is selected automatically,
+\item{type}{Type of model. Can either be \code{"additive"} or
+\code{"multiplicative"}. The latter means that the GUM is fitted on
+log-transformed data. If \code{"select"}, then this is selected automatically,
 which may slow down things twice.}
 
 \item{initial}{Can be either character or a vector of initial states. If it

@@ -115,7 +115,7 @@ utils::globalVariables(c("modelDo","initialValue","modelLagsMax"));
 #' \item \code{logLik} - the log-likelihood value of the model;
 #' \item \code{nParam} - the number of parameters in the model (the matrix is returned);
 #' \item \code{residuals} - the residuals of the model;
-#' \item \code{actuals} - actual values of occurrence (zeros and ones).
+#' \item \code{y} - actual values of occurrence (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{phi} - the value of the damped trend parameter;
 #' \item \code{initial} - initial values of the state vector;
@@ -714,7 +714,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             parametersNumber[1,c(1,4)] <- 1;
 
             output <- list(fitted=pt, forecast=pForecast, states=pt,
-                           nParam=parametersNumber, residuals=errors, actuals=otAll,
+                           nParam=parametersNumber, residuals=errors, y=otAll,
                            persistence=matrix(0,1,1,dimnames=list("level",NULL)),
                            initial=initial, initialSeason=NULL);
         }
@@ -850,7 +850,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             output <- list(fitted=pFitted, forecast=pForecast,
                            states=ts(t(matvt), start=(time(y)[1] - deltat(y)*modelLagsMax),
                                      frequency=dataFreq),
-                           nParam=parametersNumber, residuals=errors, actuals=otAll,
+                           nParam=parametersNumber, residuals=errors, y=otAll,
                            persistence=vecg, phi=phi, initial=matvt[1:nComponentsNonSeasonal,1],
                            initialSeason=initialSeason, fittedModel=yFitted, forecastModel=yForecast,
                            initialX=matat[,1], xreg=xreg, updateX=updateX, transitionX=matFX, persistenceX=vecgX);
@@ -890,7 +890,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             errors <- ts(rep(0,obsInSample), start=dataStart, frequency=dataFreq);
             parametersNumber[] <- 0;
             output <- list(fitted=pt, forecast=pForecast, states=pt,
-                           nParam=parametersNumber, residuals=errors, actuals=pt,
+                           nParam=parametersNumber, residuals=errors, y=pt,
                            persistence=NULL, initial=NULL, initialSeason=NULL);
         }
     }

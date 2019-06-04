@@ -141,7 +141,7 @@ values:
 \item \code{logLik} - the log-likelihood value of the model;
 \item \code{nParam} - the number of parameters in the model (the matrix is returned);
 \item \code{residuals} - the residuals of the model;
-\item \code{actuals} - actual values of occurrence (zeros and ones).
+\item \code{y} - actual values of occurrence (zeros and ones).
 \item \code{persistence} - the vector of smoothing parameters;
 \item \code{phi} - the value of the damped trend parameter;
 \item \code{initial} - initial values of the state vector;

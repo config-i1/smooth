@@ -186,7 +186,7 @@ values:
 \item \code{initialSeason} - The initial values of the seasonal components;
 \item \code{nParam} - The number of estimated parameters;
 \item \code{imodel} - The intermittent model estimated with VES;
-\item \code{actuals} - The matrix with the original data;
+\item \code{y} - The matrix with the original data;
 \item \code{fitted} - The matrix of the fitted values;
 \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
 the estimation);

@@ -147,7 +147,7 @@ intermittentMaker <- function(occurrence="n",...){
 #' \item \code{logLik} - likelihood value for the model
 #' \item \code{nParam} - number of parameters used in the model;
 #' \item \code{residuals} - residuals of the model;
-#' \item \code{actuals} - actual values of probabilities (zeros and ones).
+#' \item \code{y} - actual values of probabilities (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{initial} - initial values of the state vector;
 #' \item \code{initialSeason} - the matrix of initials seasonal states;
@@ -249,7 +249,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
         output <- list(model=model, fitted=pFitted, forecast=pForecast, states=pFitted,
                        variance=pForecast*(1-pForecast), logLik=NA, nParam=1,
-                       residuals=errors, actuals=otAll,
+                       residuals=errors, y=otAll,
                        persistence=NULL, initial=initial, initialSeason=NULL);
     }
 #### Croston's method ####
@@ -305,7 +305,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
         output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
                        variance=pForecast*(1-pForecast), logLik=NA, nParam=nparam(crostonModel),
-                       residuals=crostonModel$residuals, actuals=otAll,
+                       residuals=crostonModel$residuals, y=otAll,
                        persistence=crostonModel$persistence, initial=crostonModel$initial,
                        initialSeason=crostonModel$initialSeason);
     }
@@ -350,7 +350,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
         output <- list(model=model, fitted=tsbModel$fitted, forecast=tsbModel$forecast, states=tsbModel$states,
                        variance=tsbModel$forecast*(1-tsbModel$forecast), logLik=NA, nParam=nparam(tsbModel)-1,
-                       residuals=tsbModel$residuals, actuals=otAll,
+                       residuals=tsbModel$residuals, y=otAll,
                        persistence=tsbModel$persistence, initial=tsbModel$initial,
                        initialSeason=tsbModel$initialSeason);
     }
@@ -414,7 +414,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
 
         output <- list(model=modelType(logisticModel), fitted=logisticModel$fitted, forecast=logisticModel$forecast, states=logisticModel$states,
                        variance=logisticModel$forecast*(1-logisticModel$forecast), logLik=NA, nParam=nparam(logisticModel),
-                       residuals=logisticModel$residuals, actuals=otAll,
+                       residuals=logisticModel$residuals, y=otAll,
                        persistence=logisticModel$persistence, initial=logisticModel$initial,
                        initialSeason=logisticModel$initialSeason);
     }
@@ -425,7 +425,7 @@ iss <- function(data, intermittent=c("none","fixed","interval","probability","sb
         errors <- ts(rep(0,obsInSample), start=start(yInSample), frequency=frequency(yInSample));
         output <- list(model=NULL, fitted=pFitted, forecast=pForecast, states=pFitted,
                        variance=rep(0,h), logLik=NA, nParam=0,
-                       residuals=errors, actuals=pFitted,
+                       residuals=errors, y=pFitted,
                        persistence=NULL, initial=NULL, initialSeason=NULL);
     }
     output$intermittent <- intermittent;

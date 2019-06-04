@@ -30,9 +30,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' increasing number of parameters in the models with higher orders.
 #' @param lags The value of the maximum lag to check. This should usually be
 #' a maximum frequency of the data.
-#' @param type Type of model. Can either be \code{"Additive"} or
-#' \code{"Multiplicative"}. The latter means that the GUM is fitted on
-#' log-transformed data. If \code{"Z"}, then this is selected automatically,
+#' @param type Type of model. Can either be \code{"additive"} or
+#' \code{"multiplicative"}. The latter means that the GUM is fitted on
+#' log-transformed data. If \code{"select"}, then this is selected automatically,
 #' which may slow down things twice.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
@@ -55,7 +55,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #'
 #' @export auto.gum
-auto.gum <- function(y, orders=3, lags=frequency(y), type=c("A","M","Z"),
+auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multiplicative","select"),
                      initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                      loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
@@ -77,11 +77,16 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("A","M","Z"),
     y <- depricator(y, list(...), "data");
     loss <- depricator(loss, list(...), "cfType");
     interval <- depricator(interval, list(...), "intervals");
-    orders <- depricator(interval, list(...), "ordersMax");
-    lags <- depricator(interval, list(...), "lagsMax");
+    orders <- depricator(orders, list(...), "ordersMax");
+    lags <- depricator(lags, list(...), "lagsMax");
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
+
+    # If this is Mcomp data, then take the frequency from it
+    if(any(class(y)=="Mdata") && lags==frequency(y)){
+        lags <- frequency(y$x);
+    }
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
@@ -105,13 +110,13 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("A","M","Z"),
 
     type <- substr(type[1],1,1);
     # Check if the multiplictive model is possible
-    if(any(type==c("Z","M"))){
+    if(any(type==c("s","m"))){
         if(any(yInSample<=0)){
             warning("Multiplicative model can only be used on positive data. Switching to the additive one.",call.=FALSE);
-            type <- "A";
+            type <- "a";
         }
-        if(type=="Z"){
-            type <- c("A","M");
+        if(type=="s"){
+            type <- c("a","m");
         }
     }
 

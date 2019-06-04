@@ -1558,7 +1558,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     # Define obsAll, the overal number of observations (in-sample + holdout)
     obsAll <- length(y) + (1 - holdout)*h;
 
-    yInSample <- y[1:obsInSample];
+    yInSample <- matrix(y[1:obsInSample],obsInSample,1);
     dataFreq <- frequency(y);
     dataStart <- start(y);
     yForecastStart <- time(y)[obsInSample]+deltat(y);
@@ -2427,10 +2427,10 @@ ssForecaster <- function(...){
     }
 
     if(h>0){
-        yForecast <- ts(c(forecasterwrap(matrix(matvt[(obsInSample+1):(obsInSample+maxlag),],nrow=maxlag),
+        yForecast <- ts(c(forecasterwrap(matvt[(obsInSample+1):(obsInSample+maxlag),,drop=FALSE],
                                          matF, matw, h, Etype, Ttype, Stype, modellags,
-                                         matrix(matxt[(obsAll-h+1):(obsAll),],ncol=nExovars),
-                                         matrix(matat[(obsAll-h+1):(obsAll),],ncol=nExovars), matFX)),
+                                         matxt[(obsAll-h+1):(obsAll),,drop=FALSE],
+                                         matat[(obsAll-h+1):(obsAll),,drop=FALSE], matFX)),
                         start=yForecastStart,frequency=dataFreq);
 
         if(any(loss==c("LogisticL","LogisticD"))){

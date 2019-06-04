@@ -34,7 +34,7 @@ provided parameters will take this into account.
 \item \code{residuals} - the residuals of the SMA / AR model.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into
 account) of the SMA / AR model.
-\item \code{actuals} - the original data.
+\item \code{y} - the original data.
 \item \code{ICs} - values of information criteria from the respective SMA or
 AR model. Includes AIC, AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the SMA / AR model.
@@ -70,8 +70,6 @@ ourModel <- cma(rnorm(118,100,3),order=12)
 ourModel <- cma(rnorm(118,100,3))
 
 summary(ourModel)
-forecast(ourModel)
-plot(forecast(ourModel))
 
 }
 \references{
@@ -90,8 +88,6 @@ University 2017:1, 1-52.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{ARIMA}
-\keyword{SARIMA}
 \keyword{models}
 \keyword{nonlinear}
 \keyword{regression}

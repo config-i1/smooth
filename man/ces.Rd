@@ -193,7 +193,7 @@ freedom into account).
 \item \code{interval} - type of interval asked by user.
 \item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
-\item \code{actuals} - The data provided in the call of the function.
+\item \code{y} - The data provided in the call of the function.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
 If the model is non-intermittent, then occurrence is \code{NULL}.

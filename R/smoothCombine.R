@@ -54,7 +54,7 @@
 #' \item \code{interval} - type of interval asked by user.
 #' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{actuals} - original data.
+#' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
 #' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
 #' If the model is non-intermittent, then occurrence is \code{NULL}.
@@ -204,7 +204,7 @@ smoothCombine <- function(y, models=NULL,
 
     yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
     yHoldout <- yForecastTest$model$holdout;
-    yInSample <- yForecastTest$model$actuals;
+    yInSample <- yForecastTest$model$y;
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
@@ -370,7 +370,7 @@ smoothCombine <- function(y, models=NULL,
                   fitted=yFitted, quantiles=ourQuantiles,
                   forecast=yForecast, lower=lower, upper=upper, residuals=errors, s2=s2,
                   interval=intervalType, level=level, cumulative=cumulative,
-                  actuals=y, holdout=yHoldout, ICs=ICs, ICw=icWeights, loss=loss,
+                  y=y, holdout=yHoldout, ICs=ICs, ICw=icWeights, loss=loss,
                   lossValue=NULL,accuracy=errormeasures);
 
     return(structure(model,class=c("smoothC","smooth")));

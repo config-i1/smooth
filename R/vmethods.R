@@ -16,7 +16,7 @@ logLik.viss <- function(object,...){
 AICc.vsmooth <- function(object, ...){
     llikelihood <- logLik(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
-    nSeries <- ncol(object$actuals);
+    nSeries <- ncol(actuals(object));
     # Remove covariances in the number of parameters
     nParamAll <- nparam(object) / nSeries - switch(object$loss,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
@@ -34,7 +34,7 @@ AICc.vsmooth <- function(object, ...){
 BICc.vsmooth <- function(object, ...){
     llikelihood <- logLik(object);
     llikelihood <- llikelihood[1:length(llikelihood)];
-    nSeries <- ncol(object$actuals);
+    nSeries <- ncol(actuals(object));
     # Remove covariances in the number of parameters
     nParamAll <- nparam(object) / nSeries - switch(object$loss,
                                                    "likelihood" = nSeries*(nSeries+1)/2,
@@ -106,13 +106,13 @@ plot.viss <- function(x, ...){
         intermittent <- "None";
     }
 
-    actuals <- x$actuals;
+    y <- actuals(x);
     yForecast <- x$forecast;
     yFitted <- x$fitted;
-    dataDeltat <- deltat(actuals);
+    dataDeltat <- deltat(y);
     forecastStart <- start(yForecast);
     h <- nrow(yForecast);
-    nSeries <- ncol(actuals);
+    nSeries <- ncol(y);
     modelname <- paste0("iVES(",x$model,")")
 
     pages <- ceiling(nSeries / 5);
@@ -120,10 +120,10 @@ plot.viss <- function(x, ...){
     for(j in 1:pages){
         par(mfcol=c(min(5,floor(nSeries/j)),1));
         for(i in 1:nSeries){
-            plotRange <- range(min(actuals[,i],yForecast[,i],yFitted[,i]),
-                               max(actuals[,i],yForecast[,i],yFitted[,i]));
-            plot(actuals[,i],main=paste0(modelname,", series ", i),ylab="Y",
-                 ylim=plotRange, xlim=range(time(actuals[,i])[1],time(yForecast)[max(h,1)]),
+            plotRange <- range(min(y[,i],yForecast[,i],yFitted[,i]),
+                               max(y[,i],yForecast[,i],yFitted[,i]));
+            plot(y[,i],main=paste0(modelname,", series ", i),ylab="Y",
+                 ylim=plotRange, xlim=range(time(y[,i])[1],time(yForecast)[max(h,1)]),
                  type="l");
             lines(yFitted[,i],col="purple",lwd=2,lty=2);
             if(h>1){
@@ -249,10 +249,10 @@ print.vsmooth <- function(x, ...){
     }
     if(!is.null(x$nParam)){
         if(x$nParam[1,4]==1){
-            cat(paste0(x$nParam[1,4]," parameter was estimated for ", ncol(x$actuals) ," time series in the process\n"));
+            cat(paste0(x$nParam[1,4]," parameter was estimated for ", ncol(actuals(x)) ," time series in the process\n"));
         }
         else{
-            cat(paste0(x$nParam[1,4]," parameters were estimated for ", ncol(x$actuals) ," time series in the process\n"));
+            cat(paste0(x$nParam[1,4]," parameters were estimated for ", ncol(actuals(x)) ," time series in the process\n"));
         }
 
         if(x$nParam[2,4]>1){
@@ -303,7 +303,7 @@ simulate.vsmooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     # Start a list of arguments
     args <- vector("list",0);
 
-    args$nSeries <- ncol(object$actuals);
+    args$nSeries <- ncol(actuals(object));
 
     if(!is.null(ellipsis$randomizer)){
         randomizer <- ellipsis$randomizer;
@@ -374,7 +374,7 @@ simulate.vsmooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
 
     args$randomizer <- randomizer;
-    args$frequency <- frequency(object$actuals);
+    args$frequency <- frequency(actuals(object));
     args$obs <- obs;
     args$nsim <- nsim;
     args$initial <- object$initial;

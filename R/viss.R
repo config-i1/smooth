@@ -53,7 +53,7 @@
 #' \item \code{logLik} - likelihood value for the model
 #' \item \code{nParam} - number of parameters used in the model;
 #' \item \code{residuals} - residuals of the model;
-#' \item \code{actuals} - actual values of probabilities (zeros and ones).
+#' \item \code{y} - actual values of probabilities (zeros and ones).
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{initial} - initial values of the state vector;
 #' \item \code{initialSeason} - the matrix of initials seasonal states;
@@ -332,7 +332,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
 
     output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
                    variance=pForecast*(1-pForecast), logLik=logLik, nParam=nParam,
-                   residuals=errors, actuals=otAll, persistence=persistence, initial=initial,
+                   residuals=errors, y=otAll, persistence=persistence, initial=initial,
                    initialSeason=initialSeason, intermittent=intermittent, issModel=issModel,
                    probability=probability);
 

@@ -62,7 +62,7 @@ utils::globalVariables(c("yForecastStart"));
 #' \item \code{interval} - type of interval asked by user.
 #' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{actuals} - the original data.
+#' \item \code{y} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC,
 #' AICc, BIC and BICc.
@@ -321,7 +321,7 @@ CreatorSMA <- function(silentText=FALSE,...){
                   order=order, initial=matvt[1,], initialType=initialType, nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
-                  actuals=y,holdout=yHoldout,occurrence=NULL,
+                  y=y,holdout=yHoldout,occurrence=NULL,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errormeasures);
     return(structure(model,class="smooth"));
 }

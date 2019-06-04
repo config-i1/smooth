@@ -95,7 +95,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' \item \code{interval} - type of interval asked by user.
 #' \item \code{level} - confidence level for interval.
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{actuals} - original data.
+#' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
 #' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
 #' If the model is non-intermittent, then occurrence is \code{NULL}.
@@ -917,7 +917,7 @@ CreatorGUM <- function(silentText=FALSE,...){
                   nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
-                  actuals=y,holdout=yHoldout,occurrence=occurrenceModel,
+                  y=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
     return(structure(model,class="smooth"));

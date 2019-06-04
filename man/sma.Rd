@@ -96,7 +96,7 @@ account).
 \item \code{interval} - type of interval asked by user.
 \item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
-\item \code{actuals} - the original data.
+\item \code{y} - the original data.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{ICs} - values of information criteria of the model. Includes AIC,
 AICc, BIC and BICc.

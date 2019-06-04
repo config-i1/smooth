@@ -44,7 +44,7 @@
 #' \item \code{residuals} - the residuals of the SMA / AR model.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into
 #' account) of the SMA / AR model.
-#' \item \code{actuals} - the original data.
+#' \item \code{y} - the original data.
 #' \item \code{ICs} - values of information criteria from the respective SMA or
 #' AR model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the SMA / AR model.
@@ -55,7 +55,6 @@
 #' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},
 #' \link[smooth]{ssarima}}
 #'
-#' @keywords SARIMA ARIMA
 #' @examples
 #'
 #' # CMA of specific order
@@ -65,8 +64,6 @@
 #' ourModel <- cma(rnorm(118,100,3))
 #'
 #' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))
 #'
 #' @export cma
 cma <- function(y, order=NULL, silent=TRUE, ...){
@@ -148,7 +145,7 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
         order <- orders(sma(yInSample));
     }
 
-    if((order %% 2)!=0){
+    if((order %% 2)!=0 | (order==obsInSample)){
         smaModel <- sma(yInSample, order=order, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
         yFitted <- c(smaModel$fitted[-c(1:((order+1)/2))],smaModel$forecast);
         logLik <- smaModel$logLik;
@@ -172,7 +169,7 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
     model <- structure(list(model=modelname,timeElapsed=Sys.time()-startTime,
                             order=order, nParam=nParam,
                             fitted=yFitted,forecast=yForecast,residuals=errors,s2=s2,
-                            actuals=y,
+                            y=y,
                             ICs=NULL,logLik=logLik,lossValue=cfObjective,loss="MSE"),
                        class="smooth");
 

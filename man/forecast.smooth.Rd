@@ -28,7 +28,7 @@ Returns object of class "smooth.forecast", which contains:
 \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
 \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
 \item \code{fitted} - fitted values of the model.
-\item \code{actuals} - actuals provided in the call of the model.
+\item \code{y} - actual values provided in the call of the model.
 \item \code{forecast} aka \code{mean} - point forecasts of the model
 (conditional mean).
 \item \code{lower} - lower bound of prediction interval.

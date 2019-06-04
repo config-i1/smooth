@@ -666,7 +666,6 @@ coef.smooth <- function(object, ...)
     return(parameters);
 }
 
-#' @importFrom greybox actuals
 
 #### Fitted, forecast and actual values ####
 #' @export
@@ -702,7 +701,7 @@ NULL
 #' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
 #' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
 #' \item \code{fitted} - fitted values of the model.
-#' \item \code{actuals} - actuals provided in the call of the model.
+#' \item \code{y} - actual values provided in the call of the model.
 #' \item \code{forecast} aka \code{mean} - point forecasts of the model
 #' (conditional mean).
 #' \item \code{lower} - lower bound of prediction interval.
@@ -733,21 +732,21 @@ forecast.smooth <- function(object, h=10,
     smoothType <- smoothType(object);
     interval <- interval[1];
     if(smoothType=="ETS"){
-        newModel <- es(object$actuals,model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- es(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
     }
     else if(smoothType=="CES"){
-        newModel <- ces(object$actuals,model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
     }
     else if(smoothType=="GUM"){
-        newModel <- gum(object$actuals,model=object,type=errorType(object),h=h,interval=interval,level=level,silent="all",...);
+        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=level,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
             if(is.msarima(object)){
-                newModel <- msarima(object$actuals,model=object,h=h,interval=interval,level=level,silent="all",...);
+                newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
             }
             else{
-                newModel <- ssarima(object$actuals,model=object,h=h,interval=interval,level=level,silent="all",...);
+                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
             }
         }
         else{
@@ -756,14 +755,14 @@ forecast.smooth <- function(object, h=10,
         }
     }
     else if(smoothType=="SMA"){
-        newModel <- sma(object$actuals,model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- sma(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
     }
     else{
         stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GUM', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
     }
-    output <- list(model=object,method=object$model,fitted=newModel$fitted,actuals=newModel$actuals,
+    output <- list(model=object,method=object$model,fitted=newModel$fitted,y=actuals(newModel),
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
-                   interval=interval,mean=newModel$forecast,x=object$actuals,residuals=object$residuals);
+                   interval=interval,mean=newModel$forecast,x=actuals(object),residuals=object$residuals);
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
@@ -772,11 +771,15 @@ forecast.smooth <- function(object, h=10,
 #' @importFrom greybox actuals
 #' @export
 actuals.smooth <- function(object, ...){
-    return(window(object$actuals,start(object$actuals),end(object$fitted)));
+    return(window(object$y,start(object$y),end(object$fitted)));
 }
 #' @export
 actuals.smooth.forecast <- function(object, ...){
-    return(window(object$model$actuals,start(object$model$actuals),end(object$model$fitted)));
+    return(window(object$model$y,start(object$model$y),end(object$model$fitted)));
+}
+#' @export
+actuals.iss <- function(object, ...){
+    return(window(object$y,start(object$y),end(object$fitted)));
 }
 
 #### Function extracts lags of provided model ####
@@ -1159,10 +1162,10 @@ plot.oes <- function(x, ...){
     ellipsis <- list(...);
 
     if(is.null(ellipsis$main)){
-        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,main=x$model,...);
+        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper,main=x$model,...);
     }
     else{
-        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper, ...);
+        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper, ...);
     }
 }
 
@@ -1204,7 +1207,7 @@ plot.smooth <- function(x, ...){
         }
     }
     else if(smoothType=="CMA"){
-        ellipsis$actuals <- x$actuals;
+        ellipsis$actuals <- actuals(x);
         ellipsis$forecast <- x$forecast;
         ellipsis$fitted <- x$fitted;
         ellipsis$legend <- FALSE;
@@ -1251,7 +1254,7 @@ plot.smooth <- function(x, ...){
 
 #' @export
 plot.smoothC <- function(x, ...){
-    graphmaker(x$actuals, x$forecast, x$fitted, x$lower, x$upper, x$level,
+    graphmaker(actuals(x), x$forecast, x$fitted, x$lower, x$upper, x$level,
                main="Combined smooth forecasts");
 }
 
@@ -1292,10 +1295,10 @@ plot.smooth.sim <- function(x, ...){
 #' @export
 plot.smooth.forecast <- function(x, ...){
     if(any(x$interval!=c("none","n"))){
-        graphmaker(x$actuals,x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$method);
+        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$method);
     }
     else{
-        graphmaker(x$actuals,x$forecast,x$fitted,main=x$method);
+        graphmaker(actuals(x),x$forecast,x$fitted,main=x$method);
     }
 }
 
@@ -1319,10 +1322,10 @@ plot.iss <- function(x, ...){
         intermittent <- "None";
     }
     if(is.null(ellipsis$main)){
-        graphmaker(x$actuals,x$forecast,x$fitted,main=paste0("iSS, ",intermittent), ...);
+        graphmaker(actuals(x),x$forecast,x$fitted,main=paste0("iSS, ",intermittent), ...);
     }
     else{
-        graphmaker(x$actuals,x$forecast,x$fitted, ...);
+        graphmaker(actuals(x),x$forecast,x$fitted, ...);
     }
 }
 
@@ -1666,7 +1669,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         }
     }
     args$randomizer <- randomizer;
-    args$frequency <- frequency(object$actuals);
+    args$frequency <- frequency(actuals(object));
     args$obs <- obs;
     args$nsim <- nsim;
     args$initial <- object$initial;

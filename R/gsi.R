@@ -87,7 +87,7 @@
 #' \item \code{initial} - The initial values of the non-seasonal components;
 #' \item \code{initialSeason} - The initial values of the seasonal components;
 #' \item \code{nParam} - The number of estimated parameters;
-#' \item \code{actuals} - The matrix with the original data;
+#' \item \code{y} - The matrix with the original data;
 #' \item \code{fitted} - The matrix of the fitted values;
 #' \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
 #' the estimation);
@@ -794,7 +794,7 @@ CreatorGSI <- function(silent=FALSE,...){
                   persistence=persistenceValue,
                   initial=initialValue, initialSeason=initialSeasonValue,
                   nParam=parametersNumber,
-                  actuals=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
+                  y=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,interval=intervalType,level=level,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errorMeasures,
                   FI=FI);

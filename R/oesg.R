@@ -1052,7 +1052,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         modelname <- "oETS";
     }
     # Start forming the output
-    output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", actuals=otAll,
+    output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", y=otAll,
                    fitted=pFitted, forecast=pForecast, modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);
     output$timeElapsed <- Sys.time()-startTime;

@@ -228,7 +228,7 @@ This is an unbiased estimate of variance.
 \item \code{interval} - type of interval asked by user.
 \item \code{level} - confidence level for interval.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
-\item \code{actuals} - original data.
+\item \code{y} - original data.
 \item \code{holdout} - holdout part of the original data.
 \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
 If the model is non-intermittent, then occurrence is \code{NULL}.
@@ -269,7 +269,7 @@ shorter list of values is returned:
 \item \code{interval},
 \item \code{level},
 \item \code{cumulative},
-\item \code{actuals},
+\item \code{y},
 \item \code{holdout},
 \item \code{occurrence},
 \item \code{ICs} - combined ic,

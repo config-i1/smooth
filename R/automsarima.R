@@ -735,7 +735,7 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                           initialType=initialType,
                           fitted=yFitted,forecast=yForecast,cumulative=cumulative,
                           lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
-                          actuals=y,holdout=yHoldout,occurrence=occurrence,
+                          y=y,holdout=yHoldout,occurrence=occurrence,
                           xreg=xreg, xregDo=xregDo, initialX=initialX,
                           updateX=updateX, persistenceX=persistenceX, transitionX=transitionX,
                           ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
