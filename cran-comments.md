@@ -1,7 +1,7 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "30 May 2019"
+date: "05 June 2019"
 output: html_document
 ---
 ## Version
@@ -17,8 +17,8 @@ R CMD check results
 checking installed package size ... NOTE
   installed size is  10.1Mb
   sub-directories of 1Mb or more:
-    doc    1.8Mb
-    libs   7.7Mb
+    doc    2.4Mb
+    libs   9.7Mb
 0 errors | 0 warnings | 1 note
 
 # Other checks
