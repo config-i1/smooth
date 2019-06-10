@@ -435,9 +435,17 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
         # Number of components to use
         nComponents <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
+        # If there is no constant and there are no orders
+        if(nComponents==0 & !constantRequired){
+            constantValue <- 0;
+            constantRequired[] <- TRUE
+            nComponenst <- 1;
+        }
+
         nonZeroARI <- matrix(1,ncol=2);
         nonZeroMA <- matrix(1,ncol=2);
         modellags <- matrix(rep(1,nComponents),ncol=1);
+
         if(constantRequired){
             modellags <- rbind(modellags,1);
         }

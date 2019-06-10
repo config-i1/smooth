@@ -14,6 +14,7 @@ Changes:
 * "workFast" in auto.ssarima() and auto.msarima() is now "fast" instead.
 * "intervals" (plural) is now "interval" (singular) instead. This is needed, so that the input is consistent with predict() function.
 * "actuals" are now renamed into "y" in the output of the functions.
+* A failsafe mechanism for SSARIMA and MSARIMA for the cases, when there is no models and no constant.
 
 Bugfixes:
 * A bugfix in occurrence="d" - an error was not calculated correctly.
