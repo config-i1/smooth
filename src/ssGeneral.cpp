@@ -426,9 +426,10 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 # polysos - function that transforms AR and MA parameters into polynomials
 # and then in matF and other things.
 # Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
+# C and constValue can be NULL, so pointer is not suitable here.
 */
 List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec const &iOrders, arma::uvec const &lags, unsigned int const &nComponents,
-             arma::vec const &arValues, arma::vec const &maValues, double const constValue, arma::vec const &C,
+             arma::vec const &arValues, arma::vec const &maValues, double const constValue, arma::vec const C,
              arma::mat &matrixVt, arma::vec &vecG, arma::mat &matrixF,
              char const &fitterType, int const &nexo, arma::mat &matrixAt, arma::mat &matrixFX, arma::vec &vecGX,
              bool const &arEstimate, bool const &maEstimate, bool const &constRequired, bool const &constEstimate,
