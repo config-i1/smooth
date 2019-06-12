@@ -428,7 +428,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 # Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
 */
 List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec const &iOrders, arma::uvec const &lags, unsigned int const &nComponents,
-             arma::vec const &arValues, arma::vec const &maValues, double const &constValue, arma::vec const &C,
+             arma::vec const &arValues, arma::vec const &maValues, double const constValue, arma::vec const &C,
              arma::mat &matrixVt, arma::vec &vecG, arma::mat &matrixF,
              char const &fitterType, int const &nexo, arma::mat &matrixAt, arma::mat &matrixFX, arma::vec &vecGX,
              bool const &arEstimate, bool const &maEstimate, bool const &constRequired, bool const &constEstimate,
@@ -1843,7 +1843,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
     }
     arma::vec maValues(MA_n.begin(), MA_n.size(), false);
 
-    double constValue;
+    double constValue = 0.0;
     if(!Rf_isNull(constant)){
         constValue = as<double>(constant);
     }
