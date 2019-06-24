@@ -20,7 +20,7 @@ test_that("Test VES with individual seasonality and persistence", {
 })
 
 # Test VES with grouped initials and dependent persistence
-testModel <- ves(Y,"AAN", initial="g", persistence="d", silent=TRUE);
+testModel <- ves(Y,"AAN", initial="c", persistence="d", silent=TRUE);
 test_that("Test VES with grouped initials and dependent persistence", {
     expect_equal(length(coefficients(testModel)), 10);
 })

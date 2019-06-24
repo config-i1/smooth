@@ -4,17 +4,19 @@
 \alias{ves}
 \title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
-ves(y, model = "ANN", persistence = c("group", "independent",
-  "dependent", "seasonal"), transition = c("group", "independent",
-  "dependent"), phi = c("group", "individual"),
-  initial = c("individual", "group"), initialSeason = c("group",
-  "individual"), loss = c("likelihood", "diagonal", "trace"),
-  ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  interval = c("none", "conditional", "unconditional", "independent"),
-  level = 0.95, cumulative = FALSE, intermittent = c("none", "fixed",
-  "logistic"), imodel = "ANN", iprobability = c("dependent",
-  "independent"), bounds = c("admissible", "usual", "none"),
-  silent = c("all", "graph", "output", "none"), ...)
+ves(y, model = "ANN", persistence = c("common", "individual",
+  "dependent", "seasonal-common"), transition = c("common", "individual",
+  "dependent"), phi = c("common", "individual"),
+  initial = c("individual", "common"), initialSeason = c("common",
+  "individual"), seasonal = c("individual", "common"),
+  weights = rep(1/ncol(y), ncol(y)), loss = c("likelihood", "diagonal",
+  "trace"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
+  holdout = FALSE, interval = c("none", "conditional", "unconditional",
+  "individual"), level = 0.95, cumulative = FALSE,
+  intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
+  iprobability = c("dependent", "independent"),
+  bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
+  "output", "none"), ...)
 }
 \arguments{
 \item{y}{The matrix with the data, where series are in columns and
@@ -68,13 +70,13 @@ zero).
 You can also use the first letter instead of writing the full word.}
 
 \item{phi}{In cases of damped trend this parameter defines whether the \eqn{phi}
-should be estimated separately for each series (\code{individual}) or for the whole
-set (\code{group}). If vector or a value is provided here, then it is used by the
+should be estimated separately for each series (\code{"individual"}) or for the whole
+set (\code{"common"}). If vector or a value is provided here, then it is used by the
 model.}
 
 \item{initial}{Can be either character or a vector / matrix of initial states.
 If it is character, then it can be \code{"individual"}, individual values of
-the initial non-seasonal components are used, or \code{"group"}, meaning that
+the initial non-seasonal components are used, or \code{"common"}, meaning that
 the initials for all the time series are set to be equal to the same value.
 If vector of states is provided, then it is automatically transformed into
 a matrix, assuming that these values are provided for the whole group.}
@@ -82,6 +84,13 @@ a matrix, assuming that these values are provided for the whole group.}
 \item{initialSeason}{Can be either character or a vector / matrix of initial
 states. Treated the same way as \code{initial}. This means that different time
 series may share the same initial seasonal component.}
+
+\item{seasonal}{The type of seasonal component across the series. Can be
+\code{"individual"}, so that each series has its own component or \code{"common"},
+so that the component is shared across the series.}
+
+\item{weights}{The weights for the errors between the series with the common
+seasonal component. Ignored if \code{seasonal="individual"}.}
 
 \item{loss}{Type of Loss Function used in optimization. \code{loss} can
 be:
@@ -273,7 +282,7 @@ ves(Y,model="ANN",h=10,holdout=TRUE)
 ves(Y,model="AAdN",persistence="d",h=10,holdout=TRUE)
 
 # Multiplicative damped trend model with individual phi
-ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="g")
+ves(Y,model="MMdM",persistence="i",h=10,holdout=TRUE,initialSeason="c")
 
 Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
            c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
