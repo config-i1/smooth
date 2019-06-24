@@ -53,7 +53,12 @@ Currently we have pure additive and pure multiplicative models only, and I don't
 ourModel <- ves(Y, "MMdM", phi="i", persistence="i", h=18, holdout=TRUE)
 ```
 
-Number of estimated parameters in the model can be extracted via `nParam()` method. However, when it comes to the calculation of the number of degrees of freedom in the model, this value is divided by the number of series [@Lutkepohl2005]. So both `ourModel$Sigma` and all the information criteria rely on the $df = T - k_m$, where $T$ is the number of observations and $k_m = \frac{k}{m}$ is the number of parameters $k$ per series ($m$ is the number of series).
+There are different options for the seasonal models. For example, you can set a common seasonal component between the series with the equal weights:
+```{r ves_MMdM_CCAC}
+ourModel <- ves(Y, "MMdM", persistence="c", seasonal="c", h=18, holdout=TRUE, silent=F)
+```
+
+Number of estimated parameters in the model can be extracted via `nparam()` method. However, when it comes to the calculation of the number of degrees of freedom in the model, this value is divided by the number of series [@Lutkepohl2005]. So both `ourModel$Sigma` and all the information criteria rely on the $df = T - k_m$, where $T$ is the number of observations and $k_m = \frac{k}{m}$ is the number of parameters $k$ per series ($m$ is the number of series).
 
 AICc and BICc for the vector models are calculated as proposed in [@Bedrick1994] and [@Tremblay2004].
 

@@ -121,17 +121,17 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
 
     if(is.null(persistence)){
         if(probability=="d"){
-            persistence <- "g";
+            persistence <- "c";
         }
     }
     if(is.null(transition)){
         if(probability=="d"){
-            transition <- "g";
+            transition <- "c";
         }
     }
     if(is.null(phi)){
         if(probability=="d"){
-            phi <- "g";
+            phi <- "c";
         }
     }
     if(!is.null(initial)){
@@ -157,7 +157,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
     }
     if(is.null(initialSeason)){
         if(probability=="d"){
-            initialSeason <- "g";
+            initialSeason <- "c";
         }
     }
 

@@ -56,7 +56,7 @@ The list of functions includes:
 \item \code{is.smoothC()} tests if the object was produced by a combination
 function (currently applies only to \link[smooth]{smoothCombine});
 \item \code{is.vsmooth()} tests if the object was produced by a vector model (e.g.
-\link[smooth]{ves} / \link[smooth]{gsi});
+\link[smooth]{ves});
 \item \code{is.oes()} tests if the object was produced by \link[smooth]{oes}
 function;
 \item \code{is.viss()} tests if the object was produced by \link[smooth]{viss}
