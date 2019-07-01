@@ -1,8 +1,9 @@
-utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal","obsInSample","obsAll",
-                         "modelLags","persistenceEstimate","persistenceType","persistenceValue","damped","dampedEstimate","dampedType",
-                         "transitionType","initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat","dataFreq","dataStart",
-                         "otObs","dataNames","seasonalType"));
+utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal",
+                         "obsInSample","obsAll","modelLags","persistenceEstimate","persistenceType",
+                         "persistenceValue","damped","dampedEstimate","dampedType","transitionType",
+                         "initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
+                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat",
+                         "dataFreq","dataStart","otObs","dataNames","seasonalType"));
 
 #' Vector Exponential Smoothing in SSOE state space model
 #'
@@ -207,12 +208,6 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
         if(smoothType(model)!="VES"){
             stop("The provided model is not VES.",call.=FALSE);
         }
-        # intermittent <- model$intermittent;
-        # if(any(intermittent==c("p","provided"))){
-        #     warning("The provided model had predefined values of occurences for the holdout. We don't have them.",call.=FALSE);
-        #     warning("Switching to intermittent='auto'.",call.=FALSE);
-        #     intermittent <- "a";
-        # }
         persistence <- model$persistence;
         transition <- model$transition;
         phi <- model$phi;
@@ -443,7 +438,8 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
 # This is needed for model selection
 
 ##### Basic matrices creator #####
-# This thing returns matvt, matF, matG, matW, dampedValue, initialValue and initialSeasonValue if they are not provided + modelLags
+    # This thing returns matvt, matF, matG, matW, dampedValue, initialValue
+    # and initialSeasonValue if they are not provided + modelLags
 BasicMakerVES <- function(...){
     # ellipsis <- list(...);
     # ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -645,7 +641,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 persistenceValue <- A[1:(nComponentsAll*nSeries)];
                 nCoefficients <- nComponentsAll*nSeries;
                 for(i in 1:nSeries){
-                    persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),i] <- persistenceValue[1:nComponentsAll+nComponentsAll*(i-1)];
+                    persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),
+                                      i] <- persistenceValue[1:nComponentsAll+nComponentsAll*(i-1)];
                 }
                 persistenceValue <- persistenceBuffer;
             }
@@ -660,7 +657,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 persistenceSeasonal <- persistenceValue[length(persistenceValue)];
                 nCoefficients <- ((nComponentsAll-1)*nSeries+1);
                 for(i in 1:nSeries){
-                    persistenceBuffer[1:(nComponentsAll-1)+nComponentsAll*(i-1),i] <- persistenceValue[1:(nComponentsAll-1)+(nComponentsAll-1)*(i-1)];
+                    persistenceBuffer[1:(nComponentsAll-1)+nComponentsAll*(i-1),
+                                      i] <- persistenceValue[1:(nComponentsAll-1)+(nComponentsAll-1)*(i-1)];
                     persistenceBuffer[nComponentsAll+nComponentsAll*(i-1),i] <- persistenceSeasonal;
                 }
                 persistenceValue <- persistenceBuffer;
@@ -716,11 +714,13 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 initialPlaces <- sort(initialPlaces);
             }
             if(initialType=="i"){
-                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],nComponentsNonSeasonal * nSeries,1);
+                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
+                                       nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal*nSeries;
             }
             else if(initialType=="c"){
-                initialValue <- matrix(A[nCoefficients+c(1:nComponentsNonSeasonal)],nComponentsNonSeasonal * nSeries,1);
+                initialValue <- matrix(A[nCoefficients+c(1:nComponentsNonSeasonal)],
+                                       nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal;
             }
             matvt[initialPlaces,1:maxlag] <- rep(initialValue,maxlag);
@@ -730,7 +730,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
         if(modelIsSeasonal & initialSeasonEstimate){
             initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
             if(initialSeasonType=="i"){
-                matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],nSeries,maxlag,byrow=TRUE);
+                matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],
+                                                        nSeries,maxlag,byrow=TRUE);
                 nCoefficients <- nCoefficients + nSeries*maxlag;
             }
             else if(initialSeasonType=="c"){
@@ -749,7 +750,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 persistenceValue <- A[1:nComponentsAll];
                 nCoefficients <- nComponentsAll;
                 for(i in 1:nSeries){
-                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),i] <- persistenceValue[1:nComponentsNonSeasonal];
+                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
+                                      i] <- persistenceValue[1:nComponentsNonSeasonal];
                 }
                 persistenceBuffer[nSeries*nComponentsNonSeasonal+1,] <- weights*persistenceValue[nComponentsAll];
                 persistenceValue <- persistenceBuffer;
@@ -759,9 +761,11 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 persistenceValue <- A[1:(nComponentsNonSeasonal*nSeries+nSeries)];
                 nCoefficients <- nComponentsNonSeasonal*nSeries+nSeries;
                 for(i in 1:nSeries){
-                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
+                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
+                                      i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
                 }
-                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+c(1:nSeries)];
+                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,
+                                  ] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+c(1:nSeries)];
                 persistenceValue <- persistenceBuffer;
             }
             # Dependent values
@@ -774,9 +778,11 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 persistenceValue <- A[1:(nComponentsNonSeasonal*nSeries+1)];
                 nCoefficients <- nComponentsNonSeasonal*nSeries+1;
                 for(i in 1:nSeries){
-                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
+                    persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
+                                      i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
                 }
-                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+1];
+                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,
+                                  ] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+1];
                 persistenceValue <- persistenceBuffer;
             }
             matG[,] <- persistenceValue;
@@ -808,7 +814,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             for(i in 1:nSeries){
                 matF[c(1:nComponentsNonSeasonal)+nComponentsNonSeasonal*(i-1),
                      setdiff(c(1:(nSeries*nComponentsNonSeasonal)),
-                             c(1:nComponentsNonSeasonal)+nComponentsNonSeasonal*(i-1))] <- A[nCoefficients+c(1:nCoefficientsBuffer)];
+                             c(1:nComponentsNonSeasonal)+nComponentsNonSeasonal*(i-1))
+                     ] <- A[nCoefficients+c(1:nCoefficientsBuffer)];
                 nCoefficients <- nCoefficients + nCoefficientsBuffer;
             }
         }
@@ -830,7 +837,8 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 initialPlaces <- sort(initialPlaces);
             }
             if(initialType=="i"){
-                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],nComponentsNonSeasonal * nSeries,1);
+                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
+                                       nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal*nSeries;
             }
             else if(initialType=="c"){
@@ -949,7 +957,8 @@ CreatorVES <- function(silent=FALSE,...){
             # Write values from the rest of transition matrix
             for(i in 1:nSeries){
                 A <- c(A, c(transitionValue[c(1:nComponentsAll)+nComponentsAll*(i-1),
-                                            setdiff(c(1:nSeries*nComponentsAll),c(1:nComponentsAll)+nComponentsAll*(i-1))]));
+                                            setdiff(c(1:nSeries*nComponentsAll),
+                                                    c(1:nComponentsAll)+nComponentsAll*(i-1))]));
             }
             transitionLength <- length(A) - transitionLength;
             ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
@@ -1079,7 +1088,8 @@ CreatorVES <- function(silent=FALSE,...){
         rownames(persistenceValue) <- paste0(rep(dataNames,each=nComponentsAll), "_", persistenceNames);
     }
     else{
-        rownames(persistenceValue) <- c(paste0(rep(dataNames,each=nComponentsNonSeasonal), "_", persistenceNames[-nComponentsAll]),
+        rownames(persistenceValue) <- c(paste0(rep(dataNames,each=nComponentsNonSeasonal), "_"
+                                               persistenceNames[-nComponentsAll]),
                                         persistenceNames[nComponentsAll]);
     }
     colnames(persistenceValue) <- dataNames;
@@ -1241,7 +1251,8 @@ CreatorVES <- function(silent=FALSE,...){
 ##### Print output #####
     if(!silentText){
         if(any(abs(eigen(matF - matG %*% matW)$values)>(1 + 1E-10))){
-            warning(paste0("Model VES(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"),
+            warning(paste0("Model VES(",model,") is unstable! ",
+                           "Use a different value of 'bounds' parameter to address this issue!"),
                     call.=FALSE);
         }
     }
@@ -1276,9 +1287,12 @@ CreatorVES <- function(silent=FALSE,...){
                         lines(PI[,i*2-1],col="darkgrey",lwd=3,lty=2);
                         lines(PI[,i*2],col="darkgrey",lwd=3,lty=2);
 
-                        polygon(c(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat),
-                                  rev(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat))),
-                                c(as.vector(PI[,i*2]), rev(as.vector(PI[,i*2-1]))), col = "lightgray", border=NA, density=10);
+                        polygon(c(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],
+                                      dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat),
+                                  rev(seq(dataDeltat*(yForecastStart[2]-1)+yForecastStart[1],
+                                          dataDeltat*(end(yForecast)[2]-1)+end(yForecast)[1],dataDeltat))),
+                                c(as.vector(PI[,i*2]), rev(as.vector(PI[,i*2-1]))), col="lightgray",
+                                border=NA, density=10);
                     }
                     lines(yForecast[,i],col="blue",lwd=2);
                 }

@@ -13,7 +13,8 @@ vssInput <- function(smoothType=c("ves"),...){
     # Fix for cases with TRUE/FALSE.
     if(!is.logical(silent)){
         if(all(silent!=c("none","all","graph","legend","output","debugging","n","a","g","l","o","d"))){
-            warning(paste0("Sorry, I have no idea what 'silent=",silent,"' means. Switching to 'none'."),call.=FALSE);
+            warning(paste0("Sorry, I have no idea what 'silent=",silent,
+                           "' means. Switching to 'none'."),call.=FALSE);
             silent <- "none";
         }
         silent <- substring(silent,1,1);
@@ -53,9 +54,11 @@ vssInput <- function(smoothType=c("ves"),...){
 
     #### Check horizon ####
     if(h<=0){
-        warning(paste0("You have set forecast horizon equal to ",h,". We hope you know, what you are doing."), call.=FALSE);
+        warning(paste0("You have set forecast horizon equal to ",h,". We hope you know, what you are doing."),
+                call.=FALSE);
         if(h<0){
-            warning("And by the way, we can't do anything with negative horizon, so we will set it equal to zero.", call.=FALSE);
+            warning("And by the way, we can't do anything with negative horizon, so we will set it equal to zero.",
+                    call.=FALSE);
             h <- 0;
         }
     }
@@ -76,7 +79,8 @@ vssInput <- function(smoothType=c("ves"),...){
     }
 
     if(is.null(dim(y))){
-        stop("The provided data is not a matrix or a data.frame! If it is a vector, please use es() function instead.", call.=FALSE);
+        stop("The provided data is not a matrix or a data.frame! If it is a vector, please use es() function instead.",
+             call.=FALSE);
     }
 
     if(is.data.frame(y)){
@@ -282,7 +286,8 @@ vssInput <- function(smoothType=c("ves"),...){
         }
         else{
             if(intermittent=="n"){
-                warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",call.=FALSE);
+                warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",
+                        call.=FALSE);
                 Etype <- "A";
                 Ttype <- ifelse(Ttype=="M","A",Ttype);
                 Stype <- ifelse(Stype=="M","A",Stype);
@@ -671,7 +676,8 @@ vssInput <- function(smoothType=c("ves"),...){
                         else{
                             # If the transition matrix provide is full, cut off all the seasonals except for the first one.
                             if(transitionType=="p" && nrow(transitionValue)==nSeries*nComponentsAll){
-                                warning(paste0("The transition matrix you provided contains too many rows for the common seasonal model.",
+                                warning(paste0("The transition matrix you provided contains too many rows ",
+                                               "for the common seasonal model.",
                                                "Using only the first seasonal one."), call.=FALSE);
                                 transitionValue <- rbind(cbind(transitionValue[-(c(1:nSeries)*nComponentsAll),
                                                                                -(c(1:nSeries)*nComponentsAll)],
@@ -681,7 +687,8 @@ vssInput <- function(smoothType=c("ves"),...){
                             }
                             # Do similar stuff for the persistence
                             if(persistenceType=="p" && nrow(persistenceValue)==nSeries*nComponentsAll){
-                                warning(paste0("The persistence matrix you provided contains too many rows for the common seasonal model.",
+                                warning(paste0("The persistence matrix you provided contains too many rows ",
+                                               "for the common seasonal model.",
                                                "Using only the first seasonal one."), call.=FALSE);
                                 persistenceValue <- rbind(persistenceValue[-(c(1:nSeries)*nComponentsAll),],
                                                           persistenceValue[nComponentsAll,]);
@@ -725,7 +732,8 @@ vssInput <- function(smoothType=c("ves"),...){
                 else if(is.numeric(initialSeasonValue)){
                     if(smoothType=="ves"){
                         if(all(length(initialSeasonValue)!=c(dataFreq,dataFreq*nSeries))){
-                            warning(paste0("The length of initialSeason is wrong! It should correspond to the frequency of the data.",
+                            warning(paste0("The length of initialSeason is wrong! ",
+                                           "It should correspond to the frequency of the data.",
                                            "Values of initialSeason will be estimated as a common one."),call.=FALSE);
                             initialSeasonValue <- NULL;
                             initialSeasonType <- "c";
@@ -737,7 +745,8 @@ vssInput <- function(smoothType=c("ves"),...){
                             }
                             else{
                                 if(length(initialSeasonValue)!=dataFreq){
-                                    warning(paste0("The initialSeason you provided contains too many elements for the common seasonal model.",
+                                    warning(paste0("The initialSeason you provided contains too many elements ",
+                                                   "for the common seasonal model.",
                                                    "Using only the first ",dataFreq," values."), call.=FALSE);
                                 }
                                 initialSeasonValue <- matrix(initialSeasonValue[1:dataFreq],1,dataFreq);
@@ -1099,8 +1108,10 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
                 selectionMat[,modelLags>chuncksOfHorizon[j]] <- i;
 
                 matrixOfVarianceOfStatesLagged[elementsNew,
-                                               elementsNew] <- matrixOfVarianceOfStates[cbind(rep(c(1:nElements),each=nElements),
-                                                                                              rep(c(1:nElements),nElements),
+                                               elementsNew] <- matrixOfVarianceOfStates[cbind(rep(c(1:nElements),
+                                                                                                  each=nElements),
+                                                                                              rep(c(1:nElements),
+                                                                                                  nElements),
                                                                                               i - c(selectionMat))];
 
                 matrixOfVarianceOfStates[,,i] <- (transitionNew %*% matrixOfVarianceOfStatesLagged %*% t(transitionNew) +
@@ -1157,7 +1168,8 @@ vssForecaster <- function(...){
     # nParamPerSeries <- nParam / nSeries;
     # df <- (otObs - nParamPerSeries);
     # if(any(df<=0)){
-    #     warning(paste0("Number of degrees of freedom is negative. It looks like we have overfitted the data."),call.=FALSE);
+    #     warning(paste0("Number of degrees of freedom is negative. ",
+    #                    "It looks like we have overfitted the data."),call.=FALSE);
     #     df <- otObs;
     # }
 
@@ -1204,8 +1216,10 @@ vssForecaster <- function(...){
     }
 
     if(any(is.na(yFitted),all(is.na(yForecast),h>0))){
-        warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE,immediate.=TRUE);
-        warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE,immediate.=TRUE);
+        warning("Something went wrong during the optimisation and NAs were produced!",
+                call.=FALSE);
+        warning("Please check the input and report this error to the maintainer if it persists.",
+                call.=FALSE);
     }
 
     if(modelIsMultiplicative){
