@@ -5,6 +5,10 @@ Changes:
 * The GSI is now merged with VES with several advanced parameters. The seasonal models now have the subnames, according to the taxonomy of Chen et al. (TBA). gsi() function is no longer available.
 * seasonal and weights parameters in sim.ves() - they allow generating the data from VES[CCC] model.
 
+Bugfixes:
+* Bugfix in the combination of models in es(), when the data was non-seasonal.
+* Also, the duplicates in the modelsPool are now removed.
+
 
 smooth v2.5.1 (Release data: 2019-06-13)
 ==============
