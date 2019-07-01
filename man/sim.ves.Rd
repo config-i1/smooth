@@ -6,9 +6,10 @@
 \usage{
 sim.ves(model = "ANN", obs = 10, nsim = 1, nSeries = 2,
   frequency = 1, persistence = NULL, phi = 1, transition = NULL,
-  initial = NULL, initialSeason = NULL, bounds = c("usual",
-  "admissible", "restricted"), randomizer = c("rnorm", "rt", "rlaplace",
-  "rs"), ...)
+  initial = NULL, initialSeason = NULL,
+  seasonal = c("individual, common"), weights = rep(1/nSeries,
+  nSeries), bounds = c("usual", "admissible", "restricted"),
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"), ...)
 }
 \arguments{
 \item{model}{Type of ETS model. This can consist of 3 or 4 chars:
@@ -48,6 +49,13 @@ generated for each series.}
 \item{initialSeason}{Vector or matrix of initial states for seasonal
 coefficients. Should have number of rows equal to \code{frequency}
 parameter. If \code{NULL}, values are generated for each series.}
+
+\item{seasonal}{The type of seasonal component across the series. Can be
+\code{"individual"}, so that each series has its own component or \code{"common"},
+so that the component is shared across the series.}
+
+\item{weights}{The weights for the errors between the series with the common
+seasonal component. Ignored if \code{seasonal="individual"}.}
 
 \item{bounds}{Type of bounds to use for persistence vector if values are
 generated. \code{"usual"} - bounds from p.156 by Hyndman et. al., 2008.
