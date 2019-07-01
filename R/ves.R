@@ -1088,7 +1088,7 @@ CreatorVES <- function(silent=FALSE,...){
         rownames(persistenceValue) <- paste0(rep(dataNames,each=nComponentsAll), "_", persistenceNames);
     }
     else{
-        rownames(persistenceValue) <- c(paste0(rep(dataNames,each=nComponentsNonSeasonal), "_"
+        rownames(persistenceValue) <- c(paste0(rep(dataNames,each=nComponentsNonSeasonal), "_",
                                                persistenceNames[-nComponentsAll]),
                                         persistenceNames[nComponentsAll]);
     }
