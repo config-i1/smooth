@@ -24,7 +24,7 @@ Imports:
     Rcpp (>= 0.12.3),
     stats,
     graphics,
-    forecast,
+    forecast (>= 7.0),
     nloptr,
     utils,
     zoo

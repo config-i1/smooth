@@ -4,6 +4,7 @@ smooth v2.5.2 (Release data: 2019-07-01)
 Changes:
 * The GSI is now merged with VES with several advanced parameters. The seasonal models now have the subnames, according to the taxonomy of Chen et al. (TBA). gsi() function is no longer available.
 * seasonal and weights parameters in sim.ves() - they allow generating the data from VES[CCC] model.
+* Corrected the dependence on forecast package.
 
 Bugfixes:
 * Bugfix in the combination of models in es(), when the data was non-seasonal.
