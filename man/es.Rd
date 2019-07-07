@@ -287,6 +287,8 @@ and matrix of states.
 Function estimates ETS in a form of the Single Source of Error state space
 model of the following type:
 
+\deqn{y_{t} = o_t (w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l}) \epsilon_{t})}
+
 \deqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
 
 \deqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
@@ -295,10 +297,11 @@ Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
 normal data it equals to 1 for all observations), \eqn{v_{t}} is the state
 vector and \eqn{l} is the vector of lags, \eqn{x_t} is the vector of
 exogenous variables. w(.) is the measurement function, r(.) is the error
-function, f(.) is the transition function and g(.) is the persistence
-function. \eqn{a_t} is the vector of parameters for exogenous variables,
-\eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
-\code{persistenceX} matrix.  Finally, \eqn{\epsilon_{t}} is the error term.
+function, f(.) is the transition function, g(.) is the persistence
+function and h(.) is the explanatory variables function. \eqn{a_t} is the
+vector of parameters for exogenous variables, \eqn{F_{X}} is the
+\code{transitionX} matrix and \eqn{g_{X}} is the \code{persistenceX} matrix.
+Finally, \eqn{\epsilon_{t}} is the error term.
 
 For the details see Hyndman et al.(2008).
 
