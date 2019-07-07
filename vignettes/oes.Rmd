@@ -25,7 +25,7 @@ The canonical general iETS model (called iETS$_G$) can be summarised as:
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Bernoulli} \left(p_t \right) \\
-		p_t = f{a_t, b_t} \\
+		p_t = f(a_t, b_t) \\
 		a_t = w_a(v_{a,t-L}) + r_a(v_{a,t-L}) \epsilon_{a,t} \\
 		v_{a,t} = f_a(v_{a,t-L}) + g_a(v_{a,t-L}) \epsilon_{a,t} \\
 		(1 + \epsilon_{a,t}) \sim \text{log}\mathcal{N}(0, \sigma_{a}^2) \\
