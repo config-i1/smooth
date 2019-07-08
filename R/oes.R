@@ -261,10 +261,10 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
     xregNames <- colnames(matxt);
+    initialXEstimate <- xregdata$initialXEstimate;
     xreg <- xregdata$xreg;
-    initialXEstimate <- xreg$initialXEstimate;
 
-        #### The functions for the O, I, and P models ####
+    #### The functions for the O, I, and P models ####
     if(any(occurrence==c("o","i","d"))){
         ##### Initialiser of oes #####
         # This creates the states, transition, persistence and measurement matrices
@@ -450,7 +450,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                             initialType, modelIsSeasonal, initialSeasonEstimate,
                             xregEstimate, initialXEstimate, updateX,
                             modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
-                            vecg, matvt, matat, matFX, vecgX, xregNames){
+                            vecg, matvt, matat, matFX, vecgX, xregNames, nExovars){
             A <- NA;
             ALower <- NA;
             AUpper <- NA;
@@ -742,7 +742,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                              initialType, modelIsSeasonal, initialSeasonEstimate,
                              xregEstimate, initialXEstimate, updateX,
                              modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
-                             vecg, matvt, matat, matFX, vecgX, xregNames);
+                             vecg, matvt, matat, matFX, vecgX, xregNames, nExovars);
 
                 # Run the optimisation
                 res <- nloptr(A$A, CF, lb=A$ALower, ub=A$AUpper,
@@ -1011,7 +1011,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                         cat(paste0(modelCurrent,", "));
                     }
 
-                    results[[i]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=FALSE,
+                    results[[i]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
                                         bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
 
                     modelTested <- c(modelTested,modelCurrent);
@@ -1132,7 +1132,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
             modelCurrent <- modelsPool[j];
 
-            results[[j]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=FALSE,
+            results[[j]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
                                 bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
         }
 
@@ -1150,6 +1150,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         output$ICs <- icSelection;
         occurrence[] <- output$occurrence;
         model[] <- modelsPool[icBest];
+        pForecast <- output$forecast;
     }
     else{
         stop("The model combination is not implemented in oes just yet", call.=FALSE);

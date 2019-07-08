@@ -825,10 +825,10 @@ RcppExport SEXP occurrenceGeneralOptimizerWrap(SEXP ot, SEXP bounds,
     if(matrixAtA(0,0)!=0){
         // Test the bounds for the explanatory part
         arma::rowvec rowvecWX(matFXA_n.nrow(), arma::fill::ones);
-        boundsTestResult = boundsTester(boundtype, TA, SA, vecGXA, rowvecWX, matrixFXA);
-    }
-    if(boundsTestResult!=0){
-        return wrap(boundsTestResult);
+        boundsTestResult = boundsTester(boundtype,'N', 'N', vecGXA, rowvecWX, matrixFXA);
+        if(boundsTestResult!=0){
+            return wrap(boundsTestResult);
+        }
     }
 
 
@@ -873,10 +873,10 @@ RcppExport SEXP occurrenceGeneralOptimizerWrap(SEXP ot, SEXP bounds,
     if(matrixAtB(0,0)!=0){
         // Test the bounds for the explanatory part
         arma::rowvec rowvecWX(matFXB_n.nrow(), arma::fill::ones);
-        boundsTestResult = boundsTester(boundtype, TB, SB, vecGXB, rowvecWX, matrixFXB);
-    }
-    if(boundsTestResult!=0){
-        return wrap(boundsTestResult);
+        boundsTestResult = boundsTester(boundtype, 'N', 'N', vecGXB, rowvecWX, matrixFXB);
+        if(boundsTestResult!=0){
+            return wrap(boundsTestResult);
+        }
     }
 
     return wrap(occurrenceGeneralOptimizer(vecOt,

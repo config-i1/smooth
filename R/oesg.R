@@ -520,7 +520,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                         initialType, modelIsSeasonal, initialSeasonEstimate,
                         xregEstimate, initialXEstimate, updateX,
                         modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
-                        vecg, matvt, matat, matFX, vecgX, xregNames){
+                        vecg, matvt, matat, matFX, vecgX, xregNames, nExovars){
         A <- NA;
         ALower <- NA;
         AUpper <- NA;
@@ -809,13 +809,13 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                           xregEstimateA, initialXEstimateA, updateXA,
                           basicparamsA$modelLagsMax, basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
                           basicparamsA$vecg, basicparamsA$matvt, matatA,
-                          matFXA, vecgXA, xregNamesA);
+                          matFXA, vecgXA, xregNamesA, nExovarsA);
             AB <- AValues(bounds, TtypeB, StypeB, dampedB, phiEstimateB, persistenceEstimateB,
                           initialTypeB, modelIsSeasonalB, initialSeasonEstimateB,
                           xregEstimateB, initialXEstimateB, updateXB,
                           basicparamsB$modelLagsMax, basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
                           basicparamsB$vecg, basicparamsB$matvt, matatB,
-                          matFXB, vecgXB, xregNamesB);
+                          matFXB, vecgXB, xregNamesB, nExovarsB);
 
             # Run the optimisation
             res <- nloptr(c(AA$A,AB$A), CF, lb=c(AA$ALower,AB$ALower), ub=c(AA$AUpper,AB$AUpper),
