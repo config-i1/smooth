@@ -156,7 +156,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     FALSE, FALSE, FALSE, FALSE,
                                     FALSE, FALSE, FALSE, FALSE, FALSE,
                                     # This is still old ssarima
-                                    TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
+                                    TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
 
             if(bounds=="a" & (componentsNumber > 0)){
                 ARRoots <- abs(polyroot(elements$arPolynomial));
@@ -179,7 +179,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                     FALSE, FALSE, FALSE, FALSE,
                                     FALSE, FALSE, FALSE, FALSE, FALSE,
                                     # This is still old ssarima
-                                    TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
+                                    TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
 
             if(bounds=="a" & (componentsNumber > 0)){
                 MARoots <- abs(polyroot(elements$maPolynomial));
@@ -357,11 +357,11 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     # Number of components to use
     componentsNumber <- max(ar.orders %*% lags + i.orders %*% lags,ma.orders %*% lags);
     componentsNames <- paste0("Component ",1:(componentsNumber+constantRequired));
-    modellags <- matrix(rep(1,times=componentsNumber),ncol=1);
+    lagsModel <- matrix(rep(1,times=componentsNumber),ncol=1);
     if(constantRequired){
-        modellags <- rbind(modellags,1);
+        lagsModel <- rbind(lagsModel,1);
     }
-    maxlag <- 1;
+    lagsModelMax <- 1;
 
 #### Initials ####
     initialValue <- initial;
@@ -539,7 +539,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
                                 FALSE, FALSE, constantRequired, FALSE,
                                 FALSE, FALSE, FALSE, FALSE, FALSE,
                                 # This is still old ssarima
-                                TRUE, modellags, matrix(1,ncol=2), matrix(1,ncol=2));
+                                TRUE, lagsModel, matrix(1,ncol=2), matrix(1,ncol=2));
 
         arrF[,,i] <- elements$matF;
         matg[,i] <- elements$vecg;
@@ -569,13 +569,13 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + maxlag));
+            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + lagsModelMax));
         }
 
         # Center errors just in case
         materrors <- materrors - colMeans(materrors);
         # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,]))));
+        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,]))));
         if(randomizer=="rs"){
             materrors <- materrors / 4;
         }
@@ -588,11 +588,11 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
             materrors <- materrors - 0.5;
             # Make a meaningful variance of data. Something resembling to var=1.
             materrors <- materrors / rep(sqrt(colMeans(materrors^2)) *
-                                             sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
+                                             sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
         }
         else if(randomizer=="rt"){
             # Make a meaningful variance of data.
-            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
+            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
         }
     }
 
@@ -605,7 +605,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     }
 
 #### Simulate the data ####
-    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
+    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",lagsModel);
 
     if(all(iprob == 1)){
         matyt <- simulateddata$matyt;
@@ -655,7 +655,7 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
     if(nsim==1){
         matyt <- ts(matyt,frequency=frequency);
         materrors <- ts(materrors,frequency=frequency);
-        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
+        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
         matot <- ts(matot,frequency=frequency);
     }
     else{

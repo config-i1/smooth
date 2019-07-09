@@ -176,7 +176,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         # The number initial values of the state vector
         nComponentsAll <- 1;
         # The lag of components (needed for the seasonal models)
-        modelLags <- 1;
+        lagsModel <- 1;
         # The names of the state vector components
         componentsNames <- "level";
         matW <- diag(nSeries);
@@ -190,7 +190,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
     else if(Ttype!="N"){
         nComponentsAll <- nComponentsAll + 1;
-        modelLags <- c(modelLags,1);
+        lagsModel <- c(lagsModel,1);
         componentsNames <- c(componentsNames,"trend");
         if(all(is.na(phi)) | all(is.null(phi))){
             phi <- 1;
@@ -246,7 +246,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 
     if(Stype!="N"){
-        modelLags <- c(modelLags,frequency);
+        lagsModel <- c(lagsModel,frequency);
         componentsNames <- c(componentsNames,"seasonal");
         componentSeasonal <- TRUE;
         nComponentsAll <- nComponentsAll + 1;
@@ -442,13 +442,13 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     # Make matrices and arrays
     # seasonal == "individual"
     if(seasonalType=="i"){
-        modelLags <- matrix(modelLags,nComponentsAll*nSeries,1);
+        lagsModel <- matrix(lagsModel,nComponentsAll*nSeries,1);
     }
     else{
-        modelLags <- matrix(c(rep(modelLags[-nComponentsAll],nSeries),modelLags[nComponentsAll]),
+        lagsModel <- matrix(c(rep(lagsModel[-nComponentsAll],nSeries),lagsModel[nComponentsAll]),
                             nSeries*nComponentsNonSeasonal+1,1);
     }
-    modelLagsMax <- max(modelLags);
+    lagsModelMax <- max(lagsModel);
 
     #### Check the initals ####
     if(!is.null(initial)){
@@ -471,13 +471,13 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     #### Check the inital seasonal ####
     if(!is.null(initialSeason)){
         if(seasonalType=="c"){
-            if(length(initialSeason)==modelLagsMax*nSeries){
-                stop(paste0("initialSeason should be a vector of length ", modelLagsMax,
+            if(length(initialSeason)==lagsModelMax*nSeries){
+                stop(paste0("initialSeason should be a vector of length ", lagsModelMax,
                             " in case of seasonal='c'."),
                      call.=FALSE);
             }
-            else if(length(initialSeason)==modelLagsMax){
-                initialSeason <- matrix(c(initialSeason),1,modelLagsMax,byrow=TRUE);
+            else if(length(initialSeason)==lagsModelMax){
+                initialSeason <- matrix(c(initialSeason),1,lagsModelMax,byrow=TRUE);
                 initialSeasonGenerate <- FALSE;
             }
             else{
@@ -488,9 +488,9 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             }
         }
         else{
-            if((length(initialSeason)==modelLagsMax) |
-               (length(initialSeason)==modelLagsMax*nSeries)){
-                initialSeason <- matrix(c(initialSeason),nSeries,modelLagsMax,byrow=TRUE);
+            if((length(initialSeason)==lagsModelMax) |
+               (length(initialSeason)==lagsModelMax*nSeries)){
+                initialSeason <- matrix(c(initialSeason),nSeries,lagsModelMax,byrow=TRUE);
                 initialSeasonGenerate <- FALSE;
             }
             else{
@@ -518,11 +518,11 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     arrayG <- array(matG,c(dim(matG),nsim),
                     dimnames=list(componentsNames,dataNames,NULL));
     if(seasonalType=="i"){
-        arrayStates <- array(NA,c(nComponentsAll*nSeries,obs+modelLagsMax,nsim),
+        arrayStates <- array(NA,c(nComponentsAll*nSeries,obs+lagsModelMax,nsim),
                              dimnames=list(componentsNames,NULL,NULL));
     }
     else{
-        arrayStates <- array(NA,c(nComponentsNonSeasonal*nSeries+1,obs+modelLagsMax,nsim),
+        arrayStates <- array(NA,c(nComponentsNonSeasonal*nSeries+1,obs+lagsModelMax,nsim),
                              dimnames=list(componentsNames,NULL,NULL));
     }
     arrayErrors <- array(NA,c(nSeries,obs,nsim),
@@ -567,32 +567,32 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
                 if(componentSeasonal){
                     ThetaFunction <- function(Theta){
                         result <- (phi*persistence[1]+phi+1)/(persistence[3]) +
-                            ((phi-1)*(1+cos(Theta)-cos(modelLagsMax*Theta)) +
-                                 cos((modelLagsMax-1)*Theta)-phi*cos((modelLagsMax+1)*Theta))/(2*(1+cos(Theta))*(1-cos(modelLagsMax*Theta)));
+                            ((phi-1)*(1+cos(Theta)-cos(lagsModelMax*Theta)) +
+                                 cos((lagsModelMax-1)*Theta)-phi*cos((lagsModelMax+1)*Theta))/(2*(1+cos(Theta))*(1-cos(lagsModelMax*Theta)));
                         return(abs(result));
                     }
 
                     persistence[3] <- runif(1,max(1-1/phi-persistence[1],0),1+1/phi-persistence[1]);
 
-                    B <- phi*(4-3*persistence[3])+persistence[3]*(1-phi)/modelLagsMax;
-                    C <- sqrt(B^2-8*(phi^2*(1-persistence[3])^2+2*(phi-1)*(1-persistence[3])-1)+8*persistence[3]^2*(1-phi)/modelLagsMax);
-                    persistence[1] <- runif(1,1-1/phi-persistence[3]*(1-modelLagsMax+phi*(1+modelLagsMax))/(2*phi*modelLagsMax),(B+C)/(4*phi));
+                    B <- phi*(4-3*persistence[3])+persistence[3]*(1-phi)/lagsModelMax;
+                    C <- sqrt(B^2-8*(phi^2*(1-persistence[3])^2+2*(phi-1)*(1-persistence[3])-1)+8*persistence[3]^2*(1-phi)/lagsModelMax);
+                    persistence[1] <- runif(1,1-1/phi-persistence[3]*(1-lagsModelMax+phi*(1+lagsModelMax))/(2*phi*lagsModelMax),(B+C)/(4*phi));
 
                     # Solve the equation to get Theta value. Theta
                     Theta <- 0.1;
                     Theta <- optim(Theta,ThetaFunction,method="Brent",lower=0,upper=1)$par;
 
-                    D <- (phi*(1-persistence[1])+1)*(1-cos(Theta)) - persistence[3]*((1+phi)*(1-cos(Theta) - cos(modelLagsMax*Theta)) +
-                                                                               cos((modelLagsMax-1)*Theta)+phi*cos((modelLagsMax+1)*Theta))/
-                        (2*(1+cos(Theta))*(1-cos(modelLagsMax*Theta)));
-                    persistence[2] <- runif(1,-(1-phi)*(persistence[3]/modelLagsMax+persistence[1]),D+(phi-1)*persistence[1]);
+                    D <- (phi*(1-persistence[1])+1)*(1-cos(Theta)) - persistence[3]*((1+phi)*(1-cos(Theta) - cos(lagsModelMax*Theta)) +
+                                                                               cos((lagsModelMax-1)*Theta)+phi*cos((lagsModelMax+1)*Theta))/
+                        (2*(1+cos(Theta))*(1-cos(lagsModelMax*Theta)));
+                    persistence[2] <- runif(1,-(1-phi)*(persistence[3]/lagsModelMax+persistence[1]),D+(phi-1)*persistence[1]);
                 }
             }
             else{
                 if(Stype!="N"){
-                    persistence[1] <- runif(nsim,-2/(modelLagsMax-1),2);
-                    persistence[2] <- runif(1,max(-modelLagsMax*persistence[1],0),2-persistence[1]);
-                    persistence[1] <- runif(nsim,-2/(modelLagsMax-1),2-persistence[2]);
+                    persistence[1] <- runif(nsim,-2/(lagsModelMax-1),2);
+                    persistence[2] <- runif(1,max(-lagsModelMax*persistence[1],0),2-persistence[1]);
+                    persistence[1] <- runif(nsim,-2/(lagsModelMax-1),2-persistence[2]);
                 }
             }
         }
@@ -627,19 +627,19 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         # seasonal == "individual"
         if(seasonalType=="i"){
             arrayStates[c(0:(nSeries-1))*nComponentsAll+1,
-                        1:modelLagsMax,] <- runif(nsim,initialBounds[1],initialBounds[2]);
+                        1:lagsModelMax,] <- runif(nsim,initialBounds[1],initialBounds[2]);
             if(componentTrend){
                 arrayStates[c(0:(nSeries-1))*nComponentsAll+2,
-                            1:modelLagsMax,] <- runif(nsim,initialBounds[3],initialBounds[4]);
+                            1:lagsModelMax,] <- runif(nsim,initialBounds[3],initialBounds[4]);
             }
         }
         # seasonal == "common"
         else{
             arrayStates[c(0:(nSeries-1))*nComponentsNonSeasonal+1,
-                        1:modelLagsMax,] <- runif(nsim,initialBounds[1],initialBounds[2]);
+                        1:lagsModelMax,] <- runif(nsim,initialBounds[1],initialBounds[2]);
             if(componentTrend){
                 arrayStates[c(0:(nSeries-1))*nComponentsNonSeasonal+2,
-                            1:modelLagsMax,] <- runif(nsim,initialBounds[3],initialBounds[4]);
+                            1:lagsModelMax,] <- runif(nsim,initialBounds[3],initialBounds[4]);
             }
 
         }
@@ -649,14 +649,14 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         # seasonal == "individual"
         if(seasonalType=="i"){
             for(i in 1:nSeries){
-                arrayStates[((i-1)*nComponentsAll)+(1:nComponentsNonSeasonal),1:modelLagsMax,] <-
+                arrayStates[((i-1)*nComponentsAll)+(1:nComponentsNonSeasonal),1:lagsModelMax,] <-
                     initial[(i-1)*nComponentsNonSeasonal+(1:nComponentsNonSeasonal),1];
             }
         }
         # seasonal == "common"
         else{
             for(i in 1:nSeries){
-                arrayStates[((i-1)*nComponentsNonSeasonal)+(1:nComponentsNonSeasonal),1:modelLagsMax,] <-
+                arrayStates[((i-1)*nComponentsNonSeasonal)+(1:nComponentsNonSeasonal),1:lagsModelMax,] <-
                     initial[(i-1)*nComponentsNonSeasonal+(1:nComponentsNonSeasonal),1];
             }
         }
@@ -667,17 +667,17 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         # seasonal == "individual"
         if(seasonalType=="i"){
             # Create and normalize seasonal components
-            initialSeason <- runif(modelLagsMax,initialBounds[5],initialBounds[6]);
+            initialSeason <- runif(lagsModelMax,initialBounds[5],initialBounds[6]);
             initialSeason <- initialSeason - mean(initialSeason);
-            arrayStates[nComponentsAll*c(1:nSeries),1:modelLagsMax,] <- matrix(initialSeason,nSeries,
-                                                                               modelLagsMax,byrow=TRUE);
+            arrayStates[nComponentsAll*c(1:nSeries),1:lagsModelMax,] <- matrix(initialSeason,nSeries,
+                                                                               lagsModelMax,byrow=TRUE);
         }
         # seasonal == "common"
         else{
             # Create and normalize seasonal components
-            initialSeason <- runif(modelLagsMax,initialBounds[5],initialBounds[6]);
+            initialSeason <- runif(lagsModelMax,initialBounds[5],initialBounds[6]);
             initialSeason <- initialSeason - mean(initialSeason);
-            arrayStates[nComponentsNonSeasonal*nSeries+1,1:modelLagsMax,] <- initialSeason;
+            arrayStates[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax,] <- initialSeason;
         }
     }
     # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
@@ -686,12 +686,12 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             # seasonal == "individual"
             if(seasonalType=="i"){
                 for(i in 1:nSeries){
-                    arrayStates[i*nComponentsAll,1:modelLagsMax,] <- initialSeason[i,];
+                    arrayStates[i*nComponentsAll,1:lagsModelMax,] <- initialSeason[i,];
                 }
             }
             # seasonal == "common"
             else{
-                arrayStates[nComponentsNonSeasonal*nSeries+1,1:modelLagsMax,] <- initialSeason;
+                arrayStates[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax,] <- initialSeason;
             }
         }
     }
@@ -704,7 +704,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            arrayErrors[,,] <- rt(nsim*obs*nSeries,obs-(nComponentsAll + modelLagsMax));
+            arrayErrors[,,] <- rt(nsim*obs*nSeries,obs-(nComponentsAll + lagsModelMax));
         }
         else if(randomizer=="rlaplace"){
             arrayErrors[,,] <- rlaplace(nsim*obs*nSeries);
@@ -736,7 +736,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 
     #### Simulate the data ####
-    simulatedData <- vSimulatorWrap(arrayStates,arrayErrors,arrayF,arrayW,arrayG,modelLags);
+    simulatedData <- vSimulatorWrap(arrayStates,arrayErrors,arrayF,arrayW,arrayG,lagsModel);
 
     if(modelIsMultiplicative){
         arrayActuals[,,] <- exp(simulatedData$arrayActuals);
@@ -749,7 +749,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     if(nsim==1){
         arrayActuals <- ts(t(arrayActuals[,,1]),frequency=frequency);
         arrayErrors <- ts(t(arrayErrors[,,1]),frequency=frequency);
-        arrayStates <- ts(t(arrayStates[,,1]),frequency=frequency,start=c(0,frequency-modelLagsMax+1));
+        arrayStates <- ts(t(arrayStates[,,1]),frequency=frequency,start=c(0,frequency-lagsModelMax+1));
     }
     else{
         arrayActuals <- aperm(arrayActuals,c(2,1,3));

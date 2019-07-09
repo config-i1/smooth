@@ -186,7 +186,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # The number initial values of the state vector
         componentsNumber <- 1;
 # The lag of components (needed for the seasonal models)
-        modellags <- 1;
+        lagsModel <- 1;
 # The names of the state vector components
         componentsNames <- "level";
         matw <- 1;
@@ -204,7 +204,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         }
         persistenceLength <- persistenceLength + 1;
         componentsNumber <- componentsNumber + 1;
-        modellags <- c(modellags,1);
+        lagsModel <- c(lagsModel,1);
         componentsNames <- c(componentsNames,"trend");
         matw <- c(matw,phi);
         matF <- matrix(c(1,0,phi,phi),2,2);
@@ -228,9 +228,9 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 
     if(Stype!="N"){
         persistenceLength <- persistenceLength + 1;
-# maxlag is used in the cases of seasonal models.
-#   if maxlag==1 then non-seasonal data will be produced with the defined frequency.
-        modellags <- c(modellags,frequency);
+# lagsModelMax is used in the cases of seasonal models.
+#   if lagsModelMax==1 then non-seasonal data will be produced with the defined frequency.
+        lagsModel <- c(lagsModel,frequency);
         componentsNames <- c(componentsNames,"seasonality");
         matw <- c(matw,1);
         componentSeasonal <- TRUE;
@@ -247,8 +247,8 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
 # Make matrices
-    modellags <- matrix(modellags,persistenceLength,1);
-    maxlag <- max(modellags);
+    lagsModel <- matrix(lagsModel,persistenceLength,1);
+    lagsModelMax <- max(lagsModel);
     matw <- matrix(matw,1,persistenceLength);
     arrF <- array(matF,c(dim(matF),nsim));
 
@@ -282,7 +282,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 
 # Check the inital seasonal vector length
     if(!is.null(initialSeason)){
-        if(maxlag!=length(initialSeason)){
+        if(lagsModelMax!=length(initialSeason)){
             warning(paste0("The length of seasonal initial states does not correspond to the chosen frequency!\n",
                            "Falling back to random number generator."),call.=FALSE);
             initialSeason <- NULL;
@@ -330,7 +330,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 
 ##### Let's make sum fun #####
     matg <- matrix(NA,persistenceLength,nsim);
-    arrvt <- array(NA,c(obs+maxlag,persistenceLength,nsim),dimnames=list(NULL,componentsNames,NULL));
+    arrvt <- array(NA,c(obs+lagsModelMax,persistenceLength,nsim),dimnames=list(NULL,componentsNames,NULL));
     materrors <- matrix(NA,obs,nsim);
     matyt <- matrix(NA,obs,nsim);
     matot <- matrix(NA,obs,nsim);
@@ -365,36 +365,36 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                 if(Stype!="N"){
                     Theta.func <- function(Theta){
                         result <- (phi*matg[1,i]+phi+1)/(matg[3,i]) +
-                            ((phi-1)*(1+cos(Theta)-cos(maxlag*Theta)) +
-                                 cos((maxlag-1)*Theta)-phi*cos((maxlag+1)*Theta))/(2*(1+cos(Theta))*(1-cos(maxlag*Theta)));
+                            ((phi-1)*(1+cos(Theta)-cos(lagsModelMax*Theta)) +
+                                 cos((lagsModelMax-1)*Theta)-phi*cos((lagsModelMax+1)*Theta))/(2*(1+cos(Theta))*(1-cos(lagsModelMax*Theta)));
                         return(abs(result));
                     }
 
                     for(i in 1:nsim){
                         matg[3,i] <- runif(1,max(1-1/phi-matg[1,i],0),1+1/phi-matg[1,i]);
 
-                        B <- phi*(4-3*matg[3,i])+matg[3,i]*(1-phi)/maxlag;
-                        C <- sqrt(B^2-8*(phi^2*(1-matg[3,i])^2+2*(phi-1)*(1-matg[3,i])-1)+8*matg[3,i]^2*(1-phi)/maxlag);
-                        matg[1,i] <- runif(1,1-1/phi-matg[3,i]*(1-maxlag+phi*(1+maxlag))/(2*phi*maxlag),(B+C)/(4*phi));
+                        B <- phi*(4-3*matg[3,i])+matg[3,i]*(1-phi)/lagsModelMax;
+                        C <- sqrt(B^2-8*(phi^2*(1-matg[3,i])^2+2*(phi-1)*(1-matg[3,i])-1)+8*matg[3,i]^2*(1-phi)/lagsModelMax);
+                        matg[1,i] <- runif(1,1-1/phi-matg[3,i]*(1-lagsModelMax+phi*(1+lagsModelMax))/(2*phi*lagsModelMax),(B+C)/(4*phi));
 # Solve the equation to get Theta value. Theta
 
                         Theta <- 0.1;
                         Theta <- optim(Theta,Theta.func,method="Brent",lower=0,upper=1)$par;
 
-                        D <- (phi*(1-matg[1,i])+1)*(1-cos(Theta)) - matg[3,i]*((1+phi)*(1-cos(Theta) - cos(maxlag*Theta)) +
-                                                                                   cos((maxlag-1)*Theta)+phi*cos((maxlag+1)*Theta))/
-                            (2*(1+cos(Theta))*(1-cos(maxlag*Theta)));
-                        matg[2,i] <- runif(1,-(1-phi)*(matg[3,i]/maxlag+matg[1,i]),D+(phi-1)*matg[1,i]);
+                        D <- (phi*(1-matg[1,i])+1)*(1-cos(Theta)) - matg[3,i]*((1+phi)*(1-cos(Theta) - cos(lagsModelMax*Theta)) +
+                                                                                   cos((lagsModelMax-1)*Theta)+phi*cos((lagsModelMax+1)*Theta))/
+                            (2*(1+cos(Theta))*(1-cos(lagsModelMax*Theta)));
+                        matg[2,i] <- runif(1,-(1-phi)*(matg[3,i]/lagsModelMax+matg[1,i]),D+(phi-1)*matg[1,i]);
                     }
                 }
             }
             else{
                 if(Stype!="N"){
-                    matg[1,] <- runif(nsim,-2/(maxlag-1),2);
+                    matg[1,] <- runif(nsim,-2/(lagsModelMax-1),2);
                     for(i in 1:nsim){
-                        matg[2,i] <- runif(1,max(-maxlag*matg[1,i],0),2-matg[1,i]);
+                        matg[2,i] <- runif(1,max(-lagsModelMax*matg[1,i],0),2-matg[1,i]);
                     }
-                    matg[1,] <- runif(nsim,-2/(maxlag-1),2-matg[2,]);
+                    matg[1,] <- runif(nsim,-2/(lagsModelMax-1),2-matg[2,]);
                 }
             }
         }
@@ -406,20 +406,20 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # Generate initial states of level and trend if they were not supplied
     if(is.null(initial)){
         if(Ttype=="N"){
-            arrvt[1:maxlag,1,] <- runif(nsim,0,1000);
+            arrvt[1:lagsModelMax,1,] <- runif(nsim,0,1000);
         }
         else if(Ttype=="A"){
-            arrvt[1:maxlag,1,] <- runif(nsim,0,5000);
-            arrvt[1:maxlag,2,] <- runif(nsim,-100,100);
+            arrvt[1:lagsModelMax,1,] <- runif(nsim,0,5000);
+            arrvt[1:lagsModelMax,2,] <- runif(nsim,-100,100);
         }
         else{
-            arrvt[1:maxlag,1,] <- runif(nsim,500,5000);
-            arrvt[1:maxlag,2,] <- 1;
+            arrvt[1:lagsModelMax,1,] <- runif(nsim,500,5000);
+            arrvt[1:lagsModelMax,2,] <- 1;
         }
         initial <- matrix(arrvt[1,1:componentsNumber,],ncol=nsim);
     }
     else{
-        arrvt[,1:componentsNumber,] <- rep(rep(initial,each=(obs+maxlag)),nsim);
+        arrvt[,1:componentsNumber,] <- rep(rep(initial,each=(obs+lagsModelMax)),nsim);
         initial <- matrix(arrvt[1,1:componentsNumber,],ncol=nsim);
     }
 
@@ -427,23 +427,23 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     if(componentSeasonal & is.null(initialSeason)){
 # Create and normalize seasonal components. Use geometric mean for multiplicative case
         if(Stype == "A"){
-            arrvt[1:maxlag,componentsNumber+1,] <- runif(nsim*maxlag,-500,500);
+            arrvt[1:lagsModelMax,componentsNumber+1,] <- runif(nsim*lagsModelMax,-500,500);
             for(i in 1:nsim){
-                arrvt[1:maxlag,componentsNumber+1,i] <- arrvt[1:maxlag,componentsNumber+1,i] - mean(arrvt[1:maxlag,componentsNumber+1,i]);
+                arrvt[1:lagsModelMax,componentsNumber+1,i] <- arrvt[1:lagsModelMax,componentsNumber+1,i] - mean(arrvt[1:lagsModelMax,componentsNumber+1,i]);
             }
         }
         else{
-            arrvt[1:maxlag,componentsNumber+1,] <- runif(nsim*maxlag,0.3,1.7);
+            arrvt[1:lagsModelMax,componentsNumber+1,] <- runif(nsim*lagsModelMax,0.3,1.7);
             for(i in 1:nsim){
-                arrvt[1:maxlag,componentsNumber+1,i] <- arrvt[1:maxlag,componentsNumber+1,i] / exp(mean(log(arrvt[1:maxlag,componentsNumber+1,i])));
+                arrvt[1:lagsModelMax,componentsNumber+1,i] <- arrvt[1:lagsModelMax,componentsNumber+1,i] / exp(mean(log(arrvt[1:lagsModelMax,componentsNumber+1,i])));
             }
         }
-        initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
+        initialSeason <- matrix(arrvt[1:lagsModelMax,componentsNumber+1,],ncol=nsim);
     }
 # If the seasonal model is chosen, fill in the first "frequency" values of seasonal component.
     else if(componentSeasonal & !is.null(initialSeason)){
-        arrvt[1:maxlag,componentsNumber+1,] <- rep(initialSeason,nsim);
-        initialSeason <- matrix(arrvt[1:maxlag,componentsNumber+1,],ncol=nsim);
+        arrvt[1:lagsModelMax,componentsNumber+1,] <- rep(initialSeason,nsim);
+        initialSeason <- matrix(arrvt[1:lagsModelMax,componentsNumber+1,],ncol=nsim);
     }
 
 # Check if any argument was passed in dots
@@ -454,7 +454,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + maxlag));
+            materrors[,] <- rt(nsim*obs,obs-(persistenceLength + lagsModelMax));
         }
         else if(randomizer=="rlnorm"){
             materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-iprob));
@@ -519,7 +519,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
 #### Simulate the data ####
-    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,modellags);
+    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,lagsModel);
 
     # if(all(iprob == 1)){
         matyt <- simulateddata$matyt;
@@ -550,7 +550,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);
         materrors <- ts(materrors[,1],frequency=frequency);
-        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
+        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
         matot <- ts(matot[,1],frequency=frequency);
     }
     else{

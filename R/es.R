@@ -1,5 +1,5 @@
-utils::globalVariables(c("vecg","nComponents","modellags","phiEstimate","yInSample","dataFreq","initialType",
-                         "yot","maxlag","silent","allowMultiplicative","modelCurrent",
+utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSample","dataFreq","initialType",
+                         "yot","lagsModelMax","silent","allowMultiplicative","modelCurrent",
                          "nParamOccurrence","matF","matw","pForecast","errors.mat",
                          "results","s2","FI","occurrence","normalizer",
                          "persistenceEstimate","initial","multisteps","ot",
@@ -399,12 +399,12 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
 ##### Cost Function for ES #####
 CF <- function(C){
     elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), nComponents,
-                            modellags, initialType, Ttype, Stype, nExovars, matat,
+                            lagsModel, initialType, Ttype, Stype, nExovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
     cfRes <- costfunc(elements$matvt, elements$matF, elements$matw, yInSample, elements$vecg,
-                      h, modellags, Etype, Ttype, Stype,
+                      h, lagsModel, Etype, Ttype, Stype,
                       multisteps, loss, normalizer, initialType,
                       matxt, elements$matat, elements$matFX, elements$vecgX, ot,
                       bounds, elements$errorSD);
@@ -418,7 +418,7 @@ CF <- function(C){
 
 ##### C values for estimation #####
 # Function constructs default bounds where C values should lie
-CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
+CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat){
     C <- NA;
     CLower <- NA;
     CUpper <- NA;
@@ -437,7 +437,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 if(Etype=="A"){
-                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
+                    C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -447,7 +447,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         C <- c(C,mean(yInSample[1:min(dataFreq,obsInSample)]),0);
                     }
                     else{
-                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                        C <- c(C,abs(matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]));
                     }
                     CLower <- c(CLower,1E-10);
                     CUpper <- c(CUpper,Inf);
@@ -463,14 +463,14 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,nComponents]);
+                    C <- c(C,matvt[1:lagsModelMax,nComponents]);
                     if(Stype=="A"){
-                        CLower <- c(CLower,rep(-Inf,maxlag));
-                        CUpper <- c(CUpper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,lagsModelMax));
+                        CUpper <- c(CUpper,rep(Inf,lagsModelMax));
                     }
                     else{
-                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
-                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
+                        CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -490,7 +490,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 if(Etype=="A"){
-                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
+                    C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -500,7 +500,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         C <- c(C,mean(yInSample[1:dataFreq]),0);
                     }
                     else{
-                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                        C <- c(C,abs(matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]));
                     }
                     CLower <- c(CLower,0.1);
                     CUpper <- c(CUpper,Inf);
@@ -516,14 +516,14 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,nComponents]);
+                    C <- c(C,matvt[1:lagsModelMax,nComponents]);
                     if(Stype=="A"){
-                        CLower <- c(CLower,rep(-Inf,maxlag));
-                        CUpper <- c(CUpper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,lagsModelMax));
+                        CUpper <- c(CUpper,rep(Inf,lagsModelMax));
                     }
                     else{
-                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
-                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
+                        CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -543,7 +543,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
                 if(Etype=="A"){
-                    C <- c(C,matvt[maxlag,1:(nComponents - (Stype!="N"))]);
+                    C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
                 }
@@ -553,7 +553,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
                         C <- c(C,mean(yInSample[1:dataFreq]),0);
                     }
                     else{
-                        C <- c(C,abs(matvt[maxlag,1:(nComponents - (Stype!="N"))]));
+                        C <- c(C,abs(matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]));
                     }
                     CLower <- c(CLower,0.1);
                     CUpper <- c(CUpper,Inf);
@@ -569,14 +569,14 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat){
             }
             if(Stype!="N"){
                 if(initialSeasonEstimate){
-                    C <- c(C,matvt[1:maxlag,nComponents]);
+                    C <- c(C,matvt[1:lagsModelMax,nComponents]);
                     if(Stype=="A"){
-                        CLower <- c(CLower,rep(-Inf,maxlag));
-                        CUpper <- c(CUpper,rep(Inf,maxlag));
+                        CLower <- c(CLower,rep(-Inf,lagsModelMax));
+                        CUpper <- c(CUpper,rep(Inf,lagsModelMax));
                     }
                     else{
-                        CLower <- c(CLower,matvt[1:maxlag,nComponents]*seasonalRandomness[1]);
-                        CUpper <- c(CUpper,matvt[1:maxlag,nComponents]*seasonalRandomness[2]);
+                        CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
+                        CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
                 }
             }
@@ -633,7 +633,7 @@ BasicInitialiserES <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     elements <- etsmatrices(matvt, vecg, phi, matrix(C,nrow=1), nComponents,
-                            modellags, initialType, Ttype, Stype, nExovars, matat,
+                            lagsModel, initialType, Ttype, Stype, nExovars, matat,
                             persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
                             matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
 
@@ -649,7 +649,7 @@ EstimatorES <- function(...){
     environment(CF) <- environment();
     BasicMakerES(ParentEnvironment=environment());
 
-    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,maxlag,nComponents,matat);
+    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat);
     if(is.null(providedC)){
         C <- Cs$C;
     }
@@ -1310,7 +1310,7 @@ CreatorES <- function(silent=FALSE,...){
     }
 
     # Define matrix of seasonal coefficients. The first column consists of additive, the second - multiplicative elements
-    # If the seasonal model is chosen and initials are provided, fill in the first "maxlag" values of seasonal component.
+    # If the seasonal model is chosen and initials are provided, fill in the first "lagsModelMax" values of seasonal component.
     if(Stype!="N"){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
@@ -1360,7 +1360,7 @@ CreatorES <- function(silent=FALSE,...){
     xregdata <- ssXreg(y=y, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=basicparams$maxlag, h=h, xregDo=xregDo, silent=silentText,
+                       lagsModelMax=basicparams$lagsModelMax, h=h, xregDo=xregDo, silent=silentText,
                        allowMultiplicative=allowMultiplicative);
 
     if(xregDo=="u"){
@@ -1680,12 +1680,12 @@ CreatorES <- function(silent=FALSE,...){
             # Variance is not needed here, because we do not optimise it
             # nComponents smoothing parameters, phi,
             # level and trend initials if we optimise them,
-            # maxlag seasonal initials if we do not backcast and they need to be estimated
+            # lagsModelMax seasonal initials if we do not backcast and they need to be estimated
             # intiials of xreg if they need to be estimated
             # updateX with transitionX and persistenceX
             nParamToEstimate <- (nComponents*persistenceEstimate + phiEstimate*damped +
                                      (nComponents - (Stype!="N")) * (initialType=="o") +
-                                     maxlag * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
+                                     lagsModelMax * (Stype!="N") * initialSeasonEstimate * (initialType!="b") +
                                      nExovars * initialXEstimate +
                                      (updateX)*((nExovars^2)*(FXEstimate) + nExovars*gXEstimate));
 
@@ -1895,7 +1895,7 @@ CreatorES <- function(silent=FALSE,...){
         }
 
         if(initialType!="p"){
-            initialValue <- matvt[maxlag,1:(nComponents - (Stype!="N"))];
+            initialValue <- matvt[lagsModelMax,1:(nComponents - (Stype!="N"))];
             if(initialType!="b"){
                 parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
             }
@@ -1923,8 +1923,8 @@ CreatorES <- function(silent=FALSE,...){
 
         if(initialSeasonEstimate){
             if(Stype!="N"){
-                initialSeason <- matvt[1:maxlag,nComponents];
-                names(initialSeason) <- paste0("s",1:maxlag);
+                initialSeason <- matvt[1:lagsModelMax,nComponents];
+                names(initialSeason) <- paste0("s",1:lagsModelMax);
                 parametersNumber[1,1] <- parametersNumber[1,1] + length(initialSeason);
             }
         }
@@ -1945,13 +1945,13 @@ CreatorES <- function(silent=FALSE,...){
             esFormula <- paste0(esFormula," * b[t-1]");
         }
         if(Stype=="A"){
-            esFormula <- paste0(esFormula," + s[t-",maxlag,"]");
+            esFormula <- paste0(esFormula," + s[t-",lagsModelMax,"]");
         }
         else if(Stype=="M"){
             if(Ttype=="A"){
                 esFormula <- paste0("(",esFormula,")");
             }
-            esFormula <- paste0(esFormula," * s[t-",maxlag,"]");
+            esFormula <- paste0(esFormula," * s[t-",lagsModelMax,"]");
         }
         if(Etype=="A"){
             if(!is.null(xreg)){

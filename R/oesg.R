@@ -1,4 +1,4 @@
-utils::globalVariables(c("modelDo","initialValue","modelLagsMax","updateX","xregDo","modelsPool","parametersNumber"));
+utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","xregDo","modelsPool","parametersNumber"));
 
 #' Occurrence ETS, general model
 #'
@@ -257,7 +257,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     xregdata <- ssXreg(y=otAll, Etype="A", xreg=xregA, updateX=updateXA, ot=rep(1,obsInSample),
                        persistenceX=persistenceXA, transitionX=transitionXA, initialX=initialXA,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=1, h=h, xregDo=xregDoA, silent=silentText,
+                       lagsModelMax=1, h=h, xregDo=xregDoA, silent=silentText,
                        allowMultiplicative=FALSE);
 
     ### Write down all the values in the model A
@@ -310,7 +310,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     xregdata <- ssXreg(y=1-otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
                        persistenceX=persistenceXB, transitionX=transitionXB, initialX=initialXB,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=1, h=h, xregDo=xregDoB, silent=silentText,
+                       lagsModelMax=1, h=h, xregDo=xregDoB, silent=silentText,
                        allowMultiplicative=FALSE);
 
     ### Write down all the values in the model B
@@ -354,19 +354,19 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                                persistenceEstimate, persistence, initialType, initialValue,
                                initialSeasonEstimate, initialSeason, modelType){
         # Define the lags of the model, number of components and max lag
-        modelLags <- 1;
+        lagsModel <- 1;
         statesNames <- "level";
         if(Ttype!="N"){
-            modelLags <- c(modelLags, 1);
+            lagsModel <- c(lagsModel, 1);
             statesNames <- c(statesNames, "trend");
         }
-        nComponentsNonSeasonal <- length(modelLags);
+        nComponentsNonSeasonal <- length(lagsModel);
         if(modelIsSeasonal){
-            modelLags <- c(modelLags, dataFreq);
+            lagsModel <- c(lagsModel, dataFreq);
             statesNames <- c(statesNames, "seasonal");
         }
-        nComponentsAll <- length(modelLags);
-        modelLagsMax <- max(modelLags);
+        nComponentsAll <- length(lagsModel);
+        lagsModelMax <- max(lagsModel);
 
         # Transition matrix
         matF <- diag(nComponentsAll);
@@ -410,19 +410,19 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                 initialStates[1] <- log(initialStates[1]);
             }
 
-            matvt[1,1:modelLagsMax] <- initialStates[1];
+            matvt[1,1:lagsModelMax] <- initialStates[1];
             if(Ttype!="N"){
-                matvt[2,1:modelLagsMax] <- initialStates[2];
+                matvt[2,1:lagsModelMax] <- initialStates[2];
             }
         }
         else{
-            matvt[1:nComponentsNonSeasonal,1:modelLagsMax] <- initialValue;
+            matvt[1:nComponentsNonSeasonal,1:lagsModelMax] <- initialValue;
         }
 
         # Define the seasonals
         if(modelIsSeasonal){
             if(initialSeasonEstimate){
-                XValues <- matrix(rep(diag(modelLagsMax),ceiling(obsInSample/modelLagsMax)),modelLagsMax)[,1:obsInSample];
+                XValues <- matrix(rep(diag(lagsModelMax),ceiling(obsInSample/lagsModelMax)),lagsModelMax)[,1:obsInSample];
                 # The seasonal values should be between -1 and 1
                 initialSeasonValue <- solve(XValues %*% t(XValues)) %*% XValues %*% (ot - mean(ot));
                 # But make sure that it lies there
@@ -459,22 +459,22 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                 }
 
                 # Write down the initial seasons into the state matrix
-                matvt[nComponentsAll,1:modelLagsMax] <- initialSeasonValue;
+                matvt[nComponentsAll,1:lagsModelMax] <- initialSeasonValue;
             }
             else{
-                matvt[nComponentsAll,1:modelLagsMax] <- initialSeason;
+                matvt[nComponentsAll,1:lagsModelMax] <- initialSeason;
             }
         }
 
         return(list(nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal,
-                    modelLagsMax=modelLagsMax, modelLags=modelLags,
+                    lagsModelMax=lagsModelMax, lagsModel=lagsModel,
                     matvt=matvt, vecg=vecg, matF=matF, matw=matw));
     }
 
     ##### Fill in the elements of oes #####
     # This takes the existing matrices and fills them in
-    oesElements <- function(A, modelLags, Ttype, Stype, damped,
-                            nComponentsAll, nComponentsNonSeasonal, nExovars, modelLagsMax,
+    oesElements <- function(A, lagsModel, Ttype, Stype, damped,
+                            nComponentsAll, nComponentsNonSeasonal, nExovars, lagsModelMax,
                             persistenceEstimate, initialType, phiEstimate, modelIsSeasonal, initialSeasonEstimate,
                             xregEstimate, initialXEstimate, updateX,
                             matvt, vecg, matF, matw, matat, matFX, vecgX){
@@ -489,16 +489,16 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             matw[,nComponentsNonSeasonal] <- A[i];
         }
         if(initialType=="o"){
-            matvt[1:nComponentsNonSeasonal,1:modelLagsMax] <- A[i+c(1:nComponentsNonSeasonal)];
+            matvt[1:nComponentsNonSeasonal,1:lagsModelMax] <- A[i+c(1:nComponentsNonSeasonal)];
             i[] <- i + nComponentsNonSeasonal;
         }
         if(modelIsSeasonal && initialSeasonEstimate){
-            matvt[nComponentsAll,1:modelLagsMax] <- A[i+c(1:modelLagsMax)];
-            i[] <- i + modelLagsMax;
+            matvt[nComponentsAll,1:lagsModelMax] <- A[i+c(1:lagsModelMax)];
+            i[] <- i + lagsModelMax;
         }
         if(xregEstimate){
             if(initialXEstimate){
-                matat[,1:modelLagsMax] <- A[i+c(1:nExovars)];
+                matat[,1:lagsModelMax] <- A[i+c(1:nExovars)];
                 i[] <- i + nExovars;
             }
             if(updateX){
@@ -519,7 +519,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     AValues <- function(bounds, Ttype, Stype, damped, phiEstimate, persistenceEstimate,
                         initialType, modelIsSeasonal, initialSeasonEstimate,
                         xregEstimate, initialXEstimate, updateX,
-                        modelLagsMax, nComponentsAll, nComponentsNonSeasonal,
+                        lagsModelMax, nComponentsAll, nComponentsNonSeasonal,
                         vecg, matvt, matat, matFX, vecgX, xregNames, nExovars){
         A <- NA;
         ALower <- NA;
@@ -542,7 +542,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             # Initial states
             if(initialType=="o"){
                 if(Etype=="A"){
-                    A <- c(A,matvt[1:nComponentsNonSeasonal,modelLagsMax]);
+                    A <- c(A,matvt[1:nComponentsNonSeasonal,lagsModelMax]);
                     ALower <- c(ALower,-Inf);
                     AUpper <- c(AUpper,Inf);
                 }
@@ -554,7 +554,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                         AUpper <- c(AUpper,Inf);
                     }
                     else{
-                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
+                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,lagsModelMax]));
                         ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -570,14 +570,14 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                 # Initial seasonals
                 if(modelIsSeasonal){
                     if(initialSeasonEstimate){
-                        A <- c(A,matvt[nComponentsAll,1:modelLagsMax]);
+                        A <- c(A,matvt[nComponentsAll,1:lagsModelMax]);
                         if(Stype=="A"){
-                            ALower <- c(ALower,rep(-Inf,modelLagsMax));
-                            AUpper <- c(AUpper,rep(Inf,modelLagsMax));
+                            ALower <- c(ALower,rep(-Inf,lagsModelMax));
+                            AUpper <- c(AUpper,rep(Inf,lagsModelMax));
                         }
                         else{
-                            ALower <- c(ALower,matvt[nComponentsAll,1:modelLagsMax]*0.1);
-                            AUpper <- c(AUpper,matvt[nComponentsAll,1:modelLagsMax]*10);
+                            ALower <- c(ALower,matvt[nComponentsAll,1:lagsModelMax]*0.1);
+                            AUpper <- c(AUpper,matvt[nComponentsAll,1:lagsModelMax]*10);
                         }
                     }
                 }
@@ -600,7 +600,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             # Initial states
             if(initialType=="o"){
                 if(Etype=="A"){
-                    A <- c(A,matvt[1:nComponentsNonSeasonal,modelLagsMax]);
+                    A <- c(A,matvt[1:nComponentsNonSeasonal,lagsModelMax]);
                     ALower <- c(ALower,-Inf);
                     AUpper <- c(AUpper,Inf);
                 }
@@ -612,7 +612,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                         AUpper <- c(AUpper,Inf);
                     }
                     else{
-                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
+                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,lagsModelMax]));
                         ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -628,14 +628,14 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                 # Initial seasonals
                 if(modelIsSeasonal){
                     if(initialSeasonEstimate){
-                        A <- c(A,matvt[nComponentsAll,1:modelLagsMax]);
+                        A <- c(A,matvt[nComponentsAll,1:lagsModelMax]);
                         if(Stype=="A"){
-                            ALower <- c(ALower,rep(-Inf,modelLagsMax));
-                            AUpper <- c(AUpper,rep(Inf,modelLagsMax));
+                            ALower <- c(ALower,rep(-Inf,lagsModelMax));
+                            AUpper <- c(AUpper,rep(Inf,lagsModelMax));
                         }
                         else{
-                            ALower <- c(ALower,matvt[nComponentsAll,1:modelLagsMax]*0.1);
-                            AUpper <- c(AUpper,matvt[nComponentsAll,1:modelLagsMax]*10);
+                            ALower <- c(ALower,matvt[nComponentsAll,1:lagsModelMax]*0.1);
+                            AUpper <- c(AUpper,matvt[nComponentsAll,1:lagsModelMax]*10);
                         }
                     }
                 }
@@ -658,7 +658,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             # Initial states
             if(initialType=="o"){
                 if(Etype=="A"){
-                    A <- c(A,matvt[1:nComponentsNonSeasonal,modelLagsMax]);
+                    A <- c(A,matvt[1:nComponentsNonSeasonal,lagsModelMax]);
                     ALower <- c(ALower,-Inf);
                     AUpper <- c(AUpper,Inf);
                 }
@@ -670,7 +670,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                         AUpper <- c(AUpper,Inf);
                     }
                     else{
-                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,modelLagsMax]));
+                        A <- c(A,abs(matvt[1:nComponentsNonSeasonal,lagsModelMax]));
                         ALower <- c(ALower,1E-10);
                         AUpper <- c(AUpper,Inf);
                     }
@@ -686,14 +686,14 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                 # Initial seasonals
                 if(modelIsSeasonal){
                     if(initialSeasonEstimate){
-                        A <- c(A,matvt[nComponentsAll,1:modelLagsMax]);
+                        A <- c(A,matvt[nComponentsAll,1:lagsModelMax]);
                         if(Stype=="A"){
-                            ALower <- c(ALower,rep(-Inf,modelLagsMax));
-                            AUpper <- c(AUpper,rep(Inf,modelLagsMax));
+                            ALower <- c(ALower,rep(-Inf,lagsModelMax));
+                            AUpper <- c(AUpper,rep(Inf,lagsModelMax));
                         }
                         else{
-                            ALower <- c(ALower,matvt[nComponentsAll,1:modelLagsMax]*0.1);
-                            AUpper <- c(AUpper,matvt[nComponentsAll,1:modelLagsMax]*10);
+                            ALower <- c(ALower,matvt[nComponentsAll,1:lagsModelMax]*0.1);
+                            AUpper <- c(AUpper,matvt[nComponentsAll,1:lagsModelMax]*10);
                         }
                     }
                 }
@@ -732,27 +732,27 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     ##### Cost Function for oes #####
     CF <- function(A, ot, bounds,
                    # The parameters of the model A
-                   modelLagsA, EtypeA, TtypeA, StypeA, dampedA,
-                   nComponentsAllA, nComponentsNonSeasonalA, nExovarsA, modelLagsMaxA,
+                   lagsModelA, EtypeA, TtypeA, StypeA, dampedA,
+                   nComponentsAllA, nComponentsNonSeasonalA, nExovarsA, lagsModelMaxA,
                    persistenceEstimateA, initialTypeA, phiEstimateA, initialSeasonEstimateA,
                    xregEstimateA, initialXEstimateA, updateXA,
                    matvtA, vecgA, matFA, matwA, matatA, matFXA, vecgXA, matxtA,
                    # The parameters of the model B
-                   modelLagsB, EtypeB, TtypeB, StypeB, dampedB,
-                   nComponentsAllB, nComponentsNonSeasonalB, nExovarsB, modelLagsMaxB,
+                   lagsModelB, EtypeB, TtypeB, StypeB, dampedB,
+                   nComponentsAllB, nComponentsNonSeasonalB, nExovarsB, lagsModelMaxB,
                    persistenceEstimateB, initialTypeB, phiEstimateB, initialSeasonEstimateB,
                    xregEstimateB, initialXEstimateB, updateXB,
                    matvtB, vecgB, matFB, matwB, matatB, matFXB, vecgXB, matxtB){
 
         # Extract elements for each model
-        elementsA <- oesElements(A, modelLagsA, TtypeA, StypeA, dampedA,
-                                 nComponentsAllA, nComponentsNonSeasonalA, nExovarsA, modelLagsMaxA,
+        elementsA <- oesElements(A, lagsModelA, TtypeA, StypeA, dampedA,
+                                 nComponentsAllA, nComponentsNonSeasonalA, nExovarsA, lagsModelMaxA,
                                  persistenceEstimateA, initialTypeA, phiEstimateA,
                                  modelIsSeasonalA, initialSeasonEstimateA,
                                  xregEstimateA, initialXEstimateA, updateXA,
                                  matvtA, vecgA, matFA, matwA, matatA, matFXA, vecgXA);
-        elementsB <- oesElements(elementsA$A, modelLagsB, TtypeB, StypeB, dampedB,
-                                 nComponentsAllB, nComponentsNonSeasonalB, nExovarsB, modelLagsMaxB,
+        elementsB <- oesElements(elementsA$A, lagsModelB, TtypeB, StypeB, dampedB,
+                                 nComponentsAllB, nComponentsNonSeasonalB, nExovarsB, lagsModelMaxB,
                                  persistenceEstimateB, initialTypeB, phiEstimateB,
                                  modelIsSeasonalB, initialSeasonEstimateB,
                                  xregEstimateB, initialXEstimateB, updateXB,
@@ -760,10 +760,10 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
         # Calculate the CF value
         cfRes <- occurrenceGeneralOptimizerWrap(ot, bounds,
-                                                modelLagsA, EtypeA, TtypeA, StypeA,
+                                                lagsModelA, EtypeA, TtypeA, StypeA,
                                                 elementsA$matvt, elementsA$matF, elementsA$matw, elementsA$vecg,
                                                 matxtA, elementsA$matat, elementsA$matFX, elementsA$vecgX,
-                                                modelLagsB, EtypeB, TtypeB, StypeB,
+                                                lagsModelB, EtypeB, TtypeB, StypeB,
                                                 elementsB$matvt, elementsB$matF, elementsB$matw, elementsB$vecg,
                                                 matxtB, elementsB$matat, elementsB$matFX, elementsB$vecgX);
 
@@ -807,13 +807,13 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             AA <- AValues(bounds, TtypeA, StypeA, dampedA, phiEstimateA, persistenceEstimateA,
                           initialTypeA, modelIsSeasonalA, initialSeasonEstimateA,
                           xregEstimateA, initialXEstimateA, updateXA,
-                          basicparamsA$modelLagsMax, basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
+                          basicparamsA$lagsModelMax, basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
                           basicparamsA$vecg, basicparamsA$matvt, matatA,
                           matFXA, vecgXA, xregNamesA, nExovarsA);
             AB <- AValues(bounds, TtypeB, StypeB, dampedB, phiEstimateB, persistenceEstimateB,
                           initialTypeB, modelIsSeasonalB, initialSeasonEstimateB,
                           xregEstimateB, initialXEstimateB, updateXB,
-                          basicparamsB$modelLagsMax, basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
+                          basicparamsB$lagsModelMax, basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
                           basicparamsB$vecg, basicparamsB$matvt, matatB,
                           matFXB, vecgXB, xregNamesB, nExovarsB);
 
@@ -822,18 +822,18 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                           opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
                           ot=ot, bounds=bounds,
                           # The parameters of the model A
-                          modelLagsA=basicparamsA$modelLags, EtypeA=EtypeA, TtypeA=TtypeA, StypeA=StypeA, dampedA=dampedA,
+                          lagsModelA=basicparamsA$lagsModel, EtypeA=EtypeA, TtypeA=TtypeA, StypeA=StypeA, dampedA=dampedA,
                           nComponentsAllA=basicparamsA$nComponentsAll, nComponentsNonSeasonalA=basicparamsA$nComponentsNonSeasonal,
-                          nExovarsA=nExovarsA, modelLagsMaxA=basicparamsA$modelLagsMax,
+                          nExovarsA=nExovarsA, lagsModelMaxA=basicparamsA$lagsModelMax,
                           persistenceEstimateA=persistenceEstimateA, initialTypeA=initialTypeA, phiEstimateA=phiEstimateA,
                           initialSeasonEstimateA=initialSeasonEstimateA, xregEstimateA=xregEstimateA, initialXEstimateA=initialXEstimateA,
                           updateXA=updateXA,
                           matvtA=basicparamsA$matvt, vecgA=basicparamsA$vecg, matFA=basicparamsA$matF, matwA=basicparamsA$matw,
                           matatA=matatA, matFXA=matFXA, vecgXA=vecgXA, matxtA=matxtA,
                           # The parameters of the model B
-                          modelLagsB=basicparamsB$modelLags, EtypeB=EtypeB, TtypeB=TtypeB, StypeB=StypeB, dampedB=dampedB,
+                          lagsModelB=basicparamsB$lagsModel, EtypeB=EtypeB, TtypeB=TtypeB, StypeB=StypeB, dampedB=dampedB,
                           nComponentsAllB=basicparamsB$nComponentsAll, nComponentsNonSeasonalB=basicparamsB$nComponentsNonSeasonal,
-                          nExovarsB=nExovarsB, modelLagsMaxB=basicparamsB$modelLagsMax,
+                          nExovarsB=nExovarsB, lagsModelMaxB=basicparamsB$lagsModelMax,
                           persistenceEstimateB=persistenceEstimateB, initialTypeB=initialTypeB, phiEstimateB=phiEstimateB,
                           initialSeasonEstimateB=initialSeasonEstimateB, xregEstimateB=xregEstimateB, initialXEstimateB=initialXEstimateB,
                           updateXB=updateXB,
@@ -844,9 +844,9 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         }
 
         ##### Deal with the fitting and the forecasts #####
-        elementsA <- oesElements(A, basicparamsA$modelLags, TtypeA, StypeA, dampedA,
+        elementsA <- oesElements(A, basicparamsA$lagsModel, TtypeA, StypeA, dampedA,
                                  basicparamsA$nComponentsAll, basicparamsA$nComponentsNonSeasonal,
-                                 nExovarsA, basicparamsA$modelLagsMax,
+                                 nExovarsA, basicparamsA$lagsModelMax,
                                  persistenceEstimateA, initialTypeA, phiEstimateA,
                                  modelIsSeasonalA, initialSeasonEstimateA,
                                  xregEstimateA, initialXEstimateA, updateXA,
@@ -866,9 +866,9 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         if(dampedB && phiEstimateB){
             phiB <- A[elementsA$i+basicparamsB$nComponentsAll+1];
         }
-        elementsB <- oesElements(elementsA$A, basicparamsB$modelLags, TtypeB, StypeB, dampedB,
+        elementsB <- oesElements(elementsA$A, basicparamsB$lagsModel, TtypeB, StypeB, dampedB,
                                  basicparamsB$nComponentsAll, basicparamsB$nComponentsNonSeasonal,
-                                 nExovarsB, basicparamsB$modelLagsMax,
+                                 nExovarsB, basicparamsB$lagsModelMax,
                                  persistenceEstimateB, initialTypeB, phiEstimateB,
                                  modelIsSeasonalB, initialSeasonEstimateB,
                                  xregEstimateB, initialXEstimateB, updateXB,
@@ -884,10 +884,10 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
         # Produce fitted values
         fitting <- occurenceGeneralFitterWrap(ot,
-                                              basicparamsA$modelLags, EtypeA, TtypeA, StypeA,
+                                              basicparamsA$lagsModel, EtypeA, TtypeA, StypeA,
                                               elementsA$matvt, matFA, matwA, vecgA,
                                               matxtA, elementsA$matat, matFXA, vecgXA,
-                                              basicparamsB$modelLags, EtypeB, TtypeB, StypeB,
+                                              basicparamsB$lagsModel, EtypeB, TtypeB, StypeB,
                                               elementsB$matvt, matFB, matwB, vecgB,
                                               matxtB, elementsB$matat, matFXB, vecgXB)
         matvtA[] <- fitting$matvtA;
@@ -909,13 +909,13 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         # Produce forecasts
         if(h>0){
             # aForecast is the underlying forecast of the model A
-            aForecast <- as.vector(forecasterwrap(t(matvtA[,(obsInSample+1):(obsInSample+basicparamsA$modelLagsMax),drop=FALSE]),
-                                                  matFA, matwA, h, EtypeA, TtypeA, StypeA, basicparamsA$modelLags,
+            aForecast <- as.vector(forecasterwrap(t(matvtA[,(obsInSample+1):(obsInSample+basicparamsA$lagsModelMax),drop=FALSE]),
+                                                  matFA, matwA, h, EtypeA, TtypeA, StypeA, basicparamsA$lagsModel,
                                                   matxtA[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                   t(matatA[,(obsAll-h+1):(obsAll),drop=FALSE]), matFXA));
             # bForecast is the underlying forecast of the model B
-            bForecast <- as.vector(forecasterwrap(t(matvtB[,(obsInSample+1):(obsInSample+basicparamsB$modelLagsMax),drop=FALSE]),
-                                                  matFB, matwB, h, EtypeB, TtypeB, StypeB, basicparamsB$modelLags,
+            bForecast <- as.vector(forecasterwrap(t(matvtB[,(obsInSample+1):(obsInSample+basicparamsB$lagsModelMax),drop=FALSE]),
+                                                  matFB, matwB, h, EtypeB, TtypeB, StypeB, basicparamsB$lagsModel,
                                                   matxtB[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                   t(matatB[,(obsAll-h+1):(obsAll),drop=FALSE]), matFXB));
 
@@ -996,13 +996,13 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     # Prepare the initial seasonals
     if(modelIsSeasonalA){
-        initialSeasonA <- matvtA[basicparamsA$nComponentsAll,1:basicparamsA$modelLagsMax];
+        initialSeasonA <- matvtA[basicparamsA$nComponentsAll,1:basicparamsA$lagsModelMax];
     }
     else{
         initialSeasonA <- NULL;
     }
     if(modelIsSeasonalB){
-        initialSeasonB <- matvtB[basicparamsB$nComponentsAll,1:basicparamsB$modelLagsMax];
+        initialSeasonB <- matvtB[basicparamsB$nComponentsAll,1:basicparamsB$lagsModelMax];
     }
     else{
         initialSeasonB <- NULL;
@@ -1025,7 +1025,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     #### Prepare the output ####
     # Prepare two models
     modelA <- list(model=paste0(modelnameA,"(",modelA,")_A"),
-                   states=ts(t(matvtA), start=(time(y)[1] - deltat(y)*basicparamsA$modelLagsMax),
+                   states=ts(t(matvtA), start=(time(y)[1] - deltat(y)*basicparamsA$lagsModelMax),
                              frequency=dataFreq),
                    nParam=parametersNumberA, residuals=errorsA, occurrence="g",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
@@ -1035,7 +1035,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     class(modelA) <- c("oes","smooth");
 
     modelB <- list(model=paste0(modelnameB,"(",modelB,")_B"),
-                   states=ts(t(matvtB), start=(time(y)[1] - deltat(y)*basicparamsB$modelLagsMax),
+                   states=ts(t(matvtB), start=(time(y)[1] - deltat(y)*basicparamsB$lagsModelMax),
                              frequency=dataFreq),
                    nParam=parametersNumberB, residuals=errorsB, occurrence="g",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],

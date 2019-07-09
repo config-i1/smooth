@@ -143,15 +143,15 @@ sim.gum <- function(orders=c(1), lags=c(1),
         lags <- lags.new;
     }
 
-    modellags <- matrix(rep(lags,times=orders),ncol=1);
-    maxlag <- max(modellags);
+    lagsModel <- matrix(rep(lags,times=orders),ncol=1);
+    lagsModelMax <- max(lagsModel);
     componentsNumber <- sum(orders);
-    componentsNames <- paste0("Component",c(1:length(modellags)),", lag",modellags);
+    componentsNames <- paste0("Component",c(1:length(lagsModel)),", lag",lagsModel);
 
 # In the case of wrong nsim, make it natural number. The same is for obs and frequency.
     nsim <- abs(round(nsim,0));
     obs <- abs(round(obs,0));
-    obsStates <- obs + maxlag;
+    obsStates <- obs + lagsModelMax;
     frequency <- abs(round(frequency,0));
 
 # Define arrays
@@ -163,13 +163,13 @@ sim.gum <- function(orders=c(1), lags=c(1),
     materrors <- matrix(NA,obs,nsim);
     matyt <- matrix(NA,obs,nsim);
     matot <- matrix(NA,obs,nsim);
-    matInitialValue <- array(NA,c(maxlag,componentsNumber,nsim));
+    matInitialValue <- array(NA,c(lagsModelMax,componentsNumber,nsim));
 
 # Initial values
     initialValue <- initial;
     if(!is.null(initialValue)){
-        if(length(initialValue) != (componentsNumber*maxlag)){
-            warning(paste0("Wrong length of initial vector. Should be ",(componentsNumber*maxlag),
+        if(length(initialValue) != (componentsNumber*lagsModelMax)){
+            warning(paste0("Wrong length of initial vector. Should be ",(componentsNumber*lagsModelMax),
                            " instead of ",length(initialValue),".\n",
                            "Values of initial vector will be generated"),call.=FALSE);
             initialValue <- NULL;
@@ -257,12 +257,12 @@ sim.gum <- function(orders=c(1), lags=c(1),
 #### Generate stuff if needed ####
 # First deal with initials
     if(initialGenerate){
-        matInitialValue[,,] <- runif(componentsNumber*nsim*maxlag,0,1000);
+        matInitialValue[,,] <- runif(componentsNumber*nsim*lagsModelMax,0,1000);
     }
     else{
-        matInitialValue[1:maxlag,,] <- rep(initialValue,nsim);
+        matInitialValue[1:lagsModelMax,,] <- rep(initialValue,nsim);
     }
-    arrvt[1:maxlag,,] <- matInitialValue;
+    arrvt[1:lagsModelMax,,] <- matInitialValue;
 
 # Now do the other parameters
     if(!measurementGenerate){
@@ -295,13 +295,13 @@ sim.gum <- function(orders=c(1), lags=c(1),
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
-            materrors[,] <- rt(nsim*obs,obs-(componentsNumber + maxlag));
+            materrors[,] <- rt(nsim*obs,obs-(componentsNumber + lagsModelMax));
         }
 
         # Center errors just in case
         materrors <- materrors - colMeans(materrors);
         # Change variance to make some sense. Errors should not be rediculously high and not too low.
-        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,]))));
+        materrors <- materrors * sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,]))));
         if(randomizer=="rs"){
             materrors <- materrors / 4;
         }
@@ -314,11 +314,11 @@ sim.gum <- function(orders=c(1), lags=c(1),
             materrors <- materrors - 0.5;
             # Make a meaningful variance of data. Something resembling to var=1.
             materrors <- materrors / rep(sqrt(colMeans(materrors^2)) *
-                                             sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
+                                             sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
         }
         else if(randomizer=="rt"){
             # Make a meaningful variance of data.
-            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:maxlag,1,])))),each=obs);
+            materrors <- materrors * rep(sqrt(abs(colMeans(as.matrix(arrvt[1:lagsModelMax,1,])))),each=obs);
         }
     }
 
@@ -331,7 +331,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
     }
 
 #### Simulate the data ####
-    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",modellags);
+    simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",lagsModel);
 
     if(all(iprob == 1)){
         matyt <- simulateddata$matyt;
@@ -362,7 +362,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
     if(nsim==1){
         matyt <- ts(matyt[,1],frequency=frequency);
         materrors <- ts(materrors[,1],frequency=frequency);
-        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-maxlag+1));
+        arrvt <- ts(arrvt[,,1],frequency=frequency,start=c(0,frequency-lagsModelMax+1));
         matot <- ts(matot[,1],frequency=frequency);
         matInitialValue <- matInitialValue[,,1];
     }

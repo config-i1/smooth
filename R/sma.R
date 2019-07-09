@@ -147,7 +147,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     yFitted <- rep(NA,obsInSample);
     yForecast <- rep(NA,h);
     errors <- rep(NA,obsInSample);
-    maxlag <- 1;
+    lagsModelMax <- 1;
 
 # These three are needed in order to use ssgeneralfun.cpp functions
     Etype <- "A";
@@ -184,7 +184,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 # Cost function for GES
 CF <- function(C){
     fitting <- fitterwrap(matvt, matF, matw, yInSample, vecg,
-                          modellags, Etype, Ttype, Stype, initialType,
+                          lagsModel, Etype, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
 
     cfRes <- mean(fitting$errors^2);
@@ -215,12 +215,12 @@ CreatorSMA <- function(silentText=FALSE,...){
         }
     }
 
-    modellags <- rep(1,nComponents);
+    lagsModel <- rep(1,nComponents);
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(y=y, xreg=NULL, updateX=FALSE,
                        persistenceX=NULL, transitionX=NULL, initialX=NULL,
-                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates, maxlag=maxlag, h=h, silent=silentText);
+                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates, lagsModelMax=lagsModelMax, h=h, silent=silentText);
     matxt <- xregdata$matxt;
     matat <- xregdata$matat;
     matFX <- xregdata$matFX;
@@ -236,7 +236,7 @@ CreatorSMA <- function(silentText=FALSE,...){
     bestIC <- ICs[ic];
 
     return(list(cfObjective=cfObjective,ICs=ICs,bestIC=bestIC,nParam=nParam,nComponents=nComponents,
-                matF=matF,vecg=vecg,matvt=matvt,matw=matw,modellags=modellags,
+                matF=matF,vecg=vecg,matvt=matvt,matw=matw,lagsModel=lagsModel,
                 matxt=matxt,matat=matat,matFX=matFX,vecgX=vecgX,logLik=logLik));
 }
 

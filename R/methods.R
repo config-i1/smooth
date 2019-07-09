@@ -773,6 +773,7 @@ forecast.smooth <- function(object, h=10,
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
 
+
 #' @importFrom stats window
 #' @importFrom greybox actuals
 #' @export
@@ -937,7 +938,7 @@ errorType.iss <- function(object, ...){
     return(substr(modelType(object),1,1));
 }
 
-##### Function returns the modellags from the model - internal function #####
+##### Function returns the modelLags from the model - internal function #####
 modelLags.default <- function(object, ...){
     modelLags <- NA;
     if(is.msarima(object)){

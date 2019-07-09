@@ -216,7 +216,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
 
 ##### Elements of CES #####
 ElementsCES <- function(C){
-    vt <- matrix(matvt[1:maxlag,],maxlag);
+    vt <- matrix(matvt[1:lagsModelMax,],lagsModelMax);
     nCoefficients <- 0;
     # No seasonality or Simple seasonality, lagged CES
     if(A$estimate){
@@ -258,38 +258,38 @@ ElementsCES <- function(C){
 
     if(initialType=="o"){
         if(any(seasonality==c("n","s"))){
-            vt[1:maxlag,] <- C[nCoefficients+(1:(2*maxlag))];
-            nCoefficients <- nCoefficients + maxlag*2;
+            vt[1:lagsModelMax,] <- C[nCoefficients+(1:(2*lagsModelMax))];
+            nCoefficients <- nCoefficients + lagsModelMax*2;
         }
         else if(seasonality=="p"){
-            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=maxlag);
+            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=lagsModelMax);
             nCoefficients <- nCoefficients + 2;
-            vt[1:maxlag,3] <- C[nCoefficients+(1:maxlag)];
-            nCoefficients <- nCoefficients + maxlag;
+            vt[1:lagsModelMax,3] <- C[nCoefficients+(1:lagsModelMax)];
+            nCoefficients <- nCoefficients + lagsModelMax;
         }
         else if(seasonality=="f"){
-            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=maxlag);
+            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=lagsModelMax);
             nCoefficients <- nCoefficients + 2;
-            vt[1:maxlag,3:4] <- C[nCoefficients+(1:(maxlag*2))];
-            nCoefficients <- nCoefficients + maxlag*2;
+            vt[1:lagsModelMax,3:4] <- C[nCoefficients+(1:(lagsModelMax*2))];
+            nCoefficients <- nCoefficients + lagsModelMax*2;
         }
     }
     else if(initialType=="b"){
-        vt[1:maxlag,] <- matvt[1:maxlag,];
+        vt[1:lagsModelMax,] <- matvt[1:lagsModelMax,];
     }
     else{
-        vt[1:maxlag,] <- initialValue;
+        vt[1:lagsModelMax,] <- initialValue;
     }
 
 # If exogenous are included
     if(xregEstimate){
-        at <- matrix(NA,maxlag,nExovars);
+        at <- matrix(NA,lagsModelMax,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[nCoefficients+(1:nExovars)],each=maxlag);
+            at[,] <- rep(C[nCoefficients+(1:nExovars)],each=lagsModelMax);
             nCoefficients <- nCoefficients + nExovars;
         }
         else{
-            at <- matat[1:maxlag,];
+            at <- matat[1:lagsModelMax,];
         }
         if(updateX){
             if(FXEstimate){
@@ -304,7 +304,7 @@ ElementsCES <- function(C){
         }
     }
     else{
-        at <- matrix(matat[1:maxlag,],maxlag,nExovars);
+        at <- matrix(matat[1:lagsModelMax,],lagsModelMax,nExovars);
     }
 
     return(list(matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -316,13 +316,13 @@ CF <- function(C){
     elements <- ElementsCES(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1:maxlag,] <- elements$vt;
-    matat[1:maxlag,] <- elements$at;
+    matvt[1:lagsModelMax,] <- elements$vt;
+    matat[1:lagsModelMax,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
     cfRes <- costfunc(matvt, matF, matw, yInSample, vecg,
-                      h, modellags, Etype, Ttype, Stype,
+                      h, lagsModel, Etype, Ttype, Stype,
                       multisteps, loss, normalizer, initialType,
                       matxt, matat, matFX, vecgX, ot,
                       bounds, 0);
@@ -347,7 +347,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
         if(any(seasonality==c("n","s"))){
             if(initialType=="o"){
-                C <- c(C,c(matvt[1:maxlag,]));
+                C <- c(C,c(matvt[1:lagsModelMax,]));
             }
         }
         else if(seasonality=="p"){
@@ -356,7 +356,7 @@ CreatorCES <- function(silentText=FALSE,...){
             }
             if(initialType=="o"){
                 C <- c(C,c(matvt[1,1:2]));
-                C <- c(C,c(matvt[1:maxlag,3]));
+                C <- c(C,c(matvt[1:lagsModelMax,3]));
             }
         }
         else{
@@ -365,13 +365,13 @@ CreatorCES <- function(silentText=FALSE,...){
             }
             if(initialType=="o"){
                 C <- c(C,c(matvt[1,1:2]));
-                C <- c(C,c(matvt[1:maxlag,3:4]));
+                C <- c(C,c(matvt[1:lagsModelMax,3:4]));
             }
         }
 
         if(xregEstimate){
             if(initialXEstimate){
-                C <- c(C,matat[maxlag,]);
+                C <- c(C,matat[lagsModelMax,]);
             }
             if(updateX){
                 if(FXEstimate){
@@ -447,8 +447,8 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0),1,2);
         matvt <- matrix(NA,obsStates,2);
         colnames(matvt) <- c("level.s","potential.s");
-        matvt[1:maxlag,1] <- yInSample[1:maxlag];
-        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
+        matvt[1:lagsModelMax,1] <- yInSample[1:lagsModelMax];
+        matvt[1:lagsModelMax,2] <- matvt[1:lagsModelMax,1]/1.1;
     }
     else if(seasonality=="p"){
         # Partial seasonality with a real part only
@@ -458,9 +458,9 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0,1),1,3);
         matvt <- matrix(NA,obsStates,3);
         colnames(matvt) <- c("level","potential","seasonal");
-        matvt[1:maxlag,1] <- mean(yInSample[1:maxlag]);
-        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
-        matvt[1:maxlag,3] <- decompose(ts(yInSample,frequency=maxlag),type="additive")$figure;
+        matvt[1:lagsModelMax,1] <- mean(yInSample[1:lagsModelMax]);
+        matvt[1:lagsModelMax,2] <- matvt[1:lagsModelMax,1]/1.1;
+        matvt[1:lagsModelMax,3] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
     }
     else if(seasonality=="f"){
         # Full seasonality with both real and imaginary parts
@@ -471,17 +471,17 @@ CreatorCES <- function(silentText=FALSE,...){
         matw <- matrix(c(1,0,1,0),1,4);
         matvt <- matrix(NA,obsStates,4);
         colnames(matvt) <- c("level","potential","seasonal 1", "seasonal 2");
-        matvt[1:maxlag,1] <- mean(yInSample[1:maxlag]);
-        matvt[1:maxlag,2] <- matvt[1:maxlag,1]/1.1;
-        matvt[1:maxlag,3] <- decompose(ts(yInSample,frequency=maxlag),type="additive")$figure;
-        matvt[1:maxlag,4] <- matvt[1:maxlag,3]/1.1;
+        matvt[1:lagsModelMax,1] <- mean(yInSample[1:lagsModelMax]);
+        matvt[1:lagsModelMax,2] <- matvt[1:lagsModelMax,1]/1.1;
+        matvt[1:lagsModelMax,3] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
+        matvt[1:lagsModelMax,4] <- matvt[1:lagsModelMax,3]/1.1;
     }
 
 ##### Prepare exogenous variables #####
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=maxlag, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
@@ -626,8 +626,8 @@ CreatorCES <- function(silentText=FALSE,...){
         elements <- ElementsCES(C);
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matvt[1:maxlag,] <- elements$vt;
-        matat[1:maxlag,] <- elements$at;
+        matvt[1:lagsModelMax,] <- elements$vt;
+        matat[1:lagsModelMax,] <- elements$at;
         matFX <- elements$matFX;
         vecgX <- elements$vecgX;
 
@@ -685,8 +685,8 @@ CreatorCES <- function(silentText=FALSE,...){
     elements <- ElementsCES(C);
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1:maxlag,] <- elements$vt;
-    matat[1:maxlag,] <- elements$at;
+    matvt[1:lagsModelMax,] <- elements$vt;
+    matat[1:lagsModelMax,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
@@ -698,10 +698,10 @@ CreatorCES <- function(silentText=FALSE,...){
 
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
-        initialValue <- matvt[1:maxlag,];
+        initialValue <- matvt[1:lagsModelMax,];
         if(initialType!="b"){
             parametersNumber[1,1] <- (parametersNumber[1,1] + 2*(seasonality!="s") +
-                                      maxlag*(seasonality!="n") + maxlag*any(seasonality==c("f","s")));
+                                      lagsModelMax*(seasonality!="n") + lagsModelMax*any(seasonality==c("f","s")));
         }
     }
 

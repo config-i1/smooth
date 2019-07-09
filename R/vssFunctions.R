@@ -223,10 +223,10 @@ vssInput <- function(smoothType=c("ves"),...){
         #     stop("Sorry we don't do model selection for VES yet.", call.=FALSE);
         # }
 
-        maxlag <- dataFreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
+        lagsModelMax <- dataFreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
 
         # Define the number of rows that should be in the matvt
-        obsStates <- max(obsAll + maxlag, obsInSample + 2*maxlag);
+        obsStates <- max(obsAll + lagsModelMax, obsInSample + 2*lagsModelMax);
 
         nComponentsNonSeasonal <- 1 + (Ttype!="N")*1;
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
@@ -889,7 +889,7 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("Etype",Etype,ParentEnvironment);
     assign("Ttype",Ttype,ParentEnvironment);
     assign("Stype",Stype,ParentEnvironment);
-    assign("maxlag",maxlag,ParentEnvironment);
+    assign("lagsModelMax",lagsModelMax,ParentEnvironment);
     assign("modelIsSeasonal",modelIsSeasonal,ParentEnvironment);
     assign("modelIsMultiplicative",modelIsMultiplicative,ParentEnvironment);
     assign("nComponentsAll",nComponentsAll,ParentEnvironment);
@@ -992,7 +992,7 @@ vssFitter <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     fitting <- vFitterWrap(yInSample, matvt, matF, matW, matG,
-                           modelLags, Etype, Ttype, Stype, ot);
+                           lagsModel, Etype, Ttype, Stype, ot);
     statesNames <- rownames(matvt);
     matvt <- fitting$matvt;
     rownames(matvt) <- statesNames;
@@ -1016,12 +1016,12 @@ vssFitter <- function(...){
 #' @importFrom stats qchisq
 vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
                          measurement=NULL, transition=NULL, persistence=NULL,
-                         modelLags=NULL, cumulative=FALSE, df=0,
+                         lagsModel=NULL, cumulative=FALSE, df=0,
                          nComponents=1, nSeries=1, h=1){
 
-    maxlag <- max(modelLags);
+    lagsModelMax <- max(lagsModel);
     # nElements <- nComponents*nSeries;
-    nElements <- length(modelLags);
+    nElements <- length(lagsModel);
 
     # This is a temporary solution, needed while we work on other types.
     if(intervalType!="i"){
@@ -1060,7 +1060,7 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
     # Array of final variance matrices
     varVec <- array(NA,c(h,nSeries,nSeries));
     # This is needed for the first observations, where we do not care about the transition equation
-    for(i in 1:min(h,maxlag)){
+    for(i in 1:min(h,lagsModelMax)){
         varVec[i,,] <- Sigma;
     }
 
@@ -1069,9 +1069,9 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
             covarVec <- array(NA,c(h,nSeries,nSeries));
         }
 
-        matrixOfVarianceOfStates <- array(0,c(nElements,nElements,h+maxlag));
+        matrixOfVarianceOfStates <- array(0,c(nElements,nElements,h+lagsModelMax));
         # This multiplication does not make sense
-        matrixOfVarianceOfStates[,,1:maxlag] <- persistence %*% Sigma %*% t(persistence);
+        matrixOfVarianceOfStates[,,1:lagsModelMax] <- persistence %*% Sigma %*% t(persistence);
         matrixOfVarianceOfStatesLagged <- as.matrix(matrixOfVarianceOfStates[,,1]);
 
         # New transition and measurement for the internal use
@@ -1084,7 +1084,7 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
         elementsNew <- rep(FALSE,nElements);
 
         # Define chunks, which correspond to the lags with h being the final one
-        chuncksOfHorizon <- c(1,unique(modelLags),h);
+        chuncksOfHorizon <- c(1,unique(lagsModel),h);
         chuncksOfHorizon <- sort(chuncksOfHorizon);
         chuncksOfHorizon <- chuncksOfHorizon[chuncksOfHorizon<=h];
         chuncksOfHorizon <- unique(chuncksOfHorizon);
@@ -1092,20 +1092,20 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
         # Length of the vector, excluding the h at the end
         chunksLength <- length(chuncksOfHorizon) - 1;
 
-        elementsNew <- modelLags<=(chuncksOfHorizon[1]);
+        elementsNew <- lagsModel<=(chuncksOfHorizon[1]);
         measurementNew[,elementsNew] <- measurement[,elementsNew];
 
         for(j in 1:chunksLength){
-            selectionMat[modelLags==chuncksOfHorizon[j],] <- chuncksOfHorizon[j];
-            selectionMat[,modelLags==chuncksOfHorizon[j]] <- chuncksOfHorizon[j];
+            selectionMat[lagsModel==chuncksOfHorizon[j],] <- chuncksOfHorizon[j];
+            selectionMat[,lagsModel==chuncksOfHorizon[j]] <- chuncksOfHorizon[j];
 
-            elementsNew <- modelLags < (chuncksOfHorizon[j]+1);
+            elementsNew <- lagsModel < (chuncksOfHorizon[j]+1);
             transitionNew[,elementsNew] <- transition[,elementsNew];
             measurementNew[,elementsNew] <- measurement[,elementsNew];
 
             for(i in (chuncksOfHorizon[j]+1):chuncksOfHorizon[j+1]){
-                selectionMat[modelLags>chuncksOfHorizon[j],] <- i;
-                selectionMat[,modelLags>chuncksOfHorizon[j]] <- i;
+                selectionMat[lagsModel>chuncksOfHorizon[j],] <- i;
+                selectionMat[,lagsModel>chuncksOfHorizon[j]] <- i;
 
                 matrixOfVarianceOfStatesLagged[elementsNew,
                                                elementsNew] <- matrixOfVarianceOfStates[cbind(rep(c(1:nElements),
@@ -1190,8 +1190,8 @@ vssForecaster <- function(...){
     PI <- NA;
 
     if(h>0){
-        yForecast <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+maxlag)],ncol=maxlag),
-                                     matF, matW, nSeries, h, Etype, Ttype, Stype, modelLags);
+        yForecast <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+lagsModelMax)],ncol=lagsModelMax),
+                                     matF, matW, nSeries, h, Etype, Ttype, Stype, lagsModel);
 
         if(cumulative){
             yForecast <- rowSums(yForecast);
@@ -1200,7 +1200,7 @@ vssForecaster <- function(...){
         if(interval){
             PI <- vssIntervals(level=level, intervalType=intervalType, Sigma=Sigma,
                                measurement=matW, transition=matF, persistence=matG,
-                               modelLags=modelLags, cumulative=cumulative, df=df,
+                               lagsModel=lagsModel, cumulative=cumulative, df=df,
                                nComponents=nComponentsAll, nSeries=nSeries, h=h);
 
             if(any(intervalType==c("i","u"))){

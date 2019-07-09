@@ -6,6 +6,7 @@ Changes:
 * seasonal and weights parameters in sim.ves() - they allow generating the data from VES[CCC] model.
 * Corrected the dependence on forecast package.
 * summary of smooth functions is a bit closer to the one from greybox now.
+* Renamed the external parameter "modelLags" into "lagsModel" for consistency purposes.
 
 Bugfixes:
 * Bugfix in the combination of models in es(), when the data was non-seasonal.

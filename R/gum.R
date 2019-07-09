@@ -267,16 +267,16 @@ ElementsGUM <- function(C){
         vecg <- matrix(persistence,nComponents,1);
     }
 
-    vt <- matrix(NA,maxlag,nComponents);
+    vt <- matrix(NA,lagsModelMax,nComponents);
     if(initialType!="b"){
         if(initialType=="o"){
             vtvalues <- C[n.coef+(1:(orders %*% lags))];
             n.coef <- n.coef + c(orders %*% lags);
 
             for(i in 1:nComponents){
-                vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-                vt[is.na(vt[1:maxlag,i]),i] <- rep(vt[(maxlag - modellags + 1)[i]:maxlag,i],
-                                                   ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+                vt[(lagsModelMax - lagsModel + 1)[i]:lagsModelMax,i] <- vtvalues[((cumsum(c(0,lagsModel))[i]+1):cumsum(c(0,lagsModel))[i+1])];
+                vt[is.na(vt[1:lagsModelMax,i]),i] <- rep(vt[(lagsModelMax - lagsModel + 1)[i]:lagsModelMax,i],
+                                                   ceiling((lagsModelMax - lagsModel + 1) / lagsModel)[i])[is.na(vt[1:lagsModelMax,i])];
             }
         }
         else if(initialType=="p"){
@@ -284,18 +284,18 @@ ElementsGUM <- function(C){
         }
     }
     else{
-        vt[,] <- matvt[1:maxlag,nComponents];
+        vt[,] <- matvt[1:lagsModelMax,nComponents];
     }
 
 # If exogenous are included
     if(xregEstimate){
-        at <- matrix(NA,maxlag,nExovars);
+        at <- matrix(NA,lagsModelMax,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[n.coef+(1:nExovars)],each=maxlag);
+            at[,] <- rep(C[n.coef+(1:nExovars)],each=lagsModelMax);
             n.coef <- n.coef + nExovars;
         }
         else{
-            at <- matat[1:maxlag,];
+            at <- matat[1:lagsModelMax,];
         }
         if(FXEstimate){
             matFX <- matrix(C[n.coef+(1:(nExovars^2))],nExovars,nExovars);
@@ -308,7 +308,7 @@ ElementsGUM <- function(C){
         }
     }
     else{
-        at <- matrix(matat[1:maxlag,],maxlag,nExovars);
+        at <- matrix(matat[1:lagsModelMax,],lagsModelMax,nExovars);
     }
 
     return(list(matw=matw,matF=matF,vecg=vecg,vt=vt,at=at,matFX=matFX,vecgX=vecgX));
@@ -320,13 +320,13 @@ CF <- function(C){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1:maxlag,] <- elements$vt;
-    matat[1:maxlag,] <- elements$at;
+    matvt[1:lagsModelMax,] <- elements$vt;
+    matat[1:lagsModelMax,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
     cfRes <- costfunc(matvt, matF, matw, yInSample, vecg,
-                       h, modellags, Etype, Ttype, Stype,
+                       h, lagsModel, Etype, Ttype, Stype,
                        multisteps, loss, normalizer, initialType,
                        matxt, matat, matFX, vecgX, ot,
                        bounds, 0);
@@ -399,7 +399,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 # initials, transition matrix and persistence vector
             if(xregEstimate){
                 if(initialXEstimate){
-                    C <- c(C,matat[maxlag,]);
+                    C <- c(C,matat[lagsModelMax,]);
                     Clb <- c(Clb,rep(-Inf,nExovars));
                     Cub <- c(Cub,rep(Inf,nExovars));
                 }
@@ -444,7 +444,7 @@ CreatorGUM <- function(silentText=FALSE,...){
                c(persistence),
                c(initialValue));
 
-        C <- c(C,matat[maxlag,],
+        C <- c(C,matat[lagsModelMax,],
                c(transitionX),
                c(persistenceX));
 
@@ -474,7 +474,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=maxlag, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
@@ -586,13 +586,13 @@ CreatorGUM <- function(silentText=FALSE,...){
         }
     }
 
-    vt <- matrix(NA,maxlag,nComponents);
+    vt <- matrix(NA,lagsModelMax,nComponents);
     for(i in 1:nComponents){
-        vt[(maxlag - modellags + 1)[i]:maxlag,i] <- vtvalues[((cumsum(c(0,modellags))[i]+1):cumsum(c(0,modellags))[i+1])];
-        vt[is.na(vt[1:maxlag,i]),i] <- rep(rev(vt[(maxlag - modellags + 1)[i]:maxlag,i]),
-                                           ceiling((maxlag - modellags + 1) / modellags)[i])[is.na(vt[1:maxlag,i])];
+        vt[(lagsModelMax - lagsModel + 1)[i]:lagsModelMax,i] <- vtvalues[((cumsum(c(0,lagsModel))[i]+1):cumsum(c(0,lagsModel))[i+1])];
+        vt[is.na(vt[1:lagsModelMax,i]),i] <- rep(rev(vt[(lagsModelMax - lagsModel + 1)[i]:lagsModelMax,i]),
+                                           ceiling((lagsModelMax - lagsModel + 1) / lagsModel)[i])[is.na(vt[1:lagsModelMax,i])];
     }
-    matvt[1:maxlag,] <- vt;
+    matvt[1:lagsModelMax,] <- vt;
 
 #### Deal with provided C ####
     ellipsis <- list(...);
@@ -687,8 +687,8 @@ CreatorGUM <- function(silentText=FALSE,...){
         matw <- elements$matw;
         matF <- elements$matF;
         vecg <- elements$vecg;
-        matvt[1:maxlag,] <- elements$vt;
-        matat[1:maxlag,] <- elements$at;
+        matvt[1:lagsModelMax,] <- elements$vt;
+        matat[1:lagsModelMax,] <- elements$at;
         matFX <- elements$matFX;
         vecgX <- elements$vecgX;
 
@@ -745,8 +745,8 @@ CreatorGUM <- function(silentText=FALSE,...){
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
-    matvt[1:maxlag,] <- elements$vt;
-    matat[1:maxlag,] <- elements$at;
+    matvt[1:lagsModelMax,] <- elements$vt;
+    matat[1:lagsModelMax,] <- elements$at;
     matFX <- elements$matFX;
     vecgX <- elements$vecgX;
 
@@ -779,7 +779,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     #                               (nComponents^2)*(!transitionEstimate));
 
     if(initialType!="p"){
-        initialValue <- matrix(matvt[1:maxlag,],maxlag);
+        initialValue <- matrix(matvt[1:lagsModelMax,],lagsModelMax);
         if(initialType!="b"){
             parametersNumber[1,1] <- parametersNumber[1,1] + orders %*% lags;
         }
@@ -814,7 +814,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     }
 
 # Make some preparations
-    matvt <- ts(matvt,start=(time(y)[1] - deltat(y)*maxlag),frequency=dataFreq);
+    matvt <- ts(matvt,start=(time(y)[1] - deltat(y)*lagsModelMax),frequency=dataFreq);
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat);
         colnames(matvt) <- c(paste0("Component ",c(1:nComponents)),colnames(matat));

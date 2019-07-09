@@ -1,5 +1,5 @@
 utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","nSeries","modelIsSeasonal",
-                         "obsInSample","obsAll","modelLags","persistenceEstimate","persistenceType",
+                         "obsInSample","obsAll","lagsModel","persistenceEstimate","persistenceType",
                          "persistenceValue","damped","dampedEstimate","dampedType","transitionType",
                          "initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
                          "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat",
@@ -242,7 +242,7 @@ CF <- function(A){
     elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
 
     cfRes <- vOptimiserWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            modelLags, Etype, Ttype, Stype, loss, normalizer, bounds, ot, otObs);
+                            lagsModel, Etype, Ttype, Stype, loss, normalizer, bounds, ot, otObs);
     # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -254,7 +254,7 @@ CF <- function(A){
 
 ##### A values for estimation #####
 # Function constructs default bounds where A values should lie
-AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSeries){
+AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries){
     A <- NA;
     ALower <- NA;
     AUpper <- NA;
@@ -330,10 +330,10 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
         ### Vector of initial seasonals
         if(initialSeasonEstimate){
             if(initialSeasonType=="c"){
-                initialSeasonLength <- maxlag;
+                initialSeasonLength <- lagsModelMax;
             }
             else{
-                initialSeasonLength <- maxlag*nSeries;
+                initialSeasonLength <- lagsModelMax*nSeries;
             }
             A <- c(A,initialSeasonValue);
             ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
@@ -416,7 +416,7 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
 
         ### Vector of initial seasonals
         if(initialSeasonEstimate){
-            initialSeasonLength <- maxlag;
+            initialSeasonLength <- lagsModelMax;
             A <- c(A,initialSeasonValue);
             ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
             ALower <- c(ALower,rep(-Inf,initialSeasonLength));
@@ -434,12 +434,12 @@ AValues <- function(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSe
 
 ##### Basic VES initialiser
 ### This function will accept Etype, Ttype, Stype and damped and would return:
-# nComponentsNonSeasonal, nComponentsAll, maxlag, modelIsSeasonal, obsStates
+# nComponentsNonSeasonal, nComponentsAll, lagsModelMax, modelIsSeasonal, obsStates
 # This is needed for model selection
 
 ##### Basic matrices creator #####
     # This thing returns matvt, matF, matG, matW, dampedValue, initialValue
-    # and initialSeasonValue if they are not provided + modelLags
+    # and initialSeasonValue if they are not provided + lagsModel
 BasicMakerVES <- function(...){
     # ellipsis <- list(...);
     # ParentEnvironment <- ellipsis[['ParentEnvironment']];
@@ -552,7 +552,7 @@ BasicMakerVES <- function(...){
         else{
             initialPlaces <- c(1:(nSeries*nComponentsNonSeasonal));
         }
-        matvt[initialPlaces,1:maxlag] <- rep(initialValue,maxlag);
+        matvt[initialPlaces,1:lagsModelMax] <- rep(initialValue,lagsModelMax);
     }
     else{
         XValues <- rbind(rep(1,obsInSample),c(1:obsInSample));
@@ -581,11 +581,11 @@ BasicMakerVES <- function(...){
             else{
                 initialPlaces <- nSeries*nComponentsNonSeasonal+1;
             }
-            matvt[initialPlaces,1:maxlag] <- initialSeasonValue;
+            matvt[initialPlaces,1:lagsModelMax] <- initialSeasonValue;
         }
         else{
             # Matrix of dummies for seasons
-            XValues <- matrix(rep(diag(maxlag),ceiling(obsInSample/maxlag)),maxlag)[,1:obsInSample];
+            XValues <- matrix(rep(diag(lagsModelMax),ceiling(obsInSample/lagsModelMax)),lagsModelMax)[,1:obsInSample];
             # if(Stype=="A"){
                 initialSeasonValue <- (yInSample-rowMeans(yInSample)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             # }
@@ -593,29 +593,29 @@ BasicMakerVES <- function(...){
             #     initialSeasonValue <- (yInSample-rowMeans(yInSample)) %*% t(XValues) %*% solve(XValues %*% t(XValues));
             # }
             if(initialSeasonType=="c" || seasonalType=="c"){
-                initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,maxlag);
+                initialSeasonValue <- matrix(colMeans(initialSeasonValue),1,lagsModelMax);
             }
             else{
-                initialSeasonValue <- matrix(as.vector(t(initialSeasonValue)),nSeries,maxlag);
+                initialSeasonValue <- matrix(as.vector(t(initialSeasonValue)),nSeries,lagsModelMax);
             }
         }
     }
 
-    ### modelLags
+    ### lagsModel
     if(seasonalType=="i"){
-        modelLags <- rep(1,nComponentsAll);
+        lagsModel <- rep(1,nComponentsAll);
         if(modelIsSeasonal){
-            modelLags[nComponentsAll] <- maxlag;
+            lagsModel[nComponentsAll] <- lagsModelMax;
         }
-        modelLags <- matrix(modelLags,nSeries*nComponentsAll,1);
+        lagsModel <- matrix(lagsModel,nSeries*nComponentsAll,1);
     }
     else{
-        modelLags <- matrix(c(rep(1,nSeries*nComponentsNonSeasonal),maxlag),
+        lagsModel <- matrix(c(rep(1,nSeries*nComponentsNonSeasonal),lagsModelMax),
                             nSeries*nComponentsNonSeasonal+1,1);
     }
 
     return(list(matvt=matvt, matF=matF, matG=matG, matW=matW, dampedValue=dampedValue,
-                initialValue=initialValue, initialSeasonValue=initialSeasonValue, modelLags=modelLags));
+                initialValue=initialValue, initialSeasonValue=initialSeasonValue, lagsModel=lagsModel));
 }
 
 ##### Basic matrices filler #####
@@ -723,20 +723,20 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                                        nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal;
             }
-            matvt[initialPlaces,1:maxlag] <- rep(initialValue,maxlag);
+            matvt[initialPlaces,1:lagsModelMax] <- rep(initialValue,lagsModelMax);
         }
 
         ## Deal with seasonal part of the vector of states
         if(modelIsSeasonal & initialSeasonEstimate){
             initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
             if(initialSeasonType=="i"){
-                matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:(nSeries*maxlag))],
-                                                        nSeries,maxlag,byrow=TRUE);
-                nCoefficients <- nCoefficients + nSeries*maxlag;
+                matvt[initialPlaces,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:(nSeries*lagsModelMax))],
+                                                        nSeries,lagsModelMax,byrow=TRUE);
+                nCoefficients <- nCoefficients + nSeries*lagsModelMax;
             }
             else if(initialSeasonType=="c"){
-                matvt[initialPlaces,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],nSeries,maxlag,byrow=TRUE);
-                nCoefficients <- nCoefficients + maxlag;
+                matvt[initialPlaces,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:lagsModelMax)],nSeries,lagsModelMax,byrow=TRUE);
+                nCoefficients <- nCoefficients + lagsModelMax;
             }
         }
     }
@@ -845,13 +845,13 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 initialValue <- matrix(A[nCoefficients+c(1:nComponentsNonSeasonal)],nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal;
             }
-            matvt[initialPlaces,1:maxlag] <- rep(initialValue,maxlag);
+            matvt[initialPlaces,1:lagsModelMax] <- rep(initialValue,lagsModelMax);
         }
 
         ## Deal with seasonal part of the vector of states
         if(modelIsSeasonal & initialSeasonEstimate){
-            matvt[nComponentsNonSeasonal*nSeries+1,1:maxlag] <- matrix(A[nCoefficients+c(1:maxlag)],1,maxlag,byrow=TRUE);
-            nCoefficients <- nCoefficients + maxlag;
+            matvt[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:lagsModelMax)],1,lagsModelMax,byrow=TRUE);
+            nCoefficients <- nCoefficients + lagsModelMax;
         }
     }
 
@@ -868,7 +868,7 @@ EstimatorVES <- function(...){
     elements <- BasicMakerVES();
     list2env(elements,environment());
 
-    AList <- AValues(Ttype,Stype,maxlag,nComponentsAll,nComponentsNonSeasonal,nSeries);
+    AList <- AValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
     A <- AList$A;
 
     if(any((A>=AList$AUpper),(A<=AList$ALower))){
@@ -1126,7 +1126,7 @@ CreatorVES <- function(silent=FALSE,...){
             initialNames <- c(initialNames,"trend");
         }
         if(initialEstimate){
-            initialValue <- matrix(matvt[initialPlaces,maxlag],nComponentsNonSeasonal*nSeries,1);
+            initialValue <- matrix(matvt[initialPlaces,lagsModelMax],nComponentsNonSeasonal*nSeries,1);
             parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialValue)));
         }
     }
@@ -1136,7 +1136,7 @@ CreatorVES <- function(silent=FALSE,...){
             initialNames <- c(initialNames,"trend");
         }
         if(initialEstimate){
-            initialValue <- matrix(matvt[1:(nComponentsNonSeasonal*nSeries),maxlag],
+            initialValue <- matrix(matvt[1:(nComponentsNonSeasonal*nSeries),lagsModelMax],
                                    nComponentsNonSeasonal*nSeries,1);
             parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialValue)));
         }
@@ -1147,20 +1147,20 @@ CreatorVES <- function(silent=FALSE,...){
         if(seasonalType=="i"){
             if(initialSeasonEstimate){
                 initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
-                initialSeasonValue <- matrix(matvt[initialPlaces,1:maxlag],nSeries,maxlag);
+                initialSeasonValue <- matrix(matvt[initialPlaces,1:lagsModelMax],nSeries,lagsModelMax);
                 parametersNumber[1,1] <- parametersNumber[1,1] + length(unique(as.vector(initialSeasonValue)));
             }
             rownames(initialSeasonValue) <- dataNames;
         }
         else{
-            initialSeasonValue <- matrix(matvt[nComponentsNonSeasonal*nSeries+1,1:maxlag],1,maxlag);
-            parametersNumber[1,1] <- parametersNumber[1,1] + maxlag;
+            initialSeasonValue <- matrix(matvt[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax],1,lagsModelMax);
+            parametersNumber[1,1] <- parametersNumber[1,1] + lagsModelMax;
             rownames(initialSeasonValue) <- "Common";
         }
-        colnames(initialSeasonValue) <- paste0("Seasonal",c(1:maxlag));
+        colnames(initialSeasonValue) <- paste0("Seasonal",c(1:lagsModelMax));
     }
 
-    matvt <- ts(t(matvt),start=(time(y)[1] - dataDeltat*maxlag),frequency=dataFreq);
+    matvt <- ts(t(matvt),start=(time(y)[1] - dataDeltat*lagsModelMax),frequency=dataFreq);
     yFitted <- ts(t(yFitted),start=dataStart,frequency=dataFreq);
     errors <- ts(t(errors),start=dataStart,frequency=dataFreq);
 

@@ -330,7 +330,7 @@ CF <- function(C){
     cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
                            ARValue, MAValue, constantValue, C,
                            matvt, matF, matw, yInSample, vecg,
-                           h, modellags, Etype, Ttype, Stype,
+                           h, lagsModel, Etype, Ttype, Stype,
                            multisteps, loss, normalizer, initialType,
                            nExovars, matxt, matat, matFX, vecgX, ot,
                            AREstimate, MAEstimate, constantRequired, constantEstimate,
@@ -385,7 +385,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # initials, transition matrix and persistence vector
         if(xregEstimate){
             if(initialXEstimate){
-                C <- c(C,matat[maxlag,]);
+                C <- c(C,matat[lagsModelMax,]);
             }
             if(updateX){
                 if(FXEstimate){
@@ -419,10 +419,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 # initial values of state vector and the constant term
         if(nComponents>0 & initialType=="p"){
-            matvt[1:maxlag,1:nComponents] <- initialValue;
+            matvt[1:lagsModelMax,1:nComponents] <- initialValue;
         }
         if(constantRequired){
-            matvt[1:maxlag,(nComponents+1)] <- constantValue;
+            matvt[1:lagsModelMax,(nComponents+1)] <- constantValue;
         }
 
         cfObjective <- CF(C);
@@ -459,13 +459,13 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             matvt <- cbind(matvt,rep(1,obsStates));
         }
         if(initialType=="p"){
-            matvt[1:maxlag,1:nComponents] <- initialValue;
+            matvt[1:lagsModelMax,1:nComponents] <- initialValue;
         }
         else{
             for(i in 1:nComponents){
-                nRepeats <- ceiling(maxlag/modellags[i]);
-                matvt[1:maxlag,i] <- rep(yInSample[1:modellags[i]],nRepeats)[nRepeats*modellags[i]+(-maxlag+1):0];
-                # matvt[1:maxlag,i] <- rep(yInSample[1:modellags[i]],nRepeats)[1:maxlag];
+                nRepeats <- ceiling(lagsModelMax/lagsModel[i]);
+                matvt[1:lagsModelMax,i] <- rep(yInSample[1:lagsModel[i]],nRepeats)[nRepeats*lagsModel[i]+(-lagsModelMax+1):0];
+                # matvt[1:lagsModelMax,i] <- rep(yInSample[1:lagsModel[i]],nRepeats)[1:lagsModelMax];
             }
         }
     }
@@ -473,7 +473,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         matw <- matF <- matrix(1,1,1);
         vecg <- matrix(0,1,1);
         matvt <- matrix(1,obsStates,1);
-        modellags <- matrix(1,1,1);
+        lagsModel <- matrix(1,1,1);
     }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
@@ -485,7 +485,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       maxlag=maxlag, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
 
     if(xregDo=="u"){
         nExovars <- xregdata$nExovars;
@@ -637,7 +637,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
                                 xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                                 # The last bit is "ssarimaOld"
-                                FALSE, modellags, nonZeroARI, nonZeroMA);
+                                FALSE, lagsModel, nonZeroARI, nonZeroMA);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[,] <- elements$matvt;
@@ -703,7 +703,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
-                            FALSE, modellags, nonZeroARI, nonZeroMA);
+                            FALSE, lagsModel, nonZeroARI, nonZeroMA);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;
@@ -724,10 +724,10 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 # Write down initials of states vector and exogenous
     if(initialType!="p"){
         if(constantRequired){
-            initialValue <- matvt[1:maxlag,-ncol(matvt)];
+            initialValue <- matvt[1:lagsModelMax,-ncol(matvt)];
         }
         else{
-            initialValue <- matvt[1:maxlag,];
+            initialValue <- matvt[1:lagsModelMax,];
         }
         if(initialType!="b"){
             parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
@@ -763,7 +763,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     }
 
 # Fill in the rest of matvt
-    matvt <- ts(matvt,start=(time(y)[1] - deltat(y)*maxlag),frequency=dataFreq);
+    matvt <- ts(matvt,start=(time(y)[1] - deltat(y)*lagsModelMax),frequency=dataFreq);
     if(!is.null(xreg)){
         matvt <- cbind(matvt,matat[1:nrow(matvt),]);
         colnames(matvt) <- c(paste0("Component ",c(1:max(1,nComponents))),colnames(matat));
@@ -956,7 +956,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   measurement=matw,
                   AR=ARterms,I=Iterms,MA=MAterms,constant=const,
                   initialType=initialType,initial=initialValue,
-                  nParam=parametersNumber, modelLags=modellags,
+                  nParam=parametersNumber, modelLags=lagsModel,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
                   y=y,holdout=yHoldout,occurrence=occurrenceModel,
