@@ -137,6 +137,12 @@ values:
 \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
 \item \code{forecastModel} - the forecast of the underlying ETS model, where applicable
 (only for occurrence=c("o","i","d"));
+\item \code{lower} - the lower bound of the interval if \code{interval!="none"};
+\item \code{upper} - the upper bound of the interval if \code{interval!="none"};
+\item \code{lowerModel} - the lower bound of the interval of the undelying ETS model
+if \code{interval!="none"};
+\item \code{upperModel} - the upper bound of the interval of the undelying ETS model
+if \code{interval!="none"};
 \item \code{states} - the values of the state vector;
 \item \code{logLik} - the log-likelihood value of the model;
 \item \code{nParam} - the number of parameters in the model (the matrix is returned);

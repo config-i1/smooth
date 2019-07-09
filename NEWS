@@ -7,6 +7,7 @@ Changes:
 * Corrected the dependence on forecast package.
 * summary of smooth functions is a bit closer to the one from greybox now.
 * Renamed the external parameter "modelLags" into "lagsModel" for consistency purposes.
+* Parametric prediction intevals in oes(). The oesg() is more complicated and would need more work.
 
 Bugfixes:
 * Bugfix in the combination of models in es(), when the data was non-seasonal.

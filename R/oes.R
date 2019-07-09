@@ -111,6 +111,12 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' \item \code{forecast} - the forecast of the probability for \code{h} observations ahead;
 #' \item \code{forecastModel} - the forecast of the underlying ETS model, where applicable
 #' (only for occurrence=c("o","i","d"));
+#' \item \code{lower} - the lower bound of the interval if \code{interval!="none"};
+#' \item \code{upper} - the upper bound of the interval if \code{interval!="none"};
+#' \item \code{lowerModel} - the lower bound of the interval of the undelying ETS model
+#' if \code{interval!="none"};
+#' \item \code{upperModel} - the upper bound of the interval of the undelying ETS model
+#' if \code{interval!="none"};
 #' \item \code{states} - the values of the state vector;
 #' \item \code{logLik} - the log-likelihood value of the model;
 #' \item \code{nParam} - the number of parameters in the model (the matrix is returned);
@@ -134,7 +140,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' @examples
 #'
 #' y <- rpois(100,0.1)
-#' oes(y, occurrence="o")
+#' oes(y, occurrence="auto")
 #'
 #' oes(y, occurrence="f")
 #'
@@ -709,11 +715,35 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             }
             names(initial) <- "level";
             pForecast <- ts(rep(pt[1],h), start=yForecastStart, frequency=dataFreq);
-            errors <- ts(ot-iprob, start=dataStart, frequency=dataFreq);
+            yForecast <- log(pForecast/(1-pForecast));
+            errors <- ts((ot-pt+1)/2, start=dataStart, frequency=dataFreq);
+            errors[] <- log(errors / (1-errors));
+            s2 <- mean(errors^2);
+
+            # If interal is needed, transform the error and use normal distribution
+            if(interval){
+                df <- obsInSample - 1;
+                if(df>0){
+                    upperquant <- qt((1+level)/2,df=df);
+                    lowerquant <- qt((1-level)/2,df=df);
+                }
+                else{
+                    upperquant <- sqrt(1/((1-level)/2));
+                    lowerquant <- -upperquant;
+                }
+                yUpper <- yForecast + upperquant * sqrt(s2);
+                yLower <- yForecast + lowerquant * sqrt(s2);
+                pUpper <- exp(yUpper) / (1+exp(yUpper));
+                pLower <- exp(yLower) / (1+exp(yLower));
+            }
+            else{
+                yUpper <- yLower <- pUpper <- pLower <- NA;
+            }
 
             parametersNumber[1,c(1,4)] <- 1;
 
-            output <- list(fitted=pt, forecast=pForecast, states=pt,
+            output <- list(fitted=pt, forecast=pForecast, lower=pLower, upper=pUpper,
+                           states=pt, lowerModel=yLower, upperModel=yUpper, forecastModel=yForecast,
                            nParam=parametersNumber, residuals=errors, y=otAll,
                            persistence=matrix(0,1,1,dimnames=list("level",NULL)),
                            initial=initial, initialSeason=NULL);
@@ -878,9 +908,10 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             }
 
             #### Form the output ####
-            output <- list(fitted=pFitted, forecast=pForecast,
+            output <- list(fitted=pFitted, forecast=pForecast, lower=pLower, upper=pUpper,
                            states=ts(matvt, start=(time(y)[1] - deltat(y)*lagsModelMax),
                                      frequency=dataFreq),
+                           lowerModel=yLower, upperModel=yUpper,
                            nParam=parametersNumber, residuals=errors, y=otAll,
                            persistence=vecg, phi=phi, initial=matvt[1,1:nComponentsNonSeasonal],
                            initialSeason=initialSeason, fittedModel=yFitted, forecastModel=yForecast,
@@ -920,7 +951,8 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             pForecast <- ts(rep(ot[obsInSample],h), start=yForecastStart, frequency=dataFreq);
             errors <- ts(rep(0,obsInSample), start=dataStart, frequency=dataFreq);
             parametersNumber[] <- 0;
-            output <- list(fitted=pt, forecast=pForecast, states=pt,
+            output <- list(fitted=pt, forecast=pForecast, lower=NA, upper=NA,
+                           states=pt,
                            nParam=parametersNumber, residuals=errors, y=pt,
                            persistence=NULL, initial=NULL, initialSeason=NULL);
         }
@@ -1211,14 +1243,15 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
     ##### Make a plot #####
     if(!silentGraph){
-        # if(interval){
-        #     graphmaker(actuals=otAll, forecast=yForecastNew, fitted=pFitted, lower=yLowerNew, upper=yUpperNew,
-        #                level=level,legend=!silentLegend,main=output$model);
-        # }
-        # else{
-        graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
-                   legend=!silentLegend,main=paste0(output$model));
-        # }
+        if(interval){
+            graphmaker(actuals=otAll, forecast=output$forecast, fitted=output$fitted,
+                       lower=output$lower, upper=output$upper,
+                       level=level,legend=!silentLegend,main=output$model);
+        }
+        else{
+            graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
+                       legend=!silentLegend,main=paste0(output$model));
+        }
     }
 
     # Produce log likelihood. It's the same for all the models
