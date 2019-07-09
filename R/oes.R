@@ -1173,6 +1173,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     else{
         modelname <- "oETS";
     }
+    output$s2 <- mean(output$residuals^2);
     output$occurrence <- occurrence;
     output$model <- paste0(modelname,"[",toupper(occurrence),"]","(",model,")");
     output$timeElapsed <- Sys.time()-startTime;
