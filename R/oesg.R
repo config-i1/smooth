@@ -307,7 +307,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     ssInput("oes",ParentEnvironment=environment());
 
     ### Prepare exogenous variables
-    xregdata <- ssXreg(y=otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
+    xregdata <- ssXreg(y=1-otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
                        persistenceX=persistenceXB, transitionX=transitionXB, initialX=initialXB,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        maxlag=1, h=h, xregDo=xregDoB, silent=silentText,
@@ -1029,7 +1029,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                              frequency=dataFreq),
                    nParam=parametersNumberA, residuals=errorsA, occurrence="g",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
-                   initialSeason=initialSeasonA,
+                   initialSeason=initialSeasonA, s2=mean(errorsA^2),
                    fittedModel=aFitted, forecastModel=aForecast,
                    initialX=matatA[,1], xreg=xregA);
     class(modelA) <- c("oes","smooth");
@@ -1039,7 +1039,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                              frequency=dataFreq),
                    nParam=parametersNumberB, residuals=errorsB, occurrence="g",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],
-                   initialSeason=initialSeasonB,
+                   initialSeason=initialSeasonB, s2=mean(errorsB^2),
                    fittedModel=bFitted, forecastModel=bForecast,
                    initialX=matatB[,1], xreg=xregB);
     class(modelB) <- c("oes","smooth");
