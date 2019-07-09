@@ -3241,7 +3241,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      loss="MSE", cfObjective=NULL, interval=FALSE, cumulative=FALSE,
                      intervalType=c("n","p","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideinterval=NULL, errormeasures=NULL,
-                     occurrence="n"){
+                     occurrence="n", obs=NULL, digits=5){
     # Function forms the generic output for state space models.
     if(!is.null(modelname)){
         if(is.list(modelname)){
@@ -3305,15 +3305,15 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         if(!is.null(persistence)){
             cat(paste0("Persistence vector g:\n"));
             if(is.matrix(persistence)){
-                print(round(t(persistence),3));
+                print(round(t(persistence),digits));
             }
             else{
-                print(round(persistence,3));
+                print(round(persistence,digits));
             }
         }
         if(!is.null(phi)){
             if(gregexpr("d",modelname)!=-1){
-                cat(paste0("Damping parameter: ", round(phi,3),"\n"));
+                cat(paste0("Damping parameter: ", round(phi,digits),"\n"));
             }
         }
     }
@@ -3322,10 +3322,10 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     if(model=="GUM"){
         if(!is.null(transition)){
             cat("Transition matrix F: \n");
-            print(round(transition,3));
+            print(round(transition,digits));
         }
         if(!is.null(measurement)){
-            cat(paste0("Measurement vector w: ",paste(round(measurement,3),collapse=", "),"\n"));
+            cat(paste0("Measurement vector w: ",paste(round(measurement,digits),collapse=", "),"\n"));
         }
     }
 
@@ -3333,29 +3333,29 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     if(model=="ARIMA"){
         if(all(!is.null(ARterms))){
             cat("Matrix of AR terms:\n");
-            print(round(ARterms,3));
+            print(round(ARterms,digits));
         }
         if(all(!is.null(MAterms))){
             cat("Matrix of MA terms:\n");
-            print(round(MAterms,3));
+            print(round(MAterms,digits));
         }
         if(!is.null(constant)){
             if(constant!=FALSE){
-                cat(paste0("Constant value is: ",round(constant,3),"\n"));
+                cat(paste0("Constant value is: ",round(constant,digits),"\n"));
             }
         }
     }
     ### Stuff for CES
     if(model=="CES"){
         if(!is.null(A)){
-            cat(paste0("a0 + ia1: ",round(A,5),"\n"));
+            cat(paste0("a0 + ia1: ",round(A,digits),"\n"));
         }
         if(!is.null(B)){
             if(is.complex(B)){
-                cat(paste0("b0 + ib1: ",round(B,5),"\n"));
+                cat(paste0("b0 + ib1: ",round(B,digits),"\n"));
             }
             else{
-                cat(paste0("b: ",round(B,5),"\n"));
+                cat(paste0("b: ",round(B,digits),"\n"));
             }
         }
     }
@@ -3372,26 +3372,6 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-    if(!is.null(nParam)){
-        if(nParam[1,4]==1){
-            cat(paste0(nParam[1,4]," parameter was estimated in the process\n"));
-        }
-        else{
-            cat(paste0(nParam[1,4]," parameters were estimated in the process\n"));
-        }
-
-        if(nParam[2,4]>1){
-            cat(paste0(nParam[2,4]," parameters were provided\n"));
-        }
-        else if(nParam[2,4]>0){
-            cat(paste0(nParam[2,4]," parameter was provided\n"));
-        }
-    }
-
-    if(!is.null(s2)){
-        cat(paste0("Residuals standard deviation: ",round(sqrt(s2),3),"\n"));
-    }
-
     if(hadxreg){
         cat("Xreg coefficients were estimated");
         if(wentwild){
@@ -3404,7 +3384,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     cat(paste0("Loss function type: ",loss))
     if(!is.null(cfObjective)){
-        cat(paste0("; Loss function value: ",round(cfObjective,3),"\n"));
+        cat(paste0("; Loss function value: ",round(cfObjective,digits),"\n"));
     }
     else{
         cat("\n");
@@ -3417,7 +3397,22 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
         ICs <- ICs[nrow(ICs),];
     }
-    print(round(ICs,4));
+    print(round(ICs,digits));
+
+    if(!is.null(s2)){
+        cat("\nError standard deviation: "); cat(round(sqrt(s2),digits));
+    }
+    cat("\nSample size: "); cat(obs);
+
+    if(!is.null(nParam)){
+        cat("\nNumber of estimated parameters: "); cat(nParam[1,4]);
+
+        if(nParam[2,4]>0){
+            cat("\nNumber of provided parameters: "); cat(nParam[2,4]);
+        }
+
+        cat("\nNumber of degrees of freedom: "); cat(obs-nParam[1,4]);
+    }
 
     if(interval){
         if(intervalType=="p"){
