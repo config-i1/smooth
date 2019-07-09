@@ -3,9 +3,13 @@
 \name{forecast.smooth}
 \alias{forecast.smooth}
 \alias{forecast}
+\alias{forecast.oes}
 \title{Forecasting time series using smooth functions}
 \usage{
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
+  "semiparametric", "nonparametric", "none"), level = 0.95, ...)
+
+\method{forecast}{oes}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, ...)
 }
 \arguments{

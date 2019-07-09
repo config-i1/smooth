@@ -180,9 +180,11 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         initialSeasonA <- modelA$initialSeason;
         xregA <- modelA$xreg;
         initialXA <- modelA$initialX;
-        updateXA <- modelA$updateX;
         transitionXA <- modelA$transitionX;
         persistenceXA <- modelA$persistenceX;
+        if(any(c(persistenceXA)!=0) | any((transitionXA!=0)&(transitionXA!=1))){
+            updateXA <- TRUE;
+        }
         modelA <- modelType(modelA);
     }
     if(is.oes(modelB)){
@@ -192,9 +194,11 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         initialSeasonB <- modelB$initialSeason;
         xregB <- modelB$xreg;
         initialXB <- modelB$initialX;
-        updateXB <- modelB$updateX;
         transitionXB <- modelB$transitionX;
         persistenceXB <- modelB$persistenceX;
+        if(any(c(persistenceXB)!=0) | any((transitionXB!=0)&(transitionXB!=1))){
+            updateXB <- TRUE;
+        }
         modelB <- modelType(modelB);
     }
 
@@ -240,6 +244,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     environment(ssInput) <- environment();
     ssInput("oes",ParentEnvironment=environment());
+    xregDoA <- xregDo;
 
     ### Produce vectors with zeroes and ones, fixed probability and the number of ones.
     ot <- (yInSample!=0)*1;
@@ -305,6 +310,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     environment(ssInput) <- environment();
     ssInput("oes",ParentEnvironment=environment());
+    xregDoB <- xregDo;
 
     ### Prepare exogenous variables
     xregdata <- ssXreg(y=1-otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
@@ -1053,7 +1059,8 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     }
     # Start forming the output
     output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", y=otAll,
-                   fitted=pFitted, forecast=pForecast, modelA=modelA, modelB=modelB,
+                   fitted=pFitted, forecast=pForecast, lower=NA, upper=NA,
+                   modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);
     output$timeElapsed <- Sys.time()-startTime;
 

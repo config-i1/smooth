@@ -175,7 +175,7 @@ vignette: \code{vignette("oes","smooth")}
 \examples{
 
 y <- rpois(100,0.1)
-oes(y, occurrence="o")
+oes(y, occurrence="auto")
 
 oes(y, occurrence="f")
 

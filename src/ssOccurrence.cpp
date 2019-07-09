@@ -487,9 +487,9 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
 
 /* # Measurement equation and the error term */
         vecAfit(i) = wvalue(matrixVtA(lagrowsA), rowvecWA, EA, TA, SA,
-                                   matrixXtA.row(i), matrixAtA.col(i+maxlagA));
+                                   matrixXtA.row(i), matrixAtA.col(i));
         vecBfit(i) = wvalue(matrixVtB(lagrowsB), rowvecWB, EB, TB, SB,
-                                   matrixXtB.row(i), matrixAtB.col(i+maxlagB));
+                                   matrixXtB.row(i), matrixAtB.col(i));
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
         if(vecAfit(i) > 1e+100){

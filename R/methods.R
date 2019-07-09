@@ -773,6 +773,26 @@ forecast.smooth <- function(object, h=10,
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
 
+#' @rdname forecast.smooth
+#' @export
+forecast.oes <- function(object, h=10,
+                         interval=c("parametric","semiparametric","nonparametric","none"),
+                         level=0.95, ...){
+    if(is.oesg(object)){
+        newModel <- oesg(actuals(object),modelA=object$modelA,modelB=object$modelB,
+                         h=h,interval=interval,level=level,silent="all",...);
+    }
+    else{
+        newModel <- oes(actuals(object),model=object,
+                        h=h,interval=interval,level=level,silent="all",...);
+    }
+
+    output <- list(model=object,method=object$model,fitted=newModel$fitted,y=actuals(newModel),
+                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=level,
+                   interval=interval,mean=newModel$forecast,x=actuals(object),residuals=object$residuals);
+
+    return(structure(output,class=c("smooth.forecast","forecast")));
+}
 
 #' @importFrom stats window
 #' @importFrom greybox actuals

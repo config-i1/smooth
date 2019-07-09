@@ -766,7 +766,8 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             }
 
             #### Start the optimisation ####
-            if(any(c(persistenceEstimate,initialType=="o",phiEstimate,initialSeasonEstimate,xregEstimate,initialXEstimate))){
+            if(any(c(persistenceEstimate,initialType=="o",phiEstimate,initialSeasonEstimate,
+                     xregEstimate,initialXEstimate))){
                 # Prepare the parameters
                 A <- AValues(bounds, Ttype, Stype, damped, phiEstimate, persistenceEstimate,
                              initialType, modelIsSeasonal, initialSeasonEstimate,
