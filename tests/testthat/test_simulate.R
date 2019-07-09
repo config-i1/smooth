@@ -66,7 +66,7 @@ test_that("SMA(10) with intermittent data", {
 
 #### VES ####
 Y <- cbind(Mcomp::M3$N2570$x,Mcomp::M3$N2571$x);
-testModel <- ves(Y,"AAdN", silent=TRUE)
+testModel <- ves(Y,"AAN", silent=TRUE)
 test_that("VES based on pre-estimated model", {
     expect_match(simulate(testModel,nsim=10,obs=100)$model, "VES");
 })
