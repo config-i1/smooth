@@ -3401,17 +3401,21 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
 
     if(!is.null(s2)){
         cat("\nError standard deviation: "); cat(round(sqrt(s2),digits));
+        cat("\n");
     }
-    cat("\nSample size: "); cat(obs);
+    cat("Sample size: "); cat(obs);
+    cat("\n");
 
     if(!is.null(nParam)){
-        cat("\nNumber of estimated parameters: "); cat(nParam[1,4]);
+        cat("Number of estimated parameters: "); cat(nParam[1,4]);
+        cat("\n");
 
         if(nParam[2,4]>0){
-            cat("\nNumber of provided parameters: "); cat(nParam[2,4]);
+            cat("Number of provided parameters: "); cat(nParam[2,4]);
+            cat("\n");
         }
 
-        cat("\nNumber of degrees of freedom: "); cat(obs-nParam[1,4]);
+        cat("Number of degrees of freedom: "); cat(obs-nParam[1,4]);
         cat("\n");
     }
 
