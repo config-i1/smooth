@@ -3412,6 +3412,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
 
         cat("\nNumber of degrees of freedom: "); cat(obs-nParam[1,4]);
+        cat("\n");
     }
 
     if(interval){
