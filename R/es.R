@@ -1925,7 +1925,9 @@ CreatorES <- function(silent=FALSE,...){
             if(Stype!="N"){
                 initialSeason <- matvt[1:lagsModelMax,nComponents];
                 names(initialSeason) <- paste0("s",1:lagsModelMax);
-                parametersNumber[1,1] <- parametersNumber[1,1] + length(initialSeason);
+                if(initialType!="b"){
+                    parametersNumber[1,1] <- parametersNumber[1,1] + length(initialSeason);
+                }
             }
         }
 

@@ -1,4 +1,4 @@
-smooth v2.5.2 (Release data: 2019-07-09)
+smooth v2.5.2 (Release data: 2019-07-10)
 ==============
 
 Changes:
@@ -15,6 +15,7 @@ Bugfixes:
 * Also, the duplicates in the modelsPool are now removed.
 * Bugfix on oes() and oesg() in case of explanatory variables (parameters stability was checked incorrectly).
 * Bugfix in oes() in case of model selection and holdout=TRUE.
+* The number of parameters of ETS was wrong, when backcasting was used.
 
 
 smooth v2.5.1 (Release data: 2019-06-13)
