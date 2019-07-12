@@ -1278,7 +1278,7 @@ CreatorVES <- function(silent=FALSE,...){
                     plotRange <- range(min(y[,i],yForecast[,i],yFitted[,i]),
                                        max(y[,i],yForecast[,i],yFitted[,i]));
                 }
-                plot(y[,i],main=paste0(modelname," ",dataNames[i]),ylab="Y",
+                plot(y[,i],main=paste0(modelname," on ",dataNames[i]),ylab="Y",
                      ylim=plotRange, xlim=range(time(y[,i])[1],time(yForecast)[max(h,1)]),
                      type="l");
                 lines(yFitted[,i],col="purple",lwd=2,lty=2);

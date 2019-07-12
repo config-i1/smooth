@@ -16,6 +16,7 @@ Bugfixes:
 * Bugfix on oes() and oesg() in case of explanatory variables (parameters stability was checked incorrectly).
 * Bugfix in oes() in case of model selection and holdout=TRUE.
 * The number of parameters of ETS was wrong, when backcasting was used.
+* Corrected the names of the columns for errors and fitted values of ves().
 
 
 smooth v2.5.1 (Release data: 2019-06-13)

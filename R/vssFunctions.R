@@ -996,8 +996,8 @@ vssFitter <- function(...){
     statesNames <- rownames(matvt);
     matvt <- fitting$matvt;
     rownames(matvt) <- statesNames;
-    yFitted <- fitting$yfit;
-    errors <- fitting$errors;
+    yFitted[] <- fitting$yfit;
+    errors[] <- fitting$errors;
 
     if(modelIsMultiplicative){
         yFitted <- exp(yFitted);
@@ -1190,7 +1190,7 @@ vssForecaster <- function(...){
     PI <- NA;
 
     if(h>0){
-        yForecast <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+lagsModelMax)],ncol=lagsModelMax),
+        yForecast[] <- vForecasterWrap(matrix(matvt[,(obsInSample+1):(obsInSample+lagsModelMax)],ncol=lagsModelMax),
                                      matF, matW, nSeries, h, Etype, Ttype, Stype, lagsModel);
 
         if(cumulative){
@@ -1212,7 +1212,7 @@ vssForecaster <- function(...){
         }
     }
     else{
-        yForecast[,] <- NA;
+        yForecast[] <- NA;
     }
 
     if(any(is.na(yFitted),all(is.na(yForecast),h>0))){
@@ -1223,8 +1223,8 @@ vssForecaster <- function(...){
     }
 
     if(modelIsMultiplicative){
-        yForecast <- exp(yForecast);
-        PI <- exp(PI);
+        yForecast[] <- exp(yForecast);
+        PI[] <- exp(PI);
     }
 
     if(intermittent!="n"){
@@ -1233,7 +1233,7 @@ vssForecaster <- function(...){
                            intermittent=intermittent, h=h, holdout=FALSE,
                            probability=iprobability, model=intermittentModel);
         }
-        yForecast <- yForecast * t(imodel$forecast);
+        yForecast[] <- yForecast * t(imodel$forecast);
     }
 
     assign("Sigma",Sigma,ParentEnvironment);
