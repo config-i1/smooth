@@ -1,4 +1,4 @@
-smooth v2.5.2 (Release data: 2019-07-10)
+smooth v2.5.2 (Release data: 2019-07-17)
 ==============
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * Renamed the external parameter "modelLags" into "lagsModel" for consistency purposes.
 * Parametric prediction intevals in oes(). The oesg() is more complicated and would need more work.
 * Implemented forecast() method for the oes and oesg classes.
+* Tuned the outputs of the smooth functions (so that they look closer to the greybox ones).
 
 Bugfixes:
 * Bugfix in the combination of models in es(), when the data was non-seasonal.
