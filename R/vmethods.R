@@ -210,6 +210,14 @@ print.viss <- function(x, ...){
 
 #' @export
 print.vsmooth <- function(x, ...){
+    ellipsis <- list(...);
+    if(!any(names(ellipsis)=="digits")){
+        digits <- 4;
+    }
+    else{
+        digits <- ellipsis$digits;
+    }
+
     holdout <- any(!is.na(x$holdout));
     interval <- any(!is.na(x$PI));
 
@@ -222,7 +230,7 @@ print.vsmooth <- function(x, ...){
 
     intervalType <- x$interval;
 
-    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds\n"));
+    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),digits)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
     if(!is.null(x$imodel)){
         if(x$imodel$probability=="i"){
@@ -247,32 +255,17 @@ print.vsmooth <- function(x, ...){
             cat(paste0("Occurrence ETS model: ",x$model,"\n"));
         }
     }
-    if(!is.null(x$nParam)){
-        if(x$nParam[1,4]==1){
-            cat(paste0(x$nParam[1,4]," parameter was estimated for ", ncol(actuals(x)) ," time series in the process\n"));
-        }
-        else{
-            cat(paste0(x$nParam[1,4]," parameters were estimated for ", ncol(actuals(x)) ," time series in the process\n"));
-        }
-
-        if(x$nParam[2,4]>1){
-            cat(paste0(x$nParam[2,4]," parameters were provided\n"));
-        }
-        else if(x$nParam[2,4]>0){
-            cat(paste0(x$nParam[2,4]," parameter was provided\n"));
-        }
-    }
 
     cat(paste0("Loss function type: ",x$loss))
     if(!is.null(x$lossValue)){
-        cat(paste0("; Loss function value: ",round(x$lossValue,3),"\n"));
+        cat(paste0("; Loss function value: ",round(x$lossValue,digits),"\n"));
     }
     else{
         cat("\n");
     }
 
     cat("\nInformation criteria:\n");
-    print(x$ICs);
+    print(round(x$ICs,digits));
 
     if(interval){
         if(x$interval=="c"){
@@ -287,6 +280,24 @@ print.vsmooth <- function(x, ...){
         cat(paste0(x$level*100,"% ",intervalType," prediction interval were constructed\n"));
     }
 
+    cat("\nSample size: "); cat(nobs(x));
+    cat("\n");
+
+    if(!is.null(x$nParam)){
+        cat("Number of estimated parameters: "); cat(nparam(x));
+        cat("\n");
+
+        if(x$nParam[2,4]>0){
+            cat("Number of provided parameters: "); cat(x$nParam[2,4]);
+            cat("\n");
+        }
+
+        cat("Number of series: "); cat(ncol(actuals(x)));
+        cat("\n");
+
+        cat("Number of degrees of freedom per series: "); cat(round(nobs(x)-nparam(x) / ncol(actuals(x)),digits));
+        cat("\n");
+    }
 }
 
 #### Simulate data using provided vector object ####
