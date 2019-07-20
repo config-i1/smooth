@@ -5,7 +5,7 @@
 \title{Complex Exponential Smoothing}
 \usage{
 ces(y, seasonality = c("none", "simple", "partial", "full"),
-  initial = c("optimal", "backcasting"), A = NULL, B = NULL,
+  initial = c("backcasting", "optimal"), A = NULL, B = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric",

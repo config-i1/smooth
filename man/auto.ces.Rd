@@ -5,7 +5,7 @@
 \title{Complex Exponential Smoothing Auto}
 \usage{
 auto.ces(y, models = c("none", "simple", "full"),
-  initial = c("optimal", "backcasting"), ic = c("AICc", "AIC", "BIC",
+  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
   "BICc"), loss = c("MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
   "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
   interval = c("none", "parametric", "semiparametric", "nonparametric"),
