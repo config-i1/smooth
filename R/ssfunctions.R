@@ -3382,22 +3382,10 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         }
     }
 
-    cat(paste0("Loss function type: ",loss))
+    cat(paste0("\nLoss function type: ",loss))
     if(!is.null(cfObjective)){
-        cat(paste0("; Loss function value: ",round(cfObjective,digits),"\n"));
+        cat(paste0("; Loss function value: ",round(cfObjective,digits)));
     }
-    else{
-        cat("\n");
-    }
-
-    cat("\nInformation criteria:\n");
-    if(model=="ETS"){
-        if(any(unlist(gregexpr("C",modelname))!=-1)){
-            cat("(combined values)\n");
-        }
-        ICs <- ICs[nrow(ICs),];
-    }
-    print(round(ICs,digits));
 
     if(!is.null(s2)){
         cat("\nError standard deviation: "); cat(round(sqrt(s2),digits));
@@ -3419,7 +3407,17 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat("\n");
     }
 
+    cat("Information criteria:\n");
+    if(model=="ETS"){
+        if(any(unlist(gregexpr("C",modelname))!=-1)){
+            cat("(combined values)\n");
+        }
+        ICs <- ICs[nrow(ICs),];
+    }
+    print(round(ICs,digits));
+
     if(interval){
+        cat("\n");
         if(intervalType=="p"){
             intervalType <- "parametric";
         }
@@ -3435,10 +3433,11 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         if(cumulative){
             intervalType <- paste0("cumulative ",intervalType);
         }
-        cat(paste0(level*100,"% ",intervalType," prediction interval were constructed\n"));
+        cat(paste0(level*100,"% ",intervalType," prediction interval was constructed"));
     }
 
     if(holdout){
+        cat("\n");
         if(interval && !is.null(insideinterval)){
             cat(paste0(round(insideinterval,0), "% of values are in the prediction interval\n"));
         }

@@ -1644,14 +1644,14 @@ print.oes <- function(x, ...){
         cat("Vector of initials:\n");
         print(round(x$initial,digits));
     }
-    cat("Information criteria: \n");
-    print(ICs);
     if(!is.null(sigma(x))){
         cat("\nError standard deviation: "); cat(round(sigma(x),digits));
     }
     cat("\nSample size: "); cat(nobs(x));
     cat("\nNumber of estimated parameters: "); cat(nparam(x));
     cat("\nNumber of degrees of freedom: "); cat(nobs(x)-nparam(x));
+    cat("\nInformation criteria: \n");
+    print(ICs);
 }
 
 #### Simulate data using provided object ####

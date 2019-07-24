@@ -1,14 +1,14 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "13 June 2019"
+date: "24 July 2019"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.5.1.
+This is ``smooth`` package, v2.5.2.
 
 ## Test environments
-* local ubuntu 18.04, R 3.5.1
+* local ubuntu 19.04, R 3.5.2
 * ubuntu 14.04.5 (on travis-ci), R 3.6.0
 * win-builder (devel and release)
 

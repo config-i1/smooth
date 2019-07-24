@@ -256,7 +256,7 @@ print.vsmooth <- function(x, ...){
         }
     }
 
-    cat(paste0("Loss function type: ",x$loss))
+    cat(paste0("\nLoss function type: ",x$loss))
     if(!is.null(x$lossValue)){
         cat(paste0("; Loss function value: ",round(x$lossValue,digits),"\n"));
     }
@@ -264,23 +264,7 @@ print.vsmooth <- function(x, ...){
         cat("\n");
     }
 
-    cat("\nInformation criteria:\n");
-    print(round(x$ICs,digits));
-
-    if(interval){
-        if(x$interval=="c"){
-            intervalType <- "conditional";
-        }
-        else if(x$interval=="u"){
-            intervalType <- "unconditional";
-        }
-        else if(x$interval=="i"){
-            intervalType <- "independent";
-        }
-        cat(paste0(x$level*100,"% ",intervalType," prediction interval were constructed\n"));
-    }
-
-    cat("\nSample size: "); cat(nobs(x));
+    cat("Sample size: "); cat(nobs(x));
     cat("\n");
 
     if(!is.null(x$nParam)){
@@ -298,6 +282,23 @@ print.vsmooth <- function(x, ...){
         cat("Number of degrees of freedom per series: "); cat(round(nobs(x)-nparam(x) / ncol(actuals(x)),digits));
         cat("\n");
     }
+
+    cat("Information criteria:\n");
+    print(round(x$ICs,digits));
+
+    if(interval){
+        if(x$interval=="c"){
+            intervalType <- "conditional";
+        }
+        else if(x$interval=="u"){
+            intervalType <- "unconditional";
+        }
+        else if(x$interval=="i"){
+            intervalType <- "independent";
+        }
+        cat(paste0("\n",x$level*100,"% ",intervalType," prediction interval was constructed\n"));
+    }
+
 }
 
 #### Simulate data using provided vector object ####
