@@ -293,9 +293,9 @@ This model has already been discussed above and was presented in (1). The estima
 		e_{a,t} = \frac{u_t}{1-u_t} -1 \\
 		\hat{a}_t = \hat{l}_{a,t-1} \\
 		\hat{l}_{a,t} = \hat{l}_{a,t-1}( 1  + \alpha_{a} e_{a,t}) \\
+		e_{b,t} = \frac{1-u_t}{u_t} -1 \\
 		\hat{b}_t = \hat{l}_{b,t-1} \\
-		\hat{l}_{b,t} = \hat{l}_{b,t-1}( 1  + \alpha_{b} e_{b,t}) \\
-		e_{b,t} = \frac{1-u_t}{u_t} -1
+		\hat{l}_{b,t} = \hat{l}_{b,t-1}( 1  + \alpha_{b} e_{b,t})
 	\end{matrix} .
 \end{equation}
 The initialisation of the parameters of the iETS$_G$ model is done separately for the variables $a_t$ and $b_t$, based on the principles, described above for the iETS$_O$ and iETS$_I$.

@@ -90,6 +90,13 @@ vssInput <- function(smoothType=c("ves"),...){
     # Number of series in the matrix
     nSeries <- ncol(y);
 
+    correlatedSeries <- cor(Y)[upper.tri(cor(Y))];
+    if(any(correlatedSeries>0.999)){
+        warning(paste0("Some of series are almost perfectly correlated. This might cause difficulties in the estimation. ",
+                       "Please, try removing some of them if you encounter any problems."),
+                call.=FALSE);
+    }
+
     if(is.null(ncol(y))){
         stop("The provided data is not a matrix! Use es() function instead!", call.=FALSE);
     }

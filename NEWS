@@ -2,6 +2,14 @@ smooth v2.5.2 (Release data: 2019-07-24)
 ==============
 
 Changes:
+* Warn users if the response variables in ves are perfectly correlated.
+* Minor changes in the formulae in oes() vignette.
+
+
+smooth v2.5.2 (Release data: 2019-07-24)
+==============
+
+Changes:
 * The GSI is now merged with VES with several advanced parameters. The seasonal models now have the subnames, according to the taxonomy of Chen et al. (TBA). gsi() function is no longer available.
 * seasonal and weights parameters in sim.ves() - they allow generating the data from VES[CCC] model.
 * Corrected the dependence on forecast package.
