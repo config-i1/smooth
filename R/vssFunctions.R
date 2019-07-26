@@ -313,8 +313,8 @@ vssInput <- function(smoothType=c("ves"),...){
         modelIsMultiplicative <- FALSE;
     }
 
-    #This is the estimation of covariance matrix
-    nParamMax <- 1;
+    # This is the number of parameters to estimate per series
+    nParamMax <- 0;
 
     ##### Persistence matrix ####
     # persistence type can be: "i" - individual, "d" - dependent, "c" - common (all),
@@ -398,10 +398,18 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
-    if(any(persistenceType==c("c","i","s"))){
-        # Whether individual, seasonal or group, this thing reduces number of
-        # degrees of freedom in the same way.
+    # If it is individual, then it increases by nComponentsAll
+    if(persistenceType=="i"){
+    # if(any(persistenceType==c("c","i","s"))){
         nParamMax <- nParamMax + nComponentsAll;
+    }
+    # The seasonal is shared across series, the other parameters are individual
+    else if(persistenceType=="s"){
+        nParamMax <- nParamMax + nComponentsNonSeasonal + 1/nSeries;
+    }
+    # All parameters are shared
+    else if(persistenceType=="c"){
+        nParamMax <- nParamMax + nComponentsAll/nSeries;
     }
     else if(persistenceType=="d"){
         # In case with "dependent" the whole matrix needs to be estimated
@@ -575,8 +583,13 @@ vssInput <- function(smoothType=c("ves"),...){
 
             if(any(dampedType==c("c","i"))){
                 dampedValue <- matrix(1,nSeries,1);
-                # Whether group or individual the effect on df is the same.
-                nParamMax <- nParamMax + 1;
+                # In case of common, the parameter is shared.
+                if(dampedType=="c"){
+                    nParamMax <- nParamMax + 1/nSeries;
+                }
+                else{
+                    nParamMax <- nParamMax + 1;
+                }
             }
         }
         else{
@@ -650,8 +663,13 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
-    if(any(initialType==c("c","i"))){
+    # Individual initials
+    if(initialType=="i"){
         nParamMax <- nParamMax + nComponentsNonSeasonal;
+    }
+    # Common initials are shared across series
+    else{
+        nParamMax <- nParamMax + nComponentsNonSeasonal / nSeries;
     }
 
     if(smoothType=="ves"){
@@ -773,8 +791,11 @@ vssInput <- function(smoothType=c("ves"),...){
                 }
             }
 
-            if(any(initialSeasonType==c("c","i"))){
+            if(initialSeasonType=="i"){
                 nParamMax <- nParamMax + dataFreq;
+            }
+            else if(initialSeasonType=="c"){
+                nParamMax <- nParamMax + dataFreq / nSeries;
             }
         }
         else{
@@ -792,6 +813,15 @@ vssInput <- function(smoothType=c("ves"),...){
         loss <- "likelihood";
     }
     loss <- substr(loss,1,1);
+
+    # If it is likelihood, we also need to estimate the full covariance matrix
+    if(loss=="l"){
+        nParamMax <- nParamMax + nSeries;
+    }
+    # Otherwise, these are just variances of the data
+    else{
+        nParamMax <- nParamMax + 1;
+    }
 
     normalizer <- sum(colMeans(abs(diff(t(yInSample))),na.rm=TRUE));
 
@@ -853,7 +883,7 @@ vssInput <- function(smoothType=c("ves"),...){
 
     ##### Check number of observations vs number of max parameters #####
     if(obsInSample <= nParamMax){
-        stop(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+        stop(paste0("Not enough observations for the reasonable fit. Number of parameters per series is ",
                     nParamMax," while the number of observations is ",obsInSample,"."),call.=FALSE);
     }
 

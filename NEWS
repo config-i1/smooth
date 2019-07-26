@@ -4,6 +4,7 @@ smooth v2.5.2 (Release data: 2019-07-24)
 Changes:
 * Warn users if the response variables in ves are perfectly correlated.
 * Minor changes in the formulae in oes() vignette.
+* Allow ves() to work on very small samples, if the model is restrictive. This is based on the number of parameters to estimate per series now.
 
 
 smooth v2.5.2 (Release data: 2019-07-24)
