@@ -874,7 +874,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         if(is.numeric(occurrence)){
             # If it is data, then it should either correspond to the whole sample (in-sample + holdout)
             # or be equal to forecating horizon.
-            if(all(length(c(occurrence))!=c(h,obsAll))){
+            if(any(occurrence!=1) && all(length(c(occurrence))!=c(h,obsAll))){
                 warning(paste0("Length of the provided future occurrences is ",length(c(occurrence)),
                                " while length of forecasting horizon is ",h,".\n",
                                "Where should we plug in the future occurences anyway?\n",
@@ -887,6 +887,16 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                 pFitted <- matrix(mean(ot),obsInSample,1);
                 pForecast <- matrix(1,h,1);
                 nParamOccurrence <- 1;
+            }
+            else if(all(occurrence==1)){
+                obsNonzero <- obsInSample;
+                obsZero <- 0;
+                pFitted <- ot <- rep(1,obsInSample);
+                yot <- yInSample;
+                pForecast <- matrix(1,h,1);
+                nParamOccurrence <- 0;
+                occurrence <- "n";
+                occurrenceModelProvided <- FALSE;
             }
             else{
                 if(any(occurrence<0,occurrence>1)){

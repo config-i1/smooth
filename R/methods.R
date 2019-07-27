@@ -584,6 +584,11 @@ sigma.smooth <- function(object, ...){
     }
 }
 
+#' @export
+sigma.smooth.sim <- function(object, ...){
+    return(sqrt(mean(residuals(object)^2)));
+}
+
 #### pointLik for smooth ####
 #' @importFrom greybox pointLik
 #' @export
