@@ -1046,6 +1046,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                                 persistence <- as.vector(persistence);
                                 persistenceEstimate <- FALSE;
                                 parametersNumber[2,1] <- parametersNumber[2,1] + length(persistence);
+                                bounds <- "n";
                             }
                         }
                     }

@@ -1,4 +1,4 @@
-smooth v2.5.2 (Release data: 2019-07-27)
+smooth v2.5.2 (Release data: 2019-07-30)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 
 Bugdixes:
 * sim.es() would complain in some cases of nsim>1 and the default values of parameters.
+* es() did not work appropriately with the provided persistence parameter in the non-default bounds.
 
 
 smooth v2.5.2 (Release data: 2019-07-24)
