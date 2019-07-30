@@ -7,6 +7,7 @@ Changes:
 * Allow ves() to work on very small samples, if the model is restrictive. This is based on the number of parameters to estimate per series now.
 * sigma() method for the data simulated by smooth functions.
 * Don't check the provided occurrence if it contains 1 only.
+* RelMAE is now called rMAE and RelRMSE is now rRMSE in the greybox package v0.5.3.
 
 Bugdixes:
 * sim.es() would complain in some cases of nsim>1 and the default values of parameters.
