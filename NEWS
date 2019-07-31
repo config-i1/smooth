@@ -1,7 +1,9 @@
-smooth v2.5.2 (Release data: 2019-07-30)
+smooth v2.5.2 (Release data: 2019-07-31)
 ==============
 
 Changes:
+* es() now treats the parameters that reach the boundary values (within the 1e-3 distance) as provided and substitutes them by the bounds (i.e. 0 or 1). This should influence the model selection procedure.
+* Also if phi==1, we switch to the non-damped version of the model.
 * Warn users if the response variables in ves are perfectly correlated.
 * Minor changes in the formulae in oes() vignette.
 * Allow ves() to work on very small samples, if the model is restrictive. This is based on the number of parameters to estimate per series now.

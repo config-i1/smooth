@@ -422,20 +422,30 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
     C <- NA;
     CLower <- NA;
     CUpper <- NA;
+    # This is the vector with the names of the elemenets of the vector of parameters
+    CNames <- NA;
 
     if(bounds=="u"){
         if(persistenceEstimate){
             C <- c(C,vecg);
             CLower <- c(CLower,rep(0,length(vecg)));
             CUpper <- c(CUpper,rep(1,length(vecg)));
+            if(Ttype!="N"){
+                CNames <- c(CNames, c("alpha","beta","gamma")[1:nComponents]);
+            }
+            else{
+                CNames <- c(CNames, c("alpha","gamma")[1:nComponents]);
+            }
         }
         if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
+            CNames <- c(CNames, "phi");
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
+                CNames <- c(CNames, "level");
                 if(Etype=="A"){
                     C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
@@ -455,10 +465,12 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                 if(Ttype=="A"){
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
+                    CNames <- c(CNames, "trend");
                 }
                 else if(Ttype=="M"){
                     CLower <- c(CLower,1E-20);
                     CUpper <- c(CUpper,3);
+                    CNames <- c(CNames, "trend");
                 }
             }
             if(Stype!="N"){
@@ -472,6 +484,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                         CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
                         CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
+                    CNames <- c(CNames, paste0("seasonal",c(1:lagsModelMax)))
                 }
             }
         }
@@ -481,14 +494,22 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
             C <- c(C,vecg);
             CLower <- c(CLower,rep(-5,length(vecg)));
             CUpper <- c(CUpper,rep(5,length(vecg)));
+            if(Ttype!="N"){
+                CNames <- c(CNames, c("alpha","beta","gamma")[1:nComponents]);
+            }
+            else{
+                CNames <- c(CNames, c("alpha","gamma")[1:nComponents]);
+            }
         }
         if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,0);
             CUpper <- c(CUpper,1);
+            CNames <- c(CNames, "phi");
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
+                CNames <- c(CNames, "level");
                 if(Etype=="A"){
                     C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
@@ -508,10 +529,12 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                 if(Ttype=="A"){
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
+                    CNames <- c(CNames, "trend");
                 }
                 else if(Ttype=="M"){
                     CLower <- c(CLower,0.01);
                     CUpper <- c(CUpper,3);
+                    CNames <- c(CNames, "trend");
                 }
             }
             if(Stype!="N"){
@@ -525,6 +548,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                         CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
                         CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
+                    CNames <- c(CNames, paste0("seasonal",c(1:lagsModelMax)))
                 }
             }
         }
@@ -534,14 +558,22 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
             C <- c(C,vecg);
             CLower <- c(CLower,rep(-Inf,length(vecg)));
             CUpper <- c(CUpper,rep(Inf,length(vecg)));
+            if(Ttype!="N"){
+                CNames <- c(CNames, c("alpha","beta","gamma")[1:nComponents]);
+            }
+            else{
+                CNames <- c(CNames, c("alpha","gamma")[1:nComponents]);
+            }
         }
         if(damped & phiEstimate){
             C <- c(C,phi);
             CLower <- c(CLower,-Inf);
             CUpper <- c(CUpper,Inf);
+            CNames <- c(CNames, "phi");
         }
         if(any(initialType==c("o","p"))){
             if(initialType=="o"){
+                CNames <- c(CNames, "level");
                 if(Etype=="A"){
                     C <- c(C,matvt[lagsModelMax,1:(nComponents - (Stype!="N"))]);
                     CLower <- c(CLower,-Inf);
@@ -561,10 +593,12 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                 if(Ttype=="A"){
                     CLower <- c(CLower,-Inf);
                     CUpper <- c(CUpper,Inf);
+                    CNames <- c(CNames, "trend");
                 }
                 else if(Ttype=="M"){
                     CLower <- c(CLower,0.01);
                     CUpper <- c(CUpper,3);
+                    CNames <- c(CNames, "trend");
                 }
             }
             if(Stype!="N"){
@@ -578,6 +612,7 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
                         CLower <- c(CLower,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[1]);
                         CUpper <- c(CUpper,matvt[1:lagsModelMax,nComponents]*seasonalRandomness[2]);
                     }
+                    CNames <- c(CNames, paste0("seasonal",c(1:lagsModelMax)));
                 }
             }
         }
@@ -593,21 +628,25 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
             }
             CLower <- c(CLower,rep(-Inf,nExovars));
             CUpper <- c(CUpper,rep(Inf,nExovars));
+            CNames <- c(CNames, xregNames);
         }
         if(updateX){
             if(FXEstimate){
                 C <- c(C,as.vector(matFX));
                 CLower <- c(CLower,rep(-Inf,nExovars^2));
                 CUpper <- c(CUpper,rep(Inf,nExovars^2));
+                CNames <- c(CNames, paste0("transitionX",c(1:nExovars^2)));
             }
             if(gXEstimate){
                 C <- c(C,as.vector(vecgX));
                 CLower <- c(CLower,rep(-Inf,nExovars));
                 CUpper <- c(CUpper,rep(Inf,nExovars));
+                CNames <- c(CNames, paste0("persistenceX",c(1:nExovars)));
             }
         }
     }
 
+    names(C) <- CNames;
     C <- C[!is.na(C)];
     CLower <- CLower[!is.na(CLower)];
     CUpper <- CUpper[!is.na(CUpper)];
@@ -687,7 +726,7 @@ EstimatorES <- function(...){
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
-    C <- res$solution;
+    C[] <- res$solution;
 
     # If the optimisation failed, then probably this is because of mixed models...
     if(any(res$objective==c(1e+100,1e+300))){
@@ -725,7 +764,7 @@ EstimatorES <- function(...){
 
         res <- nloptr(C, CF, lb=CLower, ub=CUpper,
                       opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
-        C <- res$solution;
+        C[] <- res$solution;
     }
     # Change C if it is out of the bounds
     if(any((C>=CUpper),(C<=CLower))){
@@ -741,6 +780,7 @@ EstimatorES <- function(...){
         CLower <- c(CLower,0);
         CUpper <- c(CUpper,Inf);
         loss <- "Rounded";
+        names(C)[length(C)] <- "SD";
     }
 
     res2 <- nloptr(C, CF, lb=CLower, ub=CUpper,
@@ -750,7 +790,7 @@ EstimatorES <- function(...){
     if((res2$objective <= res$objective) | rounded){
         res <- res2;
     }
-    C <- res$solution;
+    C[] <- res$solution;
 
     if(!rounded && (initialType!="b") && all(C==Cs$C)){
         if(any(persistenceEstimate,gXEstimate,FXEstimate)){
@@ -760,9 +800,31 @@ EstimatorES <- function(...){
                     call.=FALSE);
         }
     }
-
     # Parameters estimated + variance
     nParam <- length(C) + 1*(!rounded);
+
+    # Check if smoothing parameters and phi reached the boundary conditions
+    if(bounds=="u"){
+        CNamesAvailable <- c("alpha","beta","gamma","phi")[c("alpha","beta","gamma","phi") %in% names(C)];
+        # If the value is very close to zero, assume zero
+        if(any(C[CNamesAvailable]<=1e-3)){
+            CNamesAvailableChange <- CNamesAvailable[C[CNamesAvailable]<=1e-3]
+            nParam[] <- nParam - length(CNamesAvailableChange);
+            C[CNamesAvailableChange] <- 0;
+            # if(!silentText){
+            #     message("Some smoothing parameters reached the lower bound, we consider them as provided",);
+            # }
+        }
+        # If the value is very close to one, assume one
+        if(any(C[CNamesAvailable]>=1-1e-3)){
+            CNamesAvailableChange <- CNamesAvailable[C[CNamesAvailable]>=1-1e-3]
+            nParam[] <- nParam - length(CNamesAvailableChange);
+            C[CNamesAvailableChange] <- 1;
+            # if(!silentText){
+            #     message("Some smoothing parameters reached the upper bound, we consider them as provided");
+            # }
+        }
+    }
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
                            C=res$solution,Etype=Etype);
@@ -2107,6 +2169,28 @@ CreatorES <- function(silent=FALSE,...){
     if(!is.null(xregNames)){
         nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
         parametersNumber[1,2] <- nParamExo;
+    }
+
+    # Check if smoothing parameters and phi reached the boundary conditions.
+    # Do that only in case of estimation / selection and usual bounds
+    if(any(modelDo==c("estimate","select")) && bounds=="u"){
+        CNamesAvailable <- c("alpha","beta","gamma","phi")[c("alpha","beta","gamma","phi") %in% names(C)];
+        # If the value is very close to zero, assume zero
+        if(any(C[CNamesAvailable]==0)){
+            parametersNumber[1,1] <- parametersNumber[1,1] - sum(C[CNamesAvailable]==0);
+            parametersNumber[2,1] <- parametersNumber[2,1] + sum(C[CNamesAvailable]==0);
+        }
+        # If the value is very close to one, assume one
+        if(any(C[CNamesAvailable]==1)){
+            parametersNumber[1,1] <- parametersNumber[1,1] - sum(C[CNamesAvailable]==1);
+            parametersNumber[2,1] <- parametersNumber[2,1] + sum(C[CNamesAvailable]==1);
+        }
+        if("phi" %in% CNamesAvailable && C["phi"]==1){
+            model <- paste0(substr(model,1,2),substr(model,nchar(model),nchar(model)));
+            parametersNumber[2,1] <- parametersNumber[2,1] - 1;
+            warning("The parameter phi is equal to one, so we reverted to the non-damped version of the model",
+                    call.=FALSE);
+        }
     }
 
     parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
