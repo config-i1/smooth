@@ -95,7 +95,7 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
     }
     # Check the data for NAs
     if(any(is.na(y))){
-        if(!silentText){
+        if(!silent){
             warning("Data contains NAs. These observations will be substituted by zeroes.",call.=FALSE);
         }
         y[is.na(y)] <- 0;
