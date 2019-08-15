@@ -1,4 +1,4 @@
-smooth v2.5.3 (Release data: 2019-08-14)
+smooth v2.5.3 (Release data: 2019-08-16)
 ==============
 
 Changes:
@@ -15,6 +15,7 @@ Bugdixes:
 * sim.es() would complain in some cases of nsim>1 and the default values of parameters.
 * es() did not work appropriately with the provided persistence parameter in the non-default bounds.
 * A bugfix for cma(), which did not have silentText parameter.
+* A bugfix in the calculation of the likelihoods based on GTMSE and aGTMSE losses.
 
 
 smooth v2.5.2 (Release data: 2019-07-24)

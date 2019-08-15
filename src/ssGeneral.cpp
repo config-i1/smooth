@@ -1496,7 +1496,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(sum(pow(matErrors,2)) / double(matobs), 1));
         break;
         case 6:
-            CFres = arma::as_scalar(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1));
+            CFres = arma::as_scalar(exp(sum(log(sum(pow(matErrors,2)) / double(matobs)), 1)));
         break;
         case 7:
             CFres = arma::as_scalar(sum(pow(sum(matErrors,1),2) / double(matobs)));
@@ -1509,7 +1509,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1));
         break;
         case 10:
-            CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1));
+            CFres = arma::as_scalar(exp(sum(log(sum(abs(matErrors)) / double(matobs)), 1)));
         break;
         case 11:
             CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs)));
@@ -1522,7 +1522,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1));
         break;
         case 14:
-            CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1));
+            CFres = arma::as_scalar(exp(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1)));
         break;
         case 15:
             CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));
@@ -1601,7 +1601,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(sum(abs(matErrors)) / double(matobs), 1));
         break;
         case 10:
-            CFres = arma::as_scalar(sum(log(sum(abs(matErrors)) / double(matobs)), 1));
+            CFres = arma::as_scalar(exp(sum(log(sum(abs(matErrors)) / double(matobs)), 1)));
         break;
         case 11:
             CFres = arma::as_scalar(sum(abs(sum(matErrors,1)) / double(matobs)));
@@ -1614,7 +1614,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             CFres = arma::as_scalar(sum(sum(sqrt(abs(matErrors))) / double(matobs), 1));
         break;
         case 14:
-            CFres = arma::as_scalar(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1));
+            CFres = arma::as_scalar(exp(sum(log(sum(sqrt(abs(matErrors))) / double(matobs)), 1)));
         break;
         case 15:
             CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));

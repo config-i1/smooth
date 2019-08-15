@@ -3146,14 +3146,14 @@ likelihoodFunction <- function(C){
             yotSumLog <- yotSumLog * h;
         }
 
-        if(any(loss==c("MAE","MAEh","MACE"))){
+        if(any(loss==c("MAE","MAEh","MACE","TMAE","GTMAE"))){
             return(- (obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
-        else if(any(loss==c("HAM","HAMh","CHAM"))){
+        else if(any(loss==c("HAM","HAMh","CHAM","THAM","GTHAM"))){
             #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
             return(- 2*(obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
-        else if(any(loss==c("TFL","aTFL"))){
+        else if(any(loss==c("TFL","aTFL","aGTMSE"))){
             return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
         }
         else if(any(loss==c("LogisticD","LogisticL","TSB","Rounded"))){
