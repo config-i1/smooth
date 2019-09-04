@@ -1676,7 +1676,7 @@ CreatorES <- function(silent=FALSE,...){
         }
         else{
             if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
-                              "TFL","aTFL","Rounded","TSB","LogisticD","LogisticL"))){
+                              "GPL","aGPL","Rounded","TSB","LogisticD","LogisticL"))){
                 if(modelDo=="combine"){
                     warning(paste0("'",loss,"' is used as loss function instead of 'MSE'.",
                                    "The produced combination weights may be wrong."),call.=FALSE);

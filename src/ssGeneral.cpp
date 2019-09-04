@@ -1324,7 +1324,7 @@ RcppExport SEXP errorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt,
 
 int CFtypeswitch (std::string const& CFtype) {
     // MSE, MAE, HAM, MSEh, TMSE, GTMSE, aMSEh, aTMSE, aGTMSE, MAEh, TMAE, GTMAE, HAMh, THAM, GTHAM,
-    // TFL, aTFL, Rounded, TSB
+    // GPL, aGPL, Rounded, TSB
     if(CFtype=="MSE") return 1;
     else if(CFtype=="MAE") return 2;
     else if(CFtype=="HAM") return 3;
@@ -1340,11 +1340,11 @@ int CFtypeswitch (std::string const& CFtype) {
     else if(CFtype=="THAM") return 13;
     else if(CFtype=="GTHAM") return 14;
     else if(CFtype=="CHAM") return 15;
-    else if(CFtype=="TFL") return 16;
+    else if(CFtype=="GPL") return 16;
     else if(CFtype=="aMSEh") return 17;
     else if(CFtype=="aTMSE") return 18;
     else if(CFtype=="aGTMSE") return 19;
-    else if(CFtype=="aTFL") return 20;
+    else if(CFtype=="aGPL") return 20;
     // else if(CFtype=="aMSCE") return 18;
     else if(CFtype=="Rounded") return 21;
     else if(CFtype=="TSB") return 22;
@@ -1449,7 +1449,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
             matrixSigma(i,i) = matrixSigma(i-1,i-1) + pow(veccij(i),2);
         }
 
-// aTFL
+// aGPL
         if(CFSwitch==20){
             for(unsigned int i=0; i<hor; ++i){
                 for(unsigned int j=0; j<hor; ++j){
@@ -1527,7 +1527,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         case 15:
             CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));
         break;
-        // TFL
+        // GPL
         case 16:
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors / normalize) * (matErrors / normalize) / matobs))) +
@@ -1619,7 +1619,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
         case 15:
             CFres = arma::as_scalar(sum(sqrt(abs(sum(matErrors,1))) / double(matobs)));
         break;
-        // TFL
+        // GPL
         case 16:
             try{
                 CFres = double(log(arma::prod(eig_sym(trans(matErrors) * (matErrors) / matobs))));

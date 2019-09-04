@@ -737,7 +737,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     loss <- loss[1];
     if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
-                     "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
+                     "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
     else if(any(loss==c("MSE","MAE","HAM","TSB","Rounded","LogisticD","LogisticL"))){
@@ -1374,12 +1374,12 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
-    if((multisteps) & (obsNonzero < h+1) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+    if((multisteps) & (obsNonzero < h+1) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aGPL"))){
         warning(paste0("Do you seriously think that you can use ",loss,
                        " with h=",h," on ",obsNonzero," non-zero observations?!"),call.=FALSE);
         stop("Not enough observations for multisteps loss function.",call.=FALSE);
     }
-    else if((multisteps) & (obsNonzero < 2*h) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aTFL"))){
+    else if((multisteps) & (obsNonzero < 2*h) & all(loss!=c("aMSEh","aTMSE","aGTMSE","aGPL"))){
         warning(paste0("Number of observations is really low for a multisteps loss function! ",
                        "We will, try but cannot guarantee anything..."),call.=FALSE);
     }
@@ -1691,7 +1691,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     loss <- loss[1];
     if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
-                     "TFL","aMSEh","aTMSE","aGTMSE","aTFL"))){
+                     "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
     else if(any(loss==c("MSE","MAE","HAM","Rounded","TSB","LogisticD","LogisticL"))){
@@ -1705,7 +1705,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
-                      "TFL","aTFL"))){
+                      "GPL","aGPL"))){
         warning(paste0("'",loss,"' is used as loss function instead of 'MSE'. ",
                        "The results of the model selection may be wrong."),
                 call.=FALSE);
@@ -3142,7 +3142,7 @@ likelihoodFunction <- function(C){
                             "M" = sum(log(yot)),
                             "A" = 0);
         if(Etype=="M" && any(loss==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
-                                       "TFL","aTMSE","aGTMSE","aTFL"))){
+                                       "GPL","aTMSE","aGTMSE","aGPL"))){
             yotSumLog <- yotSumLog * h;
         }
 
@@ -3153,7 +3153,7 @@ likelihoodFunction <- function(C){
             #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
             return(- 2*(obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
         }
-        else if(any(loss==c("TFL","aTFL","aGTMSE"))){
+        else if(any(loss==c("GPL","aGPL","aGTMSE"))){
             return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
         }
         else if(any(loss==c("LogisticD","LogisticL","TSB","Rounded"))){
@@ -3185,7 +3185,7 @@ likelihoodFunction <- function(C){
         }
         #Failsafe for cases, when data has no variability when ot==1.
         if(CF(C)==0){
-            if(loss=="TFL" | loss=="aTFL"){
+            if(loss=="GPL" | loss=="aGPL"){
                 return(sum(log(pFitted[ot==1]))*h + sum(log(1-pFitted[ot==0]))*h);
             }
             else{
@@ -3196,7 +3196,7 @@ likelihoodFunction <- function(C){
             return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C) -
                        obsZero/2*(log(2*pi*C[length(C)]^2)+1));
         }
-        if(loss=="TFL" | loss=="aTFL"){
+        if(loss=="GPL" | loss=="aGPL"){
             return(sum(log(pFitted[ot==1]))*h
                    + sum(log(1-pFitted[ot==0]))*h
                    + logLikFromCF(C, loss));
@@ -3221,7 +3221,7 @@ ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
     # max here is needed in order to take into account cases with higher
     ## number of parameters than observations
     ### AICc and BICc are incorrect in case of non-normal residuals!
-    if(loss=="TFL"){
+    if(loss=="GPL"){
         coefAIC <- 2*nParamOverall*h - 2*llikelihood;
         coefBIC <- log(obsInSample)*nParamOverall*h - 2*llikelihood;
         coefAICc <- (2*obsInSample*(nParam*h + (h*(h+1))/2) /
