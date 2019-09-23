@@ -20,6 +20,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","xreg
 #' where a_t and b_t are the parameters of the Beta distribution and are modelled
 #' using separate ETS models.
 #'
+#' @template ssIntervals
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -46,25 +47,6 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","xreg
 #' @param h Forecast horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
-#' @param interval Type of interval to construct. This can be:
-#'
-#' \itemize{
-#' \item \code{none}, aka \code{n} - do not produce prediction
-#' interval.
-#' \item \code{parametric}, \code{p} - use state-space structure of ETS. In
-#' case of mixed models this is done using simulations, which may take longer
-#' time than for the pure additive and pure multiplicative models.
-#' \item \code{semiparametric}, \code{sp} - interval based on covariance
-#' matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-#' distribution (depending on error type).
-#' \item \code{nonparametric}, \code{np} - interval based on values from a
-#' quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-#' used in this process is e[j] = a j^b, where j=1,..,h.
-#' }
-#' The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-#' parametric interval are constructed, while the latter is equivalent to
-#' \code{none}.
-#' @param level Confidence level. Defines width of prediction interval.
 #' @param bounds What type of bounds to use in the model estimation. The first
 #' letter can be used instead of the whole word.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
@@ -135,7 +117,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  phiA=NULL, phiB=NULL,
                  initialA="o", initialB="o", initialSeasonA=NULL, initialSeasonB=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                 interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                  bounds=c("usual","admissible","none"),
                  silent=c("all","graph","legend","output","none"),
                  xregA=NULL, xregB=NULL, initialXA=NULL, initialXB=NULL,
@@ -823,6 +805,12 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                           basicparamsB$vecg, basicparamsB$matvt, matatB,
                           matFXB, vecgXB, xregNamesB, nExovarsB);
 
+
+            # This is needed for the degrees of freedom calculation
+            nParamA <- length(AA$A);
+            # This is needed for the degrees of freedom calculation
+            nParamB <- length(AB$A);
+
             # Run the optimisation
             res <- nloptr(c(AA$A,AB$A), CF, lb=c(AA$ALower,AB$ALower), ub=c(AA$AUpper,AB$AUpper),
                           opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
@@ -914,11 +902,14 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
         # Produce forecasts
         if(h>0){
+            nParam <- nParamA;
             # aForecast is the underlying forecast of the model A
             aForecast <- as.vector(forecasterwrap(t(matvtA[,(obsInSample+1):(obsInSample+basicparamsA$lagsModelMax),drop=FALSE]),
                                                   matFA, matwA, h, EtypeA, TtypeA, StypeA, basicparamsA$lagsModel,
                                                   matxtA[(obsAll-h+1):(obsAll),,drop=FALSE],
                                                   t(matatA[,(obsAll-h+1):(obsAll),drop=FALSE]), matFXA));
+
+            nParam <- nParamB;
             # bForecast is the underlying forecast of the model B
             bForecast <- as.vector(forecasterwrap(t(matvtB[,(obsInSample+1):(obsInSample+basicparamsB$lagsModelMax),drop=FALSE]),
                                                   matFB, matwB, h, EtypeB, TtypeB, StypeB, basicparamsB$lagsModel,

@@ -6,8 +6,9 @@
 \usage{
 sma(y, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
   holdout = FALSE, cumulative = FALSE, interval = c("none",
-  "parametric", "semiparametric", "nonparametric"), level = 0.95,
-  silent = c("all", "graph", "legend", "output", "none"), ...)
+  "parametric", "likelihood", "semiparametric", "nonparametric"),
+  level = 0.95, silent = c("all", "graph", "legend", "output", "none"),
+  ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -29,15 +30,20 @@ inventory control systems.}
 \item{interval}{Type of interval to construct. This can be:
 
 \itemize{
-\item \code{none}, aka \code{n} - do not produce prediction
+\item \code{"none"}, aka \code{"n"} - do not produce prediction
 interval.
-\item \code{parametric}, \code{p} - use state-space structure of ETS. In
+\item \code{"parametric"}, \code{"p"} - use state-space structure of ETS. In
 case of mixed models this is done using simulations, which may take longer
-time than for the pure additive and pure multiplicative models.
-\item \code{semiparametric}, \code{sp} - interval based on covariance
+time than for the pure additive and pure multiplicative models. This type
+of interval relies on unbiased estimate of in-sample error variance, which
+divides the sume of squared errors by T-k rather than just T.
+\item \code{"likelihood"}, \code{"l"} - these are the same as \code{"p"}, but
+relies on the biased estimate of variance from the likelihood (division by
+T, not by T-k).
+\item \code{"semiparametric"}, \code{"sp"} - interval based on covariance
 matrix of 1 to h steps ahead errors and assumption of normal / log-normal
 distribution (depending on error type).
-\item \code{nonparametric}, \code{np} - interval based on values from a
+\item \code{"nonparametric"}, \code{"np"} - interval based on values from a
 quantile regression on error matrix (see Taylor and Bunn, 1999). The model
 used in this process is e[j] = a j^b, where j=1,..,h.
 }

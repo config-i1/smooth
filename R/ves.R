@@ -64,6 +64,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #'
 #' @template vssBasicParam
 #' @template vssAdvancedParam
+#' @template vssIntervals
 #' @template ssAuthor
 #' @template vssKeywords
 #'
@@ -167,7 +168,7 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
                 seasonal=c("individual","common"), weights=rep(1/ncol(y),ncol(y)),
                 loss=c("likelihood","diagonal","trace"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                interval=c("none","conditional","unconditional","individual"), level=0.95,
+                interval=c("none","conditional","unconditional","individual","likelihood"), level=0.95,
                 cumulative=FALSE,
                 intermittent=c("none","fixed","logistic"), imodel="ANN",
                 iprobability=c("dependent","independent"),
@@ -1170,7 +1171,7 @@ CreatorVES <- function(silent=FALSE,...){
     }
     colnames(yForecast) <- dataNames;
     yForecastStart <- start(yForecast)
-    if(any(intervalType==c("i","u"))){
+    if(any(intervalType==c("i","u","l"))){
         PI <-  ts(PI,start=yForecastStart,frequency=dataFreq);
     }
 
@@ -1270,7 +1271,7 @@ CreatorVES <- function(silent=FALSE,...){
         for(j in 1:pages){
             par(mar=c(4,4,2,1),mfcol=c(perPage,1));
             for(i in packs[j]:(packs[j+1]-1)){
-                if(any(intervalType==c("u","i"))){
+                if(any(intervalType==c("u","i","l"))){
                     plotRange <- range(min(y[,i],yForecast[,i],yFitted[,i],PI[,i*2-1]),
                                        max(y[,i],yForecast[,i],yFitted[,i],PI[,i*2]));
                 }
@@ -1283,7 +1284,7 @@ CreatorVES <- function(silent=FALSE,...){
                      type="l");
                 lines(yFitted[,i],col="purple",lwd=2,lty=2);
                 if(h>1){
-                    if(any(intervalType==c("u","i"))){
+                    if(any(intervalType==c("u","i","l"))){
                         lines(PI[,i*2-1],col="darkgrey",lwd=3,lty=2);
                         lines(PI[,i*2],col="darkgrey",lwd=3,lty=2);
 
@@ -1297,7 +1298,7 @@ CreatorVES <- function(silent=FALSE,...){
                     lines(yForecast[,i],col="blue",lwd=2);
                 }
                 else{
-                    if(any(intervalType==c("u","i"))){
+                    if(any(intervalType==c("u","i","l"))){
                         points(PI[,i*2-1],col="darkgrey",lwd=3,pch=4);
                         points(PI[,i*2],col="darkgrey",lwd=3,pch=4);
                     }

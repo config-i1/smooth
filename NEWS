@@ -1,8 +1,9 @@
-smooth v2.5.4 (Release data: 2019-09-04)
+smooth v2.5.4 (Release data: 2019-09-23)
 ==============
 
 Changes:
 * loss="TFL" is now called loss="GPL" - General Predictive Likelihood.
+* The return of unbiased estimate of variance (division by T-k)... We now use it for the calculation of the all the prediction interval types, but there is also an option of using the biased (division by T) parametric prediction interval with interval="likelihood".
 
 
 smooth v2.5.3 (Release data: 2019-08-19)

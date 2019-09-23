@@ -16,6 +16,7 @@
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssIntervals
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -94,7 +95,7 @@ smoothCombine <- function(y, models=NULL,
                           initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                           loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                           h=10, holdout=FALSE, cumulative=FALSE,
-                          interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                          interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                           bins=200, intervalCombine=c("quantile","probability"),
                           occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
                           oesmodel="MNN",

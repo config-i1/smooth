@@ -22,6 +22,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
 #' @template ssKeywords
@@ -84,7 +85,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                          loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                          h=10, holdout=FALSE, cumulative=FALSE,
-                         interval=c("none","parametric","semiparametric","nonparametric"), level=0.95,
+                         interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                          occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                          oesmodel="MNN",
                          bounds=c("admissible","none"),

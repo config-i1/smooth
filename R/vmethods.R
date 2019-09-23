@@ -296,6 +296,9 @@ print.vsmooth <- function(x, ...){
         else if(x$interval=="i"){
             intervalType <- "independent";
         }
+        else if(x$interval=="l"){
+            intervalType <- "likelihood-based";
+        }
         cat(paste0("\n",x$level*100,"% ",intervalType," prediction interval was constructed\n"));
     }
 

@@ -790,7 +790,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
     }
 
-    if(all(intervalType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
+    if(all(intervalType!=c("p","l","s","n","a","sp","np","none","parametric","likelihood","semiparametric","nonparametric"))){
         warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalType <- "p";
     }
@@ -809,6 +809,10 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
     else if(any(intervalType==c("nonparametric","np"))){
         intervalType <- "np";
+        interval <- TRUE;
+    }
+    else if(any(intervalType==c("likelihood","l"))){
+        intervalType <- "l";
         interval <- TRUE;
     }
     else{
@@ -1712,7 +1716,6 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
 
     ##### interval, intervalType, level #####
-    #intervalType <- substring(intervalType[1],1,1);
     intervalType <- interval[1];
     # Check the provided type of interval
 
@@ -1725,9 +1728,8 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         }
     }
 
-    if(all(intervalType!=c("p","s","n","a","sp","np","none","parametric","semiparametric","nonparametric"))){
-        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'parametric'."),
-                call.=FALSE);
+        if(all(intervalType!=c("p","l","s","n","a","sp","np","none","parametric","likelihood","semiparametric","nonparametric"))){
+        warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'parametric'."),call.=FALSE);
         intervalType <- "p";
     }
 
@@ -1745,6 +1747,10 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     }
     else if(any(intervalType==c("nonparametric","np"))){
         intervalType <- "np";
+        interval <- TRUE;
+    }
+    else if(any(intervalType==c("likelihood","l"))){
+        intervalType <- "l";
         interval <- TRUE;
     }
     else{
@@ -1939,7 +1945,7 @@ ssFitter <- function(...){
 }
 
 ##### *State space interval* #####
-ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a","p","sp","np"), df=NULL,
+ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a","p","l","sp","np"), df=NULL,
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
                         lagsModel=NULL, states=NULL, cumulative=FALSE, loss="MSE",
                         yForecast=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
@@ -1973,8 +1979,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
         }
     }
 
-    if(all(intervalType!=c("a","p","s","n","a","sp","np","none","parametric","semiparametric",
-                           "nonparametric","asymmetric"))){
+    if(all(intervalType!=c("a","p","l","s","n","a","sp","np","none","parametric","likelihood",
+                           "semiparametric","nonparametric","asymmetric"))){
         stop(paste0("What do you mean by 'intervalType=",intervalType,"'? I can't work with this!"),
              call.=FALSE);
     }
@@ -1983,6 +1989,10 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
         intervalType <- "n";
     }
     else if(intervalType=="parametric"){
+        intervalType <- "p";
+    }
+    # If it is likelihood, then it is "parametric", just uses a differen number of degrees of freedom
+    else if(any(intervalType==c("likelihood","l"))){
         intervalType <- "p";
     }
     else if(intervalType=="semiparametric"){
@@ -2515,16 +2525,22 @@ ssForecaster <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
+    if(intervalType!="l" && obsInSample > nParam){
+        obsDF <- obsInSample - nParam;
+    }
+    else{
+        obsDF <- obsInSample;
+    }
     if(!rounded){
         # If error additive, estimate as normal. Otherwise - lognormal
         if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/obsInSample);
+            s2 <- as.vector(sum((errors*ot)^2)/obsDF);
             s2g <- 1;
         }
         else{
-            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsInSample);
+            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsDF);
             s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*%
-                                                                        as.vector(errors*ot)))/obsInSample;
+                                                                        as.vector(errors*ot)))/obsDF;
         }
     }
 
@@ -2576,7 +2592,7 @@ ssForecaster <- function(...){
             # We don't simulate pure additive models, pure multiplicative and
             # additive models with multiplicative error,
             # because they can be approximated by the pure additive ones
-            if(intervalType=="p"){
+            if(any(intervalType==c("p","l"))){
                 if(all(c(Etype,Stype,Ttype)!="M") |
                    all(c(Etype,Stype,Ttype)!="A") |
                    (all(Etype=="M",any(Ttype==c("A","N")),any(Stype==c("A","N"))) & s2<0.1)){
@@ -2668,7 +2684,7 @@ ssForecaster <- function(...){
             }
             else{
                 quantvalues <- ssIntervals(errors.x, ev=ev, level=level, intervalType=intervalType,
-                                           df=obsInSample,
+                                           df=obsDF,
                                            measurement=matw, transition=matF, persistence=vecg, s2=s2,
                                            lagsModel=lagsModel, states=matvt[(obsInSample-lagsModelMax+1):obsInSample,],
                                            cumulative=cumulative, loss=loss,
@@ -3250,7 +3266,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                      phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      loss="MSE", cfObjective=NULL, interval=FALSE, cumulative=FALSE,
-                     intervalType=c("n","p","sp","np","a"), level=0.95, ICs,
+                     intervalType=c("n","p","l","sp","np","a"), level=0.95, ICs,
                      holdout=FALSE, insideinterval=NULL, errormeasures=NULL,
                      occurrence="n", obs=NULL, digits=5){
     # Function forms the generic output for state space models.
@@ -3431,6 +3447,9 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         cat("\n");
         if(intervalType=="p"){
             intervalType <- "parametric";
+        }
+        else if(intervalType=="l"){
+            intervalType <- "likelihood-based";
         }
         else if(intervalType=="sp"){
             intervalType <- "semiparametric";

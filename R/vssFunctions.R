@@ -845,7 +845,7 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
-    if(all(intervalType!=c("c","u","i","n","none","conditional","unconditional","individual"))){
+    if(all(intervalType!=c("c","u","i","l","n","none","conditional","unconditional","individual","likelihood"))){
         warning(paste0("Wrong type of interval: '",intervalType, "'. Switching to 'conditional'."),call.=FALSE);
         intervalType <- "c";
     }
@@ -864,6 +864,10 @@ vssInput <- function(smoothType=c("ves"),...){
     }
     else if(intervalType=="individual"){
         intervalType <- "i";
+        interval <- TRUE;
+    }
+    else if(intervalType=="likelihood"){
+        intervalType <- "l";
         interval <- TRUE;
     }
     else{
@@ -1051,7 +1055,7 @@ vssFitter <- function(...){
 ##### *State space interval* #####
 # This is not implemented yet
 #' @importFrom stats qchisq
-vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
+vssIntervals <- function(level=0.95, intervalType=c("c","u","i","l"), Sigma=NULL,
                          measurement=NULL, transition=NULL, persistence=NULL,
                          lagsModel=NULL, cumulative=FALSE, df=0,
                          nComponents=1, nSeries=1, h=1){
@@ -1064,6 +1068,10 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
     if(intervalType!="i"){
         intervalType <- "i";
     }
+    # In case of likelihood interval, construct the individual ones
+    # if(intervalType=="l"){
+    #     intervalType <- "i";
+    # }
 
     # In case of individual we use either t distribution or Chebyshev inequality
     if(intervalType=="i"){
@@ -1083,7 +1091,7 @@ vssIntervals <- function(level=0.95, intervalType=c("c","u","i"), Sigma=NULL,
 
     nPoints <- 100;
     if(intervalType=="c"){
-        # Nuber of points in the ellipse
+        # Number of points in the ellipse
         PI <- array(NA, c(h,2*nPoints^(nSeries-1),nSeries),
                     dimnames=list(paste0("h",c(1:h)), NULL,
                                   paste0("Series_",1:nSeries)));
@@ -1202,15 +1210,14 @@ vssForecaster <- function(...){
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     # Division by nSeries gives the df per series, which agrees with Lutkepohl (2005), p.75
-    # nParamPerSeries <- nParam / nSeries;
+    nParamPerSeries <- nParam / nSeries;
     # df <- (otObs - nParamPerSeries);
-    # if(any(df<=0)){
-    #     warning(paste0("Number of degrees of freedom is negative. ",
-    #                    "It looks like we have overfitted the data."),call.=FALSE);
-    #     df <- otObs;
-    # }
-
-    df <- otObs
+    if(intervalType!="l" && any(otObs >= nParamPerSeries)){
+        df <- otObs - nParamPerSeries;
+    }
+    else{
+        df <- otObs;
+    }
 
     # Divide each element by each degree of freedom
     Sigma <- (errors %*% t(errors)) / df;
@@ -1240,7 +1247,7 @@ vssForecaster <- function(...){
                                lagsModel=lagsModel, cumulative=cumulative, df=df,
                                nComponents=nComponentsAll, nSeries=nSeries, h=h);
 
-            if(any(intervalType==c("i","u"))){
+            if(any(intervalType==c("i","l","u"))){
                 for(i in 1:nSeries){
                     PI[,i*2-1] <- PI[,i*2-1] + yForecast[i,];
                     PI[,i*2] <- PI[,i*2] + yForecast[i,];
