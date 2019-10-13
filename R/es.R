@@ -735,19 +735,19 @@ EstimatorES <- function(...){
     if(any(res$objective==c(1e+100,1e+300))){
         # Reset the smoothing parameters
         j <- 1;
-        C[j] <- max(0.1,CLower[j]);
+        C[j] <- max(0,CLower[j]);
         if(Ttype!="N"){
             j <- j+1;
-            C[j] <- max(0.05,CLower[j]);
+            C[j] <- max(0,CLower[j]);
             if(Stype!="N"){
                 j <- j+1;
-                C[j] <- max(0.1,CLower[j]);
+                C[j] <- max(0,CLower[j]);
             }
         }
         else{
             if(Stype!="N"){
                 j <- j+1;
-                C[j] <- max(0.05,CLower[j]);
+                C[j] <- max(0,CLower[j]);
             }
         }
 
@@ -770,7 +770,7 @@ EstimatorES <- function(...){
         C[] <- res$solution;
     }
     # Change C if it is out of the bounds
-    if(any((C>=CUpper),(C<=CLower))){
+    if(any((C>CUpper),(C<CLower))){
         CUpper[C>=CUpper & C<0] <- C[C>=CUpper & C<0] * 0.999 + 0.001;
         CUpper[C>=CUpper & C>=0] <- C[C>=CUpper & C>=0] * 1.001 + 0.001;
         CLower[C<=CLower & C<0] <- C[C<=CLower & C<0] * 1.001 - 0.001;
@@ -805,6 +805,15 @@ EstimatorES <- function(...){
     }
     # Parameters estimated + variance
     nParam <- length(C) + 1*(!rounded);
+
+    # Write down Fisher Information if needed
+    if(FI){
+        boundOriginal <- bounds;
+        bounds[] <- "n";
+        environment(likelihoodFunction) <- environment();
+        FI <- -numDeriv::hessian(likelihoodFunction,C);
+        bounds <- boundOriginal;
+    }
 
     # Check if smoothing parameters and phi reached the boundary conditions
     if(bounds=="u"){
@@ -1046,7 +1055,7 @@ PoolPreparerES <- function(...){
 
                 listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                                      cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
-                                     nParam=res$nParam,logLik=res$logLik,xreg=xreg,
+                                     nParam=res$nParam,logLik=res$logLik,xreg=xreg,FI=res$FI,
                                      xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
                 if(xregDo!="u"){
@@ -1204,7 +1213,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=NULL,
-                             nParam=res$nParam,logLik=res$logLik,xreg=xreg,
+                             nParam=res$nParam,logLik=res$logLik,xreg=xreg, FI=res$FI,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
         if(xregDo!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
@@ -1263,7 +1272,7 @@ CreatorES <- function(silent=FALSE,...){
         res <- EstimatorES(ParentEnvironment=environment());
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,phi=phi,
                              cfObjective=res$objective,C=res$C,ICs=res$ICs,icBest=res$ICs,
-                             nParam=res$nParam,FI=FI,logLik=res$logLik,xreg=xreg,
+                             nParam=res$nParam,FI=res$FI,logLik=res$logLik,xreg=xreg,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
         if(xregDo!="u"){
@@ -1911,12 +1920,6 @@ CreatorES <- function(silent=FALSE,...){
         }
         else{
             model <- paste0(Etype,Ttype,Stype);
-        }
-
-# Write down Fisher Information if needed
-        if(FI){
-            environment(likelihoodFunction) <- environment();
-            FI <- -numDeriv::hessian(likelihoodFunction,C);
         }
 
         ssFitter(ParentEnvironment=environment());
