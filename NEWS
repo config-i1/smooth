@@ -4,7 +4,8 @@ smooth v2.5.4 (Release data: 2019-10-13)
 Changes:
 * loss="TFL" is now called loss="GPL" - General Predictive Likelihood.
 * The return of unbiased estimate of variance (division by T-k)... We now use it for the calculation of the all the prediction interval types, but there is also an option of using the biased (division by T) parametric prediction interval with interval="likelihood".
-* Fix for the initials in the optimiser in case of difficult mixed mdels
+* Fix for the initials in the optimiser in case of difficult mixed mdels.
+* Updated the description of the bounds parameter in ves().
 
 
 smooth v2.5.3 (Release data: 2019-08-19)

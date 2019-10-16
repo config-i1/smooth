@@ -165,8 +165,9 @@ assumed that non-zeroes occur in each series independently. In the latter case
 each possible outcome is treated separately.}
 
 \item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word. Currently only \code{"admissible"}
-bounds are available.}
+letter can be used instead of the whole word. \code{"admissible"} means that the
+model stability is ensured, while \code{"usual"} means that the all the parameters
+are restricted by the (0, 1) region.}
 
 \item{silent}{If \code{silent="none"}, then nothing is silent, everything is
 printed out and drawn. \code{silent="all"} means that nothing is produced or
