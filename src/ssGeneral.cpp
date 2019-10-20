@@ -550,7 +550,9 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
         }
         else{
             vecG.fill(0);
-            vecG(ARILags.col(1)) = -ariPolynomial(ARILags.col(0));
+            if(ARILags.n_rows>0){
+                vecG(ARILags.col(1)) = -ariPolynomial(ARILags.col(0));
+            }
             vecG(MALags.col(1)) += maPolynomial(MALags.col(0));
         }
 
