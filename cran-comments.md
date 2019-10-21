@@ -1,7 +1,7 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "20 October 2019"
+date: "22 October 2019"
 output: html_document
 ---
 ## Version
@@ -24,6 +24,9 @@ checking installed package size ... NOTE
 
 ## win-builder check results
 All seems to be okay.
+
+## rhub checks
+I've gone through the C++ code of mine and isolated a potentially dangerous part of code, that could have produced previous errors in ASAN/UBSAN. However, the check on rhub with ASAN/UBSAN still produces errors. At least, this time they are definitely not related to my code - they are related to loading of other packages: it looks like, when forecast package is loaded, there is a bunch of warnings and errors on that specific platform.
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
