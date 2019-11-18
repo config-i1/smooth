@@ -571,6 +571,10 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         model <- paste0("i",model);
     }
 
+    if(any(is.nan(matyt))){
+        warning("NaN values were produced by the simulator.",call.=FALSE);
+    }
+
     model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
                   initial=initial, initialSeason=initialSeason, iprob=iprob, intermittent=intermittent,
                   residuals=materrors, occurrence=matot, logLik=veclikelihood);
