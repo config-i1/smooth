@@ -3161,23 +3161,27 @@ likelihoodFunction <- function(C){
                                        "GPL","aTMSE","aGTMSE","aGPL"))){
             yotSumLog <- yotSumLog * h;
         }
+        CFValue <- CF(C);
+        if(all(loss!=c("GTMSE","GTMAE","GTHAM","GPL","aGPL","aGTMSE"))){
+            CFValue[] <- log(CFValue);
+        }
 
         if(any(loss==c("MAE","MAEh","MACE","TMAE","GTMAE"))){
-            return(- (obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+            return(- (obsInSample*(log(2) + 1 + CFValue) + obsZero) - yotSumLog);
         }
         else if(any(loss==c("HAM","HAMh","CHAM","THAM","GTHAM"))){
             #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
-            return(- 2*(obsInSample*(log(2) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+            return(- 2*(obsInSample*(log(2) + 1 + CFValue) + obsZero) - yotSumLog);
         }
         else if(any(loss==c("GPL","aGPL","aGTMSE"))){
-            return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CF(C)) + obsZero) - yotSumLog);
+            return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
         }
         else if(any(loss==c("LogisticD","LogisticL","TSB","Rounded"))){
-            return(-CF(C));
+            return(-CFValue);
         }
         else{
             #if(loss==c("MSE","MSEh","MSCE")) obsNonzero
-            return(- 0.5 *(obsInSample*(log(2*pi) + 1 + log(CF(C))) + obsZero) - yotSumLog);
+            return(- 0.5 *(obsInSample*(log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
         }
     }
 
@@ -3200,7 +3204,7 @@ likelihoodFunction <- function(C){
             }
         }
         #Failsafe for cases, when data has no variability when ot==1.
-        if(CF(C)==0){
+        if(CFValue==0){
             if(loss=="GPL" | loss=="aGPL"){
                 return(sum(log(pFitted[ot==1]))*h + sum(log(1-pFitted[ot==0]))*h);
             }
@@ -3209,7 +3213,7 @@ likelihoodFunction <- function(C){
             }
         }
         if(rounded){
-            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CF(C) -
+            return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CFValue -
                        obsZero/2*(log(2*pi*C[length(C)]^2)+1));
         }
         if(loss=="GPL" | loss=="aGPL"){
