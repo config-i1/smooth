@@ -3161,7 +3161,7 @@ likelihoodFunction <- function(C){
                                        "GPL","aTMSE","aGTMSE","aGPL"))){
             yotSumLog <- yotSumLog * h;
         }
-        CFValue <- CF(C);
+
         if(all(loss!=c("GTMSE","GTMAE","GTHAM","GPL","aGPL","aGTMSE"))){
             CFValue[] <- log(CFValue);
         }
@@ -3184,6 +3184,7 @@ likelihoodFunction <- function(C){
             return(- 0.5 *(obsInSample*(log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
         }
     }
+    CFValue <- CF(C);
 
     if(any(occurrence==c("n","p"))){
         return(logLikFromCF(C, loss));
