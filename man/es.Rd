@@ -188,8 +188,8 @@ Parameters \code{C}, \code{CLower} and \code{CUpper} can be passed via
 ellipsis as well. In this case they will be used for optimisation. \code{C}
 sets the initial values before the optimisation, \code{CLower} and
 \code{CUpper} define lower and upper bounds for the search inside of the
-specified \code{bounds}. These values should have exactly the length equal
-to the number of parameters to estimate.
+specified \code{bounds}. These values should have length equal to the number
+of parameters to estimate.
 You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
 number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
 optimiser. The default values used in es() are \code{maxeval=500} and
