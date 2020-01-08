@@ -1,6 +1,7 @@
 # smooth
 [![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/smooth)](https://cran.r-project.org/package=smooth)
 [![Downloads](http://cranlogs.r-pkg.org/badges/smooth)](https://cran.r-project.org/package=smooth)
+[![ko-fi](https://www.ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/G2G51C4C4)
 
 The package _smooth_ contains several smoothing (exponential and not) functions that are used in forecasting.
 
