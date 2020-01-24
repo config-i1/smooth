@@ -7,8 +7,7 @@
 \usage{
 covar(object, type = c("analytical", "empirical", "simulated"), ...)
 
-\method{covar}{smooth}(object, type = c("analytical", "empirical",
-  "simulated"), ...)
+\method{covar}{smooth}(object, type = c("analytical", "empirical", "simulated"), ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}

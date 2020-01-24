@@ -29,12 +29,12 @@ require(Mcomp)
 The default call constructs ARIMA(0,1,1):
 
 ```{r ssarima_N2457}
-ssarima(M3$N2457$x, h=18, silent=FALSE)
+ssarima(M3$N2457, h=18, silent=FALSE)
 ```
 
 Some more complicated model can be defined using parameter `orders` the following way:
 ```{r ssarima_N2457_orders}
-ssarima(M3$N2457$x, orders=list(ar=c(0,1),i=c(1,0),ma=c(1,1)),lags=c(1,12),h=18)
+ssarima(M3$N2457, orders=list(ar=c(0,1),i=c(1,0),ma=c(1,1)), lags=c(1,12), h=18)
 ```
 
 This would construct us seasonal ARIMA(0,1,1)(1,0,1)$_{12}$.
@@ -54,7 +54,7 @@ As can be seen from the second graph, ssarima with optimal initial does not sele
 
 A power of `ssarima()` function is that it can estimate SARIMA models with multiple seasonalities. For example, SARIMA(0,1,1)(0,0,1)_6(1,0,1)_12 model can be estimated the following way:
 ```{r ssarima_N2457_orders_multiple_seasonalities}
-ssarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)),lags=c(1,6,12),h=18, silent=FALSE)
+ssarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)), lags=c(1,6,12), h=18, silent=FALSE)
 ```
 It probably does not make much sense for this type of data, it would make more sense on high frequency data (for example, `taylor` series from `forecast` package). However, keep in mind that multiple seasonal ARIMAs are very slow in estimation and are very capricious. So it is really hard to obtain an appropriate and efficient multiple seasonal ARIMA model.
 
@@ -78,5 +78,14 @@ Finally, we can combine several SARIMA models:
 ssarima(M3$N2457$x, h=18, holdout=FALSE, interval=TRUE, combine=TRUE)
 ```
 
+# MSARIMA
+While SSARIMA is flexible, it is not very fast. In fact, it cannot handle high frequency data well and most probably will take ages to estimate the parameter and produce forecasts. The MSARIMA model (Multiple Seasonal ARIMA) is formulated in a different state-space form, which reduces the size of transition matrix, significanltly reducing the computational time for cases with high frequency data. However, due to that formulation, the only way to initialise the model is using backcasting.
+
+There are `auto.msarima()` and `msarima()` function in the package, that do things similar to `auto.ssarima()` and `ssarima()`. Here's just one example of what can be done with it:
+```{r mssarima_N2457_orders_multiple_seasonalities}
+msarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)),lags=c(1,6,12),h=18, silent=FALSE)
+```
+
+The forecasts of the two models will differ due to the different state space form.
 
 ## References

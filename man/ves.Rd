@@ -4,19 +4,30 @@
 \alias{ves}
 \title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
-ves(y, model = "ANN", persistence = c("common", "individual",
-  "dependent", "seasonal-common"), transition = c("common", "individual",
-  "dependent"), phi = c("common", "individual"),
-  initial = c("individual", "common"), initialSeason = c("common",
-  "individual"), seasonal = c("individual", "common"),
-  weights = rep(1/ncol(y), ncol(y)), loss = c("likelihood", "diagonal",
-  "trace"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, interval = c("none", "conditional", "unconditional",
-  "individual", "likelihood"), level = 0.95, cumulative = FALSE,
-  intermittent = c("none", "fixed", "logistic"), imodel = "ANN",
+ves(
+  y,
+  model = "ANN",
+  persistence = c("common", "individual", "dependent", "seasonal-common"),
+  transition = c("common", "individual", "dependent"),
+  phi = c("common", "individual"),
+  initial = c("individual", "common"),
+  initialSeason = c("common", "individual"),
+  seasonal = c("individual", "common"),
+  weights = rep(1/ncol(y), ncol(y)),
+  loss = c("likelihood", "diagonal", "trace"),
+  ic = c("AICc", "AIC", "BIC", "BICc"),
+  h = 10,
+  holdout = FALSE,
+  interval = c("none", "conditional", "unconditional", "individual", "likelihood"),
+  level = 0.95,
+  cumulative = FALSE,
+  intermittent = c("none", "fixed", "logistic"),
+  imodel = "ANN",
   iprobability = c("dependent", "independent"),
-  bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
-  "output", "none"), ...)
+  bounds = c("admissible", "usual", "none"),
+  silent = c("all", "graph", "output", "none"),
+  ...
+)
 }
 \arguments{
 \item{y}{The matrix with the data, where series are in columns and

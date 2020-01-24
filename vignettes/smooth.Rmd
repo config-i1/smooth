@@ -19,17 +19,22 @@ This vignette explains how to use functions in `smooth` package, what they produ
 The package includes the following functions:
 
 1. [es() - Exponential Smoothing](es.html);
-2. [ssarima() - State-Space ARIMA](ssarima.html), also known as Several Seasonalities ARIMA;
+2. [ssarima() - State-Space ARIMA](ssarima.html), also known as Several Seasonalities ARIMA and `msarima()`, aka Multiple Seasonal ARIMA;
 3. [ces() - Complex Exponential Smoothing](ces.html);
 4. [gum() - Generalised Univariate Model](gum.html);
 5. [ves() - Vector Exponential Smoothing](ves.html);
 6. [sma() - Simple Moving Average in state-space form](sma.html);
 7. [Simulate functions of the package](simulate.html).
-8. `smoothCombine()` - function that combines forecasts of the main univariate functions of smooth package.
+8. `smoothCombine()` - function that combines forecasts of the main univariate functions of smooth package based on information criteria.
 9. [oes() - Occurrence part of iETS model](oes.html) -- function that estimates probability of occurrence of variable using one of the following model types: 1. Fixed probability; 2. Odds ratio probability; 3. Inverse odds ratio probability; 4. Direct probability; 5. General. It can also select the most appropriate model among these five. The model produced by `oes()` can then be used in any forecasting function as input variable for `occurrence` parameter. This is the new function introduced in smooth v2.5.0, substituting the old `iss()` function.
 There is also vector counterpart of this function called `viss()` which implements multivariate fixed and logistic probabilities.
 
 The functions (1) - (4) and (6) return object of class `smooth`, (5) returns the object of class `vsmooth`, (7) returns `smooth.sim` class and finally (8) returns `oes` or `viss` (depending on the function used). There are several methods for these classes in the package.
+
+Some other functions, which are not considered as core and important:
+
+1. `cma()` - Centred Moving Average based on `sma()` and `msarima()`
+2. `msdecompose` - Multiple Seasonal Decomposition based on centred moving averages. Useful if a series with several frequencies need to be decomposed. The frequencies are specified separately in the `lags` parameter. Given that this function does not rely on any state space model, it might be moved to a different package at some point.
 
 ## Methods for the class `smooth`
 

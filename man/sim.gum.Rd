@@ -4,10 +4,20 @@
 \alias{sim.gum}
 \title{Simulate Generalised Exponential Smoothing}
 \usage{
-sim.gum(orders = c(1), lags = c(1), obs = 10, nsim = 1,
-  frequency = 1, measurement = NULL, transition = NULL,
-  persistence = NULL, initial = NULL, randomizer = c("rnorm", "rt",
-  "rlaplace", "rs"), iprob = 1, ...)
+sim.gum(
+  orders = c(1),
+  lags = c(1),
+  obs = 10,
+  nsim = 1,
+  frequency = 1,
+  measurement = NULL,
+  transition = NULL,
+  persistence = NULL,
+  initial = NULL,
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"),
+  iprob = 1,
+  ...
+)
 }
 \arguments{
 \item{orders}{Order of the model. Specified as vector of number of states

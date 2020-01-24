@@ -29,6 +29,7 @@ Here is the list of the included functions:
 20. sowhat - returns the ultimate answer to any question.
 21. smoothCombine - the function that combines forecasts from es(), ces(), gum(), ssarima() and sma() functions.
 22. cma - Centred Moving Average. This is the function used for smoothing of time series, not for forecasting.
+23. msdecompose - multiple seasonal decomposition based on centred moving averages.
 
 Available methods:
 

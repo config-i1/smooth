@@ -4,9 +4,18 @@
 \alias{sim.ces}
 \title{Simulate Complex Exponential Smoothing}
 \usage{
-sim.ces(seasonality = c("none", "simple", "partial", "full"), obs = 10,
-  nsim = 1, frequency = 1, A = NULL, B = NULL, initial = NULL,
-  randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
+sim.ces(
+  seasonality = c("none", "simple", "partial", "full"),
+  obs = 10,
+  nsim = 1,
+  frequency = 1,
+  A = NULL,
+  B = NULL,
+  initial = NULL,
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"),
+  iprob = 1,
+  ...
+)
 }
 \arguments{
 \item{seasonality}{The type of seasonality used in CES. Can be: \code{none}

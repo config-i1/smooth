@@ -4,9 +4,16 @@
 \alias{sim.sma}
 \title{Simulate Simple Moving Average}
 \usage{
-sim.sma(order = NULL, obs = 10, nsim = 1, frequency = 1,
-  initial = NULL, randomizer = c("rnorm", "rt", "rlaplace", "rs"),
-  iprob = 1, ...)
+sim.sma(
+  order = NULL,
+  obs = 10,
+  nsim = 1,
+  frequency = 1,
+  initial = NULL,
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"),
+  iprob = 1,
+  ...
+)
 }
 \arguments{
 \item{order}{Order of the modelled series. If omitted, then a random order from 1 to 100 is selected.}

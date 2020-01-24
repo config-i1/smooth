@@ -81,7 +81,7 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
     if(any(is.smooth.sim(y))){
         y <- y$data;
     }
-    else if(class(y)=="Mdata"){
+    else if(any(class(y)=="Mdata")){
         y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
     }
 
