@@ -8,6 +8,8 @@ Changes:
 * More advanced plot.smooth(), which now acts similar to plot.greybox(), with options of what to plot: the actuals and fit / states of the model. The documentation is now available for plot.smooth().
 * Tuning of some methods for the class smooth.
 * forecast with prediction intervals for msdecompose().
+* residuals.smooth() now returns either et or log(1+et) - depending on the type of model (additive / multiplicative).
+* New methods: rstandard() and rstudent() for the smooth class.
 
 
 smooth v2.5.4 (Release data: 2019-10-22)

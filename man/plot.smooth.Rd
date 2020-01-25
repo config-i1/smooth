@@ -5,7 +5,7 @@
 \alias{plot.msdecompose}
 \title{Plots for the fit and states}
 \usage{
-\method{plot}{smooth}(x, which = c(1, 2), ask = length(which) > 1, legend = TRUE, ...)
+\method{plot}{smooth}(x, which = c(1, 2), ask = length(which) > 1, legend = FALSE, ...)
 
 \method{plot}{msdecompose}(x, which = c(1, 2), ask = length(which) > 1, ...)
 }
@@ -46,7 +46,7 @@ plot(ourModel, c(1,2))
 
 }
 \seealso{
-\link[stats]{plot.lm}
+\link[greybox]{plot.greybox}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

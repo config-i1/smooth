@@ -70,6 +70,15 @@ sigma.vsmooth <- function(object, ...){
 }
 
 #### Extraction of parameters of models ####
+errorType.vsmooth <- function(object, ...){
+    if(any(substr(modelType(object),1,1)==c("A"))){
+        return("A");
+    }
+    else if(any(substr(modelType(object),1,1)==c("M"))){
+        return("M");
+    }
+}
+
 #' @export
 coef.vsmooth <- function(object, ...){
 

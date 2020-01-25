@@ -92,7 +92,22 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     }
 
     return(structure(list(y=y, initial=initial, trend=trend, seasonal=patterns,
-                          lags=lags, type=type, yName=yName), class="msdecompose"));
+                          lags=lags, type=type, yName=yName), class=c("msdecompose","smooth")));
+}
+
+#' @export
+actuals.msdecompose <- function(object, ...){
+    return(object$y);
+}
+
+#' @export
+errorType.msdecompose <- function(object, ...){
+    if(object$type=="additive"){
+        return("A");
+    }
+    else{
+        return("M");
+    }
 }
 
 #' @export
@@ -110,66 +125,6 @@ fitted.msdecompose <- function(object, ...){
         }
     }
     return(yFitted);
-}
-
-#' @export
-nobs.msdecompose <- function(object, ...){
-    return(length(actuals(object)));
-}
-
-#' @rdname plot.smooth
-#' @export
-plot.msdecompose <- function(x, which=c(1,2), ask=length(which)>1, ...){
-    ellipsis <- list(...);
-    obs <- nobs(x);
-
-    # Define, whether to wait for the hit of "Enter"
-    if(ask){
-        oask <- devAskNewPage(TRUE);
-        on.exit(devAskNewPage(oask));
-    }
-
-    if(any(which==1)){
-        ellipsis$x <- actuals(x);
-        if(!any(names(ellipsis)=="ylab")){
-            ellipsis$ylab <- x$yName;
-        }
-        yFitted <- fitted(x);
-
-        do.call(plot,ellipsis);
-        lines(yFitted, col="red");
-    }
-
-    if(any(which==2)){
-        yDecomposed <- cbind(actuals(x),x$trend);
-        for(i in 1:length(x$seasonal)){
-            yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);
-        }
-        yDecomposed <- cbind(yDecomposed, residuals(x));
-        colnames(yDecomposed) <- c("Actuals","Trend",paste0("Seasonal ",c(1:length(x$seasonal))),"Residuals");
-
-        if(!any(names(ellipsis)=="main")){
-            ellipsis$main <- paste0("Decomposition of ", x$yName);
-        }
-        ellipsis$x <- yDecomposed;
-        do.call(plot,ellipsis);
-    }
-}
-
-#' @export
-print.msdecompose <- function(x, ...){
-    cat(paste0("Multiple seasonal decomposition of ",x$yName," using c(",paste0(x$lags,collapse=","),") lags.\n"));
-    cat("Type of decomposition:",x$type);
-}
-
-#' @export
-residuals.msdecompose <- function(object, ...){
-    if(object$type=="additive"){
-        return(actuals(object)-fitted(object));
-    }
-    else{
-        return(actuals(object)/fitted(object));
-    }
 }
 
 #' @aliases forecast forecast.smooth
@@ -226,4 +181,88 @@ forecast.msdecompose <- function(object, h=10,
     return(structure(list(model=object, method=paste0("ETS(",modelType(yesModel),") with decomposition"),
                           mean=yForecast, forecast=yForecast, lower=lower, upper=upper,
                           level=level, interval=interval),class=c("msdecompose.forecast","smooth.forecast","forecast")));
+}
+
+#' @export
+lags.msdecompose <- function(object, ...){
+    return(object$lags);
+}
+
+#' @export
+modelType.msdecompose <- function(object, ...){
+    return("Multiple Seasonal Decomposition");
+}
+
+#' @export
+nobs.msdecompose <- function(object, ...){
+    return(length(actuals(object)));
+}
+
+#' @export
+nparam.msdecompose <- function(object, ...){
+    return(length(object$lags)+1);
+}
+
+#' @rdname plot.smooth
+#' @export
+plot.msdecompose <- function(x, which=c(1,2), ask=length(which)>1, ...){
+    ellipsis <- list(...);
+    obs <- nobs(x);
+
+    # Define, whether to wait for the hit of "Enter"
+    if(ask){
+        oask <- devAskNewPage(TRUE);
+        on.exit(devAskNewPage(oask));
+    }
+
+    if(any(which==1)){
+        ellipsis$x <- actuals(x);
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- x$yName;
+        }
+        yFitted <- fitted(x);
+
+        do.call(plot,ellipsis);
+        lines(yFitted, col="red");
+    }
+
+    if(any(which==2)){
+        yDecomposed <- cbind(actuals(x),x$trend);
+        for(i in 1:length(x$seasonal)){
+            yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);
+        }
+        yDecomposed <- cbind(yDecomposed, residuals(x));
+        colnames(yDecomposed) <- c("Actuals","Trend",paste0("Seasonal ",c(1:length(x$seasonal))),"Residuals");
+
+        if(!any(names(ellipsis)=="main")){
+            ellipsis$main <- paste0("Decomposition of ", x$yName);
+        }
+        ellipsis$x <- yDecomposed;
+        do.call(plot,ellipsis);
+    }
+}
+
+#' @export
+print.msdecompose <- function(x, ...){
+    cat(paste0("Multiple seasonal decomposition of ",x$yName," using c(",paste0(x$lags,collapse=","),") lags.\n"));
+    cat("Type of decomposition:",x$type);
+}
+
+#' @export
+residuals.msdecompose <- function(object, ...){
+    if(errorType(object)=="A"){
+        return(actuals(object)-fitted(object));
+    }
+    else{
+        return(log(actuals(object)/fitted(object)));
+    }
+}
+
+sigma.msdecompose <- function(object, ...){
+    if(errorType(object)=="A"){
+        return(sqrt(mean(residuals(object)^2,na.rm=TRUE)));
+    }
+    else{
+        return(sqrt(mean(residuals(object)^2,na.rm=TRUE)));
+    }
 }

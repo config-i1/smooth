@@ -298,7 +298,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
             ot <- (residuals(object)!=0)*1;
         }
         else{
-            ot <- rep(1,length(residuals(object)));
+            ot <- rep(1,nobs(object));
         }
         h <- length(object$forecast);
         lagsModel <- modelLags(object);
@@ -599,7 +599,6 @@ pointLik.smooth <- function(object, ...){
     loss <- object$loss;
 
     if(errorType(object)=="M"){
-        errors <- log(1+errors);
         likValues <- likValues - log(actuals(object));
     }
 
@@ -1227,7 +1226,7 @@ plot.oes <- function(x, ...){
 #' @return The function produces 2 plots.
 #'
 #' @template ssAuthor
-#' @seealso \link[stats]{plot.lm}
+#' @seealso \link[greybox]{plot.greybox}
 #' @keywords ts univar
 #' @examples
 #'
@@ -1714,6 +1713,65 @@ print.oes <- function(x, ...){
     print(ICs);
 }
 
+#### Residuals for provided object ####
+#' @export
+residuals.smooth <- function(object, ...){
+    if(errorType(object)=="A"){
+        return(object$residuals);
+    }
+    else{
+        return(log(1+object$residuals));
+    }
+}
+
+#' @importFrom stats rstandard
+#' @export
+rstandard.smooth <- function(model, ...){
+    obs <- nobs(model);
+    df <- obs - nparam(model);
+
+    # If this is an occurrence model, then only modify the non-zero obs
+    if(is.oes(model$occurrence)){
+        residsToGo <- which(actuals(model$occurrence)!=0);
+    }
+    else{
+        residsToGo <- c(1:obs);
+    }
+
+    errors <- residuals(model);
+    return((errors - mean(errors[residsToGo], na.rm=TRUE)) / sqrt(sigma(model)^2 * obs / df));
+}
+
+#' @importFrom stats rstudent
+#' @export
+rstudent.smooth <- function(model, ...){
+    obs <- nobs(model);
+    df <- obs - nparam(model) - 1;
+    rstudentised <- errors <- residuals(model);
+    errors[] <- errors - mean(errors, na.rm=TRUE);
+    # If this is an occurrence model, then only modify the non-zero obs
+    if(is.oes(model$occurrence)){
+        residsToGo <- which(actuals(model$occurrence)!=0);
+    }
+    else{
+        residsToGo <- c(1:obs);
+    }
+    # Prepare the residuals
+    if(errorType(model)=="M"){
+        for(i in residsToGo){
+            rstudentised[i] <- errors[i] / sqrt(sum(errors[-i]^2, na.rm=TRUE) / df);
+        }
+    }
+    else{
+        for(i in residsToGo){
+            rstudentised[i] <- errors[i] / sqrt(sum(errors[-i]^2, na.rm=TRUE) / df);
+        }
+    }
+    return(rstudentised);
+}
+
+
+
 #### Simulate data using provided object ####
 #' @importFrom utils tail
 #' @export
@@ -1800,8 +1858,10 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     if(smoothType=="ETS"){
         model <- modelType(object);
         if(any(unlist(gregexpr("C",model))==-1)){
-            args <- c(args,list(model=model, phi=object$phi, persistence=object$persistence,
-                                initialSeason=object$initialSeason));
+            args$model <- model;
+            args$phi <- object$phi;
+            args$persistence <- object$persistence;
+            args$initialSeason <- object$initialSeason;
 
             simulatedData <- do.call("sim.es",args);
         }
@@ -1812,8 +1872,11 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
-            args <- c(args,list(orders=orders(object), lags=lags(object),
-                                AR=object$AR, MA=object$MA, constant=object$constant));
+            args$orders <- orders(object);
+            args$lags <- lags(object);
+            args$AR <- object$AR;
+            args$MA <- object$MA;
+            args$constant <- object$constant;
 
             simulatedData <- do.call("sim.ssarima",args);
         }
@@ -1823,19 +1886,23 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         }
     }
     else if(smoothType=="CES"){
-        args <- c(args,list(seasonality=modelType(object), A=object$A, B=object$B));
+        args$seasonality <- modelType(object);
+        args$A <- object$A;
+        args$B <- object$B;
 
         simulatedData <- do.call("sim.ces",args);
     }
     else if(smoothType=="GUM"){
-        args <- c(args,list(orders=orders(object), lags=lags(object),
-                            measurement=object$measurement, transition=object$transition,
-                            persistence=object$persistence));
+        args$orders <- orders(object);
+        args$lags <- lags(object);
+        args$measurement <- object$measurement;
+        args$transition <- object$transition;
+        args$persistence <- object$persistence;
 
         simulatedData <- do.call("sim.gum",args);
     }
     else if(smoothType=="SMA"){
-        args <- c(args,list(order=orders(object)));
+        args$order <- orders(object);
 
         simulatedData <- do.call("sim.sma",args);
     }
