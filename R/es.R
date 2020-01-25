@@ -246,6 +246,8 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' es(x,"MNN",occurrence="fixed")
 #' # Best type of occurrence model based on iETS(Z,Z,N)
 #' ourModel <- es(x,"ZZN",occurrence="auto")
+#' par(mfcol=c(2,2))
+#' plot(ourModel)
 #'
 #' summary(ourModel)
 #' forecast(ourModel)

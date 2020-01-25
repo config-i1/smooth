@@ -5,7 +5,7 @@ Changes:
 * sim.es() now will give warnings, when NaNs are produced in the actual values.
 * Fucntions with loss="GTMSE" sometimes could not be estimated because of the exponent in the optimiser. Now it is in logs and at least doable.
 * New function - msdecompose() - which is needed for more advanced ETS. This does multiple seasonal decomposition based on centred moving averages.
-* More advanced plot.smooth(), which now acts similar to plot.greybox(), with options of what to plot: the actuals and fit / states of the model. The documentation is now available for plot.smooth().
+* More advanced plot.smooth(), which now acts similar to plot.greybox(), with similar options of what to plot. The documentation is now available for plot.smooth().
 * Tuning of some methods for the class smooth.
 * forecast with prediction intervals for msdecompose().
 * residuals.smooth() now returns either et or log(1+et) - depending on the type of model (additive / multiplicative).

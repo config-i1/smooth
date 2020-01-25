@@ -38,28 +38,30 @@ Some other functions, which are not considered as core and important:
 
 ## Methods for the class `smooth`
 
-There are several functions that can be used together with the forecasting functions of the package. So when a model is saved to some object `ourModel`, these function will do some things. Here's the list of all the available methods with brief explanations:
+There are several methods that can be used together with the forecasting functions of the package. When a model is saved to some object `ourModel`, these function will do some magic. Here's the list of all the available methods with brief explanations:
 
 1. `summary(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
 2. `fitted(ourModel)` -- fitted values of the model;
 3. `forecast(ourModel)` -- point and interval forecasts. This is needed for compatibility with Rob Hyndman's "forecast" package. `forecast(ourModel)` returns object of class `forecastSmooth`;
 4. `residuals(ourModel)` -- residuals of constructed model;
-5. `AIC(ourModel)`, `BIC(ourModel)`, `AICc(ourModel)` and `BICc(ourModel)` -- information criteria of the constructed model. `AICc()` and `BICc()` functions are not standard `stats` functions and are imported from `greybox` package and modified in `smooth` for the specific models;
-6. `plot(ourModel)` -- plots states of constructed model. If number of states is higher than 10, then several graphs are produced.
-7. `simulate(ourModel)` -- produces data simulated from provided model;
-8. `summary(forecast(ourModel))` -- prints point and interval forecasts;
-9. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and prediction interval using `graphmaker()` function from `greybox` package.
-10. `logLik(ourModel)` -- returns log-likelihood of the model;
-11. `nobs(ourModel)` -- returns number of observations in-sample we had;
-12. `nParam(ourModel)` -- number of estimated parameters (originally from `greybox` package);
-13. `pointLik(ourModel)` -- likelihood values for each separate observation;
-14. `sigma(ourModel)` -- variance of the residuals of the model;
-15. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `gum()`);
-16. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `gum()` and `sma()`);
-17. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()`, `ves()` and `ets()`;
-18. `errorType(ourModel)` -- the type of the error of a model (additive or multiplicative);
-19. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
-20. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
-21. `getResponse(ourModel)` -- returns actual values;
-22. `covar(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
-23. `pls(ourModel)` - Prediction Likelihood Score for the model and the provided holdout.
+5. `rstandard(ourModel)` -- standardised residuals of the model;
+6. `rstudent(ourModel)` -- studentised residuals of the model;
+7. `AIC(ourModel)`, `BIC(ourModel)`, `AICc(ourModel)` and `BICc(ourModel)` -- information criteria of the constructed model. `AICc()` and `BICc()` functions are not standard `stats` functions and are imported from `greybox` package and modified in `smooth` for the specific models;
+8. `plot(ourModel)` -- produces plots for the diagnostics of the constructed model. There are 9 options of what to produce, see `?plot.smooth()` for more details. Note that if the number of states is higher than 10, then several graphs are produced for the option `which=9`.
+9. `simulate(ourModel)` -- produces data simulated from provided model;
+10. `summary(forecast(ourModel))` -- prints point and interval forecasts;
+11. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and prediction interval using `graphmaker()` function from `greybox` package.
+12. `logLik(ourModel)` -- returns log-likelihood of the model;
+13. `nobs(ourModel)` -- returns number of observations in-sample we had;
+14. `nParam(ourModel)` -- number of estimated parameters (originally from `greybox` package);
+15. `pointLik(ourModel)` -- likelihood values for each separate observation;
+16. `sigma(ourModel)` -- variance of the residuals of the model;
+17. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `gum()`);
+18. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `gum()` and `sma()`);
+19. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()`, `ves()` and `ets()`;
+20. `errorType(ourModel)` -- the type of the error of a model (additive or multiplicative);
+21. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
+22. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
+23. `actuals(ourModel)` -- returns actual values;
+24. `covar(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
+25. `pls(ourModel)` - Prediction Likelihood Score for the model and the provided holdout. This is buggy and needs to be updated. Don't rely on this method too much.

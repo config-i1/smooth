@@ -33,8 +33,8 @@ Here is the list of the included functions:
 
 Available methods:
 
-1. AICc, BICc;
-2. coef;
+1. AIC, BIC, AICc, BICc;
+2. coefficients;
 3. covar - covariance matrix of multiple steps ahead forecast errors;
 4. errorType - the type of the error in the model: either additive or multiplicative;
 5. fitted;
@@ -46,14 +46,17 @@ Available methods:
 11. nobs;
 12. nparam - number of the estimated parameters in the model;
 13. orders - orders of the components of the model (mainly needed for ARIMA, GUM and SMA);
-14. plot;
-15. pls - Prediction Likelihood Score for the model and the provided holdout;
-16. pointLik - the vector of the individual likelihoods for each in-sample observation;
-17. pAIC - point AIC, based on pointLik
-18. print;
-19. sigma;
-20. simulate;
-21. summary;
+14. residuals - the residuals of the model (et in case of additive and log(1+et) for the multiplicative ones);
+15. rstandard - standardised residuals;
+16. rstudent - studentised residuals;
+17. plot - produces several plots for diagnostics purposes. See the documentation for plot.smooth();
+18. pls - Prediction Likelihood Score for the model and the provided holdout;
+19. pointLik - the vector of the individual likelihoods for each in-sample observation;
+20. pAIC - point AIC, based on pointLik
+21. print;
+22. sigma;
+23. simulate;
+24. summary;
 
 Future works:
 

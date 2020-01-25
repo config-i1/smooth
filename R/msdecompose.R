@@ -91,7 +91,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         patterns[] <- lapply(patterns,exp);
     }
 
-    return(structure(list(y=y, initial=initial, trend=trend, seasonal=patterns,
+    return(structure(list(y=y, initial=initial, trend=trend, seasonal=patterns, loss="MSE",
                           lags=lags, type=type, yName=yName), class=c("msdecompose","smooth")));
 }
 
@@ -183,6 +183,18 @@ forecast.msdecompose <- function(object, h=10,
                           level=level, interval=interval),class=c("msdecompose.forecast","smooth.forecast","forecast")));
 }
 
+#' @rdname isFunctions
+#' @export
+is.msdecompose <- function(x){
+    return(inherits(x,"msdecompose"))
+}
+
+#' @rdname isFunctions
+#' @export
+is.msdecompose.forecast <- function(x){
+    return(inherits(x,"msdecompose.forecast"))
+}
+
 #' @export
 lags.msdecompose <- function(object, ...){
     return(object$lags);
@@ -203,9 +215,10 @@ nparam.msdecompose <- function(object, ...){
     return(length(object$lags)+1);
 }
 
-#' @rdname plot.smooth
 #' @export
-plot.msdecompose <- function(x, which=c(1,2), ask=length(which)>1, ...){
+plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
+                             ask=prod(par("mfcol")) < length(which) && dev.interactive(),
+                             lowess=TRUE, ...){
     ellipsis <- list(...);
     obs <- nobs(x);
 
@@ -226,7 +239,12 @@ plot.msdecompose <- function(x, which=c(1,2), ask=length(which)>1, ...){
         lines(yFitted, col="red");
     }
 
-    if(any(which==2)){
+    if(any(c(2:8) %in% which)){
+        plot.smooth(x, which=which[which!=1 & which!=9], level=level,
+                    legend=legend, ask=FALSE, lowess=lowess, ...);
+    }
+
+    if(any(which==9)){
         yDecomposed <- cbind(actuals(x),x$trend);
         for(i in 1:length(x$seasonal)){
             yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);

@@ -1209,8 +1209,26 @@ plot.oes <- function(x, ...){
 #' The list of produced plots includes:
 #' \enumerate{
 #' \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
-#' and prediction interval of width \code{level}, if it was specified;
-#' \item States of the model;
+#' (blue line) and prediction interval (grey lines). Can be used in order to make sure that the model
+#' did not miss any important events over time;
+#' \item Standardised residuals vs Fitted. Plots the points and the confidence bounds
+#' (red lines) for the specified confidence \code{level}. Useful for the analysis of outliers;
+#' \item Studentised residuals vs Fitted. This is similar to the previous plot, but with the
+#' residuals divided by the scales with the leave-one-out approach. Should be more sensitive
+#' to outliers;
+#' \item Absolute residuals vs Fitted. Useful for the analysis of heteroscedasticity;
+#' \item Squared residuals vs Fitted - similar to (3), but with squared values;
+#' \item Q-Q plot with the specified distribution. Can be used in order to see if the
+#' residuals follow the assumed distribution. The type of distribution depends on the one used
+#' in the estimation (see \code{distribution} parameter in \link[greybox]{alm});
+#' \item ACF of the residuals. Are the residuals autocorrelated? See \link[stats]{acf} for
+#' details;
+#' \item PACF of the residuals. No, really, are they autocorrelated? See \link[stats]{pacf}
+#' for details;
+#' \item Plot of the states of the model. It is not recommended to produce this plot together with
+#' the others, because there might be several states, which would cause the creation of a different
+#' canvas. In case of "msdecompose", this will produce the decomposition of the series into states
+#' on a different canvas.
 #' }
 #' Which of the plots to produce, is specified via the \code{which} parameter.
 #'
@@ -1218,25 +1236,40 @@ plot.oes <- function(x, ...){
 #' @param which Which of the plots to produce. The possible options (see details for explanations):
 #' \enumerate{
 #' \item Fitted over time;
-#' \item States of the model.
+#' \item Standardised residuals vs Fitted;
+#' \item Studentised residuals vs Fitted;
+#' \item Absolute residuals vs Fitted;
+#' \item Squared residuals vs Fitted;
+#' \item Q-Q plot with the specified distribution;
+#' \item ACF of the residuals;
+#' \item PACF of the residuals;
+#' \item Plot of states of the model.
 #' }
+#' @param level Confidence level. Defines width of confidence interval. Used in plots (2), (6) and
+#' (7).
+#' @param legend If \code{TRUE}, then the legend is produced on plots (1), (2) and (3).
 #' @param ask Logical; if \code{TRUE}, the user is asked to press Enter before each plot.
-#' @param legend If \code{TRUE}, then the legend is produced on plots (1) and (2).
+#' @param lowess Logical; if \code{TRUE}, LOWESS lines are drawn on scatterplots, see \link[stats]{lowess}.
 #' @param ... The parameters passed to the plot functions. Recommended to use with separate plots.
-#' @return The function produces 2 plots.
+#' @return The function produces the number of plots, specified in the parameter \code{which}.
 #'
 #' @template ssAuthor
 #' @seealso \link[greybox]{plot.greybox}
 #' @keywords ts univar
 #' @examples
 #'
-#' ourModel <- es(rnorm(100,100,10), "ANN", h=10)
-#' plot(ourModel, c(1,2))
+#' ourModel <- es(c(rnorm(50,100,10),rnorm(50,120,10)), "ANN", h=10)
+#' par(mfcol=c(3,3))
+#' plot(ourModel, c(1:9))
 #'
+#' @importFrom stats ppoints qqnorm qqplot qqline acf pacf lowess sd na.pass
 #' @importFrom grDevices dev.interactive devAskNewPage
+#' @importFrom graphics text
 #' @rdname plot.smooth
 #' @export
-plot.smooth <- function(x, which=c(1,2), ask=length(which)>1, legend=FALSE, ...){
+plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
+                        ask=prod(par("mfcol")) < length(which) && dev.interactive(),
+                        lowess=TRUE, ...){
     ellipsis <- list(...);
 
     # Define, whether to wait for the hit of "Enter"
@@ -1245,8 +1278,8 @@ plot.smooth <- function(x, which=c(1,2), ask=length(which)>1, legend=FALSE, ...)
         on.exit(devAskNewPage(oask));
     }
 
-    # Basic plot over time
-    if(any(which==1)){
+    # 1. Basic plot over time
+    plot1 <- function(x, ...){
         if(any(x$interval==c("none","n"))){
             graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=legend, parReset=FALSE, ...);
         }
@@ -1255,8 +1288,241 @@ plot.smooth <- function(x, which=c(1,2), ask=length(which)>1, legend=FALSE, ...)
         }
     }
 
-    # Plot of states
-    if(any(which==2)){
+    # 2 and 3: Standardised  / studentised residuals vs Fitted
+    plot2 <- function(x, type="rstandard", ...){
+        ellipsis <- list(...);
+
+        ellipsis$x <- as.vector(fitted(x));
+        if(type=="rstandard"){
+            ellipsis$y <- as.vector(rstandard(x));
+            yName <- "Standardised";
+        }
+        else{
+            ellipsis$y <- as.vector(rstudent(x));
+            yName <- "Studentised";
+        }
+
+        if(is.oes(x$occurrence)){
+            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
+            ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
+        }
+
+        # Remove NAs
+        if(any(is.na(ellipsis$x))){
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
+        }
+
+        if(!any(names(ellipsis)=="main")){
+            ellipsis$main <- paste0(yName," Residuals vs Fitted");
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Fitted";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- paste0(yName," Residuals");
+        }
+
+        if(legend){
+            if(ellipsis$x[length(ellipsis$x)]>mean(ellipsis$x)){
+                legendPosition <- "bottomright";
+            }
+            else{
+                legendPosition <- "topright";
+            }
+        }
+
+        zValues <- switch(x$loss,
+                          "MAE"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
+                          "HAM"=qs(c((1-level)/2, (1+level)/2), 0, 1),
+                          qnorm(c((1-level)/2, (1+level)/2), 0, 1));
+        outliers <- which(ellipsis$y >zValues[2] | ellipsis$y <zValues[1]);
+        # cat(paste0(round(length(outliers)/length(ellipsis$y),3)*100,"% of values are outside the bounds\n"));
+
+        if(!any(names(ellipsis)=="ylim")){
+            ellipsis$ylim <- range(c(ellipsis$y,zValues), na.rm=TRUE);
+            if(legend){
+                if(legendPosition=="bottomright"){
+                    ellipsis$ylim[1] <- ellipsis$ylim[1] - 0.2*diff(ellipsis$ylim);
+                }
+                else{
+                    ellipsis$ylim[2] <- ellipsis$ylim[2] + 0.2*diff(ellipsis$ylim);
+                }
+            }
+        }
+
+        xRange <- range(ellipsis$x, na.rm=TRUE);
+        xRange[1] <- xRange[1] - sd(ellipsis$x, na.rm=TRUE);
+        xRange[2] <- xRange[2] + sd(ellipsis$x, na.rm=TRUE);
+
+        do.call(plot,ellipsis);
+        abline(h=0, col="grey", lty=2);
+        polygon(c(xRange,rev(xRange)),c(zValues[1],zValues[1],zValues[2],zValues[2]),
+                col="lightgrey", border=NA, density=10);
+        abline(h=zValues, col="red", lty=2);
+        if(length(outliers)>0){
+            points(ellipsis$x[outliers], ellipsis$y[outliers], pch=16);
+            text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=4);
+        }
+        if(lowess){
+            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+        }
+
+        if(legend){
+            if(lowess){
+                legend(legendPosition,
+                       legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds","LOWESS line"),
+                       col=c("red", "black","red"), lwd=c(1,NA,1), lty=c(2,1,1), pch=c(NA,16,NA));
+            }
+            else{
+                legend(legendPosition,
+                       legend=c(paste0(round(level,3)*100,"% bounds"),"outside the bounds"),
+                       col=c("red", "black"), lwd=c(1,NA), lty=c(2,1), pch=c(NA,16));
+            }
+        }
+    }
+
+    # 4 and 5. Fitted vs |Residuals| or Fitted vs Residuals^2
+    plot3 <- function(x, type="abs", ...){
+        ellipsis <- list(...);
+
+        ellipsis$x <- as.vector(fitted(x));
+        if(type=="abs"){
+            ellipsis$y <- abs(as.vector(residuals(x)));
+        }
+        else{
+            ellipsis$y <- as.vector(residuals(x))^2;
+        }
+
+        if(is.oes(x$occurrence)){
+            ellipsis$x <- ellipsis$x[ellipsis$y!=0];
+            ellipsis$y <- ellipsis$y[ellipsis$y!=0];
+        }
+        # Remove NAs
+        if(any(is.na(ellipsis$x))){
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
+        }
+
+        if(!any(names(ellipsis)=="main")){
+            if(type=="abs"){
+                ellipsis$main <- "|Residuals| vs Fitted";
+            }
+            else{
+                ellipsis$main <- "Residuals^2 vs Fitted";
+            }
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Fitted";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            if(type=="abs"){
+                ellipsis$ylab <- "|Residuals|";
+            }
+            else{
+                ellipsis$ylab <- "Residuals^2";
+            }
+        }
+
+        do.call(plot,ellipsis);
+        abline(h=0, col="grey", lty=2);
+        if(lowess){
+            lines(lowess(ellipsis$x, ellipsis$y), col="red");
+        }
+    }
+
+    # 6. Q-Q with the specified distribution
+    plot4 <- function(x, ...){
+        ellipsis <- list(...);
+
+        ellipsis$y <- residuals(x);
+        if(is.oes(x$occurrence)){
+            ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Theoretical Quantile";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- "Actual Quantile";
+        }
+
+        if(any(x$loss==c("MAEh","TMAE","GTMAE","MACE"))){
+            if(!any(names(ellipsis)=="main")){
+                ellipsis$main <- "QQ-plot of Laplace distribution";
+            }
+            ellipsis$x <- qlaplace(ppoints(500), mu=0, scale=x$scale);
+
+            do.call(qqplot, ellipsis);
+            qqline(ellipsis$y, distribution=function(p) qlaplace(p, mu=0, scale=x$scale));
+        }
+        else if(any(x$loss==c("HAMh","THAM","GTHAM","CHAM"))){
+            if(!any(names(ellipsis)=="main")){
+                ellipsis$main <- "QQ-plot of S distribution";
+            }
+            ellipsis$x <- qs(ppoints(500), mu=0, scale=x$scale);
+
+            do.call(qqplot, ellipsis);
+            qqline(ellipsis$y, distribution=function(p) qs(p, mu=0, scale=x$scale));
+        }
+        else{
+            if(!any(names(ellipsis)=="main")){
+                ellipsis$main <- "QQ plot of normal distribution";
+            }
+
+            do.call(qqnorm, ellipsis);
+            qqline(ellipsis$y);
+        }
+    }
+
+    # 7 and 8. ACF and PACF
+    plot5 <- function(x, type="acf", ...){
+        ellipsis <- list(...);
+
+        if(!any(names(ellipsis)=="main")){
+            if(type=="acf"){
+                ellipsis$main <- "Autocorrelation Function";
+            }
+            else{
+                ellipsis$main <- "Partial Autocorrelation Function";
+            }
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Lags";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            if(type=="acf"){
+                ellipsis$ylab <- "ACF";
+            }
+            else{
+                ellipsis$ylab <- "PACF";
+            }
+        }
+
+        if(!any(names(ellipsis)=="ylim")){
+            ellipsis$ylim <- c(-1,1);
+        }
+
+        if(type=="acf"){
+            theValues <- acf(residuals(x), plot=FALSE, na.action=na.pass);
+        }
+        else{
+            theValues <- pacf(residuals(x), plot=FALSE, na.action=na.pass);
+        }
+        ellipsis$x <- theValues$acf[-1];
+
+        ellipsis$type <- "h"
+
+        do.call(plot,ellipsis);
+        abline(h=0, col="black", lty=1);
+        abline(h=qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x))), col="red", lty=2);
+    }
+
+    # 9. Plot of states
+    plot6 <- function(x, ...){
         parDefault <- par(no.readonly = TRUE);
         smoothType <- smoothType(x);
         if(smoothType=="ETS"){
@@ -1335,6 +1601,43 @@ plot.smooth <- function(x, which=c(1,2), ask=length(which)>1, legend=FALSE, ...)
             }
         }
         par(parDefault);
+    }
+
+    # Do plots
+    if(any(which==1)){
+        plot1(x, ...);
+    }
+
+    if(any(which==2)){
+        plot2(x, ...);
+    }
+
+    if(any(which==3)){
+        plot2(x, "rstudent", ...);
+    }
+
+    if(any(which==4)){
+        plot3(x, ...);
+    }
+
+    if(any(which==5)){
+        plot3(x, type="squared", ...);
+    }
+
+    if(any(which==6)){
+        plot4(x, ...);
+    }
+
+    if(any(which==7)){
+        plot5(x, type="acf", ...);
+    }
+
+    if(any(which==8)){
+        plot5(x, type="pacf", ...);
+    }
+
+    if(any(which==9)){
+        plot6(x, ...);
     }
 }
 
