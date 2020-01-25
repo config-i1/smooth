@@ -7,30 +7,15 @@
 \alias{forecast.msdecompose}
 \title{Forecasting time series using smooth functions}
 \usage{
-\method{forecast}{smooth}(
-  object,
-  h = 10,
-  interval = c("parametric", "semiparametric", "nonparametric", "none"),
-  level = 0.95,
-  ...
-)
+\method{forecast}{smooth}(object, h = 10, interval = c("parametric",
+  "semiparametric", "nonparametric", "none"), level = 0.95, ...)
 
-\method{forecast}{oes}(
-  object,
-  h = 10,
-  interval = c("parametric", "semiparametric", "nonparametric", "none"),
-  level = 0.95,
-  ...
-)
+\method{forecast}{oes}(object, h = 10, interval = c("parametric",
+  "semiparametric", "nonparametric", "none"), level = 0.95, ...)
 
-\method{forecast}{msdecompose}(
-  object,
-  h = 10,
-  interval = c("parametric", "semiparametric", "nonparametric", "none"),
-  level = 0.95,
-  model = "ZZN",
-  ...
-)
+\method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
+  "semiparametric", "nonparametric", "none"), level = 0.95, model = "ZZN",
+  ...)
 }
 \arguments{
 \item{object}{Time series model for which forecasts are required.}

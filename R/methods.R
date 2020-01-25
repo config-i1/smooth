@@ -1678,30 +1678,9 @@ plot.smooth.forecast <- function(x, ...){
 }
 
 #' @export
-plot.iss <- function(x, ...){
-    ellipsis <- list(...);
-    intermittent <- x$intermittent
-    if(intermittent=="i"){
-        intermittent <- "Interval-based";
-    }
-    else if(intermittent=="p"){
-        intermittent <- "Probability-based";
-    }
-    else if(intermittent=="f"){
-        intermittent <- "Fixed probability";
-    }
-    else if(intermittent=="l"){
-        intermittent <- "Logistic probability";
-    }
-    else{
-        intermittent <- "None";
-    }
-    if(is.null(ellipsis$main)){
-        graphmaker(actuals(x),x$forecast,x$fitted,main=paste0("iSS, ",intermittent), ...);
-    }
-    else{
-        graphmaker(actuals(x),x$forecast,x$fitted, ...);
-    }
+plot.oesg <- function(x, ...){
+    # This is needed, because OESG models have two pairs of residuals.
+    plot.smooth(x, which=1, ...);
 }
 
 #### Prints of smooth ####

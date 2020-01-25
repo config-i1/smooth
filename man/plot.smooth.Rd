@@ -4,15 +4,9 @@
 \alias{plot.smooth}
 \title{Plots for the fit and states}
 \usage{
-\method{plot}{smooth}(
-  x,
-  which = c(1, 2, 4, 6),
-  level = 0.95,
-  legend = FALSE,
-  ask = prod(par("mfcol")) < length(which) && dev.interactive(),
-  lowess = TRUE,
-  ...
-)
+\method{plot}{smooth}(x, which = c(1, 2, 4, 6), level = 0.95,
+  legend = FALSE, ask = prod(par("mfcol")) < length(which) &&
+  dev.interactive(), lowess = TRUE, ...)
 }
 \arguments{
 \item{x}{Time series model for which forecasts are required.}

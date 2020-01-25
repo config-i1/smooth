@@ -1021,22 +1021,22 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     #### Prepare the output ####
     # Prepare two models
-    modelA <- list(model=paste0(modelnameA,"[G](",modelA,")_A"),
+    modelA <- list(model=paste0(modelnameA,"[G](",modelA,")_A"), y=aFitted+errorsA,
                    states=ts(t(matvtA), start=(time(y)[1] - deltat(y)*basicparamsA$lagsModelMax),
                              frequency=dataFreq),
                    nParam=parametersNumberA, residuals=errorsA, occurrence="g",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
-                   initialSeason=initialSeasonA, s2=mean(errorsA^2),
+                   initialSeason=initialSeasonA, s2=mean(errorsA^2), loss="likelihood",
                    fittedModel=aFitted, forecastModel=aForecast,
                    initialX=matatA[,1], xreg=xregA);
     class(modelA) <- c("oes","smooth");
 
-    modelB <- list(model=paste0(modelnameB,"[G](",modelB,")_B"),
+    modelB <- list(model=paste0(modelnameB,"[G](",modelB,")_B"), y=bFitted+errorsB,
                    states=ts(t(matvtB), start=(time(y)[1] - deltat(y)*basicparamsB$lagsModelMax),
                              frequency=dataFreq),
                    nParam=parametersNumberB, residuals=errorsB, occurrence="g",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],
-                   initialSeason=initialSeasonB, s2=mean(errorsB^2),
+                   initialSeason=initialSeasonB, s2=mean(errorsB^2), loss="likelihood",
                    fittedModel=bFitted, forecastModel=bForecast,
                    initialX=matatB[,1], xreg=xregB);
     class(modelB) <- c("oes","smooth");
