@@ -1188,20 +1188,6 @@ orders.Arima <- function(object, ...){
 }
 
 #### Plots of smooth objects ####
-#' @importFrom graphics plot
-#' @export
-plot.oes <- function(x, ...){
-    ellipsis <- list(...);
-
-    if(is.null(ellipsis$main)){
-        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper,main=x$model,...);
-    }
-    else{
-        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper, ...);
-    }
-}
-
-
 #' Plots for the fit and states
 #'
 #' The function produces plot actuals, fitted values and forecasts and states of the model
@@ -1264,7 +1250,7 @@ plot.oes <- function(x, ...){
 #'
 #' @importFrom stats ppoints qqnorm qqplot qqline acf pacf lowess sd na.pass
 #' @importFrom grDevices dev.interactive devAskNewPage
-#' @importFrom graphics text
+#' @importFrom graphics plot text
 #' @rdname plot.smooth
 #' @export
 plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,

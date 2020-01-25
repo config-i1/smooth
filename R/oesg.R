@@ -1089,5 +1089,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     }
     output$modelA$logLik <- output$modelB$logLik <- output$logLik;
 
+    # This is needed in order to standardise the output and make plots work
+    output$loss <- "likelihood";
     return(structure(output,class=c("oesg","oes","smooth")));
 }

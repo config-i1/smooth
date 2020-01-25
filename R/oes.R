@@ -694,7 +694,12 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                 pt <- ts(matrix(rep(initial,obsInSample),obsInSample,1), start=dataStart, frequency=dataFreq);
             }
             names(initial) <- "level";
-            pForecast <- ts(rep(pt[1],h), start=yForecastStart, frequency=dataFreq);
+            if(h>0){
+                pForecast <- ts(rep(pt[1],h), start=yForecastStart, frequency=dataFreq);
+            }
+            else{
+                pForecast <- NA;
+            }
             yForecast <- log(pForecast/(1-pForecast));
             errors <- ts((ot-pt+1)/2, start=dataStart, frequency=dataFreq);
             errors[] <- log(errors / (1-errors));
@@ -832,7 +837,12 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             # This chunk is needed in order for the default ssForecaster to work
             occurrenceOriginal <- occurrence;
             cumulative <- FALSE;
-            pForecast <- rep(1, h);
+            if(h>0){
+                pForecast <- rep(1, h);
+            }
+            else{
+                pForecast <- NA;
+            }
             environment(ssForecaster) <- environment();
             # This is needed for the degrees of freedom calculation
             nParam <- length(A);
@@ -936,7 +946,12 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         #### None ####
         else{
             pt <- ts(ot,start=dataStart,frequency=dataFreq);
-            pForecast <- ts(rep(ot[obsInSample],h), start=yForecastStart, frequency=dataFreq);
+            if(h>0){
+                pForecast <- ts(rep(ot[obsInSample],h), start=yForecastStart, frequency=dataFreq);
+            }
+            else{
+                pForecast <- NA;
+            }
             errors <- ts(rep(0,obsInSample), start=dataStart, frequency=dataFreq);
             parametersNumber[] <- 0;
             output <- list(fitted=pt, forecast=pForecast, lower=NA, upper=NA,
@@ -1257,5 +1272,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     if(occurrence=="n"){
         output$logLik <- -Inf;
     }
+
+    # This is needed in order to standardise the output and make plots work
+    output$loss <- "likelihood";
+
     return(structure(output,class=c("oes","smooth")));
 }
