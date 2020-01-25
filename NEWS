@@ -1,10 +1,13 @@
-smooth v2.5.4 (Release data: 2020-01-24)
+smooth v2.5.4 (Release data: 2020-01-25)
 ==============
 
 Changes:
 * sim.es() now will give warnings, when NaNs are produced in the actual values.
 * Fucntions with loss="GTMSE" sometimes could not be estimated because of the exponent in the optimiser. Now it is in logs and at least doable.
 * New function - msdecompose() - which is needed for more advanced ETS. This does multiple seasonal decomposition based on centred moving averages.
+* More advanced plot.smooth(), which now acts similar to plot.greybox(), with options of what to plot: the actuals and fit / states of the model. The documentation is now available for plot.smooth().
+* Tuning of some methods for the class smooth.
+* forecast with prediction intervals for msdecompose().
 
 
 smooth v2.5.4 (Release data: 2019-10-22)

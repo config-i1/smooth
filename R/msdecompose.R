@@ -98,30 +98,62 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
 #' @export
 fitted.msdecompose <- function(object, ...){
     yFitted <- object$trend;
+    obs <- nobs(object);
     if(object$type=="additive"){
         for(i in 1:length(object$lags)){
-            yFitted <- yFitted + object$seasonal[[i]];
+            yFitted <- yFitted + rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
         }
     }
     else{
         for(i in 1:length(object$lags)){
-            yFitted <- yFitted * object$seasonal[[i]];
+            yFitted <- yFitted * rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
         }
     }
     return(yFitted);
 }
 
 #' @export
-plot.msdecompose <- function(x, ...){
-    ellipsis <- list(...);
-    ellipsis$x <- actuals(x);
-    if(!any(names(ellipsis)=="ylab")){
-        ellipsis$ylab <- x$yName;
-    }
-    yFitted <- fitted(x);
+nobs.msdecompose <- function(object, ...){
+    return(length(actuals(object)));
+}
 
-    do.call(plot,ellipsis);
-    lines(yFitted, col="red");
+#' @rdname plot.smooth
+#' @export
+plot.msdecompose <- function(x, which=c(1,2), ask=length(which)>1, ...){
+    ellipsis <- list(...);
+    obs <- nobs(x);
+
+    # Define, whether to wait for the hit of "Enter"
+    if(ask){
+        oask <- devAskNewPage(TRUE);
+        on.exit(devAskNewPage(oask));
+    }
+
+    if(any(which==1)){
+        ellipsis$x <- actuals(x);
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- x$yName;
+        }
+        yFitted <- fitted(x);
+
+        do.call(plot,ellipsis);
+        lines(yFitted, col="red");
+    }
+
+    if(any(which==2)){
+        yDecomposed <- cbind(actuals(x),x$trend);
+        for(i in 1:length(x$seasonal)){
+            yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);
+        }
+        yDecomposed <- cbind(yDecomposed, residuals(x));
+        colnames(yDecomposed) <- c("Actuals","Trend",paste0("Seasonal ",c(1:length(x$seasonal))),"Residuals");
+
+        if(!any(names(ellipsis)=="main")){
+            ellipsis$main <- paste0("Decomposition of ", x$yName);
+        }
+        ellipsis$x <- yDecomposed;
+        do.call(plot,ellipsis);
+    }
 }
 
 #' @export
@@ -140,42 +172,58 @@ residuals.msdecompose <- function(object, ...){
     }
 }
 
+#' @aliases forecast forecast.smooth
+#' @param model The type of ETS model to fit on the decomposed trend. Only applicable to "msdecompose" class.
+#' @rdname forecast.smooth
 #' @export
-forecast.msdecompose <- function(object, h=10, model="ZZN", ...){
-
+forecast.msdecompose <- function(object, h=10,
+                            interval=c("parametric","semiparametric","nonparametric","none"),
+                            level=0.95, model="ZZN", ...){
+    interval <- match.arg(interval,c("parametric","semiparametric","nonparametric","none"));
     yTrend <- object$trend;
-    obs <- length(actuals(object));
+    obs <- nobs(object);
     NAsNumber <- sum(is.na(yTrend))/2;
     yForecastStart <- time(yTrend)[length(time(yTrend))]+1/frequency(yTrend);
 
     # Apply ETS model to the trend data
-    yesModel <- es(yTrend[!is.na(yTrend)],model=model,h=h+NAsNumber);
+    yesModel <- es(yTrend[!is.na(yTrend)],model=model,h=h+NAsNumber,interval=interval,level=level);
 
     # Form a big vector of trend + forecast
     yValues <- ts(c(yTrend,yesModel$forecast[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
+    if(interval!="none"){
+        lower <- ts(c(yTrend,yesModel$lower[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
+        upper <- ts(c(yTrend,yesModel$upper[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
+    }
+    else{
+        lower <- upper <- NA;
+    }
     # Add seasonality
     if(object$type=="additive"){
         for(i in 1:length(object$lags)){
-            yValues <- yValues + object$seasonal[[i]];
+            yValues <- yValues + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            if(interval!="none"){
+                lower <- lower + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+                upper <- upper + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            }
         }
     }
     else{
         for(i in 1:length(object$lags)){
-            yValues <- yValues * object$seasonal[[i]];
+            yValues <- yValues * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            if(interval!="none"){
+                lower <- lower * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+                upper <- upper * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            }
         }
     }
     # Cut the forecasts
     yForecast <- window(yValues,yForecastStart);
+    if(interval!="none"){
+        lower <- window(lower,yForecastStart);
+        upper <- window(upper,yForecastStart);
+    }
 
-    return(structure(list(mean=yForecast,model=object),class="msdecompose.forecast"));
-}
-
-#' @export
-print.msdecompose.forecast <- function(x, ...){
-    cat(x$mean);
-}
-
-#' @export
-plot.msdecompose.forecast <- function(x, ...){
-    graphmaker(actuals(x$model),x$mean,fitted(x$model), ...);
+    return(structure(list(model=object, method=paste0("ETS(",modelType(yesModel),") with decomposition"),
+                          mean=yForecast, forecast=yForecast, lower=lower, upper=upper,
+                          level=level, interval=interval),class=c("msdecompose.forecast","smooth.forecast","forecast")));
 }

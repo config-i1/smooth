@@ -682,6 +682,10 @@ coef.smooth <- function(object, ...)
 fitted.smooth <- function(object, ...){
     return(object$fitted);
 }
+#' @export
+fitted.smooth.forecast <- function(object, ...){
+    return(fitted(object$model));
+}
 
 #' @importFrom forecast forecast
 #' @export forecast
@@ -710,15 +714,12 @@ NULL
 #' \itemize{
 #' \item \code{model} - the estimated model (ES / CES / GUM / SSARIMA).
 #' \item \code{method} - the name of the estimated model (ES / CES / GUM / SSARIMA).
-#' \item \code{fitted} - fitted values of the model.
-#' \item \code{y} - actual values provided in the call of the model.
 #' \item \code{forecast} aka \code{mean} - point forecasts of the model
 #' (conditional mean).
 #' \item \code{lower} - lower bound of prediction interval.
 #' \item \code{upper} - upper bound of prediction interval.
 #' \item \code{level} - confidence level.
 #' \item \code{interval} - binary variable (whether interval were produced or not).
-#' \item \code{residuals} - the residuals of the original model.
 #' }
 #' @template ssAuthor
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast}}
@@ -771,9 +772,9 @@ forecast.smooth <- function(object, h=10,
     else{
         stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GUM', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
     }
-    output <- list(model=object,method=object$model,fitted=newModel$fitted,y=actuals(newModel),
+    output <- list(model=object,method=object$model,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
-                   interval=interval,mean=newModel$forecast,x=actuals(object),residuals=object$residuals);
+                   interval=interval,mean=newModel$forecast);
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
@@ -792,9 +793,9 @@ forecast.oes <- function(object, h=10,
                         h=h,interval=interval,level=level,silent="all",...);
     }
 
-    output <- list(model=object,method=object$model,fitted=newModel$fitted,y=actuals(newModel),
+    output <- list(model=object,method=object$model,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=level,
-                   interval=interval,mean=newModel$forecast,x=actuals(object),residuals=object$residuals);
+                   interval=interval,mean=newModel$forecast);
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
@@ -807,11 +808,11 @@ actuals.smooth <- function(object, ...){
 }
 #' @export
 actuals.smooth.forecast <- function(object, ...){
-    return(window(object$model$y,start(object$model$y),end(object$model$fitted)));
+    return(window(actuals(object$model),start(actuals(object$model)),end(fitted(object$model))));
 }
 #' @export
 actuals.iss <- function(object, ...){
-    return(window(object$y,start(object$y),end(object$fitted)));
+    return(window(actuals(object),start(actuals(object)),end(fitted(object))));
 }
 
 #### Function extracts lags of provided model ####
@@ -1201,87 +1202,141 @@ plot.oes <- function(x, ...){
     }
 }
 
+
+#' Plots for the fit and states
+#'
+#' The function produces plot actuals, fitted values and forecasts and states of the model
+#'
+#' The list of produced plots includes:
+#' \enumerate{
+#' \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
+#' and prediction interval of width \code{level}, if it was specified;
+#' \item States of the model;
+#' }
+#' Which of the plots to produce, is specified via the \code{which} parameter.
+#'
+#' @param x Time series model for which forecasts are required.
+#' @param which Which of the plots to produce. The possible options (see details for explanations):
+#' \enumerate{
+#' \item Fitted over time;
+#' \item States of the model.
+#' }
+#' @param ask Logical; if \code{TRUE}, the user is asked to press Enter before each plot.
+#' @param legend If \code{TRUE}, then the legend is produced on plots (1) and (2).
+#' @param ... The parameters passed to the plot functions. Recommended to use with separate plots.
+#' @return The function produces 2 plots.
+#'
+#' @template ssAuthor
+#' @seealso \link[stats]{plot.lm}
+#' @keywords ts univar
+#' @examples
+#'
+#' ourModel <- es(rnorm(100,100,10), "ANN", h=10)
+#' plot(ourModel, c(1,2))
+#'
+#' @importFrom grDevices dev.interactive devAskNewPage
+#' @rdname plot.smooth
 #' @export
-plot.smooth <- function(x, ...){
+plot.smooth <- function(x, which=c(1,2), ask=length(which)>1, legend=FALSE, ...){
     ellipsis <- list(...);
-    parDefault <- par(no.readonly = TRUE);
-    smoothType <- smoothType(x);
-    if(smoothType=="ETS"){
-        if(any(unlist(gregexpr("C",x$model))==-1)){
-            if(ncol(x$states)>10){
-                message("Too many states. Plotting them one by one on several graphs.");
-                if(is.null(ellipsis$main)){
-                    ellipsisMain <- NULL;
+
+    # Define, whether to wait for the hit of "Enter"
+    if(ask){
+        oask <- devAskNewPage(TRUE);
+        on.exit(devAskNewPage(oask));
+    }
+
+    # Basic plot over time
+    if(any(which==1)){
+        if(any(x$interval==c("none","n"))){
+            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=legend, parReset=FALSE, ...);
+        }
+        else{
+            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=legend, parReset=FALSE, ...);
+        }
+    }
+
+    # Plot of states
+    if(any(which==2)){
+        parDefault <- par(no.readonly = TRUE);
+        smoothType <- smoothType(x);
+        if(smoothType=="ETS"){
+            if(any(unlist(gregexpr("C",x$model))==-1)){
+                if(ncol(x$states)>10){
+                    message("Too many states. Plotting them one by one on several graphs.");
+                    if(is.null(ellipsis$main)){
+                        ellipsisMain <- NULL;
+                    }
+                    else{
+                        ellipsisMain <- ellipsis$main;
+                    }
+                    nPlots <- ceiling(ncol(x$states)/10);
+                    for(i in 1:nPlots){
+                        if(is.null(ellipsisMain)){
+                            ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                        }
+                        ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                        do.call(plot, ellipsis);
+                    }
                 }
                 else{
-                    ellipsisMain <- ellipsis$main;
-                }
-                nPlots <- ceiling(ncol(x$states)/10);
-                for(i in 1:nPlots){
-                    if(is.null(ellipsisMain)){
-                        ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                    if(is.null(ellipsis$main)){
+                        ellipsis$main <- paste0("States of ",x$model);
                     }
-                    ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                    ellipsis$x <- x$states;
                     do.call(plot, ellipsis);
                 }
             }
             else{
-                if(is.null(ellipsis$main)){
-                    ellipsis$main <- paste0("States of ",x$model);
-                }
-                ellipsis$x <- x$states;
-                do.call(plot, ellipsis);
+                # If we did combinations, we cannot return anything
+                message("Combination of models was done. Sorry, but there is nothing to plot.");
             }
         }
-        else{
-            # If we did combinations, we cannot return anything
-            message("Combination of models was done. Sorry, but there is nothing to plot.");
-        }
-    }
-    else if(smoothType=="CMA"){
-        ellipsis$actuals <- actuals(x);
-        ellipsis$forecast <- x$forecast;
-        ellipsis$fitted <- x$fitted;
-        ellipsis$legend <- FALSE;
-        ellipsis$vline <- FALSE;
-        if(is.null(ellipsis$main)){
-            ellipsis$main <- x$model;
-        }
-        do.call(graphmaker, ellipsis);
-    }
-    else{
-        if(any(unlist(gregexpr("combine",x$model))!=-1)){
-            # If we did combinations, we cannot do anything
-            message("Combination of models was done. Sorry, but there is nothing to plot.");
+        else if(smoothType=="CMA"){
+            ellipsis$actuals <- actuals(x);
+            ellipsis$forecast <- x$forecast;
+            ellipsis$fitted <- x$fitted;
+            ellipsis$legend <- FALSE;
+            ellipsis$vline <- FALSE;
+            if(is.null(ellipsis$main)){
+                ellipsis$main <- x$model;
+            }
+            do.call(graphmaker, ellipsis);
         }
         else{
-            if(ncol(x$states)>10){
-                message("Too many states. Plotting them one by one on several graphs.");
-                if(is.null(ellipsis$main)){
-                    ellipsisMain <- NULL;
+            if(any(unlist(gregexpr("combine",x$model))!=-1)){
+                # If we did combinations, we cannot do anything
+                message("Combination of models was done. Sorry, but there is nothing to plot.");
+            }
+            else{
+                if(ncol(x$states)>10){
+                    message("Too many states. Plotting them one by one on several graphs.");
+                    if(is.null(ellipsis$main)){
+                        ellipsisMain <- NULL;
+                    }
+                    else{
+                        ellipsisMain <- ellipsis$main;
+                    }
+                    nPlots <- ceiling(ncol(x$states)/10);
+                    for(i in 1:nPlots){
+                        if(is.null(ellipsisMain)){
+                            ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                        }
+                        ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                        do.call(plot, ellipsis);
+                    }
                 }
                 else{
-                    ellipsisMain <- ellipsis$main;
-                }
-                nPlots <- ceiling(ncol(x$states)/10);
-                for(i in 1:nPlots){
-                    if(is.null(ellipsisMain)){
-                        ellipsis$main <- paste0("States of ",x$model,", part ",i);
+                    if(is.null(ellipsis$main)){
+                        ellipsis$main <- paste0("States of ",x$model);
                     }
-                    ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                    ellipsis$x <- x$states;
                     do.call(plot, ellipsis);
                 }
             }
-            else{
-                if(is.null(ellipsis$main)){
-                    ellipsis$main <- paste0("States of ",x$model);
-                }
-                ellipsis$x <- x$states;
-                do.call(plot, ellipsis);
-            }
         }
+        par(parDefault);
     }
-    par(parDefault);
 }
 
 #' @export
@@ -1327,10 +1382,10 @@ plot.smooth.sim <- function(x, ...){
 #' @export
 plot.smooth.forecast <- function(x, ...){
     if(any(x$interval!=c("none","n"))){
-        graphmaker(actuals(x),x$forecast,x$fitted,x$lower,x$upper,x$level,main=x$method);
+        graphmaker(actuals(x$model),x$mean,fitted(x$model),x$lower,x$upper,x$level,main=x$method,...);
     }
     else{
-        graphmaker(actuals(x),x$forecast,x$fitted,main=x$method);
+        graphmaker(actuals(x$model),x$mean,fitted(x$model),main=x$method,...);
     }
 }
 
