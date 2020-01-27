@@ -1193,6 +1193,9 @@ CreatorVES <- function(silent=FALSE,...){
 
 ##### Now let's deal with the holdout #####
     if(holdout){
+        if(modelIsMultiplicative){
+            yInSample[] <- exp(yInSample);
+        }
         yHoldout <- ts(y[(obsInSample+1):obsAll,],start=yForecastStart,frequency=dataFreq);
         colnames(yHoldout) <- dataNames;
 
