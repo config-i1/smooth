@@ -48,7 +48,8 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     else{
         yInsample <- y;
     }
-    yName <- deparse(substitute(y));
+    # paste0() is needed in order to avoid line breaks in the name
+    yName <- paste0(deparse(substitute(y)),collapse="");
 
     obs <- length(y);
     lags <- sort(unique(lags));
@@ -65,11 +66,6 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     }
     trend <- ySmooth[[lagsLength+1]];
 
-    # Initial level and trend
-    initial <- c(mean(ySmooth[[lagsLength]],na.rm=T),
-                 mean(diff(ySmooth[[lagsLength]]),na.rm=T));
-    names(initial) <- c("level","trend");
-
     # Produce the cleared series
     for(i in 1:lagsLength){
         yClear[[i]] <- ySmooth[[i]] - ySmooth[[i+1]];
@@ -82,7 +78,13 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         for(j in 1:lags[i]){
             patterns[[i]][j] <- mean(yClear[[i]][(1:(obs/lags[i])-1)*lags[i]+j],na.rm=TRUE);
         }
+        patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]]);
     }
+
+    # Initial level and trend
+    initial <- c(mean(ySmooth[[lagsLength]],na.rm=T),
+                 mean(diff(ySmooth[[lagsLength]]),na.rm=T));
+    names(initial) <- c("level","trend");
 
     # Return to the original scale
     if(type=="multiplicative"){
@@ -128,32 +130,47 @@ fitted.msdecompose <- function(object, ...){
 }
 
 #' @aliases forecast forecast.smooth
-#' @param model The type of ETS model to fit on the decomposed trend. Only applicable to "msdecompose" class.
+#' @param model The type of ETS model to fit on the decomposed trend. Only applicable to
+#' "msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then
+#' it will be selected automatically based on the type of the used decomposition (either
+#' among pure additive or among pure additive ETS models).
 #' @rdname forecast.smooth
 #' @export
 forecast.msdecompose <- function(object, h=10,
                             interval=c("parametric","semiparametric","nonparametric","none"),
-                            level=0.95, model="ZZN", ...){
+                            level=0.95, model=NULL, ...){
     interval <- match.arg(interval,c("parametric","semiparametric","nonparametric","none"));
-    yTrend <- object$trend;
+    if(is.null(model)){
+        model <- switch(errorType(object),
+                        "A"="XXX",
+                        "M"="YYY");
+    }
+
     obs <- nobs(object);
-    NAsNumber <- sum(is.na(yTrend))/2;
-    yForecastStart <- time(yTrend)[length(time(yTrend))]+1/frequency(yTrend);
+    yDeseasonalised <- actuals(object);
+    yForecastStart <- time(yDeseasonalised)[length(time(yDeseasonalised))]+1/frequency(yDeseasonalised);
+    if(errorType(object)=="A"){
+        for(i in 1:length(object$lags)){
+            yDeseasonalised <- yDeseasonalised - rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+        }
+    }
+    else{
+        for(i in 1:length(object$lags)){
+            yDeseasonalised <- yDeseasonalised / rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+        }
+    }
+    yesModel <- suppressWarnings(es(yDeseasonalised,model=model,h=h,interval=interval,level=level,initial="b",...));
 
-    # Apply ETS model to the trend data
-    yesModel <- es(yTrend[!is.na(yTrend)],model=model,h=h+NAsNumber,interval=interval,level=level);
-
-    # Form a big vector of trend + forecast
-    yValues <- ts(c(yTrend,yesModel$forecast[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
+    yValues <- ts(c(yDeseasonalised,yesModel$forecast),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
     if(interval!="none"){
-        lower <- ts(c(yTrend,yesModel$lower[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
-        upper <- ts(c(yTrend,yesModel$upper[-c(1:NAsNumber)]),start=start(yTrend),frequency=frequency(yTrend));
+        lower <- ts(c(yDeseasonalised,yesModel$lower),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
+        upper <- ts(c(yDeseasonalised,yesModel$upper),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
     }
     else{
         lower <- upper <- NA;
     }
     # Add seasonality
-    if(object$type=="additive"){
+    if(errorType(object)=="A"){
         for(i in 1:length(object$lags)){
             yValues <- yValues + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
             if(interval!="none"){
@@ -178,7 +195,7 @@ forecast.msdecompose <- function(object, h=10,
         upper <- window(upper,yForecastStart);
     }
 
-    return(structure(list(model=object, method=paste0("ETS(",modelType(yesModel),") with decomposition"),
+    return(structure(list(model=object, esmodel=yesModel, method=paste0("ETS(",modelType(yesModel),") with decomposition"),
                           mean=yForecast, forecast=yForecast, lower=lower, upper=upper,
                           level=level, interval=interval),class=c("msdecompose.forecast","smooth.forecast","forecast")));
 }
