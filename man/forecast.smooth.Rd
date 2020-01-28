@@ -14,7 +14,7 @@
   "semiparametric", "nonparametric", "none"), level = 0.95, ...)
 
 \method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95, model = "ZZN",
+  "semiparametric", "nonparametric", "none"), level = 0.95, model = NULL,
   ...)
 }
 \arguments{
@@ -30,7 +30,10 @@ details.}
 \item{...}{Other arguments accepted by either \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}
 
-\item{model}{The type of ETS model to fit on the decomposed trend. Only applicable to "msdecompose" class.}
+\item{model}{The type of ETS model to fit on the decomposed trend. Only applicable to
+"msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then
+it will be selected automatically based on the type of the used decomposition (either
+among pure additive or among pure additive ETS models).}
 }
 \value{
 Returns object of class "smooth.forecast", which contains:
