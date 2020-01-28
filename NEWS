@@ -11,6 +11,9 @@ Changes:
 * residuals.smooth() now returns either et or log(1+et) - depending on the type of model (additive / multiplicative).
 * New methods: rstandard() and rstudent() for the smooth class.
 
+Bugfix:
+* es() with multiplicative models would fail sometimes in case of bounds="a" because of the negative values. We now restrict the bounds with positive values only.
+
 
 smooth v2.5.4 (Release data: 2019-10-22)
 ==============

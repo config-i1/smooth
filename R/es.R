@@ -421,7 +421,7 @@ CF <- function(C){
 
 ##### C values for estimation #####
 # Function constructs default bounds where C values should lie
-CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat){
+CValues <- function(bounds,Etype,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat){
     C <- NA;
     CLower <- NA;
     CUpper <- NA;
@@ -495,7 +495,12 @@ CValues <- function(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,m
     else if(bounds=="a"){
         if(persistenceEstimate){
             C <- c(C,vecg);
-            CLower <- c(CLower,rep(-5,length(vecg)));
+            if(Etype=="A"){
+                CLower <- c(CLower,rep(-5,length(vecg)));
+            }
+            else{
+                CLower <- c(CLower,rep(0,length(vecg)));
+            }
             CUpper <- c(CUpper,rep(5,length(vecg)));
             if(Ttype!="N"){
                 CNames <- c(CNames, c("alpha","beta","gamma")[1:nComponents]);
@@ -691,7 +696,7 @@ EstimatorES <- function(...){
     environment(CF) <- environment();
     BasicMakerES(ParentEnvironment=environment());
 
-    Cs <- CValues(bounds,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat);
+    Cs <- CValues(bounds,Etype,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nComponents,matat);
     if(is.null(providedC)){
         C <- Cs$C;
     }
