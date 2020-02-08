@@ -500,13 +500,13 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # Make a meaningful variance of data.
             materrors <- materrors * rep(sqrt(abs(arrvt[1,1,])),each=obs);
         }
-        else if(randomizer=="rlnorm"){
-            materrors <- materrors - 1;
-        }
 
         # Deal with rlaplace and rs in the case of multiplicative model
-        if(Etype=="M" & any(randomizer==c("rlaplace","rs","rt"))){
+        if(Etype=="M" && any(randomizer==c("rlaplace","rs","rt"))){
             materrors <- exp(materrors) - 1;
+        }
+        else if(Etype=="M" && !any(randomizer==c("rlaplace","rs","rt"))){
+            materrors <- materrors - 1;
         }
     }
 
