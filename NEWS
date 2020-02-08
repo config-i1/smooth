@@ -1,4 +1,4 @@
-smooth v2.5.4 (Release data: 2020-01-25)
+smooth v2.5.5 (Release data: 2020-01-25)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * forecast with prediction intervals for msdecompose().
 * residuals.smooth() now returns either et or log(1+et) - depending on the type of model (additive / multiplicative).
 * New methods: rstandard() and rstudent() for the smooth class.
+* Updated vignette for oes(), taking the last version of our paper with John E. Boylan.
 
 Bugfix:
 * es() with multiplicative models would fail sometimes in case of bounds="a" because of the negative values. We now restrict the bounds with positive values only.
