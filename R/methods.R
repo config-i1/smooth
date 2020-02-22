@@ -1939,19 +1939,19 @@ print.oes <- function(x, ...){
     }
 
     occurrence <- x$occurrence
-    if(occurrence=="g"){
+    if(occurrence=="general"){
         occurrence <- "General";
     }
-    else if(occurrence=="d"){
+    else if(occurrence=="direct"){
         occurrence <- "Direct probability";
     }
-    else if(occurrence=="f"){
+    else if(occurrence=="fixed"){
         occurrence <- "Fixed probability";
     }
-    else if(occurrence=="i"){
+    else if(occurrence=="inverse-odds-ratio"){
         occurrence <- "Inverse odds ratio";
     }
-    else if(occurrence=="o"){
+    else if(occurrence=="odds-ratio"){
         occurrence <- "Odds ratio";
     }
     else{
@@ -1963,7 +1963,7 @@ print.oes <- function(x, ...){
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));
     }
-    if(!is.null(x$persistence)){
+    if(!is.null(x$persistence) && (x$occurrence!="fixed")){
         cat("Smoothing parameters:\n");
         print(round(x$persistence[,1],digits));
     }

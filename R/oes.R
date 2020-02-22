@@ -177,7 +177,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     }
 
     ##### Preparations #####
-    occurrence <- substring(occurrence[1],1,1);
+    occurrence <- substr(match.arg(occurrence,c("fixed","general","odds-ratio","inverse-odds-ratio","direct","auto","none")),1,1);
 
     if(is.smooth.sim(y)){
         y <- y$data;
@@ -1240,7 +1240,13 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         modelname <- "oETS";
     }
     output$s2 <- mean(output$residuals^2);
-    output$occurrence <- occurrence;
+    output$occurrence <- switch(occurrence,
+                                "f"="fixed",
+                                "o"="odds-ratio",
+                                "i"="inverse-odds-ratio",
+                                "g"="general",
+                                "d"="direct",
+                                "n"="none");
     output$model <- paste0(modelname,"[",toupper(occurrence),"]","(",model,")");
     output$timeElapsed <- Sys.time()-startTime;
 
