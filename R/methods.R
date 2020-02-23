@@ -1674,7 +1674,7 @@ plot.smooth.forecast <- function(x, ...){
         yActuals <- ts(c(yActuals,x$model$holdout), start=start(yActuals), frequency=frequency(yActuals));
         yActuals <- window(yActuals, start(yActuals), end(x$mean));
     }
-    if(!all(x$interval==c("none","n"))){
+    if(!any(x$interval==c("none","n"))){
         graphmaker(yActuals,x$mean,fitted(x$model),x$lower,x$upper,x$level,main=x$method,...);
     }
     else{
