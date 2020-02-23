@@ -1669,11 +1669,16 @@ plot.smooth.sim <- function(x, ...){
 #' @method plot smooth.forecast
 #' @export
 plot.smooth.forecast <- function(x, ...){
-    if(any(x$interval!=c("none","n"))){
-        graphmaker(actuals(x$model),x$mean,fitted(x$model),x$lower,x$upper,x$level,main=x$method,...);
+    if(!is.null(x$model$holdout)){
+        yActuals <- actuals(x$model);
+        yActuals <- ts(c(yActuals,x$model$holdout), start=start(yActuals), frequency=frequency(yActuals));
+        yActuals <- window(yActuals, start(yActuals), end(x$mean));
+    }
+    if(!all(x$interval==c("none","n"))){
+        graphmaker(yActuals,x$mean,fitted(x$model),x$lower,x$upper,x$level,main=x$method,...);
     }
     else{
-        graphmaker(actuals(x$model),x$mean,fitted(x$model),main=x$method,...);
+        graphmaker(yActuals,x$mean,fitted(x$model),main=x$method,...);
     }
 }
 
