@@ -1,8 +1,11 @@
-smooth v2.5.5 (Release data: 2020-01-25)
+smooth v2.5.5 (Release data: 2020-02-23)
 ==============
 
 Changes:
 * oes() now returns full names of occurrence.
+
+Bugfix:
+* print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
 
 
 smooth v2.5.5 (Release data: 2020-01-25)

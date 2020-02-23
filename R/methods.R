@@ -1874,16 +1874,16 @@ print.smooth.sim <- function(x, ...){
 
 #' @export
 print.smooth.forecast <- function(x, ...){
-    if(any(x$interval!=c("none","n"))){
+    if(!any(x$interval==c("none","n"))){
         level <- x$level;
         if(level>1){
             level <- level/100;
         }
-        output <- cbind(x$forecast,x$lower,x$upper);
+        output <- cbind(x$mean,x$lower,x$upper);
         colnames(output) <- c("Point forecast",paste0("Lower bound (",(1-level)/2*100,"%)"),paste0("Upper bound (",(1+level)/2*100,"%)"));
     }
     else{
-        output <- x$forecast;
+        output <- x$mean;
     }
     print(output);
 }
