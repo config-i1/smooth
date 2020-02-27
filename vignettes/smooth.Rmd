@@ -63,5 +63,5 @@ There are several methods that can be used together with the forecasting functio
 21. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
 22. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
 23. `actuals(ourModel)` -- returns actual values;
-24. `covar(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
+24. `multicov(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
 25. `pls(ourModel)` - Prediction Likelihood Score for the model and the provided holdout. This is buggy and needs to be updated. Don't rely on this method too much.

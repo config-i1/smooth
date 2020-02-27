@@ -1,8 +1,9 @@
-smooth v2.5.5 (Release data: 2020-02-23)
+smooth v2.5.6 (Release data: 2020-02-27)
 ==============
 
 Changes:
 * oes() now returns full names of occurrence.
+* Renamed covar() method into multicov().
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.

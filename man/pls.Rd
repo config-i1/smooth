@@ -17,7 +17,7 @@ work properly with them.}
 \item{holdout}{The values for the holdout part of the sample. If the model was fitted
 on the data with the \code{holdout=TRUE}, then the parameter is not needed.}
 
-\item{...}{Parameters passed to covar function. The function is called in order to get
+\item{...}{Parameters passed to multicov function. The function is called in order to get
 the covariance matrix of 1 to h steps ahead forecast errors.}
 }
 \value{

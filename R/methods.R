@@ -121,7 +121,7 @@ BICc.smooth <- function(object, ...){
     return(IC);
 }
 
-#' Function returns the covariance matrix of conditional multiple steps ahead forecast errors
+#' Function returns the multiple steps ahead covariance matrix of forecast errors
 #'
 #' This function extracts covariance matrix of 1 to h steps ahead forecast errors for
 #' \code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and \code{ces()} models.
@@ -159,22 +159,22 @@ BICc.smooth <- function(object, ...){
 #'
 #' # A simple example with a 5x5 covariance matrix
 #' ourModel <- ces(x, h=5)
-#' covar(ourModel)
+#' multicov(ourModel)
 #'
-#' @rdname covar
-#' @export covar
-covar <-  function(object, type=c("analytical","empirical","simulated"), ...) UseMethod("covar")
+#' @rdname multicov
+#' @export multicov
+multicov <-  function(object, type=c("analytical","empirical","simulated"), ...) UseMethod("multicov")
 
 #' @export
-covar.default <- function(object, type=c("analytical","empirical","simulated"), ...){
+multicov.default <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
     return(sigma(object)^2);
 }
 
-#' @aliases covar.smooth
-#' @rdname covar
+#' @aliases multicov.smooth
+#' @rdname multicov
 #' @export
-covar.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
+multicov.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
     # Function extracts the conditional variances from the model
 
     if(is.smoothC(object)){
@@ -311,7 +311,7 @@ covar.smooth <- function(object, type=c("analytical","empirical","simulated"), .
 
     }
     return(covarMat);
-    # correlation matrix: covar(test) / sqrt(diag(covar(test)) %*% t(diag(covar(test))))
+    # correlation matrix: multicov(test) / sqrt(diag(multicov(test)) %*% t(diag(multicov(test))))
 }
 
 #' @importFrom stats logLik
@@ -397,7 +397,7 @@ nparam.iss <- function(object, ...){
 #' work properly with them.
 #' @param holdout The values for the holdout part of the sample. If the model was fitted
 #' on the data with the \code{holdout=TRUE}, then the parameter is not needed.
-#' @param ... Parameters passed to covar function. The function is called in order to get
+#' @param ... Parameters passed to multicov function. The function is called in order to get
 #' the covariance matrix of 1 to h steps ahead forecast errors.
 #'
 #' @return A value of the log-likelihood.
@@ -448,7 +448,7 @@ pls.smooth <- function(object, holdout=NULL, ...){
     }
     # If holdout is provided, check it and use it. Otherwise try extracting from the model
     yForecast <- object$forecast;
-    covarMat <- covar(object, ...);
+    covarMat <- multicov(object, ...);
     if(!is.null(holdout)){
         if(length(yForecast)!=length(holdout)){
             if(is.null(object$holdout)){
@@ -1669,8 +1669,8 @@ plot.smooth.sim <- function(x, ...){
 #' @method plot smooth.forecast
 #' @export
 plot.smooth.forecast <- function(x, ...){
+    yActuals <- actuals(x$model);
     if(!is.null(x$model$holdout)){
-        yActuals <- actuals(x$model);
         yActuals <- ts(c(yActuals,x$model$holdout), start=start(yActuals), frequency=frequency(yActuals));
         yActuals <- window(yActuals, start(yActuals), min(tail(time(x$mean),1),tail(time(yActuals),1)));
     }

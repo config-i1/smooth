@@ -35,7 +35,7 @@ Available methods:
 
 1. AIC, BIC, AICc, BICc;
 2. coefficients;
-3. covar - covariance matrix of multiple steps ahead forecast errors;
+3. multicov - covariance matrix of multiple steps ahead forecast errors;
 4. errorType - the type of the error in the model: either additive or multiplicative;
 5. fitted;
 6. forecast;
