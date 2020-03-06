@@ -923,7 +923,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                          "BIC"=BIC,
                          "BICc"=BICc);
 
-            occurrencePool <- c("f","o","i","d","g");
+            occurrencePool <- c("f","o","i","d","g","n");
             occurrencePoolLength <- length(occurrencePool);
             occurrenceModels <- vector("list",occurrencePoolLength);
             for(i in 1:occurrencePoolLength){
@@ -945,14 +945,14 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         }
         #### None ####
         else{
-            pt <- ts(ot,start=dataStart,frequency=dataFreq);
+            pt <- ts(rep(1,obsInSample),start=dataStart,frequency=dataFreq);
             if(h>0){
-                pForecast <- ts(rep(ot[obsInSample],h), start=yForecastStart, frequency=dataFreq);
+                pForecast <- ts(rep(1,h), start=yForecastStart, frequency=dataFreq);
             }
             else{
                 pForecast <- NA;
             }
-            errors <- ts(rep(0,obsInSample), start=dataStart, frequency=dataFreq);
+            errors <- ts(ot-1, start=dataStart, frequency=dataFreq);
             parametersNumber[] <- 0;
             output <- list(fitted=pt, forecast=pForecast, lower=NA, upper=NA,
                            states=pt,
@@ -1274,9 +1274,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         output$logLik <- (sum(log(pt[ot!=0])) + sum(log(1-pt[ot==0])));
     }
 
-    # The occurrence="none" should have unreasonable likelihood for security reasons
+    # The occurrence="none" should have likelihood based on pt->1
     if(occurrence=="n"){
-        output$logLik <- -Inf;
+        output$logLik <- (obsOnes*log(1-1e-100) + (obsInSample-obsOnes)*log(1e-100));
     }
 
     # This is needed in order to standardise the output and make plots work

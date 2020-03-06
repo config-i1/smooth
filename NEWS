@@ -1,9 +1,10 @@
-smooth v2.5.6 (Release data: 2020-02-27)
+smooth v2.5.6 (Release data: 2020-03-06)
 ==============
 
 Changes:
 * oes() now returns full names of occurrence.
 * Renamed covar() method into multicov().
+* oes() with occurrence="none" now returns values based on p=1 (likelihood is based on p=1-1e-100).
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
