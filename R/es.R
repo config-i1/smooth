@@ -2238,7 +2238,7 @@ CreatorES <- function(silent=FALSE,...){
     if(all(occurrence!=c("n","none"))){
         modelname <- paste0("i",modelname);
         if(!silentGraph){
-            modelnameForGraph <- paste0(modelname,"[",toupper(occurrence),"](",modelType(occurrenceModel),")");
+            modelnameForGraph <- paste0(modelname,"[",toupper(substr(occurrence,1,1)),"](",modelType(occurrenceModel),")");
         }
     }
 
