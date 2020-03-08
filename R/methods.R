@@ -1675,10 +1675,10 @@ plot.smooth.forecast <- function(x, ...){
         yActuals <- window(yActuals, start(yActuals), min(tail(time(x$mean),1),tail(time(yActuals),1)));
     }
     if(!any(x$interval==c("none","n"))){
-        graphmaker(yActuals,x$mean,fitted(x$model),x$lower,x$upper,x$level,main=x$method,...);
+        graphmaker(yActuals,x$mean,fitted(x$model),x$lower,x$upper,x$level,...);
     }
     else{
-        graphmaker(yActuals,x$mean,fitted(x$model),main=x$method,...);
+        graphmaker(yActuals,x$mean,fitted(x$model),...);
     }
 }
 
