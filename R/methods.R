@@ -617,6 +617,18 @@ pointLik.smooth <- function(object, ...){
     return(likValues);
 }
 
+#' @export
+pointLik.oes <- function(object, ...){
+    ot <- actuals(object);
+    pFitted <- fitted(object);
+    likValues <- vector("numeric",nobs(object));
+    likValues[ot==1] <- log(pFitted[ot==1]);
+    likValues[ot==0] <- log(1-pFitted[ot==0]);
+    likValues <- ts(likValues, start=start(ot), frequency=frequency(ot));
+
+    return(likValues);
+}
+
 #### Extraction of parameters of models ####
 #' @export
 coef.smooth <- function(object, ...)
