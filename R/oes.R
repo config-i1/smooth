@@ -1246,8 +1246,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                                 "i"="inverse-odds-ratio",
                                 "g"="general",
                                 "d"="direct",
-                                "n"="none");
-    output$model <- paste0(modelname,"[",toupper(occurrence),"]","(",model,")");
+                                "n"="none",
+                                occurrence);
+    output$model <- paste0(modelname,"[",toupper(substr(occurrence,1,1)),"]","(",model,")");
     output$timeElapsed <- Sys.time()-startTime;
 
     ##### Make a plot #####

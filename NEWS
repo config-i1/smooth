@@ -1,4 +1,4 @@
-smooth v2.5.6 (Release data: 2020-03-14)
+smooth v2.5.6 (Release data: 2020-03-16)
 ==============
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
 * plot.smooth.forecast() would plot prediction intervals even if it wasn't asked to do so.
+* A bugfix for oes() and model selection, removing the occurrence type.
 
 
 smooth v2.5.5 (Release data: 2020-01-25)
