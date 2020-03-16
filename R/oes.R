@@ -939,7 +939,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
             if(!silentGraph){
                 graphmaker(actuals=otAll,forecast=occurrenceModels[[ICBest]]$forecast,fitted=occurrenceModels[[ICBest]]$fitted,
-                           legend=!silentLegend,main=paste0(occurrenceModels[[ICBest]]$model,"_",toupper(occurrence)));
+                           legend=!silentLegend,main=occurrenceModels[[ICBest]]$model);
             }
             return(occurrenceModels[[ICBest]]);
         }
@@ -1260,7 +1260,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         }
         else{
             graphmaker(actuals=otAll,forecast=output$forecast,fitted=output$fitted,
-                       legend=!silentLegend,main=paste0(output$model));
+                       legend=!silentLegend,main=output$model);
         }
     }
 
