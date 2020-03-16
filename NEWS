@@ -11,6 +11,7 @@ Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
 * plot.smooth.forecast() would plot prediction intervals even if it wasn't asked to do so.
 * A bugfix for oes() and model selection, removing the occurrence type.
+* A crude fix for the msdecompose(), when type="multiplicative" and there are zeroes in the data.
 
 
 smooth v2.5.5 (Release data: 2020-01-25)

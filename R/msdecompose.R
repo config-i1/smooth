@@ -43,6 +43,18 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type,c("additive","multiplicative"));
     if(type=="multiplicative"){
+        shiftedData <- FALSE;
+        # If there are negative values, stop
+        if(any(y<0)){
+            stop("Multiplicative decomposition is not available for the data with negative values.",
+                 call.=FALSE);
+        }
+        # If there are zeroes, shift the variable up.
+        # In the perfect world, we would need to interpolate and repeate seasonal patterns.
+        else if(any(y==0)){
+            shiftedData[] <- TRUE;
+            y[] <- y + 1;
+        }
         yInsample <- log(y);
     }
     else{
@@ -91,6 +103,10 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         initial[] <- exp(initial);
         trend <- exp(trend);
         patterns[] <- lapply(patterns,exp);
+        if(shiftedData){
+            initial[1] <- initial[1] - 1;
+            trend[] <- trend -1;
+        }
     }
 
     return(structure(list(y=y, initial=initial, trend=trend, seasonal=patterns, loss="MSE",
