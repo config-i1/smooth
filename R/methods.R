@@ -1695,8 +1695,8 @@ plot.smooth.forecast <- function(x, ...){
 }
 
 #' @export
-plot.oesg <- function(x, ...){
-    # This is needed, because OESG models have two pairs of residuals.
+plot.oes <- function(x, ...){
+    # This is needed, because diagnostics doesn't make sense in case of oes
     plot.smooth(x, which=1, ...);
 }
 

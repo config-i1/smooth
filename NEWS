@@ -1,4 +1,4 @@
-smooth v2.5.6 (Release data: 2020-03-16)
+smooth v2.5.6 (Release data: 2020-03-18)
 ==============
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * Renamed covar() method into multicov().
 * oes() with occurrence="none" now returns values based on p=1 (likelihood is based on p=1-1e-100).
 * pointLik() method for oes class.
+* A separate plot method for oes, because the general diagnostics is not useful.
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
