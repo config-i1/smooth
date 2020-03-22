@@ -1575,6 +1575,9 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                 message("Combination of models was done. Sorry, but there is nothing to plot.");
             }
             else{
+                statesNames <- c(colnames(x$states),"residuals");
+                x$states <- cbind(x$states,resid(x));
+                colnames(x$states) <- statesNames;
                 if(ncol(x$states)>10){
                     message("Too many states. Plotting them one by one on several graphs.");
                     if(is.null(ellipsis$main)){
