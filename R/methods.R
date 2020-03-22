@@ -1526,7 +1526,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         if(smoothType=="ETS"){
             if(any(unlist(gregexpr("C",x$model))==-1)){
                 statesNames <- c(colnames(x$states),"residuals");
-                x$states <- cbind(x$states,resid(x));
+                x$states <- cbind(x$states,residuals(x));
                 colnames(x$states) <- statesNames;
                 if(ncol(x$states)>10){
                     message("Too many states. Plotting them one by one on several graphs.");
@@ -1576,7 +1576,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             }
             else{
                 statesNames <- c(colnames(x$states),"residuals");
-                x$states <- cbind(x$states,resid(x));
+                x$states <- cbind(x$states,residuals(x));
                 colnames(x$states) <- statesNames;
                 if(ncol(x$states)>10){
                     message("Too many states. Plotting them one by one on several graphs.");
