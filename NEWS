@@ -1,4 +1,4 @@
-smooth v2.5.6 (Release data: 2020-03-18)
+smooth v2.5.6 (Release data: 2020-03-22)
 ==============
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * oes() with occurrence="none" now returns values based on p=1 (likelihood is based on p=1-1e-100).
 * pointLik() method for oes class.
 * A separate plot method for oes, because the general diagnostics is not useful.
+* Added the plot of residuals over time in plot.smooth(), which=9.
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.
