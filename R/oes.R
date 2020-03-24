@@ -156,7 +156,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         model <- occurrence;
     }
 
-    # If the model is oes or oesg, use it
+    # If the model is oesg, use it
     if(is.oesg(model)){
         return(oesg(y, modelA=model$modelA, modelB=model$modelB, h=h, holdout=holdout,
                     interval=interval, level=level, bounds=bounds,
@@ -1283,5 +1283,5 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     # This is needed in order to standardise the output and make plots work
     output$loss <- "likelihood";
 
-    return(structure(output,class=c("oes","smooth")));
+    return(structure(output,class=c("oes","smooth","occurrence")));
 }
