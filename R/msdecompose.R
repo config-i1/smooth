@@ -41,7 +41,7 @@
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
-    type <- match.arg(type,c("additive","multiplicative"));
+    type <- match.arg(type);
     if(type=="multiplicative"){
         shiftedData <- FALSE;
         # If there are negative values, stop
