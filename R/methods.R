@@ -1263,6 +1263,7 @@ orders.Arima <- function(object, ...){
 #' @importFrom stats ppoints qqnorm qqplot qqline acf pacf lowess sd na.pass
 #' @importFrom grDevices dev.interactive devAskNewPage
 #' @importFrom graphics plot text
+#' @importFrom greybox is.occurrence
 #' @rdname plot.smooth
 #' @export
 plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
@@ -1300,7 +1301,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             yName <- "Studentised";
         }
 
-        if(is.oes(x$occurrence)){
+        if(is.occurrence(x$occurrence)){
             ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
             ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
         }
@@ -1393,7 +1394,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$y <- as.vector(residuals(x))^2;
         }
 
-        if(is.oes(x$occurrence)){
+        if(is.occurrence(x$occurrence)){
             ellipsis$x <- ellipsis$x[ellipsis$y!=0];
             ellipsis$y <- ellipsis$y[ellipsis$y!=0];
         }
@@ -1436,7 +1437,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis <- list(...);
 
         ellipsis$y <- residuals(x);
-        if(is.oes(x$occurrence)){
+        if(is.occurrence(x$occurrence)){
             ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
         }
 
@@ -1768,7 +1769,7 @@ print.smooth <- function(x, ...){
             }
         }
     }
-    if(is.oes(x$occurrence)){
+    if(is.occurrence(x$occurrence)){
         occurrence <- x$occurrence$occurrence;
     }
     else{
@@ -2025,7 +2026,7 @@ rstandard.smooth <- function(model, ...){
     df <- obs - nparam(model);
 
     # If this is an occurrence model, then only modify the non-zero obs
-    if(is.oes(model$occurrence)){
+    if(is.occurrence(model$occurrence)){
         residsToGo <- which(actuals(model$occurrence)!=0);
     }
     else{
@@ -2044,7 +2045,7 @@ rstudent.smooth <- function(model, ...){
     rstudentised <- errors <- residuals(model);
     errors[] <- errors - mean(errors, na.rm=TRUE);
     # If this is an occurrence model, then only modify the non-zero obs
-    if(is.oes(model$occurrence)){
+    if(is.occurrence(model$occurrence)){
         residsToGo <- which(actuals(model$occurrence)!=0);
     }
     else{
