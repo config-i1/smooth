@@ -82,7 +82,7 @@ errorType.vsmooth <- function(object, ...){
 #' @export
 coef.vsmooth <- function(object, ...){
 
-    parameters <- object$coefficients;
+    parameters <- object$B;
 
     return(parameters);
 }

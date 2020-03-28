@@ -181,7 +181,9 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \item{...}{Other non-documented parameters. For example \code{FI=TRUE} will
 make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
-the model.}
+the model. The vector of initial parameter for the optimiser can be provided
+here as the variable \code{B}. The upper bound for the optimiser is provided
+via \code{ub}, while the lower one is \code{lb}.}
 }
 \value{
 Object of class "vsmooth" is returned. It contains the following list of
@@ -194,7 +196,7 @@ values:
 \item \code{transition} - The transition matrix;
 \item \code{measurement} - The measurement matrix;
 \item \code{phi} - The damping parameter value;
-\item \code{coefficients} - The vector of all the estimated coefficients;
+\item \code{B} - The vector of all the estimated coefficients;
 \item \code{initial} - The initial values of the non-seasonal components;
 \item \code{initialSeason} - The initial values of the seasonal components;
 \item \code{nParam} - The number of estimated parameters;

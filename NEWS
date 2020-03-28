@@ -1,4 +1,4 @@
-smooth v2.5.6 (Release data: 2020-03-24)
+smooth v2.5.6 (Release data: 2020-03-28)
 ==============
 
 Changes:
@@ -9,6 +9,8 @@ Changes:
 * A separate plot method for oes, because the general diagnostics is not useful.
 * Added the plot of residuals over time in plot.smooth(), which=9.
 * oes() now produces "occurrence" class, which is exported from greybox v0.5.9. This is needed for proper integration between greybox and smooth functions.
+* ves() now accepts B, ub and lb for the optimiser.
+* ves() is now optimised using Nelder-Mead only.
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.

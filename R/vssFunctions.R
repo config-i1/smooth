@@ -906,6 +906,25 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
+    if(!is.null(ellipsis$B)){
+        B <- ellipsis$B;
+    }
+    else{
+        B <- NULL;
+    }
+    if(!is.null(ellipsis$ub)){
+        ub <- ellipsis$ub;
+    }
+    else{
+        ub <- NULL;
+    }
+    if(!is.null(ellipsis$lb)){
+        lb <- ellipsis$lb;
+    }
+    else{
+        lb <- NULL;
+    }
+
     ##### Return values to previous environment #####
     assign("h",h,ParentEnvironment);
     assign("silentText",silentText,ParentEnvironment);
@@ -983,32 +1002,36 @@ vssInput <- function(smoothType=c("ves"),...){
 
     assign("bounds",bounds,ParentEnvironment);
 
+    # Stuff in ellipsis
     assign("FI",FI,ParentEnvironment);
+    assign("B",B,ParentEnvironment);
+    assign("ub",ub,ParentEnvironment);
+    assign("lb",lb,ParentEnvironment);
 }
 
 ##### *Likelihood function* #####
-vLikelihoodFunction <- function(A){
+vLikelihoodFunction <- function(B){
     if(Etype=="A"){
-        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(B)));
     }
     else if(Etype=="M"){
-        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)) - sum(yInSample));
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(B)) - sum(yInSample));
     }
     else{
         #### This is not derived yet ####
-        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(A)));
+        return(- obsInSample/2 * (nSeries*log(2*pi*exp(1)) + CF(B)));
     }
 }
 
 ##### *Function calculates ICs* #####
-vICFunction <- function(nParam=nParam,A,Etype=Etype){
+vICFunction <- function(nParam=nParam,B,Etype=Etype){
     # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
     # And it is based on the mean of the sum squared residuals either than sum.
     # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
     # Number of parameters per series needs to be used in the calculations of information criteria
     nParamPerSeries <- nParam / nSeries;
-    llikelihood <- vLikelihoodFunction(A);
+    llikelihood <- vLikelihoodFunction(B);
 
     coefAIC <- 2*nParamPerSeries - 2*llikelihood;
     coefBIC <- log(obsInSample)*nParamPerSeries - 2*llikelihood;

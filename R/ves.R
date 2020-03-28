@@ -2,7 +2,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
                          "obsInSample","obsAll","lagsModel","persistenceEstimate","persistenceType",
                          "persistenceValue","damped","dampedEstimate","dampedType","transitionType",
                          "initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "modelIsMultiplicative","matG","matW","A","Sigma","yFitted","PI","dataDeltat",
+                         "modelIsMultiplicative","matG","matW","B","ub","lb","Sigma","yFitted","PI","dataDeltat",
                          "dataFreq","dataStart","otObs","dataNames","seasonalType"));
 
 #' Vector Exponential Smoothing in SSOE state space model
@@ -106,7 +106,9 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
-#' the model.
+#' the model. The vector of initial parameter for the optimiser can be provided
+#' here as the variable \code{B}. The upper bound for the optimiser is provided
+#' via \code{ub}, while the lower one is \code{lb}.
 #' @return Object of class "vsmooth" is returned. It contains the following list of
 #' values:
 #' \itemize{
@@ -117,7 +119,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{transition} - The transition matrix;
 #' \item \code{measurement} - The measurement matrix;
 #' \item \code{phi} - The damping parameter value;
-#' \item \code{coefficients} - The vector of all the estimated coefficients;
+#' \item \code{B} - The vector of all the estimated coefficients;
 #' \item \code{initial} - The initial values of the non-seasonal components;
 #' \item \code{initialSeason} - The initial values of the seasonal components;
 #' \item \code{nParam} - The number of estimated parameters;
@@ -239,8 +241,8 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
     vssInput("ves",ParentEnvironment=environment());
 
 ##### Cost Function for VES #####
-CF <- function(A){
-    elements <- BasicInitialiserVES(matvt,matF,matG,matW,A);
+CF <- function(B){
+    elements <- BasicInitialiserVES(matvt,matF,matG,matW,B);
 
     cfRes <- vOptimiserWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
                             lagsModel, Etype, Ttype, Stype, loss, normalizer, bounds, ot, otObs);
@@ -253,13 +255,13 @@ CF <- function(A){
     return(cfRes);
 }
 
-##### A values for estimation #####
-# Function constructs default bounds where A values should lie
-AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries){
-    A <- NA;
-    ALower <- NA;
-    AUpper <- NA;
-    ANames <- NA;
+##### B values for estimation #####
+# Function constructs default bounds where B values should lie
+BValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries){
+    B <- NA;
+    BLower <- NA;
+    BUpper <- NA;
+    BNames <- NA;
 
     if(seasonalType=="i"){
         #### Individual seasonality ####
@@ -277,16 +279,16 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else if(persistenceType=="s"){
                 persistenceLength <- (nComponentsAll-1)*nSeries+1;
             }
-            A <- c(A,rep(0.1,persistenceLength));
+            B <- c(B,rep(0.1,persistenceLength));
             if(bounds=="u"){
-                ALower <- c(ALower,rep(0,persistenceLength));
-                AUpper <- c(AUpper,rep(1,persistenceLength));
+                BLower <- c(BLower,rep(0,persistenceLength));
+                BUpper <- c(BUpper,rep(1,persistenceLength));
             }
             else{
-                ALower <- c(ALower,rep(-5,persistenceLength));
-                AUpper <- c(AUpper,rep(5,persistenceLength));
+                BLower <- c(BLower,rep(-5,persistenceLength));
+                BUpper <- c(BUpper,rep(5,persistenceLength));
             }
-            ANames <- c(ANames,paste0("Persistence",c(1:persistenceLength)));
+            BNames <- c(BNames,paste0("Persistence",c(1:persistenceLength)));
         }
 
         ### Damping parameter
@@ -297,10 +299,10 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else if(dampedType=="i"){
                 dampedLength <- nSeries;
             }
-            A <- c(A,rep(0.95,dampedLength));
-            ALower <- c(ALower,rep(0,dampedLength));
-            AUpper <- c(AUpper,rep(1,dampedLength));
-            ANames <- c(ANames,paste0("phi",c(1:dampedLength)));
+            B <- c(B,rep(0.95,dampedLength));
+            BLower <- c(BLower,rep(0,dampedLength));
+            BUpper <- c(BUpper,rep(1,dampedLength));
+            BNames <- c(BNames,paste0("phi",c(1:dampedLength)));
         }
 
         ### Transition matrix
@@ -308,10 +310,10 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             if(transitionType=="d"){
                 transitionLength <- ((nSeries-1)*nComponentsAll^2)*nSeries;
             }
-            A <- c(A,rep(0.1,transitionLength));
-            ALower <- c(ALower,rep(-1,transitionLength));
-            AUpper <- c(AUpper,rep(1,transitionLength));
-            ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
+            B <- c(B,rep(0.1,transitionLength));
+            BLower <- c(BLower,rep(-1,transitionLength));
+            BUpper <- c(BUpper,rep(1,transitionLength));
+            BNames <- c(BNames,paste0("transition",c(1:transitionLength)));
         }
 
         ### Vector of initials
@@ -322,10 +324,10 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else{
                 initialLength <- nComponentsNonSeasonal*nSeries;
             }
-            A <- c(A,initialValue);
-            ANames <- c(ANames,paste0("initial",c(1:initialLength)));
-            ALower <- c(ALower,rep(-Inf,initialLength));
-            AUpper <- c(AUpper,rep(Inf,initialLength));
+            B <- c(B,initialValue);
+            BNames <- c(BNames,paste0("initial",c(1:initialLength)));
+            BLower <- c(BLower,rep(-Inf,initialLength));
+            BUpper <- c(BUpper,rep(Inf,initialLength));
         }
 
         ### Vector of initial seasonals
@@ -336,15 +338,15 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else{
                 initialSeasonLength <- lagsModelMax*nSeries;
             }
-            A <- c(A,initialSeasonValue);
-            ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
+            B <- c(B,initialSeasonValue);
+            BNames <- c(BNames,paste0("initialSeason",c(1:initialSeasonLength)));
             # if(Stype=="A"){
-            ALower <- c(ALower,rep(-Inf,initialSeasonLength));
-            AUpper <- c(AUpper,rep(Inf,initialSeasonLength));
+            BLower <- c(BLower,rep(-Inf,initialSeasonLength));
+            BUpper <- c(BUpper,rep(Inf,initialSeasonLength));
             # }
             # else{
-            #     ALower <- c(ALower,rep(-0.0001,initialSeasonLength));
-            #     AUpper <- c(AUpper,rep(20,initialSeasonLength));
+            #     BLower <- c(BLower,rep(-0.0001,initialSeasonLength));
+            #     BUpper <- c(BUpper,rep(20,initialSeasonLength));
             # }
         }
     }
@@ -364,16 +366,16 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else if(persistenceType=="s"){
                 persistenceLength <- nComponentsNonSeasonal*nSeries+1;
             }
-            A <- c(A,rep(0.1,persistenceLength));
+            B <- c(B,rep(0.1,persistenceLength));
             if(bounds=="u"){
-                ALower <- c(ALower,rep(0,persistenceLength));
-                AUpper <- c(AUpper,rep(1,persistenceLength));
+                BLower <- c(BLower,rep(0,persistenceLength));
+                BUpper <- c(BUpper,rep(1,persistenceLength));
             }
             else{
-                ALower <- c(ALower,rep(-5,persistenceLength));
-                AUpper <- c(AUpper,rep(5,persistenceLength));
+                BLower <- c(BLower,rep(-5,persistenceLength));
+                BUpper <- c(BUpper,rep(5,persistenceLength));
             }
-            ANames <- c(ANames,paste0("Persistence",c(1:persistenceLength)));
+            BNames <- c(BNames,paste0("Persistence",c(1:persistenceLength)));
         }
 
         ### Damping parameter
@@ -384,10 +386,10 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else if(dampedType=="i"){
                 dampedLength <- nSeries;
             }
-            A <- c(A,rep(0.95,dampedLength));
-            ALower <- c(ALower,rep(0,dampedLength));
-            AUpper <- c(AUpper,rep(1,dampedLength));
-            ANames <- c(ANames,paste0("phi",c(1:dampedLength)));
+            B <- c(B,rep(0.95,dampedLength));
+            BLower <- c(BLower,rep(0,dampedLength));
+            BUpper <- c(BUpper,rep(1,dampedLength));
+            BNames <- c(BNames,paste0("phi",c(1:dampedLength)));
         }
 
         ### Transition matrix
@@ -395,10 +397,10 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             if(transitionType=="d"){
                 transitionLength <- ((nSeries-1)*nComponentsNonSeasonal^2)*nSeries;
             }
-            A <- c(A,rep(0.1,transitionLength));
-            ALower <- c(ALower,rep(-1,transitionLength));
-            AUpper <- c(AUpper,rep(1,transitionLength));
-            ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
+            B <- c(B,rep(0.1,transitionLength));
+            BLower <- c(BLower,rep(-1,transitionLength));
+            BUpper <- c(BUpper,rep(1,transitionLength));
+            BNames <- c(BNames,paste0("transition",c(1:transitionLength)));
         }
 
         ### Vector of initials
@@ -409,28 +411,28 @@ AValues <- function(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeason
             else{
                 initialLength <- nComponentsNonSeasonal*nSeries;
             }
-            A <- c(A,initialValue);
-            ANames <- c(ANames,paste0("initial",c(1:initialLength)));
-            ALower <- c(ALower,rep(-Inf,initialLength));
-            AUpper <- c(AUpper,rep(Inf,initialLength));
+            B <- c(B,initialValue);
+            BNames <- c(BNames,paste0("initial",c(1:initialLength)));
+            BLower <- c(BLower,rep(-Inf,initialLength));
+            BUpper <- c(BUpper,rep(Inf,initialLength));
         }
 
         ### Vector of initial seasonals
         if(initialSeasonEstimate){
             initialSeasonLength <- lagsModelMax;
-            A <- c(A,initialSeasonValue);
-            ANames <- c(ANames,paste0("initialSeason",c(1:initialSeasonLength)));
-            ALower <- c(ALower,rep(-Inf,initialSeasonLength));
-            AUpper <- c(AUpper,rep(Inf,initialSeasonLength));
+            B <- c(B,initialSeasonValue);
+            BNames <- c(BNames,paste0("initialSeason",c(1:initialSeasonLength)));
+            BLower <- c(BLower,rep(-Inf,initialSeasonLength));
+            BUpper <- c(BUpper,rep(Inf,initialSeasonLength));
         }
     }
 
-    A <- A[!is.na(A)];
-    ALower <- ALower[!is.na(ALower)];
-    AUpper <- AUpper[!is.na(AUpper)];
-    ANames <- ANames[!is.na(ANames)];
+    B <- B[!is.na(B)];
+    BLower <- BLower[!is.na(BLower)];
+    BUpper <- BUpper[!is.na(BUpper)];
+    BNames <- BNames[!is.na(BNames)];
 
-    return(list(A=A,ALower=ALower,AUpper=AUpper,ANames=ANames));
+    return(list(B=B,BLower=BLower,BUpper=BUpper,BNames=BNames));
 }
 
 ##### Basic VES initialiser
@@ -620,8 +622,8 @@ BasicMakerVES <- function(...){
 }
 
 ##### Basic matrices filler #####
-# This thing fills in matvt, matF, matG and matW with values from A and returns the corrected values
-BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
+# This thing fills in matvt, matF, matG and matW with values from B and returns the corrected values
+BasicInitialiserVES <- function(matvt,matF,matG,matW,B){
     nCoefficients <- 0;
     ##### Individual seasonality #####
     if(seasonalType=="i"){
@@ -630,7 +632,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             persistenceBuffer <- matrix(0,nSeries*nComponentsAll,nSeries);
             # Grouped values
             if(persistenceType=="c"){
-                persistenceValue <- A[1:nComponentsAll];
+                persistenceValue <- B[1:nComponentsAll];
                 nCoefficients <- nComponentsAll;
                 for(i in 1:nSeries){
                     persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),i] <- persistenceValue;
@@ -639,7 +641,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             }
             # Independent values
             else if(persistenceType=="i"){
-                persistenceValue <- A[1:(nComponentsAll*nSeries)];
+                persistenceValue <- B[1:(nComponentsAll*nSeries)];
                 nCoefficients <- nComponentsAll*nSeries;
                 for(i in 1:nSeries){
                     persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),
@@ -649,12 +651,12 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             }
             # Dependent values
             else if(persistenceType=="d"){
-                persistenceValue <- A[1:(nComponentsAll*nSeries^2)];
+                persistenceValue <- B[1:(nComponentsAll*nSeries^2)];
                 nCoefficients <- nComponentsAll*nSeries^2;
             }
             # Grouped seasonal values
             else if(persistenceType=="s"){
-                persistenceValue <- A[1:((nComponentsAll-1)*nSeries+1)];
+                persistenceValue <- B[1:((nComponentsAll-1)*nSeries+1)];
                 persistenceSeasonal <- persistenceValue[length(persistenceValue)];
                 nCoefficients <- ((nComponentsAll-1)*nSeries+1);
                 for(i in 1:nSeries){
@@ -670,11 +672,11 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
         ### Damping parameter
         if(damped){
             if(dampedType=="c"){
-                dampedValue <- matrix(A[nCoefficients+1],nSeries,1);
+                dampedValue <- matrix(B[nCoefficients+1],nSeries,1);
                 nCoefficients <- nCoefficients + 1;
             }
             else if(dampedType=="i"){
-                dampedValue <- matrix(A[nCoefficients+(1:nSeries)],nSeries,1);
+                dampedValue <- matrix(B[nCoefficients+(1:nSeries)],nSeries,1);
                 nCoefficients <- nCoefficients + nSeries;
             }
         }
@@ -693,7 +695,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             for(i in 1:nSeries){
                 matF[c(1:nComponentsAll)+nComponentsAll*(i-1),
                      setdiff(c(1:(nSeries*nComponentsAll)),
-                             c(1:nComponentsAll)+nComponentsAll*(i-1))] <- A[nCoefficients+c(1:nCoefficientsBuffer)];
+                             c(1:nComponentsAll)+nComponentsAll*(i-1))] <- B[nCoefficients+c(1:nCoefficientsBuffer)];
                 nCoefficients <- nCoefficients + nCoefficientsBuffer;
             }
         }
@@ -715,12 +717,12 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 initialPlaces <- sort(initialPlaces);
             }
             if(initialType=="i"){
-                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
+                initialValue <- matrix(B[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
                                        nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal*nSeries;
             }
             else if(initialType=="c"){
-                initialValue <- matrix(A[nCoefficients+c(1:nComponentsNonSeasonal)],
+                initialValue <- matrix(B[nCoefficients+c(1:nComponentsNonSeasonal)],
                                        nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal;
             }
@@ -731,12 +733,12 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
         if(modelIsSeasonal & initialSeasonEstimate){
             initialPlaces <- nComponentsAll*(c(1:nSeries)-1)+nComponentsAll;
             if(initialSeasonType=="i"){
-                matvt[initialPlaces,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:(nSeries*lagsModelMax))],
+                matvt[initialPlaces,1:lagsModelMax] <- matrix(B[nCoefficients+c(1:(nSeries*lagsModelMax))],
                                                         nSeries,lagsModelMax,byrow=TRUE);
                 nCoefficients <- nCoefficients + nSeries*lagsModelMax;
             }
             else if(initialSeasonType=="c"){
-                matvt[initialPlaces,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:lagsModelMax)],nSeries,lagsModelMax,byrow=TRUE);
+                matvt[initialPlaces,1:lagsModelMax] <- matrix(B[nCoefficients+c(1:lagsModelMax)],nSeries,lagsModelMax,byrow=TRUE);
                 nCoefficients <- nCoefficients + lagsModelMax;
             }
         }
@@ -748,7 +750,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             persistenceBuffer <- matrix(0,nSeries*nComponentsNonSeasonal+1,nSeries);
             # Grouped values
             if(persistenceType=="c"){
-                persistenceValue <- A[1:nComponentsAll];
+                persistenceValue <- B[1:nComponentsAll];
                 nCoefficients <- nComponentsAll;
                 for(i in 1:nSeries){
                     persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
@@ -759,7 +761,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             }
             # Independent values
             else if(persistenceType=="i"){
-                persistenceValue <- A[1:(nComponentsNonSeasonal*nSeries+nSeries)];
+                persistenceValue <- B[1:(nComponentsNonSeasonal*nSeries+nSeries)];
                 nCoefficients <- nComponentsNonSeasonal*nSeries+nSeries;
                 for(i in 1:nSeries){
                     persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
@@ -771,12 +773,12 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
             }
             # Dependent values
             else if(persistenceType=="d"){
-                persistenceValue <- A[1:(nSeries^2*nComponentsNonSeasonal+nSeries)];
+                persistenceValue <- B[1:(nSeries^2*nComponentsNonSeasonal+nSeries)];
                 nCoefficients <- nSeries^2*nComponentsNonSeasonal+nSeries;
             }
             # Grouped seasonal values
             else if(persistenceType=="s"){
-                persistenceValue <- A[1:(nComponentsNonSeasonal*nSeries+1)];
+                persistenceValue <- B[1:(nComponentsNonSeasonal*nSeries+1)];
                 nCoefficients <- nComponentsNonSeasonal*nSeries+1;
                 for(i in 1:nSeries){
                     persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
@@ -792,11 +794,11 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
         ### Damping parameter
         if(damped){
             if(dampedType=="c"){
-                dampedValue <- matrix(A[nCoefficients+1],nSeries,1);
+                dampedValue <- matrix(B[nCoefficients+1],nSeries,1);
                 nCoefficients <- nCoefficients + 1;
             }
             else if(dampedType=="i"){
-                dampedValue <- matrix(A[nCoefficients+(1:nSeries)],nSeries,1);
+                dampedValue <- matrix(B[nCoefficients+(1:nSeries)],nSeries,1);
                 nCoefficients <- nCoefficients + nSeries;
             }
         }
@@ -816,7 +818,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 matF[c(1:nComponentsNonSeasonal)+nComponentsNonSeasonal*(i-1),
                      setdiff(c(1:(nSeries*nComponentsNonSeasonal)),
                              c(1:nComponentsNonSeasonal)+nComponentsNonSeasonal*(i-1))
-                     ] <- A[nCoefficients+c(1:nCoefficientsBuffer)];
+                     ] <- B[nCoefficients+c(1:nCoefficientsBuffer)];
                 nCoefficients <- nCoefficients + nCoefficientsBuffer;
             }
         }
@@ -838,12 +840,12 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
                 initialPlaces <- sort(initialPlaces);
             }
             if(initialType=="i"){
-                initialValue <- matrix(A[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
+                initialValue <- matrix(B[nCoefficients+c(1:(nComponentsNonSeasonal*nSeries))],
                                        nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal*nSeries;
             }
             else if(initialType=="c"){
-                initialValue <- matrix(A[nCoefficients+c(1:nComponentsNonSeasonal)],nComponentsNonSeasonal * nSeries,1);
+                initialValue <- matrix(B[nCoefficients+c(1:nComponentsNonSeasonal)],nComponentsNonSeasonal * nSeries,1);
                 nCoefficients <- nCoefficients + nComponentsNonSeasonal;
             }
             matvt[initialPlaces,1:lagsModelMax] <- rep(initialValue,lagsModelMax);
@@ -851,7 +853,7 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
 
         ## Deal with seasonal part of the vector of states
         if(modelIsSeasonal & initialSeasonEstimate){
-            matvt[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax] <- matrix(A[nCoefficients+c(1:lagsModelMax)],1,lagsModelMax,byrow=TRUE);
+            matvt[nComponentsNonSeasonal*nSeries+1,1:lagsModelMax] <- matrix(B[nCoefficients+c(1:lagsModelMax)],1,lagsModelMax,byrow=TRUE);
             nCoefficients <- nCoefficients + lagsModelMax;
         }
     }
@@ -862,40 +864,54 @@ BasicInitialiserVES <- function(matvt,matF,matG,matW,A){
 ##### Basic estimation function for ves() #####
 EstimatorVES <- function(...){
     environment(BasicMakerVES) <- environment();
-    environment(AValues) <- environment();
+    environment(BValues) <- environment();
     environment(vLikelihoodFunction) <- environment();
     environment(vICFunction) <- environment();
     environment(CF) <- environment();
     elements <- BasicMakerVES();
     list2env(elements,environment());
 
-    AList <- AValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
-    A <- AList$A;
+    if(is.null(B) && is.null(B) && is.null(B)){
+        BList <- BValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
+        B <- BList$B;
 
-    if(any((A>=AList$AUpper),(A<=AList$ALower))){
-        A[A>=AList$AUpper] <- AList$AUpper[A>=AList$AUpper] * 0.999 - 0.001;
-        A[A<=AList$ALower] <- AList$ALower[A<=AList$ALower] * 1.001 + 0.001;
+        # if(any((B>=BList$BUpper),(B<=BList$BLower))){
+        #     B[B>=BList$BUpper] <- BList$BUpper[B>=BList$BUpper] * 0.999 - 0.001;
+        #     B[B<=BList$BLower] <- BList$BLower[B<=BList$BLower] * 1.001 + 0.001;
+        # }
+    }
+    else{
+        BList <- BValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
+        if(is.null(B)){
+            B <- BList$B;
+        }
+        if(!is.null(lb)){
+            BList$Blower <- lb;
+        }
+        if(!is.null(ub)){
+            BList$BUpper <- ub;
+        }
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
-    res <- nloptr(A, CF, lb=AList$ALower, ub=AList$AUpper,
-                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-    A <- res$solution;
+    # res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
+    #               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+    # B <- res$solution;
 
-    if(any((A>=AList$AUpper),(A<=AList$ALower))){
-        A[A>=AList$AUpper] <- AList$AUpper[A>=AList$AUpper] * 0.999 - 0.001;
-        A[A<=AList$ALower] <- AList$ALower[A<=AList$ALower] * 1.001 + 0.001;
-    }
+    # if(any((B>=BList$BUpper),(B<=BList$BLower))){
+    #     B[B>=BList$BUpper] <- BList$BUpper[B>=BList$BUpper] * 0.999 - 0.001;
+    #     B[B<=BList$BLower] <- BList$BLower[B<=BList$BLower] * 1.001 + 0.001;
+    # }
 
-    res2 <- nloptr(A, CF, lb=AList$ALower, ub=AList$AUpper,
+    res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
                   opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=1000));
     # This condition is needed in order to make sure that we did not make the solution worse
-    if(res2$objective <= res$objective){
-        res <- res2;
-    }
-    A <- res$solution;
+    # if(res2$objective <= res$objective){
+    #     res <- res2;
+    # }
+    B <- res$solution;
 
-    if(all(A==AList$A) & modelDo=="estimate"){
+    if(all(B==BList$B) & modelDo=="estimate"){
         if(persistenceEstimate){
             warning(paste0("Failed to optimise the model ETS(", modelCurrent,
                            "). Try different initialisation maybe?\nAnd check all the messages and warnings...",
@@ -903,29 +919,29 @@ EstimatorVES <- function(...){
                     call.=FALSE);
         }
     }
-    names(A) <- AList$ANames;
+    names(B) <- BList$BNames;
 
     # First part is for the covariance matrix
     if(loss=="l"){
-        nParam <- nSeries * (nSeries + 1) / 2 + length(A);
+        nParam <- nSeries * (nSeries + 1) / 2 + length(B);
     }
     else{
-        nParam <- nSeries + length(A);
+        nParam <- nSeries + length(B);
     }
 
-    IAValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
-    ICs <- IAValues$ICs;
-    logLik <- IAValues$llikelihood;
+    ICValues <- vICFunction(nParam=nParam,B=B,Etype=Etype);
+    ICs <- ICValues$ICs;
+    logLik <- ICValues$llikelihood;
 
     # Write down Fisher Information if needed
     if(FI){
         environment(vLikelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(vLikelihoodFunction,A);
-        rownames(FI) <- AList$ANames;
-        colnames(FI) <- AList$ANames;
+        FI <- -numDeriv::hessian(vLikelihoodFunction,B);
+        rownames(FI) <- BList$BNames;
+        colnames(FI) <- BList$BNames;
     }
 
-    return(list(ICs=ICs,objective=res$objective,A=A,nParam=nParam,logLik=logLik,FI=FI));
+    return(list(ICs=ICs,objective=res$objective,B=B,nParam=nParam,logLik=logLik,FI=FI));
 }
 
 ##### Function constructs the VES function #####
@@ -934,7 +950,7 @@ CreatorVES <- function(silent=FALSE,...){
         environment(EstimatorVES) <- environment();
         res <- EstimatorVES(ParentEnvironment=environment());
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
-                             cfObjective=res$objective,A=res$A,ICs=res$ICs,icBest=res$ICs[ic],
+                             cfObjective=res$objective,B=res$B,ICs=res$ICs,icBest=res$ICs[ic],
                              nParam=res$nParam,logLik=res$logLik,FI=res$FI);
 
         return(listToReturn);
@@ -947,32 +963,32 @@ CreatorVES <- function(silent=FALSE,...){
         elements <- BasicMakerVES();
         list2env(elements,environment());
 
-        A <- c(persistenceValue);
-        ANames <- paste0("Persistence",c(1:length(persistenceValue)));
+        B <- c(persistenceValue);
+        BNames <- paste0("Persistence",c(1:length(persistenceValue)));
         if(damped){
-            A <- c(A,dampedValue);
-            ANames <- c(ANames,paste0("phi",c(1:length(dampedValue))));
+            B <- c(B,dampedValue);
+            BNames <- c(BNames,paste0("phi",c(1:length(dampedValue))));
         }
         if(transitionType=="d"){
-            transitionLength <- length(A);
+            transitionLength <- length(B);
             # Write values from the rest of transition matrix
             for(i in 1:nSeries){
-                A <- c(A, c(transitionValue[c(1:nComponentsAll)+nComponentsAll*(i-1),
+                B <- c(B, c(transitionValue[c(1:nComponentsAll)+nComponentsAll*(i-1),
                                             setdiff(c(1:nSeries*nComponentsAll),
                                                     c(1:nComponentsAll)+nComponentsAll*(i-1))]));
             }
-            transitionLength <- length(A) - transitionLength;
-            ANames <- c(ANames,paste0("transition",c(1:transitionLength)));
+            transitionLength <- length(B) - transitionLength;
+            BNames <- c(BNames,paste0("transition",c(1:transitionLength)));
         }
-        A <- c(A,initialValue);
-        ANames <- c(ANames,paste0("initial",c(1:length(initialValue))));
+        B <- c(B,initialValue);
+        BNames <- c(BNames,paste0("initial",c(1:length(initialValue))));
         if(Stype!="N"){
-            A <- c(A,initialSeasonValue);
-            ANames <- c(ANames,paste0("initialSeason",c(1:length(initialSeasonValue))));
+            B <- c(B,initialSeasonValue);
+            BNames <- c(BNames,paste0("initialSeason",c(1:length(initialSeasonValue))));
         }
-        names(A) <- ANames;
+        names(B) <- BNames;
 
-        cfObjective <- CF(A);
+        cfObjective <- CF(B);
 
         # Number of parameters
         # First part is for the covariance matrix
@@ -986,7 +1002,7 @@ CreatorVES <- function(silent=FALSE,...){
             nParam <- nSeries;
         }
 
-        ICValues <- vICFunction(nParam=nParam,A=A,Etype=Etype);
+        ICValues <- vICFunction(nParam=nParam,B=B,Etype=Etype);
         logLik <- ICValues$llikelihood;
         ICs <- ICValues$ICs;
         icBest <- ICs[ic];
@@ -994,13 +1010,13 @@ CreatorVES <- function(silent=FALSE,...){
         # Write down Fisher Information if needed
         if(FI){
             environment(vLikelihoodFunction) <- environment();
-            FI <- -numDeriv::hessian(vLikelihoodFunction,A);
-            rownames(FI) <- ANames;
-            colnames(FI) <- ANames;
+            FI <- -numDeriv::hessian(vLikelihoodFunction,B);
+            rownames(FI) <- BNames;
+            colnames(FI) <- BNames;
         }
 
         listToReturn <- list(Etype=Etype,Ttype=Ttype,Stype=Stype,damped=damped,
-                             cfObjective=cfObjective,A=A,ICs=ICs,icBest=icBest,
+                             cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,
                              nParam=nParam,logLik=logLik,FI=FI);
         return(listToReturn);
     }
@@ -1034,7 +1050,7 @@ CreatorVES <- function(silent=FALSE,...){
 ##### Fit the model and produce forecast #####
     list2env(vesValues,environment());
     list2env(BasicMakerVES(),environment());
-    list2env(BasicInitialiserVES(matvt,matF,matG,matW,A),environment());
+    list2env(BasicInitialiserVES(matvt,matF,matG,matW,B),environment());
 
     if(Etype=="M"){
         cfObjective <- exp(cfObjective);
@@ -1316,7 +1332,7 @@ CreatorVES <- function(silent=FALSE,...){
     ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
-                  measurement=matW, phi=dampedValue, coefficients=A,
+                  measurement=matW, phi=dampedValue, B=B,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
                   nParam=parametersNumber, imodel=imodel,
                   y=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
