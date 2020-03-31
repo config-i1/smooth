@@ -183,10 +183,10 @@ state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
 make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
 the model.
-Parameters \code{C}, \code{CLower} and \code{CUpper} can be passed via
-ellipsis as well. In this case they will be used for optimisation. \code{C}
-sets the initial values before the optimisation, \code{CLower} and
-\code{CUpper} define lower and upper bounds for the search inside of the
+Parameters \code{B}, \code{lb} and \code{ub} can be passed via
+ellipsis as well. In this case they will be used for optimisation. \code{B}
+sets the initial values before the optimisation, \code{lb} and
+\code{ub} define lower and upper bounds for the search inside of the
 specified \code{bounds}. These values should have length equal to the number
 of parameters to estimate.
 You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
@@ -255,6 +255,7 @@ RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient. This is available only when
 \code{holdout=TRUE}.
+\item \code{B} - the vector of all the estimated parameters.
 }
 
 If combination of forecasts is produced (using \code{model="CCC"}), then a

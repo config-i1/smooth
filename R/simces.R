@@ -21,11 +21,11 @@
 #' seasonality, depending on the data). First letter can be used instead of
 #' full words.  Any seasonal CES can only be constructed for time series
 #' vectors.
-#' @param A First complex smoothing parameter. Should be a complex number.
+#' @param a First complex smoothing parameter. Should be a complex number.
 #'
-#' NOTE! CES is very sensitive to A and B values so it is advised to use values
+#' NOTE! CES is very sensitive to a and b values so it is advised to use values
 #' from previously estimated model.
-#' @param B Second complex smoothing parameter. Can be real if
+#' @param b Second complex smoothing parameter. Can be real if
 #' \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 #' complex number.
 #' @param initial A matrix with initial values for CES. In case with
@@ -40,9 +40,9 @@
 #' @return List of the following values is returned:
 #' \itemize{
 #' \item \code{model} - Name of CES model.
-#' \item \code{A} - Value of complex smoothing parameter A. If \code{nsim>1}, then
+#' \item \code{a} - Value of complex smoothing parameter a. If \code{nsim>1}, then
 #' this is a vector.
-#' \item \code{B} - Value of complex smoothing parameter B. If \code{seasonality="n"}
+#' \item \code{b} - Value of complex smoothing parameter b. If \code{seasonality="n"}
 #' or \code{seasonality="s"}, then this is equal to NULL. If \code{nsim>1},
 #' then this is a vector.
 #' \item \code{initial} - Initial values of CES in a form of matrix. If \code{nsim>1},
@@ -76,7 +76,7 @@
 #' @export sim.ces
 sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     obs=10, nsim=1,
-                    frequency=1, A=NULL, B=NULL,
+                    frequency=1, a=NULL, b=NULL,
                     initial=NULL,
                     randomizer=c("rnorm","rt","rlaplace","rs"),
                     iprob=1, ...){
@@ -84,7 +84,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
 #
 # seasonality - the type of seasonality to produce.
 # frequency - the frequency of the data. In the case of seasonal models must be > 1.
-# A, B - complex smoothing parameters.
+# a, b - complex smoothing parameters.
 # initial - the vector of initial states,
 #    If NULL it will be generated.
 # obs - the number of observations in each time series.
@@ -97,21 +97,21 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     args <- list(...);
 
     AGenerator <- function(nsim=nsim){
-        AValue <- matrix(NA,2,nsim);
+        aValue <- matrix(NA,2,nsim);
         ANonStable <- rep(TRUE,nsim);
         for(i in 1:nsim){
             while(ANonStable[i]){
-                AValue[1,i] <- runif(1,0.9,2.5);
-                AValue[2,i] <- runif(1,0.9,1.1);
+                aValue[1,i] <- runif(1,0.9,2.5);
+                aValue[2,i] <- runif(1,0.9,1.1);
 
-                if(((AValue[1,i]-2.5)^2 + AValue[2,i]^2 > 1.25) &
-                   ((AValue[1,i]-0.5)^2 + (AValue[2,i]-1)^2 > 0.25) &
-                   (AValue[1,i]-1.5)^2 + (AValue[2,i]-0.5)^2 < 1.5){
+                if(((aValue[1,i]-2.5)^2 + aValue[2,i]^2 > 1.25) &
+                   ((aValue[1,i]-0.5)^2 + (aValue[2,i]-1)^2 > 0.25) &
+                   (aValue[1,i]-1.5)^2 + (aValue[2,i]-0.5)^2 < 1.5){
                     ANonStable[i] <- FALSE;
                 }
             }
         }
-        return(AValue);
+        return(aValue);
     }
 
 #### Check values and preset parameters ####
@@ -126,41 +126,41 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         stop("Can't simulate seasonal data with frequency=1!",call.=FALSE)
     }
 
-    A <- list(value=A);
-    B <- list(value=B);
+    a <- list(value=a);
+    b <- list(value=b);
 
-    if(is.null(A$value)){
-        A$generate <- TRUE;
+    if(is.null(a$value)){
+        a$generate <- TRUE;
     }
     else{
-        A$generate <- FALSE;
-        if(!(((Re(A$value)-2.5)^2 + Im(A$value)^2 > 1.25) &
-                   ((Re(A$value)-0.5)^2 + (Im(A$value)-1)^2 > 0.25) &
-                   (Re(A$value)-1.5)^2 + (Im(A$value)-0.5)^2 < 1.5)){
-            warning("The provided complex smoothing parameter A leads to non-stable model!",call.=FALSE);
+        a$generate <- FALSE;
+        if(!(((Re(a$value)-2.5)^2 + Im(a$value)^2 > 1.25) &
+                   ((Re(a$value)-0.5)^2 + (Im(a$value)-1)^2 > 0.25) &
+                   (Re(a$value)-1.5)^2 + (Im(a$value)-0.5)^2 < 1.5)){
+            warning("The provided complex smoothing parameter a leads to non-stable model!",call.=FALSE);
         }
     }
 
-    if(all(is.null(B$value),any(seasonality==c("p","f")))){
-        B$generate <- TRUE;
+    if(all(is.null(b$value),any(seasonality==c("p","f")))){
+        b$generate <- TRUE;
     }
     else{
-        B$generate <- FALSE;
+        b$generate <- FALSE;
         if(seasonality=="f"){
-            if(!(((Re(B$value)-2.5)^2 + Im(B$value)^2 > 1.25) &
-                 ((Re(B$value)-0.5)^2 + (Im(B$value)-1)^2 > 0.25) &
-                 (Re(B$value)-1.5)^2 + (Im(B$value)-0.5)^2 < 1.5)){
-                warning("The provided complex smoothing parameter B leads to non-stable model!",call.=FALSE);
+            if(!(((Re(b$value)-2.5)^2 + Im(b$value)^2 > 1.25) &
+                 ((Re(b$value)-0.5)^2 + (Im(b$value)-1)^2 > 0.25) &
+                 (Re(b$value)-1.5)^2 + (Im(b$value)-0.5)^2 < 1.5)){
+                warning("The provided complex smoothing parameter b leads to non-stable model!",call.=FALSE);
             }
         }
         else if(seasonality=="p"){
-            if((B$value<0) | (B$value>1)){
-                warning("Be careful with the provided B parameter - the model can be unstable.",call.=FALSE);
+            if((b$value<0) | (b$value>1)){
+                warning("Be careful with the provided b parameter - the model can be unstable.",call.=FALSE);
             }
         }
     }
 
-    A$number <- 2;
+    a$number <- 2;
 # Define lags, number of components and number of parameters
     if(seasonality=="n"){
         # No seasonality
@@ -168,7 +168,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         lagsModel <- c(1,1);
         # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
         componentsNumber <- 2;
-        B$number <- 0;
+        b$number <- 0;
         componentsNames <- c("level","potential");
         matw <- matrix(c(1,0),1,2);
     }
@@ -177,7 +177,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         lagsModelMax <- frequency;
         lagsModel <- c(lagsModelMax,lagsModelMax);
         componentsNumber <- 2;
-        B$number <- 0;
+        b$number <- 0;
         componentsNames <- c("seasonal level","seasonal potential");
         matw <- matrix(c(1,0),1,2);
     }
@@ -186,7 +186,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         lagsModelMax <- frequency;
         lagsModel <- c(1,1,lagsModelMax);
         componentsNumber <- 3;
-        B$number <- 1;
+        b$number <- 1;
         componentsNames <- c("level","potential","seasonal");
         matw <- matrix(c(1,0,1),1,3);
     }
@@ -195,7 +195,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         lagsModelMax <- frequency;
         lagsModel <- c(1,1,lagsModelMax,lagsModelMax);
         componentsNumber <- 4;
-        B$number <- 2;
+        b$number <- 2;
         componentsNames <- c("level","potential","seasonal level","seasonal potential");
         matw <- matrix(c(1,0,1,0),1,4);
     }
@@ -234,8 +234,8 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     matyt <- matrix(NA,obs,nsim);
     matot <- matrix(NA,obs,nsim);
     matInitialValue <- array(NA,c(lagsModelMax,componentsNumber,nsim));
-    AValue <- matrix(NA,2,nsim);
-    BValue <- matrix(NA,B$number,nsim);
+    aValue <- matrix(NA,2,nsim);
+    bValue <- matrix(NA,b$number,nsim);
 
 # Check the vector of probabilities
     if(is.vector(iprob)){
@@ -268,49 +268,49 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     arrvt[1:lagsModelMax,,] <- matInitialValue;
 
 # Now let's do parameters with transition + persistence
-    if(A$generate){
-        AValue[,] <- AGenerator(nsim);
+    if(a$generate){
+        aValue[,] <- AGenerator(nsim);
     }
     else{
-        AValue[1,] <- Re(A$value);
-        AValue[2,] <- Im(A$value);
+        aValue[1,] <- Re(a$value);
+        aValue[2,] <- Im(a$value);
     }
 
-    if(B$number!=0){
-        if(B$generate){
+    if(b$number!=0){
+        if(b$generate){
             if(seasonality=="f"){
-                BValue[,] <- AGenerator(nsim);
+                bValue[,] <- AGenerator(nsim);
             }
             else{
-                BValue[,] <- runif(nsim,0,1);
+                bValue[,] <- runif(nsim,0,1);
             }
         }
         else{
             if(seasonality=="f"){
-                BValue[1,] <- Re(B$value);
-                BValue[2,] <- Im(B$value);
+                bValue[1,] <- Re(b$value);
+                bValue[2,] <- Im(b$value);
             }
             else{
-                BValue[1,] <- B$value;
+                bValue[1,] <- b$value;
             }
         }
     }
 
     arrF[1:2,1,] <- 1;
     for(i in 1:nsim){
-        arrF[1:2,2,i] <- c(AValue[2,i]-1,1-AValue[1,i]);
-        matg[1:2,i] <- c(AValue[1,i]-AValue[2,i],AValue[1,i]+AValue[2,i]);
+        arrF[1:2,2,i] <- c(aValue[2,i]-1,1-aValue[1,i]);
+        matg[1:2,i] <- c(aValue[1,i]-aValue[2,i],aValue[1,i]+aValue[2,i]);
     }
 
     if(seasonality=="p"){
         arrF[3,3,] <- 1;
-        matg[3,] <- BValue[1,];
+        matg[3,] <- bValue[1,];
     }
     else if(seasonality=="f"){
         arrF[3:4,3,] <- 1;
         for(i in 1:nsim){
-            arrF[3:4,4,i] <- c(BValue[2,i]-1,1-BValue[1,i]);
-            matg[3:4,i] <- c(BValue[1,i]-BValue[2,i],BValue[1,i]+BValue[2,i]);
+            arrF[3:4,4,i] <- c(bValue[2,i]-1,1-bValue[1,i]);
+            matg[3:4,i] <- c(bValue[1,i]-bValue[2,i],bValue[1,i]+bValue[2,i]);
         }
     }
 
@@ -410,16 +410,16 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
         modelname <- paste0("i",modelname);
     }
 
-    AValue <- complex(real=AValue[1,],imaginary=AValue[2,]);
+    aValue <- complex(real=aValue[1,],imaginary=aValue[2,]);
     if(any(seasonality==c("n","s"))){
-        BValue <- NULL;
+        bValue <- NULL;
     }
     else if(seasonality=="f"){
-        BValue <- complex(real=BValue[1,],imaginary=BValue[2,]);
+        bValue <- complex(real=bValue[1,],imaginary=bValue[2,]);
     }
 
     model <- list(model=modelname,
-                  A=AValue, B=BValue, initial=matInitialValue,
+                  a=aValue, b=bValue, initial=matInitialValue,
                   data=matyt, states=arrvt, residuals=materrors,
                   occurrence=matot, logLik=veclikelihood);
     return(structure(model,class="smooth.sim"));

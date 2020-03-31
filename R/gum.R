@@ -1,4 +1,4 @@
-utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
+utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
                          "persistenceEstimate","obsAll","obsInSample","multisteps","ot","obsNonzero","ICs","cfObjective",
                          "yForecast","yLower","yUpper","normalizer","yForecastStart"));
 
@@ -120,6 +120,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "C",
 #' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 #' cumulative error) and Bias coefficient. This is available only when
 #' \code{holdout=TRUE}.
+#' \item \code{B} - the vector of all the estimated parameters.
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{sim.es}}
@@ -242,10 +243,10 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     ssInput("gum",ParentEnvironment=environment());
 
 ##### Initialise gum #####
-ElementsGUM <- function(C){
+ElementsGUM <- function(B){
     n.coef <- 0;
     if(measurementEstimate){
-        matw <- matrix(C[n.coef+(1:nComponents)],1,nComponents);
+        matw <- matrix(B[n.coef+(1:nComponents)],1,nComponents);
         n.coef <- n.coef + nComponents;
     }
     else{
@@ -253,7 +254,7 @@ ElementsGUM <- function(C){
     }
 
     if(transitionEstimate){
-        matF <- matrix(C[n.coef+(1:(nComponents^2))],nComponents,nComponents);
+        matF <- matrix(B[n.coef+(1:(nComponents^2))],nComponents,nComponents);
         n.coef <- n.coef + nComponents^2;
     }
     else{
@@ -261,7 +262,7 @@ ElementsGUM <- function(C){
     }
 
     if(persistenceEstimate){
-        vecg <- matrix(C[n.coef+(1:nComponents)],nComponents,1);
+        vecg <- matrix(B[n.coef+(1:nComponents)],nComponents,1);
         n.coef <- n.coef + nComponents;
     }
     else{
@@ -271,7 +272,7 @@ ElementsGUM <- function(C){
     vt <- matrix(NA,lagsModelMax,nComponents);
     if(initialType!="b"){
         if(initialType=="o"){
-            vtvalues <- C[n.coef+(1:(orders %*% lags))];
+            vtvalues <- B[n.coef+(1:(orders %*% lags))];
             n.coef <- n.coef + c(orders %*% lags);
 
             for(i in 1:nComponents){
@@ -292,19 +293,19 @@ ElementsGUM <- function(C){
     if(xregEstimate){
         at <- matrix(NA,lagsModelMax,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[n.coef+(1:nExovars)],each=lagsModelMax);
+            at[,] <- rep(B[n.coef+(1:nExovars)],each=lagsModelMax);
             n.coef <- n.coef + nExovars;
         }
         else{
             at <- matat[1:lagsModelMax,];
         }
         if(FXEstimate){
-            matFX <- matrix(C[n.coef+(1:(nExovars^2))],nExovars,nExovars);
+            matFX <- matrix(B[n.coef+(1:(nExovars^2))],nExovars,nExovars);
             n.coef <- n.coef + nExovars^2;
         }
 
         if(gXEstimate){
-            vecgX <- matrix(C[n.coef+(1:nExovars)],nExovars,1);
+            vecgX <- matrix(B[n.coef+(1:nExovars)],nExovars,1);
             n.coef <- n.coef + nExovars;
         }
     }
@@ -316,8 +317,8 @@ ElementsGUM <- function(C){
 }
 
 ##### Cost Function for GUM #####
-CF <- function(C){
-    elements <- ElementsGUM(C);
+CF <- function(B){
+    elements <- ElementsGUM(B);
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
@@ -348,121 +349,121 @@ CreatorGUM <- function(silentText=FALSE,...){
        (initialXEstimate),(FXEstimate),(gXEstimate))){
 
         if(is.null(providedC)){
-            Cub <- Clb <- C <- NULL;
+            ub <- lb <- B <- NULL;
 # matw, matF, vecg, vt
             if(measurementEstimate){
-                C <- c(C,rep(1,nComponents));
+                B <- c(B,rep(1,nComponents));
                 if(bounds=="r"){
-                    Clb <- c(Clb,rep(0,nComponents));
-                    Cub <- c(Cub,rep(1,nComponents));
+                    lb <- c(lb,rep(0,nComponents));
+                    ub <- c(ub,rep(1,nComponents));
                 }
                 else{
-                    Clb <- c(Clb,rep(-Inf,nComponents));
-                    Cub <- c(Cub,rep(Inf,nComponents));
+                    lb <- c(lb,rep(-Inf,nComponents));
+                    ub <- c(ub,rep(Inf,nComponents));
                 }
             }
             if(transitionEstimate){
                 # matFInterim <- diag(nComponents);
                 # matFInterim[upper.tri(matFInterim)] <- 1;
                 # matFInterim[lower.tri(matFInterim)] <- 1;
-                # C <- c(C,c(matFInterim));
-                C <- c(C,rep(1,nComponents^2));
+                # B <- c(B,c(matFInterim));
+                B <- c(B,rep(1,nComponents^2));
                 if(bounds=="r"){
-                    Clb <- c(Clb,rep(0,nComponents^2));
-                    Cub <- c(Cub,rep(1,nComponents^2));
+                    lb <- c(lb,rep(0,nComponents^2));
+                    ub <- c(ub,rep(1,nComponents^2));
                 }
                 else{
-                    Clb <- c(Clb,rep(-Inf,nComponents^2));
-                    Cub <- c(Cub,rep(Inf,nComponents^2));
+                    lb <- c(lb,rep(-Inf,nComponents^2));
+                    ub <- c(ub,rep(Inf,nComponents^2));
                 }
             }
             if(persistenceEstimate){
-                C <- c(C,rep(0.1,nComponents));
-                Clb <- c(Clb,rep(-Inf,nComponents));
-                Cub <- c(Cub,rep(Inf,nComponents));
+                B <- c(B,rep(0.1,nComponents));
+                lb <- c(lb,rep(-Inf,nComponents));
+                ub <- c(ub,rep(Inf,nComponents));
             }
             if(initialType=="o"){
-                C <- c(C,intercept);
-                Clb <- c(Clb,-Inf);
-                Cub <- c(Cub,Inf);
+                B <- c(B,intercept);
+                lb <- c(lb,-Inf);
+                ub <- c(ub,Inf);
                 if((orders %*% lags)>1){
-                    C <- c(C,slope);
-                    Clb <- c(Clb,-Inf);
-                    Cub <- c(Cub,Inf);
+                    B <- c(B,slope);
+                    lb <- c(lb,-Inf);
+                    ub <- c(ub,Inf);
                 }
                 if((orders %*% lags)>2){
-                    C <- c(C,yot[1:(orders %*% lags-2),]);
-                    Clb <- c(Clb,rep(-Inf,(orders %*% lags-2)));
-                    Cub <- c(Cub,rep(Inf,(orders %*% lags-2)));
+                    B <- c(B,yot[1:(orders %*% lags-2),]);
+                    lb <- c(lb,rep(-Inf,(orders %*% lags-2)));
+                    ub <- c(ub,rep(Inf,(orders %*% lags-2)));
                 }
             }
 
 # initials, transition matrix and persistence vector
             if(xregEstimate){
                 if(initialXEstimate){
-                    C <- c(C,matat[lagsModelMax,]);
-                    Clb <- c(Clb,rep(-Inf,nExovars));
-                    Cub <- c(Cub,rep(Inf,nExovars));
+                    B <- c(B,matat[lagsModelMax,]);
+                    lb <- c(lb,rep(-Inf,nExovars));
+                    ub <- c(ub,rep(Inf,nExovars));
                 }
                 if(updateX){
                     if(FXEstimate){
-                        C <- c(C,c(diag(nExovars)));
-                        Clb <- c(Clb,rep(0,nExovars^2));
-                        Cub <- c(Cub,rep(1,nExovars^2));
+                        B <- c(B,c(diag(nExovars)));
+                        lb <- c(lb,rep(0,nExovars^2));
+                        ub <- c(ub,rep(1,nExovars^2));
                     }
                     if(gXEstimate){
-                        C <- c(C,rep(0,nExovars));
-                        Clb <- c(Clb,rep(-Inf,nExovars));
-                        Cub <- c(Cub,rep(Inf,nExovars));
+                        B <- c(B,rep(0,nExovars));
+                        lb <- c(lb,rep(-Inf,nExovars));
+                        ub <- c(ub,rep(Inf,nExovars));
                     }
                 }
             }
         }
 
 # Optimise model. First run
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval),
-                      lb=Clb, ub=Cub);
-        C <- res$solution;
+        res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval),
+                      lb=lb, ub=ub);
+        B <- res$solution;
 
 # Optimise model. Second run
-        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel/100, "maxeval"=maxeval/5),
-                       lb=Clb, ub=Cub);
+        res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel/100, "maxeval"=maxeval/5),
+                       lb=lb, ub=ub);
         # This condition is needed in order to make sure that we did not make the solution worse
         if(res2$objective <= res$objective){
             res <- res2;
         }
 
-        C <- res$solution;
+        B <- res$solution;
         cfObjective <- res$objective;
 
         # Parameters estimated + variance
-        nParam <- length(C) + 1;
+        nParam <- length(B) + 1;
     }
     else{
 # matw, matF, vecg, vt
-        C <- c(measurement,
+        B <- c(measurement,
                c(transition),
                c(persistence),
                c(initialValue));
 
-        C <- c(C,matat[lagsModelMax,],
+        B <- c(B,matat[lagsModelMax,],
                c(transitionX),
                c(persistenceX));
 
-        cfObjective <- CF(C);
+        cfObjective <- CF(B);
 
         # Only variance is estimated
         nParam <- 1;
     }
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                           C=C,Etype=Etype);
+                           B=B,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
     icBest <- ICs[ic];
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
+    return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
@@ -595,10 +596,10 @@ CreatorGUM <- function(silentText=FALSE,...){
     }
     matvt[1:lagsModelMax,] <- vt;
 
-#### Deal with provided C ####
+#### Deal with provided B ####
     ellipsis <- list(...);
-    if(any(names(ellipsis)=="C")){
-        providedC <- ellipsis$C;
+    if(any(names(ellipsis)=="B")){
+        providedC <- ellipsis$B;
     }
     else{
         providedC <- NULL;
@@ -612,11 +613,11 @@ CreatorGUM <- function(silentText=FALSE,...){
         }
 
         if(length(providedC)!=nParamToEstimate){
-            warning(paste0("Number of parameters to optimise differes from the length of C: ",nParamToEstimate," vs ",length(providedC),".\n",
-                           "We will have to drop parameter C."),call.=FALSE);
+            warning(paste0("Number of parameters to optimise differes from the length of B: ",nParamToEstimate," vs ",length(providedC),".\n",
+                           "We will have to drop parameter B."),call.=FALSE);
             providedC <- NULL;
         }
-        C <- providedC;
+        B <- providedC;
     }
 
     if(any(names(ellipsis)=="maxeval")){
@@ -684,7 +685,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
     if(xregDo!="u"){
 # Prepare for fitting
-        elements <- ElementsGUM(C);
+        elements <- ElementsGUM(B);
         matw <- elements$matw;
         matF <- elements$matF;
         vecg <- elements$vecg;
@@ -742,7 +743,7 @@ CreatorGUM <- function(silentText=FALSE,...){
         }
     }
 # Prepare for fitting
-    elements <- ElementsGUM(C);
+    elements <- ElementsGUM(B);
     matw <- elements$matw;
     matF <- elements$matF;
     vecg <- elements$vecg;
@@ -766,7 +767,7 @@ CreatorGUM <- function(silentText=FALSE,...){
         environment(ICFunction) <- environment();
 
         ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                               C=C,Etype="M");
+                               B=B,Etype="M");
         ICs <- ICValues$ICs;
         logLik <- ICValues$llikelihood;
     }
@@ -834,7 +835,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     # Write down Fisher Information if needed
     if(FI & parametersNumber[1,4]>1){
         environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
+        FI <- -numDeriv::hessian(likelihoodFunction,B);
     }
     else{
         FI <- NA;
@@ -920,7 +921,8 @@ CreatorGUM <- function(silentText=FALSE,...){
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
                   y=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures,
+                  B=B);
     return(structure(model,class="smooth"));
 }
 

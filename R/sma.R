@@ -183,7 +183,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     nParam <- 1 + 1;
 
 # Cost function for GES
-CF <- function(C){
+CF <- function(B){
     fitting <- fitterwrap(matvt, matF, matw, yInSample, vecg,
                           lagsModel, Etype, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
@@ -227,11 +227,11 @@ CreatorSMA <- function(silentText=FALSE,...){
     matFX <- xregdata$matFX;
     vecgX <- xregdata$vecgX;
 
-    C <- NULL;
-    cfObjective <- CF(C);
+    B <- NULL;
+    cfObjective <- CF(B);
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                           C=C,Etype=Etype);
+                           B=B,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
     bestIC <- ICs[ic];

@@ -592,25 +592,25 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         lagsModelMax <- dataFreq * modelIsSeasonal + 1 * (!modelIsSeasonal);
     }
     else if(smoothType=="ces"){
-        A <- list(value=A);
-        B <- list(value=B);
+        a <- list(value=a);
+        b <- list(value=b);
 
-        if(is.null(A$value)){
-            A$estimate <- TRUE;
+        if(is.null(a$value)){
+            a$estimate <- TRUE;
         }
         else{
-            A$estimate <- FALSE;
-            if(!is.null(A$value)){
-                parametersNumber[2,1] <- parametersNumber[2,1] + length(Re(A$value)) + length(Im(A$value));
+            a$estimate <- FALSE;
+            if(!is.null(a$value)){
+                parametersNumber[2,1] <- parametersNumber[2,1] + length(Re(a$value)) + length(Im(a$value));
             }
         }
-        if(all(is.null(B$value),any(seasonality==c("p","f")))){
-            B$estimate <- TRUE;
+        if(all(is.null(b$value),any(seasonality==c("p","f")))){
+            b$estimate <- TRUE;
         }
         else{
-            B$estimate <- FALSE;
-            if(!is.null(B$value)){
-                parametersNumber[2,1] <- parametersNumber[2,1] + length(Re(B$value)) + length(Im(B$value));
+            b$estimate <- FALSE;
+            if(!is.null(b$value)){
+                parametersNumber[2,1] <- parametersNumber[2,1] + length(Re(b$value)) + length(Im(b$value));
             }
         }
 
@@ -621,32 +621,32 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             lagsModel <- c(1,1);
             # Define the number of all the parameters (smoothing parameters + initial states). Used in AIC mainly!
             nComponents <- 2;
-            A$number <- 2;
-            B$number <- 0;
+            a$number <- 2;
+            b$number <- 0;
         }
         else if(seasonality=="s"){
             # Simple seasonality, lagged CES
             lagsModelMax <- dataFreq;
             lagsModel <- c(lagsModelMax,lagsModelMax);
             nComponents <- 2;
-            A$number <- 2;
-            B$number <- 0;
+            a$number <- 2;
+            b$number <- 0;
         }
         else if(seasonality=="p"){
             # Partial seasonality with a real part only
             lagsModelMax <- dataFreq;
             lagsModel <- c(1,1,lagsModelMax);
             nComponents <- 3;
-            A$number <- 2;
-            B$number <- 1;
+            a$number <- 2;
+            b$number <- 1;
         }
         else if(seasonality=="f"){
             # Full seasonality with both real and imaginary parts
             lagsModelMax <- dataFreq;
             lagsModel <- c(1,1,lagsModelMax,lagsModelMax);
             nComponents <- 4;
-            A$number <- 2;
-            B$number <- 2;
+            a$number <- 2;
+            b$number <- 2;
         }
     }
 
@@ -1086,12 +1086,12 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
             initialType <- "o";
         }
         else{
-            if(smoothType=="msarima" & initialValue=="o"){
-                initialValue <- "b";
-                warning(paste0("We don't support optimisation of the initial states of MSARIMA. ",
-                               "Switching to 'backcasting'."),
-                        call.=FALSE);
-            }
+            # if(smoothType=="msarima" & initialValue=="o"){
+            #     initialValue <- "b";
+            #     warning(paste0("We don't support optimisation of the initial states of MSARIMA. ",
+            #                    "Switching to 'backcasting'."),
+            #             call.=FALSE);
+            # }
             initialType <- initialValue;
         }
         initialValue <- NULL;
@@ -1374,7 +1374,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                           sum(ma.orders)*MARequired*MAEstimate + constantRequired*constantEstimate);
     }
     else if(smoothType=="ces"){
-        nParamMax <- (1 + sum(lagsModel)*(initialType=="o") + A$number*A$estimate + B$number*B$estimate);
+        nParamMax <- (1 + sum(lagsModel)*(initialType=="o") + a$number*a$estimate + b$number*b$estimate);
     }
 
     # Stop if number of observations is less than horizon and multisteps is chosen.
@@ -1524,8 +1524,8 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
     else if(smoothType=="ces"){
         assign("seasonality",seasonality,ParentEnvironment);
-        assign("A",A,ParentEnvironment);
-        assign("B",B,ParentEnvironment);
+        assign("a",a,ParentEnvironment);
+        assign("b",b,ParentEnvironment);
     }
 
     if(any(smoothType==c("es","oes","gum"))){
@@ -3151,9 +3151,9 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 }
 
 ##### *Likelihood function* #####
-likelihoodFunction <- function(C){
-    #### Concentrated logLikelihood based on C and CF ####
-    logLikFromCF <- function(C, loss){
+likelihoodFunction <- function(B){
+    #### Concentrated logLikelihood based on B and CF ####
+    logLikFromCF <- function(B, loss){
         yotSumLog <- switch(Etype,
                             "M" = sum(log(yot)),
                             "A" = 0);
@@ -3184,10 +3184,10 @@ likelihoodFunction <- function(C){
             return(- 0.5 *(obsInSample*(log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
         }
     }
-    CFValue <- CF(C);
+    CFValue <- CF(B);
 
     if(any(occurrence==c("n","p"))){
-        return(logLikFromCF(C, loss));
+        return(logLikFromCF(B, loss));
     }
     else{
         # Failsafe for exceptional cases when the probability is equal to zero / one,
@@ -3197,11 +3197,11 @@ likelihoodFunction <- function(C){
             ptNew <- pFitted[(pFitted!=0) & (pFitted!=1)];
             otNew <- ot[(pFitted!=0) & (pFitted!=1)];
             if(length(ptNew)==0){
-                return(logLikFromCF(C, loss));
+                return(logLikFromCF(B, loss));
             }
             else{
                 return(sum(log(ptNew[otNew==1])) + sum(log(1-ptNew[otNew==0]))
-                       + logLikFromCF(C, loss));
+                       + logLikFromCF(B, loss));
             }
         }
         #Failsafe for cases, when data has no variability when ot==1.
@@ -3215,29 +3215,29 @@ likelihoodFunction <- function(C){
         }
         if(rounded){
             return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0])) - CFValue -
-                       obsZero/2*(log(2*pi*C[length(C)]^2)+1));
+                       obsZero/2*(log(2*pi*B[length(B)]^2)+1));
         }
         if(loss=="GPL" | loss=="aGPL"){
             return(sum(log(pFitted[ot==1]))*h
                    + sum(log(1-pFitted[ot==0]))*h
-                   + logLikFromCF(C, loss));
+                   + logLikFromCF(B, loss));
         }
         else{
             return(sum(log(pFitted[ot==1])) + sum(log(1-pFitted[ot==0]))
-                   + logLikFromCF(C, loss));
+                   + logLikFromCF(B, loss));
         }
     }
 }
 
 ##### *Function calculates ICs* #####
 ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                       C,Etype=Etype){
+                       B,Etype=Etype){
     # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
     # And it is based on the mean of the sum squared residuals either than sum.
     # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
     nParamOverall <- nParam + nParamOccurrence;
-    llikelihood <- likelihoodFunction(C);
+    llikelihood <- likelihoodFunction(B);
 
     # max here is needed in order to take into account cases with higher
     ## number of parameters than observations
@@ -3268,7 +3268,7 @@ ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
 
 ##### *Ouptut printer* #####
 ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, measurement=NULL,
-                     phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, A=NULL, B=NULL, initialType="o",
+                     phi=NULL, ARterms=NULL, MAterms=NULL, constant=NULL, a=NULL, b=NULL, initialType="o",
                      nParam=NULL, s2=NULL, hadxreg=FALSE, wentwild=FALSE,
                      loss="MSE", cfObjective=NULL, interval=FALSE, cumulative=FALSE,
                      intervalType=c("n","p","l","sp","np","a"), level=0.95, ICs,
@@ -3379,15 +3379,15 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
     }
     ### Stuff for CES
     if(model=="CES"){
-        if(!is.null(A)){
-            cat(paste0("a0 + ia1: ",round(A,digits),"\n"));
+        if(!is.null(a)){
+            cat(paste0("a0 + ia1: ",round(a,digits),"\n"));
         }
-        if(!is.null(B)){
-            if(is.complex(B)){
-                cat(paste0("b0 + ib1: ",round(B,digits),"\n"));
+        if(!is.null(b)){
+            if(is.complex(b)){
+                cat(paste0("b0 + ib1: ",round(b,digits),"\n"));
             }
             else{
-                cat(paste0("b: ",round(B,digits),"\n"));
+                cat(paste0("b: ",round(b,digits),"\n"));
             }
         }
     }

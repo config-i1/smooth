@@ -31,11 +31,11 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' seasonality, depending on the data). First letter can be used instead of
 #' full words.  Any seasonal CES can only be constructed for time series
 #' vectors.
-#' @param A First complex smoothing parameter. Should be a complex number.
+#' @param a First complex smoothing parameter. Should be a complex number.
 #'
-#' NOTE! CES is very sensitive to A and B values so it is advised either to
+#' NOTE! CES is very sensitive to a and b values so it is advised either to
 #' leave them alone, or to use values from previously estimated model.
-#' @param B Second complex smoothing parameter. Can be real if
+#' @param b Second complex smoothing parameter. Can be real if
 #' \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 #' complex number.
 #' @param ...  Other non-documented parameters.  For example parameter
@@ -51,8 +51,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' minimum is "level" and "potential". In the case of seasonal model the
 #' seasonal component is also included. In the case of exogenous variables the
 #' estimated coefficients for the exogenous variables are also included.
-#' \item \code{A} - complex smoothing parameter in the form a0 + ia1
-#' \item \code{B} - smoothing parameter for the seasonal component. Can either
+#' \item \code{a} - complex smoothing parameter in the form a0 + ia1
+#' \item \code{b} - smoothing parameter for the seasonal component. Can either
 #' be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 #' in a form b0 + ib1.
 #' \item \code{persistence} - persistence vector. This is the place, where
@@ -102,6 +102,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 #' cumulative error) and Bias coefficient. This is available only when
 #' \code{holdout=TRUE}.
+#' \item \code{B} - the vector of all the estimated parameters.
 #' }
 #' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
 #' \link[stats]{ts}, \link[smooth]{auto.ces}}
@@ -146,7 +147,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @export ces
 ces <- function(y, seasonality=c("none","simple","partial","full"),
-                initial=c("backcasting","optimal"), A=NULL, B=NULL, ic=c("AICc","AIC","BIC","BICc"),
+                initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
@@ -186,8 +187,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
             occurrence <- model$occurrence;
         }
         initial <- model$initial;
-        A <- model$A;
-        B <- model$B;
+        a <- model$a;
+        b <- model$b;
         if(is.null(xreg)){
             xreg <- model$xreg;
         }
@@ -216,62 +217,62 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
     ssInput("ces",ParentEnvironment=environment());
 
 ##### Elements of CES #####
-ElementsCES <- function(C){
+ElementsCES <- function(B){
     vt <- matrix(matvt[1:lagsModelMax,],lagsModelMax);
     nCoefficients <- 0;
     # No seasonality or Simple seasonality, lagged CES
-    if(A$estimate){
-        matF[1,2] <- C[2]-1;
-        matF[2,2] <- 1-C[1];
-        vecg[1:2,] <- c(C[1]-C[2],C[1]+C[2]);
+    if(a$estimate){
+        matF[1,2] <- B[2]-1;
+        matF[2,2] <- 1-B[1];
+        vecg[1:2,] <- c(B[1]-B[2],B[1]+B[2]);
         nCoefficients <- nCoefficients + 2;
     }
     else{
-        matF[1,2] <- Im(A$value)-1;
-        matF[2,2] <- 1-Re(A$value);
-        vecg[1:2,] <- c(Re(A$value)-Im(A$value),Re(A$value)+Im(A$value));
+        matF[1,2] <- Im(a$value)-1;
+        matF[2,2] <- 1-Re(a$value);
+        vecg[1:2,] <- c(Re(a$value)-Im(a$value),Re(a$value)+Im(a$value));
     }
 
     if(seasonality=="p"){
     # Partial seasonality with a real part only
-        if(B$estimate){
-            vecg[3,] <- C[nCoefficients+1];
+        if(b$estimate){
+            vecg[3,] <- B[nCoefficients+1];
             nCoefficients <- nCoefficients + 1;
         }
         else{
-            vecg[3,] <- B$value;
+            vecg[3,] <- b$value;
         }
     }
     else if(seasonality=="f"){
     # Full seasonality with both real and imaginary parts
-        if(B$estimate){
-            matF[3,4] <- C[nCoefficients+2]-1;
-            matF[4,4] <- 1-C[nCoefficients+1];
-            vecg[3:4,] <- c(C[nCoefficients+1]-C[nCoefficients+2],C[nCoefficients+1]+C[nCoefficients+2]);
+        if(b$estimate){
+            matF[3,4] <- B[nCoefficients+2]-1;
+            matF[4,4] <- 1-B[nCoefficients+1];
+            vecg[3:4,] <- c(B[nCoefficients+1]-B[nCoefficients+2],B[nCoefficients+1]+B[nCoefficients+2]);
             nCoefficients <- nCoefficients + 2;
         }
         else{
-            matF[3,4] <- Im(B$value)-1;
-            matF[4,4] <- 1-Re(B$value);
-            vecg[3:4,] <- c(Re(B$value)-Im(B$value),Re(B$value)+Im(B$value));
+            matF[3,4] <- Im(b$value)-1;
+            matF[4,4] <- 1-Re(b$value);
+            vecg[3:4,] <- c(Re(b$value)-Im(b$value),Re(b$value)+Im(b$value));
         }
     }
 
     if(initialType=="o"){
         if(any(seasonality==c("n","s"))){
-            vt[1:lagsModelMax,] <- C[nCoefficients+(1:(2*lagsModelMax))];
+            vt[1:lagsModelMax,] <- B[nCoefficients+(1:(2*lagsModelMax))];
             nCoefficients <- nCoefficients + lagsModelMax*2;
         }
         else if(seasonality=="p"){
-            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=lagsModelMax);
+            vt[,1:2] <- rep(B[nCoefficients+(1:2)],each=lagsModelMax);
             nCoefficients <- nCoefficients + 2;
-            vt[1:lagsModelMax,3] <- C[nCoefficients+(1:lagsModelMax)];
+            vt[1:lagsModelMax,3] <- B[nCoefficients+(1:lagsModelMax)];
             nCoefficients <- nCoefficients + lagsModelMax;
         }
         else if(seasonality=="f"){
-            vt[,1:2] <- rep(C[nCoefficients+(1:2)],each=lagsModelMax);
+            vt[,1:2] <- rep(B[nCoefficients+(1:2)],each=lagsModelMax);
             nCoefficients <- nCoefficients + 2;
-            vt[1:lagsModelMax,3:4] <- C[nCoefficients+(1:(lagsModelMax*2))];
+            vt[1:lagsModelMax,3:4] <- B[nCoefficients+(1:(lagsModelMax*2))];
             nCoefficients <- nCoefficients + lagsModelMax*2;
         }
     }
@@ -286,7 +287,7 @@ ElementsCES <- function(C){
     if(xregEstimate){
         at <- matrix(NA,lagsModelMax,nExovars);
         if(initialXEstimate){
-            at[,] <- rep(C[nCoefficients+(1:nExovars)],each=lagsModelMax);
+            at[,] <- rep(B[nCoefficients+(1:nExovars)],each=lagsModelMax);
             nCoefficients <- nCoefficients + nExovars;
         }
         else{
@@ -294,12 +295,12 @@ ElementsCES <- function(C){
         }
         if(updateX){
             if(FXEstimate){
-                matFX <- matrix(C[nCoefficients+(1:(nExovars^2))],nExovars,nExovars);
+                matFX <- matrix(B[nCoefficients+(1:(nExovars^2))],nExovars,nExovars);
                 nCoefficients <- nCoefficients + nExovars^2;
             }
 
             if(gXEstimate){
-                vecgX <- matrix(C[nCoefficients+(1:nExovars)],nExovars,1);
+                vecgX <- matrix(B[nCoefficients+(1:nExovars)],nExovars,1);
                 nCoefficients <- nCoefficients + nExovars;
             }
         }
@@ -312,9 +313,9 @@ ElementsCES <- function(C){
 }
 
 ##### Cost function for CES #####
-CF <- function(C){
+CF <- function(B){
 # Obtain the elements of CES
-    elements <- ElementsCES(C);
+    elements <- ElementsCES(B);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[1:lagsModelMax,] <- elements$vt;
@@ -339,88 +340,88 @@ CreatorCES <- function(silentText=FALSE,...){
     environment(likelihoodFunction) <- environment();
     environment(ICFunction) <- environment();
 
-    if(any(initialType=="o",A$estimate,B$estimate,initialXEstimate,FXEstimate,gXEstimate)){
-        C <- NULL;
-        # If we don't need to estimate A
-        if(A$estimate){
-            C <- c(1.3,1);
+    if(any(initialType=="o",a$estimate,b$estimate,initialXEstimate,FXEstimate,gXEstimate)){
+        B <- NULL;
+        # If we don't need to estimate a
+        if(a$estimate){
+            B <- c(1.3,1);
         }
 
         if(any(seasonality==c("n","s"))){
             if(initialType=="o"){
-                C <- c(C,c(matvt[1:lagsModelMax,]));
+                B <- c(B,c(matvt[1:lagsModelMax,]));
             }
         }
         else if(seasonality=="p"){
-            if(B$estimate){
-                C <- c(C,0.1);
+            if(b$estimate){
+                B <- c(B,0.1);
             }
             if(initialType=="o"){
-                C <- c(C,c(matvt[1,1:2]));
-                C <- c(C,c(matvt[1:lagsModelMax,3]));
+                B <- c(B,c(matvt[1,1:2]));
+                B <- c(B,c(matvt[1:lagsModelMax,3]));
             }
         }
         else{
-            if(B$estimate){
-                C <- c(C,1.3,1);
+            if(b$estimate){
+                B <- c(B,1.3,1);
             }
             if(initialType=="o"){
-                C <- c(C,c(matvt[1,1:2]));
-                C <- c(C,c(matvt[1:lagsModelMax,3:4]));
+                B <- c(B,c(matvt[1,1:2]));
+                B <- c(B,c(matvt[1:lagsModelMax,3:4]));
             }
         }
 
         if(xregEstimate){
             if(initialXEstimate){
-                C <- c(C,matat[lagsModelMax,]);
+                B <- c(B,matat[lagsModelMax,]);
             }
             if(updateX){
                 if(FXEstimate){
-                    C <- c(C,c(diag(nExovars)));
+                    B <- c(B,c(diag(nExovars)));
                 }
                 if(gXEstimate){
-                    C <- c(C,rep(0,nExovars));
+                    B <- c(B,rep(0,nExovars));
                 }
             }
         }
 
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-        C <- res$solution;
+        res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+        B <- res$solution;
 
         #In cases of xreg the optimiser sometimes fails to find reasonable parameters
         if(!is.null(xreg)){
-            res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
+            res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
         }
         else{
-            res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
+            res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
         }
             # This condition is needed in order to make sure that we did not make the solution worse
         if(res2$objective <= res$objective){
             res <- res2;
         }
 
-        C <- res$solution;
+        B <- res$solution;
         cfObjective <- res$objective;
 
         # Parameters estimated + variance
-        nParam <- length(C) + 1;
+        nParam <- length(B) + 1;
     }
     else{
-        C <- c(A$value,B$value,initialValue,initialX,transitionX,persistenceX);
-        cfObjective <- CF(C);
+        B <- c(a$value,b$value,initialValue,initialX,transitionX,persistenceX);
+        cfObjective <- CF(B);
 
         # Only variance is estimated
         nParam <- 1;
     }
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                           C=C,Etype=Etype);
+                           B=B,Etype=Etype);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
     icBest <- ICs[ic];
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
+    return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
 ##### Preset yFitted, yForecast, errors and basic parameters #####
@@ -624,7 +625,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     if(xregDo!="u"){
         # Prepare for fitting
-        elements <- ElementsCES(C);
+        elements <- ElementsCES(B);
         matF <- elements$matF;
         vecg <- elements$vecg;
         matvt[1:lagsModelMax,] <- elements$vt;
@@ -683,7 +684,7 @@ CreatorCES <- function(silentText=FALSE,...){
     }
 
 # Prepare for fitting
-    elements <- ElementsCES(C);
+    elements <- ElementsCES(B);
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[1:lagsModelMax,] <- elements$vt;
@@ -746,30 +747,30 @@ CreatorCES <- function(silentText=FALSE,...){
 
     # Right down the smoothing parameters
     nCoefficients <- 0;
-    if(A$estimate){
-        A$value <- complex(real=C[1],imaginary=C[2]);
+    if(a$estimate){
+        a$value <- complex(real=B[1],imaginary=B[2]);
         nCoefficients <- 2;
         parametersNumber[1,1] <- parametersNumber[1,1] + 2;
     }
 
-    names(A$value) <- "a0+ia1";
+    names(a$value) <- "a0+ia1";
 
-    if(B$estimate){
+    if(b$estimate){
         if(seasonality=="p"){
-            B$value <- C[nCoefficients+1];
+            b$value <- B[nCoefficients+1];
             parametersNumber[1,1] <- parametersNumber[1,1] + 1;
         }
         else if(seasonality=="f"){
-            B$value <- complex(real=C[nCoefficients+1],imaginary=C[nCoefficients+2]);
+            b$value <- complex(real=B[nCoefficients+1],imaginary=B[nCoefficients+2]);
             parametersNumber[1,1] <- parametersNumber[1,1] + 2;
         }
     }
-    if(B$number!=0){
-        if(is.complex(B$value)){
-            names(B$value) <- "b0+ib1";
+    if(b$number!=0){
+        if(is.complex(b$value)){
+            names(b$value) <- "b0+ib1";
         }
         else{
-            names(B$value) <- "b";
+            names(b$value) <- "b";
         }
     }
 
@@ -791,7 +792,7 @@ CreatorCES <- function(silentText=FALSE,...){
     # Write down Fisher Information if needed
     if(FI & parametersNumber[1,4]>1){
         environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
+        FI <- -numDeriv::hessian(likelihoodFunction,B);
     }
     else{
         FI <- NA;
@@ -854,7 +855,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
-                  states=matvt,A=A$value,B=B$value,
+                  states=matvt,a=a$value,b=b$value,
                   persistence=vecg,transition=matF,
                   measurement=matw,
                   initialType=initialType,initial=initialValue,
@@ -863,6 +864,7 @@ CreatorCES <- function(silentText=FALSE,...){
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
                   y=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures,
+                  B=B);
     return(structure(model,class="smooth"));
 }

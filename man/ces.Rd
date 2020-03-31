@@ -5,7 +5,7 @@
 \title{Complex Exponential Smoothing}
 \usage{
 ces(y, seasonality = c("none", "simple", "partial", "full"),
-  initial = c("backcasting", "optimal"), A = NULL, B = NULL,
+  initial = c("backcasting", "optimal"), a = NULL, b = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
@@ -34,12 +34,12 @@ is character, then it can be \code{"optimal"}, meaning that the initial
 states are optimised, or \code{"backcasting"}, meaning that the initials are
 produced using backcasting procedure.}
 
-\item{A}{First complex smoothing parameter. Should be a complex number.
+\item{a}{First complex smoothing parameter. Should be a complex number.
 
-NOTE! CES is very sensitive to A and B values so it is advised either to
+NOTE! CES is very sensitive to a and b values so it is advised either to
 leave them alone, or to use values from previously estimated model.}
 
-\item{B}{Second complex smoothing parameter. Can be real if
+\item{b}{Second complex smoothing parameter. Can be real if
 \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 complex number.}
 
@@ -171,8 +171,8 @@ following values: \itemize{
 minimum is "level" and "potential". In the case of seasonal model the
 seasonal component is also included. In the case of exogenous variables the
 estimated coefficients for the exogenous variables are also included.
-\item \code{A} - complex smoothing parameter in the form a0 + ia1
-\item \code{B} - smoothing parameter for the seasonal component. Can either
+\item \code{a} - complex smoothing parameter in the form a0 + ia1
+\item \code{b} - smoothing parameter for the seasonal component. Can either
 be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
 in a form b0 + ib1.
 \item \code{persistence} - persistence vector. This is the place, where
@@ -222,6 +222,7 @@ RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient. This is available only when
 \code{holdout=TRUE}.
+\item \code{B} - the vector of all the estimated parameters.
 }
 }
 \description{

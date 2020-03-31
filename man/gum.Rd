@@ -232,6 +232,7 @@ RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient. This is available only when
 \code{holdout=TRUE}.
+\item \code{B} - the vector of all the estimated parameters.
 }
 }
 \description{

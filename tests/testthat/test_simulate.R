@@ -42,7 +42,7 @@ test_that("CES(s) with some random parameters", {
 })
 
 test_that("CES(p) with some random A parameter and fixed b=0.1 ", {
-    expect_equal(sim.ces(seasonality="p",frequency=4,B=0.1,nsim=1,obs=100)$B[1], 0.1);
+    expect_equal(sim.ces(seasonality="p",frequency=4,b=0.1,nsim=1,obs=100)$b[1], 0.1);
 })
 
 test_that("CES(f) with intermittent data", {

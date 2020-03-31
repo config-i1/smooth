@@ -164,6 +164,8 @@ estimated as well.
 \item \code{persistenceX} - persistence vector g for exogenous variables.
 \item \code{transitionX} - transition matrix F for exogenous variables.
 \item \code{accuracy} - The error measures for the forecast (in case of \code{holdout=TRUE}).
+\item \code{B} - the vector of all the estimated parameters (in case of "odds-ratio",
+"inverse-odds-ratio" and "direct" models).
 }
 }
 \description{

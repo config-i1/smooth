@@ -12,6 +12,7 @@ Changes:
 * ves() now accepts B, ub and lb for the optimiser.
 * ves() is now optimised using Nelder-Mead only.
 * msarima() now has an option of producing initials using optimisation.
+* Renamed parameter for the initials of optimiser from "C" or "A" to "B" and upper and lower bounds respectively to "ub" and "lb". This is done for consistency purposes. Functions now also return this in $B and almos all of them accept B=B as a parameter for the initialisation of optimiser.
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.

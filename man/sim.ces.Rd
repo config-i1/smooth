@@ -5,7 +5,7 @@
 \title{Simulate Complex Exponential Smoothing}
 \usage{
 sim.ces(seasonality = c("none", "simple", "partial", "full"), obs = 10,
-  nsim = 1, frequency = 1, A = NULL, B = NULL, initial = NULL,
+  nsim = 1, frequency = 1, a = NULL, b = NULL, initial = NULL,
   randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
 }
 \arguments{
@@ -26,12 +26,12 @@ vectors.}
 \item{frequency}{Frequency of generated data. In cases of seasonal models
 must be greater than 1.}
 
-\item{A}{First complex smoothing parameter. Should be a complex number.
+\item{a}{First complex smoothing parameter. Should be a complex number.
 
-NOTE! CES is very sensitive to A and B values so it is advised to use values
+NOTE! CES is very sensitive to a and b values so it is advised to use values
 from previously estimated model.}
 
-\item{B}{Second complex smoothing parameter. Can be real if
+\item{b}{Second complex smoothing parameter. Can be real if
 \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 complex number.}
 
@@ -60,9 +60,9 @@ to the call \code{rnorm(obs, mean=0.5, sd=1)}.}
 List of the following values is returned:
 \itemize{
 \item \code{model} - Name of CES model.
-\item \code{A} - Value of complex smoothing parameter A. If \code{nsim>1}, then
+\item \code{a} - Value of complex smoothing parameter a. If \code{nsim>1}, then
 this is a vector.
-\item \code{B} - Value of complex smoothing parameter B. If \code{seasonality="n"}
+\item \code{b} - Value of complex smoothing parameter b. If \code{seasonality="n"}
 or \code{seasonality="s"}, then this is equal to NULL. If \code{nsim>1},
 then this is a vector.
 \item \code{initial} - Initial values of CES in a form of matrix. If \code{nsim>1},

@@ -635,7 +635,7 @@ coef.smooth <- function(object, ...)
 {
     smoothType <- smoothType(object);
     if(smoothType=="CES"){
-        parameters <- c(object$A,object$B);
+        parameters <- c(object$a,object$b);
     }
     else if(smoothType=="ETS"){
         if(any(unlist(gregexpr("C",modelType(object)))==-1)){
@@ -1777,7 +1777,7 @@ print.smooth <- function(x, ...){
     }
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
-             phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, A=x$A, B=x$B,initialType=x$initialType,
+             phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, a=x$a, b=x$b,initialType=x$initialType,
              nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$updateX,
              loss=x$loss, cfObjective=x$lossValue, interval=interval, cumulative=cumulative,
              intervalType=intervalType, level=x$level, ICs=x$ICs,
@@ -1882,13 +1882,13 @@ print.smooth.sim <- function(x, ...){
             cat(paste0("True likelihood: ",round(x$logLik,digits),"\n"));
         }
         else if(smoothType=="CES"){
-            cat(paste0("Smoothing parameter A: ",round(x$A,digits),"\n"));
-            if(!is.null(x$B)){
-                if(is.complex(x$B)){
-                    cat(paste0("Smoothing parameter B: ",round(x$B,digits),"\n"));
+            cat(paste0("Smoothing parameter a: ",round(x$a,digits),"\n"));
+            if(!is.null(x$b)){
+                if(is.complex(x$b)){
+                    cat(paste0("Smoothing parameter b: ",round(x$b,digits),"\n"));
                 }
                 else{
-                    cat(paste0("Smoothing parameter b: ",round(x$B,digits),"\n"));
+                    cat(paste0("Smoothing parameter b: ",round(x$b,digits),"\n"));
                 }
             }
             cat(paste0("True likelihood: ",round(x$logLik,digits),"\n"));
@@ -2182,8 +2182,8 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     }
     else if(smoothType=="CES"){
         args$seasonality <- modelType(object);
-        args$A <- object$A;
-        args$B <- object$B;
+        args$a <- object$a;
+        args$b <- object$b;
 
         simulatedData <- do.call("sim.ces",args);
     }

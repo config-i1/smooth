@@ -18,10 +18,10 @@ test_that("Test AICc of CES based on MSTFE on N2568$x", {
 })
 
 # Test how different passed values are accepted by CES
-test_that("Test initials, A and B of CES on N2568$x", {
+test_that("Test initials, a and b of CES on N2568$x", {
     expect_equal(ces(Mcomp::M3$N2568$x, seasonality="f", initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
-    expect_equal(ces(Mcomp::M3$N2568$x, seasonality="f", A=testModel$A, silent=TRUE)$A, testModel$A);
-    expect_equal(ces(Mcomp::M3$N2568$x, seasonality="f", B=testModel$B, silent=TRUE)$B, testModel$B);
+    expect_equal(ces(Mcomp::M3$N2568$x, seasonality="f", a=testModel$a, silent=TRUE)$a, testModel$a);
+    expect_equal(ces(Mcomp::M3$N2568$x, seasonality="f", b=testModel$b, silent=TRUE)$b, testModel$b);
 })
 
 # Test exogenous (normal + updateX) with CES

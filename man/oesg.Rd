@@ -154,6 +154,7 @@ values:
 to the one from the \code{oes()} function;
 \item \code{modelB} - the model B of the class oes, that contains the output similar
 to the one from the \code{oes()} function.
+\item \code{B} - the vector of all the estimated parameters.
 }
 }
 \description{
