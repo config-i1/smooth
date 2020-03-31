@@ -26,7 +26,23 @@ checking installed package size ... NOTE
 All seems to be okay.
 
 ## rhub checks
-The check on rhub with ASAN/UBSAN produces errors. However, they are not related to the code of smooth package - they are related to loading of other packages: it looks like, when forecast package is loaded, there is a bunch of warnings and errors on that specific platform.
+Fedora Linux (R-devel, clang, gfortran) and Ubuntu Linux 16.04 LTS (R-release, GCC) produce notes about the examples with CPU or elapsed time > 5s.
+* checking examples ... NOTE
+Examples with CPU or elapsed time > 5s
+               user system elapsed
+smoothCombine 4.660  0.068  14.313
+auto.gum      3.824  0.024  10.633
+es            3.484  0.028   9.256
+ces           1.836  0.012   5.348
+orders        1.536  0.012   5.543
+
+* checking examples ... NOTE
+Examples with CPU (user + system) or elapsed time > 5s
+               user system elapsed
+smoothCombine 4.628  0.144  12.389
+auto.gum      4.068  0.036  11.179
+es            3.516  0.052   9.160
+
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
