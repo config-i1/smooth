@@ -1,4 +1,4 @@
-utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","C",
+utils::globalVariables(c("normalizer","constantValue","constantRequired","constantEstimate","B",
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
                          "yForecastStart","nonZeroARI","nonZeroMA"));
 
@@ -155,6 +155,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 #' cumulative error) and Bias coefficient. This is available only when
 #' \code{holdout=TRUE}.
+#' \item \code{B} - the vector of all the estimated parameters.
 #' }
 #'
 #' @seealso \code{\link[smooth]{auto.msarima}, \link[smooth]{orders},
@@ -327,9 +328,9 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ssInput("msarima",ParentEnvironment=environment());
 
 # Cost function for SSARIMA
-CF <- function(C){
+CF <- function(B){
     cfRes <- costfuncARIMA(ar.orders, ma.orders, i.orders, lags, nComponents,
-                           ARValue, MAValue, constantValue, C,
+                           ARValue, MAValue, constantValue, B,
                            matvt, matF, matw, yInSample, vecg,
                            h, lagsModel, Etype, Ttype, Stype,
                            multisteps, loss, normalizer, initialType,
@@ -356,67 +357,77 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     if(any((initialType=="o"),(AREstimate),(MAEstimate),
            (initialXEstimate),(FXEstimate),(gXEstimate),(constantEstimate))){
 
-        C <- NULL;
+        B <- NULL;
+        # If there are AR / I / MA components
         if(nComponents > 0){
-# ar terms, ma terms from season to season...
+            # Initialise AR / MA parameters
             if(AREstimate){
-                # C <- c(C,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
-                C <- c(C,rep(1/sum(ar.orders),sum(ar.orders)));
+                # B <- c(B,c(1:sum(ar.orders))/sum(sum(ar.orders):1));
+                # B <- c(B,rep(1/sum(ar.orders),sum(ar.orders)));
+                B <- c(B,rep(0.1,sum(ar.orders)));
             }
             if(MAEstimate){
-                # C <- c(C,rep(0.1,sum(ma.orders)));
-                C <- c(C,rep(1/sum(ma.orders),sum(ma.orders)));
+                B <- c(B,rep(0.1,sum(ma.orders)));
+                # B <- c(B,rep(1/sum(ma.orders),sum(ma.orders)));
             }
 
-# initial values of state vector and the constant term
+            # initial values of state vector
             if(initialType=="o"){
-                C <- c(C,matvt[1:nComponents,1]);
+                B <- c(B,matvt[1:lagsModelMax,nComponents]);
             }
         }
 
+        # The constant
         if(constantEstimate){
             if(all(i.orders==0)){
-                C <- c(C,sum(yot)/obsInSample);
+                B <- c(B,sum(yot)/obsInSample);
             }
             else{
-                C <- c(C,sum(diff(yot))/obsInSample);
+                B <- c(B,sum(diff(yot))/obsInSample);
             }
         }
 
 # initials, transition matrix and persistence vector
         if(xregEstimate){
             if(initialXEstimate){
-                C <- c(C,matat[lagsModelMax,]);
+                B <- c(B,matat[lagsModelMax,]);
             }
             if(updateX){
                 if(FXEstimate){
-                    C <- c(C,c(diag(nExovars)));
+                    B <- c(B,c(diag(nExovars)));
                 }
                 if(gXEstimate){
-                    C <- c(C,rep(0,nExovars));
+                    B <- c(B,rep(0,nExovars));
                 }
             }
         }
 
+        # print(lagsModel)
+        # print(head(matvt,15))
+        # print(nonZeroARI)
+        # print(nonZeroMA)
+        # print(nComponents)
+        # print(B)
+        # stop()
 # Optimise model. First run
-        res <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-        C <- res$solution;
+        res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+        B <- res$solution;
 
 # Optimise model. Second run
-        res2 <- nloptr(C, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-10, "maxeval"=1000));
+        res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=200));
         # This condition is needed in order to make sure that we did not make the solution worse
         if(res2$objective <= res$objective){
             res <- res2;
         }
 
-        C <- res$solution;
+        B <- res$solution;
         cfObjective <- res$objective;
 
         # Parameters estimated + variance
-        nParam <- length(C) + 1;
+        nParam <- length(B) + 1;
     }
     else{
-        C <- NULL;
+        B <- NULL;
 
 # initial values of state vector and the constant term
         if(nComponents>0 & initialType=="p"){
@@ -426,19 +437,19 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             matvt[1:lagsModelMax,(nComponents+1)] <- constantValue;
         }
 
-        cfObjective <- CF(C);
+        cfObjective <- CF(B);
 
         # Only variance is estimated
         nParam <- 1;
     }
 
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                           C=C,Etype=Etype);
+                           B=B,Etype=Etype);
     ICs <- ICValues$ICs;
     icBest <- ICs[ic];
     logLik <- ICValues$llikelihood;
 
-    return(list(cfObjective=cfObjective,C=C,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
+    return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 }
 
     # Prepare lists for the polynomials
@@ -624,15 +635,18 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         intermittentParametersSetter(occurrence=occurrence,ParentEnvironment=environment());
         intermittentMaker(occurrence=occurrence,ParentEnvironment=environment());
 
+        # print("Start...");
         ssarimaValues <- CreatorSSARIMA(silent=silentText);
+        # print("Optimised!");
     }
 
     list2env(ssarimaValues,environment());
+    # print("list2env");
 
     if(xregDo!="u"){
         # Prepare for fitting
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
-                                ARValue, MAValue, constantValue, C,
+                                ARValue, MAValue, constantValue, B,
                                 matvt, vecg, matF,
                                 initialType, nExovars, matat, matFX, vecgX,
                                 AREstimate, MAEstimate, constantRequired, constantEstimate,
@@ -685,6 +699,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             list2env(ssarimaValues,environment());
         }
     }
+    # print("xregDo");
 
     if(!is.null(xreg)){
         if(ncol(matat)==1){
@@ -696,15 +711,17 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             parametersNumber[1,2] <- nParamExo;
         }
     }
+    # print("xreg");
 # Prepare for fitting
     elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
-                            ARValue, MAValue, constantValue, C,
+                            ARValue, MAValue, constantValue, B,
                             matvt, vecg, matF,
                             initialType, nExovars, matat, matFX, vecgX,
                             AREstimate, MAEstimate, constantRequired, constantEstimate,
                             xregEstimate, updateX, FXEstimate, gXEstimate, initialXEstimate,
                             # The last bit is "ssarimaOld"
                             FALSE, lagsModel, nonZeroARI, nonZeroMA);
+    # print("polysos");
     matF <- elements$matF;
     vecg <- elements$vecg;
     matvt[,] <- elements$matvt;
@@ -717,8 +734,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     nComponents <- nComponents + constantRequired;
 
 ##### Fit simple model and produce forecast #####
+    # print("fit!");
     ssFitter(ParentEnvironment=environment());
+    # print("fitted!");
     ssForecaster(ParentEnvironment=environment());
+    # print("forecasted");
 
 ##### Do final check and make some preparations for output #####
 
@@ -731,7 +751,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             initialValue <- matvt[1:lagsModelMax,];
         }
         if(initialType!="b"){
-            parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
+            parametersNumber[1,1] <- parametersNumber[1,1] + nComponents;
         }
     }
 
@@ -813,8 +833,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     for(i in 1:length(ar.orders)){
         if(ar.orders[i]!=0){
             if(AREstimate){
-                ARterms[1:ar.orders[i],arIndex] <- C[nCoef+(1:ar.orders[i])];
-                names(C)[nCoef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[arIndex]);
+                ARterms[1:ar.orders[i],arIndex] <- B[nCoef+(1:ar.orders[i])];
+                names(B)[nCoef+(1:ar.orders[i])] <- paste0("AR(",1:ar.orders[i],"), ",colnames(ARterms)[arIndex]);
                 nCoef <- nCoef + ar.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ar.orders[i];
             }
@@ -826,8 +846,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
         if(ma.orders[i]!=0){
             if(MAEstimate){
-                MAterms[1:ma.orders[i],maIndex] <- C[nCoef+(1:ma.orders[i])];
-                names(C)[nCoef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[maIndex]);
+                MAterms[1:ma.orders[i],maIndex] <- B[nCoef+(1:ma.orders[i])];
+                names(B)[nCoef+(1:ma.orders[i])] <- paste0("MA(",1:ma.orders[i],"), ",colnames(MAterms)[maIndex]);
                 nCoef <- nCoef + ma.orders[i];
                 parametersNumber[1,1] <- parametersNumber[1,1] + ma.orders[i];
             }
@@ -871,11 +891,11 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         if(constantEstimate){
             constantValue <- matvt[1,nComponents];
             parametersNumber[1,1] <- parametersNumber[1,1] + 1;
-            if(!is.null(names(C))){
-                names(C)[is.na(names(C))][1] <- "Constant";
+            if(!is.null(names(B))){
+                names(B)[is.na(names(B))][1] <- "Constant";
             }
             else{
-                names(C)[1] <- "Constant";
+                names(B)[1] <- "Constant";
             }
         }
         const <- constantValue;
@@ -898,8 +918,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     # Write down Fisher Information if needed
     if(FI & parametersNumber[1,4]>1){
         environment(likelihoodFunction) <- environment();
-        FI <- -numDeriv::hessian(likelihoodFunction,C);
-        rownames(FI) <- colnames(FI) <- names(C);
+        FI <- -numDeriv::hessian(likelihoodFunction,B);
+        rownames(FI) <- colnames(FI) <- names(B);
         if(initialType=="o"){
             # Leave only AR and MA parameters. Forget about the initials
             FI <- FI[!is.na(rownames(FI)),!is.na(colnames(FI))];
@@ -908,6 +928,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     else{
         FI <- NA;
     }
+    # print("holdout");
 
 ##### Deal with the holdout sample #####
     if(holdout){
@@ -951,6 +972,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         }
     }
 
+    # print("Yes!");
 ##### Return values #####
     model <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                   states=matvt,transition=matF,persistence=vecg,
@@ -962,6 +984,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
                   y=y,holdout=yHoldout,occurrence=occurrenceModel,
                   xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
-                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures);
+                  ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures,
+                  B=B);
     return(structure(model,class=c("smooth","msarima")));
 }

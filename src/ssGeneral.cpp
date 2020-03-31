@@ -428,7 +428,8 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
 # Cvalues includes AR, MA, initials, constant, matrixAt, transitionX and persistenceX.
 # C and constValue can be NULL, so pointer is not suitable here.
 */
-List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec const &iOrders, arma::uvec const &lags, unsigned int const &nComponents,
+List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec const &iOrders, arma::uvec const &lags,
+             unsigned int const &nComponents,
              arma::vec const &arValues, arma::vec const &maValues, double const constValue, arma::vec const C,
              arma::mat &matrixVt, arma::vec &vecG, arma::mat &matrixF,
              char const &fitterType, int const &nexo, arma::mat &matrixAt, arma::mat &matrixFX, arma::vec &vecGX,
@@ -444,6 +445,8 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
     arParameters.row(0).fill(1);
     iParameters.row(0).fill(1);
     maParameters.row(0).fill(1);
+
+    int lagsModelMax = max(lagsModel);
 
     int nParam = 0;
     int arnParam = 0;
@@ -511,6 +514,7 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
         }
 
     }
+    // ariPolynomial contains 1 in the first place
     ariPolynomial = polyMult(arPolynomial, iPolynomial);
 
     if(arimaOld){
@@ -524,11 +528,12 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
         ariPolynomial.resize(sum(arOrders % lags)+sum(iOrders % lags)+1);
         arPolynomial.resize(sum(arOrders % lags)+1);
     }
+    int ariPolynomialSize = ariPolynomial.n_elem;
 
 // Fill in transition matrix
-    if(ariPolynomial.n_elem>1){
+    if(ariPolynomialSize>1){
         if(arimaOld){
-            matrixF.submat(0,0,ariPolynomial.n_elem-2,0) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1);
+            matrixF.submat(0,0,ariPolynomialSize-2,0) = -ariPolynomial.rows(1,ariPolynomialSize-1);
         }
         else{
             // This thing does not take into account the possibility of q > p
@@ -546,7 +551,7 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
 // Fill in persistence vector
     if(nComponents>0){
         if(arimaOld){
-            vecG.rows(0,ariPolynomial.n_elem-2) = -ariPolynomial.rows(1,ariPolynomial.n_elem-1) + maPolynomial.rows(1,maPolynomial.n_elem-1);
+            vecG.rows(0,ariPolynomialSize-2) = -ariPolynomial.rows(1,ariPolynomialSize-1) + maPolynomial.rows(1,maPolynomial.n_elem-1);
         }
         else{
             vecG.fill(0);
@@ -565,6 +570,24 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
                 nParam += nComponents;
             }
             else{
+                matrixVt.submat(0,0,lagsModelMax-1,nComponents-1).fill(0);
+                if(nComponents>0){
+                    // If the length of ARI polynomials larger than MA, use them
+                    if(ARILags.n_rows>0 && (ARILags.n_rows>=MALags.n_rows)){
+                        // std::cout << C.rows(nParam,nParam+lagsModelMax-1);
+                        // std::cout << " ; ";
+                        // Fill in the values based on the ARI values. MA stays zero
+                        matrixVt.submat(0,0,lagsModelMax-1,nComponents-1) = C.rows(nParam,nParam+lagsModelMax-1) *
+                            ariPolynomial(ARILags.col(0)).t() / arma::as_scalar(ariPolynomial(ARILags(nComponents-1,0)));
+                        nParam += lagsModelMax;
+                    }
+                    // Otherwise use MA polynomials for the initialisation
+                    else if(MALags.n_rows>0 && (ARILags.n_rows<MALags.n_rows)){
+                        matrixVt.submat(0,0,lagsModelMax-1,nComponents-1) = C.rows(nParam,nParam+lagsModelMax-1) *
+                            maPolynomial(MALags.col(0)).t() / arma::as_scalar(maPolynomial(MALags(nComponents-1,0)));
+                        nParam += lagsModelMax;
+                    }
+                }
             }
         }
         else if(fitterType=='b'){
@@ -581,6 +604,7 @@ List polysos(arma::uvec const &arOrders, arma::uvec const &maOrders, arma::uvec 
             // }
         }
     }
+    // std::cout << "test";
 
 // Deal with constant if needed
     if(constRequired){
