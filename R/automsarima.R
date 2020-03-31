@@ -388,6 +388,7 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
             cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
             cat(paste0(round((m)/nModels,2)*100,"%"));
         }
+        # Originally, we only have a constant
         nParamOriginal <- 1;
         if(silent[1]=="d"){
             cat("I: ");cat(iOrders[d,]);cat(", ");
@@ -453,8 +454,6 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                             cat(paste0(round((m)/nModels,2)*100,"%"));
                         }
                         maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
-                        nParamMA <- sum(maTest);
-                        nParamNew <- nParamOriginal + nParamMA;
 
                         if(silent[1]=="d"){
                             cat("MA: ");cat(maTest);cat(", ");
@@ -467,6 +466,9 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                              bounds=bounds, silent=TRUE,
                                              xreg=NULL, xregDo="use", initialX=initialX,
                                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
+                        # Exclude the variance from the number of parameters
+                        nParamMA <- nparam(testModel)-1;
+                        nParamNew <- nParamOriginal + nParamMA;
                         ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsNonzero, nParamNew);
                         if(combine){
                             testForecasts[[m]] <- matrix(NA,h,3);
@@ -519,8 +521,6 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                             cat(paste0(round((m)/nModels,2)*100,"%"));
                                         }
                                         arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
-                                        nParamAR <- sum(arTest);
-                                        nParamNew <- nParamOriginal + nParamMA + nParamAR;
 
                                         if(silent[1]=="d"){
                                             cat("AR: ");cat(arTest);cat(", ");
@@ -533,6 +533,9 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                                              bounds=bounds, silent=TRUE,
                                                              xreg=NULL, xregDo="use", initialX=initialX,
                                                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
+                                        # Exclude the variance from the number of parameters
+                                        nParamAR <- nparam(testModel)-1;
+                                        nParamNew <- nParamOriginal + nParamMA + nParamAR;
                                         ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
                                         if(combine){
                                             testForecasts[[m]] <- matrix(NA,h,3);
