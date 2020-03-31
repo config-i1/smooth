@@ -13,6 +13,7 @@ Changes:
 * ves() is now optimised using Nelder-Mead only.
 * msarima() now has an option of producing initials using optimisation.
 * Renamed parameter for the initials of optimiser from "C" or "A" to "B" and upper and lower bounds respectively to "ub" and "lb". This is done for consistency purposes. Functions now also return this in $B and almos all of them accept B=B as a parameter for the initialisation of optimiser.
+* plot.smooth() now produces "Actuals vs Fitted" plot in case of which=1. The default time series plot is moved to which=7.
 
 Bugfix:
 * print.smooth.forecast() would print prediction intervals even if it wasn't asked to do so.

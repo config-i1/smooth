@@ -248,6 +248,7 @@ nparam.msdecompose <- function(object, ...){
     return(length(object$lags)+1);
 }
 
+#' @rdname plot.smooth
 #' @export
 plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                              ask=prod(par("mfcol")) < length(which) && dev.interactive(),
@@ -261,7 +262,12 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         on.exit(devAskNewPage(oask));
     }
 
-    if(any(which==1)){
+    if(any(c(1:6,8,9) %in% which)){
+        plot.smooth(x, which=which[which!=7 & which!=10], level=level,
+                    legend=legend, ask=FALSE, lowess=lowess, ...);
+    }
+
+    if(any(which==7)){
         ellipsis$x <- actuals(x);
         if(!any(names(ellipsis)=="ylab")){
             ellipsis$ylab <- x$yName;
@@ -272,12 +278,7 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         lines(yFitted, col="red");
     }
 
-    if(any(c(2:8) %in% which)){
-        plot.smooth(x, which=which[which!=1 & which!=9], level=level,
-                    legend=legend, ask=FALSE, lowess=lowess, ...);
-    }
-
-    if(any(which==9)){
+    if(any(which==10)){
         yDecomposed <- cbind(actuals(x),x$trend);
         for(i in 1:length(x$seasonal)){
             yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);

@@ -1206,9 +1206,9 @@ orders.Arima <- function(object, ...){
 #'
 #' The list of produced plots includes:
 #' \enumerate{
-#' \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
-#' (blue line) and prediction interval (grey lines). Can be used in order to make sure that the model
-#' did not miss any important events over time;
+#' \item Actuals vs Fitted values. Allows analysing, whether there are any issues in the fit.
+#' Does the variability of actuals increase with the increase of fitted values? Is the relation
+#' well captured? They grey line on the plot corresponds to the perfect fit of the model.
 #' \item Standardised residuals vs Fitted. Plots the points and the confidence bounds
 #' (red lines) for the specified confidence \code{level}. Useful for the analysis of outliers;
 #' \item Studentised residuals vs Fitted. This is similar to the previous plot, but with the
@@ -1221,6 +1221,9 @@ orders.Arima <- function(object, ...){
 #' in the estimation (see \code{distribution} parameter in \link[greybox]{alm});
 #' \item ACF of the residuals. Are the residuals autocorrelated? See \link[stats]{acf} for
 #' details;
+#' \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
+#' (blue line) and prediction interval (grey lines). Can be used in order to make sure that the model
+#' did not miss any important events over time;
 #' \item PACF of the residuals. No, really, are they autocorrelated? See \link[stats]{pacf}
 #' for details;
 #' \item Plot of the states of the model. It is not recommended to produce this plot together with
@@ -1233,19 +1236,19 @@ orders.Arima <- function(object, ...){
 #' @param x Time series model for which forecasts are required.
 #' @param which Which of the plots to produce. The possible options (see details for explanations):
 #' \enumerate{
-#' \item Fitted over time;
+#' \item Actuals vs Fitted values;
 #' \item Standardised residuals vs Fitted;
 #' \item Studentised residuals vs Fitted;
 #' \item Absolute residuals vs Fitted;
 #' \item Squared residuals vs Fitted;
 #' \item Q-Q plot with the specified distribution;
+#' \item Fitted over time;
 #' \item ACF of the residuals;
-#' \item PACF of the residuals;
+#' \item PACF of the residuals.
 #' \item Plot of states of the model.
 #' }
-#' @param level Confidence level. Defines width of confidence interval. Used in plots (2), (6) and
-#' (7).
-#' @param legend If \code{TRUE}, then the legend is produced on plots (1), (2) and (3).
+#' @param level Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7) and (8).
+#' @param legend If \code{TRUE}, then the legend is produced on plots (2), (3) and (7).
 #' @param ask Logical; if \code{TRUE}, the user is asked to press Enter before each plot.
 #' @param lowess Logical; if \code{TRUE}, LOWESS lines are drawn on scatterplots, see \link[stats]{lowess}.
 #' @param ... The parameters passed to the plot functions. Recommended to use with separate plots.
@@ -1277,13 +1280,62 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         on.exit(devAskNewPage(oask));
     }
 
-    # 1. Basic plot over time
+    # 1. Fitted vs Actuals values
     plot1 <- function(x, ...){
-        if(any(x$interval==c("none","n"))){
-            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=legend, parReset=FALSE, ...);
+        ellipsis <- list(...);
+
+        # Get the actuals and the fitted values
+        ellipsis$y <- c(actuals(x));
+        if(is.occurrence(x)){
+            if(any(x$distribution==c("plogis","pnorm"))){
+                ellipsis$y <- (ellipsis$y!=0)*1;
+            }
         }
-        else{
-            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=legend, parReset=FALSE, ...);
+        ellipsis$x <- c(fitted(x));
+
+        # If this is a mixture model, remove zeroes
+        if(is.occurrence(x$occurrence)){
+            ellipsis$x <- ellipsis$x[ellipsis$y!=0];
+            ellipsis$y <- ellipsis$y[ellipsis$y!=0];
+        }
+
+        # Remove NAs
+        if(any(is.na(ellipsis$x))){
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$x)];
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+        }
+        if(any(is.na(ellipsis$y))){
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$y)];
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
+        }
+
+        # Title
+        if(!any(names(ellipsis)=="main")){
+            ellipsis$main <- "Actuals vs Fitted";
+        }
+        # If type and ylab are not provided, set them...
+        if(!any(names(ellipsis)=="type")){
+            ellipsis$type <- "p";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- "Actuals";
+        }
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Fitted";
+        }
+        # xlim and ylim
+        if(!any(names(ellipsis)=="xlim")){
+            ellipsis$xlim <- range(c(ellipsis$x,ellipsis$y));
+        }
+        if(!any(names(ellipsis)=="ylim")){
+            ellipsis$ylim <- range(c(ellipsis$x,ellipsis$y));
+        }
+
+        # Start plotting
+        do.call(plot,ellipsis);
+        abline(a=0,b=1,col="grey",lwd=2,lty=2)
+        if(lowess){
+            lines(lowess(ellipsis$x, ellipsis$y), col="red");
         }
     }
 
@@ -1476,8 +1528,18 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
     }
 
-    # 7 and 8. ACF and PACF
-    plot5 <- function(x, type="acf", ...){
+    # 7. Basic plot over time
+    plot5 <- function(x, ...){
+        if(any(x$interval==c("none","n"))){
+            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=legend, parReset=FALSE, ...);
+        }
+        else{
+            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=legend, parReset=FALSE, ...);
+        }
+    }
+
+    # 8 and 9. ACF and PACF
+    plot6 <- function(x, type="acf", ...){
         ellipsis <- list(...);
 
         if(!any(names(ellipsis)=="main")){
@@ -1521,7 +1583,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     # 9. Plot of states
-    plot6 <- function(x, ...){
+    plot7 <- function(x, ...){
         parDefault <- par(no.readonly = TRUE);
         smoothType <- smoothType(x);
         if(smoothType=="ETS"){
@@ -1637,15 +1699,19 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     if(any(which==7)){
-        plot5(x, type="acf", ...);
+        plot5(x, ...);
     }
 
     if(any(which==8)){
-        plot5(x, type="pacf", ...);
+        plot6(x, type="acf", ...);
     }
 
     if(any(which==9)){
-        plot6(x, ...);
+        plot6(x, type="pacf", ...);
+    }
+
+    if(any(which==10)){
+        plot7(x, ...);
     }
 }
 
@@ -1705,9 +1771,9 @@ plot.smooth.forecast <- function(x, ...){
 }
 
 #' @export
-plot.oes <- function(x, ...){
+plot.oes <- function(x, which=c(1,7), ...){
     # This is needed, because diagnostics doesn't make sense in case of oes
-    plot.smooth(x, which=1, ...);
+    plot.smooth(x, which=which, ...);
 }
 
 #### Prints of smooth ####
