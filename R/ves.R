@@ -871,7 +871,7 @@ EstimatorVES <- function(...){
     elements <- BasicMakerVES();
     list2env(elements,environment());
 
-    if(is.null(B) && is.null(B) && is.null(B)){
+    if(is.null(B) && is.null(ub) && is.null(lb)){
         BList <- BValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
         B <- BList$B;
 
