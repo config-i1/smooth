@@ -1,3 +1,10 @@
+smooth v2.5.7 (Release data: 2020-04-06)
+==============
+
+Changes:
+* plot.smooth() now also produces standardised and studentised residuals over time.
+
+
 smooth v2.5.6 (Release data: 2020-03-31)
 ==============
 

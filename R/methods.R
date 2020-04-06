@@ -1224,6 +1224,9 @@ orders.Arima <- function(object, ...){
 #' \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
 #' (blue line) and prediction interval (grey lines). Can be used in order to make sure that the model
 #' did not miss any important events over time;
+#' \item Standardised residuals vs Time. Useful if you want to see, if there is autocorrelation or
+#' if there is heteroscedasticity in time. This also shows, when the outliers happen;
+#' \item Studentised residuals vs Time. Similar to previous, but with studentised residuals;
 #' \item PACF of the residuals. No, really, are they autocorrelated? See \link[stats]{pacf}
 #' for details;
 #' \item Plot of the states of the model. It is not recommended to produce this plot together with
@@ -1243,6 +1246,8 @@ orders.Arima <- function(object, ...){
 #' \item Squared residuals vs Fitted;
 #' \item Q-Q plot with the specified distribution;
 #' \item Fitted over time;
+#' \item Standardised residuals vs Time;
+#' \item Studentised residuals vs Time;
 #' \item ACF of the residuals;
 #' \item PACF of the residuals.
 #' \item Plot of states of the model.
@@ -1260,8 +1265,9 @@ orders.Arima <- function(object, ...){
 #' @examples
 #'
 #' ourModel <- es(c(rnorm(50,100,10),rnorm(50,120,10)), "ANN", h=10)
-#' par(mfcol=c(3,3))
-#' plot(ourModel, c(1:9))
+#' par(mfcol=c(3,4))
+#' plot(ourModel, c(1:11))
+#' plot(ourModel, 12)
 #'
 #' @importFrom stats ppoints qqnorm qqplot qqline acf pacf lowess sd na.pass
 #' @importFrom grDevices dev.interactive devAskNewPage
@@ -1531,23 +1537,94 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 7. Basic plot over time
     plot5 <- function(x, ...){
         if(any(x$interval==c("none","n"))){
-            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=legend, parReset=FALSE, ...);
+            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=FALSE, parReset=FALSE, ...);
         }
         else{
-            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=legend, parReset=FALSE, ...);
+            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=FALSE, parReset=FALSE, ...);
         }
     }
 
-    # 8 and 9. ACF and PACF
-    plot6 <- function(x, type="acf", ...){
+    # 8 and 9. Standardised / Studentised residuals vs time
+    plot6 <- function(x, type="rstandard", ...){
+
+        ellipsis <- list(...);
+        if(type=="rstandard"){
+            ellipsis$x <- rstandard(x);
+            yName <- "Standardised";
+        }
+        else{
+            ellipsis$x <- rstudent(x);
+            yName <- "Studentised";
+        }
+
+        if(is.occurrence(x$occurrence)){
+            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
+        }
+
+        if(!any(names(ellipsis)=="main")){
+            ellipsis$main <- paste0(yName," Residuals vs Time");
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Time";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            ellipsis$ylab <- paste0(yName," Residuals");
+        }
+
+        # If type and ylab are not provided, set them...
+        if(!any(names(ellipsis)=="type")){
+            ellipsis$type <- "l";
+        }
+
+        zValues <- switch(x$loss,
+                          "MAE"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
+                          "HAM"=qs(c((1-level)/2, (1+level)/2), 0, 1),
+                          qnorm(c((1-level)/2, (1+level)/2), 0, 1));
+        outliers <- which(ellipsis$x >zValues[2] | ellipsis$x <zValues[1]);
+
+
+        if(!any(names(ellipsis)=="ylim")){
+            ellipsis$ylim <- c(-max(abs(ellipsis$x)),max(abs(ellipsis$x)))*1.1;
+        }
+
+        if(legend){
+            legendPosition <- "topright";
+            ellipsis$ylim[2] <- ellipsis$ylim[2] + 0.2*diff(ellipsis$ylim);
+            ellipsis$ylim[1] <- ellipsis$ylim[1] - 0.2*diff(ellipsis$ylim);
+        }
+
+        # Start plotting
+        do.call(plot,ellipsis);
+        if(length(outliers)>0){
+            points(time(ellipsis$x)[outliers], ellipsis$x[outliers], pch=16);
+            text(time(ellipsis$x)[outliers], ellipsis$x[outliers], labels=outliers, pos=4);
+        }
+        if(lowess){
+            lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
+        }
+        abline(h=0, col="grey", lty=2);
+        abline(h=zValues[1], col="red", lty=2);
+        abline(h=zValues[2], col="red", lty=2);
+        polygon(c(1:nobs(x), c(nobs(x):1)),
+                c(rep(zValues[1],nobs(x)), rep(zValues[2],nobs(x))),
+                col="lightgrey", border=NA, density=10);
+        if(legend){
+            legend(legendPosition,legend=c("Residuals",paste0(level*100,"% prediction interval")),
+                   col=c("black","red"), lwd=rep(1,3), lty=c(1,1,2));
+        }
+    }
+
+    # 10 and 11. ACF and PACF
+    plot7 <- function(x, type="acf", ...){
         ellipsis <- list(...);
 
         if(!any(names(ellipsis)=="main")){
             if(type=="acf"){
-                ellipsis$main <- "Autocorrelation Function";
+                ellipsis$main <- "Autocorrelation Function of Residuals";
             }
             else{
-                ellipsis$main <- "Partial Autocorrelation Function";
+                ellipsis$main <- "Partial Autocorrelation Function of Residuals";
             }
         }
 
@@ -1582,8 +1659,8 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         abline(h=qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x))), col="red", lty=2);
     }
 
-    # 9. Plot of states
-    plot7 <- function(x, ...){
+    # 12. Plot of states
+    plot8 <- function(x, ...){
         parDefault <- par(no.readonly = TRUE);
         smoothType <- smoothType(x);
         if(smoothType=="ETS"){
@@ -1703,15 +1780,23 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     if(any(which==8)){
-        plot6(x, type="acf", ...);
+        plot6(x, ...);
     }
 
     if(any(which==9)){
-        plot6(x, type="pacf", ...);
+        plot6(x, "rstudent", ...);
     }
 
     if(any(which==10)){
-        plot7(x, ...);
+        plot7(x, type="acf", ...);
+    }
+
+    if(any(which==11)){
+        plot7(x, type="pacf", ...);
+    }
+
+    if(any(which==12)){
+        plot8(x, ...);
     }
 }
 

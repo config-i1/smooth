@@ -25,6 +25,8 @@
 \item Squared residuals vs Fitted;
 \item Q-Q plot with the specified distribution;
 \item Fitted over time;
+\item Standardised residuals vs Time;
+\item Studentised residuals vs Time;
 \item ACF of the residuals;
 \item PACF of the residuals.
 \item Plot of states of the model.
@@ -67,6 +69,9 @@ details;
 \item Fitted over time. Plots actuals (black line), fitted values (purple line), point forecast
 (blue line) and prediction interval (grey lines). Can be used in order to make sure that the model
 did not miss any important events over time;
+\item Standardised residuals vs Time. Useful if you want to see, if there is autocorrelation or
+if there is heteroscedasticity in time. This also shows, when the outliers happen;
+\item Studentised residuals vs Time. Similar to previous, but with studentised residuals;
 \item PACF of the residuals. No, really, are they autocorrelated? See \link[stats]{pacf}
 for details;
 \item Plot of the states of the model. It is not recommended to produce this plot together with
@@ -79,8 +84,9 @@ Which of the plots to produce, is specified via the \code{which} parameter.
 \examples{
 
 ourModel <- es(c(rnorm(50,100,10),rnorm(50,120,10)), "ANN", h=10)
-par(mfcol=c(3,3))
-plot(ourModel, c(1:9))
+par(mfcol=c(3,4))
+plot(ourModel, c(1:11))
+plot(ourModel, 12)
 
 }
 \seealso{
