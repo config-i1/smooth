@@ -52,7 +52,7 @@
 #' \item \code{phi} - Value of damping parameter used in time series generation.
 #' \item \code{initial} - Vector (or matrix) of initial values.
 #' \item \code{initialSeason} - Vector (or matrix) of initial seasonal coefficients.
-#' \item \code{iprob} - vector of probabilities used in the simulation.
+#' \item \code{probability} - vector of probabilities used in the simulation.
 #' \item \code{intermittent} - type of the intermittent model used.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 #' depending on \code{nsim}.
@@ -67,41 +67,42 @@
 #' @examples
 #'
 #' # Create 40 observations of quarterly data using AAA model with errors from normal distribution
-#' ETS.AAA <- sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100)
+#' ETSAAA <- sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100)
 #'
 #' # Create 50 series of quarterly data using AAA model
 #' # with 40 observations each with errors from normal distribution
-#' ETS.AAA <- sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nsim=50)
+#' ETSAAA <- sim.es(model="AAA",frequency=4,obs=40,randomizer="rnorm",mean=0,sd=100,nsim=50)
 #'
 #' # Create 50 series of quarterly data using AAdA model
 #' # with 40 observations each with errors from normal distribution
 #' # and smoothing parameters lying in the "admissible" range.
-#' ETS.AAA <- sim.es(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
+#' ETSAAA <- sim.es(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
 #'                   randomizer="rnorm",mean=0,sd=100,nsim=50)
 #'
 #' # Create 60 observations of monthly data using ANN model
 #' # with errors from beta distribution
-#' ETS.ANN <- sim.es(model="ANN",persistence=c(1.5),frequency=12,obs=60,
+#' ETSANN <- sim.es(model="ANN",persistence=c(1.5),frequency=12,obs=60,
 #'                   randomizer="rbeta",sshape1=1.5,sshape2=1.5)
-#' plot(ETS.ANN$states)
+#' plot(ETSANN$states)
 #'
 #' # Create 60 observations of monthly data using MAM model
 #' # with errors from uniform distribution
-#' ETS.MAM <- sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
+#' ETSMAM <- sim.es(model="MAM",persistence=c(0.3,0.2,0.1),initial=c(2000,50),
 #'            phi=0.8,frequency=12,obs=60,randomizer="runif",min=-0.5,max=0.5)
 #'
 #' # Create 80 observations of quarterly data using MMM model
 #' # with predefined initial values and errors from the normal distribution
-#' ETS.MMM <- sim.es(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),
+#' ETSMMM <- sim.es(model="MMM",persistence=c(0.1,0.1,0.1),initial=c(2000,1),
 #'            initialSeason=c(1.1,1.05,0.9,.95),frequency=4,obs=80,mean=0,sd=0.01)
 #'
 #' # Generate intermittent data using AAdN
-#' iETS.AAdN <- sim.es("AAdN",frequency=1,obs=30,iprob=0.1,initial=c(3,0),phi=0.8)
+#' iETSAAdN <- sim.es("AAdN",obs=30,frequency=1,probability=0.1,initial=c(3,0),phi=0.8)
 #'
 #' # Generate iETS(MNN) with TSB style probabilities
-#' pt <- sim.es("MNN",persistence=0.2,initial=0.5,obs=50,mean=0,sd=0.3)
-#' iprob <- mean(rbeta(50,shape1=pt$states,shape2=1-pt$states))
-#' iETS.MNN <- sim.es("MNN",frequency=12,persistence=0.2,initial=4,iprob=iprob,obs=50)
+#' oETSMNN <- sim.oes("MNN",obs=50,occurrence="d",persistence=0.2,initial=1,
+#'                    randomizer="rlnorm",meanlog=0,sdlog=0.3)
+#' iETSMNN <- sim.es("MNN",obs=50,frequency=12,persistence=0.2,initial=4,
+#'                   probability=oETSMNN$probability)
 #'
 #' @importFrom stats optim
 #' @importFrom greybox rlaplace rs
@@ -111,16 +112,16 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
                    initial=NULL, initialSeason=NULL,
                    bounds=c("usual","admissible","restricted"),
                    randomizer=c("rnorm","rlnorm","rt","rlaplace","rs"),
-                   iprob=1, ...){
+                   probability=1, ...){
 # Function generates data using ETS with Single Source of Error as a data generating process.
 #    Copyright (C) 2015 - Inf Ivan Svetunkov
 
     randomizer <- randomizer[1];
-    args <- list(...);
+    ellipsis <- list(...);
     bounds <- bounds[1];
     # If R decided that by "b" we meant "bounds", fix this!
     if(is.numeric(bounds)){
-        args$b <- bounds;
+        ellipsis$b <- bounds;
         bounds <- "u";
     }
 
@@ -290,33 +291,33 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
     # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rt","rlaplace","rs","rlnorm")) & (length(args)==0)){
+    if(all(randomizer!=c("rnorm","rt","rlaplace","rs","rlnorm")) & (length(ellipsis)==0)){
         warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 
 # Check the vector of probabilities
-    if(is.vector(iprob)){
-        if(any(iprob!=iprob[1])){
-            if(length(iprob)!=obs){
-                warning("Length of iprob does not correspond to number of observations.",call.=FALSE);
-                if(length(iprob)>obs){
+    if(is.vector(probability)){
+        if(any(probability!=probability[1])){
+            if(length(probability)!=obs){
+                warning("Length of probability does not correspond to number of observations.",call.=FALSE);
+                if(length(probability)>obs){
                     warning("We will cut off the excessive ones.",call.=FALSE);
-                    iprob <- iprob[1:obs];
+                    probability <- probability[1:obs];
                 }
                 else{
                     warning("We will duplicate the last one.",call.=FALSE);
-                    iprob <- c(iprob,rep(iprob[length(iprob)],obs-length(iprob)));
+                    probability <- c(probability,rep(probability[length(probability)],obs-length(probability)));
                 }
             }
         }
         else{
-            iprob <- iprob[1];
+            probability <- probability[1];
         }
     }
 
 # Check the probabilities and try to assign the type of intermittent model
-    if(length(iprob)==1){
+    if(length(probability)==1){
         intermittent <- "fixed";
     }
     else{
@@ -324,7 +325,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
         intermittent <- "tsb";
     }
 
-    if(all(iprob==1)){
+    if(all(probability==1)){
         intermittent <- "none";
     }
 
@@ -447,7 +448,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
 # Check if any argument was passed in dots
-    if(length(args)==0){
+    if(length(ellipsis)==0){
 # Create vector of the errors
         if(any(randomizer==c("rnorm","rlaplace","rs"))){
             materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
@@ -457,7 +458,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
             materrors[,] <- rt(nsim*obs,obs-(persistenceLength + lagsModelMax));
         }
         else if(randomizer=="rlnorm"){
-            materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-iprob));
+            materrors[,] <- rlnorm(n=nsim*obs,0,0.01+(1-probability));
             materrors <- materrors - 1;
         }
 
@@ -465,7 +466,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
             # If the error is multiplicative, scale it!
             if(Etype=="M"){
                 # Errors will be lognormal, decrease variance, so it behaves better
-                if(any(iprob!=1)){
+                if(any(probability!=1)){
                     materrors <- materrors * 0.5;
                 }
                 else{
@@ -489,7 +490,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
+        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(ellipsis)),")")));
         if(randomizer=="rbeta"){
 # Center the errors around 0
             materrors <- materrors - 0.5;
@@ -511,17 +512,17 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
 # Generate ones for the possible intermittency
-    if(all(iprob == 1)){
+    if(all(probability == 1)){
         matot[,] <- 1;
     }
     else{
-        matot[,] <- rbinom(obs*nsim,1,iprob);
+        matot[,] <- rbinom(obs*nsim,1,probability);
     }
 
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,Etype,Ttype,Stype,lagsModel);
 
-    # if(all(iprob == 1)){
+    # if(all(probability == 1)){
         matyt <- simulateddata$matyt;
     # }
     # else{
@@ -541,6 +542,10 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
     else if(randomizer=="rlnorm"){
         veclikelihood <- -obs/2 *(log(2*pi*exp(1)) + log(colMeans(materrors^2))) - colSums(log(matyt));
+    }
+    else if(randomizer=="rinvgauss"){
+        veclikelihood <- -0.5*(obs*(log(colMeans(materrors^2/(1+materrors))/(2*pi))-1) +
+                                   sum(log(matyt/(1+materrors))) - 3*sum(log(matyt)));
     }
     # If this is something unknown, forget about it
     else{
@@ -567,7 +572,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
     model <- paste0("ETS(",model,")");
-    if(any(iprob!=1)){
+    if(any(probability!=1)){
         model <- paste0("i",model);
     }
 
@@ -576,7 +581,7 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 
     model <- list(model=model, data=matyt, states=arrvt, persistence=matg, phi=phi,
-                  initial=initial, initialSeason=initialSeason, iprob=iprob, intermittent=intermittent,
-                  residuals=materrors, occurrence=matot, logLik=veclikelihood);
+                  initial=initial, initialSeason=initialSeason, probability=probability, intermittent=intermittent,
+                  residuals=materrors, occurrence=matot, logLik=veclikelihood, other=ellipsis);
     return(structure(model,class="smooth.sim"));
 }

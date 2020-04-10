@@ -1861,6 +1861,40 @@ plot.oes <- function(x, which=c(1,7), ...){
     plot.smooth(x, which=which, ...);
 }
 
+#' @export
+plot.oes.sim <- function(x, ...){
+    ellipsis <- list(...);
+    if(is.null(ellipsis$main)){
+        ellipsis$main <- x$model;
+    }
+
+    if(is.null(dim(x$ot))){
+        nsim <- 1;
+    }
+    else{
+        nsim <- dim(x$ot)[2];
+    }
+
+    if(nsim==1){
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- "Data";
+        }
+        ellipsis$x <- x$probability;
+        do.call(plot, ellipsis);
+    }
+    else{
+        randomNumber <- ceiling(runif(1,1,nsim));
+        message(paste0("You have generated ",nsim," time series. Not sure which of them to plot.\n",
+                       "Please use plot(ourSimulation$probability[,k]) instead. Plotting randomly selected series N",randomNumber,"."));
+        if(is.null(ellipsis$ylab)){
+            ellipsis$ylab <- paste0("Series N",randomNumber);
+        }
+        ellipsis$x <- x$probability[,randomNumber];
+        do.call(plot, ellipsis);
+    }
+}
+
+
 #### Prints of smooth ####
 #' @export
 print.smooth <- function(x, ...){
@@ -1908,7 +1942,7 @@ print.smooth <- function(x, ...){
     if(!is.null(x$model)){
         if(!is.list(x$model)){
             if(any(smoothType==c("SMA","CMA"))){
-                x$iprob <- 1;
+                x$probability <- 1;
                 x$initialType <- "b";
                 occurrence <- "n";
             }
@@ -2159,6 +2193,34 @@ print.oes <- function(x, ...){
     print(ICs);
 }
 
+#' @export
+print.oes.sim <- function(x, ...){
+    ellipsis <- list(...);
+    if(!any(names(ellipsis)=="digits")){
+        digits <- 4;
+    }
+    else{
+        digits <- ellipsis$digits;
+    }
+
+    if(is.null(dim(x$ot))){
+        nsim <- 1;
+        obs <- length(x$ot)
+    }
+    else{
+        nsim <- dim(x$ot)[2];
+        obs <- dim(x$ot)[1];
+    }
+
+    cat(paste0("Data generated from: ",x$model,"\n"));
+    cat(paste0("Number of generated series: ",nsim,"\n"));
+    cat(paste0("Number of observations in each series: ",obs,"\n"));
+
+    if(nsim==1){
+        cat(paste0("True likelihood: ",round(x$logLik,digits),"\n"));
+    }
+}
+
 #### Residuals for provided object ####
 #' @export
 residuals.smooth <- function(object, ...){
@@ -2295,10 +2357,10 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     args$initial <- object$initial;
     # If this is an occurrence model, use the fitted values for the probabilities
     if(is.list(object$occurrence)){
-        args$iprob <- fitted(object$occurrence);
+        args$probability <- fitted(object$occurrence);
     }
     else{
-        args$iprob <- 1;
+        args$probability <- 1;
     }
 
     if(smoothType=="ETS"){

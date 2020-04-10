@@ -79,7 +79,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
                     frequency=1, a=NULL, b=NULL,
                     initial=NULL,
                     randomizer=c("rnorm","rt","rlaplace","rs"),
-                    iprob=1, ...){
+                    probability=1, ...){
 # Function simulates the data using CES state space framework
 #
 # seasonality - the type of seasonality to produce.
@@ -238,17 +238,17 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     bValue <- matrix(NA,b$number,nsim);
 
 # Check the vector of probabilities
-    if(is.vector(iprob)){
-        if(any(iprob!=iprob[1])){
-            if(length(iprob)!=obs){
-                warning("Length of iprob does not correspond to number of observations.",call.=FALSE);
-                if(length(iprob)>obs){
+    if(is.vector(probability)){
+        if(any(probability!=probability[1])){
+            if(length(probability)!=obs){
+                warning("Length of probability does not correspond to number of observations.",call.=FALSE);
+                if(length(probability)>obs){
                     warning("We will cut off the excessive ones.",call.=FALSE);
-                    iprob <- iprob[1:obs];
+                    probability <- probability[1:obs];
                 }
                 else{
                     warning("We will duplicate the last one.",call.=FALSE);
-                    iprob <- c(iprob,rep(iprob[length(iprob)],obs-length(iprob)));
+                    probability <- c(probability,rep(probability[length(probability)],obs-length(probability)));
                 }
             }
         }
@@ -356,17 +356,17 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
 # Generate ones for the possible intermittency
-    if(all(iprob == 1)){
+    if(all(probability == 1)){
         matot[,] <- 1;
     }
     else{
-        matot[,] <- rbinom(obs*nsim,1,iprob);
+        matot[,] <- rbinom(obs*nsim,1,probability);
     }
 
 #### Simulate the data ####
     simulateddata <- simulatorwrap(arrvt,materrors,matot,arrF,matw,matg,"A","N","N",lagsModel);
 
-    if(all(iprob == 1)){
+    if(all(probability == 1)){
         matyt <- simulateddata$matyt;
     }
     else{
@@ -406,7 +406,7 @@ sim.ces <- function(seasonality=c("none","simple","partial","full"),
     }
 
     modelname <- paste0("CES(",seasonality,")");
-    if(any(iprob!=1)){
+    if(any(probability!=1)){
         modelname <- paste0("i",modelname);
     }
 

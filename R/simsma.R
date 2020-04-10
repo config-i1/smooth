@@ -28,7 +28,7 @@
 #' \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in
 #' columns, time is in rows.
 #' \item \code{initial} - Vector (or matrix) of initial values.
-#' \item \code{iprob} - vector of probabilities used in the simulation.
+#' \item \code{probability} - vector of probabilities used in the simulation.
 #' \item \code{intermittent} - type of the intermittent model used.
 #' \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 #' depending on \code{nsim}.
@@ -50,7 +50,7 @@ sim.sma <- function(order=NULL, obs=10, nsim=1,
                    frequency=1,
                    initial=NULL,
                    randomizer=c("rnorm","rt","rlaplace","rs"),
-                   iprob=1, ...){
+                   probability=1, ...){
     # Function generates data using SMA model as a data generating process.
     #    Copyright (C) 2017 Ivan Svetunkov
 
@@ -79,10 +79,10 @@ sim.sma <- function(order=NULL, obs=10, nsim=1,
                               frequency=frequency, AR=rep(1/order,order), MA=NULL, constant=FALSE,
                               initial=initial, bounds="none",
                               randomizer=randomizer,
-                              iprob=iprob, ...)
+                              probability=probability, ...)
 
     ARIMAModel$model <- paste0("SMA(",order,")");
-    if(any(iprob!=1)){
+    if(any(probability!=1)){
         ARIMAModel$model <- paste0("i",ARIMAModel$model);
     }
     ARIMAModel$AR <- NULL;

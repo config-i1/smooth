@@ -7,7 +7,7 @@
 sim.ssarima(orders = list(ar = 0, i = 1, ma = 1), lags = 1, obs = 10,
   nsim = 1, frequency = 1, AR = NULL, MA = NULL, constant = FALSE,
   initial = NULL, bounds = c("admissible", "none"),
-  randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"), probability = 1, ...)
 }
 \arguments{
 \item{orders}{List of orders, containing vector variables \code{ar},
@@ -58,7 +58,7 @@ But any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
 \code{lambda=2} can be used as well, but might result in weird values.}
 
-\item{iprob}{Probability of occurrence, used for intermittent data
+\item{probability}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time
 (in TSB or Croston style).}
 

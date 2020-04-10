@@ -6,7 +6,7 @@
 \usage{
 sim.ces(seasonality = c("none", "simple", "partial", "full"), obs = 10,
   nsim = 1, frequency = 1, a = NULL, b = NULL, initial = NULL,
-  randomizer = c("rnorm", "rt", "rlaplace", "rs"), iprob = 1, ...)
+  randomizer = c("rnorm", "rt", "rlaplace", "rs"), probability = 1, ...)
 }
 \arguments{
 \item{seasonality}{The type of seasonality used in CES. Can be: \code{none}
@@ -47,7 +47,7 @@ But any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
 \code{lambda=2} can be used as well, but might result in weird values.}
 
-\item{iprob}{Probability of occurrence, used for intermittent data
+\item{probability}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time
 (in TSB or Croston style).}
 

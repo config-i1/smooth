@@ -11,8 +11,8 @@ test_that("ETS(AAdM) simulated with phi=0.9", {
     expect_match(testData$model, "AAdM");
 })
 
-testData <- sim.es("MNN", frequency=12, obs=120, nsim=100, iprob=0.2);
-test_that("iETS(MNN) simulated with iprob=0.2 and nsim=100", {
+testData <- sim.es("MNN", frequency=12, obs=120, nsim=100, probability=0.2);
+test_that("iETS(MNN) simulated with probability=0.2 and nsim=100", {
     expect_match(testData$model, "MNN");
 })
 
@@ -28,7 +28,7 @@ test_that("ARIMA(0,1,3) with drift simulated from estimated model", {
 })
 
 test_that("ARIMA(0,1,1) with intermittent data", {
-    expect_match(sim.ssarima(nsim=10,obs=100,iprob=0.2)$model, "iARIMA");
+    expect_match(sim.ssarima(nsim=10,obs=100,probability=0.2)$model, "iARIMA");
 })
 
 #### CES ####
@@ -46,7 +46,7 @@ test_that("CES(p) with some random A parameter and fixed b=0.1 ", {
 })
 
 test_that("CES(f) with intermittent data", {
-    expect_match(sim.ces(seasonality="f",frequency=12,nsim=10,obs=100,iprob=0.2)$model, "iCES");
+    expect_match(sim.ces(seasonality="f",frequency=12,nsim=10,obs=100,probability=0.2)$model, "iCES");
 })
 
 #### GUM ####
@@ -56,12 +56,12 @@ test_that("GUM(1[1]) simulated from estimated model", {
 })
 
 test_that("GUM(1[1]) with intermittent data", {
-    expect_match(sim.gum(nsim=10,obs=100,iprob=0.2)$model, "iGUM");
+    expect_match(sim.gum(nsim=10,obs=100,probability=0.2)$model, "iGUM");
 })
 
 #### SMA ####
 test_that("SMA(10) with intermittent data", {
-    expect_match(sim.sma(10,nsim=10,obs=100,iprob=0.2)$model, "iSMA");
+    expect_match(sim.sma(10,nsim=10,obs=100,probability=0.2)$model, "iSMA");
 })
 
 #### VES ####

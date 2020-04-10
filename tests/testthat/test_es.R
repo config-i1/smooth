@@ -71,7 +71,7 @@ test_that("Test ETS selection on N1234$x", {
 
 # Use simulated data in the model
 test_that("Simulate data and then apply ETS", {
-    x <- sim.es("MNN",iprob=0.2,obs=100);
+    x <- sim.es("MNN",probability=0.2,obs=100);
     testModel <- es(x);
     expect_equal(testModel$initial, x$initial);
 })

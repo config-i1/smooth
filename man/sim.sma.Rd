@@ -6,7 +6,7 @@
 \usage{
 sim.sma(order = NULL, obs = 10, nsim = 1, frequency = 1,
   initial = NULL, randomizer = c("rnorm", "rt", "rlaplace", "rs"),
-  iprob = 1, ...)
+  probability = 1, ...)
 }
 \arguments{
 \item{order}{Order of the modelled series. If omitted, then a random order from 1 to 100 is selected.}
@@ -28,7 +28,7 @@ But any function from \link[stats]{Distributions} will do the trick if the
 appropriate parameters are passed. For example \code{rpois} with
 \code{lambda=2} can be used as well, but might result in weird values.}
 
-\item{iprob}{Probability of occurrence, used for intermittent data
+\item{probability}{Probability of occurrence, used for intermittent data
 generation. This can be a vector, implying that probability varies in time
 (in TSB or Croston style).}
 
@@ -46,7 +46,7 @@ series.
 \item \code{states} - Matrix (or array if \code{nsim>1}) of states. States are in
 columns, time is in rows.
 \item \code{initial} - Vector (or matrix) of initial values.
-\item \code{iprob} - vector of probabilities used in the simulation.
+\item \code{probability} - vector of probabilities used in the simulation.
 \item \code{intermittent} - type of the intermittent model used.
 \item \code{residuals} - Error terms used in the simulation. Either vector or matrix,
 depending on \code{nsim}.
