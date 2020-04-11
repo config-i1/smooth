@@ -104,7 +104,7 @@ sim.oes <- function(model="MNN", obs=10, nsim=1, frequency=1,
                                       initial=initial, initialSeason=initialSeason,
                                       bounds=bounds,
                                       randomizer=randomizer, ...),
-                     list(data=matrix(1,obs,nsim)));
+                     list(data=matrix(0,obs,nsim)));
 
     modelB <- switch(occurrence,
                      "inverse-odds-ratio"=,
@@ -113,7 +113,7 @@ sim.oes <- function(model="MNN", obs=10, nsim=1, frequency=1,
                                       initial=initialB, initialSeason=initialSeasonB,
                                       bounds=bounds,
                                       randomizer=randomizer, ...),
-                     list(data=matrix(1,obs,nsim)));
+                     list(data=matrix(0,obs,nsim)));
 
     # Direct relies on only one model with max / min functions
     if(occurrence=="direct"){
@@ -127,7 +127,8 @@ sim.oes <- function(model="MNN", obs=10, nsim=1, frequency=1,
         model <- list(modelA=modelA, modelB=modelB);
         # This way we preserve the potential ts structure
         model$probability <- modelA$data;
-        model$probability[] <- c(modelA$data) / (c(modelA$data) + c(modelB$data));
+        model$probability[] <- 1 / (1+switch(errorType(modelB), "M"=c(modelB$data), "A"=c(exp(modelB$data))) /
+                                        switch(errorType(modelA), "M"=c(modelA$data), "A"=c(exp(modelA$data))));
     }
 
     # Likelihood value
