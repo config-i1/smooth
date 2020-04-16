@@ -1,8 +1,11 @@
-smooth v2.6.0 (Release data: 2020-04-10)
+smooth v2.6.0 (Release data: 2020-04-16)
 ==============
 
 Changes:
 * sim.oes() function, generating probability of occurrence and respective binary variable ot.
+
+Bugfixes:
+* A weird glitch for occurrence model, when h=1: multiplication of yForecast by pForecast could not be done.
 
 
 smooth v2.5.7 (Release data: 2020-04-06)

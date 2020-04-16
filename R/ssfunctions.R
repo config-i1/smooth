@@ -2692,7 +2692,7 @@ ssForecaster <- function(...){
                                            iprob=pForecast);
 
                 # if(!(intervalType=="sp" & Etype=="M")){
-                    yForecast[] <- pForecast * yForecast;
+                    yForecast[] <- c(pForecast) * c(yForecast);
                 # }
 
                 if(cumulative){
