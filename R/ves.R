@@ -2,7 +2,8 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
                          "obsInSample","obsAll","lagsModel","persistenceEstimate","persistenceType",
                          "persistenceValue","damped","dampedEstimate","dampedType","transitionType",
                          "initialEstimate","initialSeasonEstimate","initialSeasonValue","initialSeasonType",
-                         "modelIsMultiplicative","matG","matW","B","ub","lb","Sigma","yFitted","PI","dataDeltat",
+                         "modelIsMultiplicative","matG","matW","B","ub","lb", "maxeval", "algorithm1",
+                         "algorithm2", "xtol_rel1", "xtol_rel2", "Sigma","yFitted","PI","dataDeltat",
                          "dataFreq","dataStart","otObs","dataNames","seasonalType"));
 
 #' Vector Exponential Smoothing in SSOE state space model
@@ -108,7 +109,12 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' used to calculated variances of smoothing parameters and initial states of
 #' the model. The vector of initial parameter for the optimiser can be provided
 #' here as the variable \code{B}. The upper bound for the optimiser is provided
-#' via \code{ub}, while the lower one is \code{lb}.
+#' via \code{ub}, while the lower one is \code{lb}. \code{maxeval=1000} is the
+#' default number of iterations for both optimisers used in the function.
+#' \code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first optimiser,
+#' while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one. \code{xtol_rel1=1e-8}
+#' is the relative tolerance in the first optimiser, while \code{xtol_rel2=1e-6} is for
+#' the second one. All of this can be amended and passed in ellipsis for finer tuning.
 #' @return Object of class "vsmooth" is returned. It contains the following list of
 #' values:
 #' \itemize{
@@ -875,10 +881,10 @@ EstimatorVES <- function(...){
         BList <- BValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
         B <- BList$B;
 
-        # if(any((B>=BList$BUpper),(B<=BList$BLower))){
-        #     B[B>=BList$BUpper] <- BList$BUpper[B>=BList$BUpper] * 0.999 - 0.001;
-        #     B[B<=BList$BLower] <- BList$BLower[B<=BList$BLower] * 1.001 + 0.001;
-        # }
+        if(any((B>=BList$BUpper),(B<=BList$BLower))){
+            B[B>=BList$BUpper] <- BList$BUpper[B>=BList$BUpper] - 0.01;
+            B[B<=BList$BLower] <- BList$BLower[B<=BList$BLower] + 0.01;
+        }
     }
     else{
         BList <- BValues(Ttype,Stype,lagsModelMax,nComponentsAll,nComponentsNonSeasonal,nSeries);
@@ -894,21 +900,22 @@ EstimatorVES <- function(...){
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
-    # res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
-    #               opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-    # B <- res$solution;
-
-    # if(any((B>=BList$BUpper),(B<=BList$BLower))){
-    #     B[B>=BList$BUpper] <- BList$BUpper[B>=BList$BUpper] * 0.999 - 0.001;
-    #     B[B<=BList$BLower] <- BList$BLower[B<=BList$BLower] * 1.001 + 0.001;
-    # }
-
     res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
-                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=1000));
+                  opts=list(algorithm=algorithm1, xtol_rel=xtol_rel1, maxeval=maxeval));
+    B <- res$solution;
+
+    # This is just in case something went out of the bounds
+    if(any((B>=BList$BUpper),(B<=BList$BLower))){
+        BList$BUpper[B>=BList$BUpper] <- B[B>=BList$BUpper] + 1;
+        BList$BLower[B<=BList$BLower] <- B[B<=BList$BLower] - 1;
+    }
+
+    res2 <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
+                  opts=list(algorithm=algorithm2, xtol_rel=xtol_rel2, maxeval=maxeval));
     # This condition is needed in order to make sure that we did not make the solution worse
-    # if(res2$objective <= res$objective){
-    #     res <- res2;
-    # }
+    if(res2$objective <= res$objective){
+        res <- res2;
+    }
     B <- res$solution;
 
     if(all(B==BList$B) & modelDo=="estimate"){

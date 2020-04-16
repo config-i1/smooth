@@ -183,7 +183,12 @@ make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
 the model. The vector of initial parameter for the optimiser can be provided
 here as the variable \code{B}. The upper bound for the optimiser is provided
-via \code{ub}, while the lower one is \code{lb}.}
+via \code{ub}, while the lower one is \code{lb}. \code{maxeval=1000} is the
+default number of iterations for both optimisers used in the function.
+\code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first optimiser,
+while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one. \code{xtol_rel1=1e-8}
+is the relative tolerance in the first optimiser, while \code{xtol_rel2=1e-6} is for
+the second one. All of this can be amended and passed in ellipsis for finer tuning.}
 }
 \value{
 Object of class "vsmooth" is returned. It contains the following list of

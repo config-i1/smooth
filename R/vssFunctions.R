@@ -906,6 +906,7 @@ vssInput <- function(smoothType=c("ves"),...){
         }
     }
 
+    ##### Ellipsis thingies #####
     if(!is.null(ellipsis$B)){
         B <- ellipsis$B;
     }
@@ -923,6 +924,36 @@ vssInput <- function(smoothType=c("ves"),...){
     }
     else{
         lb <- NULL;
+    }
+    if(!is.null(ellipsis$maxeval)){
+        maxeval <- ellipsis$maxeval;
+    }
+    else{
+        maxeval <- 1000;
+    }
+    if(!is.null(ellipsis$algorithm1)){
+        algorithm1 <- ellipsis$algorithm1;
+    }
+    else{
+        algorithm1 <- "NLOPT_LN_BOBYQA";
+    }
+    if(!is.null(ellipsis$algorithm2)){
+        algorithm2 <- ellipsis$algorithm2;
+    }
+    else{
+        algorithm2 <- "NLOPT_LN_NELDERMEAD";
+    }
+    if(!is.null(ellipsis$xtol_rel1)){
+        xtol_rel1 <- ellipsis$xtol_rel1;
+    }
+    else{
+        xtol_rel1 <- 1e-8;
+    }
+    if(!is.null(ellipsis$xtol_rel2)){
+        xtol_rel2 <- ellipsis$xtol_rel2;
+    }
+    else{
+        xtol_rel2 <- 1e-6;
     }
 
     ##### Return values to previous environment #####
@@ -1007,6 +1038,11 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("B",B,ParentEnvironment);
     assign("ub",ub,ParentEnvironment);
     assign("lb",lb,ParentEnvironment);
+    assign("maxeval",maxeval,ParentEnvironment);
+    assign("algorithm1",algorithm1,ParentEnvironment);
+    assign("algorithm2",algorithm2,ParentEnvironment);
+    assign("xtol_rel1",xtol_rel1,ParentEnvironment);
+    assign("xtol_rel2",xtol_rel2,ParentEnvironment);
 }
 
 ##### *Likelihood function* #####
