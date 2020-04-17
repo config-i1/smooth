@@ -8,6 +8,7 @@ Changes:
 
 Bugfixes:
 * A weird glitch for occurrence model, when h=1: multiplication of yForecast by pForecast could not be done.
+* es() would not work in case of predefined persistence and initial, but not inisialSeason.
 
 
 smooth v2.5.7 (Release data: 2020-04-06)

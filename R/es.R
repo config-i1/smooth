@@ -733,8 +733,6 @@ EstimatorES <- function(...){
     }
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
-    # res <- optimx::hjn(B, CF, lb, ub);
-    # B[] <- res$par;
     res <- nloptr(B, CF, lb=lb, ub=ub,
                   opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
     B[] <- res$solution;
@@ -1688,7 +1686,7 @@ CreatorES <- function(silent=FALSE,...){
     }
 
 ##### Define modelDo #####
-    if(any(persistenceEstimate, (initialType=="o"), initialSeasonEstimate*(initialType=="o"),
+    if(any(persistenceEstimate, (initialType=="o"), initialSeasonEstimate,
            phiEstimate, FXEstimate, gXEstimate, initialXEstimate)){
         if(all(modelDo!=c("select","combine"))){
             modelDo <- "estimate";
