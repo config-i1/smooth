@@ -8,10 +8,12 @@
 \title{Forecasting time series using smooth functions}
 \usage{
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95, ...)
+  "semiparametric", "nonparametric", "none"), level = 0.95, side = c("both",
+  "upper", "lower"), ...)
 
 \method{forecast}{oes}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95, ...)
+  "semiparametric", "nonparametric", "none"), level = 0.95, side = c("both",
+  "upper", "lower"), ...)
 
 \method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, model = NULL,
@@ -26,6 +28,9 @@
 details.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
+
+\item{side}{Defines, whether to provide \code{"both"} sides of prediction
+interval or only \code{"upper"}, or \code{"lower"}.}
 
 \item{...}{Other arguments accepted by either \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}

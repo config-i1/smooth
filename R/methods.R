@@ -718,6 +718,8 @@ NULL
 #' @param interval Type of interval to construct. See \link[smooth]{es} for
 #' details.
 #' @param level Confidence level. Defines width of prediction interval.
+#' @param side Defines, whether to provide \code{"both"} sides of prediction
+#' interval or only \code{"upper"}, or \code{"lower"}.
 #' @param ...  Other arguments accepted by either \link[smooth]{es},
 #' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.
 #' @return Returns object of class "smooth.forecast", which contains:
@@ -751,25 +753,34 @@ NULL
 #' @export
 forecast.smooth <- function(object, h=10,
                             interval=c("parametric","semiparametric","nonparametric","none"),
-                            level=0.95, ...){
+                            level=0.95, side=c("both","upper","lower"), ...){
     smoothType <- smoothType(object);
     interval <- interval[1];
+    side <- match.arg(side);
+    # This correction is needed in order to reduce the level and then just use one bound
+    if(any(side==c("upper","lower"))){
+        levelNew <- level*2-1;
+    }
+    else{
+        levelNew <- level;
+    }
+    # Do calculations
     if(smoothType=="ETS"){
-        newModel <- es(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- es(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="CES"){
-        newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="GUM"){
-        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=level,silent="all",...);
+        newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="ARIMA"){
         if(any(unlist(gregexpr("combine",object$model))==-1)){
             if(is.msarima(object)){
-                newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
+                newModel <- msarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
             else{
-                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
+                newModel <- ssarima(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
             }
         }
         else{
@@ -778,14 +789,25 @@ forecast.smooth <- function(object, h=10,
         }
     }
     else if(smoothType=="SMA"){
-        newModel <- sma(actuals(object),model=object,h=h,interval=interval,level=level,silent="all",...);
+        newModel <- sma(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else{
         stop("Wrong object provided. This needs to be either 'ETS', or 'CES', or 'GUM', or 'SSARIMA', or 'SMA' model.",call.=FALSE);
     }
+
+    # Remove the redundant values, if they were produced
+    if(side=="upper"){
+        newModel$lower[] <- NA;
+        newModel$level <- level;
+    }
+    else if(side=="lower"){
+        newModel$upper[] <- NA;
+        newModel$level <- level;
+    }
+
     output <- list(model=object,method=object$model,
                    forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=newModel$level,
-                   interval=interval,mean=newModel$forecast);
+                   interval=interval,mean=newModel$forecast,side=side);
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
@@ -794,19 +816,38 @@ forecast.smooth <- function(object, h=10,
 #' @export
 forecast.oes <- function(object, h=10,
                          interval=c("parametric","semiparametric","nonparametric","none"),
-                         level=0.95, ...){
+                         level=0.95, side=c("both","upper","lower"), ...){
+    side <- match.arg(side);
+    # This correction is needed in order to reduce the level and then just use one bound
+    if(any(side==c("upper","lower"))){
+        levelNew <- level*2-1;
+    }
+    else{
+        levelNew <- level;
+    }
+
     if(is.oesg(object)){
         newModel <- oesg(actuals(object),modelA=object$modelA,modelB=object$modelB,
-                         h=h,interval=interval,level=level,silent="all",...);
+                         h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else{
         newModel <- oes(actuals(object),model=object,
-                        h=h,interval=interval,level=level,silent="all",...);
+                        h=h,interval=interval,level=levelNew,silent="all",...);
+    }
+
+    # Remove the redundant values, if they were produced
+    if(side=="upper"){
+        newModel$lower[] <- NA;
+        newModel$level <- level;
+    }
+    else if(side=="lower"){
+        newModel$upper[] <- NA;
+        newModel$level <- level;
     }
 
     output <- list(model=object,method=object$model,
-                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=level,
-                   interval=interval,mean=newModel$forecast);
+                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=levelNew,
+                   interval=interval,mean=newModel$forecast,side=side);
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }
@@ -2091,8 +2132,22 @@ print.smooth.forecast <- function(x, ...){
         if(level>1){
             level <- level/100;
         }
-        output <- cbind(x$mean,x$lower,x$upper);
-        colnames(output) <- c("Point forecast",paste0("Lower bound (",(1-level)/2*100,"%)"),paste0("Upper bound (",(1+level)/2*100,"%)"));
+        if(x$side=="both"){
+            output <- cbind(x$mean,x$lower,x$upper);
+            colnames(output) <- c("Point forecast",
+                                  paste0("Lower bound (",(1-level)/2*100,"%)"),
+                                  paste0("Upper bound (",(1+level)/2*100,"%)"));
+        }
+        else if(x$side=="upper"){
+            output <- cbind(x$mean,x$upper);
+            colnames(output) <- c("Point forecast",
+                                  paste0("Upper bound (",level*100,"%)"));
+        }
+        else if(x$side=="lower"){
+            output <- cbind(x$mean,x$lower);
+            colnames(output) <- c("Point forecast",
+                                  paste0("Lower bound (",level*100,"%)"));
+        }
     }
     else{
         output <- x$mean;
