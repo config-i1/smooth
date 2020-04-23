@@ -673,6 +673,16 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             return(cfRes);
         }
     }
+    else if(any(occurrence==c("f","n"))){
+        modelDo <- "estimate";
+        model <- paste0(Etype,"NN");
+    }
+
+    ICFunction <- switch(ic,
+                         "AIC"=AIC,
+                         "AICc"=AICc,
+                         "BIC"=BIC,
+                         "BICc"=BICc);
 
     ##### Estimate the model #####
     if(modelDo=="estimate"){
@@ -920,12 +930,6 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         }
         #### Automatic model selection ####
         else if(occurrence=="a"){
-            IC <- switch(ic,
-                         "AIC"=AIC,
-                         "AICc"=AICc,
-                         "BIC"=BIC,
-                         "BICc"=BICc);
-
             occurrencePool <- c("f","o","i","d","g","n");
             occurrencePoolLength <- length(occurrencePool);
             occurrenceModels <- vector("list",occurrencePoolLength);
@@ -937,7 +941,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                                              silent=TRUE,
                                              xreg=xreg, xregDo=xregDo, updateX=updateX, ...);
             }
-            ICBest <- which.min(sapply(occurrenceModels, IC))[1]
+            ICBest <- which.min(sapply(occurrenceModels, ICFunction))[1]
             occurrence <- occurrencePool[ICBest];
 
             if(!silentGraph){
@@ -987,14 +991,6 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             ### Use brains in order to define models to estimate ###
             if(modelDo=="select" &
                (any(c(Ttype,Stype)=="X") | any(c(Ttype,Stype)=="Y") | any(c(Ttype,Stype)=="Z"))){
-
-                # Define information criterion function to use
-                IC <- switch(ic,
-                             "AIC"=AIC,
-                             "AICc"=AICc,
-                             "BIC"=BIC,
-                             "BICc"=BICc);
-
                 if(!silentText){
                     cat("Forming the pool of models based on... ");
                 }
@@ -1087,7 +1083,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
                     if(j>1){
                         # If the first is better than the second, then choose first
-                        if(IC(results[[besti]]) <= IC(results[[i]])){
+                        if(ICFunction(results[[besti]]) <= ICFunction(results[[i]])){
                             # If Ttype is the same, then we checked seasonality
                             if(substring(modelCurrent,2,2) == substring(poolSmall[bestj],2,2)){
                                 poolSeasonals <- substr(modelType(results[[besti]]),
@@ -1210,7 +1206,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         }
 
         # Write down the ICs of all the tested models
-        icSelection <- sapply(results, IC);
+        icSelection <- sapply(results, ICFunction);
         names(icSelection) <- modelsPool;
         icSelection[is.nan(icSelection)] <- 1E100;
         icBest <- which.min(icSelection);
