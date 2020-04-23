@@ -8,12 +8,12 @@
 \title{Forecasting time series using smooth functions}
 \usage{
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95, side = c("both",
-  "upper", "lower"), ...)
+  "semiparametric", "nonparametric", "none"), level = 0.95,
+  side = c("both", "upper", "lower"), ...)
 
 \method{forecast}{oes}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95, side = c("both",
-  "upper", "lower"), ...)
+  "semiparametric", "nonparametric", "none"), level = 0.95,
+  side = c("both", "upper", "lower"), ...)
 
 \method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, model = NULL,

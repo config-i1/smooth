@@ -4,11 +4,12 @@
 \alias{sim.ves}
 \title{Simulate Vector Exponential Smoothing}
 \usage{
-sim.ves(model = "ANN", obs = 10, nsim = 1, nSeries = 2, frequency = 1,
-  persistence = NULL, phi = 1, transition = NULL, initial = NULL,
-  initialSeason = NULL, seasonal = c("individual, common"),
-  weights = rep(1/nSeries, nSeries), bounds = c("usual", "admissible",
-  "restricted"), randomizer = c("rnorm", "rt", "rlaplace", "rs"), ...)
+sim.ves(model = "ANN", obs = 10, nsim = 1, nSeries = 2,
+  frequency = 1, persistence = NULL, phi = 1, transition = NULL,
+  initial = NULL, initialSeason = NULL,
+  seasonal = c("individual, common"), weights = rep(1/nSeries, nSeries),
+  bounds = c("usual", "admissible", "restricted"), randomizer = c("rnorm",
+  "rt", "rlaplace", "rs"), ...)
 }
 \arguments{
 \item{model}{Type of ETS model. This can consist of 3 or 4 chars:

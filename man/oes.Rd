@@ -9,10 +9,10 @@ oes(y, model = "MNN", persistence = NULL, initial = "o",
   "odds-ratio", "inverse-odds-ratio", "direct", "auto", "none"),
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
   interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("usual", "admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  transitionX = NULL, persistenceX = NULL, ...)
+  "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
+  "none"), silent = c("all", "graph", "legend", "output", "none"),
+  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  updateX = FALSE, transitionX = NULL, persistenceX = NULL, ...)
 }
 \arguments{
 \item{y}{Either numeric vector or time series vector.}

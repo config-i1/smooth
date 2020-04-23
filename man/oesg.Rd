@@ -9,12 +9,12 @@ oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   initialB = "o", initialSeasonA = NULL, initialSeasonB = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
   interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("usual", "admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xregA = NULL,
-  xregB = NULL, initialXA = NULL, initialXB = NULL, xregDoA = c("use",
-  "select"), xregDoB = c("use", "select"), updateXA = FALSE,
-  updateXB = FALSE, transitionXA = NULL, transitionXB = NULL,
-  persistenceXA = NULL, persistenceXB = NULL, ...)
+  "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
+  "none"), silent = c("all", "graph", "legend", "output", "none"),
+  xregA = NULL, xregB = NULL, initialXA = NULL, initialXB = NULL,
+  xregDoA = c("use", "select"), xregDoB = c("use", "select"),
+  updateXA = FALSE, updateXB = FALSE, transitionXA = NULL,
+  transitionXB = NULL, persistenceXA = NULL, persistenceXB = NULL, ...)
 }
 \arguments{
 \item{y}{Either numeric vector or time series vector.}
