@@ -60,7 +60,10 @@ parameters should be passed in the order they are used in chosen randomizer.
 For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 to the call \code{rnorm(obs, mean=0.5, sd=1)}.  ATTENTION! When generating
 the multiplicative errors some tuning might be needed to obtain meaningful
-data. \code{sd=0.1} is usually already a high value for such models.}
+data. \code{sd=0.1} is usually already a high value for such models. ALSO
+NOTE: In case of multiplicative error model, the randomizer will generate
+\code{1+e_t} error, not \code{e_t}. This means that the mean should
+typically be equal to 1, not zero.}
 }
 \value{
 List of the following values is returned:
@@ -110,7 +113,7 @@ ETSAAA <- sim.es(model="AAA",phi=0.9,frequency=4,obs=40,bounds="admissible",
 # Create 60 observations of monthly data using ANN model
 # with errors from beta distribution
 ETSANN <- sim.es(model="ANN",persistence=c(1.5),frequency=12,obs=60,
-                  randomizer="rbeta",sshape1=1.5,sshape2=1.5)
+                  randomizer="rbeta",shape1=1.5,shape2=1.5)
 plot(ETSANN$states)
 
 # Create 60 observations of monthly data using MAM model

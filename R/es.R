@@ -303,7 +303,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
             persistence <- model$persistence[,i];
             initial <- model$initial[,i];
             initialSeason <- model$initialSeason[,i];
-            if(any(model$iprob!=1)){
+            if(any(model$probability!=1)){
                 occurrence <- "a";
             }
         }
@@ -311,7 +311,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
             persistence <- model$persistence;
             initial <- model$initial;
             initialSeason <- model$initialSeason;
-            if(any(model$iprob!=1)){
+            if(any(model$probability!=1)){
                 occurrence <- "a";
             }
         }

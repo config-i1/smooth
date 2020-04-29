@@ -1949,7 +1949,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                         measurement=NULL, transition=NULL, persistence=NULL, s2=NULL,
                         lagsModel=NULL, states=NULL, cumulative=FALSE, loss="MSE",
                         yForecast=rep(0,ncol(errors)), Etype="A", Ttype="N", Stype="N", s2g=NULL,
-                        iprob=1){
+                        probability=1){
     # Function constructs interval based on the provided random variable.
     # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
     # based on errors the horison is estimated as ncol(errors)
@@ -2024,9 +2024,9 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
     }
 
     # Function returns quantiles of Bernoulli-lognormal cumulative distribution for a predefined parameters
-    qlnormBin <- function(iprob, level=0.95, meanVec=0, sdVec=1, Etype="A"){
+    qlnormBin <- function(probability, level=0.95, meanVec=0, sdVec=1, Etype="A"){
 
-        levelResidual <- (level - (1-iprob)) / iprob
+        levelResidual <- (level - (1-probability)) / probability
 
         lowerquant <- upperquant <- rep(0,length(sdVec));
 
@@ -2042,7 +2042,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
             }
 
             # Produce lower quantiles if the probability is still lower than the lower P
-            if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+            if(Etype=="A" | all(Etype=="M",all((1-probability) < (1-level)/2))){
                 if(Etype=="M"){
                     if(loss=="MAE"){
                         lowerquant[positiveLevels] <- exp(qlaplace((1-levelResidual[positiveLevels])/2,
@@ -2174,8 +2174,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 errors[errors < -1] <- -0.999;
                 if(!cumulative){
                     varVec <- colSums(log(1+errors)^2,na.rm=T)/df;
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=log(yForecast),
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=log(yForecast),
                                             sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
                         lower <- quants$lower;
@@ -2202,8 +2202,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 else{
                     #This is wrong. And there's not way to make it right.
                     varVec <- sum(rowSums(log(1+errors))^2,na.rm=T)/df;
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=log(sum(yForecast)),
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=log(sum(yForecast)),
                                             sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
                         lower <- quants$lower;
@@ -2232,8 +2232,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 if(!cumulative){
                     errors <- errors - matrix(ev,nrow=obs,ncol=nVariables,byrow=T);
                     varVec <- colSums(errors^2,na.rm=T)/df;
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=ev, sdVec=sqrt(varVec), Etype="A");
                         upper <- ev + quants$upper;
                         lower <- ev + quants$lower;
                     }
@@ -2254,8 +2254,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 else{
                     errors <- errors - matrix(ev,nrow=obs,ncol=ncol(errors),byrow=T);
                     varVec <- sum(rowSums(errors,na.rm=T)^2,na.rm=T)/df;
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=sum(ev), sdVec=sqrt(varVec), Etype="A");
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=sum(ev), sdVec=sqrt(varVec), Etype="A");
                         upper <- sum(ev) + quants$upper;
                         lower <- sum(ev) + quants$lower;
                     }
@@ -2287,14 +2287,14 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
             }
 
             # Define the correct bounds for the intermittent model
-            levelResidual <- (level - (1-iprob)) / iprob;
+            levelResidual <- (level - (1-probability)) / probability;
             lower <- upper <- rep(0,length(yForecast));
 
             if(!cumulative){
                 ee <- ye;
                 xe <- matrix(c(1:nVariables),nrow=sum(nonNAobs),ncol=nVariables,byrow=TRUE);
 
-                if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+                if(Etype=="A" | all(Etype=="M",all((1-probability) < (1-level)/2))){
                     A <- rep(1,2);
                     quant <- (1-levelResidual)/2;
                     A <- nlminb(A,quantfunc)$par;
@@ -2317,7 +2317,7 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 }
             }
             else{
-                if(Etype=="A" | all(Etype=="M",all((1-iprob) < (1-level)/2))){
+                if(Etype=="A" | all(Etype=="M",all((1-probability) < (1-level)/2))){
                 #This is wrong. And there's no way to make it right.
                     lower <- quantile(rowSums(ye),(1-levelResidual)/2);
                     levelNew <- (1+levelResidual)/2;
@@ -2347,8 +2347,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                     varVec <- sum(covarMat);
                     varVec <- log(exp(varVec / h) * h);
 
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=log(sum(yForecast)),
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=log(sum(yForecast)),
                                             sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
                         lower <- quants$lower;
@@ -2376,8 +2376,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 else{
                     varVec <- diag(covarMat);
 
-                    if(any(iprob!=1)){
-                        quants <- qlnormBin(iprob, level=level, meanVec=log(yForecast),
+                    if(any(probability!=1)){
+                        quants <- qlnormBin(probability, level=level, meanVec=log(yForecast),
                                             sdVec=sqrt(varVec), Etype="M");
                         upper <- quants$upper;
                         lower <- quants$lower;
@@ -2421,9 +2421,9 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                     varVec <- diag(covarMat);
                 }
 
-                if(any(iprob!=1)){
+                if(any(probability!=1)){
                     # Take intermittent data into account
-                    quants <- qlnormBin(iprob, level=level, meanVec=rep(0,length(varVec)),
+                    quants <- qlnormBin(probability, level=level, meanVec=rep(0,length(varVec)),
                                         sdVec=sqrt(varVec), Etype="A");
                     upper <- quants$upper;
                     lower <- quants$lower;
@@ -2456,8 +2456,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
         }
         else if(any(intervalType==c("sp","p"))){
             if(Etype=="M"){
-                if(any(iprob!=1)){
-                    quants <- qlnormBin(iprob, level=level, meanVec=0, sdVec=sqrt(s2), Etype="M");
+                if(any(probability!=1)){
+                    quants <- qlnormBin(probability, level=level, meanVec=0, sdVec=sqrt(s2), Etype="M");
                     upper <- quants$upper;
                     lower <- quants$lower;
                 }
@@ -2484,8 +2484,8 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
                 }
             }
             else{
-                if(any(iprob!=1)){
-                    quants <- qlnormBin(iprob, level=level, meanVec=ev, sdVec=sqrt(s2), Etype="A");
+                if(any(probability!=1)){
+                    quants <- qlnormBin(probability, level=level, meanVec=ev, sdVec=sqrt(s2), Etype="A");
                     upper <- quants$upper;
                     lower <- quants$lower;
                 }
@@ -2689,7 +2689,7 @@ ssForecaster <- function(...){
                                            lagsModel=lagsModel, states=matvt[(obsInSample-lagsModelMax+1):obsInSample,],
                                            cumulative=cumulative, loss=loss,
                                            yForecast=yForecast, Etype=Etype, Ttype=Ttype, Stype=Stype, s2g=s2g,
-                                           iprob=pForecast);
+                                           probability=pForecast);
 
                 # if(!(intervalType=="sp" & Etype=="M")){
                     yForecast[] <- c(pForecast) * c(yForecast);

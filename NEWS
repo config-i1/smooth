@@ -6,6 +6,7 @@ Changes:
 * Tuning of ves() function and a couple of new parameters in ellipsis, that allow regulating the optimiser.
 * forecast.smooth() now allows specifying side of prediction interval. Note that this might not work well in cases of occurrence model.
 * Make ACF / PACF in plot.smooth() easier to read + tuning in case non-ts objects are used.
+* sim.* functions now use proper do.call() instead of weird parse(...).
 
 Bugfixes:
 * A weird glitch for occurrence model, when h=1: multiplication of yForecast by pForecast could not be done.

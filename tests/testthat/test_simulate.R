@@ -1,7 +1,7 @@
 context("Tests for simulate() functions");
 
 #### ETS ####
-testData <- sim.es("MNN", frequency=12, bounds="a", obs=100, silent=TRUE);
+testData <- sim.es("MNN", frequency=12, bounds="a", obs=100);
 test_that("ETS(MNN) simulated with admissible bounds", {
     expect_match(testData$model, "MNN");
 })

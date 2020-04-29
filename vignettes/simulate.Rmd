@@ -55,13 +55,13 @@ It is advised to use lower values for `sdlog` and `sd` for models with multiplic
 
 If we need intermittent data, we can define probability of occurrences. And it also makes sense to use pure multiplicative models and specify initials in this case:
 ```{r sim_es_iMNN}
-ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1)
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, probability=0.2, initial=10, persistence=0.1)
 plot(ourSimulation)
 ```
 
 If we want to have several time series generated using the same parameters then we can use `nsim` parameter:
 ```{r sim_es_iMNN_50}
-ourSimulation <- sim.es("MNN", frequency=12, obs=120, iprob=0.2, initial=10, persistence=0.1, nsim=50)
+ourSimulation <- sim.es("MNN", frequency=12, obs=120, probability=0.2, initial=10, persistence=0.1, nsim=50)
 ```
 
 We will have the same set of returned values, but with one more dimension. So, for example, we will end up with matrix for `ourSimulation$data` and array for `ourSimulation$states`.
@@ -115,9 +115,9 @@ ourSimulation
 plot(ourSimulation)
 ```
 
-`sim.ssarima` also supports intermittent data, which is defined via `iprob` parameter, similar to `sim.es()`:
+`sim.ssarima` also supports intermittent data, which is defined via `probability` parameter, similar to `sim.es()`:
 ```{r sim_ssarima_(1,0,2)_1(0,1,1)_7intermittent}
-ourSimulation <- sim.ssarima(orders=list(ar=c(1,0),i=c(0,1),ma=c(2,1)), lags=c(1,7), obs=120, iprob=0.2)
+ourSimulation <- sim.ssarima(orders=list(ar=c(1,0),i=c(0,1),ma=c(2,1)), lags=c(1,7), obs=120, probability=0.2)
 ourSimulation
 plot(ourSimulation)
 ```
@@ -179,7 +179,7 @@ The resulting generated series has properties close to the ones that solar irrad
 
 We can also produce CES with so called "partial" seasonality, which corresponds to CES(n) with additive seasonal components. Let's produce 10 of such time series:
 ```{r sim_ces_(p)}
-ourSimulation <- sim.ces("p",B=0.2,frequency=12, obs=240, nsim=10)
+ourSimulation <- sim.ces("p",b=0.2,frequency=12, obs=240, nsim=10)
 plot(ourSimulation)
 ```
 

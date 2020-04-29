@@ -38,7 +38,10 @@
 #' For example, passing just \code{sd=0.5} to \code{rnorm} function will lead
 #' to the call \code{rnorm(obs, mean=0.5, sd=1)}.  ATTENTION! When generating
 #' the multiplicative errors some tuning might be needed to obtain meaningful
-#' data. \code{sd=0.1} is usually already a high value for such models.
+#' data. \code{sd=0.1} is usually already a high value for such models. ALSO
+#' NOTE: In case of multiplicative error model, the randomizer will generate
+#' \code{1+e_t} error, not \code{e_t}. This means that the mean should
+#' typically be equal to 1, not zero.
 #'
 #' @return List of the following values is returned:
 #' \itemize{
@@ -82,7 +85,7 @@
 #' # Create 60 observations of monthly data using ANN model
 #' # with errors from beta distribution
 #' ETSANN <- sim.es(model="ANN",persistence=c(1.5),frequency=12,obs=60,
-#'                   randomizer="rbeta",sshape1=1.5,sshape2=1.5)
+#'                   randomizer="rbeta",shape1=1.5,shape2=1.5)
 #' plot(ETSANN$states)
 #'
 #' # Create 60 observations of monthly data using MAM model
@@ -449,9 +452,10 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 
 # Check if any argument was passed in dots
     if(length(ellipsis)==0){
+        ellipsis$n <- nsim*obs;
 # Create vector of the errors
         if(any(randomizer==c("rnorm","rlaplace","rs"))){
-            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
+            materrors[,] <- do.call(randomizer,ellipsis);
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
@@ -490,7 +494,8 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
     }
 # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(ellipsis)),")")));
+        ellipsis$n <- nsim*obs;
+        materrors[,] <- do.call(randomizer,ellipsis);
         if(randomizer=="rbeta"){
 # Center the errors around 0
             materrors <- materrors - 0.5;
@@ -502,11 +507,8 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
             materrors <- materrors * rep(sqrt(abs(arrvt[1,1,])),each=obs);
         }
 
-        # Deal with rlaplace and rs in the case of multiplicative model
-        if(Etype=="M" && any(randomizer==c("rlaplace","rs","rt"))){
-            materrors <- exp(materrors) - 1;
-        }
-        else if(Etype=="M" && !any(randomizer==c("rlaplace","rs","rt"))){
+        # Substitute 1 to get epsilon_t
+        if(Etype=="M"){
             materrors <- materrors - 1;
         }
     }

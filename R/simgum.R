@@ -80,7 +80,7 @@ sim.gum <- function(orders=c(1), lags=c(1),
 
     randomizer <- randomizer[1];
 
-    args <- list(...);
+    ellipsis <- list(...);
 
 # Function generates values of measurement, transition and persistence
     gumGenerator <- function(nsim=nsim){
@@ -282,16 +282,17 @@ sim.gum <- function(orders=c(1), lags=c(1),
     }
 
     # If the chosen randomizer is not default and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(args)==0)){
+    if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(ellipsis)==0)){
         warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
 
     # Check if no argument was passed in dots
-    if(length(args)==0){
+    if(length(ellipsis)==0){
+        ellipsis$n <- nsim*obs;
         # Create vector of the errors
         if(any(randomizer==c("rnorm","rlaplace","rs"))){
-            materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,")")));
+            materrors[,] <- do.call(randomizer,ellipsis);
         }
         else if(randomizer=="rt"){
             # The degrees of freedom are df = n - k.
@@ -308,7 +309,8 @@ sim.gum <- function(orders=c(1), lags=c(1),
     }
     # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        materrors[,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs,",", toString(as.character(args)),")")));
+        ellipsis$n <- nsim*obs;
+        materrors[,] <- do.call(randomizer,ellipsis);
         if(randomizer=="rbeta"){
             # Center the errors around 0
             materrors <- materrors - 0.5;

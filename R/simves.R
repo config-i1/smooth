@@ -118,18 +118,18 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     #    Copyright (C) 2018 - Inf Ivan Svetunkov
 
     randomizer <- randomizer[1];
-    args <- list(...);
+    ellipsis <- list(...);
     seasonalType <- substr(seasonal,1,1)[1];
     bounds <- bounds[1];
     # If R decided that by "b" we meant "bounds", fix this!
     if(is.numeric(bounds)){
-        args$b <- bounds;
+        ellipsis$b <- bounds;
         bounds <- "u";
     }
     bounds <- substring(bounds[1],1,1);
 
     # If the chosen randomizer is not rnorm, rt and runif and no parameters are provided, change to rnorm.
-    if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(args)==0)){
+    if(all(randomizer!=c("rnorm","rt","rlaplace","rs")) & (length(ellipsis)==0)){
         warning(paste0("The chosen randomizer - ",randomizer," - needs some arbitrary parameters! Changing to 'rnorm' now."),call.=FALSE);
         randomizer = "rnorm";
     }
@@ -697,7 +697,7 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
     }
 
     #### Generate errors ####
-    if(length(args)==0){
+    if(length(ellipsis)==0){
         # Create vector of the errors
         if(any(randomizer==c("rnorm"))){
             arrayErrors[,,] <- rnorm(nsim*obs*nSeries);
@@ -723,16 +723,10 @@ sim.ves <- function(model="ANN", obs=10, nsim=1, nSeries=2,
             }
         }
     }
-
     # If arguments are passed, use them. WE ASSUME HERE THAT USER KNOWS WHAT HE'S DOING!
     else{
-        if(randomizer=="mvrnorm"){
-            args$n <- nsim*obs;
-            arrayErrors[,,] <- t(do.call(mvrnorm,args));
-        }
-        else{
-            arrayErrors[,,] <- eval(parse(text=paste0(randomizer,"(n=",nsim*obs*nSeries,",", toString(as.character(args)),")")));
-        }
+        ellipsis$n <- nsim*obs;
+        arrayErrors[,,] <- do.call(randomizer,ellipsis);
     }
 
     #### Simulate the data ####
