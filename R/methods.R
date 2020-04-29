@@ -1439,7 +1439,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         # cat(paste0(round(length(outliers)/length(ellipsis$y),3)*100,"% of values are outside the bounds\n"));
 
         if(!any(names(ellipsis)=="ylim")){
-            ellipsis$ylim <- range(c(ellipsis$y,zValues), na.rm=TRUE);
+            ellipsis$ylim <- range(c(ellipsis$y,zValues), na.rm=TRUE)*1.2;
             if(legend){
                 if(legendPosition=="bottomright"){
                     ellipsis$ylim[1] <- ellipsis$ylim[1] - 0.2*diff(ellipsis$ylim);
@@ -1461,7 +1461,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         abline(h=zValues, col="red", lty=2);
         if(length(outliers)>0){
             points(ellipsis$x[outliers], ellipsis$y[outliers], pch=16);
-            text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=4);
+            text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=(ellipsis$y[outliers]>0)*2+1);
         }
         if(lowess){
             lines(lowess(ellipsis$x, ellipsis$y), col="red");
@@ -1637,7 +1637,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
 
         if(!any(names(ellipsis)=="ylim")){
-            ellipsis$ylim <- c(-max(abs(ellipsis$x)),max(abs(ellipsis$x)))*1.1;
+            ellipsis$ylim <- c(-max(abs(ellipsis$x)),max(abs(ellipsis$x)))*1.2;
         }
 
         if(legend){
