@@ -1332,13 +1332,13 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis <- list(...);
 
         # Get the actuals and the fitted values
-        ellipsis$y <- c(actuals(x));
+        ellipsis$y <- as.vector(actuals(x));
         if(is.occurrence(x)){
             if(any(x$distribution==c("plogis","pnorm"))){
                 ellipsis$y <- (ellipsis$y!=0)*1;
             }
         }
-        ellipsis$x <- c(fitted(x));
+        ellipsis$x <- as.vector(fitted(x));
 
         # If this is a mixture model, remove zeroes
         if(is.occurrence(x$occurrence)){
@@ -1535,7 +1535,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     plot4 <- function(x, ...){
         ellipsis <- list(...);
 
-        ellipsis$y <- residuals(x);
+        ellipsis$y <- as.vector(residuals(x));
         if(is.occurrence(x$occurrence)){
             ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
         }
@@ -1577,12 +1577,23 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     # 7. Basic plot over time
     plot5 <- function(x, ...){
-        if(any(x$interval==c("none","n"))){
-            graphmaker(actuals(x), x$forecast, fitted(x), main=x$model, legend=FALSE, parReset=FALSE, ...);
+        ellipsis <- list(...);
+
+        ellipsis$actuals <- actuals(x);
+        if(is.null(ellipsis$main)){
+            ellipsis$main <- x$model;
         }
-        else{
-            graphmaker(actuals(x), x$forecast, fitted(x), x$lower, x$upper, x$level, main=x$model, legend=FALSE, parReset=FALSE, ...);
+        ellipsis$forecast <- x$forecast;
+        ellipsis$fitted <- fitted(x);
+        ellipsis$legend <- FALSE;
+        ellipsis$parReset <- FALSE;
+        if(!any(x$interval==c("none","n"))){
+            ellipsis$lower <- x$lower;
+            ellipsis$upper <- x$upper;
+            ellipsis$level <- x$level;
         }
+
+        do.call(graphmaker, ellipsis);
     }
 
     # 8 and 9. Standardised / Studentised residuals vs time
@@ -1639,7 +1650,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         do.call(plot,ellipsis);
         if(length(outliers)>0){
             points(time(ellipsis$x)[outliers], ellipsis$x[outliers], pch=16);
-            text(time(ellipsis$x)[outliers], ellipsis$x[outliers], labels=outliers, pos=4);
+            text(time(ellipsis$x)[outliers], ellipsis$x[outliers], labels=outliers, pos=(ellipsis$x[outliers]>0)*2+1);
         }
         if(lowess){
             lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
@@ -1686,18 +1697,24 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
 
         if(type=="acf"){
-            theValues <- acf(residuals(x), plot=FALSE, na.action=na.pass);
+            theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
         }
         else{
-            theValues <- pacf(residuals(x), plot=FALSE, na.action=na.pass);
+            theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
         }
         ellipsis$x <- theValues$acf[-1];
+        zValues <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
 
         ellipsis$type <- "h"
 
         do.call(plot,ellipsis);
         abline(h=0, col="black", lty=1);
-        abline(h=qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x))), col="red", lty=2);
+        abline(h=zValues, col="red", lty=2);
+        if(any(ellipsis$x>zValues[2] | ellipsis$x<zValues[1])){
+            outliers <- which(ellipsis$x >zValues[2] | ellipsis$x <zValues[1]);
+            points(outliers, ellipsis$x[outliers], pch=16);
+            text(outliers, ellipsis$x[outliers], labels=outliers, pos=(ellipsis$x[outliers]>0)*2+1);
+        }
     }
 
     # 12. Plot of states
