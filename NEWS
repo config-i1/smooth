@@ -1,5 +1,5 @@
 smooth v2.6.0 (Release data: 2020-04-29)
-==============
+=======
 
 Changes:
 * sim.oes() function, generating probability of occurrence and respective binary variable ot.
@@ -9,6 +9,7 @@ Changes:
 Bugfixes:
 * A weird glitch for occurrence model, when h=1: multiplication of yForecast by pForecast could not be done.
 * es() would not work in case of predefined persistence and initial, but not inisialSeason.
+* Model selection would not work in oes() for some types of models.
 * oesg() did not return class "occurrence".
 
 
