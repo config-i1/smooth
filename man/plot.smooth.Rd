@@ -32,7 +32,8 @@
 \item Plot of states of the model.
 }}
 
-\item{level}{Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7) and (8).}
+\item{level}{Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7), (8),
+(9), (10) and (11).}
 
 \item{legend}{If \code{TRUE}, then the legend is produced on plots (2), (3) and (7).}
 
