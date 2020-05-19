@@ -1914,7 +1914,7 @@ plot.smooth.forecast <- function(x, ...){
 }
 
 #' @export
-plot.oes <- function(x, which=c(1,7), ...){
+plot.oes <- function(x, which=7, ...){
     # This is needed, because diagnostics doesn't make sense in case of oes
     plot.smooth(x, which=which, ...);
 }
