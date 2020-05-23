@@ -1740,7 +1740,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                         if(is.null(ellipsisMain)){
                             ellipsis$main <- paste0("States of ",x$model,", part ",i);
                         }
-                        ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states))];
+                        ellipsis$x <- x$states[,(1+(i-1)*10):min(i*10,ncol(x$states)),drop=FALSE];
                         do.call(plot, ellipsis);
                     }
                 }
