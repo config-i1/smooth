@@ -1,4 +1,4 @@
-smooth v2.6.0 (Release data: 2020-04-29)
+smooth v2.6.0 (Release data: 2020-05-27)
 =======
 
 Changes:
@@ -13,6 +13,7 @@ Bugfixes:
 * es() would not work in case of predefined persistence and initial, but not inisialSeason.
 * Model selection would not work in oes() for some types of models.
 * oesg() did not return class "occurrence".
+* A fix in sim.oes() for the ts() class in occurrence="inverse-odds-ratio".
 
 
 smooth v2.5.7 (Release data: 2020-04-06)
