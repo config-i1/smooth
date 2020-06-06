@@ -1025,7 +1025,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     modelA <- list(model=paste0(modelnameA,"[G](",modelA,")_A"), y=aFitted+errorsA,
                    states=ts(t(matvtA), start=(time(y)[1] - deltat(y)*basicparamsA$lagsModelMax),
                              frequency=dataFreq),
-                   nParam=parametersNumberA, residuals=errorsA, occurrence="g",
+                   nParam=parametersNumberA, residuals=errorsA, occurrence="odds-ratio",
                    persistence=vecgA, phi=phiA, initial=matvtA[1:basicparamsA$nComponentsNonSeasonal,1],
                    initialSeason=initialSeasonA, s2=mean(errorsA^2), loss="likelihood",
                    fittedModel=aFitted, forecastModel=aForecast,
@@ -1035,7 +1035,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     modelB <- list(model=paste0(modelnameB,"[G](",modelB,")_B"), y=bFitted+errorsB,
                    states=ts(t(matvtB), start=(time(y)[1] - deltat(y)*basicparamsB$lagsModelMax),
                              frequency=dataFreq),
-                   nParam=parametersNumberB, residuals=errorsB, occurrence="g",
+                   nParam=parametersNumberB, residuals=errorsB, occurrence="inverse-odds-ratio",
                    persistence=vecgB, phi=phiB, initial=matvtB[1:basicparamsB$nComponentsNonSeasonal,1],
                    initialSeason=initialSeasonB, s2=mean(errorsB^2), loss="likelihood",
                    fittedModel=bFitted, forecastModel=bForecast,
@@ -1050,7 +1050,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         modelname <- "oETS";
     }
     # Start forming the output
-    output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="g", y=otAll,
+    output <- list(model=paste0(modelname,"[G](",modelType(modelA),")(",modelType(modelB),")"), occurrence="general", y=otAll,
                    fitted=pFitted, forecast=pForecast, lower=NA, upper=NA,
                    modelA=modelA, modelB=modelB,
                    nParam=parametersNumberA+parametersNumberB);

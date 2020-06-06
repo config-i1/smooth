@@ -13,6 +13,7 @@ Bugfixes:
 * es() would not work in case of predefined persistence and initial, but not inisialSeason.
 * Model selection would not work in oes() for some types of models.
 * oesg() did not return class "occurrence".
+* oesg() now reports the correct type of model, not the abbreviation.
 
 
 smooth v2.5.7 (Release data: 2020-04-06)
