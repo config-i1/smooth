@@ -1,15 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "01 April 2020"
+date: "12 June 2020"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v2.5.6.
+This is ``smooth`` package, v2.6.0.
 
 ## Test environments
-* local ubuntu 19.10, R 3.6.1
-* ubuntu 14.04.5 (on travis-ci), R 3.6.1
+* local ubuntu 19.10, R 3.6.3
+* ubuntu 16.04.6 (on travis-ci), R 4.0.0
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
 
