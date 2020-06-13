@@ -37,7 +37,7 @@ test_that("Check exogenous variables for GUMX on N1457", {
 # Test selection of exogenous with GUM
 testModel <- gum(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for GUMX on N1457", {
-    expect_null(suppressWarnings(testModel$xreg));
+    expect_match(errorType(testModel),"A");
 })
 
 # Use automatic GUM
