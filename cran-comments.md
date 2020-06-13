@@ -23,7 +23,8 @@ checking installed package size ... NOTE
 0 errors | 0 warnings | 1 note
 
 ## win-builder check results
-All seems to be okay.
+Fixed the error related to the testthat on Windows (mentioned here: https://www.r-project.org/nosvn/R.check/r-release-windows-ix86+x86_64/smooth-00check.html)
+Now, all seems to be okay.
 
 ## rhub checks  
 Everything was checked without major issues. The only thing is a note about the installed package size for different platforms (similar to R CMD check results).
