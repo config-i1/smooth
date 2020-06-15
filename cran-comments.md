@@ -1,11 +1,14 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "13 June 2020"
+date: "15 June 2020"
 output: html_document
 ---
 ## Version
 This is ``smooth`` package, v2.6.0.
+
+## Update to the previous submission
+I've removed links to the functions, which did not pass the test on r-devel-linux-x86_64-debian-gcc.
 
 ## Test environments
 * local ubuntu 19.10, R 3.6.3

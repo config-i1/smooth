@@ -130,7 +130,7 @@ International Journal of Production Research, 0(0), 1–10.
 }
 \seealso{
 \code{\link[smooth]{sim.es}, \link[smooth]{ssarima},
-\link[stats]{Distributions}, \link[smooth]{orders}, \link[smooth]{lags}}
+\link[stats]{Distributions}, \link[smooth]{orders}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

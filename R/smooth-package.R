@@ -33,9 +33,9 @@
 #' "smooth" and "smooth.sim":
 #' \itemize{
 #' \item \link[smooth]{orders} - extracts orders of the fitted model.
-#' \item \link[smooth]{lags} - extracts lags of the fitted model.
-#' \item \link[smooth]{modelType} - extracts type of the fitted model.
-#' \item \link[smooth]{forecast} - produces forecast using provided model.
+#' \item lags - extracts lags of the fitted model.
+#' \item modelType - extracts type of the fitted model.
+#' \item forecast - produces forecast using provided model.
 #' \item \link[smooth]{multicov} - returns covariance matrix of multiple steps ahead forecast errors.
 #' \item \link[smooth]{pls} - returns Prediction Likelihood Score.
 #' \item \link[greybox]{nparam} - returns number of the estimated parameters.

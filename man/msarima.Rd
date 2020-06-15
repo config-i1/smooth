@@ -351,7 +351,7 @@ International Journal of Production Research, 0(0), 1–10.
 }
 \seealso{
 \code{\link[smooth]{auto.msarima}, \link[smooth]{orders},
-\link[smooth]{lags}, \link[smooth]{ssarima}, \link[forecast]{auto.arima}}
+\link[smooth]{ssarima}, \link[forecast]{auto.arima}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

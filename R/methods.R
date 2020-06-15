@@ -1268,8 +1268,8 @@ orders.Arima <- function(object, ...){
 #' \item Standardised residuals vs Time. Useful if you want to see, if there is autocorrelation or
 #' if there is heteroscedasticity in time. This also shows, when the outliers happen;
 #' \item Studentised residuals vs Time. Similar to previous, but with studentised residuals;
-#' \item PACF of the residuals. No, really, are they autocorrelated? See \link[stats]{pacf}
-#' for details;
+#' \item PACF of the residuals. No, really, are they autocorrelated? See pacf function from stats
+#' package for details;
 #' \item Plot of the states of the model. It is not recommended to produce this plot together with
 #' the others, because there might be several states, which would cause the creation of a different
 #' canvas. In case of "msdecompose", this will produce the decomposition of the series into states

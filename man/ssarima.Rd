@@ -357,7 +357,7 @@ International Journal of Production Research, 0(0), 1–10.
 }
 \seealso{
 \code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
-\link[smooth]{lags}, \link[smooth]{msarima}, \link[smooth]{auto.msarima},
+\link[smooth]{msarima}, \link[smooth]{auto.msarima},
 \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
 }
 \author{

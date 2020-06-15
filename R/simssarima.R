@@ -68,7 +68,7 @@
 #' }
 #'
 #' @seealso \code{\link[smooth]{sim.es}, \link[smooth]{ssarima},
-#' \link[stats]{Distributions}, \link[smooth]{orders}, \link[smooth]{lags}}
+#' \link[stats]{Distributions}, \link[smooth]{orders}}
 #'
 #' @examples
 #'
