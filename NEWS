@@ -1,4 +1,4 @@
-smooth v2.6.0 (Release data: 2020-06-13)
+smooth v2.6.0 (Release data: 2020-06-16)
 =======
 
 Changes:
@@ -16,6 +16,7 @@ Bugfixes:
 * oesg() did not return class "occurrence".
 * A fix in sim.oes() for the ts() class in occurrence="inverse-odds-ratio".
 * oesg() now reports the correct type of model, not the abbreviation.
+* A fix for auto.ces(), which did not work on zeroes data.
 
 
 smooth v2.5.7 (Release data: 2020-04-06)

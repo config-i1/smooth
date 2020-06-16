@@ -175,7 +175,7 @@ auto.ces <- function(y, models=c("none","simple","full"),
     }
 
     CESModel <- as.list(models);
-    IC.vector <- c(1:length(models));
+    ICs <- c(1:length(models));
 
     j <- 1;
     if(!silentText){
@@ -194,11 +194,11 @@ auto.ces <- function(y, models=c("none","simple","full"),
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
                              updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
-        IC.vector[j] <- CESModel[[j]]$ICs[ic];
+        ICs[j] <- CESModel[[j]]$ICs[ic];
         j <- j+1;
     }
 
-    bestModel <- CESModel[[which(IC.vector==min(IC.vector))]];
+    bestModel <- CESModel[[which(ICs==min(ICs))[1]]];
 
     yFitted <- bestModel$fitted;
     yForecast <- bestModel$forecast;
@@ -207,9 +207,9 @@ auto.ces <- function(y, models=c("none","simple","full"),
     modelname <- bestModel$model;
 
     if(!silentText){
-        best.seasonality <- models[which(IC.vector==min(IC.vector))];
+        bestModelType <- models[which(ICs==min(ICs))[1]];
         cat(" \n");
-        cat(paste0('The best model is with seasonality = "',best.seasonality,'"\n'));
+        cat(paste0('The best model is with seasonality = "',bestModelType,'"\n'));
     }
 
 ##### Make a plot #####
