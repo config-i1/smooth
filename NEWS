@@ -1,3 +1,10 @@
+smooth v2.6.1 (Release data: 2020-07-03)
+=======
+
+Changes:
+* Further tuning of the initial smoothing parameters in oes() and oesg().
+
+
 smooth v2.6.0 (Release data: 2020-06-16)
 =======
 

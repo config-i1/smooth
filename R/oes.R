@@ -291,7 +291,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
             # Persistence vector. The initials are set here!
             if(persistenceEstimate){
-                vecg <- matrix(0.01, nComponentsAll, 1);
+                vecg <- matrix(0.1, nComponentsAll, 1);
             }
             else{
                 vecg <- matrix(persistence, nComponentsAll, 1);
@@ -788,6 +788,25 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                               xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
                               matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
                               ot=ot, bounds=bounds);
+
+                # If the smoothing parameters are high, try different initialisation and reestimate
+                if(persistenceEstimate && any(res$solution[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))]>0.5)){
+                    B$B[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))] <- 0.01;
+                    res2 <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
+                                  opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
+                                  lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
+                                  nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
+                                  lagsModelMax=lagsModelMax, damped=damped,
+                                  persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
+                                  modelIsSeasonal=modelIsSeasonal, initialSeasonEstimate=initialSeasonEstimate,
+                                  xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
+                                  matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
+                                  ot=ot, bounds=bounds);
+                    # If the new optimal is better than the old, use it
+                    if(res$objective > res2$objective){
+                        res <- res2;
+                    }
+                }
                 B <- res$solution;
 
                 # Parameters estimated. The variance is not estimated, so not needed
