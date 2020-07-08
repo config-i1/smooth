@@ -856,15 +856,15 @@ forecast.oes <- function(object, h=10,
 #' @importFrom greybox actuals
 #' @export
 actuals.smooth <- function(object, ...){
-    return(window(object$y,start(object$y),end(object$fitted)));
+    return(window(object$y,start=start(object$y),end=end(object$fitted)));
 }
 #' @export
 actuals.smooth.forecast <- function(object, ...){
-    return(window(actuals(object$model),start(actuals(object$model)),end(fitted(object$model))));
+    return(window(actuals(object$model),start=start(actuals(object$model)),end=end(fitted(object$model))));
 }
 #' @export
 actuals.iss <- function(object, ...){
-    return(window(actuals(object),start(actuals(object)),end(fitted(object))));
+    return(window(actuals(object),start=start(actuals(object)),end=end(fitted(object))));
 }
 
 #### Function extracts lags of provided model ####
@@ -1904,7 +1904,7 @@ plot.smooth.forecast <- function(x, ...){
     yActuals <- actuals(x$model);
     if(!is.null(x$model$holdout)){
         yActuals <- ts(c(yActuals,x$model$holdout), start=start(yActuals), frequency=frequency(yActuals));
-        yActuals <- window(yActuals, start(yActuals), min(tail(time(x$mean),1),tail(time(yActuals),1)));
+        yActuals <- window(yActuals, start=start(yActuals), end=min(tail(time(x$mean),1),tail(time(yActuals),1)));
     }
     if(!any(x$interval==c("none","n"))){
         graphmaker(yActuals,x$mean,fitted(x$model),x$lower,x$upper,x$level,...);
