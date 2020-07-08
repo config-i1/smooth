@@ -6,6 +6,7 @@ Changes:
 
 Bugfix:
 * window() function would not work in case of non-ts objects.
+* A bugfix in forecast() for oes(), where B would not be found.
 
 
 smooth v2.6.0 (Release data: 2020-06-16)

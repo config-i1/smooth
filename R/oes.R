@@ -175,6 +175,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
         updateX <- model$updateX;
         transitionX <- model$transitionX;
         persistenceX <- model$persistenceX;
+        B <- model$B;
         model <- modelType(model);
     }
 
