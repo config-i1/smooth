@@ -187,11 +187,6 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-
     # Check if the old value of parameters are passed
     if(any(c("group","g") %in% c(persistence, transition, phi, initial, initialSeason))){
         warning("You are using the old value of the parameters. We now have 'common' instead of 'group'.");

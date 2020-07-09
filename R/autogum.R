@@ -74,13 +74,6 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-    orders <- depricator(orders, list(...), "ordersMax");
-    lags <- depricator(lags, list(...), "lagsMax");
-
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 

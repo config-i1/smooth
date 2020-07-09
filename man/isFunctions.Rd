@@ -5,7 +5,6 @@
 \alias{is.vsmooth}
 \alias{is.smoothC}
 \alias{is.msarima}
-\alias{is.iss}
 \alias{is.oes}
 \alias{is.oesg}
 \alias{is.viss}
@@ -23,8 +22,6 @@ is.vsmooth(x)
 is.smoothC(x)
 
 is.msarima(x)
-
-is.iss(x)
 
 is.oes(x)
 
@@ -81,7 +78,6 @@ function using forecast() function.
 ourModel <- msarima(rnorm(100,100,10))
 
 is.smooth(ourModel)
-is.iss(ourModel)
 is.msarima(ourModel)
 is.vsmooth(ourModel)
 

@@ -181,11 +181,6 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 

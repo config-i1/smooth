@@ -71,9 +71,6 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-
     holdout <- FALSE;
     h <- 0;
 

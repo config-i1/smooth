@@ -85,9 +85,6 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
 # probability="i" - assume that ot[,1] is independent from ot[,2], but has similar dynamics;
 # probability="d" - assume that ot[,1] and ot[,2] are dependent, so that sum(P)=1;
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-
     intermittent <- substring(intermittent[1],1,1);
     if(all(intermittent!=c("n","f","l"))){
         warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
@@ -169,10 +166,10 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
     nSeries <- ncol(y);
 
     if(is.null(ncol(y))){
-        stop("The provided data is not a matrix! Use iss() function instead!", call.=FALSE);
+        stop("The provided data is not a matrix! Use oes() function instead!", call.=FALSE);
     }
     if(ncol(y)==1){
-        stop("The provided data contains only one column. Use iss() function instead!", call.=FALSE);
+        stop("The provided data contains only one column. Use oes() function instead!", call.=FALSE);
     }
     # Check the data for NAs
     if(any(is.na(y))){
@@ -247,7 +244,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
             initialSeasonValues <- list(NA);
             persistenceValues <- list(NA);
             for(i in 1:nSeries){
-                issModel <- iss(ot[,i],intermittent=intermittent,ic=ic,h=h,model=model,persistence=persistence,
+                issModel <- oes(ot[,i],intermittent=intermittent,ic=ic,h=h,model=model,persistence=persistence,
                                      initial=initial,initialSeason=initialSeason,xreg=xreg,holdout=holdout);
                 pFitted[,i] <- issModel$fitted;
                 pForecast[,i] <- issModel$forecast;
@@ -279,7 +276,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
             }
 
             model <- issModel$model;
-            nParam[1,4] <- nParam[1,1] <- issModel$nParam*nSeries;
+            nParam[1,4] <- nParam[1,1] <- issModel$nParam[1,1]*nSeries;
             logLik <- structure((sum(log(pFitted[ot==1])) + sum(log((1-pFitted[ot==0])))),df=nSeries,class="logLik");
         }
         else{

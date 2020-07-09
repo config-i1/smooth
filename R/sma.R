@@ -112,10 +112,6 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    interval <- depricator(interval, list(...), "intervals");
-
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 

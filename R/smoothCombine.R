@@ -109,11 +109,6 @@ smoothCombine <- function(y, models=NULL,
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-
     if(any(is.smoothC(models))){
         ourQuantiles <- models$quantiles;
         models <- models$models;

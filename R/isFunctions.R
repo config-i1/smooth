@@ -36,7 +36,6 @@
 #' ourModel <- msarima(rnorm(100,100,10))
 #'
 #' is.smooth(ourModel)
-#' is.iss(ourModel)
 #' is.msarima(ourModel)
 #' is.vsmooth(ourModel)
 #'
@@ -62,12 +61,6 @@ is.smoothC <- function(x){
 #' @export
 is.msarima <- function(x){
     return(inherits(x,"msarima"))
-}
-
-#' @rdname isFunctions
-#' @export
-is.iss <- function(x){
-    return(inherits(x,"iss"))
 }
 
 #' @rdname isFunctions

@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 2.6.1.41003
-Date: 2020-07-08
+Version: 2.6.1.41004
+Date: 2020-07-09
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -36,6 +36,6 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Encoding: UTF-8
 Roxygen: list(old_usage = TRUE)

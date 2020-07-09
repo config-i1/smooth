@@ -330,17 +330,6 @@ logLik.smooth.sim <- function(object,...){
     obs <- nobs(object);
     return(structure(object$logLik,nobs=obs,df=0,class="logLik"));
 }
-#' @export
-logLik.iss <- function(object,...){
-    if(is.null(object$logLik)){
-        warning("The likelihood of this model is unavailable.");
-        return(NULL);
-    }
-    else{
-        obs <- nobs(object);
-        return(structure(object$logLik,nobs=obs,df=nparam(object),class="logLik"));
-    }
-}
 
 #' @importFrom stats nobs
 #' @export
@@ -357,10 +346,6 @@ nobs.smooth.sim <- function(object, ...){
         return(nrow(object$data));
     }
 }
-#' @export
-nobs.iss <- function(object, ...){
-    return(length(object$fitted));
-}
 
 #' @importFrom greybox nparam
 
@@ -376,10 +361,6 @@ nparam.smooth <- function(object, ...){
     }
 }
 
-#' @export
-nparam.iss <- function(object, ...){
-    return(object$nParam);
-}
 
 #' Prediction Likelihood Score
 #'
@@ -862,10 +843,6 @@ actuals.smooth <- function(object, ...){
 actuals.smooth.forecast <- function(object, ...){
     return(window(actuals(object$model),start=start(actuals(object$model)),end=end(fitted(object$model))));
 }
-#' @export
-actuals.iss <- function(object, ...){
-    return(window(actuals(object),start=start(actuals(object)),end=end(fitted(object))));
-}
 
 #### Function extracts lags of provided model ####
 #' @export
@@ -1011,11 +988,6 @@ errorType.smooth <- function(object, ...){
 #' @export
 errorType.smooth.sim <- errorType.smooth;
 
-#' @export
-errorType.iss <- function(object, ...){
-    return(substr(modelType(object),1,1));
-}
-
 ##### Function returns the modelLags from the model - internal function #####
 modelLags.default <- function(object, ...){
     modelLags <- NA;
@@ -1130,11 +1102,6 @@ modelType.smooth <- function(object, ...){
 
 #' @export
 modelType.smooth.sim <- modelType.smooth;
-
-#' @export
-modelType.iss <- function(object, ...){
-    return(object$model);
-}
 
 #' @export
 modelType.oesg <- function(object, ...){
@@ -2174,46 +2141,6 @@ print.smooth.forecast <- function(x, ...){
 }
 
 #' @export
-print.iss <- function(x, ...){
-    intermittent <- x$intermittent
-    if(intermittent=="i"){
-        intermittent <- "Interval-based";
-    }
-    else if(intermittent=="p"){
-        intermittent <- "Probability-based";
-    }
-    else if(intermittent=="f"){
-        intermittent <- "Fixed probability";
-    }
-    else if(intermittent=="l"){
-        intermittent <- "Logistic probability";
-    }
-    else if(intermittent=="s"){
-        intermittent <- "Interval-based with SBA correction";
-    }
-    else{
-        intermittent <- "None";
-    }
-    ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
-    names(ICs) <- c("AIC","AICc","BIC","BICc");
-    cat(paste0("Intermittent state space model estimated: ",intermittent,"\n"));
-    if(!is.null(x$model)){
-        cat(paste0("Underlying ETS model: ",x$model,"\n"));
-    }
-    if(!is.null(x$persistence)){
-        cat("Smoothing parameters:\n");
-        print(round(x$persistence,3));
-    }
-    if(!is.null(x$initial)){
-        cat("Vector of initials:\n");
-        print(round(x$initial,3));
-    }
-    # cat(paste0("Probability forecast: ",round(x$forecast[1],3),"\n"));
-    cat("Information criteria: \n");
-    print(ICs);
-}
-
-#' @export
 print.oes <- function(x, ...){
     ellipsis <- list(...);
     if(!any(names(ellipsis)=="digits")){
@@ -2544,10 +2471,5 @@ summary.smooth <- function(object, ...){
 
 #' @export
 summary.smooth.forecast <- function(object, ...){
-    print(object);
-}
-
-#' @export
-summary.iss <- function(object, ...){
     print(object);
 }

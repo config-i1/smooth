@@ -31,8 +31,7 @@ not for forecasting.
 \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
 \item \link[smooth]{sim.gum} - simulate time series using GUM as a model.
 \item \link[smooth]{sim.sma} - simulate time series using SMA.
-\item \link[smooth]{iss} - intermittent data state space model. This
-function models the part with data occurrences using one of three methods.
+\item \link[smooth]{oes} - occurrence part of the intermittent state space model.
 \item \link[smooth]{viss} - Does the same as iss, but for the multivariate models.
 }
 There are also several methods implemented in the package for the classes

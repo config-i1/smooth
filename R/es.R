@@ -271,11 +271,6 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-
     #This overrides the similar thing in ssfunctions.R but only for data generated from sim.es()
     if(is.smooth.sim(y)){
         if(smoothType(y)=="ETS"){

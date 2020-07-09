@@ -1,8 +1,9 @@
-smooth v2.6.1 (Release data: 2020-07-08)
+smooth v2.6.1 (Release data: 2020-07-09)
 =======
 
 Changes:
 * Further tuning of the initial smoothing parameters in oes() and oesg().
+* Removed iss() function and redundant parameters (no more checks with depreciator).
 
 Bugfix:
 * window() function would not work in case of non-ts objects.

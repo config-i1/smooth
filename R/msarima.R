@@ -217,11 +217,6 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    ##### Check if data was used instead of y. Remove by 2.6.0 #####
-    y <- depricator(y, list(...), "data");
-    loss <- depricator(loss, list(...), "cfType");
-    interval <- depricator(interval, list(...), "intervals");
-
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
