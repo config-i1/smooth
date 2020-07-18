@@ -46,17 +46,18 @@ Available methods:
 11. nobs;
 12. nparam - number of the estimated parameters in the model;
 13. orders - orders of the components of the model (mainly needed for ARIMA, GUM and SMA);
-14. residuals - the residuals of the model (et in case of additive and log(1+et) for the multiplicative ones);
-15. rstandard - standardised residuals;
-16. rstudent - studentised residuals;
+14. outlierdummy - creates a matrix of dummy variables, based on the detected outliers in the residuals of the model;
+15. residuals - the residuals of the model (et in case of additive and log(1+et) for the multiplicative ones);
+16. rstandard - standardised residuals;
+17. rstudent - studentised residuals;
 17. plot - produces several plots for diagnostics purposes. See the documentation for plot.smooth();
-18. pls - Prediction Likelihood Score for the model and the provided holdout;
-19. pointLik - the vector of the individual likelihoods for each in-sample observation;
-20. pAIC - point AIC, based on pointLik
-21. print;
-22. sigma;
-23. simulate;
-24. summary;
+19. pls - Prediction Likelihood Score for the model and the provided holdout;
+20. pointLik - the vector of the individual likelihoods for each in-sample observation;
+21. pAIC - point AIC, based on pointLik
+22. print;
+23. sigma;
+24. simulate;
+25. summary;
 
 Future works:
 

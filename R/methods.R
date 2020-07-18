@@ -1368,17 +1368,6 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             yName <- "Studentised";
         }
 
-        if(is.occurrence(x$occurrence)){
-            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
-            ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
-        }
-
-        # Remove NAs
-        if(any(is.na(ellipsis$x))){
-            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
-            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
-        }
-
         if(!any(names(ellipsis)=="main")){
             ellipsis$main <- paste0(yName," Residuals vs Fitted");
         }
@@ -1399,15 +1388,18 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             }
         }
 
-        zValues <- switch(x$loss,
-                          "MAE"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
-                          "HAM"=qs(c((1-level)/2, (1+level)/2), 0, 1),
-                          qnorm(c((1-level)/2, (1+level)/2), 0, 1));
-        outliers <- which(ellipsis$y >zValues[2] | ellipsis$y <zValues[1]);
-        # cat(paste0(round(length(outliers)/length(ellipsis$y),3)*100,"% of values are outside the bounds\n"));
+        # Get the IDs of outliers and statistic
+        outliers <- outlierdummy(x, level=level, type=type);
+        outliersID <- outliers$id;
+        statistic <- outliers$statistic;
+
+        # Substitute zeroes with NAs if there was an occurrence
+        if(is.occurrence(x$occurrence)){
+            ellipsis$x[actuals(x$occurrence)==0] <- NA;
+        }
 
         if(!any(names(ellipsis)=="ylim")){
-            ellipsis$ylim <- range(c(ellipsis$y,zValues), na.rm=TRUE)*1.2;
+            ellipsis$ylim <- range(c(ellipsis$y,statistic), na.rm=TRUE)*1.2;
             if(legend){
                 if(legendPosition=="bottomright"){
                     ellipsis$ylim[1] <- ellipsis$ylim[1] - 0.2*diff(ellipsis$ylim);
@@ -1424,14 +1416,19 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         do.call(plot,ellipsis);
         abline(h=0, col="grey", lty=2);
-        polygon(c(xRange,rev(xRange)),c(zValues[1],zValues[1],zValues[2],zValues[2]),
+        polygon(c(xRange,rev(xRange)),c(statistic[1],statistic[1],statistic[2],statistic[2]),
                 col="lightgrey", border=NA, density=10);
-        abline(h=zValues, col="red", lty=2);
-        if(length(outliers)>0){
-            points(ellipsis$x[outliers], ellipsis$y[outliers], pch=16);
-            text(ellipsis$x[outliers], ellipsis$y[outliers], labels=outliers, pos=(ellipsis$y[outliers]>0)*2+1);
+        abline(h=statistic, col="red", lty=2);
+        if(length(outliersID)>0){
+            points(ellipsis$x[outliersID], ellipsis$y[outliersID], pch=16);
+            text(ellipsis$x[outliersID], ellipsis$y[outliersID], labels=outliersID, pos=(ellipsis$y[outliersID]>0)*2+1);
         }
         if(lowess){
+            # Remove NAs
+            if(any(is.na(ellipsis$x))){
+                ellipsis$y <- ellipsis$y[!is.na(ellipsis$x)];
+                ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+            }
             lines(lowess(ellipsis$x, ellipsis$y), col="red");
         }
 
@@ -1577,10 +1574,6 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             yName <- "Studentised";
         }
 
-        if(is.occurrence(x$occurrence)){
-            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
-        }
-
         if(!any(names(ellipsis)=="main")){
             ellipsis$main <- paste0(yName," Residuals vs Time");
         }
@@ -1597,15 +1590,13 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$type <- "l";
         }
 
-        zValues <- switch(x$loss,
-                          "MAE"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
-                          "HAM"=qs(c((1-level)/2, (1+level)/2), 0, 1),
-                          qnorm(c((1-level)/2, (1+level)/2), 0, 1));
-        outliers <- which(ellipsis$x >zValues[2] | ellipsis$x <zValues[1]);
-
+        # Get the IDs of outliers and statistic
+        outliers <- outlierdummy(x, level=level, type=type);
+        outliersID <- outliers$id;
+        statistic <- outliers$statistic;
 
         if(!any(names(ellipsis)=="ylim")){
-            ellipsis$ylim <- c(-max(abs(ellipsis$x)),max(abs(ellipsis$x)))*1.2;
+            ellipsis$ylim <- range(c(ellipsis$x,statistic),na.rm=TRUE)*1.2;
         }
 
         if(legend){
@@ -1616,18 +1607,25 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         # Start plotting
         do.call(plot,ellipsis);
-        if(length(outliers)>0){
-            points(time(ellipsis$x)[outliers], ellipsis$x[outliers], pch=16);
-            text(time(ellipsis$x)[outliers], ellipsis$x[outliers], labels=outliers, pos=(ellipsis$x[outliers]>0)*2+1);
+        if(is.occurrence(x$occurrence)){
+            points(ellipsis$x);
+        }
+        if(length(outliersID)>0){
+            points(time(ellipsis$x)[outliersID], ellipsis$x[outliersID], pch=16);
+            text(time(ellipsis$x)[outliersID], ellipsis$x[outliersID], labels=outliersID, pos=(ellipsis$x[outliersID]>0)*2+1);
         }
         if(lowess){
+            # Substitute NAs with the mean
+            if(any(is.na(ellipsis$x))){
+                ellipsis$x[is.na(ellipsis$x)] <- mean(ellipsis$x, na.rm=TRUE);
+            }
             lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
         }
         abline(h=0, col="grey", lty=2);
-        abline(h=zValues[1], col="red", lty=2);
-        abline(h=zValues[2], col="red", lty=2);
+        abline(h=statistic[1], col="red", lty=2);
+        abline(h=statistic[2], col="red", lty=2);
         polygon(c(1:nobs(x), c(nobs(x):1)),
-                c(rep(zValues[1],nobs(x)), rep(zValues[2],nobs(x))),
+                c(rep(statistic[1],nobs(x)), rep(statistic[2],nobs(x))),
                 col="lightgrey", border=NA, density=10);
         if(legend){
             legend(legendPosition,legend=c("Residuals",paste0(level*100,"% prediction interval")),
@@ -1671,17 +1669,17 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
         }
         ellipsis$x <- theValues$acf[-1];
-        zValues <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
+        statistic <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
 
         ellipsis$type <- "h"
 
         do.call(plot,ellipsis);
         abline(h=0, col="black", lty=1);
-        abline(h=zValues, col="red", lty=2);
-        if(any(ellipsis$x>zValues[2] | ellipsis$x<zValues[1])){
-            outliers <- which(ellipsis$x >zValues[2] | ellipsis$x <zValues[1]);
-            points(outliers, ellipsis$x[outliers], pch=16);
-            text(outliers, ellipsis$x[outliers], labels=outliers, pos=(ellipsis$x[outliers]>0)*2+1);
+        abline(h=statistic, col="red", lty=2);
+        if(any(ellipsis$x>statistic[2] | ellipsis$x<statistic[1])){
+            outliersID <- which(ellipsis$x >statistic[2] | ellipsis$x <statistic[1]);
+            points(outliersID, ellipsis$x[outliersID], pch=16);
+            text(outliersID, ellipsis$x[outliersID], labels=outliersID, pos=(ellipsis$x[outliersID]>0)*2+1);
         }
     }
 
@@ -2240,14 +2238,19 @@ rstandard.smooth <- function(model, ...){
 
     # If this is an occurrence model, then only modify the non-zero obs
     if(is.occurrence(model$occurrence)){
-        residsToGo <- which(actuals(model$occurrence)!=0);
+        residsToGo <- (actuals(model$occurrence)!=0);
     }
     else{
-        residsToGo <- c(1:obs);
+        residsToGo <- rep(TRUE,obs);
     }
 
-    errors <- residuals(model);
-    return((errors - mean(errors[residsToGo], na.rm=TRUE)) / sqrt(sigma(model)^2 * obs / df));
+    errors <- residuals(model, ...);
+    errors[] <- (errors - mean(errors[residsToGo], na.rm=TRUE)) / sqrt(sigma(model)^2 * obs / df);
+    # Fill in values with NAs if there is occurrence model
+    if(is.occurrence(model$occurrence)){
+        errors[!residsToGo] <- NA;
+    }
+    return(errors);
 }
 
 #' @importFrom stats rstudent
@@ -2255,29 +2258,62 @@ rstandard.smooth <- function(model, ...){
 rstudent.smooth <- function(model, ...){
     obs <- nobs(model);
     df <- obs - nparam(model) - 1;
-    rstudentised <- errors <- residuals(model);
-    errors[] <- errors - mean(errors, na.rm=TRUE);
     # If this is an occurrence model, then only modify the non-zero obs
     if(is.occurrence(model$occurrence)){
-        residsToGo <- which(actuals(model$occurrence)!=0);
+        residsToGo <- (actuals(model$occurrence)!=0);
     }
     else{
-        residsToGo <- c(1:obs);
+        residsToGo <- rep(TRUE,obs);
     }
+    rstudentised <- errors <- residuals(model, ...);
+    errors[] <- errors - mean(errors, na.rm=TRUE);
     # Prepare the residuals
     if(errorType(model)=="M"){
-        for(i in residsToGo){
+        for(i in which(residsToGo)){
             rstudentised[i] <- errors[i] / sqrt(sum(errors[-i]^2, na.rm=TRUE) / df);
         }
     }
     else{
-        for(i in residsToGo){
+        for(i in which(residsToGo)){
             rstudentised[i] <- errors[i] / sqrt(sum(errors[-i]^2, na.rm=TRUE) / df);
         }
     }
+    # Fill in values with NAs if there is occurrence model
+    if(is.occurrence(model$occurrence)){
+        rstudentised[!residsToGo] <- NA;
+    }
+
     return(rstudentised);
 }
 
+#' @importFrom greybox outlierdummy
+#' @export
+outlierdummy.smooth <- function(object, level=0.999, type=c("rstandard","rstudent"), ...){
+    # Function returns the matrix of dummies with outliers
+    type <- match.arg(type);
+    errors <- switch(type,"rstandard"=rstandard(object),"rstudent"=rstudent(object));
+    statistic <- switch(object$loss,
+                      "MAE"=,"MAEh"=,"MACE"=,"TMAE"=,"GTMAE"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
+                      "HAM"=,"HAMh"=,"CHAM"=,"THAM"=,"GTHAM"=qs(c((1-level)/2, (1+level)/2), 0, 1),
+                      qnorm(c((1-level)/2, (1+level)/2), 0, 1));
+
+    outliersID <- which(errors>statistic[2] | errors<statistic[1]);
+    outliersNumber <- length(outliersID);
+    if(outliersNumber>0){
+        outliers <- ts(matrix(0, nobs(object), outliersNumber,
+                              dimnames=list(NULL,
+                                            paste0("outlier",c(1:outliersNumber)))),
+                       start=start(actuals(object)), frequency=frequency(actuals(object)));
+        outliers[cbind(outliersID,c(1:outliersNumber))] <- 1;
+    }
+    else{
+        outliers <- NULL;
+    }
+
+    return(structure(list(outliers=outliers, statistic=statistic, id=outliersID,
+                          level=level, type=type),
+                     class="outlierdummy"));
+}
 
 
 #### Simulate data using provided object ####
