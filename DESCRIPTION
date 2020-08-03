@@ -43,6 +43,7 @@ Suggests:
     foreach
 Remotes:
     config-i1/greybox
+    config-i1/gnorm
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 Encoding: UTF-8
