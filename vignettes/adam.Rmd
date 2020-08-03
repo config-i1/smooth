@@ -307,3 +307,10 @@ testModel <- auto.adam(M3[[1234]], "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE)
 ```
 
 Knowing how to work with `adam()`, you can use similar principles, when dealing with `auto.adam()`. Just keep in mind that the provided `persistence`, `phi`, `initial`, `arma` and `B` won't work, because this contradicts the idea of the model building idea.
+
+Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
+```{r}
+testModel <- auto.adam(Mcomp::M3[[2568]], "PPP", silent=FALSE, outliers="use", distribution="default")
+```
+
+If you want to know more about ADAM, you are welcome to visit [the website of the textbook](https://www.openforecast.org/adam/) about ADAM (this is a work in progress at the moment).

@@ -56,7 +56,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #'
 #' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("adam","smooth")}.
+#' vignette:.
 #'
 #' The function \code{auto.adam()} tries out models with the specified
 #' distributions and returns the one with the most suitable one.
@@ -843,7 +843,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     matVt[j,1:lagsModelMax] <- yDecomposition$initial[2];
                                 }
                                 # This is a failsafe for multiplicative trend models, so that the thing does not explode
-                                if(Ttype=="M" && matVt[j,1:lagsModelMax]>1.1){
+                                if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
                                     matVt[j,1:lagsModelMax] <- 1;
                                 }
                             }

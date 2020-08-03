@@ -89,7 +89,7 @@ test_that("ADAM ETS(MAN) with LASSO on N1234", {
 
 # ADAM with custom loss function
 loss <- function(actual, fitted, B){
-    return(abs(actual-fitted)^3);
+    return(sum(abs(actual-fitted)^3));
 }
 testModel <- adam(Mcomp::M3[[1234]], "AAN", loss=loss);
 test_that("ADAM ETS(AAN) with custom loss on N1234", {
@@ -410,19 +410,19 @@ test_that("Best auto.adam on N2568", {
 })
 
 # Select the best distribution for ETS(ZZZ) on 2568 in parallel
-testModel2 <- auto.adam(Mcomp::M3[[2568]], "ZZZ", parallel=TRUE);
+testModel2 <- auto.adam(Mcomp::M3[[2568]], "ZZZ", parallel=2);
 test_that("Best auto.adam ETS(ZZZ) on N2568, in parallel", {
     expect_equal(testModel$persistence,testModel2$persistence);
 })
 
 # Outliers detection for ETS on series N291 of M1 in parallel
-testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use", parallel=TRUE);
+testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use", parallel=2);
 test_that("Detect outliers for ETS(ZZZ) on N291, in parallel", {
     expect_false(is.null(testModel$xreg));
 })
 
 # Best ARIMA on the 2568
-testModel <- auto.adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE), parallel=TRUE);
+testModel <- auto.adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE), parallel=2);
 test_that("Best auto.adam ARIMA on N2568, in parallel", {
     expect_match(testModel$loss, "likelihood");
 })

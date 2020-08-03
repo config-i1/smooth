@@ -339,7 +339,7 @@ Inverse Gaussian is used for the Multiplicative error models.
 }
 
 For some more information about the model and its implementation, see the
-vignette: \code{vignette("adam","smooth")}.
+vignette:.
 
 The function \code{auto.adam()} tries out models with the specified
 distributions and returns the one with the most suitable one.
