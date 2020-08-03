@@ -25,6 +25,9 @@ Imports:
     stats,
     graphics,
     forecast (>= 7.0),
+    pracma,
+    statmod,
+    gnorm (>= 1.0.2),
     nloptr,
     utils,
     zoo
@@ -34,7 +37,10 @@ Suggests:
     numDeriv,
     testthat,
     knitr,
-    rmarkdown
+    rmarkdown,
+    doMC,
+    doParallel,
+    foreach
 Remotes:
     config-i1/greybox
 VignetteBuilder: knitr

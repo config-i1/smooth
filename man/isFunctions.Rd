@@ -11,6 +11,8 @@
 \alias{is.smooth.sim}
 \alias{is.vsmooth.sim}
 \alias{is.smooth.forecast}
+\alias{is.adam}
+\alias{is.adam.sim}
 \alias{is.msdecompose}
 \alias{is.msdecompose.forecast}
 \title{Smooth classes checkers}
@@ -35,6 +37,10 @@ is.vsmooth.sim(x)
 
 is.smooth.forecast(x)
 
+is.adam(x)
+
+is.adam.sim(x)
+
 is.msdecompose(x)
 
 is.msdecompose.forecast(x)
@@ -44,8 +50,12 @@ is.msdecompose.forecast(x)
 }
 \value{
 \code{TRUE} if this is the specified class and \code{FALSE} otherwise.
+
+\code{TRUE} if this is the specified class and \code{FALSE} otherwise.
 }
 \description{
+Functions to check if an object is of the specified class
+
 Functions to check if an object is of the specified class
 }
 \details{
@@ -72,6 +82,12 @@ function;
 \item \code{is.smooth.forecast()} checks if the forecast was produced from a smooth
 function using forecast() function.
 }
+
+The list of functions includes:
+\itemize{
+\item \code{is.adam()} tests if the object was produced by a \link[adam]{adam} function
+\item \code{is.adam.sim()} tests if the object was produced by \link[adam]{sim.adam} function;
+}
 }
 \examples{
 
@@ -81,8 +97,14 @@ is.smooth(ourModel)
 is.msarima(ourModel)
 is.vsmooth(ourModel)
 
+
+ourModel <- adam(rnorm(100,100,10))
+is.adam(ourModel)
+
 }
 \author{
+Ivan Svetunkov, \email{ivan@svetunkov.ru}
+
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
 \keyword{ts}

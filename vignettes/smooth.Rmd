@@ -18,6 +18,7 @@ This vignette explains how to use functions in `smooth` package, what they produ
 
 The package includes the following functions:
 
+1. [adam() - ADAM - Advanced Dynamic Adaptive Model](adam.html), the model that encompases both ETS and ARIMA;
 1. [es() - Exponential Smoothing](es.html);
 2. [ssarima() - State-Space ARIMA](ssarima.html), also known as Several Seasonalities ARIMA and `msarima()`, aka Multiple Seasonal ARIMA;
 3. [ces() - Complex Exponential Smoothing](ces.html);
