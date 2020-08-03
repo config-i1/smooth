@@ -1,3 +1,10 @@
+smooth v3.0.0 (Release data: 2020-08-03)
+=======
+
+Changes:
+* ADAM function moved to smooth from a separate package.
+
+
 smooth v2.6.1 (Release data: 2020-07-17)
 =======
 

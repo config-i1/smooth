@@ -6,15 +6,6 @@
 
 using namespace Rcpp;
 
-// [[Rcpp::export]]
-RcppExport SEXP matrixPowerWrap(SEXP matA, SEXP power){
-    NumericMatrix matA_n(matA);
-    arma::mat matrixA(matA_n.begin(), matA_n.nrow(), matA_n.ncol(), false);
-
-    int pow = as<int>(power);
-
-    return wrap(matrixPower(matrixA, pow));
-}
 
 // ##### Script for simulate functions
 List simulator(arma::cube &arrayVt, arma::mat const &matrixerrors, arma::mat const &matrixot,

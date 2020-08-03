@@ -17,6 +17,35 @@ inline arma::mat matrixPower(arma::mat const &A, int const &power){
     return B;
 }
 
+/* # Function returns multiplicative or additive error for scalar */
+inline double errorf(double const &yact, double &yfit, char const &E){
+    if(E=='A'){
+        return yact - yfit;
+    }
+    else{
+        if((yact==0) & (yfit==0)){
+            return 0;
+        }
+        else if((yact!=0) & (yfit==0)){
+            return R_PosInf;
+        }
+        else{
+            return (yact - yfit) / yfit;
+        }
+    }
+}
+
+/* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
+inline arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
+    if(E=='A'){
+        return yact - yfit;
+    }
+    else{
+        yfit.elem(find(yfit==0)).fill(1e-100);
+        return (yact - yfit) / yfit;
+    }
+}
+
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 inline double wvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E, char const &T, char const &S,
               arma::rowvec const &rowvecXt, arma::vec const &vecAt){

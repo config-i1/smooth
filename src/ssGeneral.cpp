@@ -6,7 +6,6 @@
 
 using namespace Rcpp;
 
-
 /* # Function allows to multiply polinomails */
 arma::vec polyMult(arma::vec const &poly1, arma::vec const &poly2){
 
@@ -50,35 +49,6 @@ double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &error
     }
 
     return CF;
-}
-
-/* # Function returns multiplicative or additive error for scalar */
-double errorf(double const &yact, double &yfit, char const &E){
-    if(E=='A'){
-        return yact - yfit;
-    }
-    else{
-        if((yact==0) & (yfit==0)){
-            return 0;
-        }
-        else if((yact!=0) & (yfit==0)){
-            return R_PosInf;
-        }
-        else{
-            return (yact - yfit) / yfit;
-        }
-    }
-}
-
-/* # Function is needed to estimate the correct error for ETS when multisteps model selection with r(matvt) is sorted out. */
-arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
-    if(E=='A'){
-        return yact - yfit;
-    }
-    else{
-        yfit.elem(find(yfit==0)).fill(1e-100);
-        return (yact - yfit) / yfit;
-    }
 }
 
 /* # initparams - function that initialises the basic parameters of ETS */
