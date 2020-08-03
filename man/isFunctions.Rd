@@ -85,8 +85,8 @@ function using forecast() function.
 
 The list of functions includes:
 \itemize{
-\item \code{is.adam()} tests if the object was produced by a \link[adam]{adam} function
-\item \code{is.adam.sim()} tests if the object was produced by \link[adam]{sim.adam} function;
+\item \code{is.adam()} tests if the object was produced by a \link[smooth]{adam} function
+\item \code{is.adam.sim()} tests if the object was produced by sim.adam() function (not implemented yet);
 }
 }
 \examples{
