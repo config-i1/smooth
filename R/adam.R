@@ -56,7 +56,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #'
 #' For some more information about the model and its implementation, see the
-#' vignette:.
+#' vignette: \code{vignette("adam","smooth")}.
 #'
 #' The function \code{auto.adam()} tries out models with the specified
 #' distributions and returns the one with the most suitable one.
@@ -3577,7 +3577,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     initialSeasonalEstimateFI <- vector("logical", componentsNumberETSSeasonal);
                     seasonalNames <- names(B)[substr(names(B),1,8)=="seasonal"];
                     # If there is only one seasonality
-                    if(substr(seasonalNames,1,9)=="seasonal_"){
+                    if(any(substr(seasonalNames,1,9)=="seasonal_")){
                         initialSeasonalEstimateFI[] <- TRUE;
                     }
                     # If there is several

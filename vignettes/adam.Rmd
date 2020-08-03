@@ -35,7 +35,6 @@ In order to run the experiments in this vignette, we need to load the following 
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(greybox)
 require(smooth)
-require(forecast)
 require(Mcomp)
 ```
 
@@ -83,7 +82,7 @@ Note that you need to have parameters actual, fitted and B in the function, whic
 
 `loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can.
 
-The model selection in ADAM ETS relies on information criteria and works correctly only available for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
+The model selection in ADAM ETS relies on information criteria and works correctly only available for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
 
 ```{r}
 testModel <- adam(M3[[2568]], "ZXZ", lags=c(1,12), silent=FALSE)
@@ -216,7 +215,7 @@ testModel
 
 If you work with ADAM ARIMA model, then there is no such thing as "usual" bounds for the parameters, so the function will use the `bounds="admissible"`, checking the AR / MA polynomials in order to make sure that the model is stationary and invertible (aka stable).
 
-Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam` function, not in the `adam`!**
+Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam()` function, not in the `adam()`!**
 
 Finally, ARIMA is typically slower than ETS, mainly because the `maxeval` is set by default to 400. But this is inevitable due to an increased complexity of the model - otherwise it won't be estimated properly. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations.
 
@@ -288,21 +287,20 @@ testModel
 
 This process can also be done in parallel on either the automatically selected number of cores (e.g. `parallel=TRUE`) or on the specified by user (e.g. `parallel=4`):
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 testModel <- auto.adam(M3[[1234]], "ZZZ", silent=FALSE, parallel=TRUE)
-testModel
 ```
 
 If you want to add ARIMA or regression components, you can do it in the exactly the same way as for the `adam()` function. Here is an example of ETS+ARIMA:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE, parallel=TRUE)
+testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE)
 testModel
 ```
 
 However, this way the function will just use ARIMA(2,2,2) and fit it together with ETS. If you want it to select the most appropriate ARIMA orders, you need to add parameter `select=TRUE` to the list in `orders`:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 testModel <- auto.adam(M3[[1234]], "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE), silent=FALSE, parallel=TRUE)
 ```
 
