@@ -3,7 +3,7 @@ smooth v2.6.1 (Release data: 2020-07-17)
 
 Changes:
 * Further tuning of the initial smoothing parameters in oes() and oesg().
-* Removed iss() function and redundant parameters (no more checks with depreciator).
+* Removed iss() function and redundant parameters (no more checks with depreciator). Also removed the respective redundant parts of C++ code.
 * outlierdummy() method for smooth class, based on the same stuff from greybox v0.6.1.
 
 Bugfix:

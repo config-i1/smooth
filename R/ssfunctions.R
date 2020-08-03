@@ -740,7 +740,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
-    else if(any(loss==c("MSE","MAE","HAM","TSB","Rounded","LogisticD","LogisticL"))){
+    else if(any(loss==c("MSE","MAE","HAM","Rounded"))){
         multisteps <- FALSE;
     }
     else{
@@ -961,9 +961,6 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         # Check if multiplicative models can be fitted
         allowMultiplicative <- !((any(yInSample<=0) && occurrence=="n") |
                                      (occurrence!="n" && any(yInSample<0)));
-        if(any(loss==c("LogisticL","LogisticD"))){
-            allowMultiplicative <- TRUE;
-        }
         # If non-positive values are present, check if data is intermittent,
         # if negatives are here, switch to additive models
         if(!allowMultiplicative){
@@ -1698,7 +1695,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
-    else if(any(loss==c("MSE","MAE","HAM","Rounded","TSB","LogisticD","LogisticL"))){
+    else if(any(loss==c("MSE","MAE","HAM","Rounded"))){
         multisteps <- FALSE;
     }
     else{
@@ -1885,18 +1882,8 @@ ssFitter <- function(...){
     ellipsis <- list(...);
     ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
-    if(loss=="LogisticL"){
-        EtypeNew <- "L";
-    }
-    else if(loss=="LogisticD"){
-        EtypeNew <- "D";
-    }
-    else{
-        EtypeNew <- Etype;
-    }
-
     fitting <- fitterwrap(matvt, matF, matw, yInSample, vecg,
-                          lagsModel, EtypeNew, Ttype, Stype, initialType,
+                          lagsModel, Etype, Ttype, Stype, initialType,
                           matxt, matat, matFX, vecgX, ot);
     statesNames <- colnames(matvt);
     matvt <- ts(fitting$matvt,start=(time(y)[1] - deltat(y)*lagsModelMax),frequency=dataFreq);
@@ -1911,7 +1898,7 @@ ssFitter <- function(...){
                        "Please, use a different model."),
                 call.=FALSE);
     }
-    if(EtypeNew=="M" & any(matvt[,1]<0)){
+    if(Etype=="M" & any(matvt[,1]<0)){
         matvt[matvt[,1]<0,1] <- 0.001;
         warning(paste0("Negative values produced in the level of state vector of model ",model,".\n",
                        "We had to substitute them by low values. Please, use a different model."),
@@ -2551,12 +2538,6 @@ ssForecaster <- function(...){
                                          matat[(obsAll-h+1):(obsAll),,drop=FALSE], matFX)),
                         start=yForecastStart,frequency=dataFreq);
 
-        if(any(loss==c("LogisticL","LogisticD"))){
-            if(any(is.nan(yForecast)) | any(is.infinite(yForecast))){
-                yForecast[] <- matvt[obsInSample,1];
-            }
-        }
-
         if(any(is.nan(yForecast))){
             warning(paste0("NaNs were produced in the forecast.\n",
                            "This could happen if you used multiplicative model on non-positive data. ",
@@ -2742,33 +2723,6 @@ ssForecaster <- function(...){
     if(any(is.na(yFitted),all(is.na(yForecast),h>0))){
         warning("Something went wrong during the optimisation and NAs were produced!",call.=FALSE);
         warning("Please check the input and report this error to the maintainer if it persists.",call.=FALSE);
-    }
-
-    if(loss=="LogisticL"){
-        yForecast <- yForecast / (1 + yForecast);
-        yLower <- yLower / (1 + yLower);
-        yUpper <- yUpper / (1 + yUpper);
-    }
-    else if(loss=="LogisticD"){
-        # If the values are too high (hard to take exp), substitute by 1
-        yForecastNew <- exp(yForecast) / (1 + exp(yForecast));
-        yLowerNew <- exp(yLower) / (1 + exp(yLower));
-        yUpperNew <- exp(yUpper) / (1 + exp(yUpper));
-        if(any(yForecast>500)){
-            yForecastNew[yForecast>500] <- 1;
-            yLowerNew[yLowerNew>500] <- 1;
-            yUpperNew[yLowerNew>500] <- 1;
-        }
-        # If the values are too low (hard to take exp), substitute by 0
-        if(any(yForecast< -500)){
-            yForecastNew[yForecast< -500] <- 0;
-            yLowerNew[yLowerNew< -500] <- 0;
-            yUpperNew[yLowerNew< -500] <- 0;
-        }
-
-        yForecast <- yForecastNew;
-        yLower <- yLowerNew;
-        yUpper <- yUpperNew;
     }
 
     assign("s2",s2,ParentEnvironment);
@@ -3175,9 +3129,6 @@ likelihoodFunction <- function(B){
         }
         else if(any(loss==c("GPL","aGPL","aGTMSE"))){
             return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
-        }
-        else if(any(loss==c("LogisticD","LogisticL","TSB","Rounded"))){
-            return(-CFValue);
         }
         else{
             #if(loss==c("MSE","MSEh","MSCE")) obsNonzero
