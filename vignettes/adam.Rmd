@@ -82,16 +82,16 @@ Note that you need to have parameters actual, fitted and B in the function, whic
 
 `loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can.
 
-The model selection in ADAM ETS relies on information criteria and works correctly only available for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
+The model selection in ADAM ETS relies on information criteria and works correctly only for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
 
 ```{r}
 testModel <- adam(M3[[2568]], "ZXZ", lags=c(1,12), silent=FALSE)
 testModel
 ```
 
-Note that the function produces point forecasts if `h>0`, but it won't generate predictin interval. This is why you need to use `forecast()` method (as shown in a previous example).
+Note that the function produces point forecasts if `h>0`, but it won't generate prediction interval. This is why you need to use `forecast()` method (as shown in the first example in this vignette).
 
-Similarly to `es()` function supports combination of models, but it saves all the tested models in the output for a potential reuse. Here how it works:
+Similarly to `es()`, function supports combination of models, but it saves all the tested models in the output for a potential reuse. Here how it works:
 
 ```{r}
 testModel <- adam(M3[[2568]], "CXC", lags=c(1,12))
@@ -106,7 +106,7 @@ Yes, now we support vectors for the levels in case you want to produce several. 
 forecast(testModel,h=18,interval="semiparametric", level=c(0.9,0.95,0.99), side="upper")
 ```
 
-A brand new thing in the function is the possibility to use several frequency (double / triple / quadruple / ... seasonal models). Here what we can have in case of half-hourly data:
+A brand new thing in the function is the possibility to use several frequencies (double / triple / quadruple / ... seasonal models). Here is an example of what we can have in case of half-hourly data:
 
 ```{r}
 testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE)
@@ -116,27 +116,30 @@ testModel
 Note that the more lags you have, the more initial seasonal components the function will need to estimate, which is a difficult task. The optimiser might not get close to the optimal value, so we can help it. First, we can give more time for the calculation, increasing the number of iterations via `maxeval` (the default value is 20 iterations for each optimised parameter. So, in case of the previous model it is 389*20=7780):
 
 ```{r}
-testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE, maxeval=10000)
+testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE,
+                  maxeval=10000)
 testModel
 ```
 
 This will take more time, but will typically lead to more refined parameters. You can control other parameters of the optimiser as well, such as `algorithm`, `xtol_rel`, `print_level` and others, which are explained in the documentation for `nloptr` function from nloptr package (run `nloptr.print.options()` for details). Second, we can give a different set of initial parameters for the optimiser, have a look at what the function saves:
 
-```{r}
+```{r eval=FALSE, echo=TRUE}
 testModel$B
 ```
 
 and use this as a starting point (e.g. with a different algorithm):
 
 ```{r}
-testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE, B=testModel$B)
+testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE,
+                  B=testModel$B)
 testModel
 ```
 
 Finally, we can speed up the process by using a different initialisation of the state vector, such as backcasting:
 
-```{r}
-testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE, initial="b")
+```{r eval=FALSE, echo=TRUE}
+testModel <- adam(forecast::taylor, "MMdM", lags=c(1,48,336), silent=FALSE, h=336, holdout=TRUE,
+                  initial="b")
 ```
 
 The result might be less accurate than in case of the optimisation, but it should be faster.
@@ -153,13 +156,14 @@ testModel
 The function also handles intermittent data (the data with zeroes) and the data with missing values. This is partially covered in the vignette on the [oes()](oes.html) function. Here is a simple example:
 
 ```{r}
-testModel <- adam(rpois(120,0.5), "MNN", silent=FALSE, h=12, holdout=TRUE, occurrence="odds-ratio")
+testModel <- adam(rpois(120,0.5), "MNN", silent=FALSE, h=12, holdout=TRUE,
+                  occurrence="odds-ratio")
 testModel
 ```
 
-Finally, `adam()` is faster than `es()` function, because its code is more efficient and it uses a different optimisation algorithm by with more finely tuned parameters by default. Let's compare:
+Finally, `adam()` is faster than `es()` function, because its code is more efficient and it uses a different optimisation algorithm with more finely tuned parameters by default. Let's compare:
 ```{r}
-adamModel <- adam(M3[[2568]], "CCC", lags=c(1,12))
+adamModel <- adam(M3[[2568]], "CCC")
 esModel <- es(M3[[2568]], "CCC")
 "adam:"
 adamModel
@@ -183,15 +187,16 @@ The functionality of ADAM ARIMA is similar to the one of `msarima` function in `
 First, changing the `distribution` parameter will allow switching between additive / multiplicative models. For example, `distribution="dlnorm"` will create an ARIMA, equivalent to the one on logarithms of the data:
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12), orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dlnorm")
+testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dlnorm")
 testModel
 ```
 
 Second, it does not have intercept. If you want to have one, you can do this reintroducing ETS component and imposing some restrictions:
 
 ```{r}
-testModel <- adam(M3[[2568]], "ANN", silent=FALSE, persistence=0,
-                  lags=c(1,12), orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm")
+testModel <- adam(M3[[2568]], "ANN", silent=FALSE, lags=c(1,12), persistence=0,
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm")
 testModel
 ```
 
@@ -200,16 +205,18 @@ This way we get the global level, which acts as an intercept. The drift is not s
 Third, you can specify parameters of ARIMA via the `arma` parameter in the following manner:
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12), arma=list(ar=c(0.1,0.1), ma=c(-0.96, 0.03, -0.12, 0.03)),
-                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm")
+testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm",
+                  arma=list(ar=c(0.1,0.1), ma=c(-0.96, 0.03, -0.12, 0.03)))
 testModel
 ```
 
 Finally, the initials for the states can also be provided, although getting the correct ones might be a challenging task (you also need to know how many of them to provide; checking `testModel$initial` might help):
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12), initial=list(arima=M3[[2568]]$x[1:24]),
-                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,0)), distribution="dnorm")
+testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,0)), distribution="dnorm",
+                  initial=list(arima=M3[[2568]]$x[1:24]))
 testModel
 ```
 
@@ -217,7 +224,7 @@ If you work with ADAM ARIMA model, then there is no such thing as "usual" bounds
 
 Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam()` function, not in the `adam()`!**
 
-Finally, ARIMA is typically slower than ETS, mainly because the `maxeval` is set by default to 400. But this is inevitable due to an increased complexity of the model - otherwise it won't be estimated properly. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations.
+Finally, ARIMA is typically slower than ETS, mainly because the `maxeval` is set by default to be at least 1000. But this is inevitable due to an increased complexity of the model - otherwise it won't be estimated properly. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations.
 
 # ADAM ETSX / ARIMAX / ETSX+ARIMA
 Another important feature of ADAM is introduction of explanatory variables. This is done in a similar way to `es()`. Here is a brief example:
@@ -226,7 +233,7 @@ Another important feature of ADAM is introduction of explanatory variables. This
 testModel <- adam(BJsales, "AAN", xreg=BJsales.lead, h=18, silent=FALSE)
 ```
 
-If you work with data.frame or similar structures, then you can use them directly, ADAM will extract the response variable either assuming that it is in the first column or from the provided formula (is you specify one via `formula` parameter). Here is an example, where we create a matrix with lags and leads of an explanatory variable:
+If you work with data.frame or similar structures, then you can use them directly, ADAM will extract the response variable either assuming that it is in the first column or from the provided formula (if you specify one via `formula` parameter). Here is an example, where we create a matrix with lags and leads of an explanatory variable:
 
 ```{r}
 xreg <- cbind(as.data.frame(BJsales),as.data.frame(xregExpander(BJsales.lead,c(-7:7))))
@@ -246,14 +253,16 @@ The same functionality is supported with ARIMA, so you can have, for example, AR
 testModel <- adam(xreg, "NNN", h=18, silent=FALSE, holdout=TRUE, xregDo="select", orders=c(0,1,1))
 ```
 
-The two models might differ because they have different initialisation in the optimiser. It is possible to make them identical if the number of iterations is increased and the initial parameters are the same. Here is an example on what happens, when the two models have exactly the same parameters:
+The two models might differ because they have different initialisation in the optimiser. It is possible to make them identical if the number of iterations is increased and the initial parameters are the same. Here is an example of what happens, when the two models have exactly the same parameters:
 
 ```{r}
 xreg <- xreg[,c("y",names(testModel$initial$xreg))];
-testModel <- adam(xreg, "NNN", h=18, silent=TRUE, holdout=TRUE, orders=c(0,1,1), initial=testModel$initial, arma=testModel$arma)
+testModel <- adam(xreg, "NNN", h=18, silent=TRUE, holdout=TRUE, orders=c(0,1,1),
+                  initial=testModel$initial, arma=testModel$arma)
 testModel
 names(testModel$initial)[1] <- names(testModel$initial)[[1]] <- "level"
-testModel2 <- adam(xreg, "ANN", h=18, silent=TRUE, holdout=TRUE, initial=testModel$initial, persistence=testModel$arma$ma+1)
+testModel2 <- adam(xreg, "ANN", h=18, silent=TRUE, holdout=TRUE,
+                   initial=testModel$initial, persistence=testModel$arma$ma+1)
 testModel2
 ```
 
@@ -264,12 +273,12 @@ testModel <- adam(xreg, "ANN", h=18, silent=FALSE, holdout=TRUE, xregDo="adapt")
 testModel$persistence
 ```
 
-Note that the default number of iterations might not be sufficient in order to get to close to the optimum of the function, so setting `maxeval` to something bigger might help. If you want to explore, why the optimisation stopped, you can provide `print_level=41` parameter to the function, and it will print out the report from the optimiser. In the end, the default parameters are tuned in order to give a reasonable solution, but given the complexity of the model, they might not guarantee to give the best one all the time.
+Note that the default number of iterations might not be sufficient in order to get close to the optimum of the function, so setting `maxeval` to something bigger might help. If you want to explore, why the optimisation stopped, you can provide `print_level=41` parameter to the function, and it will print out the report from the optimiser. In the end, the default parameters are tuned in order to give a reasonable solution, but given the complexity of the model, they might not guarantee to give the best one all the time.
 
 Finally, you can produce a mixture of ETS, ARIMA and regression, by using the respective parameters, like this:
 
 ```{r}
-testModel <- adam(xreg, "AAN", h=18, silent=FALSE, holdout=TRUE, xregDo="use", orders=c(1,0,1))
+testModel <- adam(xreg, "AAN", h=18, silent=FALSE, holdout=TRUE, orders=c(1,0,1))
 summary(testModel)
 ```
 
@@ -281,7 +290,8 @@ While the original `adam()` function allows selecting ETS components and explana
 In order to do the selection of the most appropriate distribution, you need to provide a vector of those that you want to check:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "XXX", silent=FALSE, distribution=c("dnorm","dlogis","dlaplace","ds"))
+testModel <- auto.adam(M3[[1234]], "XXX", silent=FALSE,
+                       distribution=c("dnorm","dlogis","dlaplace","ds"))
 testModel
 ```
 
@@ -294,21 +304,28 @@ testModel <- auto.adam(M3[[1234]], "ZZZ", silent=FALSE, parallel=TRUE)
 If you want to add ARIMA or regression components, you can do it in the exactly the same way as for the `adam()` function. Here is an example of ETS+ARIMA:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE)
+testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE,
+                       distribution=c("dnorm","dlogis","dlaplace","ds","dgnorm"))
 testModel
 ```
 
-However, this way the function will just use ARIMA(2,2,2) and fit it together with ETS. If you want it to select the most appropriate ARIMA orders, you need to add parameter `select=TRUE` to the list in `orders`:
+However, this way the function will just use ARIMA(2,2,2) and fit it together with ETS. If you want it to select the most appropriate ARIMA orders from the provided (e.g. up to AR(2), I(1) and MA(2)), you need to add parameter `select=TRUE` to the list in `orders`:
 
-```{r eval=FALSE, echo=TRUE}
-testModel <- auto.adam(M3[[1234]], "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE), silent=FALSE, parallel=TRUE)
-```
-
-Knowing how to work with `adam()`, you can use similar principles, when dealing with `auto.adam()`. Just keep in mind that the provided `persistence`, `phi`, `initial`, `arma` and `B` won't work, because this contradicts the idea of the model building idea.
-
-Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
 ```{r}
-testModel <- auto.adam(Mcomp::M3[[2568]], "PPP", silent=FALSE, outliers="use", distribution="default")
+testModel <- auto.adam(M3[[1234]], "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE),
+                       distribution="default", silent=FALSE)
+testModel
 ```
 
-If you want to know more about ADAM, you are welcome to visit [the website of the textbook](https://www.openforecast.org/adam/) about ADAM (this is a work in progress at the moment).
+Knowing how to work with `adam()`, you can use similar principles, when dealing with `auto.adam()`. Just keep in mind that the provided `persistence`, `phi`, `initial`, `arma` and `B` won't work, because this contradicts the idea of the model selection.
+
+Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of thw width `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
+```{r}
+testModel <- auto.adam(Mcomp::M3[[2568]], "PPP", silent=FALSE, outliers="use",
+                       distribution="default")
+testModel
+```
+
+If you specify `outliers="select"`, the function will create leads and lags 1 of the outliers and then select the most appropriate ones via the `xregDo` parameter of adam.
+
+If you want to know more about ADAM, you are welcome to visit [the online textbook](https://www.openforecast.org/adam/) (this is a work in progress at the moment).
