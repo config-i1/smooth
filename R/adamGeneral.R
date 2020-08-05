@@ -102,6 +102,9 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         xregData <- NULL;
     }
 
+    # Make the response a secure name
+    responseName <- make.names(responseName);
+
     # Substitute NAs with mean values.
     yNAValues <- is.na(y);
     if(any(yNAValues)){

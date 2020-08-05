@@ -5,7 +5,7 @@ Changes:
 * ADAM function moved to smooth from a separate package.
 * Changed the default maxeval in ADAM for xregModel to at least 500.
 * Tuned the starting parameters for xregModel and xregDo="adapt", so that the thing does not explode on large samples.
-* Use make.names() function to fix the names of explanatory variables.
+* Use make.names() function to fix the names of explanatory variables and the name of response.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)
