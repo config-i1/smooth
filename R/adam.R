@@ -1513,7 +1513,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         # Persistence if xreg is provided
         if(xregModel && persistenceXregEstimate){
-            B[j+1:xregNumber] <- rep(0.01,xregNumber);
+            B[j+1:xregNumber] <- rep(switch(Etype,"A"=0.01,"M"=0),xregNumber);
             Bl[j+1:xregNumber] <- rep(-5, xregNumber);
             Bu[j+1:xregNumber] <- rep(5, xregNumber);
             names(B)[j+1:xregNumber] <- paste0("delta",c(1:xregNumber));
@@ -2460,8 +2460,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             xregNumber <- length(xregModelInitials[[xregIndex]]$initialXreg);
             xregNames <- names(xregModelInitials[[xregIndex]]$initialXreg);
 
-            # Make sure that the accidental "`" don't reappear...
-            xregNames[] <- gsub("\`","",xregNames,ignore.case=TRUE);
+            # Fix the names of variables
+            xregNames[] <- make.names(xregNames, unique=TRUE);
 
             # If there are some variables, then do the proper reestimation and return the new values
             if(xregNumber>0){

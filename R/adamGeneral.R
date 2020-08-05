@@ -1779,9 +1779,9 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             xregDo[] <- "use";
         }
 
-        # The gsub is needed in order to remove accidental special characters
-        colnames(xregData) <- gsub("\`","",colnames(xregData),ignore.case=TRUE);
-        xregNames[] <- gsub("\`","",xregNames,ignore.case=TRUE);
+        # Fix the names of variables
+        colnames(xregData) <- make.names(colnames(xregData), unique=TRUE);
+        xregNames[] <- make.names(xregNames, unique=TRUE);
 
         # If there are no variables after all of that, then xreg doesn't exist
         if(xregNumber==0){

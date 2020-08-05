@@ -58,9 +58,9 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
             vecYfit(i-lagsModelMax) = adamWvalue(matrixVt(lagrows), matrixWt.row(i-lagsModelMax), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
 
-            // Failsafe for fitted becoming negative in mixed models
-            // if((E=='M') && (vecYfit(i-lagsModelMax)<0)){
-            //     vecYfit(i-lagsModelMax) = 0.01;
+            // Failsafe for fitted becoming Infinite
+            // if((E=='M') && !vecYfit.row(i-lagsModelMax).is_finite()){
+            //     vecYfit(i-lagsModelMax) = 1E+300;
             // }
 
             // If this is zero (intermittent), then set error to zero
