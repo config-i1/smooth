@@ -1567,14 +1567,14 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             if(!etsModel && !arimaModel){
                 xregNumber <- ncol(testModel$data);
                 xregNames <- names(coef(testModel));
-                xregData <- testModel$data;
-                xregData[,1] <- 1;
+                # xregData <- testModel$data;
+                # xregData[,1] <- 1;
             }
             else{
                 # Write down the number and names of parameters
                 xregNumber <- ncol(testModel$data)-1;
                 xregNames <- names(coef(testModel))[-1];
-                xregData <- testModel$data[,-1,drop=FALSE];
+                # xregData <- testModel$data[,-1,drop=FALSE];
             }
             # The original number of obs in xreg
             obsXreg <- nrow(xreg);
@@ -1587,16 +1587,18 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             # This is needed in order to succesfully expand the data
             formulaToUse[[2]] <- NULL;
 
+            # Robustify the names of variables
+            colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
+            xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
+            xregData <- as.matrix(model.matrix(xregData,data=xregData));
             # If there are more xreg values than the obsAll, redo stuff and use them
             if(obsXreg>=obsAll){
-                xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
-                xregData <- as.matrix(model.matrix(xregData,data=xregData))[1:obsAll,xregNames,drop=FALSE];
+                xregData <- xregData[1:obsAll,xregNames,drop=FALSE]
             }
             # If there are less xreg observations than obsAll, use Naive
             else{
                 newnRows <- obsAll-obsXreg;
-                xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
-                xregData <- as.matrix(model.matrix(xregData,data=xregData))[,xregNames,drop=FALSE];
+                xregData <- xregData[,xregNames,drop=FALSE];
                 xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
             }
         }

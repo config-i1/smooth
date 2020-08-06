@@ -33,6 +33,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
 
     # paste0() is needed in order to get rid of potential issues with names
     responseName <- paste0(deparse(substitute(y)),collapse="");
+    responseName <- make.names(responseName,unique=TRUE);
 
     #### modelDo, ic ####
     if(any(unlist(strsplit(model,""))=="C")){
