@@ -259,9 +259,14 @@ sim.es <- function(model="ANN", obs=10, nsim=1,
 # Check the persistence vector length
     if(!is.null(persistence)){
         if(persistenceLength != length(persistence)){
-            warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
-                           "Falling back to random number generator."),call.=FALSE);
-            persistence <- NULL;
+            if(length(persistence)!=1){
+                warning(paste0("The length of persistence vector does not correspond to the chosen model!\n",
+                               "Falling back to random number generator."),call.=FALSE);
+                persistence <- NULL;
+            }
+            else{
+                persistence <- rep(persistence,persistenceLength);
+            }
         }
     }
 
