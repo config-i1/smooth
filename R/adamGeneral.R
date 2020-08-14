@@ -2267,12 +2267,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         ftol_abs <- ellipsis$ftol_abs;
     }
     if(is.null(ellipsis$algorithm)){
-        # if(arimaModel){
-        #     algorithm <- "NLOPT_LN_BOBYQA";
-        # }
-        # else{
-            algorithm <- "NLOPT_LN_SBPLX";
-        # }
+        algorithm <- "NLOPT_LN_SBPLX";
     }
     else{
         algorithm <- ellipsis$algorithm;
@@ -2302,25 +2297,49 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     else{
         B <- ellipsis$B;
     }
-    # Additional parameter for dalaplace, dt, dgnorm, dlgnorm and LASSO
-    if(is.null(ellipsis$lambda)){
-        if(loss=="likelihood" && any(distribution==c("dt","dalaplace","dgnorm","dlgnorm"))){
-            lambdaEstimate <- TRUE;
-            if(distribution=="dalaplace"){
-                lambda <- 0.5;
-            }
-            else{
-                lambda <- 2;
-            }
+    # Initialise parameters
+    lambda <- other <- NULL;
+    otherParameterEstimate <- FALSE
+    # lambda for LASSO
+    if(any(loss==c("LASSO","RIDGE"))){
+        if(is.null(ellipsis$lambda)){
+            warning(paste0("You have not provided lambda parameter. We will set it to zero."), call.=FALSE);
+            lambda <- 0;
         }
         else{
-            lambdaEstimate <- FALSE;
-            lambda <- 0.5;
+            lambda <- ellipsis$lambda;
         }
     }
-    else{
-        lambdaEstimate <- FALSE;
-        lambda <- ellipsis$lambda;
+    # Parameters for distributions
+    if(distribution=="dalaplace"){
+        if(is.null(ellipsis$alpha)){
+            other <- 0.5
+            otherParameterEstimate <- TRUE;
+        }
+        else{
+            other <- ellipsis$alpha;
+            otherParameterEstimate <- FALSE;
+        }
+    }
+    else if(any(distribution==c("dgnorm","dlgnorm"))){
+        if(is.null(ellipsis$beta)){
+            other <- 2
+            otherParameterEstimate <- TRUE;
+        }
+        else{
+            other <- ellipsis$beta;
+            otherParameterEstimate <- FALSE;
+        }
+    }
+    else if(distribution=="dt"){
+        if(is.null(ellipsis$nu)){
+            other <- 2
+            otherParameterEstimate <- TRUE;
+        }
+        else{
+            other <- ellipsis$nu;
+            otherParameterEstimate <- FALSE;
+        }
     }
     # Fisher Information
     if(is.null(ellipsis$FI)){
@@ -2338,7 +2357,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                                                             initialSeasonalEstimate)),
               arimaModel & c(arEstimate, maEstimate, (initialType!="backcasting") & initialArimaEstimate),
               xregModel & c(persistenceXregEstimate, (initialType!="backcasting") & initialXregEstimate),
-              lambdaEstimate))){
+              otherParameterEstimate))){
         modelDo <- "use";
     }
 
@@ -2530,8 +2549,11 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     assign("B",B,ParentEnvironment);
     assign("lb",lb,ParentEnvironment);
     assign("ub",ub,ParentEnvironment);
-    # Additional parameters
+    # Parameters for distributions
+    assign("other",other,ParentEnvironment);
+    assign("otherParameterEstimate",otherParameterEstimate,ParentEnvironment);
+    # LASSO / RIDGE
     assign("lambda",lambda,ParentEnvironment);
-    assign("lambdaEstimate",lambdaEstimate,ParentEnvironment);
+    # Fisher Information
     assign("FI",FI,ParentEnvironment);
 }

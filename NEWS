@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-08-10)
+smooth v3.0.0 (Release data: 2020-08-14)
 =======
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * Tuned the starting parameters for xregModel and xregDo="adapt", so that the thing does not explode on large samples.
 * Use make.names() function to fix the names of explanatory variables and the name of response. We now depend on greybox v0.6.2.
 * sim.es() now also accepts one value in persistence - it will duplicate it for all components.
+* Renamed parameters for distributions in adam(). dalaplace now accepts alpha, dgnorm - beta and dt - nu. This resolves the conflict with LASSO and lambda.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

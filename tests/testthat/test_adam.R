@@ -46,7 +46,7 @@ test_that("ADAM forecast with simulated interval", {
 
 #### Advanced losses for ADAM ####
 # ADAM with dalaplace
-testModel <- adam(Mcomp::M3[[1234]], "MAN", distribution="dalaplace", lambda=0.05);
+testModel <- adam(Mcomp::M3[[1234]], "MAN", distribution="dalaplace", alpha=0.05);
 test_that("ADAM ETS(MAN) with asymmetric Laplace on N1234", {
     expect_match(testModel$distribution, "dalaplace");
 })

@@ -5,7 +5,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "horizon","iOrders","iRequired","initialArima","initialArimaEstimate",
                          "initialArimaNumber","initialLevel","initialLevelEstimate","initialSeasonal",
                          "initialSeasonalEstimate","initialTrend","initialTrendEstimate","lagsModelARIMA",
-                         "lagsModelAll","lagsModelSeasonal","lambda","lambdaEstimate","lossFunction",
+                         "lagsModelAll","lagsModelSeasonal","other","otherParameterEstimate","lambda","lossFunction",
                          "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
                          "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
                          "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
@@ -377,7 +377,12 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         occurrence <- model$occurrence;
         ic <- model$ic;
         bounds <- model$bounds;
-        ellipsis$lambda <- model$lambda;
+        # lambda for LASSO
+        ellipsis$lambda <- model$other$lambda;
+        # parameters for distributions
+        ellipsis$alpha <- model$other$alpha;
+        ellipsis$beta <- model$other$beta;
+        ellipsis$nu <- model$other$nu;
         ellipsis$B <- model$B;
         CFValue <- model$lossValue;
         logLikADAMValue <- logLik(model);
@@ -581,7 +586,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         modelReturned$logLik <- logLik(checkerReturn);
         modelReturned$distribution <- checkerReturn$distribution;
         modelReturned$scale <- checkerReturn$scale;
-        modelReturned$lambda <- checkerReturn$other;
+        modelReturned$other <- checkerReturn$other;
         modelReturned$B <- coef(checkerReturn);
         modelReturned$lags <- 1;
         modelReturned$lagsAll <- rep(1,nParam);
@@ -1426,7 +1431,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                             arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
                             componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
                             # Explanatory variables
-                            xregModel, xregNumber, lambdaEstimate){
+                            xregModel, xregNumber, otherParameterEstimate){
         # The vector of logicals for persistence elements
         persistenceEstimateVector <- c(persistenceLevelEstimate,modelIsTrendy&persistenceTrendEstimate,
                                        modelIsSeasonal&persistenceSeasonalEstimate);
@@ -1449,7 +1454,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     (initialType!="backcasting")*arimaModel*initialArimaNumber*initialArimaEstimate +
                                     # initials of xreg
                                     (initialType!="backcasting")*xregModel*initialXregEstimate*xregNumber+
-                                    lambdaEstimate);
+                                    otherParameterEstimate);
 
         j <- 0;
         if(etsModel){
@@ -1644,10 +1649,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         # Add lambda if it is needed
-        if(lambdaEstimate){
+        if(otherParameterEstimate){
             j[] <- j+1;
-            B[j] <- lambda;
-            names(B)[j] <- "lambda";
+            B[j] <- other;
+            names(B)[j] <- "other";
             Bl[j] <- 1e-10;
             Bu[j] <- Inf;
         }
@@ -1656,16 +1661,16 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     }
 
     ##### Function returns scale parameter for the provided parameters #####
-    scaler <- function(distribution, Etype, errors, yFitted, obsInSample, lambda){
+    scaler <- function(distribution, Etype, errors, yFitted, obsInSample, other){
         # as.complex() is needed in order to make the optimiser work in exotic cases
         scale <- switch(distribution,
                         "dnorm"=sqrt(sum(errors^2)/obsInSample),
                         "dlaplace"=sum(abs(errors))/obsInSample,
                         "ds"=sum(sqrt(abs(errors))) / (obsInSample*2),
-                        "dgnorm"=(lambda*sum(abs(errors)^lambda)/obsInSample)^{1/lambda},
+                        "dgnorm"=(other*sum(abs(errors)^other)/obsInSample)^{1/other},
                         "dlogis"=sqrt(sum(errors^2)/obsInSample * 3 / pi^2),
                         "dt"=sqrt(sum(errors^2)/obsInSample),
-                        "dalaplace"=sum(errors*(lambda-(errors<=0)*1))/obsInSample,
+                        "dalaplace"=sum(errors*(other-(errors<=0)*1))/obsInSample,
                         "dlnorm"=switch(Etype,
                                         "A"=Re(sqrt(sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
                                         "M"=sqrt(sum(log(1+errors)^2)/obsInSample)),
@@ -1676,8 +1681,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                      "A"=Re(sum(sqrt(abs(log(as.complex(1+errors/yFitted))))/obsInSample)),
                                      "M"=sum(sqrt(abs(log(1+errors)))/obsInSample)),
                         "dlgnorm"=switch(Etype,
-                                         "A"=Re((lambda*sum(abs(log(as.complex(1+errors/yFitted)))^lambda)/obsInSample)^{1/lambda}),
-                                         "M"=(lambda*sum(abs(log(as.complex(1+errors)))^lambda)/obsInSample)^{1/lambda}),
+                                         "A"=Re((other*sum(abs(log(as.complex(1+errors/yFitted)))^other)/obsInSample)^{1/other}),
+                                         "M"=(other*sum(abs(log(as.complex(1+errors)))^other)/obsInSample)^{1/other}),
                         "dinvgauss"=switch(Etype,
                                            "A"=sum((errors/yFitted)^2/(1+errors/yFitted))/obsInSample,
                                            "M"=sum((errors)^2/(1+errors))/obsInSample),
@@ -1703,7 +1708,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                    arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                    xregModel, xregNumber,
                    bounds, loss, lossFunction, distribution,
-                   horizon, multisteps, lambda, lambdaEstimate,
+                   horizon, multisteps, other, otherParameterEstimate, lambda,
                    arPolynomialMatrix, maPolynomialMatrix){
 
         # Fill in the matrices
@@ -1724,13 +1729,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                nonZeroARI, nonZeroMA, arimaPolynomials,
                                xregModel, xregNumber);
 
-        # If we estimate lambda, take it from the B vector
-        if(lambdaEstimate){
+        # If we estimate parameters of distribution, take it from the B vector
+        if(otherParameterEstimate){
             # Take absolute value, just to be on safe side. We don't need negatives anyway.
-            lambda[] <- abs(B[length(B)]);
-            # Lambda is restricted by 0.25 if it is optimised.
-            if(any(distribution==c("dgnorm","dlgnorm")) && lambda<0.25){
-                return(1E+10/lambda);
+            other[] <- abs(B[length(B)]);
+
+            # Beta in GN is restricted by 0.25 if it is optimised.
+            if(any(distribution==c("dgnorm","dlgnorm")) && other<0.25){
+                return(1E+10/other);
             }
         }
 
@@ -1833,7 +1839,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             if(loss=="likelihood"){
                 # Scale for different functions
                 scale <- scaler(distribution, Etype, adamFitted$errors[otLogical],
-                                adamFitted$yFitted[otLogical], obsInSample, lambda);
+                                adamFitted$yFitted[otLogical], obsInSample, other);
 
                 # Calculate the likelihood
                 ## as.complex() is needed for failsafe in case of exotic models
@@ -1855,26 +1861,26 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                           scale=scale*sqrt(adamFitted$yFitted[otLogical]), log=TRUE)),
                                        "dgnorm"=switch(Etype,
                                                        "A"=dgnorm(x=yInSample[otLogical],mu=adamFitted$yFitted[otLogical],
-                                                                  alpha=scale, beta=lambda, log=TRUE),
+                                                                  alpha=scale, beta=other, log=TRUE),
                                                        # Suppres Warnings is needed, because the check is done for scalar alpha
                                                        "M"=suppressWarnings(dgnorm(x=yInSample[otLogical],
                                                                                    mu=adamFitted$yFitted[otLogical],
                                                                                    alpha=scale*adamFitted$yFitted[otLogical],
-                                                                                   beta=lambda, log=TRUE))),
+                                                                                   beta=other, log=TRUE))),
                                        "dlogis"=switch(Etype,
                                                        "A"=dlogis(x=yInSample[otLogical], location=adamFitted$yFitted[otLogical],
                                                                   scale=scale, log=TRUE),
                                                        "M"=dlogis(x=yInSample[otLogical], location=adamFitted$yFitted[otLogical],
                                                                   scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
                                        "dt"=switch(Etype,
-                                                   "A"=dt(adamFitted$errors[otLogical], df=abs(lambda), log=TRUE),
+                                                   "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
                                                    "M"=dt(adamFitted$errors[otLogical]*adamFitted$yFitted[otLogical],
-                                                          df=abs(lambda), log=TRUE)),
+                                                          df=abs(other), log=TRUE)),
                                        "dalaplace"=switch(Etype,
                                                           "A"=dalaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
-                                                                        scale=scale, alpha=lambda, log=TRUE),
+                                                                        scale=scale, alpha=other, log=TRUE),
                                                           "M"=dalaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
-                                                                        scale=scale*adamFitted$yFitted[otLogical], alpha=lambda, log=TRUE)),
+                                                                        scale=scale*adamFitted$yFitted[otLogical], alpha=other, log=TRUE)),
                                        "dlnorm"=dlnorm(x=yInSample[otLogical], meanlog=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                        sdlog=scale, log=TRUE),
                                        "dllaplace"=dlaplace(q=log(yInSample[otLogical]), mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
@@ -1882,7 +1888,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                        "dls"=ds(q=log(yInSample[otLogical]), mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                 scale=scale, log=TRUE) -log(yInSample[otLogical]),
                                        "dlgnorm"=dgnorm(x=log(yInSample[otLogical]),mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
-                                                        alpha=scale, beta=lambda, log=TRUE) -log(yInSample[otLogical]),
+                                                        alpha=scale, beta=other, log=TRUE) -log(yInSample[otLogical]),
                                        # "dinvgauss"=dinvgauss(x=1+adamFitted$errors, mean=1,
                                        #                       dispersion=scale, log=TRUE)));
                                        # "dinvgauss"=dinvgauss(x=yInSampleNew, mean=adamFitted$yFitted,
@@ -1902,7 +1908,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 "ds" =,
                                                 "dls" = obsZero*(2 + 2*log(2*scale)),
                                                 "dgnorm" =,
-                                                "dlgnorm" = obsZero*(1/lambda-log(lambda/(2*scale*gamma(1/lambda)))),
+                                                "dlgnorm" = obsZero*(1/other-log(other/(2*scale*gamma(1/other)))),
                                                 "dt" = obsZero*((scale+1)/2 *
                                                                     (digamma((scale+1)/2)-digamma(scale/2)) +
                                                                     log(sqrt(scale) * beta(scale/2,0.5))),
@@ -2029,7 +2035,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                            arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                            xregModel, xregNumber,
-                           bounds, loss, lossFunction, distribution, horizon, multisteps, lambda, lambdaEstimate,
+                           bounds, loss, lossFunction, distribution, horizon, multisteps,
+                           other, otherParameterEstimate, lambda,
                            arPolynomialMatrix, maPolynomialMatrix){
 
         if(!multisteps){
@@ -2064,7 +2071,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                     xregModel, xregNumber,
                                     bounds="none", lossNew, lossFunction, distributionNew,
-                                    horizon, multisteps, lambda, lambdaEstimate,
+                                    horizon, multisteps, other, otherParameterEstimate, lambda,
                                     arPolynomialMatrix, maPolynomialMatrix);
 
                 # If this is an occurrence model, add the probabilities
@@ -2116,7 +2123,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                xregModel, xregNumber,
                                bounds="none", loss, lossFunction, distribution,
-                               horizon, multisteps, lambda, lambdaEstimate,
+                               horizon, multisteps, other, otherParameterEstimate, lambda,
                                arPolynomialMatrix, maPolynomialMatrix);
 
             logLikReturn[] <- -switch(loss,
@@ -2162,7 +2169,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                           xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                           ot, otLogical, occurrenceModel, pFitted,
                           bounds, loss, lossFunction, distribution,
-                          horizon, multisteps, lambda, lambdaEstimate){
+                          horizon, multisteps, other, otherParameterEstimate, lambda){
 
         # Create the basic variables
         adamArchitect <- architector(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
@@ -2203,7 +2210,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                    initialArimaEstimate, initialXregEstimate,
                                    arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
                                    componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-                                   xregModel, xregNumber, lambdaEstimate);
+                                   xregModel, xregNumber, otherParameterEstimate);
         }
         # print(BValues$B);
 
@@ -2245,7 +2252,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                       initialArimaEstimate, initialXregEstimate,
                                       arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
                                       componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-                                      xregModel, xregNumber, lambdaEstimate);
+                                      xregModel, xregNumber, otherParameterEstimate);
             B <- BValuesNew$B;
             # Failsafe, just in case if the initial values contain NA / NaN
             if(any(is.na(B))){
@@ -2335,7 +2342,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                        arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                                        xregModel=xregModel, xregNumber=xregNumber,
                                        bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                       horizon=horizon, multisteps=multisteps, lambda=lambda, lambdaEstimate=lambdaEstimate,
+                                       horizon=horizon, multisteps=multisteps,
+                                       other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                                        arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix));
 
         if(is.infinite(res$objective) || res$objective==1e+300){
@@ -2376,7 +2384,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                                            xregModel=xregModel, xregNumber=xregNumber,
                                            bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                           horizon=horizon, multisteps=multisteps, lambda=lambda, lambdaEstimate=lambdaEstimate,
+                                           horizon=horizon, multisteps=multisteps,
+                                           other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix));
         }
 
@@ -2412,7 +2421,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
-                                                lambda, lambdaEstimate, arPolynomialMatrix, maPolynomialMatrix),
+                                                other, otherParameterEstimate, lambda, arPolynomialMatrix, maPolynomialMatrix),
                                      nobs=obsInSample,df=nParamEstimated,class="logLik");
 
         #### If we do variables selection, do it here, then reestimate the model. ####
@@ -2453,10 +2462,17 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 errors[errors<0] <- 1e-100;
             }
 
+            df <- length(B)+1;
+            if(any(distribution==c("dalaplace","dgnorm","dlgnorm","dt")) && otherParameterEstimate){
+                other <- abs(B[length(B)]);
+                df[] <- df - 1;
+            }
+
             # Call the xregSelector providing the original matrix with the data
             xregIndex <- switch(Etype,"A"=1,"M"=2);
             xregModelInitials[[xregIndex]] <- xregSelector(errors=errors, xregData=xregDataOriginal, ic=ic,
-                                                           df=length(B)+1, distribution=distributionNew, occurrence=oesModel);
+                                                           df=df, distribution=distributionNew, occurrence=oesModel,
+                                                           other=other);
             xregNumber <- length(xregModelInitials[[xregIndex]]$initialXreg);
             xregNames <- names(xregModelInitials[[xregIndex]]$initialXreg);
 
@@ -2505,7 +2521,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                  xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo="use",
                                  ot, otLogical, occurrenceModel, pFitted,
                                  bounds, loss, lossFunction, distribution,
-                                 horizon, multisteps, lambda, lambdaEstimate));
+                                 horizon, multisteps, other, otherParameterEstimate, lambda));
 
             }
         }
@@ -2537,7 +2553,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                          xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                          ot, otLogical, occurrenceModel, pFitted, ICFunction,
                          bounds, loss, lossFunction, distribution,
-                         horizon, multisteps, lambda, lambdaEstimate){
+                         horizon, multisteps, other, otherParameterEstimate, lambda){
 
         # Check if the pool was provided. In case of "no", form the big and the small ones
         if(is.null(modelsPool)){
@@ -2673,7 +2689,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                           xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                                           ot, otLogical, occurrenceModel, pFitted,
                                           bounds, loss, lossFunction, distribution,
-                                          horizon, multisteps, lambda, lambdaEstimate);
+                                          horizon, multisteps, other, otherParameterEstimate, lambda);
                 results[[i]]$IC <- ICFunction(results[[i]]$logLikADAMValue);
                 results[[i]]$Etype <- Etype;
                 results[[i]]$Ttype <- Ttype;
@@ -2805,7 +2821,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                       xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                                       ot, otLogical, occurrenceModel, pFitted,
                                       bounds, loss, lossFunction, distribution,
-                                      horizon, multisteps, lambda, lambdaEstimate);
+                                      horizon, multisteps, other, otherParameterEstimate, lambda);
             results[[j]]$IC <- ICFunction(results[[j]]$logLikADAMValue);
             results[[j]]$Etype <- Etype;
             results[[j]]$Ttype <- Ttype;
@@ -2837,9 +2853,20 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     }
 
     ##### Function uses residuals in order to determine the needed xreg #####
-    xregSelector <- function(errors, xregData, ic, df, distribution, occurrence){
+    xregSelector <- function(errors, xregData, ic, df, distribution, occurrence, other){
+        alpha <- beta <- nu <- NULL;
+        if(distribution=="dalaplace"){
+            alpha <- other;
+        }
+        else if(any(distribution==c("dgnorm","dlgnorm"))){
+            beta <- other;
+        }
+        else if(distribution=="dt"){
+            nu <- other;
+        }
         stepwiseModel <- suppressWarnings(stepwise(cbind(as.data.frame(errors),xregData[1:obsInSample,,drop=FALSE]),
-                                                   ic=ic, df=df, distribution=distribution, occurrence=occurrence, silent=TRUE));
+                                                   ic=ic, df=df, distribution=distribution, occurrence=occurrence, silent=TRUE,
+                                                   alpha=alpha, beta=beta, nu=nu));
         return(list(initialXreg=coef(stepwiseModel)[-1],other=stepwiseModel$other,formula=formula(stepwiseModel)));
     }
 
@@ -2850,7 +2877,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            xregNumber, distribution, loss,
                            persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, persistenceXregEstimate,
-                           phiEstimate, lambdaEstimate,
+                           phiEstimate, otherParameterEstimate,
                            initialType, initialEstimate,
                            initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                            initialArimaEstimate, initialXregEstimate,
@@ -2881,11 +2908,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                    nonZeroARI, nonZeroMA, arimaPolynomials,
                                    xregModel, xregNumber);
             list2env(adamElements, environment());
-        }
-
-        # Write down lambda. It is always positive, so take abs
-        if(lambdaEstimate){
-            lambda[] <- abs(tail(B,1));
         }
 
         # Write down phi
@@ -3099,8 +3121,35 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             armaParametersList <- NULL;
         }
 
+        if(any(distribution==c("dalaplace","dgnorm","dlgnorm","dt")) && otherParameterEstimate){
+            other <- abs(tail(B,1));
+        }
         # which() is needed in order to overcome weird behaviour of zoo
-        scale <- scaler(distribution, Etype, errors[which(otLogical)], yFitted[which(otLogical)], obsInSample, lambda);
+        scale <- scaler(distribution, Etype, errors[which(otLogical)], yFitted[which(otLogical)], obsInSample, other);
+
+        # Prepare the list of distribution parameters to return
+        otherReturned <- vector("list",1);
+        # Write down parameters for distribution. It is always positive, so take abs
+        if(otherParameterEstimate){
+            otherReturned[[1]] <- abs(tail(B,1));
+        }
+        else{
+            otherReturned[[1]] <- other;
+        }
+        # Give names to the other values
+        if(distribution=="dalaplace"){
+            names(otherReturned) <- "alpha";
+        }
+        else if(any(distribution==c("dgnorm","dlgnorm"))){
+            names(otherReturned) <- "beta";
+        }
+        else if(any(distribution==c("dt"))){
+            names(otherReturned) <- "nu";
+        }
+        # LASSO / RIDGE lambda
+        if(any(loss==c("LASSO","RIDGE"))){
+            otherReturned$lambda <- lambda;
+        }
 
         # Amend the class of state matrix
         if(any(yClasses=="ts")){
@@ -3124,7 +3173,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     nParam=parametersNumber, occurrence=oesModel, xreg=xregData,
                     formula=formula, xregDo=xregDo,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
-                    scale=scale, lambda=lambda, B=B, lags=lags, lagsAll=lagsModelAll, FI=FI));
+                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, FI=FI));
     }
 
     #### Deal with occurrence model ####
@@ -3215,7 +3264,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                    xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                                    ot, otLogical, occurrenceModel, pFitted,
                                    bounds, loss, lossFunction, distribution,
-                                   horizon, multisteps, lambda, lambdaEstimate);
+                                   horizon, multisteps, other, otherParameterEstimate, lambda);
         list2env(adamEstimated, environment());
 
         #### This part is needed in order for the filler to do its job later on
@@ -3278,7 +3327,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                                   ot, otLogical, occurrenceModel, pFitted, ICFunction,
                                   bounds, loss, lossFunction, distribution,
-                                  horizon, multisteps, lambda, lambdaEstimate);
+                                  horizon, multisteps, other, otherParameterEstimate, lambda);
 
         icSelection <- adamSelected$icSelection;
         # Take the parameters of the best model
@@ -3391,7 +3440,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames, xregDo,
                                   ot, otLogical, occurrenceModel, pFitted, ICFunction,
                                   bounds, loss, lossFunction, distribution,
-                                  horizon, multisteps, lambda, lambdaEstimate);
+                                  horizon, multisteps, other, otherParameterEstimate, lambda);
 
         icSelection <- adamSelected$icSelection;
 
@@ -3531,7 +3580,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                       arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                       xregModel=xregModel, xregNumber=xregNumber,
                       bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                      horizon=horizon, multisteps=multisteps, lambda=lambda, lambdaEstimate=lambdaEstimate,
+                      horizon=horizon, multisteps=multisteps,
+                      other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                       arPolynomialMatrix=NULL, maPolynomialMatrix=NULL);
 
         parametersNumber[1,1] <- parametersNumber[1,4] <- 1;
@@ -3551,8 +3601,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
                                                 bounds, loss, lossFunction, distributionNew, horizon,
-                                                multisteps, lambda, lambdaEstimate, arPolynomialMatrix=NULL,
-                                                maPolynomialMatrix=NULL)
+                                                multisteps, other, otherParameterEstimate, lambda,
+                                                arPolynomialMatrix=NULL, maPolynomialMatrix=NULL)
                                      ,nobs=obsInSample,df=parametersNumber[1,4],class="logLik")
 
         icSelection <- ICFunction(logLikADAMValue);
@@ -3638,7 +3688,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             persistenceEstimateFI <- any(c(persistenceLevelEstimateFI,persistenceTrendEstimateFI,
                                            persistenceSeasonalEstimateFI,persistenceXregEstimateFI));
             phiEstimateFI <- any(names(B)=="phi");
-            lambdaEstimateFI <- any(names(B)=="lambda");
+            otherParameterEstimateFI <- any(names(B)=="other");
 
             if(arimaModel){
                 maEstimateFI <- maRequired;
@@ -3669,7 +3719,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            xregModel=xregModel, xregNumber=xregNumber,
                            bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distribution,
                            horizon=horizon, multisteps=multisteps,
-                           lambda=lambda, lambdaEstimate=lambdaEstimateFI,
+                           other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix);
 
             colnames(FI) <- names(B);
@@ -3702,7 +3752,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     xregNumber, distribution, loss,
                                     persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                     persistenceSeasonalEstimate, persistenceXregEstimate,
-                                    phiEstimate, lambdaEstimate,
+                                    phiEstimate, otherParameterEstimate,
                                     initialType, initialEstimate,
                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                     initialArimaEstimate, initialXregEstimate,
@@ -3804,7 +3854,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                     xregNumber, distribution, loss,
                                                     persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                                     persistenceSeasonalEstimate, persistenceXregEstimate,
-                                                    phiEstimate, lambdaEstimate,
+                                                    phiEstimate, otherParameterEstimate,
                                                     initialType, initialEstimate,
                                                     initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
                                                     initialArimaEstimate, initialXregEstimate,
@@ -4080,13 +4130,13 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         zValues <- switch(x$distribution,
                           "dlaplace"=,
                           "dllaplace"=qlaplace(c((1-level)/2, (1+level)/2), 0, 1),
-                          "dalaplace"=qalaplace(c((1-level)/2, (1+level)/2), 0, 1, x$lambda),
+                          "dalaplace"=qalaplace(c((1-level)/2, (1+level)/2), 0, 1, x$other$alpha),
                           "dlogis"=qlogis(c((1-level)/2, (1+level)/2), 0, 1),
                           "dt"=qt(c((1-level)/2, (1+level)/2), nobs(x)-nparam(x)),
                           "ds"=,
                           "dls"=qs(c((1-level)/2, (1+level)/2), 0, 1),
                           "dgnorm"=,
-                          "dlgnorm"=qgnorm(c((1-level)/2, (1+level)/2), 0, 1, x$lambda),
+                          "dlgnorm"=qgnorm(c((1-level)/2, (1+level)/2), 0, 1, x$other$beta),
                           # In the next one, the scale is debiased, taking n-k into account
                           "dinvgauss"=qinvgauss(c((1-level)/2, (1+level)/2), mean=1,
                                                 dispersion=x$scale * nobs(x) / (nobs(x)-nparam(x))),
@@ -4282,21 +4332,21 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
         else if(x$distribution=="dgnorm"){
             if(!any(names(ellipsis)=="main")){
-                ellipsis$main <- "QQ-plot of Generalised Normal distribution";
+                ellipsis$main <- paste0("QQ-plot of Generalised Normal distribution with beta=",round(x$other$beta,3));
             }
-            ellipsis$x <- qgnorm(ppoints(500), mu=0, alpha=x$scale, beta=x$lambda);
+            ellipsis$x <- qgnorm(ppoints(500), mu=0, alpha=x$scale, beta=x$other$beta);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qgnorm(p, mu=0, alpha=x$scale, beta=x$lambda));
+            qqline(ellipsis$y, distribution=function(p) qgnorm(p, mu=0, alpha=x$scale, beta=x$other$beta));
         }
         else if(x$distribution=="dlgnorm"){
             if(!any(names(ellipsis)=="main")){
-                ellipsis$main <- "QQ-plot of Log Generalised Normal distribution";
+                ellipsis$main <- paste0("QQ-plot of Log Generalised Normal distribution with beta=",round(x$other$beta,3));
             }
-            ellipsis$x <- exp(qgnorm(ppoints(500), mu=0, alpha=x$scale, beta=x$lambda));
+            ellipsis$x <- exp(qgnorm(ppoints(500), mu=0, alpha=x$scale, beta=x$other$beta));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) exp(qgnorm(p, mu=0, alpha=x$scale, beta=x$lambda)));
+            qqline(ellipsis$y, distribution=function(p) exp(qgnorm(p, mu=0, alpha=x$scale, beta=x$other$beta)));
         }
         else if(x$distribution=="dlogis"){
             if(!any(names(ellipsis)=="main")){
@@ -4313,19 +4363,19 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Student's distribution";
             }
-            ellipsis$x <- qt(ppoints(500), df=x$scale);
+            ellipsis$x <- qt(ppoints(500), df=x$other$nu);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qt(p, df=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qt(p, df=x$other$nu));
         }
         else if(x$distribution=="dalaplace"){
             if(!any(names(ellipsis)=="main")){
-                ellipsis$main <- paste0("QQ-plot of Asymmetric Laplace with alpha=",round(x$lambda,3));
+                ellipsis$main <- paste0("QQ-plot of Asymmetric Laplace with alpha=",round(x$other$alpha,3));
             }
-            ellipsis$x <- qalaplace(ppoints(500), mu=0, scale=x$scale, alpha=x$lambda);
+            ellipsis$x <- qalaplace(ppoints(500), mu=0, scale=x$scale, alpha=x$other$alpha);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qalaplace(p, mu=0, scale=x$scale, alpha=x$lambda));
+            qqline(ellipsis$y, distribution=function(p) qalaplace(p, mu=0, scale=x$scale, alpha=x$other$alpha));
         }
         else if(x$distribution=="dinvgauss"){
             # Transform residuals for something meaningful
@@ -4407,10 +4457,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                           "ds"=,
                           "dls"=qs(c((1-level)/2, (1+level)/2), 0, 1),
                           "dgnorm"=,
-                          "dlgnorm"=qgnorm(c((1-level)/2, (1+level)/2), 0, 1, x$lambda),
+                          "dlgnorm"=qgnorm(c((1-level)/2, (1+level)/2), 0, 1, x$other$beta),
                           "dlogis"=qlogis(c((1-level)/2, (1+level)/2), 0, 1),
                           "dt"=qt(c((1-level)/2, (1+level)/2), nobs(x)-nparam(x)),
-                          "dalaplace"=qalaplace(c((1-level)/2, (1+level)/2), 0, 1, x$lambda),
+                          "dalaplace"=qalaplace(c((1-level)/2, (1+level)/2), 0, 1, x$other$alpha),
                           # In the next one, the scale is debiased, taking n-k into account
                           "dinvgauss"=qinvgauss(c((1-level)/2, (1+level)/2), mean=1,
                                                 dispersion=x$scale * nobs(x) / (nobs(x)-nparam(x))),
@@ -4628,14 +4678,14 @@ print.adam <- function(x, digits=4, ...){
                       "dnorm" = "Normal",
                       "dlaplace" = "Laplace",
                       "ds" = "S",
-                      "dgnorm" = paste0("Generalised Normal with shape=",round(x$lambda, digits)),
+                      "dgnorm" = paste0("Generalised Normal with beta=",round(x$other$beta, digits)),
                       "dlogis" = "Logistic",
-                      "dt" = paste0("Student t with df=",round(x$lambda, digits)),
-                      "dalaplace" = paste0("Asymmetric Laplace with lambda=",round(x$lambda,digits)),
+                      "dt" = paste0("Student t with nu=",round(x$other$nu, digits)),
+                      "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$other$alpha,digits)),
                       "dlnorm" = "Log Normal",
                       "dllaplace" = "Log Laplace",
                       "dls" = "Log S",
-                      "dlgnorm" = paste0("Log Generalised Normal with shape=",round(x$lambda, digits)),
+                      "dlgnorm" = paste0("Log Generalised Normal with beta=",round(x$other$beta, digits)),
                       # "dbcnorm" = paste0("Box-Cox Normal with lambda=",round(x$other$lambda,2)),
                       "dinvgauss" = "Inverse Gaussian"
     );
@@ -4648,7 +4698,7 @@ print.adam <- function(x, digits=4, ...){
     if(!is.null(x$lossValue)){
         cat(paste0("; Loss function value: ",round(x$lossValue,digits)));
         if(any(x$loss==c("LASSO","RIDGE"))){
-            cat(paste0("; lambda=",x$lambda));
+            cat(paste0("; lambda=",x$other$lambda));
         }
     }
 
@@ -4907,14 +4957,14 @@ print.summary.adam <- function(x, ...){
                       "dnorm" = "Normal",
                       "dlaplace" = "Laplace",
                       "ds" = "S",
-                      "dgnorm" = "Generalised Normal",
+                      "dgnorm" = paste0("Generalised Normal with beta=",round(x$other$beta,digits)),
                       "dlogis" = "Logistic",
-                      "dt" = paste0("Student t with df=",round(x$lambda, digits)),
-                      "dalaplace" = paste0("Asymmetric Laplace with lambda=",round(x$lambda,digits)),
+                      "dt" = paste0("Student t with nu=",round(x$other$nu, digits)),
+                      "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$other$alpha,digits)),
                       "dlnorm" = "Log Normal",
                       "dllaplace" = "Log Laplace",
                       "dls" = "Log S",
-                      "dlgnorm" = "Log Generalised Normal",
+                      "dlgnorm" = paste0("Log Generalised Normal with beta=",round(x$other$beta,digits)),
                       # "dbcnorm" = paste0("Box-Cox Normal with lambda=",round(x$other$lambda,2)),
                       "dinvgauss" = "Inverse Gaussian"
     );
@@ -4927,7 +4977,7 @@ print.summary.adam <- function(x, ...){
     if(!is.null(x$lossValue)){
         cat(paste0("; Loss function value: ",round(x$lossValue,digits)));
         if(any(x$loss==c("LASSO","RIDGE"))){
-            cat(paste0("; lambda=",x$lambda));
+            cat(paste0("; lambda=",x$other$lambda));
         }
     }
 
@@ -5141,11 +5191,11 @@ rstandard.adam <- function(model, ...){
         return(exp((errors - mean(errors[residsToGo])) / (model$scale * obs / df)^2));
     }
     else if(model$distribution=="dgnorm"){
-        return((errors - mean(errors[residsToGo])) / (model$scale^model$lambda * obs / df)^{1/model$lambda});
+        return((errors - mean(errors[residsToGo])) / (model$scale^model$other$beta * obs / df)^{1/model$other$beta});
     }
     else if(model$distribution=="dlgnorm"){
         errors[] <- log(errors);
-        return(exp((errors - mean(errors[residsToGo])) / (model$scale^model$lambda * obs / df)^{1/model$lambda}));
+        return(exp((errors - mean(errors[residsToGo])) / (model$scale^model$other$beta * obs / df)^{1/model$other$beta}));
     }
     else if(model$distribution=="dinvgauss"){
         return(errors / mean(errors[residsToGo]));
@@ -5216,18 +5266,18 @@ rstudent.adam <- function(model, ...){
     else if(model$distribution=="dgnorm"){
         errors[] <- errors - mean(errors);
         for(i in residsToGo){
-            rstudentised[i] <- errors[i] /  (sum(abs(errors[-i])^model$lambda) * (model$lambda/df))^{1/model$lambda};
+            rstudentised[i] <- errors[i] /  (sum(abs(errors[-i])^model$other$beta) * (model$other$beta/df))^{1/model$other$beta};
         }
     }
     else if(model$distribution=="dlgnorm"){
         errors[] <- log(errors) - mean(log(errors));
         for(i in residsToGo){
-            rstudentised[i] <- errors[i] /  (sum(abs(errors[-i])^model$lambda) * (model$lambda/df))^{1/model$lambda};
+            rstudentised[i] <- errors[i] /  (sum(abs(errors[-i])^model$other$beta) * (model$other$beta/df))^{1/model$other$beta};
         }
     }
     else if(model$distribution=="dalaplace"){
         for(i in residsToGo){
-            rstudentised[i] <- errors[i] / (sum(errors[-i] * (model$lambda - (errors[-i]<=0)*1),na.rm=TRUE) / df);
+            rstudentised[i] <- errors[i] / (sum(errors[-i] * (model$other$alpha - (errors[-i]<=0)*1),na.rm=TRUE) / df);
         }
     }
     else if(model$distribution=="dlogis"){
@@ -5431,14 +5481,14 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
         }
     }
     else if(object$distribution=="dgnorm"){
-        alpha <- sqrt(s2*(gamma(1/object$lambda)/gamma(3/object$lambda)));
+        alpha <- sqrt(s2*(gamma(1/object$other$beta)/gamma(3/object$other$beta)));
         if(Etype=="A"){
-            yLower[] <- suppressWarnings(qgnorm(levelLow, 0, alpha, object$lambda));
-            yUpper[] <- suppressWarnings(qgnorm(levelUp, 0, alpha, object$lambda));
+            yLower[] <- suppressWarnings(qgnorm(levelLow, 0, alpha, object$other$beta));
+            yUpper[] <- suppressWarnings(qgnorm(levelUp, 0, alpha, object$other$beta));
         }
         else{
-            yLower[] <- suppressWarnings(qgnorm(levelLow, 1, alpha, object$lambda));
-            yUpper[] <- suppressWarnings(qgnorm(levelUp, 1, alpha, object$lambda));
+            yLower[] <- suppressWarnings(qgnorm(levelLow, 1, alpha, object$other$beta));
+            yUpper[] <- suppressWarnings(qgnorm(levelUp, 1, alpha, object$other$beta));
         }
     }
     else if(object$distribution=="dlogis"){
@@ -5463,18 +5513,18 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
         }
     }
     else if(object$distribution=="dalaplace"){
-        lambda <- object$lambda;
+        alpha <- object$other$beta;
         if(Etype=="A"){
             yLower[] <- qalaplace(levelLow, 0,
-                                  sqrt(s2*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                  sqrt(s2*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
             yUpper[] <- qalaplace(levelUp, 0,
-                                  sqrt(s2*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                  sqrt(s2*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
         }
         else{
             yLower[] <- qalaplace(levelLow, 1,
-                                  sqrt(s2*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                  sqrt(s2*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
             yUpper[] <- qalaplace(levelUp, 1,
-                                  sqrt(s2*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                  sqrt(s2*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
         }
     }
     else if(object$distribution=="dlnorm"){
@@ -5490,9 +5540,9 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
         yUpper[] <- exp(qs(levelUp, 0, (s2/120)^0.25));
     }
     else if(object$distribution=="dlgnorm"){
-        alpha <- sqrt(s2*(gamma(1/object$lambda)/gamma(3/object$lambda)));
-        yLower[] <- suppressWarnings(exp(qgnorm(levelLow, 0, alpha, object$lambda)));
-        yUpper[] <- suppressWarnings(exp(qgnorm(levelUp, 0, alpha, object$lambda)));
+        alpha <- sqrt(s2*(gamma(1/object$other$beta)/gamma(3/object$other$beta)));
+        yLower[] <- suppressWarnings(exp(qgnorm(levelLow, 0, alpha, object$other$beta)));
+        yUpper[] <- suppressWarnings(exp(qgnorm(levelUp, 0, alpha, object$other$beta)));
     }
     else if(object$distribution=="dinvgauss"){
         yLower[] <- qinvgauss(levelLow, 1, dispersion=s2);
@@ -5844,18 +5894,20 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                    "dnorm"=rnorm(h*nsim, 0, sigmaValue),
                                    "dlaplace"=rlaplace(h*nsim, 0, sigmaValue/2),
                                    "ds"=rs(h*nsim, 0, (sigmaValue^2/120)^0.25),
-                                   "dgnorm"=rgnorm(h*nsim, 0, sigmaValue*sqrt(gamma(1/object$lambda)/gamma(3/object$lambda))),
+                                   "dgnorm"=rgnorm(h*nsim, 0,
+                                                   sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))),
                                    "dlogis"=rlogis(h*nsim, 0, sigmaValue*sqrt(3)/pi),
                                    "dt"=rt(h*nsim, obsInSample-nparam(object)),
                                    "dalaplace"=ralaplace(h*nsim, 0,
-                                                         sqrt(sigmaValue^2*object$lambda^2*(1-object$lambda)^2/
-                                                                  (object$lambda^2+(1-object$lambda)^2)),
-                                                         object$lambda),
+                                                         sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
+                                                                  (object$other$alpha^2+(1-object$other$alpha)^2)),
+                                                         object$other$alpha),
                                    "dlnorm"=rlnorm(h*nsim, 0, sigmaValue)-1,
                                    "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=sigmaValue^2)-1,
                                    "dllaplace"=exp(rlaplace(h*nsim, 0, sigmaValue/2))-1,
                                    "dls"=exp(rs(h*nsim, 0, (sigmaValue^2/120)^0.25))-1,
-                                   "dlgnorm"=exp(rgnorm(h*nsim, 0, sigmaValue*sqrt(gamma(1/object$lambda)/gamma(3/object$lambda))))-1
+                                   "dlgnorm"=exp(rgnorm(h*nsim, 0,
+                                                        sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))))-1
                                    ),
                             h,nsim);
         # This stuff is needed in order to produce adequate values for weird models
@@ -6007,14 +6059,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dgnorm"){
-                alpha <- sqrt(vcovMulti*(gamma(1/object$lambda)/gamma(3/object$lambda)));
+                alpha <- sqrt(vcovMulti*(gamma(1/object$other$beta)/gamma(3/object$other$beta)));
                 if(Etype=="A"){
-                    yLower[] <- suppressWarnings(qgnorm(levelLow, 0, alpha, object$lambda));
-                    yUpper[] <- suppressWarnings(qgnorm(levelUp, 0, alpha, object$lambda));
+                    yLower[] <- suppressWarnings(qgnorm(levelLow, 0, alpha, object$other$beta));
+                    yUpper[] <- suppressWarnings(qgnorm(levelUp, 0, alpha, object$other$beta));
                 }
                 else{
-                    yLower[] <- suppressWarnings(qgnorm(levelLow, 1, alpha, object$lambda));
-                    yUpper[] <- suppressWarnings(qgnorm(levelUp, 1, alpha, object$lambda));
+                    yLower[] <- suppressWarnings(qgnorm(levelLow, 1, alpha, object$other$beta));
+                    yUpper[] <- suppressWarnings(qgnorm(levelUp, 1, alpha, object$other$beta));
                 }
             }
             else if(object$distribution=="dlogis"){
@@ -6039,18 +6091,18 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dalaplace"){
-                lambda <- object$lambda;
+                alpha <- object$other$alpha;
                 if(Etype=="A"){
                     yLower[] <- qalaplace(levelLow, 0,
-                                          sqrt(vcovMulti*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                          sqrt(vcovMulti*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
                     yUpper[] <- qalaplace(levelUp, 0,
-                                          sqrt(vcovMulti*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                          sqrt(vcovMulti*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
                 }
                 else{
                     yLower[] <- qalaplace(levelLow, 1,
-                                          sqrt(vcovMulti*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                          sqrt(vcovMulti*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
                     yUpper[] <- qalaplace(levelUp, 1,
-                                          sqrt(vcovMulti*lambda^2*(1-lambda)^2/(lambda^2+(1-lambda)^2)), lambda);
+                                          sqrt(vcovMulti*alpha^2*(1-alpha)^2/(alpha^2+(1-alpha)^2)), alpha);
                 }
             }
             else if(object$distribution=="dlnorm"){
@@ -6078,9 +6130,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dlgnorm"){
-                alpha <- sqrt(vcovMulti*(gamma(1/object$lambda)/gamma(3/object$lambda)));
-                yLower[] <- suppressWarnings(exp(qgnorm(levelLow, 0, alpha, object$lambda)));
-                yUpper[] <- suppressWarnings(exp(qgnorm(levelUp, 0, alpha, object$lambda)));
+                alpha <- sqrt(vcovMulti*(gamma(1/object$other$beta)/gamma(3/object$other$beta)));
+                yLower[] <- suppressWarnings(exp(qgnorm(levelLow, 0, alpha, object$other$beta)));
+                yUpper[] <- suppressWarnings(exp(qgnorm(levelUp, 0, alpha, object$other$beta)));
             }
             else if(object$distribution=="dinvgauss"){
                 yLower[] <- qinvgauss(levelLow, 1, dispersion=vcovMulti);
@@ -6354,13 +6406,13 @@ plot.adam.forecast <- function(x, ...){
                           "dlogis" = "Logistic",
                           "dlaplace" = "Laplace",
                           "ds" = "S",
-                          "dgnorm" = "Generalised Normal",
-                          "dalaplace" = paste0("Asymmetric Laplace with lambda=",round(x$model$lambda,digits)),
-                          "dt" = paste0("Student t with df=",round(x$model$lambda, digits)),
+                          "dgnorm" = paste0("Generalised Normal with beta=",round(x$model$other$beta,digits)),
+                          "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$model$other$alpha,digits)),
+                          "dt" = paste0("Student t with nu=",round(x$model$other$nu, digits)),
                           "dlnorm" = "Log Normal",
                           "dllaplace" = "Log Laplace",
                           "dls" = "Log S",
-                          "dgnorm" = "Log Generalised Normal",
+                          "dgnorm" = paste0("Log Generalised Normal with beta=",round(x$model$other$beta,digits)),
                           # "dbcnorm" = paste0("Box-Cox Normal with lambda=",round(x$other$lambda,2)),
                           "dinvgauss" = "Inverse Gaussian",
                           "default"
@@ -6448,7 +6500,10 @@ pointLik.adam <- function(object, ...){
         yFitted <- fitted(object);
     }
     scale <- object$scale;
-    lambda <- object$lambda;
+    other <- switch(distribution,
+                    "dalaplace"=object$other$alpha,
+                    "dgnorm"=,"dlgnorm"=object$other$beta,
+                    "dt"=object$other$nu);
     Etype <- errorType(object);
 
     likValues <- vector("numeric",obsInSample);
@@ -6470,9 +6525,9 @@ pointLik.adam <- function(object, ...){
                                                       scale=scale*sqrt(yFitted[otLogical]), log=TRUE)),
                                    "dgnorm"=switch(Etype,
                                                   "A"=dgnorm(x=yInSample[otLogical], mu=yFitted[otLogical],
-                                                            alpha=scale, beta=lambda, log=TRUE),
+                                                            alpha=scale, beta=other, log=TRUE),
                                                   "M"=suppressWarnings(dgnorm(x=yInSample[otLogical], mu=yFitted[otLogical],
-                                                                              alpha=scale*yFitted[otLogical], beta=lambda,
+                                                                              alpha=scale*yFitted[otLogical], beta=other,
                                                                               log=TRUE))),
                                    "dlogis"=switch(Etype,
                                                    "A"=dlogis(x=yInSample[otLogical], location=yFitted[otLogical],
@@ -6480,14 +6535,14 @@ pointLik.adam <- function(object, ...){
                                                    "M"=dlogis(x=yInSample[otLogical], location=yFitted[otLogical],
                                                               scale=scale*yFitted[otLogical], log=TRUE)),
                                    "dt"=switch(Etype,
-                                               "A"=dt(adamFitted$errors[otLogical], df=abs(lambda), log=TRUE),
+                                               "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
                                                "M"=dt(adamFitted$errors[otLogical]*yFitted[otLogical],
-                                                      df=abs(lambda), log=TRUE)),
+                                                      df=abs(other), log=TRUE)),
                                    "dalaplace"=switch(Etype,
                                                       "A"=dalaplace(q=yInSample[otLogical], mu=yFitted[otLogical],
-                                                                    scale=scale, alpha=lambda, log=TRUE),
+                                                                    scale=scale, alpha=other, log=TRUE),
                                                       "M"=dalaplace(q=yInSample[otLogical], mu=yFitted[otLogical],
-                                                                    scale=scale*yFitted[otLogical], alpha=lambda, log=TRUE)),
+                                                                    scale=scale*yFitted[otLogical], alpha=other, log=TRUE)),
                                    "dlnorm"=dlnorm(x=yInSample[otLogical], meanlog=log(yFitted[otLogical]),
                                                    sdlog=scale, log=TRUE),
                                    "dllaplace"=dlaplace(q=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
@@ -6495,7 +6550,7 @@ pointLik.adam <- function(object, ...){
                                    "dls"=ds(q=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
                                             scale=scale, log=TRUE),
                                    "dgnorm"=dgnorm(x=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
-                                                   alpha=scale, beta=lambda, log=TRUE),
+                                                   alpha=scale, beta=other, log=TRUE),
                                    "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=yFitted[otLogical],
                                                          dispersion=scale/yFitted[otLogical], log=TRUE));
     if(any(distribution==c("dllaplace","dls","dlgnorm"))){
@@ -6516,7 +6571,7 @@ pointLik.adam <- function(object, ...){
                                          "ds" =,
                                          "dls" = (2 + 2*log(2*scale)),
                                          "dgnorm" =,
-                                         "dlgnorm" = 1/lambda-log(lambda/(2*scale*gamma(1/lambda))),
+                                         "dlgnorm" = 1/other-log(other/(2*scale*gamma(1/other))),
                                          "dinvgauss" = (0.5*(log(pi/2)+1+log(scale))));
 
         likValues[] <- likValues + pointLik(object$occurrence);
