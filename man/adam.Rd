@@ -328,7 +328,7 @@ Inverse Gaussian is used for the Multiplicative error models.
 \item \link[stats]{dnorm} - Normal distribution,
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
-\item \link[gnorm]{dgnorm} - Generalised Normal distribution,
+\item dgnorm - Generalised Normal distribution,
 \item \link[stats]{dlogis} - Logistic Distribution,
 \item \link[stats]{dt} - T distribution,
 \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,

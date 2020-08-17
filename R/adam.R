@@ -43,7 +43,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \link[stats]{dnorm} - Normal distribution,
 #' \item \link[greybox]{dlaplace} - Laplace distribution,
 #' \item \link[greybox]{ds} - S distribution,
-#' \item \link[gnorm]{dgnorm} - Generalised Normal distribution,
+#' \item dgnorm - Generalised Normal distribution,
 #' \item \link[stats]{dlogis} - Logistic Distribution,
 #' \item \link[stats]{dt} - T distribution,
 #' \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
@@ -325,7 +325,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @importFrom greybox dlaplace dalaplace ds stepwise alm is.occurrence is.alm polyprod
 #' @importFrom stats dnorm dlogis dt dlnorm frequency confint vcov formula update model.frame model.matrix predict
 #' @importFrom statmod dinvgauss
-#' @importFrom gnorm dgnorm qgnorm rgnorm
 #' @importFrom nloptr nloptr
 #' @importFrom pracma hessian
 #' @importFrom zoo zoo
