@@ -892,7 +892,7 @@ XregSelector <- function(listToReturn){
         listToReturn$xregEstimate <- xregEstimate;
     }
 
-        if(!is.null(xreg)){
+    if(!is.null(xreg)){
         if(Etype=="M" & any(abs(coef(xregResults)[-1])>10)){
             providedC <- c(B,coef(xregResults)[-1]/max(abs(coef(xregResults)[-1])));
         }
