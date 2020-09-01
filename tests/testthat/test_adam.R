@@ -180,7 +180,7 @@ test_that("Forecast for ADAM adaptive regression on N2568", {
 })
 
 # ETSX with formula
-xreg <- data.frame(y=Mcomp::M3[[2568]]$x, x=factor(xreg %*% c(1:12)));
+xreg <- data.frame(y=Mcomp::M3[[2568]]$x, x=factor(xreg %*% c(1:11)));
 testModel <- adam(xreg, "MMN", h=18, holdout=TRUE, formula=y~x);
 test_that("ADAM ETSX(MMN) + xreg formula on N2568", {
     expect_match(testModel$xregDo, "use");
