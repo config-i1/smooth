@@ -155,10 +155,10 @@ test_that("ADAM ETS(CCC) with double seasonality on N2568", {
 
 #### ETSX / Regression + formula ####
 # ETSX on N2568
-xreg <- temporaldummy(Mcomp::M3[[2568]]$x);
+xreg <- temporaldummy(Mcomp::M3[[2568]]$x)[,-1];
 testModel <- adam(Mcomp::M3[[2568]]$x, "MMN", h=18, holdout=TRUE, xreg=xreg);
 test_that("ADAM ETSX(MMN) on N2568", {
-    expect_true(is.matrix(testModel$xreg));
+    expect_true(!is.null(testModel$xreg));
 })
 
 # ETSX selection on N2568
