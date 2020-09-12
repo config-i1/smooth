@@ -141,9 +141,15 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         yInSampleIndex <- yIndex[c(1:obsInSample)];
     }
     else{
-        yForecastStart <- yIndex[obsInSample]+diff(tail(yIndex,2));
         yInSampleIndex <- yIndex;
-        yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:max(h,1));
+        yIndexDiff <- diff(tail(yIndex,2));
+        yForecastStart <- yIndex[obsInSample]+yIndexDiff;
+        if(any(yClasses=="ts")){
+            yForecastIndex <- yIndex[obsInSample]+as.numeric(yIndexDiff)*c(1:max(h,1));
+        }
+        else{
+            yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
+        }
         yHoldout <- NULL;
     }
 
