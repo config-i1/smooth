@@ -141,9 +141,9 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         yInSampleIndex <- yIndex[c(1:obsInSample)];
     }
     else{
-        yForecastStart <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)));
+        yForecastStart <- yIndex[obsInSample]+diff(tail(yIndex,2));
         yInSampleIndex <- yIndex;
-        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:max(h,1));
+        yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:max(h,1));
         yHoldout <- NULL;
     }
 

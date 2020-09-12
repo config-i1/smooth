@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-08-17)
+smooth v3.0.0 (Release data: 2020-09-13)
 =======
 
 Changes:
@@ -9,6 +9,9 @@ Changes:
 * sim.es() now also accepts one value in persistence - it will duplicate it for all components.
 * Renamed parameters for distributions in adam(). dalaplace now accepts alpha, dgnorm - beta and dt - nu. This resolves the conflict with LASSO and lambda.
 * Use internal gnorm() functions.
+
+Bugfixes:
+* Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)
