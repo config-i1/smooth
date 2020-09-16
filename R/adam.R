@@ -4896,8 +4896,10 @@ confint.adam <- function(object, parm, level=0.95, ...){
         # Check, if there are deltas (for xreg)
         if(any(parameterNames=="delta")){
             deltas <- which(substr(parameterNames,1,5)=="delta");
-            adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=0, b=1, mean=0, sd=adamSD[deltas]);
-            adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=0, b=1, mean=0, sd=adamSD[deltas]);
+            adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
+                                                   mean=0, sd=adamSD[deltas]);
+            adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
+                                                   mean=0, sd=adamSD[deltas]);
         }
     }
     adamReturn <- cbind(adamSD,adamCoefBounds);
