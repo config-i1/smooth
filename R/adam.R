@@ -1743,6 +1743,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         # Check the bounds, classical restrictions
+        #### The usual bounds ####
         if(bounds=="usual"){
             # Stationarity and invertibility conditions for ARIMA
             if(arimaModel && any(c(arEstimate,maEstimate))){
@@ -1799,6 +1800,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
             }
         }
+        #### The admissible bounds ####
         else if(bounds=="admissible"){
             # Stationarity condition of ARIMA
             if(arimaModel){
@@ -1833,6 +1835,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         # Produce fitted values and errors
+        #### Fitter and the losss calculation ####
         adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
                                      lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, yInSample, ot, initialType=="backcasting");
@@ -4846,6 +4849,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
     adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
     adamCoefBounds[,2] <- qt((1-level)/2, df=nobs(object)+nparam(object))*adamSD;
     # Construct intervals for smoothing parameters based on usual bounds
+    #### The usual bounds ####
     if(object$bounds=="usual"){
         # Check, if there is alpha
         if(any(parameterNames=="alpha")){
@@ -4901,7 +4905,115 @@ confint.adam <- function(object, parm, level=0.95, ...){
             adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
                                                    mean=0, sd=adamSD[deltas]);
         }
+        # Check, if there is phi
+        if(any(parameterNames=="phi")){
+            adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
+                                                   mean=0, sd=adamSD["phi"]);
+            adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
+                                                   mean=0, sd=adamSD["phi"]);
+        }
     }
+    #### Admissible bounds ####
+    else if(object$bounds=="admissible"){
+        # The function that returns the eigen values for specified parameters
+        # The function returns TRUE if the condition is violated
+        eigenValues <- function(object, persistence){
+            if(!is.null(object$xreg)){
+                # We check the condition on average
+                return(any(abs(eigen((object$transition -
+                                      matrix(persistence, ncol(object$measurement), nobs(object)) %*%
+                                      object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
+                                 symmetric=TRUE, only.values=TRUE)$values)>=1+1E-50));
+            }
+            else{
+                return(any(abs(eigen(object$transition -
+                                     persistence %*% object$measurement[nobs(object),,drop=FALSE],
+                                 symmetric=TRUE, only.values=TRUE)$values)>=1+1E-50));
+            }
+        }
+        # The function that returns the bounds, based on eigen values
+        eigenBounds <- function(object, persistence, variableNumber=1){
+            # The lower bound
+            persistence[variableNumber,] <- -5;
+            eigenValuesTested <- eigenValues(object, persistence);
+            while(eigenValuesTested){
+                persistence[variableNumber,] <- persistence[variableNumber,] + 0.01
+                eigenValuesTested[] <- eigenValues(object, persistence);
+            }
+            lowerBound <- persistence[variableNumber,]-0.01;
+            # The upper bound
+            persistence[variableNumber,] <- 5;
+            eigenValuesTested <- eigenValues(object, persistence);
+            while(eigenValuesTested){
+                persistence[variableNumber,] <- persistence[variableNumber,] - 0.01
+                eigenValuesTested[] <- eigenValues(object, persistence);
+            }
+            upperBound <- persistence[variableNumber,]+0.01;
+            return(c(lowerBound, upperBound));
+        }
+        # Check, if there is alpha
+        if(any(parameterNames=="alpha")){
+            alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                       variableNumber=which(names(object$persistence)=="alpha"));
+            adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=alphaBounds[1]-parameters["alpha"],
+                                                    b=alphaBounds[2]-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+            adamCoefBounds["alpha",2] <- qtruncnorm((1+level)/2, a=alphaBounds[1]-parameters["alpha"],
+                                                    b=alphaBounds[2]-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+        }
+        # Check, if there is beta
+        if(any(parameterNames=="beta")){
+            betaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                      variableNumber=which(names(object$persistence)=="beta"));
+            adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=betaBounds[1]-parameters["beta"],
+                                                   b=betaBounds[2]-parameters["beta"],
+                                                   mean=0, sd=adamSD["beta"]);
+            adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=betaBounds[1]-parameters["beta"],
+                                                   b=betaBounds[2]-parameters["beta"],
+                                                   mean=0, sd=adamSD["beta"]);
+        }
+        # Check, if there are gammas
+        if(any(substr(parameterNames,1,5)=="gamma")){
+            gammas <- which(substr(parameterNames,1,5)=="gamma");
+            gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                       variableNumber=which(substr(names(object$persistence),1,5)=="gamma"));
+            adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=gammaBounds[1]-parameters[gammas],
+                                                   b=gammaBounds[2]-parameters[gammas],
+                                                   mean=0, sd=adamSD[gammas]);
+            adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=gammaBounds[1]-parameters[gammas],
+                                                   b=gammaBounds[2]-parameters[gammas],
+                                                   mean=0, sd=adamSD[gammas]);
+        }
+        #
+        # # Check, if there are deltas (for xreg)
+        # if(any(parameterNames=="delta")){
+        #     deltas <- which(substr(parameterNames,1,5)=="delta");
+        #     adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
+        #                                            mean=0, sd=adamSD[deltas]);
+        #     adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
+        #                                            mean=0, sd=adamSD[deltas]);
+        # }
+
+        # Check, if there is phi
+        if(any(parameterNames=="phi")){
+            adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
+                                                   mean=0, sd=adamSD["phi"]);
+            adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
+                                                   mean=0, sd=adamSD["phi"]);
+        }
+    }
+
+        # # Stationarity condition of ARIMA
+        # if(arimaModel){
+        #     # Calculate the polynomial roots for AR
+        #     if(arEstimate){
+        #         arPolynomialMatrix[,1] <- -object$arimaPolynomials$arPolynomial[-1];
+        #         arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
+        #         if(any(arPolyroots>1)){
+        #             return(1E+100*max(arPolyroots));
+        #         }
+        #     }
+        # }
+
     adamReturn <- cbind(adamSD,adamCoefBounds);
     colnames(adamReturn) <- c("S.E.",
                               paste0((1-level)/2*100,"%"), paste0((1+level)/2*100,"%"));
@@ -4966,26 +5078,28 @@ summary.adam <- function(object, level=0.95, ...){
     ourReturn$distribution <- object$distribution;
 
     # Collect parameters and their standard errors
-    parametersConfint <- confint(object, level=level);
     parametersValues <- coef(object);
-    if(is.null(parametersValues)){
-        if(!is.null(object$xreg) && all(object$persistenceXreg!=0)){
-            parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
+    if(!is.null(parametersValues)){
+        parametersConfint <- confint(object, level=level);
+        if(is.null(parametersValues)){
+            if(!is.null(object$xreg) && all(object$persistenceXreg!=0)){
+                parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
+            }
+            else{
+                parametersValues <- c(object$persistence,object$initial);
+            }
+            warning(paste0("Parameters are not available. You have probably provided them in the model, ",
+                           "so there was nothing to estimate. We extracted smoothing parameters and initials."),
+                    call.=FALSE);
         }
-        else{
-            parametersValues <- c(object$persistence,object$initial);
-        }
-        warning(paste0("Parameters are not available. You have probably provided them in the model, ",
-                       "so there was nothing to estimate. We extracted smoothing parameters and initials."),
-                call.=FALSE);
+        parametersConfint[,2:3] <- parametersValues + parametersConfint[,2:3];
+        parametersTable <- cbind(parametersValues,parametersConfint);
+        rownames(parametersTable) <- rownames(parametersConfint);
+        colnames(parametersTable) <- c("Estimate","Std. Error",
+                                       paste0("Lower ",(1-level)/2*100,"%"),
+                                       paste0("Upper ",(1+level)/2*100,"%"));
+        ourReturn$coefficients <- parametersTable;
     }
-    parametersConfint[,2:3] <- parametersValues + parametersConfint[,2:3];
-    parametersTable <- cbind(parametersValues,parametersConfint);
-    rownames(parametersTable) <- rownames(parametersConfint);
-    colnames(parametersTable) <- c("Estimate","Std. Error",
-                                   paste0("Lower ",(1-level)/2*100,"%"),
-                                   paste0("Upper ",(1+level)/2*100,"%"));
-    ourReturn$coefficients <- parametersTable;
     ourReturn$loss <- object$loss;
     ourReturn$lossValue <- object$lossValue;
     ourReturn$nobs <- nobs(object);
@@ -5057,6 +5171,9 @@ print.summary.adam <- function(x, ...){
     if(!is.null(x$coefficients)){
         cat("\nCoefficients:\n");
         print(round(x$coefficients,digits));
+    }
+    else{
+        cat("\nAll coefficients were provided");
     }
 
     cat("\nSample size: "); cat(x$nobs);
