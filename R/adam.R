@@ -299,7 +299,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{lambda} - the value of the parameter used in LASSO / dalaplace / dt,
 #' \item \code{B} - the vector of all estimated parameters,
 #' \item \code{lags} - the vector of lags used in the model construction,
-#' \item \code{lagsAll} - the vector of the internal lags used in the model.
+#' \item \code{lagsAll} - the vector of the internal lags used in the model,
+#' \item \code{call} - the call used in the evaluation,
+#' \item \code{bounds} - the type of bounds used in the process.
 #' }
 #'
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}}
@@ -345,6 +347,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    cl <- match.call();
     ellipsis <- list(...);
     # If a previous model is provided as a model, write down the variables
     if(is.adam(model) || is.adam.sim(model)){
@@ -3984,6 +3987,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     }
     modelReturned$ICs <- icSelection;
     modelReturned$lossFunction <- lossFunction;
+    modelReturned$call <- cl;
+    modelReturned$bounds <- bounds;
 
     # Error measures if there is a holdout
     if(holdout){
@@ -4654,7 +4659,7 @@ print.adam <- function(x, digits=4, ...){
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
 
     cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds"));
-    cat(paste0("\nModel estimated: ",x$model));
+    cat(paste0("\nModel estimated using ",x$call[[1]],"() function: ",x$model));
 
     if(is.occurrence(x$occurrence)){
         occurrence <- switch(x$occurrence$occurrence,
@@ -4827,18 +4832,84 @@ print.adamCombined <- function(x, digits=4, ...){
 }
 
 #### Coefficients ####
+#' @importFrom truncnorm qtruncnorm
+#' @export
 confint.adam <- function(object, parm, level=0.95, ...){
     adamVcov <- vcov(object);
+    parameters <- coef(object);
     adamSD <- sqrt(abs(diag(adamVcov)));
-    # adamCoef <- coef(object);
-    adamCoefBounds <- matrix(0,length(adamSD),2);
-    adamCoefBounds[,1] <- qnorm((1-level)/2, 0, adamSD);
-    adamCoefBounds[,2] <- qnorm((1+level)/2, 0, adamSD);
+    parameterNames <- names(adamSD);
+    nParam <- length(adamSD);
+    adamCoefBounds <- matrix(0,nParam,2,
+                             dimnames=list(parameterNames,NULL));
+    # Fill in the values with normal bounds
+    adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
+    adamCoefBounds[,2] <- qt((1-level)/2, df=nobs(object)+nparam(object))*adamSD;
+    # Construct intervals for smoothing parameters based on usual bounds
+    if(object$bounds=="usual"){
+        # Check, if there is alpha
+        if(any(parameterNames=="alpha")){
+            adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=-parameters["alpha"],
+                                                    b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+            adamCoefBounds["alpha",2] <- qtruncnorm((1+level)/2, a=-parameters["alpha"],
+                                                    b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+        }
+        # Check, if there is beta
+        if(any(parameterNames=="beta")){
+            if(any(parameterNames=="alpha")){
+                adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=-parameters["beta"],
+                                                       b=parameters["alpha"]-parameters["beta"],
+                                                       mean=0, sd=adamSD["beta"]);
+                adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=-parameters["beta"],
+                                                       b=parameters["alpha"]-parameters["beta"],
+                                                       mean=0, sd=adamSD["beta"]);
+            }
+            else{
+                adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=-parameters["beta"],
+                                                       b=object$persistence["alpha"]-parameters["beta"],
+                                                       mean=0, sd=adamSD["beta"]);
+                adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=-parameters["beta"],
+                                                       b=object$persistence["alpha"]-parameters["beta"],
+                                                       mean=0, sd=adamSD["beta"]);
+            }
+        }
+        # Check, if there are gammas
+        if(any(substr(parameterNames,1,5)=="gamma")){
+            gammas <- which(substr(parameterNames,1,5)=="gamma");
+            if(any(parameterNames=="alpha")){
+                adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=-parameters[gammas],
+                                                       b=1-parameters["alpha"]-parameters[gammas],
+                                                       mean=0, sd=adamSD[gammas]);
+                adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=-parameters[gammas],
+                                                       b=1-parameters["alpha"]-parameters[gammas],
+                                                       mean=0, sd=adamSD[gammas]);
+            }
+            else{
+                adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=-parameters[gammas],
+                                                       b=1-object$persistence["alpha"]-parameters[gammas],
+                                                       mean=0, sd=adamSD[gammas]);
+                adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=-parameters[gammas],
+                                                       b=1-object$persistence["alpha"]-parameters[gammas],
+                                                       mean=0, sd=adamSD[gammas]);
+            }
+        }
+        # Check, if there are deltas (for xreg)
+        if(any(parameterNames=="delta")){
+            deltas <- which(substr(parameterNames,1,5)=="delta");
+            adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=0, b=1, mean=0, sd=adamSD[deltas]);
+            adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=0, b=1, mean=0, sd=adamSD[deltas]);
+        }
+    }
     adamReturn <- cbind(adamSD,adamCoefBounds);
     colnames(adamReturn) <- c("S.E.",
                               paste0((1-level)/2*100,"%"), paste0((1+level)/2*100,"%"));
 
-    return(adamReturn);
+    # If parm was not provided, return everything.
+    if(!exists("parm",inherits=FALSE)){
+        parm <- names(adamSD);
+    }
+
+    return(adamReturn[parm,,drop=FALSE]);
 }
 
 #' @export
@@ -4918,6 +4989,7 @@ summary.adam <- function(object, level=0.95, ...){
     ourReturn$nobs <- nobs(object);
     ourReturn$nparam <- nparam(object);
     ourReturn$nParam <- object$nParam;
+    ourReturn$call <- object$call;
 
     if(object$loss=="likelihood" ||
        (any(object$loss==c("MSE","MSEh","MSCE")) & any(object$distribution==c("dnorm","dlnorm"))) ||
@@ -4945,7 +5017,7 @@ print.summary.adam <- function(x, ...){
         digits <- ellipsis$digits;
     }
 
-    cat(paste0("Model estimated: ",x$model));
+    cat(paste0("Model estimated using ",x$call[[1]],"() function: ",x$model));
     cat(paste0("\nResponse variable: ", paste0(x$responseName,collapse="")));
 
     if(!is.null(x$occurrence)){
@@ -5026,6 +5098,8 @@ vcov.adam <- function(object, ...){
         }
     }
     colnames(vcovMatrix) <- rownames(vcovMatrix) <- colnames(modelReturn$FI);
+    # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+    diag(vcovMatrix) <- abs(diag(vcovMatrix));
     return(vcovMatrix);
 }
 
