@@ -1693,6 +1693,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         return(scale);
     }
 
+    #### The function inverts the measurement matrix, setting infinte values to zero
+    # This is needed for the stability check for xreg models with xregDo="adapt"
+    measurementInverter <- function(measurement){
+        measurement[] <- 1/measurement;
+        measurement[is.infinite(measurement)] <- 0;
+        return(measurement);
+    }
+
     ##### Cost Function for ETS #####
     CF <- function(B,
                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -1819,7 +1827,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 if(xregModel){
                     # We check the condition on average
                     eigenValues <- abs(eigen((adamElements$matF -
-                                                  matrix(adamElements$vecG, ncol(adamElements$matWt), obsInSample) %*%
+                                                  diag(as.vector(adamElements$vecG)) %*%
+                                                  t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
                                                   adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
                                              symmetric=TRUE, only.values=TRUE)$values);
                 }
@@ -4847,8 +4856,57 @@ confint.adam <- function(object, parm, level=0.95, ...){
                              dimnames=list(parameterNames,NULL));
     # Fill in the values with normal bounds
     adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
-    adamCoefBounds[,2] <- qt((1-level)/2, df=nobs(object)+nparam(object))*adamSD;
-    # Construct intervals for smoothing parameters based on usual bounds
+    adamCoefBounds[,2] <- qt((1+level)/2, df=nobs(object)+nparam(object))*adamSD;
+
+    #### Construct bounds for the smoothing parameters ####
+
+    #### The function inverts the measurement matrix, setting infinte values to zero
+    # This is needed for the stability check for xreg models with xregDo="adapt"
+    measurementInverter <- function(measurement){
+        measurement[] <- 1/measurement;
+        measurement[is.infinite(measurement)] <- 0;
+        return(measurement);
+    }
+
+    # The function that returns the eigen values for specified parameters
+    # The function returns TRUE if the condition is violated
+    eigenValues <- function(object, persistence){
+        #### !!!! Eigne values checks do not work for xreg. So move to (0, 1) region
+        if(!is.null(object$xreg)){
+            # We check the condition on average
+            return(any(abs(eigen((object$transition -
+                                      diag(as.vector(persistence)) %*%
+                                      t(measurementInverter(object$measurement[1:nobs(object),,drop=FALSE])) %*%
+                                      object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
+                                 symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+        }
+        else{
+            return(any(abs(eigen(object$transition -
+                                     persistence %*% object$measurement[nobs(object),,drop=FALSE],
+                                 symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+        }
+    }
+    # The function that returns the bounds, based on eigen values
+    eigenBounds <- function(object, persistence, variableNumber=1){
+        # The lower bound
+        persistence[variableNumber,] <- -5;
+        eigenValuesTested <- eigenValues(object, persistence);
+        while(eigenValuesTested){
+            persistence[variableNumber,] <- persistence[variableNumber,] + 0.01;
+            eigenValuesTested[] <- eigenValues(object, persistence);
+        }
+        lowerBound <- persistence[variableNumber,]-0.01;
+        # The upper bound
+        persistence[variableNumber,] <- 5;
+        eigenValuesTested <- eigenValues(object, persistence);
+        while(eigenValuesTested){
+            persistence[variableNumber,] <- persistence[variableNumber,] - 0.01;
+            eigenValuesTested[] <- eigenValues(object, persistence);
+        }
+        upperBound <- persistence[variableNumber,]+0.01;
+        return(c(lowerBound, upperBound));
+    }
+
     #### The usual bounds ####
     if(object$bounds=="usual"){
         # Check, if there is alpha
@@ -4898,7 +4956,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
             }
         }
         # Check, if there are deltas (for xreg)
-        if(any(parameterNames=="delta")){
+        if(any(substr(parameterNames,1,5)=="delta")){
             deltas <- which(substr(parameterNames,1,5)=="delta");
             adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
                                                    mean=0, sd=adamSD[deltas]);
@@ -4915,42 +4973,6 @@ confint.adam <- function(object, parm, level=0.95, ...){
     }
     #### Admissible bounds ####
     else if(object$bounds=="admissible"){
-        # The function that returns the eigen values for specified parameters
-        # The function returns TRUE if the condition is violated
-        eigenValues <- function(object, persistence){
-            if(!is.null(object$xreg)){
-                # We check the condition on average
-                return(any(abs(eigen((object$transition -
-                                      matrix(persistence, ncol(object$measurement), nobs(object)) %*%
-                                      object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
-                                 symmetric=TRUE, only.values=TRUE)$values)>=1+1E-50));
-            }
-            else{
-                return(any(abs(eigen(object$transition -
-                                     persistence %*% object$measurement[nobs(object),,drop=FALSE],
-                                 symmetric=TRUE, only.values=TRUE)$values)>=1+1E-50));
-            }
-        }
-        # The function that returns the bounds, based on eigen values
-        eigenBounds <- function(object, persistence, variableNumber=1){
-            # The lower bound
-            persistence[variableNumber,] <- -5;
-            eigenValuesTested <- eigenValues(object, persistence);
-            while(eigenValuesTested){
-                persistence[variableNumber,] <- persistence[variableNumber,] + 0.01
-                eigenValuesTested[] <- eigenValues(object, persistence);
-            }
-            lowerBound <- persistence[variableNumber,]-0.01;
-            # The upper bound
-            persistence[variableNumber,] <- 5;
-            eigenValuesTested <- eigenValues(object, persistence);
-            while(eigenValuesTested){
-                persistence[variableNumber,] <- persistence[variableNumber,] - 0.01
-                eigenValuesTested[] <- eigenValues(object, persistence);
-            }
-            upperBound <- persistence[variableNumber,]+0.01;
-            return(c(lowerBound, upperBound));
-        }
         # Check, if there is alpha
         if(any(parameterNames=="alpha")){
             alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
@@ -4974,24 +4996,31 @@ confint.adam <- function(object, parm, level=0.95, ...){
         # Check, if there are gammas
         if(any(substr(parameterNames,1,5)=="gamma")){
             gammas <- which(substr(parameterNames,1,5)=="gamma");
-            gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                       variableNumber=which(substr(names(object$persistence),1,5)=="gamma"));
-            adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=gammaBounds[1]-parameters[gammas],
-                                                   b=gammaBounds[2]-parameters[gammas],
-                                                   mean=0, sd=adamSD[gammas]);
-            adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=gammaBounds[1]-parameters[gammas],
-                                                   b=gammaBounds[2]-parameters[gammas],
-                                                   mean=0, sd=adamSD[gammas]);
+            for(i in 1:length(gammas)){
+                gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                           variableNumber=which(substr(names(object$persistence),1,5)=="gamma"));
+                adamCoefBounds[gammas[i],1] <- qtruncnorm((1-level)/2, a=gammaBounds[1]-parameters[gammas[i]],
+                                                       b=gammaBounds[2]-parameters[gammas[i]],
+                                                       mean=0, sd=adamSD[gammas[i]]);
+                adamCoefBounds[gammas[i],2] <- qtruncnorm((1+level)/2, a=gammaBounds[1]-parameters[gammas[i]],
+                                                       b=gammaBounds[2]-parameters[gammas[i]],
+                                                       mean=0, sd=adamSD[gammas[i]]);
+            }
         }
-        #
-        # # Check, if there are deltas (for xreg)
-        # if(any(parameterNames=="delta")){
-        #     deltas <- which(substr(parameterNames,1,5)=="delta");
-        #     adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
-        #                                            mean=0, sd=adamSD[deltas]);
-        #     adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
-        #                                            mean=0, sd=adamSD[deltas]);
-        # }
+        # Check, if there are deltas (for xreg)
+        if(any(substr(parameterNames,1,5)=="delta")){
+            deltas <- which(substr(parameterNames,1,5)=="delta");
+            for(i in 1:length(deltas)){
+                deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                           variableNumber=deltas[1]);
+                adamCoefBounds[deltas[i],1] <- qtruncnorm((1-level)/2, a=deltaBounds[1]-parameters[deltas[i]],
+                                                       b=deltaBounds[2]-parameters[deltas[i]],
+                                                       mean=0, sd=adamSD[deltas[i]]);
+                adamCoefBounds[deltas[i],2] <- qtruncnorm((1+level)/2, a=deltaBounds[1]-parameters[deltas[i]],
+                                                       b=deltaBounds[2]-parameters[deltas[i]],
+                                                       mean=0, sd=adamSD[deltas[i]]);
+            }
+        }
 
         # Check, if there is phi
         if(any(parameterNames=="phi")){
@@ -5001,6 +5030,10 @@ confint.adam <- function(object, parm, level=0.95, ...){
                                                    mean=0, sd=adamSD["phi"]);
         }
     }
+    #### Check, if there are thetas - ARIMA
+    # Check the eigenvalues for differen thetas
+    # if(any(substr(parameterNames,1,5)=="theta")){
+    # }
 
         # # Stationarity condition of ARIMA
         # if(arimaModel){

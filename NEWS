@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-09-17)
+smooth v3.0.0 (Release data: 2020-09-21)
 =======
 
 Changes:
@@ -11,10 +11,13 @@ Changes:
 * Use internal gnorm() functions.
 * Return call and bounds in adam().
 * Use truncated normal distribution for the confidence intervals for smoothing parameters. This only works for usual bounds at the moment.
-* Trancated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
+* Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
+* Truncated normal should now work for deltas as well.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
+* Fixed the check for admissible bounds in case of xregDo="adapt".
+* A fix in adam, when xreg parameters are provided and the xreg matrix does not need to be expanded.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

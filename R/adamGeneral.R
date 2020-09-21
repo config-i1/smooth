@@ -1713,13 +1713,14 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 else{
                     xregData <- xregData[1:obsAll,-1,drop=FALSE];
                 }
-                if(!is.data.frame(xregData)){
-                    xregData <- as.data.frame(xregData);
-                }
                 obsXreg <- nrow(xregData);
-
-                # Expand xregData
-                xregData <- model.frame(formulaToUse,data=xregData);
+                # This variable is needed in order to do model.matrix only, when required.
+                xregDataIsDataFrame <- is.data.frame(xregData);
+                if(xregDataIsDataFrame){
+                    # xregData <- as.data.frame(xregData);
+                    # Expand xregData if it is data frame
+                    xregData <- model.frame(formulaToUse,data=xregData);
+                }
 
                 # If there are more xreg values than the obsAll, redo stuff and use them
                 if(obsXreg<obsAll){
@@ -1727,11 +1728,15 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                                    "Using the last available values as future ones."),
                             call.=FALSE);
                     newnRows <- obsAll-obsXreg;
-                    xregData <- as.matrix(model.matrix(xregData,data=xregData))[,-1,drop=FALSE];
+                    if(xregDataIsDataFrame){
+                        xregData <- as.matrix(model.matrix(xregData,data=xregData))[,-1,drop=FALSE];
+                    }
                     xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
                 }
                 else{
-                    xregData <- as.matrix(model.matrix(xregData,data=xregData))[1:obsAll,-1,drop=FALSE];
+                    if(xregDataIsDataFrame){
+                        xregData <- as.matrix(model.matrix(xregData,data=xregData))[1:obsAll,-1,drop=FALSE];
+                    }
                 }
 
                 xregNumber <- ncol(xregData);
