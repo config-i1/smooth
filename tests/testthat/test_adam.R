@@ -436,7 +436,7 @@ test_that("Detect outliers for ARIMA on N291", {
 
 # Best ETS+ARIMA+Regression on the 2568
 testModel <- auto.adam(Mcomp::M3[[2568]]$x, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       xreg=temporaldummy(Mcomp::M3[[2568]]$x), xregDo="select", initial="back");
+                       xreg=temporaldummy(Mcomp::M3[[2568]]$x)[,-1], xregDo="select", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression on N2568", {
     expect_match(testModel$loss, "likelihood");
 })
@@ -450,7 +450,7 @@ test_that("Summary of the produced ADAM model", {
 # Best ETS+ARIMA+Regression on the 2568
 testModel <- auto.adam(Mcomp::M3[[2568]]$x, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
                        outliers="use",
-                       xreg=temporaldummy(Mcomp::M3[[2568]]$x), xregDo="use", initial="back");
+                       xreg=temporaldummy(Mcomp::M3[[2568]]$x)[,-1], xregDo="use", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression+outliers on N2568", {
     expect_match(testModel$loss, "likelihood");
 })

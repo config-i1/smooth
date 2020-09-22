@@ -5,7 +5,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "horizon","iOrders","iRequired","initialArima","initialArimaEstimate",
                          "initialArimaNumber","initialLevel","initialLevelEstimate","initialSeasonal",
                          "initialSeasonalEstimate","initialTrend","initialTrendEstimate","lagsModelARIMA",
-                         "lagsModelAll","lagsModelSeasonal","other","otherParameterEstimate","lambda","lossFunction",
+                         "lagsModelAll","lagsModelSeasonal","profilesObservedTable","profilesRecentTable",
+                         "other","otherParameterEstimate","lambda","lossFunction",
                          "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
                          "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
                          "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
@@ -670,11 +671,17 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                        "backcasting"=2,
                                                        1);
 
+        # Create ADAM profiles for correct treatment of seasonality
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
+        profilesRecentTable <- adamProfiles$recent;
+        profilesObservedTable <- adamProfiles$observed;
+
         return(list(lagsModel=lagsModel,lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
                     componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
                     componentsNumberETSNonSeasonal=componentsNumberETS-componentsNumberETSSeasonal,
                     componentsNamesETS=componentsNamesETS, obsStates=obsStates, modelIsTrendy=modelIsTrendy,
-                    modelIsSeasonal=modelIsSeasonal));
+                    modelIsSeasonal=modelIsSeasonal,
+                    profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable));
     }
 
     #### The function creates the necessary matrices based on the model and provided parameters ####
@@ -723,7 +730,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                        dimnames=list(c(componentsNamesETS,componentsNamesARIMA,xregNames),NULL));
 
         j <- 0;
-        # ETS model
+        # ETS model, persistence
         if(etsModel){
             j <- j+1;
             rownames(vecG)[j] <- "alpha";
@@ -764,7 +771,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             j <- j+componentsNumberARIMA;
         }
 
-        # Regression
+        # Regression, persistence
         if(xregModel){
             if(persistenceXregProvided && !persistenceXregEstimate){
                 vecG[j+1:xregNumber,] <- persistenceXreg;
@@ -871,21 +878,21 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            (Etype=="A" & Stype=="M")){
                             for(i in 1:componentsNumberETSSeasonal){
                                 if(initialSeasonalEstimate[i]){
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]];
                                     # Renormalise the initial seasons
                                     if(Stype=="A"){
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                            matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] -
-                                            mean(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]]);
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                            matVt[i+j-1,1:lagsModel[i+j-1]] -
+                                            mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
                                     }
                                     else{
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                            matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] /
-                                            exp(mean(log(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]])));
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                            matVt[i+j-1,1:lagsModel[i+j-1]] /
+                                            exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
                                     }
                                 }
                                 else{
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
                                 }
                             }
                         }
@@ -893,22 +900,19 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         else if(Etype=="M" && Stype=="A"){
                             for(i in 1:componentsNumberETSSeasonal){
                                 if(initialSeasonalEstimate[i]){
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+
-                                              1:lagsModel[i+j-1]] <- log(yDecomposition$seasonal[[i]])*min(yInSample[otLogical]);
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- log(yDecomposition$seasonal[[i]])*min(yInSample[otLogical]);
                                     # Renormalise the initial seasons
                                     if(Stype=="A"){
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                            matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] -
-                                            mean(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]]);
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
+                                            mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
                                     }
                                     else{
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                            matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] /
-                                            exp(mean(log(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]])));
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
+                                            exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
                                     }
                                 }
                                 else{
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
                                 }
                             }
                         }
@@ -963,15 +967,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         if(Stype=="A"){
                             for(i in 1:componentsNumberETSSeasonal){
                                 if(initialSeasonalEstimate[i]){
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                        yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]-matVt[1,1];
                                     # Renormalise the initial seasons
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] -
-                                        mean(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]]);
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
+                                        mean(matVt[i+j-1,1:lagsModel[i+j-1]]);
                                 }
                                 else{
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
                                 }
                             }
                         }
@@ -979,15 +981,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         else{
                             for(i in 1:componentsNumberETSSeasonal){
                                 if(initialSeasonalEstimate[i]){
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                        yInSample[1:lagsModel[i+j-1]]/matVt[1,1];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/matVt[1,1];
                                     # Renormalise the initial seasons
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <-
-                                        matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] /
-                                        exp(mean(log(matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]])));
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
+                                        exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
                                 }
                                 else{
-                                    matVt[i+j-1,(lagsModelMax-lagsModel[i+j-1])+1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
+                                    matVt[i+j-1,1:lagsModel[i+j-1]] <- initialSeasonal[[i]];
                                 }
                             }
                         }
@@ -997,35 +997,35 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 else{
                     # level
                     if(initialLevelEstimate){
-                        matVt[1,lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
+                        matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
                         if(xregModel){
                             if(Etype=="A"){
-                                matVt[1,lagsModelMax] <- matVt[1,lagsModelMax] -
+                                matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] -
                                     as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
                             }
                             else{
-                                matVt[1,lagsModelMax] <- matVt[1,lagsModelMax] /
+                                matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] /
                                     as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
                             }
                         }
                     }
                     else{
-                        matVt[1,lagsModelMax] <- initialLevel;
+                        matVt[1,1:lagsModelMax] <- initialLevel;
                     }
                     if(modelIsTrendy){
                         if(initialTrendEstimate){
-                            matVt[2,lagsModelMax] <- switch(Ttype,
+                            matVt[2,1:lagsModelMax] <- switch(Ttype,
                                                             "A" = mean(diff(yInSample[1:max(lagsModelMax+1,ceiling(obsInSample*0.2))]),na.rm=TRUE),
                                                             "M" = exp(mean(diff(log(yInSample[otLogical])),na.rm=TRUE)));
                         }
                         else{
-                            matVt[2,lagsModelMax] <- initialTrend;
+                            matVt[2,1:lagsModelMax] <- initialTrend;
                         }
                     }
                 }
 
                 if(initialLevelEstimate && Etype=="M" && matVt[1,lagsModelMax]==0){
-                    matVt[1,lagsModelMax] <- mean(yInSample);
+                    matVt[1,1:lagsModelMax] <- mean(yInSample);
                 }
             }
             # Else, insert the provided ones... make sure that this is not a backcasting
@@ -1048,8 +1048,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         # If ARIMA orders are specified, prepare initials
         if(arimaModel){
             if(initialArimaEstimate){
-                matVt[componentsNumberETS+1:componentsNumberARIMA,
-                      1:lagsModelARIMA[componentsNumberARIMA]+(lagsModelMax-lagsModelARIMA[componentsNumberARIMA])] <-
+                matVt[componentsNumberETS+1:componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
                     switch(Etype, "A"=0, "M"=1);
 
                 # If this is just ARIMA with optimisation, refine the initials
@@ -1063,47 +1062,39 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                        arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
                     if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
                         matVt[componentsNumberETS+nonZeroARI[,2],
-                              lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                              1:initialArimaNumber] <-
                             switch(Etype,
                                    "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                       t(matVt[componentsNumberARIMA,
-                                               lagsModelMax-initialArimaNumber+1:initialArimaNumber]) /
-                                       tail(arimaPolynomials$ariPolynomial,1),
+                                       t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) / tail(arimaPolynomials$ariPolynomial,1),
                                    "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                               t(log(matVt[componentsNumberARIMA,
-                                                           lagsModelMax-initialArimaNumber+1:initialArimaNumber])) /
+                                               t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
                                                tail(arimaPolynomials$ariPolynomial,1)));
                     }
                     else{
                         matVt[componentsNumberETS+nonZeroMA[,2],
-                              lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                              1:initialArimaNumber] <-
                             switch(Etype,
                                    "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                       t(matVt[componentsNumberARIMA,
-                                               lagsModelMax-initialArimaNumber+1:initialArimaNumber]) /
-                                       tail(arimaPolynomials$maPolynomial,1),
+                                       t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) / tail(arimaPolynomials$maPolynomial,1),
                                    "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                               t(log(matVt[componentsNumberARIMA,
-                                                           lagsModelMax-initialArimaNumber+1:initialArimaNumber])) /
+                                               t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
                                                tail(arimaPolynomials$maPolynomial,1)));
                     }
                 }
             }
             else{
                 # Fill in the matrix with 0 / 1, just in case if the state will not be updated anymore
-                matVt[componentsNumberETS+1:componentsNumberARIMA,
-                      1:lagsModelARIMA[componentsNumberARIMA]+(lagsModelMax-lagsModelARIMA[componentsNumberARIMA])] <-
+                matVt[componentsNumberETS+1:componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
                     switch(Etype, "A"=0, "M"=1);
                 # Insert the provided initials
-                matVt[componentsNumberETS+componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]+
-                          (lagsModelMax-lagsModelARIMA[componentsNumberARIMA])] <-
+                matVt[componentsNumberETS+componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
                     initialArima[1:initialArimaNumber];
 
                 # If only AR is needed, but provided or if both are needed, but provided
                 if(((arRequired && !arEstimate) && !maRequired) ||
                    ((arRequired && !arEstimate) && (maRequired && !maEstimate)) ||
                    (iRequired && !arEstimate && !maEstimate)){
-                    matVt[componentsNumberETS+nonZeroARI[,2],lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                    matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(initialArima[1:initialArimaNumber]) /
                                    tail(arimaPolynomials$ariPolynomial,1),
@@ -1112,7 +1103,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 # If only MA is needed, but provided
                 else if(((maRequired && !maEstimate) && !arRequired)){
-                    matVt[componentsNumberETS+nonZeroMA[,2],lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                    matVt[componentsNumberETS+nonZeroMA[,2],1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(initialArima[1:initialArimaNumber]) /
                                    tail(arimaPolynomials$maPolynomial,1),
@@ -1335,13 +1326,9 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             if(modelIsSeasonal && any(initialSeasonalEstimate)){
                 for(k in 1:componentsNumberETSSeasonal){
                     if(initialSeasonalEstimate[k]){
-                        matVt[componentsNumberETSNonSeasonal+k,
-                              (lagsModelMax-lagsModel[componentsNumberETSNonSeasonal+k])+
-                                  2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+                        matVt[componentsNumberETSNonSeasonal+k, 2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
                             B[j+2:(lagsModel[componentsNumberETSNonSeasonal+k])-1];
-                        matVt[componentsNumberETSNonSeasonal+k,
-                              (lagsModelMax-lagsModel[componentsNumberETSNonSeasonal+k])+
-                                  lagsModel[componentsNumberETSNonSeasonal+k]] <-
+                        matVt[componentsNumberETSNonSeasonal+k, lagsModel[componentsNumberETSNonSeasonal+k]] <-
                             switch(Stype,
                                    "A"=-sum(B[j+2:(lagsModel[componentsNumberETSNonSeasonal+k])-1]),
                                    "M"=1/prod(B[j+2:(lagsModel[componentsNumberETSNonSeasonal+k])-1]));
@@ -1355,10 +1342,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         if(arimaModel){
             if((initialType!="backcasting") && initialArimaEstimate){
                 if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    matVt[componentsNumberETS+componentsNumberARIMA,
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                    matVt[componentsNumberETS+nonZeroARI[,2],
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                    matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
                                    tail(arimaPolynomials$ariPolynomial,1),
@@ -1366,10 +1351,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
                 else{
-                    matVt[componentsNumberETS+componentsNumberARIMA,
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                    matVt[componentsNumberETS+nonZeroMA[,2],
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                    matVt[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(B[j+1:initialArimaNumber]) /
                                    tail(arimaPolynomials$maPolynomial,1),
@@ -1381,29 +1364,24 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             # This is needed in order to propagate initials of ARIMA to all components
             else if(any(c(arEstimate,maEstimate))){
                 if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    matVt[componentsNumberETS+nonZeroARI[,2],
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                    matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                   t(matVt[componentsNumberETS+componentsNumberARIMA,
-                                           lagsModelMax-initialArimaNumber+1:initialArimaNumber]) /
+                                   t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
                                    tail(arimaPolynomials$ariPolynomial,1),
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA,
-                                                       lagsModelMax-initialArimaNumber+1:initialArimaNumber])) /
+                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
                 else{
                     matVt[componentsNumberETS+nonZeroMA[,2],
-                          lagsModelMax-initialArimaNumber+1:initialArimaNumber] <-
+                          1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                   t(matVt[componentsNumberETS+componentsNumberARIMA,
-                                           lagsModelMax-initialArimaNumber+1:initialArimaNumber]) /
+                                   t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
                                    tail(arimaPolynomials$maPolynomial,1),
                                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA,
-                                                       lagsModelMax-initialArimaNumber+1:initialArimaNumber])) /
+                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                            tail(arimaPolynomials$maPolynomial,1)));
                 }
             }
@@ -1563,7 +1541,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         if(etsModel && initialType!="backcasting" && initialEstimate){
             if(initialLevelEstimate){
                 j[] <- j+1;
-                B[j] <- matVt[1,lagsModelMax];
+                B[j] <- matVt[1,1];
                 names(B)[j] <- "level";
                 if(Etype=="A"){
                     Bl[j] <- -Inf;
@@ -1576,7 +1554,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
             if(modelIsTrendy && initialTrendEstimate){
                 j[] <- j+1;
-                B[j] <- matVt[2,lagsModelMax];
+                B[j] <- matVt[2,1];
                 names(B)[j] <- "trend";
                 if(Ttype=="A"){
                     Bl[j] <- -Inf;
@@ -1593,9 +1571,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         if(initialSeasonalEstimate[k]){
                             # -1 is needed in order to remove the redundant seasonal element (normalisation)
                             B[j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-                                matVt[componentsNumberETSNonSeasonal+k,
-                                      (lagsModelMax-lagsModel[componentsNumberETSNonSeasonal+k])+
-                                          2:lagsModel[componentsNumberETSNonSeasonal+k]-1];
+                                matVt[componentsNumberETSNonSeasonal+k, 2:lagsModel[componentsNumberETSNonSeasonal+k]-1];
                             names(B)[j+2:(lagsModel[componentsNumberETSNonSeasonal+k])-1] <-
                                 paste0("seasonal",k,"_",2:lagsModel[componentsNumberETSNonSeasonal+k]-1);
                             if(Stype=="A"){
@@ -1612,8 +1588,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 else{
                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                    B[j+2:(lagsModel[componentsNumberETS])-1] <- matVt[componentsNumberETS,(lagsModelMax-lagsModel[componentsNumberETS])+
-                                                                        2:lagsModel[componentsNumberETS]-1];
+                    B[j+2:(lagsModel[componentsNumberETS])-1] <- matVt[componentsNumberETS,2:lagsModel[componentsNumberETS]-1];
                     names(B)[j+2:(lagsModel[componentsNumberETS])-1] <- paste0("seasonal_",2:lagsModel[componentsNumberETS]-1);
                     if(Stype=="A"){
                         Bl[j+2:(lagsModel[componentsNumberETS])-1] <- -Inf;
@@ -1630,14 +1605,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         # ARIMA initials
         if(initialType!="backcasting" && arimaModel && initialArimaEstimate){
-            B[j+1:initialArimaNumber] <- tail(matVt[componentsNumberETS+componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
+            B[j+1:initialArimaNumber] <- head(matVt[componentsNumberETS+componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
             names(B)[j+1:initialArimaNumber] <- paste0("ARIMAState",1:initialArimaNumber);
             j[] <- j+initialArimaNumber;
         }
 
         # Initials of the xreg
         if(initialType!="backcasting" && initialXregEstimate){
-            B[j+1:xregNumber] <- matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,lagsModelMax];
+            B[j+1:xregNumber] <- matVt[componentsNumberETS+componentsNumberARIMA+1:xregNumber,1];
             names(B)[j+1:xregNumber] <- rownames(matVt)[componentsNumberETS+componentsNumberARIMA+1:xregNumber];
             if(Etype=="A"){
                 Bl[j+1:xregNumber] <- -Inf;
@@ -1708,6 +1683,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                    componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                    componentsNumberARIMA,
                    lags, lagsModel, lagsModelAll, lagsModelMax,
+                   profilesObservedTable, profilesRecentTable,
                    matVt, matWt, matF, vecG,
                    persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                    persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -1844,9 +1820,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         # Produce fitted values and errors
+
+        # Write down the initials in the recent profile
+        profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+
         #### Fitter and the losss calculation ####
         adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
-                                     lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                     lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, yInSample, ot, initialType=="backcasting");
 
         if(!multisteps){
@@ -2040,6 +2021,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                            componentsNumberARIMA,
                            lags, lagsModel, lagsModelAll, lagsModelMax,
+                           profilesObservedTable, profilesRecentTable,
                            matVt, matWt, matF, vecG,
                            persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -2075,6 +2057,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                                     componentsNumberARIMA,
                                     lags, lagsModel, lagsModelAll, lagsModelMax,
+                                    profilesObservedTable, profilesRecentTable,
                                     matVt, matWt, matF, vecG,
                                     persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                     persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -2127,6 +2110,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                                componentsNumberARIMA,
                                lags, lagsModel, lagsModelAll, lagsModelMax,
+                               profilesObservedTable, profilesRecentTable,
                                matVt, matWt, matF, vecG,
                                persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -2247,10 +2231,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                    nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
                                    xregModel, xregNumber);
 
+            # Write down the initials in the recent profile
+            profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+
             # Do initial fit to get the state values from the backcasting
-            adamFitted <- adamFitterWrap(cbind(adamElements$matVt,adamElements$matVt[,lagsModelMax+1:lagsModelMax,drop=FALSE]),
-                                         adamElements$matWt, adamElements$matF, adamElements$vecG,
-                                         lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+            adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
+                                         lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                         Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, yInSample, ot, TRUE);
 
             adamElements$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
@@ -2340,6 +2327,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                        componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                                        componentsNumberARIMA=componentsNumberARIMA,
                                        lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
+                                       profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
                                        matVt=adamCreated$matVt, matWt=adamCreated$matWt, matF=adamCreated$matF, vecG=adamCreated$vecG,
                                        persistenceEstimate=persistenceEstimate, persistenceLevelEstimate=persistenceLevelEstimate,
                                        persistenceTrendEstimate=persistenceTrendEstimate,
@@ -2381,6 +2369,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                                            componentsNumberARIMA=componentsNumberARIMA,
                                            lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
+                                           profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
                                            matVt=adamCreated$matVt, matWt=adamCreated$matWt, matF=adamCreated$matF, vecG=adamCreated$vecG,
                                            persistenceEstimate=persistenceEstimate,
                                            persistenceLevelEstimate=persistenceLevelEstimate,
@@ -2424,6 +2413,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                                                 componentsNumberARIMA,
                                                 lags, lagsModel, lagsModelAll, lagsModelMax,
+                                                profilesObservedTable, profilesRecentTable,
                                                 adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
                                                 persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                                 persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -2458,9 +2448,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                    nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
                                    xregModel, xregNumber);
 
+            # Write down the initials in the recent profile
+            profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+
             # Fit the model to the data
             adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
-                                         lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                         lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                         Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, yInSample, ot, initialType=="backcasting");
 
             # Extract the errors corrrectly
@@ -2929,9 +2923,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             phi[] <- B[names(B)=="phi"];
         }
 
+        # Write down the initials in the recent profile
+        profilesRecentTable[] <- matVt[,1:lagsModelMax];
+
         # Fit the model to the data
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-                                     lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                     lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, yInSample, ot, initialType=="backcasting");
 
         if(any(yClasses=="ts")){
@@ -3483,6 +3481,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             adamSelected$results[[i]]$lagsModel <- adamArchitect$lagsModel;
             adamSelected$results[[i]]$lagsModelAll <- adamArchitect$lagsModelAll;
             adamSelected$results[[i]]$lagsModelMax <- adamArchitect$lagsModelMax;
+            adamSelected$results[[i]]$profilesRecentTable <- adamArchitect$profilesRecentTable;
+            adamSelected$results[[i]]$profilesObservedTable <- adamArchitect$profilesObservedTable;
             adamSelected$results[[i]]$componentsNumberETS <- adamArchitect$componentsNumberETS;
             adamSelected$results[[i]]$componentsNumberETSSeasonal <- adamArchitect$componentsNumberETSSeasonal;
             adamSelected$results[[i]]$componentsNumberETSNonSeasonal <- adamArchitect$componentsNumberETSNonSeasonal;
@@ -3577,6 +3577,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                       componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                       componentsNumberARIMA=componentsNumberARIMA,
                       lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
+                      profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
                       matVt=matVt, matWt=matWt, matF=matF, vecG=vecG,
                       persistenceEstimate=persistenceEstimate,
                       persistenceLevelEstimate=persistenceLevelEstimate,
@@ -3605,6 +3606,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 componentsNumberETS, componentsNumberETSSeasonal, componentsNumberETSNonSeasonal,
                                                 componentsNumberARIMA,
                                                 lags, lagsModel, lagsModelAll, lagsModelMax,
+                                                profilesObservedTable, profilesRecentTable,
                                                 matVt, matWt, matF, vecG,
                                                 persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                                 persistenceSeasonalEstimate, persistenceXregEstimate,
@@ -3717,6 +3719,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                            componentsNumberARIMA=componentsNumberARIMA,
                            lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
+                           profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
                            matVt=matVt, matWt=matWt, matF=matF, vecG=vecG,
                            persistenceEstimate=persistenceEstimateFI, persistenceLevelEstimate=persistenceLevelEstimateFI,
                            persistenceTrendEstimate=persistenceTrendEstimateFI,
@@ -4012,6 +4015,26 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     }
 
     return(modelReturned);
+}
+
+#### Small useful ADAM functions ####
+adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll){
+    # Create the matrix with profiles, based on provided lags
+    profilesRecentTable <- matrix(0,length(lagsModelAll),lagsModelMax,
+                                  dimnames=list(lagsModelAll,NULL));
+    # Create the matrix of observed profiles indices
+    profilesObservedTable <- matrix(1,length(lagsModelAll),obsAll,
+                                    dimnames=list(lagsModelAll,NULL));
+    # Modify the observed ones in order to get proper indices in C++
+    profileIndices <- matrix(c(1:(lagsModelMax*length(lagsModelAll))),length(lagsModelAll));
+
+    for(i in 1:length(lagsModelAll)){
+        profilesRecentTable[i,1:lagsModelAll[i]] <- 1:lagsModelAll[i];
+        # -1 is needed to align this with C++ code
+        profilesObservedTable[i,] <- rep(profileIndices[i,1:lagsModelAll[i]],ceiling(obsAll/lagsModelAll[i]))[1:obsAll] -1;
+    }
+
+    return(list(recent=profilesRecentTable,observed=profilesObservedTable));
 }
 
 #### Technical methods ####

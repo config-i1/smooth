@@ -14,6 +14,7 @@ Changes:
 * Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
 * Truncated normal should now work for deltas as well.
 * The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
+* adam() now uses profiles instead of lags for seasonal models. These are updated on every observation via ETS approach.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
