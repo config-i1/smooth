@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-09-21)
+smooth v3.0.0 (Release data: 2020-09-22)
 =======
 
 Changes:
@@ -13,6 +13,7 @@ Changes:
 * Use truncated normal distribution for the confidence intervals for smoothing parameters. This only works for usual bounds at the moment.
 * Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
 * Truncated normal should now work for deltas as well.
+* The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.

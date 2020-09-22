@@ -5034,18 +5034,21 @@ confint.adam <- function(object, parm, level=0.95, ...){
     # Check the eigenvalues for differen thetas
     # if(any(substr(parameterNames,1,5)=="theta")){
     # }
+    # Locate phi for ARIMA (they are always phi1, phi2 etc)
+    # if(any(substr(parameterNames,1,3)=="phi" & nchar(parameterNames)>3)){
+    # }
 
-        # # Stationarity condition of ARIMA
-        # if(arimaModel){
-        #     # Calculate the polynomial roots for AR
-        #     if(arEstimate){
-        #         arPolynomialMatrix[,1] <- -object$arimaPolynomials$arPolynomial[-1];
-        #         arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
-        #         if(any(arPolyroots>1)){
-        #             return(1E+100*max(arPolyroots));
-        #         }
-        #     }
-        # }
+    # # Stationarity condition of ARIMA
+    # if(arimaModel){
+    #     # Calculate the polynomial roots for AR
+    #     if(arEstimate){
+    #         arPolynomialMatrix[,1] <- -object$arimaPolynomials$arPolynomial[-1];
+    #         arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
+    #         if(any(arPolyroots>1)){
+    #             return(1E+100*max(arPolyroots));
+    #         }
+    #     }
+    # }
 
     adamReturn <- cbind(adamSD,adamCoefBounds);
     colnames(adamReturn) <- c("S.E.",
@@ -5149,6 +5152,11 @@ summary.adam <- function(object, level=0.95, ...){
         ourReturn$ICs <- ICs;
     }
     return(structure(ourReturn, class="summary.adam"));
+}
+
+#' @export
+as.data.frame.summary.adam <- function(x, ...){
+    return(as.data.frame(x$coefficients, ...));
 }
 
 #' @export
