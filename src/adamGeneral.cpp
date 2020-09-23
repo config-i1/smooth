@@ -233,36 +233,28 @@ RcppExport SEXP adamFitterWrap(SEXP matVt, SEXP matWt, SEXP matF, SEXP vecG,
 
 
 /* # Function produces the point forecasts for the specified model */
-arma::vec adamForecaster(arma::mat const &matrixVt, arma::mat const &matrixWt, arma::mat const &matrixF,
-                         arma::uvec lags, char const &E, char const &T, char const &S,
+arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
+                         arma::uvec lags, arma::umat const &profilesObserved, arma::mat profilesRecent,
+                         char const &E, char const &T, char const &S,
                          unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                          unsigned int const &nArima, unsigned int const &nXreg,
                          unsigned int const &horizon){
-    unsigned int lagslength = lags.n_rows;
+    // unsigned int lagslength = lags.n_rows;
     unsigned int lagsModelMax = max(lags);
     unsigned int hh = horizon + lagsModelMax;
     unsigned int nETS = nNonSeasonal + nSeasonal;
-    unsigned int nComponents = matrixVt.n_rows;
-    arma::uvec lagrows(lagslength, arma::fill::zeros);
+    unsigned int nComponents = profilesObserved.n_rows;
 
     arma::vec vecYfor(horizon, arma::fill::zeros);
-    arma::mat matrixVtnew(nComponents, hh, arma::fill::zeros);
-
-    lags = lags * nComponents;
-
-    for(unsigned int i=0; i<lagslength; i=i+1){
-        lags(i) = lags(i) + (lagslength - i - 1);
-    }
-
-    matrixVtnew.submat(0,0,nComponents-1,lagsModelMax-1) = matrixVt.submat(0,0,nComponents-1,lagsModelMax-1);
 
     /* # Fill in the new xt matrix using F. Do the forecasts. */
     for (unsigned int i=lagsModelMax; i<hh; i=i+1) {
-        lagrows = i * nComponents - lags + nComponents - 1;
-        matrixVtnew.col(i) = adamFvalue(matrixVtnew(lagrows), matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
-
-        vecYfor.row(i-lagsModelMax) = adamWvalue(matrixVtnew(lagrows), matrixWt.row(i-lagsModelMax), E, T, S,
+        vecYfor.row(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+                    matrixWt.row(i-lagsModelMax), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
+
+        profilesRecent(profilesObserved.col(i-lagsModelMax)) = adamFvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+                       matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
     }
 
     // return List::create(Named("matVt") = matrixVtnew, Named("yForecast") = vecYfor);
@@ -271,14 +263,12 @@ arma::vec adamForecaster(arma::mat const &matrixVt, arma::mat const &matrixWt, a
 
 /* # Wrapper for forecaster */
 // [[Rcpp::export]]
-RcppExport SEXP adamForecasterWrap(SEXP matVt, SEXP matWt, SEXP matF,
-                                   SEXP lagsModelAll, SEXP Etype, SEXP Ttype, SEXP Stype,
+RcppExport SEXP adamForecasterWrap(SEXP matWt, SEXP matF,
+                                   SEXP lagsModelAll, SEXP profilesObservedTable, SEXP profilesRecentTable,
+                                   SEXP Etype, SEXP Ttype, SEXP Stype,
                                    SEXP componentsNumberETS, SEXP componentsNumberETSSeasonal,
                                    SEXP componentsNumberArima, SEXP xregNumber,
                                    SEXP h){
-
-    NumericMatrix matvt_n(matVt);
-    arma::mat matrixVt(matvt_n.begin(), matvt_n.nrow(), matvt_n.ncol(), false);
 
     NumericMatrix matWt_n(matWt);
     arma::mat matrixWt(matWt_n.begin(), matWt_n.nrow(), matWt_n.ncol(), false);
@@ -288,6 +278,14 @@ RcppExport SEXP adamForecasterWrap(SEXP matVt, SEXP matWt, SEXP matF,
 
     IntegerVector lagsModel_n(lagsModelAll);
     arma::uvec lags = as<arma::uvec>(lagsModel_n);
+
+    // Get the observed profiles
+    IntegerMatrix profilesObservedTable_n(profilesObservedTable);
+    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable_n);
+
+    // Create a numeric matrix. The states will be saved here as in a buffer
+    NumericMatrix profilesRecentTable_n(profilesRecentTable);
+    arma::mat profilesRecent(profilesRecentTable_n.begin(), profilesRecentTable_n.nrow(), profilesRecentTable_n.ncol());
 
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
@@ -300,8 +298,9 @@ RcppExport SEXP adamForecasterWrap(SEXP matVt, SEXP matWt, SEXP matF,
 
     unsigned int horizon = as<int>(h);
 
-    return wrap(adamForecaster(matrixVt, matrixWt, matrixF,
-                               lags, E, T, S,
+    return wrap(adamForecaster(matrixWt, matrixF,
+                               lags, profilesObserved, profilesRecent,
+                               E, T, S,
                                nNonSeasonal, nSeasonal,
                                nArima, nXreg,
                                horizon));
@@ -309,7 +308,8 @@ RcppExport SEXP adamForecasterWrap(SEXP matVt, SEXP matWt, SEXP matF,
 
 /* # Function produces matrix of errors based on multisteps forecast */
 arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma::mat const &matrixF,
-                      arma::uvec &lags, char const &E, char const &T, char const &S,
+                      arma::uvec &lags, arma::umat const &profilesObserved, arma::mat profilesRecent,
+                      char const &E, char const &T, char const &S,
                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                       unsigned int const &nArima, unsigned int const &nXreg,
                       unsigned int const &horizon,
@@ -322,10 +322,13 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
 
     for(unsigned int i = 0; i < (obs-horizon); i=i+1){
         hh = std::min(horizon, obs-i);
+        // Update the profile to get the recent value from the state matrix
+        profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
         // matErrors.submat(0, i, hh-1, i) = (vectorOt.rows(i, i+hh-1) % errorvf(vectorYt.rows(i, i+hh-1),
         matErrors.submat(0, i, hh-1, i) = (errorvf(vectorYt.rows(i, i+hh-1),
-                                           adamForecaster(matrixVt.cols(i,i+lagsModelMax-1), matrixWt.rows(i,i+hh-1),
-                                                          matrixF, lags, E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, hh), E));
+                                           adamForecaster(matrixWt.rows(i,i+hh-1), matrixF,
+                                                          lags, profilesObserved.cols(i,i+hh-1), profilesRecent,
+                                                          E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, hh), E));
     }
 
     // Cut-off the redundant last part
@@ -344,7 +347,8 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
 /* # Wrapper for error function */
 // [[Rcpp::export]]
 RcppExport SEXP adamErrorerWrap(SEXP matVt, SEXP matWt, SEXP matF,
-                                SEXP lagsModelAll, SEXP Etype, SEXP Ttype, SEXP Stype,
+                                SEXP lagsModelAll, SEXP profilesObservedTable, SEXP profilesRecentTable,
+                                SEXP Etype, SEXP Ttype, SEXP Stype,
                                 SEXP componentsNumberETS, SEXP componentsNumberETSSeasonal,
                                 SEXP componentsNumberArima, SEXP xregNumber,
                                 SEXP h, SEXP yInSample, SEXP ot){
@@ -360,6 +364,14 @@ RcppExport SEXP adamErrorerWrap(SEXP matVt, SEXP matWt, SEXP matF,
 
     IntegerVector lagsModel_n(lagsModelAll);
     arma::uvec lags = as<arma::uvec>(lagsModel_n);
+
+    // Get the observed profiles
+    IntegerMatrix profilesObservedTable_n(profilesObservedTable);
+    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable_n);
+
+    // Create a numeric matrix. The states will be saved here as in a buffer
+    NumericMatrix profilesRecentTable_n(profilesRecentTable);
+    arma::mat profilesRecent(profilesRecentTable_n.begin(), profilesRecentTable_n.nrow(), profilesRecentTable_n.ncol());
 
     char E = as<char>(Etype);
     char T = as<char>(Ttype);
@@ -379,7 +391,8 @@ RcppExport SEXP adamErrorerWrap(SEXP matVt, SEXP matWt, SEXP matF,
     arma::vec vectorOt(ot_n.begin(), ot_n.size(), false);
 
     return wrap(adamErrorer(matrixVt, matrixWt, matrixF,
-                            lags, E, T, S,
+                            lags, profilesObserved, profilesRecent,
+                            E, T, S,
                             nNonSeasonal, nSeasonal, nArima, nXreg,
                             horizon, vectorYt, vectorOt));
 }

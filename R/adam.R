@@ -1978,7 +1978,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
             adamErrors <- adamErrorerWrap(adamFitted$matVt, adamElements$matWt, adamElements$matF,
-                                          lagsModelAll, Etype, Ttype, Stype,
+                                          lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                          Etype, Ttype, Stype,
                                           componentsNumberETS, componentsNumberETSSeasonal,
                                           componentsNumberARIMA, xregNumber, h,
                                           yInSample, ot);
@@ -2959,6 +2960,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             matVt <- matVt[,1:(obsInSample+lagsModelMax), drop=FALSE];
         }
 
+        # Write down the recent profile for future use
+        for(i in 1:length(lagsModelAll)){
+            profilesRecentTable[i,1:lagsModelAll[i]] <- tail(matVt[i,],lagsModelAll[i]);
+        }
+
         # Produce forecasts if the horizon is non-zero
         if(horizon>0){
             if(any(yClasses=="ts")){
@@ -2967,8 +2973,9 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             else{
                 yForecast <- zoo(rep(NA, horizon), order.by=yForecastIndex);
             }
-            yForecast[] <- adamForecasterWrap(matVt[,obsInSample+(1:lagsModelMax),drop=FALSE], tail(matWt,horizon), matF,
-                                              lagsModelAll, Etype, Ttype, Stype,
+            yForecast[] <- adamForecasterWrap(tail(matWt,horizon), matF,
+                                              lagsModelAll, tail(profilesObservedTable,horizon), profilesRecentTable,
+                                              Etype, Ttype, Stype,
                                               componentsNumberETS, componentsNumberETSSeasonal,
                                               componentsNumberARIMA, xregNumber,
                                               horizon);

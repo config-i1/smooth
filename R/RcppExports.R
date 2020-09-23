@@ -5,12 +5,12 @@ adamFitterWrap <- function(matVt, matWt, matF, vecG, lagsModelAll, profilesObser
     .Call('_smooth_adamFitterWrap', PACKAGE = 'smooth', matVt, matWt, matF, vecG, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, yInSample, ot, backcasting)
 }
 
-adamForecasterWrap <- function(matVt, matWt, matF, lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h) {
-    .Call('_smooth_adamForecasterWrap', PACKAGE = 'smooth', matVt, matWt, matF, lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h)
+adamForecasterWrap <- function(matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h) {
+    .Call('_smooth_adamForecasterWrap', PACKAGE = 'smooth', matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h)
 }
 
-adamErrorerWrap <- function(matVt, matWt, matF, lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot) {
-    .Call('_smooth_adamErrorerWrap', PACKAGE = 'smooth', matVt, matWt, matF, lagsModelAll, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot)
+adamErrorerWrap <- function(matVt, matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot) {
+    .Call('_smooth_adamErrorerWrap', PACKAGE = 'smooth', matVt, matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot)
 }
 
 adamSimulatorwrap <- function(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
