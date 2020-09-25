@@ -295,6 +295,7 @@ the model,
 \item \code{B} - the vector of all estimated parameters,
 \item \code{lags} - the vector of lags used in the model construction,
 \item \code{lagsAll} - the vector of the internal lags used in the model,
+\item \code{profile} - the matrix with the profile used in the construction of the model,
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process.
 }

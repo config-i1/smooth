@@ -301,6 +301,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{B} - the vector of all estimated parameters,
 #' \item \code{lags} - the vector of lags used in the model construction,
 #' \item \code{lagsAll} - the vector of the internal lags used in the model,
+#' \item \code{profile} - the matrix with the profile used in the construction of the model,
 #' \item \code{call} - the call used in the evaluation,
 #' \item \code{bounds} - the type of bounds used in the process.
 #' }
@@ -2940,6 +2941,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, yInSample, ot, initialType=="backcasting");
 
+        matVt[] <- adamFitted$matVt;
+
+        # Write down the recent profile for future use
+        profilesRecentTable <- adamFitted$profile;
+
         if(any(yClasses=="ts")){
             yFitted <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
             errors <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
@@ -2962,13 +2968,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             yFitted[] <- yFitted * pFitted;
         }
 
-        matVt[] <- adamFitted$matVt;
-
-        # Write down the recent profile for future use
-        for(i in 1:length(lagsModelAll)){
-            profilesRecentTable[i,1:lagsModelAll[i]] <- tail(matVt[i,],lagsModelAll[i]);
-        }
-
         # Produce forecasts if the horizon is non-zero
         if(horizon>0){
             if(any(yClasses=="ts")){
@@ -2977,8 +2976,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             else{
                 yForecast <- zoo(rep(NA, horizon), order.by=yForecastIndex);
             }
+
             yForecast[] <- adamForecasterWrap(tail(matWt,horizon), matF,
-                                              lagsModelAll, tail(profilesObservedTable,horizon), profilesRecentTable,
+                                              lagsModelAll,
+                                              profilesObservedTable[,obsInSample+c(1:horizon),drop=FALSE],profilesRecentTable,
                                               Etype, Ttype, Stype,
                                               componentsNumberETS, componentsNumberETSSeasonal,
                                               componentsNumberARIMA, xregNumber,
@@ -3189,7 +3190,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         return(list(model=NA, timeElapsed=NA,
                     y=NA, holdout=NA, fitted=yFitted, residuals=errors,
-                    forecast=yForecast, states=matVt,
+                    forecast=yForecast, states=matVt, profile=profilesRecentTable,
                     persistence=persistence, phi=phi, transition=matF,
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,
@@ -5412,11 +5413,15 @@ rmultistep.adam <- function(object, h=10, ...){
     else{
         ot <- matrix(1,obsInSample,1);
     }
+    adamProfiles <- adamProfileCreator(lagsModelAll, max(lagsModelAll), obsInSample);
+    profilesRecentTable <- adamProfiles$recent;
+    profilesObservedTable <- adamProfiles$observed;
 
     # Return multi-step errors matrix
     if(any(yClasses=="ts")){
         return(ts(adamErrorerWrap(t(object$states), object$measurement, object$transition,
-                                  lagsModelAll, Etype, Ttype, Stype,
+                                  lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                  Etype, Ttype, Stype,
                                   componentsNumberETS, componentsNumberETSSeasonal,
                                   componentsNumberARIMA, xregNumber, h,
                                   matrix(actuals(object),obsInSample,1), ot),
@@ -5424,7 +5429,8 @@ rmultistep.adam <- function(object, h=10, ...){
     }
     else{
         return(zoo(adamErrorerWrap(t(object$states), object$measurement, object$transition,
-                                   lagsModelAll, Etype, Ttype, Stype,
+                                   lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                   Etype, Ttype, Stype,
                                    componentsNumberETS, componentsNumberETSSeasonal,
                                    componentsNumberARIMA, xregNumber, h,
                                    matrix(actuals(object),obsInSample,1), ot),
@@ -5930,6 +5936,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Technical parameters
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
+    profilesRecentTable <- object$profile;
 
     if(!is.null(object$initial$seasonal)){
         if(is.list(object$initial$seasonal)){
@@ -5947,6 +5954,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h)$observed[,-c(1:obsInSample),drop=FALSE];
 
     yClasses <- class(actuals(object));
 
@@ -6034,8 +6042,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     # Produce point forecasts for non-multiplicative trend / seasonality
     if(Ttype!="M" && Stype!="M"){
-        adamForecast <- adamForecasterWrap(matVt, matWt, matF,
-                                           lagsModelAll, Etype, Ttype, Stype,
+        adamForecast <- adamForecasterWrap(matWt, matF,
+                                           lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                           Etype, Ttype, Stype,
                                            componentsNumberETS, componentsNumberETSSeasonal,
                                            componentsNumberARIMA, xregNumber,
                                            h);

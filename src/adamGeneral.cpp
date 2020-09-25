@@ -173,7 +173,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
     }
 
     return List::create(Named("matVt") = matrixVt, Named("yFitted") = vecYfit,
-                        Named("errors") = vecErrors);
+                        Named("errors") = vecErrors, Named("profile") = profilesRecent);
 }
 
 /* # Wrapper for fitter */
@@ -240,20 +240,17 @@ arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
                          unsigned int const &nArima, unsigned int const &nXreg,
                          unsigned int const &horizon){
     // unsigned int lagslength = lags.n_rows;
-    unsigned int lagsModelMax = max(lags);
-    unsigned int hh = horizon + lagsModelMax;
     unsigned int nETS = nNonSeasonal + nSeasonal;
     unsigned int nComponents = profilesObserved.n_rows;
 
     arma::vec vecYfor(horizon, arma::fill::zeros);
 
     /* # Fill in the new xt matrix using F. Do the forecasts. */
-    for (unsigned int i=lagsModelMax; i<hh; i=i+1) {
-        vecYfor.row(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
-                    matrixWt.row(i-lagsModelMax), E, T, S,
+    for (unsigned int i=0; i<horizon; i=i+1) {
+        vecYfor.row(i) = adamWvalue(profilesRecent(profilesObserved.col(i)), matrixWt.row(i), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
 
-        profilesRecent(profilesObserved.col(i-lagsModelMax)) = adamFvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+        profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                        matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
     }
 
