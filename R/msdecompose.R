@@ -94,8 +94,10 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     }
 
     # Initial level and trend
-    initial <- c(mean(ySmooth[[lagsLength]],na.rm=T),
+    initial <- c(ySmooth[[lagsLength]][!is.na(ySmooth[[lagsLength]])][1],
                  mean(diff(ySmooth[[lagsLength]]),na.rm=T));
+    # Fix the initial, to get to the begining of the sample
+    initial[1] <- initial[1] - initial[2]*floor(max(lags)/2);
     names(initial) <- c("level","trend");
 
     # Return to the original scale

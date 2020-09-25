@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-09-22)
+smooth v3.0.0 (Release data: 2020-09-25)
 =======
 
 Changes:
@@ -15,6 +15,7 @@ Changes:
 * Truncated normal should now work for deltas as well.
 * The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
 * adam() now uses profiles instead of lags for seasonal models. These are updated on every observation via ETS approach.
+* msdecompose() now produces initials suitable for the first observation of the data via a simple extrapolation.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
