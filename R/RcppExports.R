@@ -13,8 +13,8 @@ adamErrorerWrap <- function(matVt, matWt, matF, lagsModelAll, profilesObservedTa
     .Call('_smooth_adamErrorerWrap', PACKAGE = 'smooth', matVt, matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot)
 }
 
-adamSimulatorwrap <- function(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
-    .Call('_smooth_adamSimulatorwrap', PACKAGE = 'smooth', arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber)
+adamSimulatorwrap <- function(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
+    .Call('_smooth_adamSimulatorwrap', PACKAGE = 'smooth', arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber)
 }
 
 matrixPowerWrap <- function(matA, power) {

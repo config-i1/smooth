@@ -223,7 +223,7 @@ to the number of parameters to estimate in the following order:
 }
 You can also pass parameters to the optimiser in order to fine tune its work:
 \itemize{
-\item \code{maxeval} - maximum number of evaluations to carry out. The default is 20 per
+\item \code{maxeval} - maximum number of evaluations to carry out. The default is 15 per
 estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
 explanatory variables are introduced in the model;
 \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;

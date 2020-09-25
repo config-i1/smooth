@@ -83,8 +83,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // adamSimulatorwrap
-RcppExport SEXP adamSimulatorwrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP matF, SEXP matWt, SEXP matG, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll, SEXP componentsNumberSeasonal, SEXP componentsNumber, SEXP componentsNumberArima, SEXP xregNumber);
-RcppExport SEXP _smooth_adamSimulatorwrap(SEXP arrVtSEXP, SEXP matErrorsSEXP, SEXP matOtSEXP, SEXP matFSEXP, SEXP matWtSEXP, SEXP matGSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP lagsModelAllSEXP, SEXP componentsNumberSeasonalSEXP, SEXP componentsNumberSEXP, SEXP componentsNumberArimaSEXP, SEXP xregNumberSEXP) {
+RcppExport SEXP adamSimulatorwrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP matF, SEXP matWt, SEXP matG, SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll, SEXP profilesObservedTable, SEXP profilesRecentTable, SEXP componentsNumberSeasonal, SEXP componentsNumber, SEXP componentsNumberArima, SEXP xregNumber);
+RcppExport SEXP _smooth_adamSimulatorwrap(SEXP arrVtSEXP, SEXP matErrorsSEXP, SEXP matOtSEXP, SEXP matFSEXP, SEXP matWtSEXP, SEXP matGSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP lagsModelAllSEXP, SEXP profilesObservedTableSEXP, SEXP profilesRecentTableSEXP, SEXP componentsNumberSeasonalSEXP, SEXP componentsNumberSEXP, SEXP componentsNumberArimaSEXP, SEXP xregNumberSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -98,11 +98,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< SEXP >::type Ttype(TtypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type Stype(StypeSEXP);
     Rcpp::traits::input_parameter< SEXP >::type lagsModelAll(lagsModelAllSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type profilesObservedTable(profilesObservedTableSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type profilesRecentTable(profilesRecentTableSEXP);
     Rcpp::traits::input_parameter< SEXP >::type componentsNumberSeasonal(componentsNumberSeasonalSEXP);
     Rcpp::traits::input_parameter< SEXP >::type componentsNumber(componentsNumberSEXP);
     Rcpp::traits::input_parameter< SEXP >::type componentsNumberArima(componentsNumberArimaSEXP);
     Rcpp::traits::input_parameter< SEXP >::type xregNumber(xregNumberSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamSimulatorwrap(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber));
+    rcpp_result_gen = Rcpp::wrap(adamSimulatorwrap(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber));
     return rcpp_result_gen;
 END_RCPP
 }
