@@ -667,9 +667,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         lagsModelMax <- max(lagsModelAll);
 
         # Define the number of cols that should be in the matvt
-        obsStates <- obsInSample + lagsModelMax*switch(initialType,
-                                                       "backcasting"=2,
-                                                       1);
+        obsStates <- obsInSample + lagsModelMax;
 
         # Create ADAM profiles for correct treatment of seasonality
         adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
@@ -2965,9 +2963,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         matVt[] <- adamFitted$matVt;
-        if(initialType=="backcasting"){
-            matVt <- matVt[,1:(obsInSample+lagsModelMax), drop=FALSE];
-        }
 
         # Write down the recent profile for future use
         for(i in 1:length(lagsModelAll)){

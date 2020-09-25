@@ -1882,9 +1882,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
 
     # Observations in the states matrix
     # Define the number of cols that should be in the matvt
-    obsStates <- obsInSample + lagsModelMax*switch(initialType,
-                                                   "backcasting"=2,
-                                                   1);
+    obsStates <- obsInSample + lagsModelMax;
 
     if(any(yInSample<=0) && any(distribution==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm")) && !occurrenceModel){
         warning(paste0("You have non-positive values in the data. ",
