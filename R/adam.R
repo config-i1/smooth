@@ -823,7 +823,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         j <- 1;
                         # level
                         if(initialLevelEstimate){
-                            matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
+                            matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
+                            # matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
                             if(xregModel){
                                 if(Etype=="A"){
                                     matVt[j,1:lagsModelMax] <- matVt[j,1:lagsModelMax] -
@@ -843,18 +844,18 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         if(modelIsTrendy){
                             if(initialTrendEstimate){
                                 if(Ttype=="A" && Stype=="M"){
-                                    if(initialLevelEstimate){
-                                        # level fix
-                                        matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                    }
+                                    # if(initialLevelEstimate){
+                                    #     # level fix
+                                    #     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
+                                    # }
                                     # trend
                                     matVt[j,1:lagsModelMax] <- prod(yDecomposition$initial)-yDecomposition$initial[1];
                                 }
                                 else if(Ttype=="M" && Stype=="A"){
-                                    if(initialLevelEstimate){
-                                        # level fix
-                                        matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
-                                    }
+                                    # if(initialLevelEstimate){
+                                    #     # level fix
+                                    #     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
+                                    # }
                                     # trend
                                     matVt[j,1:lagsModelMax] <- sum(yDecomposition$initial)/yDecomposition$initial[1];
                                 }
@@ -959,6 +960,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                             }
                             else{
                                 matVt[j,1:lagsModelMax] <- initialTrend;
+                            }
+
+                            # Do roll back. Especially useful for backcasting and multisteps
+                            if(Ttype=="A"){
+                                matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] - matVt[j,1]*lagsModelMax;
+                            }
+                            else if(Ttype=="M"){
+                                matVt[j-1,1:lagsModelMax] <- matVt[j-1,1] / matVt[j,1]^lagsModelMax;
                             }
                             j <- j+1;
                         }
