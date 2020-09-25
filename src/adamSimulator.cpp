@@ -10,26 +10,18 @@ using namespace Rcpp;
 List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat const &matrixOt,
                    arma::cube const &arrayF, arma::mat const &matrixWt, arma::mat const &matrixG,
                    char const &E, char const &T, char const &S, arma::uvec &lags,
+                   arma::umat const &profilesObserved, arma::mat profilesRecent,
                    unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                    unsigned int const &nArima, unsigned int const &nXreg) {
 
     unsigned int obs = matrixErrors.n_rows;
     unsigned int nSeries = matrixErrors.n_cols;
 
-    arma::uvec lagsModifier = lags;
-    arma::uvec lagsInternal = lags;
-    int lagsModelMax = max(lagsInternal);
+    int lagsModelMax = max(lags);
     unsigned int nETS = nNonSeasonal + nSeasonal;
-    int nComponents = lagsInternal.n_rows;
+    int nComponents = lags.n_rows;
     int obsAll = obs + lagsModelMax;
-
-    lagsInternal = lagsInternal * nComponents;
-
-    for(int i=0; i<nComponents; i=i+1){
-        lagsModifier(i) = nComponents - i - 1;
-    }
-
-    arma::uvec lagrows(nComponents, arma::fill::zeros);
+    arma::mat profilesRecentOriginal = profilesRecent;
 
     arma::mat matrixVt(nComponents, obsAll, arma::fill::zeros);
     arma::mat matrixF(arrayF.n_rows, arrayF.n_cols, arma::fill::zeros);
@@ -40,35 +32,42 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
         matrixVt = arrayVt.slice(i);
         matrixF = arrayF.slice(i);
         for (int j=lagsModelMax; j<obsAll; j=j+1) {
-            lagrows = j * nComponents - (lagsInternal + lagsModifier) + nComponents - 1;
+            profilesRecent = profilesRecentOriginal;
             /* # Measurement equation and the error term */
-            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(matrixVt(lagrows), matrixWt.row(j-lagsModelMax), E, T, S,
+            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                              matrixWt.row(j-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) +
-                                                  adamRvalue(matrixVt(lagrows), matrixWt.row(j-lagsModelMax), E, T, S,
-                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) *
-                                                             matrixErrors(j-lagsModelMax,i));
+                                                  adamRvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                             matrixWt.row(j-lagsModelMax), E, T, S,
+                                                             nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) *
+                                                                 matrixErrors(j-lagsModelMax,i));
 
             /* # Transition equation */
-            matrixVt.col(j) = adamFvalue(matrixVt(lagrows), matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
-            adamGvalue(matrixVt(lagrows), matrixF, matrixWt.row(j-lagsModelMax), E, T, S,
-                   nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, matrixG.col(i), matrixErrors(j-lagsModelMax,i));
+            profilesRecent(profilesObserved.col(j-lagsModelMax)) = (adamFvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                                                    adamGvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                               matrixF, matrixWt.row(j-lagsModelMax),
+                                                               E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                               nComponents, matrixG.col(i),
+                                                               matrixErrors(j-lagsModelMax,i)));
 
             /* Failsafe for cases when unreasonable value for state vector was produced */
-            if(!matrixVt.col(j).is_finite()){
-                matrixVt.col(j) = matrixVt(lagrows);
-            }
+            // if(!matrixVt.col(j).is_finite()){
+            //     matrixVt.col(j) = matrixVt(lagrows);
+            // }
             // if((S=='M') && (matrixVt(nNonSeasonal,j) <= 0)){
             //     matrixVt(nNonSeasonal,j) = arma::as_scalar(matrixVt(lagrows.row(nNonSeasonal)));
             // }
-            if(T=='M'){
-                if((matrixVt(0,j) <= 0) | (matrixVt(1,j) <= 0)){
-                    matrixVt(0,j) = arma::as_scalar(matrixVt(lagrows.row(0)));
-                    matrixVt(1,j) = arma::as_scalar(matrixVt(lagrows.row(1)));
-                }
-            }
+            // if(T=='M'){
+            //     if((matrixVt(0,j) <= 0) | (matrixVt(1,j) <= 0)){
+            //         matrixVt(0,j) = arma::as_scalar(matrixVt(lagrows.row(0)));
+            //         matrixVt(1,j) = arma::as_scalar(matrixVt(lagrows.row(1)));
+            //     }
+            // }
             // if(any(matrixVt.col(j)>1e+100)){
             //     matrixVt.col(j) = matrixVt(lagrows);
             // }
+            matrixVt.col(j) = profilesRecent(profilesObserved.col(j-lagsModelMax));
         }
         arrayVt.slice(i) = matrixVt;
     }
@@ -80,6 +79,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
 // [[Rcpp::export]]
 RcppExport SEXP adamSimulatorwrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP matF, SEXP matWt, SEXP matG,
                                   SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll,
+                                  SEXP profilesObservedTable, SEXP profilesRecentTable,
                                   SEXP componentsNumberSeasonal, SEXP componentsNumber,
                                   SEXP componentsNumberArima, SEXP xregNumber){
 
@@ -112,11 +112,20 @@ RcppExport SEXP adamSimulatorwrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP m
     IntegerVector lagsModelAll_n(lagsModelAll);
     arma::uvec lags = as<arma::uvec>(lagsModelAll_n);
 
+    // Get the observed profiles
+    IntegerMatrix profilesObservedTable_n(profilesObservedTable);
+    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable_n);
+
+    // Create a numeric matrix. The states will be saved here as in a buffer
+    NumericMatrix profilesRecentTable_n(profilesRecentTable);
+    arma::mat profilesRecent(profilesRecentTable_n.begin(), profilesRecentTable_n.nrow(), profilesRecentTable_n.ncol());
+
     unsigned int nSeasonal = as<int>(componentsNumberSeasonal);
     unsigned int nNonSeasonal = as<int>(componentsNumber) - nSeasonal;
     unsigned int nArima = as<int>(componentsNumberArima);
     unsigned int nXreg = as<int>(xregNumber);
 
     return wrap(adamSimulator(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG,
-                              E, T, S, lags, nNonSeasonal, nSeasonal, nArima, nXreg));
+                              E, T, S, lags, profilesObserved, profilesRecent,
+                              nNonSeasonal, nSeasonal, nArima, nXreg));
 }

@@ -6198,7 +6198,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                         matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
                                         array(matF,c(dim(matF),nsim)), matWt,
                                         matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber, nsim),
-                                        EtypeModified, Ttype, Stype, lagsModelAll,
+                                        EtypeModified, Ttype, Stype,
+                                        lagsModelAll, profilesObservedTable, profilesRecentTable,
                                         componentsNumberETSSeasonal, componentsNumberETS,
                                         componentsNumberARIMA, xregNumber)$matrixYt;
 
