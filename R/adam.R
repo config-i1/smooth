@@ -857,7 +857,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     #     matVt[j-1,1:lagsModelMax] <- exp(mean(log(yInSample[otLogical][1:lagsModelMax])));
                                     # }
                                     # trend
-                                    matVt[j,1:lagsModelMax] <- sum(yDecomposition$initial)/yDecomposition$initial[1];
+                                    matVt[j,1:lagsModelMax] <- sum(abs(yDecomposition$initial))/abs(yDecomposition$initial[1]);
                                 }
                                 else{
                                     # trend
@@ -866,6 +866,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                 # This is a failsafe for multiplicative trend models, so that the thing does not explode
                                 if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
                                     matVt[j,1:lagsModelMax] <- 1;
+                                }
+                                # This is a failsafe for multiplicative trend models, so that the thing does not explode
+                                if(Ttype=="M" && any(matVt[1,1:lagsModelMax]<0)){
+                                    matVt[1,1:lagsModelMax] <- yInSample[otLogical][1];
                                 }
                             }
                             else{

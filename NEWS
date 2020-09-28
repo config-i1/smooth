@@ -21,7 +21,8 @@ Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
 * Fixed the check for admissible bounds in case of xregDo="adapt".
 * A fix in adam, when xreg parameters are provided and the xreg matrix does not need to be expanded.
-* Fixed a bug in ETS(M,M,A) models.
+* Fixed a bug in ETS(M,M,A) models in adam.
+* Fixes for ETS(A,M,A) initialisation in adam.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)
