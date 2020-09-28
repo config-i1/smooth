@@ -850,6 +850,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     # }
                                     # trend
                                     matVt[j,1:lagsModelMax] <- prod(yDecomposition$initial)-yDecomposition$initial[1];
+                                    # If the initial trend is higher than the lowest value, initialise with zero.
+                                    # This is a failsafe mechanism for the mixed models
+                                    if(matVt[j,1]<0 && abs(matVt[j,1])>min(abs(yInSample[otLogical]))){
+                                        matVt[j,1:lagsModelMax] <- 0;
+                                    }
                                 }
                                 else if(Ttype=="M" && Stype=="A"){
                                     # if(initialLevelEstimate){

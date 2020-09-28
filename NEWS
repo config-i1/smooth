@@ -23,6 +23,7 @@ Bugfixes:
 * A fix in adam, when xreg parameters are provided and the xreg matrix does not need to be expanded.
 * Fixed a bug in ETS(M,M,A) models in adam.
 * Fixes for ETS(A,M,A) initialisation in adam.
+* A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

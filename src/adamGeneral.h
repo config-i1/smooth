@@ -254,8 +254,6 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
                     break;
                 case 'A':
-                    ////// The following stuff doesn't work anyway, so we use the scheme from MMM //////
-                    //
                     g.rows(0,nComponents-1).fill(as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))) +
                         rowvecW.cols(2,nETS-1) * matrixVt.rows(2,nETS-1)));
                     // g(0) = g(0) / matrixVt(1);
