@@ -315,13 +315,12 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
     // This is needed for cases, when hor>obs
     unsigned int hh = 0;
     arma::mat matErrors(horizon, obs, arma::fill::zeros);
-    unsigned int lagsModelMax = max(lags);
 
     for(unsigned int i = 0; i < (obs-horizon); i=i+1){
         hh = std::min(horizon, obs-i);
         // Update the profile to get the recent value from the state matrix
         profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
-        // matErrors.submat(0, i, hh-1, i) = (vectorOt.rows(i, i+hh-1) % errorvf(vectorYt.rows(i, i+hh-1),
+        // This also needs to take probability into account in order to deal with intermittent models
         matErrors.submat(0, i, hh-1, i) = (errorvf(vectorYt.rows(i, i+hh-1),
                                            adamForecaster(matrixWt.rows(i,i+hh-1), matrixF,
                                                           lags, profilesObserved.cols(i,i+hh-1), profilesRecent,
