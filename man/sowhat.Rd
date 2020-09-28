@@ -30,9 +30,9 @@ sowhat("I don't have a girlfriend.")
 }
 \references{
 \itemize{
-\item\href{http://en.wiktionary.org/wiki/so_what}{Sowhat?}
+\item\href{https://en.wiktionary.org/wiki/so_what}{Sowhat?}
 \item\href{https://www.youtube.com/watch?v=FJfFZqTlWrQ}{Sowhat?}
-\item\href{http://en.wikipedia.org/wiki/Douglas_Adams}{42}
+\item\href{https://en.wikipedia.org/wiki/Douglas_Adams}{42}
 }
 }
 \seealso{
