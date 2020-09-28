@@ -783,7 +783,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
             outliersModel <- outlierdummy(adamModel, level=level);
             if(length(outliersModel$id)>0){
                 if(!silent){
-                    cat("Dealing with outliers: ");
+                    cat("\nDealing with outliers...");
                 }
                 # Create a proper xreg matrix
                 if(h>0){
@@ -827,7 +827,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                             persistence=persistence, phi=phi, initial=initial, arma=arma,
                                                             occurrence=occurrence, ic=ic, bounds=bounds,
                                                             xreg=xregNew, xregDo=outliersDo,
-                                                            silent=silent, parallel=parallel, fast=fast));
+                                                            silent=TRUE, parallel=parallel, fast=fast));
                 }
                 else{
                     adamModel <- suppressWarnings(auto.adam(y, model, lags=lags, orders=orders,
@@ -835,7 +835,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                             persistence=persistence, phi=phi, initial=initial, arma=arma,
                                                             occurrence=occurrence, ic=ic, bounds=bounds,
                                                             xreg=outliersXreg, xregDo=outliersDo,
-                                                            silent=silent, parallel=parallel, fast=fast));
+                                                            silent=TRUE, parallel=parallel, fast=fast));
                 }
             }
             else{
@@ -882,7 +882,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                          distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
-                                                         silent=silent, xreg=xreg, xregDo=xregDo, testModelETS=NULL, ...);
+                                                         silent=TRUE, xreg=xreg, xregDo=xregDo, testModelETS=NULL, ...);
                 }
             }
             else{

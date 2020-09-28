@@ -240,8 +240,9 @@ If equal to 41, then the detailed results of the optimisation are returned.
 }
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
-Finally, the parameter \code{lambda} for LASSO / RIDGE, Asymmetric Laplace and df
-of Student's distribution can be provided here as well.}
+Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
+Laplace, \code{beta} for the Generalised Normal and \code{nu} for Student's distributions
+can be provided here as well.}
 
 \item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
 \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,

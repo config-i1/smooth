@@ -262,8 +262,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #' You can read more about these parameters by running the function
 #' \link[nloptr]{nloptr.print.options}.
-#' Finally, the parameter \code{lambda} for LASSO / RIDGE, Asymmetric Laplace and df
-#' of Student's distribution can be provided here as well.
+#' Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
+#' Laplace, \code{beta} for the Generalised Normal and \code{nu} for Student's distributions
+#' can be provided here as well.
 #'
 #' @return Object of class "adam" is returned. It contains the list of the
 #' following values:
