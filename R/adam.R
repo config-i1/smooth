@@ -1658,32 +1658,34 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     ##### Function returns scale parameter for the provided parameters #####
     scaler <- function(distribution, Etype, errors, yFitted, obsInSample, other){
         # as.complex() is needed in order to make the optimiser work in exotic cases
-        scale <- switch(distribution,
-                        "dnorm"=sqrt(sum(errors^2)/obsInSample),
-                        "dlaplace"=sum(abs(errors))/obsInSample,
-                        "ds"=sum(sqrt(abs(errors))) / (obsInSample*2),
-                        "dgnorm"=(other*sum(abs(errors)^other)/obsInSample)^{1/other},
-                        "dlogis"=sqrt(sum(errors^2)/obsInSample * 3 / pi^2),
-                        "dt"=sqrt(sum(errors^2)/obsInSample),
-                        "dalaplace"=sum(errors*(other-(errors<=0)*1))/obsInSample,
-                        "dlnorm"=switch(Etype,
-                                        "A"=Re(sqrt(sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
-                                        "M"=sqrt(sum(log(1+errors)^2)/obsInSample)),
-                        "dllaplace"=switch(Etype,
-                                           "A"=Re(sum(abs(log(as.complex(1+errors/yFitted))))/obsInSample),
-                                           "M"=sum(abs(log(1+errors))/obsInSample)),
-                        "dls"=switch(Etype,
-                                     "A"=Re(sum(sqrt(abs(log(as.complex(1+errors/yFitted))))/obsInSample)),
-                                     "M"=sum(sqrt(abs(log(1+errors)))/obsInSample)),
-                        "dlgnorm"=switch(Etype,
-                                         "A"=Re((other*sum(abs(log(as.complex(1+errors/yFitted)))^other)/obsInSample)^{1/other}),
-                                         "M"=(other*sum(abs(log(as.complex(1+errors)))^other)/obsInSample)^{1/other}),
-                        "dinvgauss"=switch(Etype,
-                                           "A"=sum((errors/yFitted)^2/(1+errors/yFitted))/obsInSample,
-                                           "M"=sum((errors)^2/(1+errors))/obsInSample),
-                        # "M"=mean((errors)^2/(1+errors))),
-        );
-        return(scale);
+        return(switch(distribution,
+                      "dnorm"=sqrt(sum(errors^2)/obsInSample),
+                      "dlaplace"=sum(abs(errors))/obsInSample,
+                      "ds"=sum(sqrt(abs(errors))) / (obsInSample*2),
+                      "dgnorm"=(other*sum(abs(errors)^other)/obsInSample)^{1/other},
+                      "dlogis"=sqrt(sum(errors^2)/obsInSample * 3 / pi^2),
+                      "dt"=sqrt(sum(errors^2)/obsInSample),
+                      "dalaplace"=sum(errors*(other-(errors<=0)*1))/obsInSample,
+                      # This condition guarantees that E(1+e_t)=1
+                      "dlnorm"=sqrt(2*switch(Etype,
+                                             "A"=1-Re(sqrt(1-sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
+                                             "M"=1-Re(sqrt(as.complex(1-sum(log(1+errors)^2)/obsInSample))))),
+                      # "A"=Re(sqrt(sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
+                      # "M"=sqrt(sum(log(1+errors)^2)/obsInSample)),
+                      "dllaplace"=switch(Etype,
+                                         "A"=Re(sum(abs(log(as.complex(1+errors/yFitted))))/obsInSample),
+                                         "M"=sum(abs(log(1+errors))/obsInSample)),
+                      "dls"=switch(Etype,
+                                   "A"=Re(sum(sqrt(abs(log(as.complex(1+errors/yFitted))))/obsInSample)),
+                                   "M"=sum(sqrt(abs(log(1+errors)))/obsInSample)),
+                      "dlgnorm"=switch(Etype,
+                                       "A"=Re((other*sum(abs(log(as.complex(1+errors/yFitted)))^other)/obsInSample)^{1/other}),
+                                       "M"=(other*sum(abs(log(as.complex(1+errors)))^other)/obsInSample)^{1/other}),
+                      "dinvgauss"=switch(Etype,
+                                         "A"=sum((errors/yFitted)^2/(1+errors/yFitted))/obsInSample,
+                                         "M"=sum((errors)^2/(1+errors))/obsInSample)
+                      # "M"=mean((errors)^2/(1+errors))),
+        ));
     }
 
     #### The function inverts the measurement matrix, setting infinte values to zero
@@ -1894,7 +1896,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                                         scale=scale, alpha=other, log=TRUE),
                                                           "M"=dalaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
                                                                         scale=scale*adamFitted$yFitted[otLogical], alpha=other, log=TRUE)),
-                                       "dlnorm"=dlnorm(x=yInSample[otLogical], meanlog=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                       "dlnorm"=dlnorm(x=yInSample[otLogical],
+                                                       meanlog=Re(log(as.complex(adamFitted$yFitted[otLogical])))-scale^2/2,
                                                        sdlog=scale, log=TRUE),
                                        "dllaplace"=dlaplace(q=log(yInSample[otLogical]), mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                             scale=scale, log=TRUE) -log(yInSample[otLogical]),
@@ -1912,8 +1915,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 # Differential entropy for the logLik of occurrence model
                 if(occurrenceModel || any(!otLogical)){
                     CFValue <- CFValue + switch(distribution,
-                                                "dnorm" =,
-                                                "dlnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5),
+                                                "dnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5),
+                                                "dlnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5)-scale^2/2,
                                                 "dlogis" = obsZero*2,
                                                 "dlaplace" =,
                                                 "dllaplace" =,
@@ -2060,9 +2063,9 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
             else{
                 distributionNew <- switch(loss,
-                                          "MSE"=switch(Etype,"A"="dnorm","M"="dlnorm"),
-                                          "MAE"=switch(Etype,"A"="dlaplace","M"="dllaplace"),
-                                          "HAM"=switch(Etype,"A"="ds","M"="dls"),
+                                          "MSE"="dnorm",
+                                          "MAE"="dlaplace",
+                                          "HAM"="ds",
                                           distribution);
 
                 lossNew <- switch(loss,
@@ -2309,16 +2312,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
-            distributionNew <- switch(Etype,
-                                      "A"=switch(loss,
-                                                 "MAEh"=, "MACE"=, "MAE"="dlaplace",
-                                                 "HAMh"=, "CHAM"=, "HAM"="ds",
-                                                 "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "likelihood"=, "dnorm"),
-                                      "M"=switch(loss,
-                                                 "MAEh"=, "MACE"=, "MAE"="dllaplace",
-                                                 "HAMh"=, "CHAM"=, "HAM"="dls",
-                                                 "MSEh"=, "MSCE"=, "MSE"=, "GPL"="dlnorm",
-                                                 "likelihood"=, "dinvgauss"));
+            distributionNew <- switch(loss,
+                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                      "MAEh"=, "MACE"=, "MAE"= "dlaplace",
+                                      "HAMh"=, "CHAM"=, "HAM"= "ds",
+                                      "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
         }
         else{
             distributionNew <- distribution;
@@ -3019,20 +3017,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
-            distribution[] <- switch(Etype,
-                                     "A"=switch(loss,
-                                                "MAEh"=, "MACE"=, "MAE"="dlaplace",
-                                                "HAMh"=, "CHAM"=, "HAM"="ds",
-                                                "MSEh"=, "MSCE"=, "GPL"=, "MSE"=,
-                                                "aMSEh"=, "aMSCE"=, "aGPL"=, "likelihood"=, "dnorm"),
-                                     "M"="dinvgauss");
-            if(multisteps && Etype=="M"){
-                distribution[] <- switch(loss,
-                                         "MAEh"=, "MACE"=, "MAE"="dllaplace",
-                                         "HAMh"=, "CHAM"=, "HAM"="dls",
-                                         "MSEh"=, "MSCE"=, "GPL"=, "MSE"=,
-                                         "aMSEh"=, "aMSCE"=, "aGPL"=, "dlnorm");
-            }
+            distribution[] <- switch(loss,
+                                     "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                     "MAEh"=, "MACE"=, "MAE"= "dlaplace",
+                                     "HAMh"=, "CHAM"=, "HAM"= "ds",
+                                     "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
         }
 
         #### Initial values to return ####
@@ -3550,16 +3539,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
     else if(modelDo=="use"){
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
-            distributionNew <- switch(Etype,
-                                      "A"=switch(loss,
-                                                 "MAEh"=, "MACE"=, "MAE"="dlaplace",
-                                                 "HAMh"=, "CHAM"=, "HAM"="ds",
-                                                 "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "likelihood"=, "dnorm"),
-                                      "M"=switch(loss,
-                                                 "MAEh"=, "MACE"=, "MAE"="dllaplace",
-                                                 "HAMh"=, "CHAM"=, "HAM"="dls",
-                                                 "MSEh"=, "MSCE"=, "MSE"=, "GPL"="dlnorm",
-                                                 "likelihood"=, "dinvgauss"));
+            distributionNew <- switch(loss,
+                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                      "MAEh"=, "MACE"=, "MAE"= "dlaplace",
+                                      "HAMh"=, "CHAM"=, "HAM"= "ds",
+                                      "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
         }
         else{
             distributionNew <- distribution;
@@ -4815,10 +4799,10 @@ print.adam <- function(x, digits=4, ...){
     }
 
     if(x$loss=="likelihood" ||
-       (any(x$loss==c("MSE","MSEh","MSCE","GPL")) & any(x$distribution==c("dnorm","dlnorm"))) ||
-       (any(x$loss==c("aMSE","aMSEh","aMSCE","aGPL")) & any(x$distribution==c("dnorm","dlnorm"))) ||
-       (any(x$loss==c("MAE","MAEh","MACE")) & any(x$distribution==c("dlaplace","dllaplace"))) ||
-       (any(x$loss==c("HAM","HAMh","CHAM")) & any(x$distribution==c("ds","dls")))){
+       (any(x$loss==c("MSE","MSEh","MSCE","GPL")) & (x$distribution=="dnorm")) ||
+       (any(x$loss==c("aMSE","aMSEh","aMSCE","aGPL")) & (x$distribution=="dnorm")) ||
+       (any(x$loss==c("MAE","MAEh","MACE")) & (x$distribution=="dlaplace")) ||
+       (any(x$loss==c("HAM","HAMh","CHAM")) & (x$distribution=="ds"))){
         ICs <- c(AIC(x),AICc(x),BIC(x),BICc(x));
         names(ICs) <- c("AIC","AICc","BIC","BICc");
         cat("\nInformation criteria:\n");
@@ -5139,8 +5123,8 @@ sigma.adam <- function(object, ...){
                        "dalaplace"=sum(residuals(object)^2),
                        "dlnorm"=,
                        "dllaplace"=,
-                       "dls"=,
-                       "dlgnorm"=sum(log(residuals(object))^2),
+                       "dls"=sum(log(residuals(object))^2),
+                       "dlgnorm"=sum(log(residuals(object)-object$scale^2/2)^2),
                        "dinvgauss"=sum((residuals(object)-1)^2))
                 /df));
 }
@@ -5197,9 +5181,9 @@ summary.adam <- function(object, level=0.95, ...){
     ourReturn$call <- object$call;
 
     if(object$loss=="likelihood" ||
-       (any(object$loss==c("MSE","MSEh","MSCE")) & any(object$distribution==c("dnorm","dlnorm"))) ||
-       (any(object$loss==c("MAE","MAEh","MACE")) & any(object$distribution==c("dlaplace","dllaplace"))) ||
-       (any(object$loss==c("HAM","HAMh","CHAM")) & any(object$distribution==c("ds","dls")))){
+       (any(object$loss==c("MSE","MSEh","MSCE")) & (object$distribution=="dnorm")) ||
+       (any(object$loss==c("MAE","MAEh","MACE")) & (object$distribution=="dlaplace")) ||
+       (any(object$loss==c("HAM","HAMh","CHAM")) & (object$distribution=="ds"))){
         ICs <- c(AIC(object),AICc(object),BIC(object),BICc(object));
         names(ICs) <- c("AIC","AICc","BIC","BICc");
         ourReturn$ICs <- ICs;
@@ -5278,9 +5262,9 @@ print.summary.adam <- function(x, ...){
     }
 
     if(x$loss=="likelihood" ||
-       (any(x$loss==c("MSE","MSEh","MSCE")) & any(x$distribution==c("dnorm","dlnorm"))) ||
-       (any(x$loss==c("MAE","MAEh","MACE")) & any(x$distribution==c("dlaplace","dllaplace"))) ||
-       (any(x$loss==c("HAM","HAMh","CHAM")) & any(x$distribution==c("ds","dls")))){
+       (any(x$loss==c("MSE","MSEh","MSCE")) & (x$distribution=="dnorm")) ||
+       (any(x$loss==c("MAE","MAEh","MACE")) & (x$distribution=="dlaplace")) ||
+       (any(x$loss==c("HAM","HAMh","CHAM")) & (x$distribution=="ds"))){
         cat("\nInformation criteria:\n");
         print(round(x$ICs,digits));
     }
@@ -5492,7 +5476,8 @@ rstandard.adam <- function(model, ...){
         return(errors / mean(errors[residsToGo]));
     }
     else if(model$distribution=="dlnorm"){
-        errors[] <- log(errors);
+        # Debias the residuals
+        errors[] <- log(errors) - model$scale^2/2;
         return(exp((errors - mean(errors[residsToGo])) / sqrt(model$scale^2 * obs / df)));
     }
     else if(model$distribution=="dllaplace"){
@@ -5531,7 +5516,7 @@ rstudent.adam <- function(model, ...){
         }
     }
     else if(model$distribution=="dlnorm"){
-        errors[] <- log(errors) - mean(log(errors));
+        errors[] <- log(errors) - mean(log(errors)) - model$scale^2/2;
         for(i in residsToGo){
             rstudentised[i] <- exp(errors[i] / sqrt(sum(errors[-i]^2,na.rm=TRUE) / df));
         }
@@ -5819,8 +5804,9 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
         }
     }
     else if(object$distribution=="dlnorm"){
-        yLower[] <- qlnorm(levelLow, 0, sqrt(s2));
-        yUpper[] <- qlnorm(levelUp, 0, sqrt(s2));
+        # Take into account the logN restrictions
+        yLower[] <- qlnorm(levelLow, -Re(1-sqrt(as.complex(1-s2)))^2, sqrt(2*Re(1-sqrt(as.complex(1-s2)))));
+        yUpper[] <- qlnorm(levelUp, -Re(1-sqrt(as.complex(1-s2)))^2, sqrt(2*Re(1-sqrt(as.complex(1-s2)))));
     }
     else if(object$distribution=="dllaplace"){
         yLower[] <- exp(qlaplace(levelLow, 0, sqrt(s2/2)));
@@ -6196,7 +6182,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                                          sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
                                                                   (object$other$alpha^2+(1-object$other$alpha)^2)),
                                                          object$other$alpha),
-                                   "dlnorm"=rlnorm(h*nsim, 0, sigmaValue)-1,
+                                   "dlnorm"=rlnorm(h*nsim, -object$scale^2/2, object$scale)-1,
                                    "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=sigmaValue^2)-1,
                                    "dllaplace"=exp(rlaplace(h*nsim, 0, sigmaValue/2))-1,
                                    "dls"=exp(rs(h*nsim, 0, (sigmaValue^2/120)^0.25))-1,
@@ -6221,6 +6207,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                         componentsNumberETSSeasonal, componentsNumberETS,
                                         componentsNumberARIMA, xregNumber)$matrixYt;
 
+        ySimulated <<- ySimulated;
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
             yForecast[] <- mean(colSums(ySimulated,na.rm=T));
@@ -6401,8 +6388,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dlnorm"){
-                yLower[] <- qlnorm(levelLow, 0, sqrt(vcovMulti));
-                yUpper[] <- qlnorm(levelUp, 0, sqrt(vcovMulti));
+                yLower[] <- qlnorm(levelLow, Re(1-sqrt(as.complex(1-vcovMulti))),
+                                   sqrt(2*Re(1-sqrt(as.complex(1-vcovMulti)))));
+                yUpper[] <- qlnorm(levelUp, Re(1-sqrt(as.complex(1-vcovMulti))),
+                                   sqrt(2*Re(1-sqrt(as.complex(1-vcovMulti)))));
                 if(Etype=="A"){
                     yLower[] <- (yLower-1)*yForecast;
                     yUpper[] <-(yUpper-1)*yForecast;
@@ -6838,7 +6827,8 @@ pointLik.adam <- function(object, ...){
                                                                     scale=scale, alpha=other, log=TRUE),
                                                       "M"=dalaplace(q=yInSample[otLogical], mu=yFitted[otLogical],
                                                                     scale=scale*yFitted[otLogical], alpha=other, log=TRUE)),
-                                   "dlnorm"=dlnorm(x=yInSample[otLogical], meanlog=log(yFitted[otLogical]),
+                                   "dlnorm"=dlnorm(x=yInSample[otLogical],
+                                                   meanlog=log(yFitted[otLogical]) -scale^2/2,
                                                    sdlog=scale, log=TRUE),
                                    "dllaplace"=dlaplace(q=log(yInSample[otLogical]), mu=log(yFitted[otLogical]),
                                                         scale=scale, log=TRUE),
@@ -6855,8 +6845,8 @@ pointLik.adam <- function(object, ...){
     # If this is a mixture model, take the respective probabilities into account (differential entropy)
     if(is.occurrence(object$occurrence)){
         likValues[!otLogical] <- -switch(distribution,
-                                         "dnorm" =,
-                                         "dlnorm" = (log(sqrt(2*pi)*scale)+0.5),
+                                         "dnorm" = (log(sqrt(2*pi)*scale)+0.5),
+                                         "dlnorm" = (log(sqrt(2*pi)*scale)+0.5) -scale^2/2,
                                          "dlogis" = 2,
                                          "dlaplace" =,
                                          "dllaplace" =,
