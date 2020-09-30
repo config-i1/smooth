@@ -31,8 +31,8 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
     for(unsigned int i=0; i<nSeries; i=i+1){
         matrixVt = arrayVt.slice(i);
         matrixF = arrayF.slice(i);
+        profilesRecent = profilesRecentOriginal;
         for (int j=lagsModelMax; j<obsAll; j=j+1) {
-            profilesRecent = profilesRecentOriginal;
             /* # Measurement equation and the error term */
             matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                               matrixWt.row(j-lagsModelMax), E, T, S,
