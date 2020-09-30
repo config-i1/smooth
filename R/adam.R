@@ -49,9 +49,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \link[stats]{dt} - T distribution,
 #' \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
 #' \item \link[stats]{dlnorm} - Log normal distribution,
-#' \item dllaplace - Log Laplace distribution,
-#' \item dls - Log S distribution,
-#' \item dlgnorm - Log Generalised Normal distribution,
+# \item dllaplace - Log Laplace distribution,
+# \item dls - Log S distribution,
+# \item dlgnorm - Log Generalised Normal distribution,
 # \item \link[greybox]{dbcnorm} - Box-Cox normal distribution,
 #' \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
 #' }
@@ -338,7 +338,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @export adam
 adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c(0),ma=c(0)), formula=NULL,
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace",
-                                "dlnorm","dllaplace","dls","dlgnorm","dinvgauss"),
+                                "dlnorm","dinvgauss"),
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
@@ -4040,7 +4040,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 }
 
 #### Small useful ADAM functions ####
-adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll){
+# This function creates recent and observed profiles for adam
+adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll, yIndex=NULL){
     # Create the matrix with profiles, based on provided lags
     profilesRecentTable <- matrix(0,length(lagsModelAll),lagsModelMax,
                                   dimnames=list(lagsModelAll,NULL));
@@ -4055,6 +4056,13 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll){
         # -1 is needed to align this with C++ code
         profilesObservedTable[i,] <- rep(profileIndices[i,1:lagsModelAll[i]],ceiling(obsAll/lagsModelAll[i]))[1:obsAll] -1;
     }
+
+    # Do shifts for proper lags only:
+    # Check lags variable for 24 / 24*7 / 24*265 / 48 / 48*7 / 48*365 / 365
+    # If they are there, find the DST / Leap moments
+    # Then amend respective observed values of profile, shifting them around
+    # if(!is.null(yIndex)){
+    # }
 
     return(list(recent=profilesRecentTable,observed=profilesObservedTable));
 }
