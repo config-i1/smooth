@@ -1,7 +1,7 @@
 parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace",
-                                             "dlnorm","dllaplace","dls","dlgnorm","dinvgauss"),
+                                             "dlnorm","dinvgauss"),
                               loss, h, holdout,occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","admissible","none"),
                               xreg, xregDo, yName,
