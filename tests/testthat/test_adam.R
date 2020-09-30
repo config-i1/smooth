@@ -232,9 +232,9 @@ test_that("ADAM ETS(ZZZ) + ARIMA(0,2,2) with logN on N1234", {
 })
 
 # ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12]
-testModel <- adam(Mcomp::M3[[2568]], "ZZZ", orders=list(ar=c(2,2),i=c(1,1), ma=c(2,1)), distribution="dls");
+testModel <- adam(Mcomp::M3[[2568]], "ZZZ", orders=list(ar=c(2,2),i=c(1,1), ma=c(2,1)), distribution="ds");
 test_that("ADAM ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12] with logS on N2568", {
-    expect_match(testModel$distribution, "dls");
+    expect_match(testModel$distribution, "ds");
 })
 
 # Forecast from ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12]
