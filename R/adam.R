@@ -1667,9 +1667,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                       "dt"=sqrt(sum(errors^2)/obsInSample),
                       "dalaplace"=sum(errors*(other-(errors<=0)*1))/obsInSample,
                       # This condition guarantees that E(1+e_t)=1
-                      "dlnorm"=sqrt(2*switch(Etype,
-                                             "A"=1-Re(sqrt(1-sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
-                                             "M"=1-Re(sqrt(as.complex(1-sum(log(1+errors)^2)/obsInSample))))),
+                      # abs is needed for cases, when we get imaginary values - a failsafe
+                      "dlnorm"=sqrt(2*abs(switch(Etype,
+                                                 "A"=1-sqrt(abs(1-sum(log(abs(1+errors/yFitted))^2)/obsInSample)),
+                                                 "M"=1-sqrt(abs(1-sum(log(1+errors)^2)/obsInSample))))),
                       # "A"=Re(sqrt(sum(log(as.complex(1+errors/yFitted))^2)/obsInSample)),
                       # "M"=sqrt(sum(log(1+errors)^2)/obsInSample)),
                       "dllaplace"=switch(Etype,
@@ -5805,8 +5806,8 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
     }
     else if(object$distribution=="dlnorm"){
         # Take into account the logN restrictions
-        yLower[] <- qlnorm(levelLow, -Re(1-sqrt(as.complex(1-s2)))^2, sqrt(2*Re(1-sqrt(as.complex(1-s2)))));
-        yUpper[] <- qlnorm(levelUp, -Re(1-sqrt(as.complex(1-s2)))^2, sqrt(2*Re(1-sqrt(as.complex(1-s2)))));
+        yLower[] <- qlnorm(levelLow, -(1-sqrt(abs(1-s2)))^2, sqrt(2*(1-sqrt(abs(1-s2)))));
+        yUpper[] <- qlnorm(levelUp, -(1-sqrt(abs(1-s2)))^2, sqrt(2*(1-sqrt(abs(1-s2)))));
     }
     else if(object$distribution=="dllaplace"){
         yLower[] <- exp(qlaplace(levelLow, 0, sqrt(s2/2)));
@@ -6388,10 +6389,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dlnorm"){
-                yLower[] <- qlnorm(levelLow, Re(1-sqrt(as.complex(1-vcovMulti))),
-                                   sqrt(2*Re(1-sqrt(as.complex(1-vcovMulti)))));
-                yUpper[] <- qlnorm(levelUp, Re(1-sqrt(as.complex(1-vcovMulti))),
-                                   sqrt(2*Re(1-sqrt(as.complex(1-vcovMulti)))));
+                yLower[] <- qlnorm(levelLow, Re(1-sqrt(abs(1-vcovMulti))),
+                                   sqrt(2*Re(1-sqrt(abs(1-vcovMulti)))));
+                yUpper[] <- qlnorm(levelUp, Re(1-sqrt(abs(1-vcovMulti))),
+                                   sqrt(2*Re(1-sqrt(abs(1-vcovMulti)))));
                 if(Etype=="A"){
                     yLower[] <- (yLower-1)*yForecast;
                     yUpper[] <-(yUpper-1)*yForecast;
