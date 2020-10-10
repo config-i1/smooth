@@ -2272,7 +2272,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         xtol_abs <- ellipsis$xtol_abs;
     }
     if(is.null(ellipsis$ftol_rel)){
-        ftol_rel <- 1E-4;
+        ftol_rel <- 1E-6;
     }
     else{
         ftol_rel <- ellipsis$ftol_rel;
