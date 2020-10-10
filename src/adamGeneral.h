@@ -7,10 +7,10 @@ using namespace Rcpp;
 
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
-                     char const &E, char const &T, char const &S,
-                     unsigned int const &nETS, unsigned int const &nNonSeasonal,
-                     unsigned int const &nSeasonal, unsigned int const &nArima,
-                     unsigned int const &nXreg, unsigned int const &nComponents){
+                         char const &E, char const &T, char const &S,
+                         unsigned int const &nETS, unsigned int const &nNonSeasonal,
+                         unsigned int const &nSeasonal, unsigned int const &nArima,
+                         unsigned int const &nXreg, unsigned int const &nComponents){
     // vecVt is a vector here!
     double yfit = 0;
     if(E=='M'){
@@ -99,10 +99,10 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
 /* # Function returns value of r() -- additive or multiplicative error -- used in the error term of measurement equation.
  This is mainly needed by sim.ets */
 inline double adamRvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
-                     char const &E, char const &T, char const &S,
-                     unsigned int const &nETS, unsigned int const &nNonSeasonal,
-                     unsigned int const &nSeasonal, unsigned int const &nArima,
-                     unsigned int const &nXreg, unsigned int const &nComponents){
+                         char const &E, char const &T, char const &S,
+                         unsigned int const &nETS, unsigned int const &nNonSeasonal,
+                         unsigned int const &nSeasonal, unsigned int const &nArima,
+                         unsigned int const &nXreg, unsigned int const &nComponents){
 
     switch(E){
     // MZZ
@@ -118,10 +118,10 @@ inline double adamRvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
 
 /* # Function returns value of f() -- new states without the update -- used in the transition equation */
 inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
-                        char const E, char const T, char const S,
-                        unsigned int const &nETS, unsigned int const &nNonSeasonal,
-                        unsigned int const &nSeasonal, unsigned int const &nArima,
-                        unsigned int const &nComponents){
+                            char const E, char const T, char const S,
+                            unsigned int const &nETS, unsigned int const &nNonSeasonal,
+                            unsigned int const &nSeasonal, unsigned int const &nArima,
+                            unsigned int const &nComponents){
     arma::vec matrixVtnew = matrixVt;
 
     switch(T){
@@ -132,10 +132,11 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     case 'M':
         if(nETS>0){
             matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
-            if(nSeasonal>0){
-                // This is needed in order not to face log(-x)
-                matrixVtnew.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
-            }
+            // This is not needed, because of the line 125
+            // if(nSeasonal>0){
+            //     // This is needed in order not to face log(-x)
+            //     matrixVtnew.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
+            // }
         }
         break;
     }
@@ -144,7 +145,7 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     if(nArima>0 && E=='M'){
         matrixVtnew.rows(nETS,nETS+nArima-1) =
             exp(matrixF.submat(nETS,nETS,nETS+nArima-1,nETS+nArima-1) *
-                                   log(matrixVt.rows(nETS,nETS+nArima-1)));
+            log(matrixVt.rows(nETS,nETS+nArima-1)));
     }
 
     return matrixVtnew;
@@ -152,11 +153,11 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
 
 /* # Function returns value of g() -- the update of states -- used in components estimation for the persistence */
 inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF, arma::mat const &rowvecW,
-                        char const &E, char const &T, char const &S,
-                        unsigned int const &nETS, unsigned int const &nNonSeasonal,
-                        unsigned int const &nSeasonal, unsigned int const &nArima,
-                        unsigned int const &nXreg, unsigned int const &nComponents,
-                        arma::vec const &vectorG, double const error){
+                            char const &E, char const &T, char const &S,
+                            unsigned int const &nETS, unsigned int const &nNonSeasonal,
+                            unsigned int const &nSeasonal, unsigned int const &nArima,
+                            unsigned int const &nXreg, unsigned int const &nComponents,
+                            arma::vec const &vectorG, double const error){
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){
@@ -253,10 +254,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                     g.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,nNonSeasonal-1)));
                     break;
                 case 'A':
-                    ////// The following stuff doesn't work anyway, so we use the scheme from MMM //////
-                    //
-                    g.rows(0,nComponents-1).fill(as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1)) +
-                        rowvecW.cols(2,2+nSeasonal-1) * matrixVt.rows(2,2+nSeasonal-1))));
+                    g.rows(0,nComponents-1).fill(as_scalar(exp(rowvecW.cols(0,1) * log(matrixVt.rows(0,1))) +
+                        rowvecW.cols(2,nETS-1) * matrixVt.rows(2,nETS-1)));
                     // g(0) = g(0) / matrixVt(1);
                     g(1) = g(1) / matrixVt(0);
                     break;

@@ -9,9 +9,9 @@
 #' @template ssAuthor
 #' @seealso Nowwhat (to be implemented),
 #' @references \itemize{
-#' \item\href{http://en.wiktionary.org/wiki/so_what}{Sowhat?}
+#' \item\href{https://en.wiktionary.org/wiki/so_what}{Sowhat?}
 #' \item\href{https://www.youtube.com/watch?v=FJfFZqTlWrQ}{Sowhat?}
-#' \item\href{http://en.wikipedia.org/wiki/Douglas_Adams}{42}
+#' \item\href{https://en.wikipedia.org/wiki/Douglas_Adams}{42}
 #' }
 #' @keywords sowhat 42
 #' @examples

@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-09-22)
+smooth v3.0.0 (Release data: 2020-09-30)
 =======
 
 Changes:
@@ -14,11 +14,18 @@ Changes:
 * Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
 * Truncated normal should now work for deltas as well.
 * The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
+* adam() now uses profiles instead of lags for seasonal models. These are updated on every observation via ETS approach.
+* msdecompose() now produces initials suitable for the first observation of the data via a simple extrapolation.
+* Switched off dllaplace, dls and dlgnorm in adam(), because their mean values are not easy to calculate.
+* Log Normal distribution in adam() now assumes that the mean=-scale^2/2. This is needed in order to maintain the property of mean of error being equal to zero.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
 * Fixed the check for admissible bounds in case of xregDo="adapt".
 * A fix in adam, when xreg parameters are provided and the xreg matrix does not need to be expanded.
+* Fixed a bug in ETS(M,M,A) models in adam.
+* Fixes for ETS(A,M,A) initialisation in adam.
+* A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

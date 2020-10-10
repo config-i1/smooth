@@ -8,19 +8,18 @@
 adam(y, model = "ZXZ", lags = c(1, frequency(y)), orders = list(ar =
   c(0), i = c(0), ma = c(0)), formula = NULL, distribution = c("default",
   "dnorm", "dlaplace", "ds", "dgnorm", "dlogis", "dt", "dalaplace", "dlnorm",
-  "dllaplace", "dls", "dlgnorm", "dinvgauss"), loss = c("likelihood", "MSE",
-  "MAE", "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
-  holdout = FALSE, persistence = NULL, phi = NULL,
-  initial = c("optimal", "backcasting"), arma = NULL,
-  occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
-  "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), xreg = NULL,
+  "dinvgauss"), loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE",
+  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
+  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting"),
+  arma = NULL, occurrence = c("none", "auto", "fixed", "general",
+  "odds-ratio", "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC",
+  "BICc"), bounds = c("usual", "admissible", "none"), xreg = NULL,
   xregDo = c("use", "select", "adapt"), silent = TRUE, ...)
 
 auto.adam(y, model = "ZXZ", lags = c(frequency(y)), orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), formula = NULL,
   outliers = c("ignore", "use", "select"), level = 0.99,
-  distribution = c("dnorm", "dlaplace", "ds", "dlnorm", "dllaplace", "dls",
+  distribution = c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm",
   "dinvgauss"), h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), arma = NULL,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
@@ -223,7 +222,7 @@ to the number of parameters to estimate in the following order:
 }
 You can also pass parameters to the optimiser in order to fine tune its work:
 \itemize{
-\item \code{maxeval} - maximum number of evaluations to carry out. The default is 20 per
+\item \code{maxeval} - maximum number of evaluations to carry out. The default is 15 per
 estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
 explanatory variables are introduced in the model;
 \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
@@ -240,8 +239,9 @@ If equal to 41, then the detailed results of the optimisation are returned.
 }
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
-Finally, the parameter \code{lambda} for LASSO / RIDGE, Asymmetric Laplace and df
-of Student's distribution can be provided here as well.}
+Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
+Laplace, \code{beta} for the Generalised Normal and \code{nu} for Student's distributions
+can be provided here as well.}
 
 \item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
 \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
@@ -295,6 +295,7 @@ the model,
 \item \code{B} - the vector of all estimated parameters,
 \item \code{lags} - the vector of lags used in the model construction,
 \item \code{lagsAll} - the vector of the internal lags used in the model,
+\item \code{profile} - the matrix with the profile used in the construction of the model,
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process.
 }
@@ -335,9 +336,6 @@ Inverse Gaussian is used for the Multiplicative error models.
 \item \link[stats]{dt} - T distribution,
 \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
 \item \link[stats]{dlnorm} - Log normal distribution,
-\item dllaplace - Log Laplace distribution,
-\item dls - Log S distribution,
-\item dlgnorm - Log Generalised Normal distribution,
 \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
 }
 

@@ -16,6 +16,7 @@
         startUpMessage <- paste0(startUpMessage,"\nAny thought or suggestions about the package? ",
                                  "Have you found a bug? File an issue on github: https://github.com/config-i1/smooth/issues");
     }
+    startUpMessage <- paste0(startUpMessage,"\n");
     packageStartupMessage(startUpMessage);
 }
 

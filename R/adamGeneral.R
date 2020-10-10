@@ -1,7 +1,7 @@
 parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace",
-                                             "dlnorm","dllaplace","dls","dlgnorm","dinvgauss"),
+                                             "dlnorm","dinvgauss"),
                               loss, h, holdout,occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","admissible","none"),
                               xreg, xregDo, yName,
@@ -868,6 +868,14 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         lagsModelAll <- lagsModel;
     }
 
+    #### This needs to be amended after developing the first prototype! ####
+    # If we have the zoo class and weird lags, amend profiles
+    # Weird lags (dst and fractional): 24, 24*2 (half hour), 52, 24*4 (15 minutes), 7*24, 7*48, 365, 24*52, 24*365
+    if(any(yClasses=="zoo") && any(lags %in% c(24, 48, 52, 96, 168, 336, 365, 1248, 8760))){
+        # For hourly, half-hourly and quarter hour data, just amend the profiles for DST.
+        # For daily, repeat profile of 28th on 29th February.
+        # For weekly, repeat the last week, when we have 53 instead of 52.
+    }
 
     #### Occurrence variable ####
     if(is.occurrence(occurrence)){
@@ -1874,9 +1882,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
 
     # Observations in the states matrix
     # Define the number of cols that should be in the matvt
-    obsStates <- obsInSample + lagsModelMax*switch(initialType,
-                                                   "backcasting"=2,
-                                                   1);
+    obsStates <- obsInSample + lagsModelMax;
 
     if(any(yInSample<=0) && any(distribution==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm")) && !occurrenceModel){
         warning(paste0("You have non-positive values in the data. ",
@@ -2223,7 +2229,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     #### Process ellipsis ####
     # Parameters for the optimiser
     if(is.null(ellipsis$maxeval)){
-        maxeval <- nParamMax * 20;
+        maxeval <- nParamMax * 15;
         # If this is pure ARIMA, take more time
         if(arimaModel && !etsModel){
             maxeval <- max(1000,maxeval);
