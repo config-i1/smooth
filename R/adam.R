@@ -256,7 +256,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{ftol_abs} - the stopping criterion in case of the absolute change in the loss
 #' function (the default is 0 - not used);
 #' \item \code{algorithm} - the algorithm to use in optimisation
-#' (by default, \code{"NLOPT_LN_SBPLX"} is used);
+#' (by default, \code{"NLOPT_LN_NELDERMEAD"} is used);
 #' \item \code{print_level} - the level of output for the optimiser (0 by default).
 #' If equal to 41, then the detailed results of the optimisation are returned.
 #' }
@@ -2290,9 +2290,13 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         # Create the vector of initials for the optimisation
         if(is.null(B)){
             B <- BValues$B
-            # lb <- BValues$Bl;
-            # ub <- BValues$Bu;
         }
+        # if(is.null(lb)){
+        #     lb <- BValues$Bl;
+        # }
+        # if(is.null(ub)){
+        #     ub <- BValues$Bu;
+        # }
 
         # Matrices needed for the polynomials calculation -> stationarity / stability checks
         if(arimaModel){
@@ -2377,7 +2381,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
             # print(B)
             res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
-                                           opts=list(algorithm="NLOPT_LN_SBPLX", xtol_rel=xtol_rel,
+                                           opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                                      ftol_rel=ftol_rel, ftol_abs=ftol_abs,
                                                      maxeval=maxeval, maxtime=maxtime, print_level=print_level),
                                            etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,

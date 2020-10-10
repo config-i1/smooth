@@ -2284,7 +2284,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         ftol_abs <- ellipsis$ftol_abs;
     }
     if(is.null(ellipsis$algorithm)){
-        algorithm <- "NLOPT_LN_SBPLX";
+        algorithm <- "NLOPT_LN_NELDERMEAD";
     }
     else{
         algorithm <- ellipsis$algorithm;
