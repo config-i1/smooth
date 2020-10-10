@@ -2229,7 +2229,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     #### Process ellipsis ####
     # Parameters for the optimiser
     if(is.null(ellipsis$maxeval)){
-        maxeval <- nParamMax * 15;
+        maxeval <- nParamMax * 30;
         # If this is pure ARIMA, take more time
         if(arimaModel && !etsModel){
             maxeval <- max(1000,maxeval);
