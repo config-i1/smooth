@@ -6671,6 +6671,7 @@ print.adam.forecast <- function(x, ...){
 #' @export
 plot.adam.forecast <- function(x, ...){
     yClasses <- class(actuals(x));
+    digits <- 2;
 
     ellipsis <- list(...);
     if(is.null(ellipsis$ylim)){
