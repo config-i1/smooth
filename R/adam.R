@@ -11,7 +11,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
                          "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
                          "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","yClasses",
-                         "yForecastIndex","yInSampleIndex","yNAValues","yStart"));
+                         "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart"));
 
 #' ADAM is Advanced Dynamic Adaptive Model
 #'
@@ -672,7 +672,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         obsStates <- obsInSample + lagsModelMax;
 
         # Create ADAM profiles for correct treatment of seasonality
-        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
+                                           lags=lags, yIndex=yIndexAll, yClasses=yClasses);
         profilesRecentTable <- adamProfiles$recent;
         profilesObservedTable <- adamProfiles$observed;
 
@@ -4030,7 +4031,15 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
 #### Small useful ADAM functions ####
 # This function creates recent and observed profiles for adam
-adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll, yIndex=NULL){
+adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
+                               lags=NULL, yIndex=NULL, yClasses=NULL){
+    # lagsModelAll - all lags used in the model for ETS + ARIMA + xreg
+    # lagsModelMax - the maximum lag used in the model
+    # obsAll - number of observations to create
+    # lags - the original lags provided by user (no lags for ARIMA etc). Needed in order to see
+    #        if weird frequencies are used.
+    # yIndex - the indices needed in order to get the weird dates.
+    # yClass - the class used for the actuals. If zoo, magic will happen here.
     # Create the matrix with profiles, based on provided lags
     profilesRecentTable <- matrix(0,length(lagsModelAll),lagsModelMax,
                                   dimnames=list(lagsModelAll,NULL));
@@ -4047,11 +4056,67 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll, yIndex=NULL){
     }
 
     # Do shifts for proper lags only:
-    # Check lags variable for 24 / 24*7 / 24*265 / 48 / 48*7 / 48*365 / 365
+    # Check lags variable for 24 / 24*7 / 24*365 / 48 / 48*7 / 48*365 / 365 / 52
     # If they are there, find the DST / Leap moments
     # Then amend respective observed values of profile, shifting them around
-    # if(!is.null(yIndex)){
-    # }
+    if(any(yClasses=="zoo") && !is.null(yIndex)){
+        # If this is weekly data, duplicate 52, when 53 is used
+        if(any(lags==52) && any(strftime(yIndex,format="%W")=="53")){
+            shiftRows <- lagsModelAll==52;
+            # If the data does not start with 1, proceed
+            if(all(which(strftime(yIndex,format="%W")=="53")!=1)){
+                profilesObservedTable[shiftRows,which(strftime(yIndex,format="%W")=="53")] <-
+                    profilesObservedTable[shiftRows,which(strftime(yIndex,format="%W")=="53")-1];
+            }
+        }
+
+        #### If this is daily and we have 365 days of year, locate 29th February and use 28th instead
+        if(any(c(365,365*48,365*24) %in% lags) && any(strftime(yIndex,format="%d/%m")=="29/02")){
+            shiftValue <- c(365,365*48,365*24)[c(365,365*48,365*24) %in% lags]/365;
+            shiftRows <- lagsModelAll %in% c(365,365*48,365*24);
+            # If the data does not start with 1/24/48, proceed (otherwise we refer to negative numbers)
+            if(!any(which(strftime(yIndex,format="%d/%m")=="29/02") %in% shiftValue)){
+                profilesObservedTable[shiftRows,which(strftime(yIndex,format="%d/%m")=="29/02")] <-
+                    profilesObservedTable[shiftRows,which(strftime(yIndex,format="%d/%m")=="29/02")-shiftValue];
+            }
+        }
+
+        #### If this is hourly; Locate DST and do shifts for specific observations
+        if(any(c(24,24*7,24*365,48,48*7,48*365) %in% lags)){
+            shiftRows <- lagsModelAll %in% c(24,48,24*7,48*7,24*365,48*365);
+            # If this is hourly data, then shift 1 hour. If it is halfhourly, shift 2 hours
+            shiftValue <- 1;
+            if(any(c(48,48*7,48*365) %in% lags)){
+                shiftValue[] <- 2;
+            }
+            # Get the start and the end of DST
+            dstValues <- detectdst(yIndex);
+            # If the start date is not positioned before the end, introduce the artificial one
+            if(nrow(dstValues$start)==0 ||
+               (nrow(dstValues$end)>0 && dstValues$start$id[1]>dstValues$end$id[1])){
+                dstValues$start <- rbind(data.frame(id=1,date=yIndex[1]),dstValues$start);
+            }
+            # If the end date is not present or the length of the end is not the same as the start,
+            # set the end of series as one
+            if(nrow(dstValues$end)==0 ||
+               nrow(dstValues$end)<nrow(dstValues$start)){
+                dstValues$end <- rbind(dstValues$end,data.frame(id=obsAll,date=tail(yIndex,1)));
+            }
+            # Shift everything from start to end dates by 1 obs forward.
+            for(i in 1:nrow(dstValues$start)){
+                # If the end date is natural, just shift
+                if(dstValues$end$id[i]+shiftValue<=obsAll){
+                    profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
+                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]+shiftValue];
+                }
+                # If it isn't, we need to come up with the values for the end of sample
+                else{
+                    profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
+                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]-lagsModelMax+shiftValue];
+                }
+            }
+        }
+    }
 
     return(list(recent=profilesRecentTable,observed=profilesObservedTable));
 }
@@ -5420,7 +5485,8 @@ rmultistep.adam <- function(object, h=10, ...){
     else{
         ot <- matrix(1,obsInSample,1);
     }
-    adamProfiles <- adamProfileCreator(lagsModelAll, max(lagsModelAll), obsInSample);
+    adamProfiles <- adamProfileCreator(lagsModelAll, max(lagsModelAll), obsInSample,
+                                       lagsOriginal, time(actuals(object)), yClasses);
     profilesRecentTable <- adamProfiles$recent;
     profilesObservedTable <- adamProfiles$observed;
 
@@ -5946,6 +6012,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
     profilesRecentTable <- object$profile;
+    yClasses <- class(actuals(object));
 
     if(!is.null(object$initial$seasonal)){
         if(is.list(object$initial$seasonal)){
@@ -5963,9 +6030,19 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
-    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h)$observed[,-c(1:obsInSample),drop=FALSE];
 
-    yClasses <- class(actuals(object));
+    yIndex <- time(actuals(object));
+    # Create indices for the future
+    if(any(yClasses=="ts")){
+        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:h);
+    }
+    else{
+        yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:h);
+    }
+    # Get the observed profiles
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h,
+                                                lags(object), c(yIndex,yForecastIndex),
+                                                yClasses)$observed[,-c(1:obsInSample),drop=FALSE];
 
     if(any(yClasses=="ts")){
         # ts structure

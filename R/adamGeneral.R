@@ -139,6 +139,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         yHoldout <- y[-c(1:obsInSample)];
         yForecastIndex <- yIndex[-c(1:obsInSample)];
         yInSampleIndex <- yIndex[c(1:obsInSample)];
+        yIndexAll <- yIndex;
     }
     else{
         yInSampleIndex <- yIndex;
@@ -151,6 +152,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             yForecastIndex <- yIndex[obsInSample]+yIndexDiff*c(1:max(h,1));
         }
         yHoldout <- NULL;
+        yIndexAll <- c(yIndex,yForecastIndex);
     }
 
     if(!is.numeric(yInSample)){
@@ -2423,6 +2425,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     assign("yIndex",yIndex,ParentEnvironment);
     assign("yInSampleIndex",yInSampleIndex,ParentEnvironment);
     assign("yForecastIndex",yForecastIndex,ParentEnvironment);
+    assign("yIndexAll",yIndexAll,ParentEnvironment);
     assign("yFrequency",yFrequency,ParentEnvironment);
     assign("yStart",yStart,ParentEnvironment);
     assign("yForecastStart",yForecastStart,ParentEnvironment);
