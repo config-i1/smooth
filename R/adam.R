@@ -304,7 +304,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{lagsAll} - the vector of the internal lags used in the model,
 #' \item \code{profile} - the matrix with the profile used in the construction of the model,
 #' \item \code{call} - the call used in the evaluation,
-#' \item \code{bounds} - the type of bounds used in the process.
+#' \item \code{bounds} - the type of bounds used in the process,
+#' \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
+#' polynomials.
 #' }
 #'
 #' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}}
@@ -3176,6 +3178,20 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         if(any(loss==c("LASSO","RIDGE"))){
             otherReturned$lambda <- lambda;
         }
+        # Return ARIMA polynomials and indices for persistence and transition
+        if(arimaModel){
+            otherReturned$polynomial <- arimaPolynomials;
+            otherReturned$ARIMAIndices <- list(nonZeroARI=nonZeroARI,nonZeroMA=nonZeroMA);
+            otherReturned$arPolynomialMatrix <- matrix(0, arOrders %*% lags, arOrders %*% lags);
+            if(nrow(otherReturned$arPolynomialMatrix)>1){
+                otherReturned$arPolynomialMatrix[2:nrow(otherReturned$arPolynomialMatrix)-1,
+                                                 2:nrow(otherReturned$arPolynomialMatrix)] <-
+                    diag(nrow(otherReturned$arPolynomialMatrix)-1);
+                if(arRequired){
+                    otherReturned$arPolynomialMatrix[,1] <- -arimaPolynomials$arPolynomial[-1];
+                }
+            }
+        }
 
         # Amend the class of state matrix
         if(any(yClasses=="ts")){
@@ -4891,6 +4907,8 @@ confint.adam <- function(object, parm, level=0.95, ...){
     adamSD <- sqrt(abs(diag(adamVcov)));
     parametersNames <- names(adamSD);
     nParam <- length(adamSD);
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     adamCoefBounds <- matrix(0,nParam,2,
                              dimnames=list(parametersNames,NULL));
     # Fill in the values with normal bounds
@@ -4930,9 +4948,14 @@ confint.adam <- function(object, parm, level=0.95, ...){
         # The lower bound
         persistence[variableNumber,] <- -5;
         eigenValuesTested <- eigenValues(object, persistence);
+        print(object$transition)
         while(eigenValuesTested){
             persistence[variableNumber,] <- persistence[variableNumber,] + 0.01;
             eigenValuesTested[] <- eigenValues(object, persistence);
+            if(persistence[variableNumber,]>5){
+                persistence[variableNumber,] <- -5;
+                break;
+            }
         }
         lowerBound <- persistence[variableNumber,]-0.01;
         # The upper bound
@@ -4941,124 +4964,190 @@ confint.adam <- function(object, parm, level=0.95, ...){
         while(eigenValuesTested){
             persistence[variableNumber,] <- persistence[variableNumber,] - 0.01;
             eigenValuesTested[] <- eigenValues(object, persistence);
+            if(persistence[variableNumber,]<-5){
+                persistence[variableNumber,] <- 5;
+                break;
+            }
         }
         upperBound <- persistence[variableNumber,]+0.01;
         return(c(lowerBound, upperBound));
     }
 
-    #### The usual bounds ####
-    if(object$bounds=="usual"){
-        # Check, if there is alpha
-        if(any(parametersNames=="alpha")){
-            adamCoefBounds["alpha",1] <- max(-parameters["alpha"],adamCoefBounds["alpha",1]);
-            adamCoefBounds["alpha",2] <- min(1-parameters["alpha"],adamCoefBounds["alpha",2]);
-        }
-        # Check, if there is beta
-        if(any(parametersNames=="beta")){
-            adamCoefBounds["beta",1] <- max(-parameters["beta"],adamCoefBounds["beta",1]);
+    # Correct the bounds for the ETS model
+    if(etsModel){
+        #### The usual bounds ####
+        if(object$bounds=="usual"){
+            # Check, if there is alpha
             if(any(parametersNames=="alpha")){
-                adamCoefBounds["beta",2] <- min(parameters["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                adamCoefBounds["alpha",1] <- max(-parameters["alpha"],adamCoefBounds["alpha",1]);
+                adamCoefBounds["alpha",2] <- min(1-parameters["alpha"],adamCoefBounds["alpha",2]);
             }
-            else{
-                adamCoefBounds["beta",2] <- min(object$persistence["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+            # Check, if there is beta
+            if(any(parametersNames=="beta")){
+                adamCoefBounds["beta",1] <- max(-parameters["beta"],adamCoefBounds["beta",1]);
+                if(any(parametersNames=="alpha")){
+                    adamCoefBounds["beta",2] <- min(parameters["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                }
+                else{
+                    adamCoefBounds["beta",2] <- min(object$persistence["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                }
+            }
+            # Check, if there are gammas
+            if(any(substr(parametersNames,1,5)=="gamma")){
+                gammas <- which(substr(parametersNames,1,5)=="gamma");
+                adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
+                if(any(parametersNames=="alpha")){
+                    adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                            parameters["alpha"]-parameters[gammas]),1,min);
+                }
+                else{
+                    adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                            object$persistence["alpha"]-parameters[gammas]),1,min);
+                }
+            }
+            # Check, if there are deltas (for xreg)
+            if(any(substr(parametersNames,1,5)=="delta")){
+                deltas <- which(substr(parametersNames,1,5)=="delta");
+                adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
+                adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
+            }
+            # Check, if there is phi
+            if(any(parametersNames=="phi")){
+                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
             }
         }
-        # Check, if there are gammas
-        if(any(substr(parametersNames,1,5)=="gamma")){
-            gammas <- which(substr(parametersNames,1,5)=="gamma");
-            adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
+        #### Admissible bounds ####
+        else if(object$bounds=="admissible"){
+            # Check, if there is alpha
             if(any(parametersNames=="alpha")){
-                adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                        parameters["alpha"]-parameters[gammas]),1,min);
+                alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                           variableNumber=which(names(object$persistence)=="alpha"));
+                adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
+                adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
             }
-            else{
-                adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                        object$persistence["alpha"]-parameters[gammas]),1,min);
+            # Check, if there is beta
+            if(any(parametersNames=="beta")){
+                betaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                          variableNumber=which(names(object$persistence)=="beta"));
+                adamCoefBounds["beta",1] <- max(alphaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
+                adamCoefBounds["beta",2] <- min(alphaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
+            }
+            # Check, if there are gammas
+            if(any(substr(parametersNames,1,5)=="gamma")){
+                gammas <- which(substr(parametersNames,1,5)=="gamma");
+                for(i in 1:length(gammas)){
+                    gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                               variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
+                    adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
+                    adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
+                }
+            }
+            # Check, if there are deltas (for xreg)
+            if(any(substr(parametersNames,1,5)=="delta")){
+                deltas <- which(substr(parametersNames,1,5)=="delta");
+                for(i in 1:length(deltas)){
+                    deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                               variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
+                    adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
+                    adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
+                }
+            }
+
+            # These are "usual" bounds for phi. We don't care about other bounds
+            if(any(parametersNames=="phi")){
+                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
             }
         }
-        # Check, if there are deltas (for xreg)
-        if(any(substr(parametersNames,1,5)=="delta")){
-            deltas <- which(substr(parametersNames,1,5)=="delta");
-            adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
-            adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
+
+        # Restrictions on the initials for the multiplicative models (greater than zero)
+        # Level
+        if(errorType(object)=="M" && any(parametersNames=="level")){
+            adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
         }
-        # Check, if there is phi
-        if(any(parametersNames=="phi")){
-            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
+        # Trend
+        if(substr(object,2,2)=="M" && any(parametersNames=="trend")){
+            adamCoefBounds["trend",1] <- max(-parameters["trend"],adamCoefBounds["trend",1]);
+        }
+        # Seasonality
+        if(substr(object,nchar(object),nchar(object))=="M" && any(substr(parametersNames,1,8)=="seasonal")){
+            seasonals <- which(substr(parametersNames,1,8)=="seasonal");
+            adamCoefBounds[seasonals,1] <- max(-parameters[seasonals],adamCoefBounds[seasonals,1]);
         }
     }
-    #### Admissible bounds ####
-    else if(object$bounds=="admissible"){
-        # Check, if there is alpha
-        if(any(parametersNames=="alpha")){
-            alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                       variableNumber=which(names(object$persistence)=="alpha"));
-            adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
-            adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
-        }
-        # Check, if there is beta
-        if(any(parametersNames=="beta")){
-            betaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                      variableNumber=which(names(object$persistence)=="beta"));
-            adamCoefBounds["beta",1] <- max(alphaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
-            adamCoefBounds["beta",2] <- min(alphaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
-        }
-        # Check, if there are gammas
-        if(any(substr(parametersNames,1,5)=="gamma")){
-            gammas <- which(substr(parametersNames,1,5)=="gamma");
-            for(i in 1:length(gammas)){
-                gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                           variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
-                adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
-                adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
-            }
-        }
-        # Check, if there are deltas (for xreg)
-        if(any(substr(parametersNames,1,5)=="delta")){
-            deltas <- which(substr(parametersNames,1,5)=="delta");
-            for(i in 1:length(deltas)){
-                deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                           variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
-                adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
-                adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
-            }
-        }
 
-        # These are "usual" bounds for phi. We don't care about other bounds
-        if(any(parametersNames=="phi")){
-            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
+    # Correct the bounds for the ARIMA model
+    if(arimaModel){
+        #### Deal with ARIMA parameters ####
+        ariPolynomial <- object$other$polynomial$ariPolynomial;
+        arPolynomial <- object$other$polynomial$arPolynomial;
+        maPolynomial <- object$other$polynomial$maPolynomial;
+        nonZeroARI <- object$other$ARIMAIndices$nonZeroARI;
+        nonZeroMA <- object$other$ARIMAIndices$nonZeroMA;
+        arPolynomialMatrix <- object$other$arPolynomialMatrix;
+        # Locate all thetas for ARIMA
+        thetas <- which(substr(parametersNames,1,5)=="theta");
+        # Locate phi for ARIMA (they are always phi1, phi2 etc)
+        phis <- which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3));
+        # Do loop for thetas
+        if(length(thetas)>0){
+            # MA parameters
+            for(i in 1:length(thetas)){
+                print(i)
+                thetaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                                           variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
+                # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
+                if(any(nonZeroARI[,2]==i)){
+                    ariIndex <- which(nonZeroARI[,2]==i);
+                    adamCoefBounds[thetas[i],1] <- max(thetaBounds[1]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                                                       adamCoefBounds[thetas[i],1]);
+                    adamCoefBounds[thetas[i],2] <- min(thetaBounds[2]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                                                       adamCoefBounds[thetas[i],2]);
+                }
+                else{
+                    adamCoefBounds[thetas[i],1] <- max(thetaBounds[1]-parameters[thetas[i]], adamCoefBounds[thetas[i],1]);
+                    adamCoefBounds[thetas[i],2] <- min(thetaBounds[2]-parameters[thetas[i]], adamCoefBounds[thetas[i],2]);
+                }
+            }
+        }
+        # Locate phi for ARIMA (they are always phi1, phi2 etc)
+        if(length(phis)>0){
+            arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
+                # The lower bound
+                arPolynomial[variableNumber] <- -5;
+                arPolynomialMatrix[,1] <- -arPolynomial[-1];
+                arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+                while(arPolyroots){
+                    arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
+                    arPolynomialMatrix[,1] <- -arPolynomial[-1];
+                    arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+                }
+                lowerBound <- arPolynomial[variableNumber]-0.01;
+                # The upper bound
+                arPolynomial[variableNumber] <- 5;
+                arPolynomialMatrix[,1] <- -arPolynomial[-1];
+                arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+                while(arPolyroots){
+                    arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
+                    arPolynomialMatrix[,1] <- -arPolynomial[-1];
+                    arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+                }
+                upperBound <- arPolynomial[variableNumber]+0.01;
+                return(c(lowerBound, upperBound));
+            }
+
+            # AR parameters
+            for(i in 1:length(phis)){
+                # Get bounds for AR based on stationarity condition
+                phiBounds <- arPolinomialsBounds(arPolynomialMatrix, arPolynomial,
+                                                 which(arPolynomial==arPolynomial[arPolynomial!=0][-1][i]));
+
+                adamCoefBounds[phis[i],1] <- max(phiBounds[1]-parameters[phis[i]], adamCoefBounds[phis[i],1]);
+                adamCoefBounds[phis[i],2] <- min(phiBounds[2]-parameters[phis[i]], adamCoefBounds[phis[i],2]);
+            }
         }
     }
-    #### Check, if there are thetas - ARIMA
-    # Check the eigenvalues for different thetas
-    # if(any(substr(parametersNames,1,5)=="theta")){
-    #     thetas <- which(substr(parametersNames,1,5)=="theta");
-    #     for(i in 1:length(thetas)){
-    #         thetaBounds <- eigenBounds(object, as.matrix(object$persistence),
-    #                                    variableNumber=which(substr(names(object$persistence),1,5)=="psi"));
-    #         adamCoefBounds[thetas[i],1] <- max(deltaBounds[1]-parameters[thetas[i]],adamCoefBounds[thetas[i],1]);
-    #         adamCoefBounds[thetas[i],2] <- min(deltaBounds[2]-parameters[thetas[i]],adamCoefBounds[thetas[i],2]);
-    #     }
-    # }
-    # Locate phi for ARIMA (they are always phi1, phi2 etc)
-    # if(any(substr(parametersNames,1,3)=="phi" & nchar(parametersNames)>3)){
-    # }
-
-    # # Stationarity condition of ARIMA
-    # if(arimaModel){
-    #     # Calculate the polynomial roots for AR
-    #     if(arEstimate){
-    #         arPolynomialMatrix[,1] <- -object$arimaPolynomials$arPolynomial[-1];
-    #         arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
-    #         if(any(arPolyroots>1)){
-    #             return(1E+100*max(arPolyroots));
-    #         }
-    #     }
-    # }
-
-    # # Restrictions on the initials for the multiplicative models (greater than zero)
 
     adamReturn <- cbind(adamSD,adamCoefBounds);
     colnames(adamReturn) <- c("S.E.",
