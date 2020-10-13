@@ -1840,8 +1840,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
         }
 
-        # Produce fitted values and errors
-
         # Write down the initials in the recent profile
         profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
 
@@ -4886,7 +4884,6 @@ print.adamCombined <- function(x, digits=4, ...){
 }
 
 #### Coefficients ####
-#' @importFrom truncnorm qtruncnorm
 #' @export
 confint.adam <- function(object, parm, level=0.95, ...){
     adamVcov <- vcov(object);
@@ -4953,64 +4950,42 @@ confint.adam <- function(object, parm, level=0.95, ...){
     if(object$bounds=="usual"){
         # Check, if there is alpha
         if(any(parametersNames=="alpha")){
-            adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=-parameters["alpha"],
-                                                    b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
-            adamCoefBounds["alpha",2] <- qtruncnorm((1+level)/2, a=-parameters["alpha"],
-                                                    b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+            adamCoefBounds["alpha",1] <- max(-parameters["alpha"],adamCoefBounds["alpha",1]);
+            adamCoefBounds["alpha",2] <- min(1-parameters["alpha"],adamCoefBounds["alpha",2]);
         }
         # Check, if there is beta
         if(any(parametersNames=="beta")){
+            adamCoefBounds["beta",1] <- max(-parameters["beta"],adamCoefBounds["beta",1]);
             if(any(parametersNames=="alpha")){
-                adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=-parameters["beta"],
-                                                       b=parameters["alpha"]-parameters["beta"],
-                                                       mean=0, sd=adamSD["beta"]);
-                adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=-parameters["beta"],
-                                                       b=parameters["alpha"]-parameters["beta"],
-                                                       mean=0, sd=adamSD["beta"]);
+                adamCoefBounds["beta",2] <- min(parameters["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
             }
             else{
-                adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=-parameters["beta"],
-                                                       b=object$persistence["alpha"]-parameters["beta"],
-                                                       mean=0, sd=adamSD["beta"]);
-                adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=-parameters["beta"],
-                                                       b=object$persistence["alpha"]-parameters["beta"],
-                                                       mean=0, sd=adamSD["beta"]);
+                adamCoefBounds["beta",2] <- min(object$persistence["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
             }
         }
         # Check, if there are gammas
         if(any(substr(parametersNames,1,5)=="gamma")){
             gammas <- which(substr(parametersNames,1,5)=="gamma");
+            adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
             if(any(parametersNames=="alpha")){
-                adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=-parameters[gammas],
-                                                       b=1-parameters["alpha"]-parameters[gammas],
-                                                       mean=0, sd=adamSD[gammas]);
-                adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=-parameters[gammas],
-                                                       b=1-parameters["alpha"]-parameters[gammas],
-                                                       mean=0, sd=adamSD[gammas]);
+                adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                        parameters["alpha"]-parameters[gammas]),1,min);
             }
             else{
-                adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=-parameters[gammas],
-                                                       b=1-object$persistence["alpha"]-parameters[gammas],
-                                                       mean=0, sd=adamSD[gammas]);
-                adamCoefBounds[gammas,2] <- qtruncnorm((1+level)/2, a=-parameters[gammas],
-                                                       b=1-object$persistence["alpha"]-parameters[gammas],
-                                                       mean=0, sd=adamSD[gammas]);
+                adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                        object$persistence["alpha"]-parameters[gammas]),1,min);
             }
         }
         # Check, if there are deltas (for xreg)
         if(any(substr(parametersNames,1,5)=="delta")){
             deltas <- which(substr(parametersNames,1,5)=="delta");
-            adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
-                                                   mean=0, sd=adamSD[deltas]);
-            adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
-                                                   mean=0, sd=adamSD[deltas]);
+            adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
+            adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
         }
         # Check, if there is phi
         if(any(parametersNames=="phi")){
-            adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
-                                                   mean=0, sd=adamSD["phi"]);
-            adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
-                                                   mean=0, sd=adamSD["phi"]);
+            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
         }
     }
     #### Admissible bounds ####
@@ -5019,34 +4994,24 @@ confint.adam <- function(object, parm, level=0.95, ...){
         if(any(parametersNames=="alpha")){
             alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                        variableNumber=which(names(object$persistence)=="alpha"));
-            adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=alphaBounds[1]-parameters["alpha"],
-                                                    b=alphaBounds[2]-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
-            adamCoefBounds["alpha",2] <- qtruncnorm((1+level)/2, a=alphaBounds[1]-parameters["alpha"],
-                                                    b=alphaBounds[2]-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
+            adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
+            adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
         }
         # Check, if there is beta
         if(any(parametersNames=="beta")){
             betaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                       variableNumber=which(names(object$persistence)=="beta"));
-            adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=betaBounds[1]-parameters["beta"],
-                                                   b=betaBounds[2]-parameters["beta"],
-                                                   mean=0, sd=adamSD["beta"]);
-            adamCoefBounds["beta",2] <- qtruncnorm((1+level)/2, a=betaBounds[1]-parameters["beta"],
-                                                   b=betaBounds[2]-parameters["beta"],
-                                                   mean=0, sd=adamSD["beta"]);
+            adamCoefBounds["beta",1] <- max(alphaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
+            adamCoefBounds["beta",2] <- min(alphaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
         }
         # Check, if there are gammas
         if(any(substr(parametersNames,1,5)=="gamma")){
             gammas <- which(substr(parametersNames,1,5)=="gamma");
             for(i in 1:length(gammas)){
                 gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                           variableNumber=which(substr(names(object$persistence),1,5)=="gamma"));
-                adamCoefBounds[gammas[i],1] <- qtruncnorm((1-level)/2, a=gammaBounds[1]-parameters[gammas[i]],
-                                                       b=gammaBounds[2]-parameters[gammas[i]],
-                                                       mean=0, sd=adamSD[gammas[i]]);
-                adamCoefBounds[gammas[i],2] <- qtruncnorm((1+level)/2, a=gammaBounds[1]-parameters[gammas[i]],
-                                                       b=gammaBounds[2]-parameters[gammas[i]],
-                                                       mean=0, sd=adamSD[gammas[i]]);
+                                           variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
+                adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
+                adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
             }
         }
         # Check, if there are deltas (for xreg)
@@ -5054,27 +5019,28 @@ confint.adam <- function(object, parm, level=0.95, ...){
             deltas <- which(substr(parametersNames,1,5)=="delta");
             for(i in 1:length(deltas)){
                 deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
-                                           variableNumber=deltas[1]);
-                adamCoefBounds[deltas[i],1] <- qtruncnorm((1-level)/2, a=deltaBounds[1]-parameters[deltas[i]],
-                                                       b=deltaBounds[2]-parameters[deltas[i]],
-                                                       mean=0, sd=adamSD[deltas[i]]);
-                adamCoefBounds[deltas[i],2] <- qtruncnorm((1+level)/2, a=deltaBounds[1]-parameters[deltas[i]],
-                                                       b=deltaBounds[2]-parameters[deltas[i]],
-                                                       mean=0, sd=adamSD[deltas[i]]);
+                                           variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
+                adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
+                adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
             }
         }
 
-        # Check, if there is phi
+        # These are "usual" bounds for phi. We don't care about other bounds
         if(any(parametersNames=="phi")){
-            adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
-                                                   mean=0, sd=adamSD["phi"]);
-            adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
-                                                   mean=0, sd=adamSD["phi"]);
+            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
         }
     }
     #### Check, if there are thetas - ARIMA
-    # Check the eigenvalues for differen thetas
+    # Check the eigenvalues for different thetas
     # if(any(substr(parametersNames,1,5)=="theta")){
+    #     thetas <- which(substr(parametersNames,1,5)=="theta");
+    #     for(i in 1:length(thetas)){
+    #         thetaBounds <- eigenBounds(object, as.matrix(object$persistence),
+    #                                    variableNumber=which(substr(names(object$persistence),1,5)=="psi"));
+    #         adamCoefBounds[thetas[i],1] <- max(deltaBounds[1]-parameters[thetas[i]],adamCoefBounds[thetas[i],1]);
+    #         adamCoefBounds[thetas[i],2] <- min(deltaBounds[2]-parameters[thetas[i]],adamCoefBounds[thetas[i],2]);
+    #     }
     # }
     # Locate phi for ARIMA (they are always phi1, phi2 etc)
     # if(any(substr(parametersNames,1,3)=="phi" & nchar(parametersNames)>3)){
@@ -5091,6 +5057,8 @@ confint.adam <- function(object, parm, level=0.95, ...){
     #         }
     #     }
     # }
+
+    # # Restrictions on the initials for the multiplicative models (greater than zero)
 
     adamReturn <- cbind(adamSD,adamCoefBounds);
     colnames(adamReturn) <- c("S.E.",
@@ -5184,6 +5152,7 @@ summary.adam <- function(object, level=0.95, ...){
     ourReturn$nparam <- nparam(object);
     ourReturn$nParam <- object$nParam;
     ourReturn$call <- object$call;
+    ourReturn$other <- object$other;
 
     if(object$loss=="likelihood" ||
        (any(object$loss==c("MSE","MSEh","MSCE")) & (object$distribution=="dnorm")) ||
@@ -5289,20 +5258,27 @@ vcov.adam <- function(object, ...){
     }
     y <- actuals(object);
     modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE));
-    vcovMatrix <- try(chol2inv(chol(modelReturn$FI)), silent=TRUE);
+    # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+    brokenVariables <- apply(modelReturn$FI==0,1,all);
+    FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables];
+
+    vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
     if(inherits(vcovMatrix,"try-error")){
-        vcovMatrix <- try(solve(modelReturn$FI, diag(ncol(modelReturn$FI)), tol=1e-20), silent=TRUE);
+        vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
         if(inherits(vcovMatrix,"try-error")){
             warning(paste0("Sorry, but the hessian is singular, so we could not invert it.\n",
                            "We failed to produce the covariance matrix of parameters."),
                     call.=FALSE);
-            vcovMatrix <- diag(1e+100,ncol(modelReturn$FI));
+            vcovMatrix <- diag(1e+100,ncol(FIMatrix));
         }
     }
-    colnames(vcovMatrix) <- rownames(vcovMatrix) <- colnames(modelReturn$FI);
+    # If there were broken variables, reproduce the zero elements.
+    # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+    modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+    modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
     # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-    diag(vcovMatrix) <- abs(diag(vcovMatrix));
-    return(vcovMatrix);
+    diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+    return(modelReturn$FI);
 }
 
 #### Residuals and actuals functions ####

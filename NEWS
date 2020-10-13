@@ -10,9 +10,7 @@ Changes:
 * Renamed parameters for distributions in adam(). dalaplace now accepts alpha, dgnorm - beta and dt - nu. This resolves the conflict with LASSO and lambda.
 * Use internal gnorm() functions.
 * Return call and bounds in adam().
-* Use truncated normal distribution for the confidence intervals for smoothing parameters. This only works for usual bounds at the moment.
-* Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
-* Truncated normal should now work for deltas as well.
+* Use rectified normal distribution for the confidence intervals for smoothing parameters and ARIMA.
 * The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
 * adam() now uses profiles instead of lags for seasonal models. These are updated on every observation via ETS approach.
 * msdecompose() now produces initials suitable for the first observation of the data via a simple extrapolation.

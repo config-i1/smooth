@@ -40,10 +40,10 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
 
         // Refine the head (in order for it to make sense)
         for (int i=0; i<lagsModelMax; i=i+1) {
+            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
 
-            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
         }
         ////// Run forward
         // Loop for the model construction

@@ -27,7 +27,6 @@ Imports:
     forecast (>= 7.0),
     pracma,
     statmod,
-    truncnorm,
     MASS,
     nloptr,
     utils,
