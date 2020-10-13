@@ -4892,17 +4892,17 @@ confint.adam <- function(object, parm, level=0.95, ...){
     adamVcov <- vcov(object);
     parameters <- coef(object);
     adamSD <- sqrt(abs(diag(adamVcov)));
-    parameterNames <- names(adamSD);
+    parametersNames <- names(adamSD);
     nParam <- length(adamSD);
     adamCoefBounds <- matrix(0,nParam,2,
-                             dimnames=list(parameterNames,NULL));
+                             dimnames=list(parametersNames,NULL));
     # Fill in the values with normal bounds
     adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
     adamCoefBounds[,2] <- qt((1+level)/2, df=nobs(object)+nparam(object))*adamSD;
 
     #### Construct bounds for the smoothing parameters ####
 
-    #### The function inverts the measurement matrix, setting infinte values to zero
+    #### The function inverts the measurement matrix, setting infinite values to zero
     # This is needed for the stability check for xreg models with xregDo="adapt"
     measurementInverter <- function(measurement){
         measurement[] <- 1/measurement;
@@ -4952,15 +4952,15 @@ confint.adam <- function(object, parm, level=0.95, ...){
     #### The usual bounds ####
     if(object$bounds=="usual"){
         # Check, if there is alpha
-        if(any(parameterNames=="alpha")){
+        if(any(parametersNames=="alpha")){
             adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=-parameters["alpha"],
                                                     b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
             adamCoefBounds["alpha",2] <- qtruncnorm((1+level)/2, a=-parameters["alpha"],
                                                     b=1-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
         }
         # Check, if there is beta
-        if(any(parameterNames=="beta")){
-            if(any(parameterNames=="alpha")){
+        if(any(parametersNames=="beta")){
+            if(any(parametersNames=="alpha")){
                 adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=-parameters["beta"],
                                                        b=parameters["alpha"]-parameters["beta"],
                                                        mean=0, sd=adamSD["beta"]);
@@ -4978,9 +4978,9 @@ confint.adam <- function(object, parm, level=0.95, ...){
             }
         }
         # Check, if there are gammas
-        if(any(substr(parameterNames,1,5)=="gamma")){
-            gammas <- which(substr(parameterNames,1,5)=="gamma");
-            if(any(parameterNames=="alpha")){
+        if(any(substr(parametersNames,1,5)=="gamma")){
+            gammas <- which(substr(parametersNames,1,5)=="gamma");
+            if(any(parametersNames=="alpha")){
                 adamCoefBounds[gammas,1] <- qtruncnorm((1-level)/2, a=-parameters[gammas],
                                                        b=1-parameters["alpha"]-parameters[gammas],
                                                        mean=0, sd=adamSD[gammas]);
@@ -4998,15 +4998,15 @@ confint.adam <- function(object, parm, level=0.95, ...){
             }
         }
         # Check, if there are deltas (for xreg)
-        if(any(substr(parameterNames,1,5)=="delta")){
-            deltas <- which(substr(parameterNames,1,5)=="delta");
+        if(any(substr(parametersNames,1,5)=="delta")){
+            deltas <- which(substr(parametersNames,1,5)=="delta");
             adamCoefBounds[deltas,1] <- qtruncnorm((1-level)/2, a=-parameters[deltas], b=1-parameters[deltas],
                                                    mean=0, sd=adamSD[deltas]);
             adamCoefBounds[deltas,2] <- qtruncnorm((1+level)/2, a=-parameters[deltas], b=1-parameters[deltas],
                                                    mean=0, sd=adamSD[deltas]);
         }
         # Check, if there is phi
-        if(any(parameterNames=="phi")){
+        if(any(parametersNames=="phi")){
             adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
                                                    mean=0, sd=adamSD["phi"]);
             adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
@@ -5016,7 +5016,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
     #### Admissible bounds ####
     else if(object$bounds=="admissible"){
         # Check, if there is alpha
-        if(any(parameterNames=="alpha")){
+        if(any(parametersNames=="alpha")){
             alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                        variableNumber=which(names(object$persistence)=="alpha"));
             adamCoefBounds["alpha",1] <- qtruncnorm((1-level)/2, a=alphaBounds[1]-parameters["alpha"],
@@ -5025,7 +5025,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
                                                     b=alphaBounds[2]-parameters["alpha"], mean=0, sd=adamSD["alpha"]);
         }
         # Check, if there is beta
-        if(any(parameterNames=="beta")){
+        if(any(parametersNames=="beta")){
             betaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                       variableNumber=which(names(object$persistence)=="beta"));
             adamCoefBounds["beta",1] <- qtruncnorm((1-level)/2, a=betaBounds[1]-parameters["beta"],
@@ -5036,8 +5036,8 @@ confint.adam <- function(object, parm, level=0.95, ...){
                                                    mean=0, sd=adamSD["beta"]);
         }
         # Check, if there are gammas
-        if(any(substr(parameterNames,1,5)=="gamma")){
-            gammas <- which(substr(parameterNames,1,5)=="gamma");
+        if(any(substr(parametersNames,1,5)=="gamma")){
+            gammas <- which(substr(parametersNames,1,5)=="gamma");
             for(i in 1:length(gammas)){
                 gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                            variableNumber=which(substr(names(object$persistence),1,5)=="gamma"));
@@ -5050,8 +5050,8 @@ confint.adam <- function(object, parm, level=0.95, ...){
             }
         }
         # Check, if there are deltas (for xreg)
-        if(any(substr(parameterNames,1,5)=="delta")){
-            deltas <- which(substr(parameterNames,1,5)=="delta");
+        if(any(substr(parametersNames,1,5)=="delta")){
+            deltas <- which(substr(parametersNames,1,5)=="delta");
             for(i in 1:length(deltas)){
                 deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
                                            variableNumber=deltas[1]);
@@ -5065,7 +5065,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
         }
 
         # Check, if there is phi
-        if(any(parameterNames=="phi")){
+        if(any(parametersNames=="phi")){
             adamCoefBounds["phi",1] <- qtruncnorm((1-level)/2, a=-parameters["phi"], b=1-parameters["phi"],
                                                    mean=0, sd=adamSD["phi"]);
             adamCoefBounds["phi",2] <- qtruncnorm((1+level)/2, a=-parameters["phi"], b=1-parameters["phi"],
@@ -5074,10 +5074,10 @@ confint.adam <- function(object, parm, level=0.95, ...){
     }
     #### Check, if there are thetas - ARIMA
     # Check the eigenvalues for differen thetas
-    # if(any(substr(parameterNames,1,5)=="theta")){
+    # if(any(substr(parametersNames,1,5)=="theta")){
     # }
     # Locate phi for ARIMA (they are always phi1, phi2 etc)
-    # if(any(substr(parameterNames,1,3)=="phi" & nchar(parameterNames)>3)){
+    # if(any(substr(parametersNames,1,3)=="phi" & nchar(parametersNames)>3)){
     # }
 
     # # Stationarity condition of ARIMA
@@ -6736,6 +6736,106 @@ plot.adam.forecast <- function(x, ...){
 
 
 #### Other methods ####
+#' @export refitted
+refitted <- function(object, nsim=1000, ...) UseMethod("refitted")
+
+#' @export
+refitted.default <- function(object, nsim=1000, ...){
+    warning(paste0("The method is not properly implemented for the object of the class ,",class(object)[1]),
+            call.=FALSE);
+    return(structure(list(states=object$states, fitted=fitted(object)),
+                     class="refitted"));
+}
+
+#' @importFrom MASS mvrnorm
+#' @export
+refitted.adam <- function(object, nsim=1000, ...){
+    vcovAdam <- vcov(object);
+    parametersNames <- colnames(vcovAdam);
+    # If the vcov is not positive definite, complain and use just diagonal
+    if(det(vcovAdam)){
+        warning(paste0("The covariance matrix of parameters is not positive-definite. ",
+                       "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
+                call.=FALSE,immediate.=TRUE);
+        vcovAdam <- diag(diag(vcovAdam));
+    }
+
+    yInSample <- actuals(object);
+    yClasses <- class(yInSample);
+    parametersNumber <- length(parametersNames);
+    obsInSample <- nobs(object);
+
+    # Generate the data from the multivariate normal
+    randomParameters <- mvrnorm(nsim, coef(object), vcovAdam);
+
+    # Rectify the random values for smoothing parameters
+    # Usual bounds
+    if(object$bounds=="usual"){
+        # Set the bounds for alpha
+        if(any(parametersNames=="alpha")){
+            randomParameters[randomParameters[,"alpha"]<0,"alpha"] <- 0;
+            randomParameters[randomParameters[,"alpha"]>1,"alpha"] <- 1;
+        }
+        # Set the bounds for beta
+        if(any(parametersNames=="beta")){
+            randomParameters[randomParameters[,"beta"]<0,"beta"] <- 0;
+            randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"beta"] <-
+                randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"alpha"];
+        }
+        # Set the bounds for gamma
+        if(any(substr(parametersNames,1,5)=="gamma")){
+            gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
+            for(i in 1:length(gammaIndex)){
+                randomParameters[randomParameters[,gammaIndex[i]]<0,gammaIndex[i]] <- 0;
+                randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],
+                                 gammaIndex[i]] <- 1-
+                    randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],"alpha"];
+            }
+        }
+        # Set the bounds for deltas
+        if(any(substr(parametersNames,1,5)=="delta")){
+            deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
+            randomParameters[randomParameters[,deltaIndex]<0,deltaIndex] <- 0;
+            randomParameters[randomParameters[,deltaIndex]>1,deltaIndex] <- 1;
+        }
+    }
+    # Admissible bounds
+    else if(object$bounds=="admissible"){}
+
+    statesNames <- colnames(object$states);
+    statesIndexInUse <- which(statesNames %in% parametersNames);
+    statesIndexInUseNumber <- length(statesNamesInUse);
+
+    # Prepare the necessary objects
+    # States is defined similar to how it is done in adam.
+    # Inserting the existing one is needed in order to deal with the case, when one of the initials was provided
+    statesArray <- array(t(object$states[1:obsInSample,,drop=FALSE]),c(ncol(object$states),obsInSample,nsim),
+                         dimnames=list(statesNames,NULL,paste0("nsim",c(1:nsim))));
+    profilesRecentArray <- array(object$profile,c(dim(object$profile),nsim));
+    # Set the proper time stamps for the fitted
+    if(any(yClasses=="zoo")){
+        fittedMatrix <- zoo(array(NA,c(obsInSample,nsim),
+                                  dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                            order.by=time(yInSample));
+    }
+    else{
+        fittedMatrix <- ts(array(NA,c(obsInSample,nsim),
+                                 dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                           start=start(yInSample), frequency=frequency(yInSample));
+    }
+
+    #### 1. Update profilesRecentTable!!! Move the newly generated states into it
+    profilesRecentArray
+
+    #### 2. Refit the model with the new states. Create a C++ function for that based on the adamSimulator
+    adamRefitted <- adamRefitter();
+    fittedMatrix[] <- adamRefitted$fitted;
+    statesArray[] <- adamRefitted$states;
+
+    return(structure(list(states=statesArray, fitted=fittedMatrix),
+                     class="refitted"));
+}
+
 #' @export
 multicov.adam <- function(object, type=c("analytical","empirical","simulated"), ...){
     type <- match.arg(type);
@@ -6872,9 +6972,6 @@ pointLik.adam <- function(object, ...){
     return(likValues);
 }
 
-##### Other methods to implement #####
-# accuracy.adam <- function(object, holdout, ...){}
-# simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){}
 #' @export
 modelType.adam <- function(object, ...){
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
@@ -6913,3 +7010,6 @@ orders.adam <- function(object, ...){
     return(object$orders);
 }
 
+##### Other methods to implement #####
+# accuracy.adam <- function(object, holdout, ...){}
+# simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){}
