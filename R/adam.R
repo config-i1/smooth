@@ -4915,7 +4915,11 @@ confint.adam <- function(object, parm, level=0.95, ...){
     adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
     adamCoefBounds[,2] <- qt((1+level)/2, df=nobs(object)+nparam(object))*adamSD;
 
-    #### Construct bounds for the smoothing parameters ####
+    persistence <- as.matrix(object$persistence);
+    # If there is xreg, but no deltas, increase persistence by including zeroes
+    if(!is.null(object$xreg) && !any(substr(names(object$persistence),1,5)=="delta")){
+        persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
+    }
 
     #### The function inverts the measurement matrix, setting infinite values to zero
     # This is needed for the stability check for xreg models with xregDo="adapt"
@@ -4929,7 +4933,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
     # The function returns TRUE if the condition is violated
     eigenValues <- function(object, persistence){
         #### !!!! Eigne values checks do not work for xreg. So move to (0, 1) region
-        if(!is.null(object$xreg)){
+        if(!is.null(object$xreg) && any(substr(names(object$persistence),1,5)=="delta")){
             # We check the condition on average
             return(any(abs(eigen((object$transition -
                                       diag(as.vector(persistence)) %*%
@@ -4948,7 +4952,6 @@ confint.adam <- function(object, parm, level=0.95, ...){
         # The lower bound
         persistence[variableNumber,] <- -5;
         eigenValuesTested <- eigenValues(object, persistence);
-        print(object$transition)
         while(eigenValuesTested){
             persistence[variableNumber,] <- persistence[variableNumber,] + 0.01;
             eigenValuesTested[] <- eigenValues(object, persistence);
@@ -5021,14 +5024,14 @@ confint.adam <- function(object, parm, level=0.95, ...){
         else if(object$bounds=="admissible"){
             # Check, if there is alpha
             if(any(parametersNames=="alpha")){
-                alphaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                alphaBounds <- eigenBounds(object, persistence,
                                            variableNumber=which(names(object$persistence)=="alpha"));
                 adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
                 adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
             }
             # Check, if there is beta
             if(any(parametersNames=="beta")){
-                betaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                betaBounds <- eigenBounds(object, persistence,
                                           variableNumber=which(names(object$persistence)=="beta"));
                 adamCoefBounds["beta",1] <- max(alphaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
                 adamCoefBounds["beta",2] <- min(alphaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
@@ -5037,7 +5040,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
             if(any(substr(parametersNames,1,5)=="gamma")){
                 gammas <- which(substr(parametersNames,1,5)=="gamma");
                 for(i in 1:length(gammas)){
-                    gammaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                    gammaBounds <- eigenBounds(object, persistence,
                                                variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
                     adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
                     adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
@@ -5047,7 +5050,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
             if(any(substr(parametersNames,1,5)=="delta")){
                 deltas <- which(substr(parametersNames,1,5)=="delta");
                 for(i in 1:length(deltas)){
-                    deltaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                    deltaBounds <- eigenBounds(object, persistence,
                                                variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
                     adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
                     adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
@@ -5094,8 +5097,7 @@ confint.adam <- function(object, parm, level=0.95, ...){
         if(length(thetas)>0){
             # MA parameters
             for(i in 1:length(thetas)){
-                print(i)
-                thetaBounds <- eigenBounds(object, as.matrix(object$persistence),
+                thetaBounds <- eigenBounds(object, persistence,
                                            variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
                 # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
                 if(any(nonZeroARI[,2]==i)){
