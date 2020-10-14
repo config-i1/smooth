@@ -7097,18 +7097,39 @@ refit.adam <- function(object, nsim=1000, ...){
 #' @export
 plot.refit <- function(x, ...){
     ellipsis <- list(...);
+    ellipsis$x <- actuals(x);
     nsim <- ncol(x$refitted);
+
+    if(any(class(ellipsis$x)=="zoo")){
+        yQuantiles <- zoo(matrix(0,length(ellipsis$x),11),order.by=time(ellipsis$x));
+    }
+    else{
+        yQuantiles <- ts(matrix(0,length(ellipsis$x),11),start=start(ellipsis$x),frequency=frequency(ellipsis$x));
+    }
+    quantileseq <- seq(0,1,length.out=11);
+    yQuantiles[,1] <- apply(x$refitted,1,quantile,0.975);
+    yQuantiles[,11] <- apply(x$refitted,1,quantile,0.025);
+    for(i in 2:10){
+        yQuantiles[,i] <- apply(x$refitted,1,quantile,quantileseq[i]);
+    }
+
     if(is.null(ellipsis$ylim)){
-        ellipsis$ylim <- range(c(actuals(x),x$refitted),na.rm=TRUE);
+        ellipsis$ylim <- range(c(ellipsis$x,fitted(x)),na.rm=TRUE);
     }
     if(is.null(ellipsis$main)){
         ellipsis$main <- paste0("Refitted values of ",x$model);
     }
-    ellipsis$x <- actuals(x);
-    do.call(plot, ellipsis);
-    for(i in 1:nsim){
-        lines(x$refitted[,i],col="grey",lty=2)
+    if(is.null(ellipsis$ylab)){
+        ellipsis$ylab <- "";
     }
+
+    do.call(plot, ellipsis);
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,1],rev(yQuantiles[,11])), col=rgb(0.8,0.8,0.8,0.4), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,2],rev(yQuantiles[,10])), col=rgb(0.8,0.8,0.8,0.5), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,3],rev(yQuantiles[,9])), col=rgb(0.8,0.8,0.8,0.6), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,4],rev(yQuantiles[,8])), col=rgb(0.8,0.8,0.8,0.7), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,5],rev(yQuantiles[,7])), col=rgb(0.8,0.8,0.8,0.8), border="grey")
+    lines(ellipsis$x,col="black",lwd=1);
     lines(fitted(x),col="purple",lwd=2,lty=2);
 }
 
