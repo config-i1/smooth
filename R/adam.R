@@ -7069,9 +7069,11 @@ refit.adam <- function(object, nsim=1000, ...){
 
     if(is.null(object$occurrence)){
         ot <- matrix(rep(1, obsInSample));
+        pt <- rep(1, obsInSample);
     }
     else{
         ot <- matrix(actuals(object$occurrence));
+        pt <- fitted(object$occurrence);
     }
 
     yt <- matrix(actuals(object));
@@ -7082,7 +7084,7 @@ refit.adam <- function(object, nsim=1000, ...){
                                      lagsModelAll, profilesObservedTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
                                      componentsNumberARIMA, xregNumber);
-    fittedMatrix[] <- adamRefitted$fitted;
+    fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     arrVt[] <- adamRefitted$states;
     profilesRecentArray[] <- adamRefitted$profilesRecent;
 
@@ -7259,10 +7261,10 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
         if(is.occurrence(object$occurrence)){
             occurrenceModel <- TRUE;
             if(is.alm(object$occurrence)){
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+                pForecast <- suppressWarnings(forecast(object$occurrence,h=h,newdata=newdata)$mean);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+                pForecast <- suppressWarnings(forecast(object$occurrence,h=h,newdata=newdata)$mean);
             }
         }
         else{
@@ -7278,6 +7280,14 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
         }
     }
 
+    # Make sure that the values are of the correct length
+    if(h<length(pForecast)){
+        pForecast <- pForecast[1:h];
+    }
+    else if(h>length(pForecast)){
+        pForecast <- c(pForecast, rep(tail(pForecast,1), h-length(pForecast)));
+    }
+
     # Set the levels
     if(interval!="none"){
         # Fix just in case a silly user used 95 etc instead of 0.95
@@ -7289,10 +7299,6 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
 
         # If this is an occurrence model, then take probability into account in the level.
         # This correction is only needed for approximate, because the others contain zeroes
-        if(occurrenceModel && interval=="prediction"){
-            levelNew[] <- (levelNew-(1-as.vector(pForecast)))/as.vector(pForecast);
-            levelNew[levelNew<0] <- 0;
-        }
         if(side=="both"){
             levelLow[] <- (1-levelNew)/2;
             levelUp[] <- (1+levelNew)/2;
@@ -7397,14 +7403,6 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
     }
     else{
         xregNumber <- 0;
-    }
-
-    # Make sure that the values are of the correct length
-    if(h<length(pForecast)){
-        pForecast <- pForecast[1:h];
-    }
-    else if(h>length(pForecast)){
-        pForecast <- c(pForecast, rep(tail(pForecast,1), h-length(pForecast)));
     }
 
     #### Simulate the data ####
