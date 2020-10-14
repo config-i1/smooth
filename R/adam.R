@@ -6878,6 +6878,9 @@ refit.default <- function(object, nsim=1000, ...){
 #' @importFrom MASS mvrnorm
 #' @export
 refit.adam <- function(object, nsim=1000, ...){
+    # Start measuring the time of calculations
+    startTime <- Sys.time();
+
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
     # If the vcov is not positive definite, complain and use just diagonal
@@ -6885,8 +6888,8 @@ refit.adam <- function(object, nsim=1000, ...){
         warning(paste0("The covariance matrix of parameters is not positive-definite. ",
                        "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
                 call.=FALSE,immediate.=TRUE);
-        vcovAdam <- diag(diag(vcovAdam));
     }
+    vcovAdam <- diag(diag(vcovAdam));
 
     # All the variables needed in the refitter
     yInSample <- actuals(object);
@@ -7041,15 +7044,17 @@ refit.adam <- function(object, nsim=1000, ...){
             # If there is only one seasonality
             if(any(substr(parametersNames,1,9)=="seasonal_")){
                 initialSeasonalIndices <- 1;
+                seasonalNames <- "seasonal"
             }
             # If there are several
             else{
                 # This assumes that we cannot have more than 9 seasonalities.
-                initialSeasonalIndices <- as.numeric(substr(parametersNames,9,9));
+                initialSeasonalIndices <- as.numeric(unique(substr(parametersNames[substr(parametersNames,1,8)=="seasonal"],9,9)));
+                seasonalNames <- unique(substr(parametersNames[substr(parametersNames,1,8)=="seasonal"],1,9));
             }
             for(i in initialSeasonalIndices){
                 profilesRecentArray[j+i,1:(lagsSeasonal[i]-1),] <-
-                    t(randomParameters[,paste0("seasonal","_",c(1:(lagsSeasonal[i]-1)))]);
+                    t(randomParameters[,paste0(seasonalNames[i],"_",c(1:(lagsSeasonal[i]-1)))]);
                 profilesRecentArray[j+i,lagsSeasonal[i],] <-
                     switch(Stype,
                            "A"=-apply(profilesRecentArray[j+i,1:(lagsSeasonal[i]-1),,drop=FALSE],3,sum),
@@ -7081,21 +7086,49 @@ refit.adam <- function(object, nsim=1000, ...){
     arrVt[] <- adamRefitted$states;
     profilesRecentArray[] <- adamRefitted$profilesRecent;
 
-    return(structure(list(states=arrVt, fitted=fittedMatrix,
+    return(structure(list(y=actuals(object), states=arrVt, refitted=fittedMatrix,
+                          fitted=fitted(object), model=object$model,
+                          timeElapsed=Sys.time()-startTime,
                           transition=arrF, measurement=arrWt, persistence=matG,
                           profile=profilesRecentArray),
                      class="refit"));
 }
 
+#' @export
+plot.refit <- function(x, ...){
+    ellipsis <- list(...);
+    nsim <- ncol(x$refitted);
+    if(is.null(ellipsis$ylim)){
+        ellipsis$ylim <- range(c(actuals(x),x$refitted),na.rm=TRUE);
+    }
+    if(is.null(ellipsis$main)){
+        ellipsis$main <- paste0("Refitted values of ",x$model);
+    }
+    ellipsis$x <- actuals(x);
+    do.call(plot, ellipsis);
+    for(i in 1:nsim){
+        lines(x$refitted[,i],col="grey",lty=2)
+    }
+    lines(fitted(x),col="purple",lwd=2,lty=2);
+}
+
+#' @export
+print.refit <- function(x, ...){
+    nsim <- ncol(x$refitted);
+    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds"));
+    cat(paste0("\nModel refitted: ",x$model));
+    cat(paste0("\nNumber of simulation paths produced: ",nsim));
+}
+
 #' @rdname refit
 #' @export reforecast
-reforecast <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+reforecast <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
                        interval=c("none", "prediction", "confidence"),
                        level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                        ...) UseMethod("reforecast")
 
 #' @export
-reforecast.default <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+reforecast.default <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
                                interval=c("none", "prediction", "confidence"),
                                level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                                ...){
@@ -7269,11 +7302,11 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
                            level=level, side=side, ...));
         }
 
-        yForecast[] <- rowMeans(objectRefitted$fitted);
+        yForecast[] <- rowMeans(objectRefitted$refitted);
         if(interval=="confidence"){
             for(i in 1:hFinal){
-                yLower[i,] <- quantile(objectRefitted$fitted[i,],levelLow[i,]);
-                yUpper[i,] <- quantile(objectRefitted$fitted[i,],levelUp[i,]);
+                yLower[i,] <- quantile(objectRefitted$refitted[i,],levelLow[i,]);
+                yUpper[i,] <- quantile(objectRefitted$refitted[i,],levelUp[i,]);
             }
         }
         return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
@@ -7281,16 +7314,13 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
                          class=c("adam.predict","adam.forecast")));
     }
 
-    # All the important matrices
-    # We don't care what the matrix of states contains, we only need the profiles to be correct
-    arrVt <- objectRefitted$states[,obsStates-((h+lagsModelMax):1)+1,,drop=FALSE];
+    #### All the important matrices
     # Last h observations of measurement
     arrWt <- tail(objectRefitted$measurement,h);
     # If the forecast horizon is higher than the in-sample, duplicate the last value in matWt
     if(dim(arrWt)[1]<h){
         arrWt <- array(tail(arrWt,1), c(h, ncol(arrWt), nsim), dimnames=list(NULL,colnames(arrWt),NULL));
     }
-    matG <- objectRefitted$persistence;
 
     # Deal with explanatory variables
     if(!is.null(object$xreg)){
@@ -7347,7 +7377,6 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
     else{
         xregNumber <- 0;
     }
-    arrF <- objectRefitted$transition;
 
     # Make sure that the values are of the correct length
     if(h<length(pForecast)){
@@ -7386,10 +7415,12 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
                        c(h,nsim,nsim));
     # Array of the simulated data
     arrayYSimulated <- array(0,c(h,nsim,nsim));
-    # Array of binary variable
-    arrOt <- array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim));
     # Start the loop... might take some time
-    arrayYSimulated[] <- adamReforecasterWrap(arrErrors, arrOt, arrF, arrWt, matG,
+    arrayYSimulated[] <- adamReforecasterWrap(arrErrors,
+                                              array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim)),
+                                              objectRefitted$transition,
+                                              arrWt,
+                                              objectRefitted$persistence,
                                               EtypeModified, Ttype, Stype,
                                               lagsModelAll, profilesObservedTable, profilesRecentArray,
                                               componentsNumberETSSeasonal, componentsNumberETS,
@@ -7398,15 +7429,25 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
         yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=T));
-        yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelLow,type=7);
-        yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelUp,type=7);
+        if(interval!="none"){
+            yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelLow,type=7);
+            yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelUp,type=7);
+        }
     }
     else{
-        for(i in 1:h){
-            yForecast[i] <- mean(apply(arrayYSimulated[i,,],1,mean,na.rm=T));
-            for(j in 1:nLevels){
-                yLower[i,j] <- quantile(arrayYSimulated[i,,],levelLow[i,j],na.rm=T,type=7);
-                yUpper[i,j] <- quantile(arrayYSimulated[i,,],levelUp[i,j],na.rm=T,type=7);
+        yForecast[] <- apply(arrayYSimulated,1,mean,na.rm=T);
+        if(interval=="prediction"){
+            for(i in 1:h){
+                for(j in 1:nLevels){
+                    yLower[i,j] <- quantile(arrayYSimulated[i,,],levelLow[i,j],na.rm=T,type=7);
+                    yUpper[i,j] <- quantile(arrayYSimulated[i,,],levelUp[i,j],na.rm=T,type=7);
+                }
+            }
+        }
+        else if(interval=="confidence"){
+            for(i in 1:h){
+                yLower[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T),levelLow[i,],na.rm=T,type=7);
+                yUpper[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T),levelUp[i,],na.rm=T,type=7);
             }
         }
     }
