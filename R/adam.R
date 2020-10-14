@@ -6880,13 +6880,13 @@ refit.adam <- function(object, nsim=1000, ...){
 
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
-    # If the vcov is not positive definite, complain and use just diagonal
-    if(det(vcovAdam)<=0){
-        warning(paste0("The covariance matrix of parameters is not positive-definite. ",
-                       "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
-                call.=FALSE,immediate.=TRUE);
-    }
-    # vcovAdam <- diag(diag(vcovAdam));
+    # if(det(vcovAdam)<=0){
+    #     warning(paste0("The covariance matrix of parameters is not positive-definite. ",
+    #                    "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
+    #             call.=FALSE,immediate.=TRUE);
+    # }
+    # The vcov is typically not positive definite, so for now just use diagonal
+    vcovAdam <- diag(diag(vcovAdam));
 
     # All the variables needed in the refitter
     yInSample <- actuals(object);
