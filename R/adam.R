@@ -6885,12 +6885,8 @@ refit.adam <- function(object, nsim=1000, ...){
                        "We will try fixing this, but it might make sense re-evaluating adam(), tuning the optimiser."),
                 call.=FALSE, immediate.=TRUE);
         # Tune the thing a bit - one of simple ways to fix the issue
-        vcovAdam <- vcovAdam + 1e-6*diag(nrow(vcovAdam));
-
-        # If it is still not positive definite, then use diagonal
-        if(det(vcovAdam)<=0){
-            vcovAdam <- diag(diag(vcovAdam));
-        }
+        epsilon <- -min(eigen(vcovAdam, only.values=TRUE)$values)+1e-10;
+        vcovAdam[] <- vcovAdam + epsilon*diag(nrow(vcovAdam));
     }
 
     # All the variables needed in the refitter
