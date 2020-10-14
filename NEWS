@@ -16,7 +16,8 @@ Changes:
 * msdecompose() now produces initials suitable for the first observation of the data via a simple extrapolation.
 * Switched off dllaplace, dls and dlgnorm in adam(), because their mean values are not easy to calculate.
 * Log Normal distribution in adam() now assumes that the mean=-scale^2/2. This is needed in order to maintain the property of mean of error being equal to zero.
-* New method: refitted(), which reapplies the model (currently ADAM only) to the data with randomly generated initials and smoothing parmaters, based on the estimated values and the covariance matrix of parameters. Useful for confidence intervals for states and correct prediction intervals from the dynamic models.
+* New method: refit(), which reapplies the model (currently ADAM only) to the data with randomly generated initials and smoothing parmaters, based on the estimated values and the covariance matrix of parameters. Useful for confidence intervals for states and correct prediction intervals from the dynamic models.
+* A follow-up method from that - reforecast(), which uses states produced by refit() method.
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.

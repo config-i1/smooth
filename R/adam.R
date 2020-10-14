@@ -6266,7 +6266,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
 
         # States, Errors, Ot, Transition, Measurement, Persistence
-        ySimulated <- adamSimulatorwrap(arrVt, matErrors,
+        ySimulated <- adamSimulatorWrap(arrVt, matErrors,
                                         # matrix(rep(1,h*nsim), h, nsim),
                                         matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
                                         array(matF,c(dim(matF),nsim)), matWt,
@@ -6276,7 +6276,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                         componentsNumberETSSeasonal, componentsNumberETS,
                                         componentsNumberARIMA, xregNumber)$matrixYt;
 
-        ySimulated <<- ySimulated;
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
             yForecast[] <- mean(colSums(ySimulated,na.rm=T));
@@ -6799,25 +6798,40 @@ plot.adam.forecast <- function(x, ...){
 }
 
 
-#### Other methods ####
-#' Refit the model with randomly generated initial parameters
+#### Refitter and reforecaster ####
+#' Refit the model with randomly generated initial parameters and produce forecasts
 #'
-#' The functions generates the parameters based on the values in the provided object
-#' and reapplies the same model with those parameters to the data, getting the fitted
-#' paths.
+#' \code{refit} function generates the parameters based on the values in the provided
+#' object and then reapplies the same model with those parameters to the data, getting
+#' the fitted paths and updated states. \code{reforecast} function uses those values
+#' in order to produce forecasts for the \code{h} steps ahead.
 #'
 #' The main motivation of the function is to take the randomness due to the in-sample
-#' estimation into account when fitting the model and propagate this randomness to the
-#' future. The method can be considered as a special case of recursive bootstrap.
+#' estimation of parameters into account when fitting the model and to propagate
+#' this randomness to the forecasts. The methods can be considered as a special case
+#' of recursive bootstrap.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
 #'
-#' @aliases orders
 #' @param object Model estimated using one of the functions of smooth package.
 #' @param nsim Number of paths to generate (number of simulations to do).
-#' @param ... Currently nothing is accepted via ellipsis
-#' @return The object of the class "refitted" is returns, which contains:
+#' @param h Forecast horizon.
+#' @param newdata The new data needed in order to produce forecasts.
+#' @param occurrence The vector containing the future occurrence variable
+#' (values in [0,1]), if it is known.
+#' @param interval What type of mechanism to use for interval construction. The options
+#' include \code{interval="none"}, \code{interval="prediction"} (prediction intervals)
+#' and \code{interval="confidence"} (intervals for the point forecast). The other options
+#' are not supported and do not make much sense for the refitted model.
+#' @param level Confidence level. Defines width of prediction interval.
+#' @param side Defines, whether to provide \code{"both"} sides of prediction
+#' interval or only \code{"upper"}, or \code{"lower"}.
+#' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
+#' interval are produced instead of the normal ones. This is useful for
+#' inventory control systems.
+#' @param ... Other parameters passed to forecast / fitted functions.
+#' @return The object of the class "refit" is returns, which contains:
 #' \itemize{
 #' \item \code{states} - The array of states of the model;
 #' \item \code{fitted} - The matrix with fitted values, where columns correspond
@@ -6834,26 +6848,27 @@ plot.adam.forecast <- function(x, ...){
 #'
 #' # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 #' ourModel <- adam(x, "ANN")
-#' refittedModel <- refitted(ourModel, nsim=100)
+#' refittedModel <- refit(ourModel, nsim=100)
 #'
 #' plot(actuals(ourModel))
-#' for(i in 1:100){lines(ourModel$fitted[,i],col="grey",lty=2)}
-#' lines(fitted(test2),col="purple",lwd=1,lty=2)
+#' for(i in 1:100){lines(refittedModel$fitted[,i],col="grey",lty=2)}
+#' lines(fitted(ourModel),col="purple",lwd=1,lty=2)
 #'
-#' @export refitted
-refitted <- function(object, nsim=1000, ...) UseMethod("refitted")
+#' @rdname refit
+#' @export refit
+refit <- function(object, nsim=1000, ...) UseMethod("refit")
 
 #' @export
-refitted.default <- function(object, nsim=1000, ...){
-    warning(paste0("The method is not properly implemented for the object of the class ,",class(object)[1]),
+refit.default <- function(object, nsim=1000, ...){
+    warning(paste0("The method is not implemented for the object of the class ,",class(object)[1]),
             call.=FALSE);
     return(structure(list(states=object$states, fitted=fitted(object)),
-                     class="refitted"));
+                     class="refit"));
 }
 
 #' @importFrom MASS mvrnorm
 #' @export
-refitted.adam <- function(object, nsim=1000, ...){
+refit.adam <- function(object, nsim=1000, ...){
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
     # If the vcov is not positive definite, complain and use just diagonal
@@ -6878,8 +6893,18 @@ refitted.adam <- function(object, nsim=1000, ...){
     lagsSeasonal <- lags[lags!=1];
     lagsModelAll <- object$lagsAll;
     lagsModelMax <- max(lagsModelAll);
-    componentsNumberETSSeasonal <- sum(substr(colnames(object$states),1,8)=="seasonal");
-    componentsNumberETS <- componentsNumberETSSeasonal + (1+(Ttype!="N")*1)*etsModel;
+    if(!is.null(object$initial$seasonal)){
+        if(is.list(object$initial$seasonal)){
+            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+        }
+        else{
+            componentsNumberETSSeasonal <- 1;
+        }
+    }
+    else{
+        componentsNumberETSSeasonal <- 0;
+    }
+    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
     componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     if(!is.null(object$xreg)){
         xregNumber <- ncol(object$xreg);
@@ -7050,8 +7075,351 @@ refitted.adam <- function(object, nsim=1000, ...){
     return(structure(list(states=arrVt, fitted=fittedMatrix,
                           transition=arrF, measurement=arrWt, persistence=matG,
                           profile=profilesRecentArray),
-                     class="refitted"));
+                     class="refit"));
 }
+
+#' @rdname refit
+#' @export reforecast
+reforecast <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+                       interval=c("none", "prediction", "confidence"),
+                       level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
+                       ...) UseMethod("reforecast")
+
+#' @export
+reforecast.default <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+                               interval=c("none", "prediction", "confidence"),
+                               level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
+                               ...){
+    warning(paste0("The method is not implemented for the object of the class ,",class(object)[1]),
+            call.=FALSE);
+    return(forecast(object=object, h=h, newdata=newdata, occurrence=occurrence,
+                    interval=interval, level=level, side=side, cumulative=cumulative,
+                    nsim=nsim, ...));
+}
+
+#' @export
+reforecast.adam <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+                            interval=c("none", "prediction", "confidence"),
+                            level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
+                            ...){
+    objectRefitted <- refit(object, nsim=nsim);
+    ellipsis <- list(...);
+
+    #### <--- This part is widely a copy-paste from forecast.adam()
+    interval <- match.arg(interval[1],c("none", "prediction", "confidence"));
+    side <- match.arg(side);
+
+    # Model type
+    model <- modelType(object);
+    Etype <- errorType(object);
+    Ttype <- substr(model,2,2);
+    Stype <- substr(model,nchar(model),nchar(model));
+
+    # Technical parameters
+    lagsModelAll <- modelLags(object);
+    lagsModelMax <- max(lagsModelAll);
+    profilesRecentArray <- objectRefitted$profile;
+
+    if(!is.null(object$initial$seasonal)){
+        if(is.list(object$initial$seasonal)){
+            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+        }
+        else{
+            componentsNumberETSSeasonal <- 1;
+        }
+    }
+    else{
+        componentsNumberETSSeasonal <- 0;
+    }
+    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    obsStates <- nrow(object$states);
+    obsInSample <- nobs(object);
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h)$observed[,-c(1:obsInSample),drop=FALSE];
+
+    yClasses <- class(actuals(object));
+
+    if(any(yClasses=="ts")){
+        # ts structure
+        if(h>0){
+            yForecastStart <- time(actuals(object))[obsInSample]+deltat(actuals(object));
+        }
+        else{
+            yForecastStart <- time(actuals(object))[1];
+        }
+        yFrequency <- frequency(actuals(object));
+    }
+    else{
+        # zoo thingy
+        yIndex <- time(actuals(object));
+        if(h>0){
+            yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:h);
+        }
+        else{
+            yForecastIndex <- yIndex;
+        }
+    }
+
+    # How many levels did user asked to produce
+    nLevels <- length(level);
+    # Cumulative forecasts have only one observation
+    if(cumulative){
+        # hFinal is the number of elements we will have in the final forecast
+        hFinal <- 1;
+    }
+    else{
+        if(h>0){
+            hFinal <- h;
+        }
+        else{
+            hFinal <- obsInSample;
+        }
+    }
+
+    # Create necessary matrices for the forecasts
+    if(any(yClasses=="ts")){
+        yForecast <- ts(vector("numeric", hFinal), start=yForecastStart, frequency=yFrequency);
+        yUpper <- yLower <- ts(matrix(0,hFinal,nLevels), start=yForecastStart, frequency=yFrequency);
+    }
+    else{
+        yForecast <- zoo(vector("numeric", hFinal), order.by=yForecastIndex);
+        yUpper <- yLower <- zoo(matrix(0,hFinal,nLevels), order.by=yForecastIndex);
+    }
+
+    # If the occurrence values are provided for the holdout
+    if(!is.null(occurrence) && is.numeric(occurrence)){
+        pForecast <- occurrence;
+    }
+    else{
+        # If this is a mixture model, produce forecasts for the occurrence
+        if(is.occurrence(object$occurrence)){
+            occurrenceModel <- TRUE;
+            if(is.alm(object$occurrence)){
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+            }
+            else{
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+            }
+        }
+        else{
+            occurrenceModel <- FALSE;
+            # If this was provided occurrence, then use provided values
+            if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
+               (object$occurrence$occurrence=="provided")){
+                pForecast <- object$occurrence$forecast;
+            }
+            else{
+                pForecast <- rep(1, h);
+            }
+        }
+    }
+
+    # Set the levels
+    if(interval!="none"){
+        # Fix just in case a silly user used 95 etc instead of 0.95
+        if(any(level>1)){
+            level[] <- level / 100;
+        }
+        levelLow <- levelUp <- matrix(0,hFinal,nLevels);
+        levelNew <- matrix(level,nrow=hFinal,ncol=nLevels,byrow=TRUE);
+
+        # If this is an occurrence model, then take probability into account in the level.
+        # This correction is only needed for approximate, because the others contain zeroes
+        if(occurrenceModel && interval=="prediction"){
+            levelNew[] <- (levelNew-(1-as.vector(pForecast)))/as.vector(pForecast);
+            levelNew[levelNew<0] <- 0;
+        }
+        if(side=="both"){
+            levelLow[] <- (1-levelNew)/2;
+            levelUp[] <- (1+levelNew)/2;
+        }
+        else if(side=="upper"){
+            levelLow[] <- 0;
+            levelUp[] <- levelNew;
+        }
+        else{
+            levelLow[] <- 1-levelNew;
+            levelUp[] <- 1;
+        }
+        levelLow[levelLow<0] <- 0;
+        levelUp[levelUp<0] <- 0;
+    }
+
+    #### Return adam.predict if h<=0 ####
+    # If the horizon is zero, just construct fitted and potentially confidence interval thingy
+    if(h<=0){
+        # If prediction interval is needed, this can be done with predict.adam
+        if(any(interval==c("prediction","none"))){
+            warning(paste0("You've set h=",h," and interval=\"",interval,
+                           "\". There is no point in using reforecast() function for your task. ",
+                           "Using predict() method instead."),
+                    call.=FALSE);
+            return(predict(object, newdata=newdata,
+                           interval=interval,
+                           level=level, side=side, ...));
+        }
+
+        yForecast[] <- rowMeans(objectRefitted$fitted);
+        if(interval=="confidence"){
+            for(i in 1:hFinal){
+                yLower[i,] <- quantile(objectRefitted$fitted[i,],levelLow[i,]);
+                yUpper[i,] <- quantile(objectRefitted$fitted[i,],levelUp[i,]);
+            }
+        }
+        return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
+                              level=level, interval=interval, side=side),
+                         class=c("adam.predict","adam.forecast")));
+    }
+
+    # All the important matrices
+    # We don't care what the matrix of states contains, we only need the profiles to be correct
+    arrVt <- objectRefitted$states[,obsStates-((h+lagsModelMax):1)+1,,drop=FALSE];
+    # Last h observations of measurement
+    arrWt <- tail(objectRefitted$measurement,h);
+    # If the forecast horizon is higher than the in-sample, duplicate the last value in matWt
+    if(dim(arrWt)[1]<h){
+        arrWt <- array(tail(arrWt,1), c(h, ncol(arrWt), nsim), dimnames=list(NULL,colnames(arrWt),NULL));
+    }
+    matG <- objectRefitted$persistence;
+
+    # Deal with explanatory variables
+    if(!is.null(object$xreg)){
+        xregNumber <- ncol(object$xreg);
+        if(is.null(newdata) && (nrow(object$xreg)<(obsInSample+h))){
+            warning("The newdata is not provided. Predicting the explanatory variables based on what we have in-sample.",
+                    call.=FALSE);
+            newdata <- matrix(NA,h,xregNumber);
+            for(i in 1:xregNumber){
+                newdata[,i] <- adam(object$xreg[,i],h=h,silent=TRUE)$forecast;
+            }
+        }
+        else if(is.null(newdata) && (nrow(object$xreg)>=(obsInSample+h))){
+            newdata <- object$xreg[obsInSample+c(1:h),,drop=FALSE];
+        }
+        else{
+            # If this is not a matrix / data.frame, then convert to one
+            if(!is.data.frame(newdata) && !is.matrix(newdata)){
+                newdata <- as.data.frame(newdata);
+                colnames(newdata) <- "xreg";
+            }
+            if(nrow(newdata)<h){
+                warning(paste0("The newdata has ",nrow(newdata)," observations, while ",h," are needed. ",
+                               "Using the last available values as future ones."),
+                        call.=FALSE);
+                newnRows <- h-nrow(newdata);
+                xreg <- rbind(newdata,matrix(rep(tail(newdata,1),each=newnRows),newnRows,ncol(newdata)));
+            }
+            else if(nrow(newdata)>h){
+                warning(paste0("The newdata has ",nrow(newdata)," observations, while only ",h," are needed. ",
+                               "Using the last ",h," of them."),
+                        call.=FALSE);
+                xreg <- tail(newdata,h);
+            }
+            else{
+                xreg <- newdata;
+            }
+            xregNames <- colnames(object$xreg);
+
+            if(is.data.frame(xreg)){
+                testFormula <- formula(object);
+                testFormula[[2]] <- NULL;
+                # Expand the variables and use only those that are in the model
+                newdata <- model.frame(testFormula, xreg);
+                newdata <- model.matrix(newdata,data=newdata)[,xregNames];
+            }
+            else{
+                newdata <- xreg[,xregNames];
+            }
+            rm(xreg);
+        }
+        arrWt[,componentsNumberETS+componentsNumberARIMA+c(1:xregNumber),] <- newdata;
+    }
+    else{
+        xregNumber <- 0;
+    }
+    arrF <- objectRefitted$transition;
+
+    # Make sure that the values are of the correct length
+    if(h<length(pForecast)){
+        pForecast <- pForecast[1:h];
+    }
+    else if(h>length(pForecast)){
+        pForecast <- c(pForecast, rep(tail(pForecast,1), h-length(pForecast)));
+    }
+
+    #### Simulate the data ####
+    sigmaValue <- sigma(object);
+    # This stuff is needed in order to produce adequate values for weird models
+    EtypeModified <- Etype;
+    if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dls","dllaplace"))){
+        EtypeModified[] <- "M";
+    }
+    # Matrix for the errors
+    arrErrors <- array(switch(object$distribution,
+                              "dnorm"=rnorm(h*nsim^2, 0, sigmaValue),
+                              "dlaplace"=rlaplace(h*nsim^2, 0, sigmaValue/2),
+                              "ds"=rs(h*nsim^2, 0, (sigmaValue^2/120)^0.25),
+                              "dgnorm"=rgnorm(h*nsim^2, 0,
+                                              sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))),
+                              "dlogis"=rlogis(h*nsim^2, 0, sigmaValue*sqrt(3)/pi),
+                              "dt"=rt(h*nsim^2, obsInSample-nparam(object)),
+                              "dalaplace"=ralaplace(h*nsim^2, 0,
+                                                    sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
+                                                             (object$other$alpha^2+(1-object$other$alpha)^2)),
+                                                    object$other$alpha),
+                              "dlnorm"=rlnorm(h*nsim^2, -object$scale^2/2, object$scale)-1,
+                              "dinvgauss"=rinvgauss(h*nsim^2, 1, dispersion=sigmaValue^2)-1,
+                              "dllaplace"=exp(rlaplace(h*nsim^2, 0, sigmaValue/2))-1,
+                              "dls"=exp(rs(h*nsim^2, 0, (sigmaValue^2/120)^0.25))-1,
+                              "dlgnorm"=exp(rgnorm(h*nsim^2, 0,
+                                                   sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))))-1),
+                       c(h,nsim,nsim));
+    # Array of the simulated data
+    arrayYSimulated <- array(0,c(h,nsim,nsim));
+    # Array of binary variable
+    arrOt <- array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim));
+    # Start the loop... might take some time
+    for(i in 1:nsim){
+        # States, Errors, Ot, Transition, Measurement, Persistence
+        arrayYSimulated[,,i] <- adamSimulatorWrap(arrVt,
+                                                  matrix(arrErrors[,,i], h, nsim),
+                                                  matrix(arrOt[,,i], h, nsim),
+                                                  array(arrF[,,i],c(dim(arrF))),
+                                                  matrix(arrWt[,,i], h, dim(arrWt)[2]),
+                                                  matrix(matG[,i], nrow(matG), nsim),
+                                                  EtypeModified, Ttype, Stype,
+                                                  lagsModelAll, profilesObservedTable,
+                                                  matrix(profilesRecentArray[,,i],ncol=lagsModelMax),
+                                                  componentsNumberETSSeasonal, componentsNumberETS,
+                                                  componentsNumberARIMA, xregNumber)$matrixYt;
+    }
+
+    #### Note that the cumulative doesn't work with oes at the moment!
+    if(cumulative){
+        yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=T));
+        yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelLow,type=7);
+        yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelUp,type=7);
+    }
+    else{
+        for(i in 1:h){
+            yForecast[i] <- mean(apply(arrayYSimulated[i,,],1,mean,na.rm=T));
+            for(j in 1:nLevels){
+                yLower[i,j] <- quantile(arrayYSimulated[i,,],levelLow[i,j],na.rm=T,type=7);
+                yUpper[i,j] <- quantile(arrayYSimulated[i,,],levelUp[i,j],na.rm=T,type=7);
+            }
+        }
+    }
+
+
+    structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
+                   level=level, interval=interval, side=side, cumulative=cumulative,
+                   paths=arrayYSimulated),
+              class=c("adam.forecast","smooth.forecast","forecast"));
+}
+
+
+#### Other methods ####
 
 #' @export
 multicov.adam <- function(object, type=c("analytical","empirical","simulated"), ...){

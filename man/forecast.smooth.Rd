@@ -29,7 +29,7 @@
 \arguments{
 \item{object}{Time series model for which forecasts are required.}
 
-\item{h}{Forecast horizon}
+\item{h}{Forecast horizon.}
 
 \item{newdata}{The new data needed in order to produce forecasts.}
 
