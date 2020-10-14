@@ -6880,13 +6880,18 @@ refit.adam <- function(object, nsim=1000, ...){
 
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
-    # if(det(vcovAdam)<=0){
-    #     warning(paste0("The covariance matrix of parameters is not positive-definite. ",
-    #                    "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
-    #             call.=FALSE,immediate.=TRUE);
-    # }
-    # The vcov is typically not positive definite, so for now just use diagonal
-    vcovAdam <- diag(diag(vcovAdam));
+    if(det(vcovAdam)<=0){
+        warning(paste0("The covariance matrix of parameters is not positive definite. ",
+                       "We will try fixing this, but it might make sense re-evaluating adam(), tuning the optimiser."),
+                call.=FALSE, immediate.=TRUE);
+        # Tune the thing a bit - one of simple ways to fix the issue
+        vcovAdam <- vcovAdam + 1e-6*diag(nrow(vcovAdam));
+
+        # If it is still not positive definite, then use diagonal
+        if(det(vcovAdam)<=0){
+            vcovAdam <- diag(diag(vcovAdam));
+        }
+    }
 
     # All the variables needed in the refitter
     yInSample <- actuals(object);
