@@ -41,7 +41,7 @@ interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 }
 \value{
-The object of the class "refit" is returns, which contains:
+\code{refit()} returns object of the class "refit", which contains:
 \itemize{
 \item \code{states} - The array of states of the model;
 \item \code{fitted} - The matrix with fitted values, where columns correspond
@@ -51,6 +51,12 @@ to different paths;
 \item \code{persistence} - The matrix of persistence vectors (paths in columns);
 \item \code{profile} - The array of profiles obtained by the end of each fit.
 }
+
+\code{reforecast()} returns the object of the class \link[smooth]{forecast.adam},
+which contains in addition to the standard list the variable \code{paths} - all
+simulated trajectories with h in rows, simulated future paths for each state in
+columns and different states (obtained from \code{refit()} function) in the
+third dimension.
 }
 \description{
 \code{refit} function generates the parameters based on the values in the provided
@@ -70,15 +76,17 @@ x <- rnorm(100,0,1)
 
 # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 ourModel <- adam(x, "ANN")
-refittedModel <- refit(ourModel, nsim=100)
+refittedModel <- refit(ourModel, nsim=50)
 
 plot(actuals(ourModel))
-for(i in 1:100){lines(refittedModel$fitted[,i],col="grey",lty=2)}
+for(i in 1:50){lines(refittedModel$fitted[,i],col="grey",lty=2)}
 lines(fitted(ourModel),col="purple",lwd=1,lty=2)
+
+ourForecast <- reforecast(ourModel, nsim=50)
 
 }
 \seealso{
-\link[stats]{fitted}
+\link[stats]{fitted}, \link[smooth]{forecast.adam}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

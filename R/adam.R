@@ -6831,7 +6831,7 @@ plot.adam.forecast <- function(x, ...){
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
 #' @param ... Other parameters passed to forecast / fitted functions.
-#' @return The object of the class "refit" is returns, which contains:
+#' @return \code{refit()} returns object of the class "refit", which contains:
 #' \itemize{
 #' \item \code{states} - The array of states of the model;
 #' \item \code{fitted} - The matrix with fitted values, where columns correspond
@@ -6841,18 +6841,27 @@ plot.adam.forecast <- function(x, ...){
 #' \item \code{persistence} - The matrix of persistence vectors (paths in columns);
 #' \item \code{profile} - The array of profiles obtained by the end of each fit.
 #' }
-#' @seealso \link[stats]{fitted}
+#'
+#' \code{reforecast()} returns the object of the class \link[smooth]{forecast.adam},
+#' which contains in addition to the standard list the variable \code{paths} - all
+#' simulated trajectories with h in rows, simulated future paths for each state in
+#' columns and different states (obtained from \code{refit()} function) in the
+#' third dimension.
+#'
+#' @seealso \link[stats]{fitted}, \link[smooth]{forecast.adam}
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
 #'
 #' # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 #' ourModel <- adam(x, "ANN")
-#' refittedModel <- refit(ourModel, nsim=100)
+#' refittedModel <- refit(ourModel, nsim=50)
 #'
 #' plot(actuals(ourModel))
-#' for(i in 1:100){lines(refittedModel$fitted[,i],col="grey",lty=2)}
+#' for(i in 1:50){lines(refittedModel$fitted[,i],col="grey",lty=2)}
 #' lines(fitted(ourModel),col="purple",lwd=1,lty=2)
+#'
+#' ourForecast <- reforecast(ourModel, nsim=50)
 #'
 #' @rdname refit
 #' @export refit
@@ -7098,7 +7107,7 @@ reforecast.default <- function(object, nsim=1000, h=10, newdata=NULL, occurrence
 }
 
 #' @export
-reforecast.adam <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NULL,
+reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("none", "prediction", "confidence"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                             ...){
@@ -7380,20 +7389,11 @@ reforecast.adam <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NU
     # Array of binary variable
     arrOt <- array(rbinom(h*nsim^2, 1, pForecast), c(h,nsim,nsim));
     # Start the loop... might take some time
-    for(i in 1:nsim){
-        # States, Errors, Ot, Transition, Measurement, Persistence
-        arrayYSimulated[,,i] <- adamSimulatorWrap(arrVt,
-                                                  matrix(arrErrors[,,i], h, nsim),
-                                                  matrix(arrOt[,,i], h, nsim),
-                                                  array(arrF[,,i],c(dim(arrF))),
-                                                  matrix(arrWt[,,i], h, dim(arrWt)[2]),
-                                                  matrix(matG[,i], nrow(matG), nsim),
-                                                  EtypeModified, Ttype, Stype,
-                                                  lagsModelAll, profilesObservedTable,
-                                                  matrix(profilesRecentArray[,,i],ncol=lagsModelMax),
-                                                  componentsNumberETSSeasonal, componentsNumberETS,
-                                                  componentsNumberARIMA, xregNumber)$matrixYt;
-    }
+    arrayYSimulated[] <- adamReforecasterWrap(arrErrors, arrOt, arrF, arrWt, matG,
+                                              EtypeModified, Ttype, Stype,
+                                              lagsModelAll, profilesObservedTable, profilesRecentArray,
+                                              componentsNumberETSSeasonal, componentsNumberETS,
+                                              componentsNumberARIMA, xregNumber)$matrixYt;
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
@@ -7411,6 +7411,63 @@ reforecast.adam <- function(object, nsim=1000, h=10, newdata=NULL, occurrence=NU
         }
     }
 
+    # Fix of prediction intervals depending on what has happened
+    if(interval!="none"){
+        # Make sensible values out of those weird quantiles
+        if(!cumulative){
+            if(Etype=="A"){
+                yLower[levelLow==0] <- -Inf;
+            }
+            else{
+                yLower[levelLow==0] <- 0;
+            }
+            if(any(levelUp==1)){
+                yUpper[levelUp==1] <- Inf;
+            }
+        }
+        else{
+            if(Etype=="A" && any(levelLow==0)){
+                yLower[] <- -Inf;
+            }
+            else if(Etype=="M" && any(levelLow==0)){
+                yLower[] <- 0;
+            }
+            if(any(levelUp==1)){
+                yUpper[] <- Inf;
+            }
+        }
+
+        # Substitute NAs and NaNs with zeroes
+        if(any(is.nan(yLower)) || any(is.na(yLower))){
+            yLower[is.nan(yLower)] <- switch(Etype,"A"=0,"M"=1);
+            yLower[is.na(yLower)] <- switch(Etype,"A"=0,"M"=1);
+        }
+        if(any(is.nan(yUpper)) || any(is.na(yUpper))){
+            yUpper[is.nan(yUpper)] <- switch(Etype,"A"=0,"M"=1);
+            yUpper[is.na(yUpper)] <- switch(Etype,"A"=0,"M"=1);
+        }
+
+        # Check what we have from the occurrence model
+        if(occurrenceModel){
+            # If there are NAs, then there's no variability and no intervals.
+            if(any(is.na(yUpper))){
+                yUpper[is.na(yUpper)] <- (yForecast/pForecast)[is.na(yUpper)];
+            }
+            if(any(is.na(yLower))){
+                yLower[is.na(yLower)] <- 0;
+            }
+        }
+
+        colnames(yLower) <- switch(side,
+                                   "both"=paste0("Lower bound (",(1-level)/2*100,"%)"),
+                                   "lower"=paste0("Lower bound (",(1-level)*100,"%)"),
+                                   "upper"=rep("Lower 0%",nLevels));
+
+        colnames(yUpper) <- switch(side,
+                                   "both"=paste0("Upper bound (",(1+level)/2*100,"%)"),
+                                   "lower"=rep("Upper 100%",nLevels),
+                                   "upper"=paste0("Upper bound (",level*100,"%)"));
+    }
 
     structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                    level=level, interval=interval, side=side, cumulative=cumulative,
