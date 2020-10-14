@@ -297,7 +297,9 @@ the model,
 \item \code{lagsAll} - the vector of the internal lags used in the model,
 \item \code{profile} - the matrix with the profile used in the construction of the model,
 \item \code{call} - the call used in the evaluation,
-\item \code{bounds} - the type of bounds used in the process.
+\item \code{bounds} - the type of bounds used in the process,
+\item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
+polynomials.
 }
 }
 \description{

@@ -3677,7 +3677,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     if(any(substr(seasonalNames,1,9)=="seasonal_")){
                         initialSeasonalEstimateFI[] <- TRUE;
                     }
-                    # If there is several
+                    # If there are several
                     else{
                         initialSeasonalEstimateFI[unique(as.numeric(substr(seasonalNames,9,9)))] <- TRUE;
                     }
@@ -5014,11 +5014,6 @@ confint.adam <- function(object, parm, level=0.95, ...){
                 adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
                 adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
             }
-            # Check, if there is phi
-            if(any(parametersNames=="phi")){
-                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
-            }
         }
         #### Admissible bounds ####
         else if(object$bounds=="admissible"){
@@ -5056,12 +5051,12 @@ confint.adam <- function(object, parm, level=0.95, ...){
                     adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
                 }
             }
+        }
 
-            # These are "usual" bounds for phi. We don't care about other bounds
-            if(any(parametersNames=="phi")){
-                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
-            }
+        # These are "usual" bounds for phi. We don't care about other bounds
+        if(any(parametersNames=="phi")){
+            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
         }
 
         # Restrictions on the initials for the multiplicative models (greater than zero)
@@ -5069,12 +5064,14 @@ confint.adam <- function(object, parm, level=0.95, ...){
         if(errorType(object)=="M" && any(parametersNames=="level")){
             adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
         }
+        adamModelType <- modelType(object);
         # Trend
-        if(substr(object,2,2)=="M" && any(parametersNames=="trend")){
+        if(substr(adamModelType,2,2)=="M" && any(parametersNames=="trend")){
             adamCoefBounds["trend",1] <- max(-parameters["trend"],adamCoefBounds["trend",1]);
         }
         # Seasonality
-        if(substr(object,nchar(object),nchar(object))=="M" && any(substr(parametersNames,1,8)=="seasonal")){
+        if(substr(adamModelType,nchar(adamModelType),nchar(adamModelType))=="M" &&
+           any(substr(parametersNames,1,8)=="seasonal")){
             seasonals <- which(substr(parametersNames,1,8)=="seasonal");
             adamCoefBounds[seasonals,1] <- max(-parameters[seasonals],adamCoefBounds[seasonals,1]);
         }
@@ -6803,6 +6800,46 @@ plot.adam.forecast <- function(x, ...){
 
 
 #### Other methods ####
+#' Refit the model with randomly generated initial parameters
+#'
+#' The functions generates the parameters based on the values in the provided object
+#' and reapplies the same model with those parameters to the data, getting the fitted
+#' paths.
+#'
+#' The main motivation of the function is to take the randomness due to the in-sample
+#' estimation into account when fitting the model and propagate this randomness to the
+#' future. The method can be considered as a special case of recursive bootstrap.
+#'
+#' @template ssAuthor
+#' @template ssKeywords
+#'
+#' @aliases orders
+#' @param object Model estimated using one of the functions of smooth package.
+#' @param nsim Number of paths to generate (number of simulations to do).
+#' @param ... Currently nothing is accepted via ellipsis
+#' @return The object of the class "refitted" is returns, which contains:
+#' \itemize{
+#' \item \code{states} - The array of states of the model;
+#' \item \code{fitted} - The matrix with fitted values, where columns correspond
+#' to different paths;
+#' \item \code{transition} - The array of transition matrices;
+#' \item \code{measurement} - The array of measurement matrices;
+#' \item \code{persistence} - The matrix of persistence vectors (paths in columns);
+#' \item \code{profile} - The array of profiles obtained by the end of each fit.
+#' }
+#' @seealso \link[stats]{fitted}
+#' @examples
+#'
+#' x <- rnorm(100,0,1)
+#'
+#' # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
+#' ourModel <- adam(x, "ANN")
+#' refittedModel <- refitted(ourModel, nsim=100)
+#'
+#' plot(actuals(ourModel))
+#' for(i in 1:100){lines(ourModel$fitted[,i],col="grey",lty=2)}
+#' lines(fitted(test2),col="purple",lwd=1,lty=2)
+#'
 #' @export refitted
 refitted <- function(object, nsim=1000, ...) UseMethod("refitted")
 
@@ -6820,65 +6857,88 @@ refitted.adam <- function(object, nsim=1000, ...){
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
     # If the vcov is not positive definite, complain and use just diagonal
-    if(det(vcovAdam)){
+    if(det(vcovAdam)<=0){
         warning(paste0("The covariance matrix of parameters is not positive-definite. ",
                        "Try re-evaluating adam with higher maxeval. We will use just the diagonal of the matrix for now."),
                 call.=FALSE,immediate.=TRUE);
         vcovAdam <- diag(diag(vcovAdam));
     }
 
+    # All the variables needed in the refitter
     yInSample <- actuals(object);
     yClasses <- class(yInSample);
     parametersNumber <- length(parametersNames);
     obsInSample <- nobs(object);
+    Etype <- errorType(object);
+    Ttype <- substr(modelType(object),2,2);
+    Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    lags <- object$lags;
+    lagsSeasonal <- lags[lags!=1];
+    lagsModelAll <- object$lagsAll;
+    lagsModelMax <- max(lagsModelAll);
+    componentsNumberETSSeasonal <- sum(substr(colnames(object$states),1,8)=="seasonal");
+    componentsNumberETS <- componentsNumberETSSeasonal + (1+(Ttype!="N")*1)*etsModel;
+    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+    if(!is.null(object$xreg)){
+        xregNumber <- ncol(object$xreg);
+    }
+    else{
+        xregNumber <- 0;
+    }
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$observed;
 
     # Generate the data from the multivariate normal
     randomParameters <- mvrnorm(nsim, coef(object), vcovAdam);
 
     # Rectify the random values for smoothing parameters
-    # Usual bounds
-    if(object$bounds=="usual"){
-        # Set the bounds for alpha
-        if(any(parametersNames=="alpha")){
-            randomParameters[randomParameters[,"alpha"]<0,"alpha"] <- 0;
-            randomParameters[randomParameters[,"alpha"]>1,"alpha"] <- 1;
-        }
-        # Set the bounds for beta
-        if(any(parametersNames=="beta")){
-            randomParameters[randomParameters[,"beta"]<0,"beta"] <- 0;
-            randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"beta"] <-
-                randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"alpha"];
-        }
-        # Set the bounds for gamma
-        if(any(substr(parametersNames,1,5)=="gamma")){
-            gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
-            for(i in 1:length(gammaIndex)){
-                randomParameters[randomParameters[,gammaIndex[i]]<0,gammaIndex[i]] <- 0;
-                randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],
-                                 gammaIndex[i]] <- 1-
-                    randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],"alpha"];
+    if(etsModel){
+        # Usual bounds
+        if(object$bounds=="usual"){
+            # Set the bounds for alpha
+            if(any(parametersNames=="alpha")){
+                randomParameters[randomParameters[,"alpha"]<0,"alpha"] <- 0;
+                randomParameters[randomParameters[,"alpha"]>1,"alpha"] <- 1;
+            }
+            # Set the bounds for beta
+            if(any(parametersNames=="beta")){
+                randomParameters[randomParameters[,"beta"]<0,"beta"] <- 0;
+                randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"beta"] <-
+                    randomParameters[randomParameters[,"beta"]>randomParameters[,"alpha"],"alpha"];
+            }
+            # Set the bounds for gamma
+            if(any(substr(parametersNames,1,5)=="gamma")){
+                gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
+                for(i in 1:length(gammaIndex)){
+                    randomParameters[randomParameters[,gammaIndex[i]]<0,gammaIndex[i]] <- 0;
+                    randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],
+                                     gammaIndex[i]] <- 1-
+                        randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],"alpha"];
+                }
+            }
+            # Set the bounds for phi
+            if(any(parametersNames=="phi")){
+                randomParameters[randomParameters[,"phi"]<0,"phi"] <- 0;
+                randomParameters[randomParameters[,"phi"]>1,"phi"] <- 1;
             }
         }
-        # Set the bounds for deltas
-        if(any(substr(parametersNames,1,5)=="delta")){
-            deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
-            randomParameters[randomParameters[,deltaIndex]<0,deltaIndex] <- 0;
-            randomParameters[randomParameters[,deltaIndex]>1,deltaIndex] <- 1;
-        }
+        # Admissible bounds
+        else if(object$bounds=="admissible"){}
     }
-    # Admissible bounds
-    else if(object$bounds=="admissible"){}
-
-    statesNames <- colnames(object$states);
-    statesIndexInUse <- which(statesNames %in% parametersNames);
-    statesIndexInUseNumber <- length(statesNamesInUse);
+    # Set the bounds for deltas
+    if(any(substr(parametersNames,1,5)=="delta")){
+        deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
+        randomParameters[randomParameters[,deltaIndex]<0,deltaIndex] <- 0;
+        randomParameters[randomParameters[,deltaIndex]>1,deltaIndex] <- 1;
+    }
+    # ARIMA elements...
 
     # Prepare the necessary objects
-    # States is defined similar to how it is done in adam.
+    # States are defined similar to how it is done in adam.
     # Inserting the existing one is needed in order to deal with the case, when one of the initials was provided
-    statesArray <- array(t(object$states[1:obsInSample,,drop=FALSE]),c(ncol(object$states),obsInSample,nsim),
-                         dimnames=list(statesNames,NULL,paste0("nsim",c(1:nsim))));
-    profilesRecentArray <- array(object$profile,c(dim(object$profile),nsim));
+    arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states),nsim),
+                   dimnames=list(colnames(object$states),NULL,paste0("nsim",c(1:nsim))));
     # Set the proper time stamps for the fitted
     if(any(yClasses=="zoo")){
         fittedMatrix <- zoo(array(NA,c(obsInSample,nsim),
@@ -6891,15 +6951,105 @@ refitted.adam <- function(object, nsim=1000, ...){
                            start=start(yInSample), frequency=frequency(yInSample));
     }
 
-    #### 1. Update profilesRecentTable!!! Move the newly generated states into it
-    profilesRecentArray
+    # Transitiona and measurement
+    arrF <- array(object$transition,c(dim(object$transition),nsim));
+    arrWt <- array(object$measurement,c(dim(object$measurement),nsim));
+    # If we have phi, update the transition and measurement matrices
+    if(any(parametersNames=="phi")){
+        arrF[1,2,] <- arrF[2,2,] <- randomParameters[,"phi"];
+        arrWt[,2,] <- matrix(randomParameters[,"phi"],nrow(object$measurement),nsim,byrow=TRUE);
+    }
 
-    #### 2. Refit the model with the new states. Create a C++ function for that based on the adamSimulator
-    adamRefitted <- adamRefitter();
+    # Persistence matrix
+    if(xregNumber>0 && !any(substr(parametersNames,1,5)=="delta")){
+        matG <- array(c(object$persistence,rep(0,xregNumber)), c(length(object$persistence)+xregNumber, nsim),
+                      dimnames=list(c(names(object$persistence),paste0("delta",c(1:xregNumber))),
+                                    paste0("nsim",c(1:nsim))));
+    }
+    else{
+        matG <- array(object$persistence, c(length(object$persistence), nsim),
+                      dimnames=list(names(object$persistence), paste0("nsim",c(1:nsim))));
+    }
+    # Fill in the persistence
+    if(etsModel){
+        if(any(parametersNames=="alpha")){
+            matG["alpha",] <- randomParameters[,"alpha"];
+        }
+        if(any(parametersNames=="beta")){
+            matG["beta",] <- randomParameters[,"beta"];
+        }
+        if(any(substr(parametersNames,1,5)=="gamma")){
+            gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
+            matG[colnames(randomParameters)[gammaIndex],] <- t(randomParameters[,gammaIndex,drop=FALSE]);
+        }
+    }
+    if(xregNumber>0 && any(substr(parametersNames,1,5)=="delta")){
+        deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
+        matG[colnames(randomParameters)[deltaIndex],] <- t(randomParameters[,deltaIndex,drop=FALSE]);
+    }
+    if(arimaModel){
+        # Use nonZeroARI and nonZeroMA in order to get values in matG and arrF
+    }
+
+    # Fill in the profile values
+    profilesRecentArray <- array(object$profile,c(dim(object$profile),nsim));
+    if(etsModel){
+        j <- 0
+        if(any(parametersNames=="level")){
+            j <- j+1;
+            profilesRecentArray[j,1,] <- randomParameters[,"level"];
+        }
+        if(any(parametersNames=="trend")){
+            j <- j+1;
+            profilesRecentArray[j,1,] <- randomParameters[,"trend"];
+        }
+        if(any(substr(parametersNames,1,8)=="seasonal")){
+            # If there is only one seasonality
+            if(any(substr(parametersNames,1,9)=="seasonal_")){
+                initialSeasonalIndices <- 1;
+            }
+            # If there are several
+            else{
+                # This assumes that we cannot have more than 9 seasonalities.
+                initialSeasonalIndices <- as.numeric(substr(parametersNames,9,9));
+            }
+            for(i in initialSeasonalIndices){
+                profilesRecentArray[j+i,1:(lagsSeasonal[i]-1),] <-
+                    t(randomParameters[,paste0("seasonal","_",c(1:(lagsSeasonal[i]-1)))]);
+                profilesRecentArray[j+i,lagsSeasonal[i],] <-
+                    switch(Stype,
+                           "A"=-apply(profilesRecentArray[j+i,1:(lagsSeasonal[i]-1),,drop=FALSE],3,sum),
+                           "M"=1/apply(profilesRecentArray[j+i,1:(lagsSeasonal[i]-1),,drop=FALSE],3,prod),
+                           0);
+            }
+            j <- j+max(initialSeasonalIndices);
+        }
+    }
+    if(arimaModel){}
+    if(xregNumber>0){}
+
+    if(is.null(object$occurrence)){
+        ot <- matrix(rep(1, obsInSample));
+    }
+    else{
+        ot <- matrix(actuals(object$occurrence));
+    }
+
+    yt <- matrix(actuals(object));
+
+    # Refit the model with the new parameter
+    adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
+                                     Etype, Ttype, Stype,
+                                     lagsModelAll, profilesObservedTable, profilesRecentArray,
+                                     componentsNumberETSSeasonal, componentsNumberETS,
+                                     componentsNumberARIMA, xregNumber);
     fittedMatrix[] <- adamRefitted$fitted;
-    statesArray[] <- adamRefitted$states;
+    arrVt[] <- adamRefitted$states;
+    profilesRecentArray[] <- adamRefitted$profilesRecent;
 
-    return(structure(list(states=statesArray, fitted=fittedMatrix),
+    return(structure(list(states=arrVt, fitted=fittedMatrix,
+                          transition=arrF, measurement=arrWt, persistence=matG,
+                          profile=profilesRecentArray),
                      class="refitted"));
 }
 
