@@ -77,10 +77,7 @@ x <- rnorm(100,0,1)
 # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 ourModel <- adam(x, "ANN")
 refittedModel <- refit(ourModel, nsim=50)
-
-plot(actuals(ourModel))
-for(i in 1:50){lines(refittedModel$fitted[,i],col="grey",lty=2)}
-lines(fitted(ourModel),col="purple",lwd=1,lty=2)
+plot(refittedModel)
 
 ourForecast <- reforecast(ourModel, nsim=50)
 

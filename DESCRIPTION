@@ -24,6 +24,7 @@ Imports:
     Rcpp (>= 0.12.3),
     stats,
     graphics,
+    grDevices,
     forecast (>= 7.0),
     pracma,
     statmod,
