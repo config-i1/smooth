@@ -7342,7 +7342,7 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
 
     #### All the important matrices
     # Last h observations of measurement
-    arrWt <- tail(objectRefitted$measurement,h);
+    arrWt <- objectRefitted$measurement[obsInSample-c(h:1)+1,,,drop=FALSE];
     # If the forecast horizon is higher than the in-sample, duplicate the last value in matWt
     if(dim(arrWt)[1]<h){
         arrWt <- array(tail(arrWt,1), c(h, ncol(arrWt), nsim), dimnames=list(NULL,colnames(arrWt),NULL));
