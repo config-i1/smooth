@@ -1959,7 +1959,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 if(initialType=="optimal"){
                     # Standardise the level
-                    B[persistenceToSkip+j] <- (B[persistenceToSkip+j] - mean(yInSample[1:lagsModelMax])) / mean(yInSample[1:lagsModelMax]);
+                    B[persistenceToSkip+j] <- (B[persistenceToSkip+j] - mean(yInSample[1:lagsModelMax])) /
+                        mean(yInSample[1:lagsModelMax]);
                     # Change B values for the trend, so that it shrinks properly
                     if(Ttype=="M"){
                         j[] <- j+1;
@@ -1967,14 +1968,15 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     }
                     else if(Ttype=="A"){
                         j[] <- j+1;
-                        B[persistenceToSkip+j] <- B[persistenceToSkip+j]/mean(yInSample);
+                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
                     }
                     # Change B values for seasonality, so that it shrinks properly
                     if(Stype=="M"){
                         B[persistenceToSkip+j+1:(sum(lagsModel)-j)] <- log(B[persistenceToSkip+j+1:(sum(lagsModel)-j)]);
                     }
                     else if(Stype=="A"){
-                        B[persistenceToSkip+j+1:(sum(lagsModel)-j)] <- B[persistenceToSkip+j+1:(sum(lagsModel)-j)]/mean(yInSample);
+                        B[persistenceToSkip+j+1:(sum(lagsModel)-j)] <- B[persistenceToSkip+j+1:(sum(lagsModel)-j)] /
+                            mean(yInSample[1:lagsModelMax]);
                     }
 
                     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
@@ -2056,7 +2058,42 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            xregModel, xregNumber,
                            bounds, loss, lossFunction, distribution, horizon, multisteps,
                            other, otherParameterEstimate, lambda,
-                           arPolynomialMatrix, maPolynomialMatrix){
+                           arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
+
+        # If this is just for the calculation of hessian, return to the original values of parameters
+        if(hessianCalculation){
+            # Define, how many elements to skip (we don't normalise smoothing parameters)
+            if(persistenceXregEstimate){
+                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
+            }
+            else{
+                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
+            }
+            j <- 1;
+            if(phiEstimate){
+                j[] <- 2;
+            }
+            # Level
+            B[persistenceToSkip+j] <- B[persistenceToSkip+j] * mean(yInSample[1:lagsModelMax]);
+            # Trend
+            if(Ttype=="A"){
+                j[] <- j+1;
+                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * mean(yInSample[1:lagsModelMax]);
+            }
+            # Seasonality
+            if(Stype=="A"){
+                B[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] <- B[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] *
+                    mean(yInSample[1:lagsModelMax]);
+            }
+
+            # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
+            if(xregNumber>0 && Etype=="A"){
+                denominator <- tail(colMeans(abs(matWt)),xregNumber);
+                # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
+                denominator[abs(denominator)<1] <- 1;
+                B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) * denominator;
+            }
+        }
 
         if(!multisteps){
             if(any(loss==c("LASSO","RIDGE"))){
@@ -3737,7 +3774,44 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 maPolynomialMatrix <- arPolynomialMatrix <- NULL;
             }
 
-            FI <- -hessian(logLikADAM, B, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
+            ### All of this is needed in order to normalise level, trend, seasonal and xreg parameters
+            # This is needed in order to make hessian better behaved
+            BNew <- B;
+            # Define, how many elements to skip (we don't normalise smoothing parameters)
+            if(persistenceXregEstimate){
+                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
+            }
+            else{
+                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
+            }
+            j <- 1;
+            if(phiEstimate){
+                j[] <- 2;
+            }
+            if(initialTypeFI=="optimal"){
+                # Level
+                BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
+                # Trend
+                if(Ttype=="A"){
+                    j[] <- j+1;
+                    BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
+                }
+                # Seasonality
+                if(Stype=="A"){
+                    BNew[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] <- BNew[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] /
+                        mean(yInSample[1:lagsModelMax]);
+                }
+
+                # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
+                if(xregNumber>0 && Etype=="A"){
+                    denominator <- tail(colMeans(abs(matWt)),xregNumber);
+                    # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
+                    denominator[abs(denominator)<1] <- 1;
+                    BNew[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(BNew,xregNumber) / denominator;
+                }
+            }
+
+            FI <- -hessian(logLikADAM, BNew, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                            modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                            ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, pFitted=pFitted, obsInSample=obsInSample,
                            componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
@@ -3762,7 +3836,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distribution,
                            horizon=horizon, multisteps=multisteps,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
-                           arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix);
+                           arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
+                           hessianCalculation=TRUE);
 
             colnames(FI) <- names(B);
             rownames(FI) <- names(B);
@@ -6962,6 +7037,23 @@ refit.adam <- function(object, nsim=1000, ...){
         }
         # Admissible bounds
         else if(object$bounds=="admissible"){}
+
+        # States
+        # Set the bounds for level
+        if(Etype=="M" && any(parametersNames=="level")){
+            randomParameters[randomParameters[,"level"]<0,"level"] <- 1e-6;
+        }
+        # Set the bounds for level
+        if(Ttype=="M" && any(parametersNames=="trend")){
+            randomParameters[randomParameters[,"trend"]<0,"trend"] <- 0;
+        }
+        # Seasonality
+        if(Stype=="M" && any(substr(parametersNames,1,8)=="seasonal")){
+            seasonals <- which(substr(parametersNames,1,8)=="seasonal");
+            for(i in seasonals){
+                randomParameters[randomParameters[,i]<0,i] <- 1e-6;
+            }
+        }
     }
     # Set the bounds for deltas
     if(any(substr(parametersNames,1,5)=="delta")){
@@ -6988,7 +7080,7 @@ refit.adam <- function(object, nsim=1000, ...){
                            start=start(yInSample), frequency=frequency(yInSample));
     }
 
-    # Transitiona and measurement
+    # Transition and measurement
     arrF <- array(object$transition,c(dim(object$transition),nsim));
     arrWt <- array(object$measurement,c(dim(object$measurement),nsim));
     # If we have phi, update the transition and measurement matrices
@@ -7084,8 +7176,8 @@ refit.adam <- function(object, nsim=1000, ...){
                                      lagsModelAll, profilesObservedTable, profilesRecentArray,
                                      componentsNumberETSSeasonal, componentsNumberETS,
                                      componentsNumberARIMA, xregNumber);
-    fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     arrVt[] <- adamRefitted$states;
+    fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
 
     return(structure(list(y=actuals(object), states=arrVt, refitted=fittedMatrix,
@@ -7110,10 +7202,10 @@ plot.refit <- function(x, ...){
         yQuantiles <- ts(matrix(0,length(ellipsis$x),11),start=start(ellipsis$x),frequency=frequency(ellipsis$x));
     }
     quantileseq <- seq(0,1,length.out=11);
-    yQuantiles[,1] <- apply(x$refitted,1,quantile,0.975);
-    yQuantiles[,11] <- apply(x$refitted,1,quantile,0.025);
+    yQuantiles[,1] <- apply(x$refitted,1,quantile,0.975,na.rm=TRUE);
+    yQuantiles[,11] <- apply(x$refitted,1,quantile,0.025,na.rm=TRUE);
     for(i in 2:10){
-        yQuantiles[,i] <- apply(x$refitted,1,quantile,quantileseq[i]);
+        yQuantiles[,i] <- apply(x$refitted,1,quantile,quantileseq[i],na.rm=TRUE);
     }
 
     if(is.null(ellipsis$ylim)){

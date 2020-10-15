@@ -41,6 +41,11 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                     arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
 
+            // Fix potential issue with negatives in mixed models
+            if((E=='M' || T=='M' || S=='M') && (matYfit(j-lagsModelMax,i)<=0)){
+                matYfit(j-lagsModelMax,i) = 1;
+            }
+
             // If this is zero (intermittent), then set error to zero
             if(matrixOt(j-lagsModelMax)==0){
                 vecErrors(j-lagsModelMax) = 0;
@@ -156,6 +161,11 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                                                    arrayWt.slice(k).row(j-lagsModelMax), E, T, S,
                                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) *
                                                        arrayErrors.slice(k)(j-lagsModelMax,i));
+
+                // Fix potential issue with negatives in mixed models
+                if((E=='M' || T=='M' || S=='M') && (arrY(j-lagsModelMax,i,k)<=0)){
+                    arrY(j-lagsModelMax,i,k) = 1;
+                }
 
                 /* # Transition equation */
                 arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)) =
