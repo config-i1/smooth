@@ -2086,8 +2086,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     for(k in 1:componentsNumberETSSeasonal){
                         if(initialSeasonalEstimateFI[k]){
                             # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                            BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-                                BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
+                            B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+                                B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
                                 mean(yInSample[1:lagsModelMax]);
                             j[] <- j+(lagsModelSeasonal[k]-1);
                         }
@@ -2095,8 +2095,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 else{
                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                    BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                        BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * mean(yInSample[1:lagsModelMax]);
+                    B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * mean(yInSample[1:lagsModelMax]);
                 }
             }
 
@@ -3799,7 +3799,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
             }
             j <- 1;
-            if(phiEstimate){
+            if(phiEstimateFI){
                 j[] <- 2;
             }
             if(initialTypeFI=="optimal"){
@@ -5117,6 +5117,11 @@ confint.adam <- function(object, parm, level=0.95, ...){
                 adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
                 adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
             }
+            # These are "usual" bounds for phi. We don't care about other bounds
+            if(any(parametersNames=="phi")){
+                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
+            }
         }
         #### Admissible bounds ####
         else if(object$bounds=="admissible"){
@@ -5131,8 +5136,8 @@ confint.adam <- function(object, parm, level=0.95, ...){
             if(any(parametersNames=="beta")){
                 betaBounds <- eigenBounds(object, persistence,
                                           variableNumber=which(names(object$persistence)=="beta"));
-                adamCoefBounds["beta",1] <- max(alphaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
-                adamCoefBounds["beta",2] <- min(alphaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
+                adamCoefBounds["beta",1] <- max(betaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
+                adamCoefBounds["beta",2] <- min(betaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
             }
             # Check, if there are gammas
             if(any(substr(parametersNames,1,5)=="gamma")){
@@ -5156,27 +5161,24 @@ confint.adam <- function(object, parm, level=0.95, ...){
             }
         }
 
-        # These are "usual" bounds for phi. We don't care about other bounds
-        if(any(parametersNames=="phi")){
-            adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-            adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
-        }
-
         # Restrictions on the initials for the multiplicative models (greater than zero)
         # Level
-        if(errorType(object)=="M" && any(parametersNames=="level")){
-            adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
-        }
+        # if(errorType(object)=="M" && any(parametersNames=="level")){
+        #     adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
+        #     adamCoefBounds["level",2] <- max(-parameters["level"],adamCoefBounds["level",2]);
+        # }
         adamModelType <- modelType(object);
         # Trend
         if(substr(adamModelType,2,2)=="M" && any(parametersNames=="trend")){
             adamCoefBounds["trend",1] <- max(-parameters["trend"],adamCoefBounds["trend",1]);
+            adamCoefBounds["trend",2] <- max(-parameters["trend"],adamCoefBounds["trend",2]);
         }
         # Seasonality
         if(substr(adamModelType,nchar(adamModelType),nchar(adamModelType))=="M" &&
            any(substr(parametersNames,1,8)=="seasonal")){
             seasonals <- which(substr(parametersNames,1,8)=="seasonal");
             adamCoefBounds[seasonals,1] <- max(-parameters[seasonals],adamCoefBounds[seasonals,1]);
+            adamCoefBounds[seasonals,2] <- max(-parameters[seasonals],adamCoefBounds[seasonals,2]);
         }
     }
 
@@ -7068,12 +7070,8 @@ refit.adam <- function(object, nsim=1000, ...){
 
         # States
         # Set the bounds for level
-        if(Etype=="M" && any(parametersNames=="level")){
-            randomParameters[randomParameters[,"level"]<0,"level"] <- 1e-6;
-        }
-        # Set the bounds for level
         if(Ttype=="M" && any(parametersNames=="trend")){
-            randomParameters[randomParameters[,"trend"]<0,"trend"] <- 0;
+            randomParameters[randomParameters[,"trend"]<0,"trend"] <- 1e-6;
         }
         # Seasonality
         if(Stype=="M" && any(substr(parametersNames,1,8)=="seasonal")){

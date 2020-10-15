@@ -163,8 +163,8 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                                                        arrayErrors.slice(k)(j-lagsModelMax,i));
 
                 // Fix potential issue with negatives in mixed models
-                if((E=='M' || T=='M' || S=='M') && (arrY(j-lagsModelMax,i,k)<=0)){
-                    arrY(j-lagsModelMax,i,k) = 1;
+                if((E=='M' || T=='M' || S=='M') && (arrY(j-lagsModelMax,i,k)<0)){
+                    arrY(j-lagsModelMax,i,k) = 0;
                 }
 
                 /* # Transition equation */
