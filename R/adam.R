@@ -7527,6 +7527,9 @@ reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NUL
                                    "lower"=rep("Upper 100%",nLevels),
                                    "upper"=paste0("Upper bound (",level*100,"%)"));
     }
+    else{
+        yUpper[] <- yLower[] <- NA;
+    }
 
     structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                    level=level, interval=interval, side=side, cumulative=cumulative,
