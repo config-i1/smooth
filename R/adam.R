@@ -2074,11 +2074,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 j[] <- 2;
             }
             # Level
-            B[persistenceToSkip+j] <- B[persistenceToSkip+j] * mean(yInSample[1:lagsModelMax]);
+            B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
             # Trend
             if(Ttype=="A"){
                 j[] <- j+1;
-                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * mean(yInSample[1:lagsModelMax]);
+                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
             }
             # Seasonality
             if(Stype=="A"){
@@ -2088,7 +2088,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                             # -1 is needed in order to remove the redundant seasonal element (normalisation)
                             B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
                                 B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
-                                mean(yInSample[1:lagsModelMax]);
+                                sd(yInSample);
                             j[] <- j+(lagsModelSeasonal[k]-1);
                         }
                     }
@@ -2096,7 +2096,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 else{
                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
                     B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * mean(yInSample[1:lagsModelMax]);
+                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
                 }
             }
 
@@ -3804,11 +3804,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
             if(initialTypeFI=="optimal"){
                 # Level
-                BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
+                BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
                 # Trend
                 if(Ttype=="A"){
                     j[] <- j+1;
-                    BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
+                    BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
                 }
                 # Seasonality
                 if(Stype=="A"){
@@ -3818,7 +3818,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                 # -1 is needed in order to remove the redundant seasonal element (normalisation)
                                 BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
                                     BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
-                                    mean(yInSample[1:lagsModelMax]);
+                                    sd(yInSample);
                                 j[] <- j+(lagsModelSeasonal[k]-1);
                             }
                         }
@@ -3826,7 +3826,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     else{
                         # -1 is needed in order to remove the redundant seasonal element (normalisation)
                         BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                            BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / mean(yInSample[1:lagsModelMax]);
+                            BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(yInSample);
                     }
                 }
 
@@ -6971,7 +6971,7 @@ refit <- function(object, nsim=1000, ...) UseMethod("refit")
 
 #' @export
 refit.default <- function(object, nsim=1000, ...){
-    warning(paste0("The method is not implemented for the object of the class ,",class(object)[1]),
+    warning(paste0("The method is not implemented for the object of the class ",class(object)[1]),
             call.=FALSE);
     return(structure(list(states=object$states, fitted=fitted(object)),
                      class="refit"));
