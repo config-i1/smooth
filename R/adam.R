@@ -2082,8 +2082,22 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
             # Seasonality
             if(Stype=="A"){
-                B[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] <- B[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] *
-                    mean(yInSample[1:lagsModelMax]);
+                if(componentsNumberETSSeasonal>1){
+                    for(k in 1:componentsNumberETSSeasonal){
+                        if(initialSeasonalEstimateFI[k]){
+                            # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                            BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+                                BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
+                                mean(yInSample[1:lagsModelMax]);
+                            j[] <- j+(lagsModelSeasonal[k]-1);
+                        }
+                    }
+                }
+                else{
+                    # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                    BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+                        BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * mean(yInSample[1:lagsModelMax]);
+                }
             }
 
             # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
@@ -3798,8 +3812,22 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 # Seasonality
                 if(Stype=="A"){
-                    BNew[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] <- BNew[persistenceToSkip+j+1:(sum(lagsModel)-j-1)] /
-                        mean(yInSample[1:lagsModelMax]);
+                    if(componentsNumberETSSeasonal>1){
+                        for(k in 1:componentsNumberETSSeasonal){
+                            if(initialSeasonalEstimateFI[k]){
+                                # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                                BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+                                    BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
+                                    mean(yInSample[1:lagsModelMax]);
+                                j[] <- j+(lagsModelSeasonal[k]-1);
+                            }
+                        }
+                    }
+                    else{
+                        # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                        BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+                            BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / mean(yInSample[1:lagsModelMax]);
+                    }
                 }
 
                 # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
