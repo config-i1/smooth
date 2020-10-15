@@ -6880,12 +6880,14 @@ refit.adam <- function(object, nsim=1000, ...){
 
     vcovAdam <- vcov(object);
     parametersNames <- colnames(vcovAdam);
-    if(det(vcovAdam)<=0){
+    # Check if the matrix is positive definite
+    vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
+    if(vcovEigen<=0){
         warning(paste0("The covariance matrix of parameters is not positive definite. ",
                        "We will try fixing this, but it might make sense re-evaluating adam(), tuning the optimiser."),
                 call.=FALSE, immediate.=TRUE);
         # Tune the thing a bit - one of simple ways to fix the issue
-        epsilon <- -min(eigen(vcovAdam, only.values=TRUE)$values)+1e-10;
+        epsilon <- -vcovEigen+1e-10;
         vcovAdam[] <- vcovAdam + epsilon*diag(nrow(vcovAdam));
     }
 
