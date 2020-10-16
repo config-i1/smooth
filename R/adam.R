@@ -2076,9 +2076,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             # Level
             B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
             # Trend
-            if(Ttype=="A"){
+            if(Ttype!="N"){
                 j[] <- j+1;
+                if(Ttype=="A"){
                 B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
+                }
             }
             # Seasonality
             if(Stype=="A"){
@@ -3806,9 +3808,11 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 # Level
                 BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
                 # Trend
-                if(Ttype=="A"){
+                if(Ttype!="N"){
                     j[] <- j+1;
-                    BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+                    if(Ttype=="A"){
+                        BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+                    }
                 }
                 # Seasonality
                 if(Stype=="A"){
@@ -7290,7 +7294,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     ellipsis <- list(...);
 
     #### <--- This part is widely a copy-paste from forecast.adam()
-    interval <- match.arg(interval[1],c("none", "prediction", "confidence"));
+    interval <- match.arg(interval[1],c("none", "prediction", "confidence","simulated"));
     side <- match.arg(side);
 
     # Model type
