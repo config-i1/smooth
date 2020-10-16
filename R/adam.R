@@ -7268,16 +7268,16 @@ print.refit <- function(x, ...){
 
 #' @rdname refit
 #' @export reforecast
-reforecast <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
+reforecast <- function(object, h=10, newdata=NULL, occurrence=NULL,
                        interval=c("none", "prediction", "confidence"),
                        level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
-                       ...) UseMethod("reforecast")
+                       nsim=100, ...) UseMethod("reforecast")
 
 #' @export
-reforecast.default <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
+reforecast.default <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                interval=c("none", "prediction", "confidence"),
                                level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
-                               ...){
+                               nsim=100, ...){
     warning(paste0("The method is not implemented for the object of the class ,",class(object)[1]),
             call.=FALSE);
     return(forecast(object=object, h=h, newdata=newdata, occurrence=occurrence,

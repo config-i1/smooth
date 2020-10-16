@@ -7,9 +7,9 @@
 \usage{
 refit(object, nsim = 1000, ...)
 
-reforecast(object, nsim = 100, h = 10, newdata = NULL,
-  occurrence = NULL, interval = c("none", "prediction", "confidence"),
-  level = 0.95, side = c("both", "upper", "lower"), cumulative = FALSE,
+reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
+  interval = c("none", "prediction", "confidence"), level = 0.95,
+  side = c("both", "upper", "lower"), cumulative = FALSE, nsim = 100,
   ...)
 }
 \arguments{
