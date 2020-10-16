@@ -7282,10 +7282,10 @@ reforecast.default <- function(object, nsim=100, h=10, newdata=NULL, occurrence=
 }
 
 #' @export
-reforecast.adam <- function(object, nsim=100, h=10, newdata=NULL, occurrence=NULL,
+reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("none", "prediction", "confidence"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
-                            ...){
+                            nsim=100, ...){
     objectRefitted <- refit(object, nsim=nsim);
     ellipsis <- list(...);
 
