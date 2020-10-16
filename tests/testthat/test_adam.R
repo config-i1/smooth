@@ -10,7 +10,7 @@ test_that("ADAM ETS(ZZZ) selection on N1234", {
 # Basic ADAM selection on 2568
 testModel <- adam(Mcomp::M3[[2568]], "ZZZ");
 test_that("ADAM ETS(ZZZ) selection on N2568", {
-    expect_match(modelType(testModel), "MAM");
+    expect_match(modelType(testModel), "MMdM");
 })
 
 # Full ADAM selection
