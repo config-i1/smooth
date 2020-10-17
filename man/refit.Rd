@@ -8,7 +8,7 @@
 refit(object, nsim = 1000, ...)
 
 reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
-  interval = c("none", "prediction", "confidence"), level = 0.95,
+  interval = c("prediction", "confidence", "none"), level = 0.95,
   side = c("both", "upper", "lower"), cumulative = FALSE, nsim = 100,
   ...)
 }
