@@ -1485,7 +1485,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     }
                     else if(Etype=="M" && Ttype=="M"){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.1,0.05,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.1,0.01,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else{
                         B[1:sum(persistenceEstimateVector)] <-
