@@ -2394,11 +2394,24 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             print_level[] <- 0;
         }
 
+        maxevalUsed <- maxeval;
+        if(is.null(maxeval)){
+            maxevalUsed <- length(B) * 30;
+            # If this is pure ARIMA, take more time
+            if(arimaModel && !etsModel){
+                maxevalUsed <- max(1000,maxevalUsed);
+            }
+            # If it is xregModel, do at least 500 iterations
+            else if(xregModel){
+                maxevalUsed <- max(500,maxevalUsed);
+            }
+        }
+
         # Parameters are chosen to speed up the optimisation process and have decent accuracy
         res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                 maxeval=maxeval, maxtime=maxtime, print_level=print_level),
+                                                 maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
                                        etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                                        modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                                        ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
@@ -2440,7 +2453,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
                                            opts=list(algorithm=algorithm, xtol_rel=xtol_rel,
                                                      ftol_rel=ftol_rel, ftol_abs=ftol_abs,
-                                                     maxeval=maxeval, maxtime=maxtime, print_level=print_level),
+                                                     maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
                                            etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                                            modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                                            ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
