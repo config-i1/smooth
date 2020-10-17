@@ -10,7 +10,7 @@ test_that("ADAM ETS(ZZZ) selection on N1234", {
 # Basic ADAM selection on 2568
 testModel <- adam(Mcomp::M3[[2568]], "ZZZ");
 test_that("ADAM ETS(ZZZ) selection on N2568", {
-    expect_match(modelType(testModel), "MMdM");
+    expect_match(modelType(testModel), "MAM");
 })
 
 # Full ADAM selection
@@ -412,13 +412,13 @@ test_that("Best auto.adam on N2568", {
 # Outliers detection for ETS on series N291 of M1 in parallel
 testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use");
 test_that("Detect outliers for ETS(ZZZ) on N291", {
-    expect_false(is.null(testModel$xreg));
+    expect_null(testModel$xreg);
 })
 
 # Outliers detection for ETS on series N291 of M1 in parallel
 testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use");
 test_that("Detect outliers for ETS(ZZZ) on N291 in parallel", {
-    expect_false(is.null(testModel$xreg));
+    expect_null(testModel$xreg);
 })
 
 # Best ARIMA on the 2568
