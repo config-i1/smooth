@@ -233,7 +233,7 @@ function (the default is 1E-6);
 \item \code{ftol_abs} - the stopping criterion in case of the absolute change in the loss
 function (the default is 0 - not used);
 \item \code{algorithm} - the algorithm to use in optimisation
-(by default, \code{"NLOPT_LN_NELDERMEAD"} is used);
+(by default, \code{"NLOPT_LN_SBPLX"} is used);
 \item \code{print_level} - the level of output for the optimiser (0 by default).
 If equal to 41, then the detailed results of the optimisation are returned.
 }
@@ -297,7 +297,9 @@ the model,
 \item \code{lagsAll} - the vector of the internal lags used in the model,
 \item \code{profile} - the matrix with the profile used in the construction of the model,
 \item \code{call} - the call used in the evaluation,
-\item \code{bounds} - the type of bounds used in the process.
+\item \code{bounds} - the type of bounds used in the process,
+\item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
+polynomials.
 }
 }
 \description{

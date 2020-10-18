@@ -2231,18 +2231,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     #### Process ellipsis ####
     # Parameters for the optimiser
     if(is.null(ellipsis$maxeval)){
-        maxeval <- nParamMax * 30;
-        # If this is pure ARIMA, take more time
-        if(arimaModel && !etsModel){
-            maxeval <- max(1000,maxeval);
-        }
-        # If it is xregModel, do at least 500 iterations
-        else if(xregModel){
-            maxeval <- max(500,maxeval);
-        }
-        # else{
-        #     maxeval <- 200;
-        # }
+        maxeval <- NULL;
         # Make a warning if this is a big computational task
         if(any(lags>24) && arimaModel && initialType=="optimal"){
             warning(paste0("The estimation of ARIMA model with initial='optimal' on high frequency data might ",
@@ -2286,7 +2275,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         ftol_abs <- ellipsis$ftol_abs;
     }
     if(is.null(ellipsis$algorithm)){
-        algorithm <- "NLOPT_LN_NELDERMEAD";
+        algorithm <- "NLOPT_LN_SBPLX";
     }
     else{
         algorithm <- ellipsis$algorithm;

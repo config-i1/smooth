@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 3.0.0.41020
-Date: 2020-10-12
+Version: 3.0.0.41025
+Date: 2020-10-18
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -24,10 +24,11 @@ Imports:
     Rcpp (>= 0.12.3),
     stats,
     graphics,
+    grDevices,
     forecast (>= 7.0),
     pracma,
     statmod,
-    truncnorm,
+    MASS,
     nloptr,
     utils,
     zoo

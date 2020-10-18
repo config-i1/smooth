@@ -32,7 +32,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
         matrixVt = arrayVt.slice(i);
         matrixF = arrayF.slice(i);
         profilesRecent = profilesRecentOriginal;
-        for (int j=lagsModelMax; j<obsAll; j=j+1) {
+        for(int j=lagsModelMax; j<obsAll; j=j+1) {
             /* # Measurement equation and the error term */
             matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                               matrixWt.row(j-lagsModelMax), E, T, S,
@@ -44,7 +44,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
 
             /* # Transition equation */
             profilesRecent(profilesObserved.col(j-lagsModelMax)) = (adamFvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
                                                     adamGvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                                                matrixF, matrixWt.row(j-lagsModelMax),
                                                                E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
@@ -77,7 +77,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
 
 /* # Wrapper for simulator */
 // [[Rcpp::export]]
-RcppExport SEXP adamSimulatorwrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP matF, SEXP matWt, SEXP matG,
+RcppExport SEXP adamSimulatorWrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP matF, SEXP matWt, SEXP matG,
                                   SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll,
                                   SEXP profilesObservedTable, SEXP profilesRecentTable,
                                   SEXP componentsNumberSeasonal, SEXP componentsNumber,

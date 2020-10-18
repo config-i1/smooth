@@ -1,6 +1,4 @@
-smooth v3.0.0 (Release data: 2020-10-12)
-=======
-
+smooth v3.0.0 (Release data: 2020-10-18)
 Changes:
 * ADAM function moved to smooth from a separate package.
 * Changed the default maxeval in ADAM for xregModel to at least 500.
@@ -10,14 +8,14 @@ Changes:
 * Renamed parameters for distributions in adam(). dalaplace now accepts alpha, dgnorm - beta and dt - nu. This resolves the conflict with LASSO and lambda.
 * Use internal gnorm() functions.
 * Return call and bounds in adam().
-* Use truncated normal distribution for the confidence intervals for smoothing parameters. This only works for usual bounds at the moment.
-* Truncated normal distribution for confint() now works with bounds="admissible" for alpha, beta and gammas. This does not yet work for deltas and ARIMA parameters.
-* Truncated normal should now work for deltas as well.
+* Use rectified normal distribution for the confidence intervals for smoothing parameters and ARIMA.
 * The as.data.frame.summary.adam() method, which produces the matrix of coefficients.
 * adam() now uses profiles instead of lags for seasonal models. These are updated on every observation via ETS approach.
 * msdecompose() now produces initials suitable for the first observation of the data via a simple extrapolation.
 * Switched off dllaplace, dls and dlgnorm in adam(), because their mean values are not easy to calculate.
 * Log Normal distribution in adam() now assumes that the mean=-scale^2/2. This is needed in order to maintain the property of mean of error being equal to zero.
+* New method: refit(), which reapplies the model (currently ADAM only) to the data with randomly generated initials and smoothing parmaters, based on the estimated values and the covariance matrix of parameters. Useful for confidence intervals for states and correct prediction intervals from the dynamic models.
+* A follow-up method from that - reforecast(), which uses states produced by refit() method.
 * adam() now works in cases of leap years and DST. In order to switch this functionality on, y needs to be a zoo object or any other object, containing dates and the lags parameter needs to be set to either 24, 48 or 365 - depending on the frequency of data.
 
 Bugfixes:
@@ -27,6 +25,7 @@ Bugfixes:
 * Fixed a bug in ETS(M,M,A) models in adam.
 * Fixes for ETS(A,M,A) initialisation in adam.
 * A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
+* vcov should now be more accurate due to the normalisation of parameters prior to the calculation of hessian.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

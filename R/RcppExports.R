@@ -13,8 +13,16 @@ adamErrorerWrap <- function(matVt, matWt, matF, lagsModelAll, profilesObservedTa
     .Call('_smooth_adamErrorerWrap', PACKAGE = 'smooth', matVt, matWt, matF, lagsModelAll, profilesObservedTable, profilesRecentTable, Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal, componentsNumberArima, xregNumber, h, yInSample, ot)
 }
 
-adamSimulatorwrap <- function(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
-    .Call('_smooth_adamSimulatorwrap', PACKAGE = 'smooth', arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber)
+adamRefitterWrap <- function(yt, ot, arrVt, arrF, arrWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentArray, componentsNumberETSSeasonal, componentsNumberETS, componentsNumberARIMA, xregNumber) {
+    .Call('_smooth_adamRefitterWrap', PACKAGE = 'smooth', yt, ot, arrVt, arrF, arrWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentArray, componentsNumberETSSeasonal, componentsNumberETS, componentsNumberARIMA, xregNumber)
+}
+
+adamReforecasterWrap <- function(arrErrors, arrOt, arrF, arrWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentArray, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
+    .Call('_smooth_adamReforecasterWrap', PACKAGE = 'smooth', arrErrors, arrOt, arrF, arrWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentArray, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber)
+}
+
+adamSimulatorWrap <- function(arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber) {
+    .Call('_smooth_adamSimulatorWrap', PACKAGE = 'smooth', arrVt, matErrors, matOt, matF, matWt, matG, Etype, Ttype, Stype, lagsModelAll, profilesObservedTable, profilesRecentTable, componentsNumberSeasonal, componentsNumber, componentsNumberArima, xregNumber)
 }
 
 matrixPowerWrap <- function(matA, power) {
