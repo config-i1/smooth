@@ -867,6 +867,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     # trend
                                     matVt[j,1:lagsModelMax] <- sum(abs(yDecomposition$initial))/abs(yDecomposition$initial[1]);
                                 }
+                                else if(Ttype=="M"){
+                                    # trend is too dangerous, make it start from 1.
+                                    matVt[j,1:lagsModelMax] <- 1;
+                                }
                                 else{
                                     # trend
                                     matVt[j,1:lagsModelMax] <- yDecomposition$initial[2];
@@ -6462,6 +6466,15 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                                         sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))))-1
                                    ),
                             h,nsim);
+        # Normalise errors in order not to get ridiculous things on small nsim
+        if(nsim<=500){
+            if(Etype=="A"){
+                matErrors[] <- matErrors - array(apply(matErrors,1,mean),c(h,nsim));
+            }
+            else{
+                matErrors[] <- (1+matErrors) / array(apply(1+matErrors,1,mean),c(h,nsim))-1;
+            }
+        }
         # This stuff is needed in order to produce adequate values for weird models
         EtypeModified <- Etype;
         if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dls","dllaplace"))){
@@ -7649,6 +7662,15 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                               "dlgnorm"=exp(rgnorm(h*nsim^2, 0,
                                                    sigmaValue*sqrt(gamma(1/object$other$beta)/gamma(3/object$other$beta))))-1),
                        c(h,nsim,nsim));
+    # Normalise errors in order not to get ridiculous things on small nsim
+    if(nsim<=500){
+        if(Etype=="A"){
+            arrErrors[] <- arrErrors - array(apply(arrErrors,1,mean),c(h,nsim,nsim));
+        }
+        else{
+            arrErrors[] <- (1+arrErrors) / array(apply(1+arrErrors,1,mean),c(h,nsim,nsim))-1;
+        }
+    }
     # Array of the simulated data
     arrayYSimulated <- array(0,c(h,nsim,nsim));
     # Start the loop... might take some time
