@@ -7078,7 +7078,8 @@ plot.adam.forecast <- function(x, ...){
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
-#' @param ... Other parameters passed to forecast / fitted functions.
+#' @param ... Other parameters passed to \code{mean()} function (this mainly refers to
+#' \code{trim} variable, which is set to 0.01 by default).
 #' @return \code{refit()} returns object of the class "refit", which contains:
 #' \itemize{
 #' \item \code{states} - The array of states of the model;
@@ -7432,6 +7433,14 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     objectRefitted <- refit(object, nsim=nsim);
     ellipsis <- list(...);
 
+    # If the trim is not provided, set it to 1%
+    if(is.null(ellipsis$trim)){
+        trim <- 0.01;
+    }
+    else{
+        trim <- ellipsis$trim;
+    }
+
     #### <--- This part is widely a copy-paste from forecast.adam()
     interval <- match.arg(interval[1],c("none", "prediction", "confidence","simulated"));
     side <- match.arg(side);
@@ -7718,14 +7727,14 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
-        yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=T));
+        yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=T,trim=trim));
         if(interval!="none"){
             yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelLow,type=7);
             yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelUp,type=7);
         }
     }
     else{
-        yForecast[] <- apply(arrayYSimulated,1,mean,na.rm=T);
+        yForecast[] <- apply(arrayYSimulated,1,mean,na.rm=T,trim=trim);
         if(interval=="prediction"){
             for(i in 1:h){
                 for(j in 1:nLevels){
@@ -7736,8 +7745,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         else if(interval=="confidence"){
             for(i in 1:h){
-                yLower[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T),levelLow[i,],na.rm=T,type=7);
-                yUpper[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T),levelUp[i,],na.rm=T,type=7);
+                yLower[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T,trim=trim),levelLow[i,],na.rm=T,type=7);
+                yUpper[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T,trim=trim),levelUp[i,],na.rm=T,type=7);
             }
         }
     }

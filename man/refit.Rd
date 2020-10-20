@@ -17,7 +17,8 @@ reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
 
 \item{nsim}{Number of paths to generate (number of simulations to do).}
 
-\item{...}{Other parameters passed to forecast / fitted functions.}
+\item{...}{Other parameters passed to \code{mean()} function (this mainly refers to
+\code{trim} variable, which is set to 0.01 by default).}
 
 \item{h}{Forecast horizon.}
 
