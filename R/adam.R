@@ -5226,11 +5226,11 @@ confint.adam <- function(object, parm, level=0.95, ...){
                 adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
                 if(any(parametersNames=="alpha")){
                     adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                            parameters["alpha"]-parameters[gammas]),1,min);
+                                                            (1-parameters["alpha"])-parameters[gammas]),1,min);
                 }
                 else{
                     adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                            object$persistence["alpha"]-parameters[gammas]),1,min);
+                                                            (1-object$persistence["alpha"])-parameters[gammas]),1,min);
                 }
             }
             # Check, if there are deltas (for xreg)
