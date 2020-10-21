@@ -247,7 +247,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #' You can also pass parameters to the optimiser in order to fine tune its work:
 #' \itemize{
-#' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 50 per
+#' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 40 per
 #' estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
 #' explanatory variables are introduced in the model;
 #' \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
@@ -2422,7 +2422,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         maxevalUsed <- maxeval;
         if(is.null(maxeval)){
-            maxevalUsed <- length(B) * 50;
+            maxevalUsed <- length(B) * 40;
             # If this is pure ARIMA, take more time
             if(arimaModel && !etsModel){
                 maxevalUsed <- max(1000,maxevalUsed);
