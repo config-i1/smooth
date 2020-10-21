@@ -2356,6 +2356,13 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     else{
         FI <- ellipsis$FI;
     }
+    # Step size for the hessian
+    if(is.null(ellipsis$stepSize)){
+        stepSize <- .Machine$double.eps^(1/4);
+    }
+    else{
+        stepSize <- ellipsis$stepSize;
+    }
 
     # See if the estimation of the model is not needed (do we estimate anything?)
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
@@ -2565,4 +2572,6 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     assign("lambda",lambda,ParentEnvironment);
     # Fisher Information
     assign("FI",FI,ParentEnvironment);
+    # Step size for the hessian
+    assign("stepSize",stepSize,ParentEnvironment);
 }

@@ -232,7 +232,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @param ...  Other non-documented parameters. For example, \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
-#' the model. This is used in the \link[stats]{vcov} method.
+#' the model. This is calculated based on the hessian of log-likelihood function and
+#' accepts \code{stepSize} parameter, determining how it is calculated. The default value
+#' is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
 #' Starting values of parameters can be passed via \code{B}, while the upper and lower
 #' bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
 #' will be used for optimisation. These values should have the length equal
@@ -3858,12 +3860,12 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             # }
             # if(initialTypeFI=="optimal"){
             #     # Level
-            #     BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+            #     BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(diff(yInSample));
             #     # Trend
             #     if(Ttype!="N"){
             #         j[] <- j+1;
             #         if(Ttype=="A"){
-            #             BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+            #             BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(diff(yInSample));
             #         }
             #     }
             #     # Seasonality
@@ -3874,7 +3876,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             #                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
             #                     BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
             #                         BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
-            #                         sd(yInSample);
+            #                         sd(diff(yInSample));
             #                     j[] <- j+(lagsModelSeasonal[k]-1);
             #                 }
             #             }
@@ -3882,7 +3884,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             #         else{
             #             # -1 is needed in order to remove the redundant seasonal element (normalisation)
             #             BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-            #                 BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(yInSample);
+            #                 BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(diff(yInSample));
             #         }
             #     }
             #
@@ -3923,7 +3925,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            horizon=horizon, multisteps=multisteps,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
-                           hessianCalculation=FALSE);
+                           hessianCalculation=FALSE,h=stepSize);
 
             colnames(FI) <- names(B);
             rownames(FI) <- names(B);
@@ -5576,6 +5578,12 @@ vcov.adam <- function(object, ...){
     modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE));
     # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
     brokenVariables <- apply(modelReturn$FI==0,1,all);
+    # If there are issues, try the same stuff, but with a different step size for hessian
+    if(any(brokenVariables)){
+        modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+        # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+        brokenVariables <- apply(modelReturn$FI==0,1,all);
+    }
     FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables];
 
     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);

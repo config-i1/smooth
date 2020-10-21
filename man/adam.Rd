@@ -209,7 +209,9 @@ already done.}
 \item{...}{Other non-documented parameters. For example, \code{FI=TRUE} will
 make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
-the model. This is used in the \link[stats]{vcov} method.
+the model. This is calculated based on the hessian of log-likelihood function and
+accepts \code{stepSize} parameter, determining how it is calculated. The default value
+is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
 Starting values of parameters can be passed via \code{B}, while the upper and lower
 bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
 will be used for optimisation. These values should have the length equal
