@@ -247,7 +247,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #' You can also pass parameters to the optimiser in order to fine tune its work:
 #' \itemize{
-#' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 40 per
+#' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 50 per
 #' estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
 #' explanatory variables are introduced in the model;
 #' \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
@@ -2422,7 +2422,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
         maxevalUsed <- maxeval;
         if(is.null(maxeval)){
-            maxevalUsed <- length(B) * 40;
+            maxevalUsed <- length(B) * 50;
             # If this is pure ARIMA, take more time
             if(arimaModel && !etsModel){
                 maxevalUsed <- max(1000,maxevalUsed);
@@ -5567,6 +5567,7 @@ print.summary.adam <- function(x, ...){
 
 #' @export
 vcov.adam <- function(object, ...){
+    ellipsis <- list(...);
     # If the forecast is in numbers, then use its length as a horizon
     if(any(!is.na(object$forecast))){
         h <- length(object$forecast)
@@ -5575,11 +5576,13 @@ vcov.adam <- function(object, ...){
         h <- 0;
     }
     y <- actuals(object);
-    modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE));
+    modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=ellipsis$stepSize));
+    # Check if the matrix is positive definite
+    vcovEigen <- min(eigen(modelReturn$FI, only.values=TRUE)$values);
     # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
     brokenVariables <- apply(modelReturn$FI==0,1,all);
     # If there are issues, try the same stuff, but with a different step size for hessian
-    if(any(brokenVariables)){
+    if(any(brokenVariables) || vcovEigen<=0){
         modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
         # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
         brokenVariables <- apply(modelReturn$FI==0,1,all);
@@ -5602,6 +5605,7 @@ vcov.adam <- function(object, ...){
     modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
     # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
     diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+
     return(modelReturn$FI);
 }
 
