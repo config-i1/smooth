@@ -4205,6 +4205,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
 #### Small useful ADAM functions ####
 # This function creates recent and observed profiles for adam
+#' @importFrom greybox detectdst
 adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
                                lags=NULL, yIndex=NULL, yClasses=NULL){
     # lagsModelAll - all lags used in the model for ETS + ARIMA + xreg
