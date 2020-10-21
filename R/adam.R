@@ -5579,15 +5579,12 @@ vcov.adam <- function(object, ...){
     modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=ellipsis$stepSize));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(modelReturn$FI, only.values=TRUE)$values);
-    # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-    brokenVariables <- apply(modelReturn$FI==0,1,all);
     # If there are issues, try the same stuff, but with a different step size for hessian
-    if(any(brokenVariables) || vcovEigen<=0){
+    if(vcovEigen<=0){
         modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
         # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-        brokenVariables <- apply(modelReturn$FI==0,1,all);
     }
-    FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables];
+    FIMatrix <- modelReturn$FI;
 
     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
     if(inherits(vcovMatrix,"try-error")){
@@ -5601,8 +5598,8 @@ vcov.adam <- function(object, ...){
     }
     # If there were broken variables, reproduce the zero elements.
     # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-    modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-    modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+    # modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+    # modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
     # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
     diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
 
