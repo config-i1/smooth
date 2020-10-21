@@ -10,7 +10,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
                          "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
                          "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
-                         "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","yClasses",
+                         "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
                          "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart"));
 
 #' ADAM is Advanced Dynamic Adaptive Model
