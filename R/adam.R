@@ -3845,55 +3845,55 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             ### All of this is needed in order to normalise level, trend, seasonal and xreg parameters
             # This is needed in order to make hessian better behaved
             BNew <- B;
-            # Define, how many elements to skip (we don't normalise smoothing parameters)
-            if(persistenceXregEstimate){
-                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-            }
-            else{
-                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
-            }
-            j <- 1;
-            if(phiEstimateFI){
-                j[] <- 2;
-            }
-            if(initialTypeFI=="optimal"){
-                # Level
-                BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
-                # Trend
-                if(Ttype!="N"){
-                    j[] <- j+1;
-                    if(Ttype=="A"){
-                        BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
-                    }
-                }
-                # Seasonality
-                if(Stype=="A"){
-                    if(componentsNumberETSSeasonal>1){
-                        for(k in 1:componentsNumberETSSeasonal){
-                            if(initialSeasonalEstimateFI[k]){
-                                # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                                BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-                                    BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
-                                    sd(yInSample);
-                                j[] <- j+(lagsModelSeasonal[k]-1);
-                            }
-                        }
-                    }
-                    else{
-                        # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                        BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                            BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(yInSample);
-                    }
-                }
-
-                # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
-                if(xregNumber>0 && Etype=="A"){
-                    denominator <- tail(colMeans(abs(matWt)),xregNumber);
-                    # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
-                    denominator[abs(denominator)<1] <- 1;
-                    BNew[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(BNew,xregNumber) / denominator;
-                }
-            }
+            # # Define, how many elements to skip (we don't normalise smoothing parameters)
+            # if(persistenceXregEstimate){
+            #     persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
+            # }
+            # else{
+            #     persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
+            # }
+            # j <- 1;
+            # if(phiEstimateFI){
+            #     j[] <- 2;
+            # }
+            # if(initialTypeFI=="optimal"){
+            #     # Level
+            #     BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+            #     # Trend
+            #     if(Ttype!="N"){
+            #         j[] <- j+1;
+            #         if(Ttype=="A"){
+            #             BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(yInSample);
+            #         }
+            #     }
+            #     # Seasonality
+            #     if(Stype=="A"){
+            #         if(componentsNumberETSSeasonal>1){
+            #             for(k in 1:componentsNumberETSSeasonal){
+            #                 if(initialSeasonalEstimateFI[k]){
+            #                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
+            #                     BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+            #                         BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
+            #                         sd(yInSample);
+            #                     j[] <- j+(lagsModelSeasonal[k]-1);
+            #                 }
+            #             }
+            #         }
+            #         else{
+            #             # -1 is needed in order to remove the redundant seasonal element (normalisation)
+            #             BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+            #                 BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(yInSample);
+            #         }
+            #     }
+            #
+            #     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
+            #     if(xregNumber>0 && Etype=="A"){
+            #         denominator <- tail(colMeans(abs(matWt)),xregNumber);
+            #         # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
+            #         denominator[abs(denominator)<1] <- 1;
+            #         BNew[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(BNew,xregNumber) / denominator;
+            #     }
+            # }
             # This is needed in order to avoid the 1e+300 in the CF
             boundsFI <- "none";
 
@@ -3923,7 +3923,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            horizon=horizon, multisteps=multisteps,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
-                           hessianCalculation=TRUE);
+                           hessianCalculation=FALSE);
 
             colnames(FI) <- names(B);
             rownames(FI) <- names(B);

@@ -1,4 +1,6 @@
-smooth v3.0.0 (Release data: 2020-10-18)
+smooth v3.0.0 (Release data: 2020-10-21)
+=======
+
 Changes:
 * ADAM function moved to smooth from a separate package.
 * Changed the default maxeval in ADAM for xregModel to at least 500.
@@ -25,7 +27,6 @@ Bugfixes:
 * Fixed a bug in ETS(M,M,A) models in adam.
 * Fixes for ETS(A,M,A) initialisation in adam.
 * A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
-* vcov should now be more accurate due to the normalisation of parameters prior to the calculation of hessian.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)
