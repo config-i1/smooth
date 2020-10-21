@@ -5588,7 +5588,7 @@ vcov.adam <- function(object, ...){
         warning(paste0("Observed Fisher Information is not positive semi-definite, which means that the likelihood was not maximised properly. ",
                        "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
     }
-    FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables];
+    FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
     if(inherits(vcovMatrix,"try-error")){
