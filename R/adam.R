@@ -3812,7 +3812,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            initialArimaEstimateFI, initialXregEstimateFI));
             }
             else{
-                initialTypeFI <- initialType;
+                initialTypeFI <- "provided";
                 initialEstimateFI <- FALSE;
             }
 
@@ -7306,8 +7306,8 @@ refit.adam <- function(object, nsim=1000, ...){
     }
 
     # Fill in the profile values
-    profilesRecentArray <- array(object$profile,c(dim(object$profile),nsim));
-    if(etsModel){
+    profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
+    if(etsModel && object$initialType=="optimal"){
         j <- 0
         if(any(parametersNames=="level")){
             j <- j+1;
