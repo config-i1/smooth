@@ -243,10 +243,33 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
 
 ##### Cost Function for VES #####
 CF <- function(B){
-    elements <- BasicInitialiserVES(matvt,matF,matG,matW,B);
+    elements <- BasicInitialiserVES(matvt, matF, matG, matW, B);
 
-    cfRes <- vOptimiserWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
-                            lagsModel, Etype, Ttype, Stype, loss, normalizer, bounds, ot, otObs);
+    # Check the bounds
+    if(bounds=="a"){
+        eigenValues <- eigen(elements$matF - elements$matG %*% elements$matW, only.values=TRUE, symmetric=TRUE)$values;
+        if(max(abs(eigenValues)>(1 + 1E-50))){
+            return(max(abs(eigenValues))*1E+100);
+        }
+    }
+
+    # Fit the model
+    fitting <- vFitterWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
+                           lagsModel, Etype, Ttype, Stype, ot);
+
+    # Calculate the loss
+    if(loss=="l"){
+        cfRes <- log(det((fitting$errors / normalizer) %*% t(fitting$errors / normalizer) / otObs)) + nSeries * log(normalizer^2);
+    }
+    else if(loss=="d"){
+        cfRes <- sum(log(apply(fitting$errors^2, 2, sum) / obsInSample));
+    }
+    else{
+        cfRes <- sum(apply(fitting$errors^2, 2, sum) / obsInSample);
+    }
+
+    # cfRes <- vOptimiserWrap(yInSample, elements$matvt, elements$matF, elements$matW, elements$matG,
+    #                         lagsModel, Etype, Ttype, Stype, loss, normalizer, bounds, ot, otObs);
     # multisteps, initialType, bounds,
 
     if(is.nan(cfRes) | is.na(cfRes) | is.infinite(cfRes)){
@@ -893,6 +916,8 @@ EstimatorVES <- function(...){
             BList$BUpper <- ub;
         }
     }
+
+    normalizer <- sum(colMeans(abs(diff(t(yInSample))),na.rm=TRUE));
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
