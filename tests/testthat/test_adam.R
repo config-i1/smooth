@@ -415,12 +415,6 @@ test_that("Detect outliers for ETS(ZZZ) on N291", {
     expect_match(testModel$loss, "likelihood");
 })
 
-# Outliers detection for ETS on series N291 of M1 in parallel
-testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use");
-test_that("Detect outliers for ETS(ZZZ) on N291 in parallel", {
-    expect_match(testModel$loss, "likelihood");
-})
-
 # Best ARIMA on the 2568
 testModel <- auto.adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE));
 test_that("Best auto.adam ARIMA on N2568", {
