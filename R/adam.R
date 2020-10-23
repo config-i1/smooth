@@ -3773,8 +3773,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             # Reset persistence, just to make sure that there are no duplicates
             vecG[] <- 0;
 
+            initialTypeFI <- switch(initialType,"backcasting"="provided",initialType);
+            initialEstimateFI <- FALSE;
             # Define parameters just for FI calculation
-            if(initialType=="provided"){
+            if(initialTypeFI=="provided"){
                 initialLevelEstimateFI <- any(names(B)=="level");
                 initialTrendEstimateFI <- any(names(B)=="trend");
                 if(any(substr(names(B),1,8)=="seasonal")){
@@ -3810,10 +3812,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 initialTypeFI <- "optimal";
                 initialEstimateFI <- any(c(initialLevelEstimateFI,initialTrendEstimateFI,initialSeasonalEstimateFI,
                                            initialArimaEstimateFI, initialXregEstimateFI));
-            }
-            else{
-                initialTypeFI <- "provided";
-                initialEstimateFI <- FALSE;
             }
 
             # If smoothing parmaeters were estimated, then alpha should be in the list
