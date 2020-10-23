@@ -17,8 +17,9 @@ reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
 
 \item{nsim}{Number of paths to generate (number of simulations to do).}
 
-\item{...}{Other parameters passed to \code{mean()} function (this mainly refers to
-\code{trim} variable, which is set to 0.01 by default).}
+\item{...}{Other parameters passed to \code{mean()} function in case of
+\code{reforecast} (this mainly refers to \code{trim} variable, which is set to
+0.01 by default) and to \code{vcov} in case of \code{refit}.}
 
 \item{h}{Forecast horizon.}
 

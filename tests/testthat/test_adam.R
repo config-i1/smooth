@@ -238,7 +238,7 @@ test_that("ADAM ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12] with logS on N2568", {
 })
 
 # Forecast from ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12]
-testForecast <- forecast(testModel, h=18, interval="confidence", side="upper");
+testForecast <- forecast(testModel, h=18, interval="prediction", side="upper");
 test_that("Forecast of ADAM ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12] with logS", {
     expect_match(testForecast$side, "upper");
 })

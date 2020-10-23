@@ -5128,7 +5128,7 @@ print.adamCombined <- function(x, digits=4, ...){
 #### Coefficients ####
 #' @export
 confint.adam <- function(object, parm, level=0.95, ...){
-    adamVcov <- vcov(object);
+    adamVcov <- vcov(object, ...);
     parameters <- coef(object);
     adamSD <- sqrt(abs(diag(adamVcov)));
     parametersNames <- names(adamSD);
@@ -5442,7 +5442,7 @@ summary.adam <- function(object, level=0.95, ...){
     # Collect parameters and their standard errors
     parametersValues <- coef(object);
     if(!is.null(parametersValues)){
-        parametersConfint <- confint(object, level=level);
+        parametersConfint <- confint(object, level=level, ...);
         if(is.null(parametersValues)){
             if(!is.null(object$xreg) && all(object$persistenceXreg!=0)){
                 parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
@@ -5582,10 +5582,10 @@ vcov.adam <- function(object, ...){
         modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
         brokenVariables <- apply(modelReturn$FI==0,1,all);
     }
-    if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-        warning(paste0("Observed Fisher Information is not positive semi-definite, which means that the likelihood was not maximised properly. ",
-                       "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
-    }
+    # if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+    #     warning(paste0("Observed Fisher Information is not positive semi-definite, which means that the likelihood was not maximised properly. ",
+    #                    "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
+    # }
     FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
@@ -5934,6 +5934,15 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
     interval <- match.arg(interval);
     obsInSample <- nobs(object);
 
+    # Indices and classes of the original data
+    yIndex <- time(actuals(object));
+    yClasses <- class(actuals(object));
+    if(any(yClasses=="ts")){
+        # ts structure
+        yStart <- yIndex[1];
+        yFrequency <- frequency(actuals(object));
+    }
+
     # Check if newdata is provided
     if(!is.null(newdata)){
         # If this is not a matrix / data.frame, then convert to one
@@ -5970,7 +5979,7 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
 
     if(length(level)>1){
         warning(paste0("Sorry, but we only support scalar for the level, ",
-                       "when constructing in-sample prediction interval. ",
+                       "when constructing in-sample interval. ",
                        "Using the first provided value."),
                 call.=FALSE);
         level <- level[1];
@@ -5984,21 +5993,8 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
     model <- modelType(object);
     Etype <- errorType(object);
 
-    # ts structure
-    yForecastStart <- time(actuals(object))[obsInSample]+deltat(actuals(object));
-    yFrequency <- frequency(actuals(object));
-
     # Extract variance and amend it in case of confidence interval
     s2 <- sigma(object)^2;
-    if(interval=="confidence"){
-        warning(paste0("Note that the ETS assumes that the initial level is known, ",
-                       "so the confidence interval depends on smoothing parameters only."),
-                call.=FALSE);
-        s2 <- s2 * object$measurement[1:obsInSample,1:length(object$persistence),drop=FALSE] %*% object$persistence;
-    }
-
-    yUpper <- yLower <- yForecast;
-    yUpper[] <- yLower[] <- NA;
 
     # If this is a mixture model, produce forecasts for the occurrence
     if(!is.null(object$occurrence)){
@@ -6035,7 +6031,39 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
     levelLow[levelLow<0] <- 0;
     levelUp[levelUp<0] <- 0;
 
-    #### Produce the intervals for the data ####
+    nLevels <- 1;
+    # Matrices for levels
+
+    # Create necessary matrices for the forecasts
+    if(any(yClasses=="ts")){
+        yUpper <- yLower <- ts(matrix(0,obsInSample,nLevels), start=yStart, frequency=yFrequency);
+    }
+    else{
+        yUpper <- yLower <- zoo(matrix(0,obsInSample,nLevels), order.by=yIndex);
+    }
+    colnames(yLower) <- switch(side,
+                               "both"=paste0("Lower bound (",(1-level)/2*100,"%)"),
+                               "lower"=paste0("Lower bound (",(1-level)*100,"%)"),
+                               "upper"=rep("Lower 0%",nLevels));
+
+    colnames(yUpper) <- switch(side,
+                               "both"=paste0("Upper bound (",(1+level)/2*100,"%)"),
+                               "lower"=rep("Upper 100%",nLevels),
+                               "upper"=paste0("Upper bound (",level*100,"%)"));
+
+    #### Call refit if this is confidence ####
+    if(interval=="confidence"){
+        yFittedMatrix <- refit(object, ...);
+        for(i in 1:obsInSample){
+            yUpper[i] <- quantile(yFittedMatrix$refitted[i,], levelLow[i], na.rm=TRUE);
+            yLower[i] <- quantile(yFittedMatrix$refitted[i,], levelUp[i], na.rm=TRUE);
+        }
+        return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
+                              level=level, interval=interval, side=side),
+                         class=c("adam.predict","adam.forecast")))
+    }
+
+    #### Produce the prediction intervals ####
     if(object$distribution=="dnorm"){
         if(Etype=="A"){
             yLower[] <- qnorm(levelLow, 0, sqrt(s2));
@@ -6189,18 +6217,16 @@ plot.adam.predict <- function(x, ...){
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param nsim Number of iterations to do in case of \code{interval="simulated"}.
 #' @param interval What type of mechanism to use for interval construction. The
-#' most statistically correct one is \code{interval="simulated"} (this is
-#' recommended method), but it is the slowest method. \code{interval="approximate"}
-#' (aka \code{interval="parametric"}) uses analytical formulae for conditional
-#' h-steps ahead variance, but is approximate for the non-additive error models.
-#' \code{interval="semiparametric"} relies on the multiple steps ahead forecast
-#' error and an assumed distribution of the error term. \code{interval="nonparametric"}
-#' uses Taylor & Bunn (1999) approach with quantile regressions. Finally,
-#' \code{interval="confidence"} tries to generate the confidence intervals for the
-#' point forecast. This relies on the assumption that the parameters of ETS are known
-#' (unrealistic, but a standard one). The function also accepts
-#' \code{interval="parametric"} and \code{interval="prediction"}, which are equivalent
-#' to \code{interval="approximate"}.
+#' recommended option is \code{interval="prediction"}, which will use analytical
+#' solutions for pure additive models and simulations for the others.
+#' \code{interval="simulated"} is the slowest method, but is robust to the type of
+#' model. \code{interval="approximate"} (aka \code{interval="parametric"}) uses
+#' analytical formulae for conditional h-steps ahead variance, but is approximate
+#' for the non-additive error models. \code{interval="semiparametric"} relies on the
+#' multiple steps ahead forecast error and on the assumed distribution of the error
+#' term. \code{interval="nonparametric"} uses Taylor & Bunn (1999) approach with
+#' quantile regressions. Finally, \code{interval="confidence"} tries to generate the
+#' confidence intervals for the point forecast based on the \code{reforecast} method.
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
@@ -6212,7 +6238,8 @@ plot.adam.predict <- function(x, ...){
 #' @importFrom greybox rlaplace rs ralaplace qlaplace qs qalaplace
 #' @export
 forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
-                          interval=c("none", "simulated", "approximate", "semiparametric", "nonparametric", "confidence"),
+                          interval=c("none", "prediction", "confidence", "simulated",
+                                     "approximate", "semiparametric", "nonparametric"),
                           level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=10000, ...){
 
     ellipsis <- list(...);
@@ -6228,16 +6255,18 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                        interval=interval,
                        level=level, side=side, ...));
     }
+    else{
+        if(interval=="confidence"){
+            return(reforecast(object, h=h, newdata=newdata, occurrence=occurrence,
+                              interval=interval, level=level, side=side, cumulative=cumulative,
+                              nsim=nsim, ...));
+        }
+    }
 
-    if(any(interval==c("parametric","prediction"))){
+    if(interval=="parametric"){
         # warning("The parameter 'interval' does not accept 'parametric' anymore. We use 'approximate' value instead.",
         #         call.=FALSE);
         interval <- "approximate";
-    }
-    else if(interval=="confidence"){
-        warning(paste0("Note that the ETS assumes that the initial level is known, ",
-                       "so the confidence interval depends on smoothing parameters only."),
-                call.=FALSE);
     }
     side <- match.arg(side);
 
@@ -6246,6 +6275,16 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     Etype <- errorType(object);
     Ttype <- substr(model,2,2);
     Stype <- substr(model,nchar(model),nchar(model));
+
+    # If this is "prediction", do simulations for multiplicative components
+    if(interval=="prediction"){
+        if(any(c(Etype,Ttype,Stype)=="M")){
+            interval <- "simulated";
+        }
+        else{
+            interval <- "approximate";
+        }
+    }
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -6379,7 +6418,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         if(interval=="simulated"){
             adamForecast <- rep(0, h);
         }
-        # If we don't do simulations to get mean
+        # If we don't, do simulations to get mean
         else{
             adamForecast <- forecast(object, h=h, newdata=newdata, occurrence=occurrence,
                                      interval="simulated",
@@ -7091,8 +7130,9 @@ plot.adam.forecast <- function(x, ...){
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
-#' @param ... Other parameters passed to \code{mean()} function (this mainly refers to
-#' \code{trim} variable, which is set to 0.01 by default).
+#' @param ... Other parameters passed to \code{mean()} function in case of
+#' \code{reforecast} (this mainly refers to \code{trim} variable, which is set to
+#' 0.01 by default) and to \code{vcov} in case of \code{refit}.
 #' @return \code{refit()} returns object of the class "refit", which contains:
 #' \itemize{
 #' \item \code{states} - The array of states of the model;
@@ -7140,12 +7180,12 @@ refit.adam <- function(object, nsim=1000, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    vcovAdam <- vcov(object);
+    vcovAdam <- vcov(object, ...);
     parametersNames <- colnames(vcovAdam);
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
     if(vcovEigen<=0){
-        warning(paste0("The covariance matrix of parameters is not positive definite. ",
+        warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
                        "We will try fixing this, but it might make sense re-evaluating adam(), tuning the optimiser."),
                 call.=FALSE, immediate.=TRUE);
         # Tune the thing a bit - one of simple ways to fix the issue
@@ -7226,7 +7266,7 @@ refit.adam <- function(object, nsim=1000, ...){
         else if(object$bounds=="admissible"){}
 
         # States
-        # Set the bounds for level
+        # Set the bounds for trend
         if(Ttype=="M" && any(parametersNames=="trend")){
             randomParameters[randomParameters[,"trend"]<0,"trend"] <- 1e-6;
         }
@@ -7443,7 +7483,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("prediction", "confidence", "none"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                             nsim=100, ...){
-    objectRefitted <- refit(object, nsim=nsim);
+    objectRefitted <- refit(object, nsim=nsim, ...);
     ellipsis <- list(...);
 
     # If the trim is not provided, set it to 1%

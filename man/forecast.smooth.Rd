@@ -9,10 +9,10 @@
 \title{Forecasting time series using smooth functions}
 \usage{
 \method{forecast}{adam}(object, h = 10, newdata = NULL,
-  occurrence = NULL, interval = c("none", "simulated", "approximate",
-  "semiparametric", "nonparametric", "confidence"), level = 0.95,
-  side = c("both", "upper", "lower"), cumulative = FALSE, nsim = 10000,
-  ...)
+  occurrence = NULL, interval = c("none", "prediction", "confidence",
+  "simulated", "approximate", "semiparametric", "nonparametric"),
+  level = 0.95, side = c("both", "upper", "lower"), cumulative = FALSE,
+  nsim = 10000, ...)
 
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95,
