@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-10-22)
+smooth v3.0.0 (Release data: 2020-10-24)
 =======
 
 Changes:
@@ -17,7 +17,7 @@ Changes:
 * Switched off dllaplace, dls and dlgnorm in adam(), because their mean values are not easy to calculate.
 * Log Normal distribution in adam() now assumes that the mean=-scale^2/2. This is needed in order to maintain the property of mean of error being equal to zero.
 * New method: refit(), which reapplies the model (currently ADAM only) to the data with randomly generated initials and smoothing parmaters, based on the estimated values and the covariance matrix of parameters. Useful for confidence intervals for states and correct prediction intervals from the dynamic models.
-* A follow-up method from that - reforecast(), which uses states produced by refit() method.
+* A follow-up method from that - reforecast(), which uses states produced by refit() method to produce possible paths from each generated combination of parameters in order to obtain conditional expectation and prediction interval.
 * adam() now works in cases of leap years and DST. In order to switch this functionality on, y needs to be a zoo object or any other object, containing dates and the lags parameter needs to be set to either 24, 48 or 365 - depending on the frequency of data.
 * ves() now uses the R code for the loss calculation - the C++ routine was not leading to huge performance gains, but was not as flexible.
 

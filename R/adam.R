@@ -1055,7 +1055,9 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         if(modelIsTrendy){
                             if(initialTrendEstimate){
                                 matVt[2,1:lagsModelMax] <- switch(Ttype,
-                                                                  "A" = mean(diff(yInSample[1:max(lagsModelMax+1,ceiling(obsInSample*0.2))]),na.rm=TRUE),
+                                                                  "A" = mean(diff(yInSample[1:max(lagsModelMax+1,
+                                                                                                  ceiling(obsInSample*0.2))]),
+                                                                             na.rm=TRUE),
                                                                   "M" = exp(mean(diff(log(yInSample[otLogical])),na.rm=TRUE)));
                             }
                             else{
@@ -1105,7 +1107,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                   1:initialArimaNumber] <-
                                 switch(Etype,
                                        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) / tail(arimaPolynomials$ariPolynomial,1),
+                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           tail(arimaPolynomials$ariPolynomial,1),
                                        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                                    t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
                                                    tail(arimaPolynomials$ariPolynomial,1)));
@@ -1115,7 +1118,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                   1:initialArimaNumber] <-
                                 switch(Etype,
                                        "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) / tail(arimaPolynomials$maPolynomial,1),
+                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           tail(arimaPolynomials$maPolynomial,1),
                                        "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
                                                    t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
                                                    tail(arimaPolynomials$maPolynomial,1)));
@@ -1136,18 +1140,22 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                        (iRequired && !arEstimate && !maEstimate)){
                         matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
                             switch(Etype,
-                                   "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(initialArima[1:initialArimaNumber]) /
+                                   "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                       t(initialArima[1:initialArimaNumber]) /
                                        tail(arimaPolynomials$ariPolynomial,1),
-                                   "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(initialArima[1:initialArimaNumber])) /
+                                   "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                               t(log(initialArima[1:initialArimaNumber])) /
                                                tail(arimaPolynomials$ariPolynomial,1)));
                     }
                     # If only MA is needed, but provided
                     else if(((maRequired && !maEstimate) && !arRequired)){
                         matVt[componentsNumberETS+nonZeroMA[,2],1:initialArimaNumber] <-
                             switch(Etype,
-                                   "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(initialArima[1:initialArimaNumber]) /
+                                   "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                       t(initialArima[1:initialArimaNumber]) /
                                        tail(arimaPolynomials$maPolynomial,1),
-                                   "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(log(initialArima[1:initialArimaNumber])) /
+                                   "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                               t(log(initialArima[1:initialArimaNumber])) /
                                                tail(arimaPolynomials$maPolynomial,1)));
                     }
                 }
@@ -1168,106 +1176,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         return(list(matVt=matVt, matWt=matWt, matF=matF, vecG=vecG, arimaPolynomials=arimaPolynomials));
-    }
-
-    #### ARI and MA polynomials function ####
-    if(arimaModel){
-        polynomialiser <- function(B, arOrders, iOrders, maOrders,
-                                   arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags){
-
-            # Number of parameters that we have
-            nParamAR <- sum(arOrders);
-            nParamMA <- sum(maOrders);
-
-            # Matrices with parameters
-            arParameters <- matrix(0, max(arOrders * lags) + 1, length(arOrders));
-            iParameters <- matrix(0, max(iOrders * lags) + 1, length(iOrders));
-            maParameters <- matrix(0, max(maOrders * lags) + 1, length(maOrders));
-            # The first element is always 1
-            arParameters[1,] <- iParameters[1,] <- maParameters[1,] <- 1;
-
-            # nParam is used for B
-            nParam <- 1;
-            # armanParam is used for the provided arma parameters
-            armanParam <- 1;
-            # Fill in the matrices with the provided parameters
-            for(i in 1:length(lags)){
-                if(arOrders[i]*lags[i]!=0){
-                    if(arEstimate){
-                        arParameters[1+(1:arOrders[i])*lags[i],i] <- -B[nParam+c(1:arOrders[i])-1];
-                        nParam <- nParam + arOrders[i];
-                    }
-                    else if(!arEstimate && arRequired){
-                        arParameters[1+(1:arOrders[i])*lags[i],i] <- -armaParameters[armanParam+c(1:arOrders[i])-1];
-                        armanParam <- armanParam + arOrders[i];
-                    }
-                }
-
-                if(iOrders[i]*lags[i] != 0){
-                    iParameters[1+lags[i],i] <- -1;
-                }
-
-                if(maOrders[i]*lags[i]!=0){
-                    if(maEstimate){
-                        maParameters[1+(1:maOrders[i])*lags[i],i] <- B[nParam+c(1:maOrders[i])-1];
-                        nParam <- nParam + maOrders[i];
-                    }
-                    else if(!maEstimate && maRequired){
-                        maParameters[1+(1:maOrders[i])*lags[i],i] <- armaParameters[armanParam+c(1:maOrders[i])-1];
-                        armanParam <- armanParam + maOrders[i];
-                    }
-                }
-            }
-
-            # Vectors of polynomials for the ARIMA
-            arPolynomial <- vector("numeric", sum(arOrders * lags) + 1);
-            iPolynomial <- vector("numeric", sum(iOrders * lags) + 1);
-            maPolynomial <- vector("numeric", sum(maOrders * lags) + 1);
-            ariPolynomial <- vector("numeric", sum(arOrders * lags) + sum(iOrders * lags) + 1);
-
-            # Fill in the first polynomials
-            arPolynomial[0:(arOrders[1]*lags[1])+1] <- arParameters[0:(arOrders[1]*lags[1])+1,1];
-            iPolynomial[0:(iOrders[1]*lags[1])+1] <- iParameters[0:(iOrders[1]*lags[1])+1,1];
-            maPolynomial[0:(maOrders[1]*lags[1])+1] <- maParameters[0:(maOrders[1]*lags[1])+1,1];
-
-            index1 <- 0
-            index2 <- 0;
-            # Fill in all the other polynomials
-            for(i in 1:length(lags)){
-                if(i!=1){
-                    if(arOrders[i]>0){
-                        index1[] <- tail(which(arPolynomial!=0),1);
-                        index2[] <- tail(which(arParameters[,i]!=0),1);
-                        arPolynomial[1:(index1+index2-1)] <- polyprod(arPolynomial[1:index1], arParameters[1:index2,i]);
-                    }
-
-                    if(maOrders[i]>0){
-                        index1[] <- tail(which(maPolynomial!=0),1);
-                        index2[] <- tail(which(maParameters[,i]!=0),1);
-                        maPolynomial[1:(index1+index2-1)] <- polyprod(maPolynomial[1:index1], maParameters[1:index2,i]);
-                    }
-
-                    if(iOrders[i]>0){
-                        index1[] <- tail(which(iPolynomial!=0),1);
-                        index2[] <- tail(which(iParameters[,i]!=0),1);
-                        iPolynomial[1:(index1+index2-1)] <- polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
-                    }
-                }
-                # This part takes the power of (1-B)^D
-                if(iOrders[i]>1){
-                    for(j in 2:iOrders[i]){
-                        index1[] <- tail(which(iPolynomial!=0),1);
-                        index2[] <- tail(which(iParameters[,i]!=0),1);
-                        iPolynomial[1:(index1+index2-1)] = polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
-                    }
-                }
-            }
-            # ARI polynomials
-            ariPolynomial[] <- polyprod(arPolynomial, iPolynomial);
-
-            return(list(arPolynomial=arPolynomial,iPolynomial=iPolynomial,
-                        ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
-        }
     }
 
     #### The function fills in the existing matrices with values of A ####
@@ -1912,27 +1820,35 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                                                    alpha=scale*adamFitted$yFitted[otLogical],
                                                                                    beta=other, log=TRUE))),
                                        "dlogis"=switch(Etype,
-                                                       "A"=dlogis(x=yInSample[otLogical], location=adamFitted$yFitted[otLogical],
+                                                       "A"=dlogis(x=yInSample[otLogical],
+                                                                  location=adamFitted$yFitted[otLogical],
                                                                   scale=scale, log=TRUE),
-                                                       "M"=dlogis(x=yInSample[otLogical], location=adamFitted$yFitted[otLogical],
+                                                       "M"=dlogis(x=yInSample[otLogical],
+                                                                  location=adamFitted$yFitted[otLogical],
                                                                   scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
                                        "dt"=switch(Etype,
                                                    "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
                                                    "M"=dt(adamFitted$errors[otLogical]*adamFitted$yFitted[otLogical],
                                                           df=abs(other), log=TRUE)),
                                        "dalaplace"=switch(Etype,
-                                                          "A"=dalaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
+                                                          "A"=dalaplace(q=yInSample[otLogical],
+                                                                        mu=adamFitted$yFitted[otLogical],
                                                                         scale=scale, alpha=other, log=TRUE),
-                                                          "M"=dalaplace(q=yInSample[otLogical], mu=adamFitted$yFitted[otLogical],
-                                                                        scale=scale*adamFitted$yFitted[otLogical], alpha=other, log=TRUE)),
+                                                          "M"=dalaplace(q=yInSample[otLogical],
+                                                                        mu=adamFitted$yFitted[otLogical],
+                                                                        scale=scale*adamFitted$yFitted[otLogical],
+                                                                        alpha=other, log=TRUE)),
                                        "dlnorm"=dlnorm(x=yInSample[otLogical],
                                                        meanlog=Re(log(as.complex(adamFitted$yFitted[otLogical])))-scale^2/2,
                                                        sdlog=scale, log=TRUE),
-                                       "dllaplace"=dlaplace(q=log(yInSample[otLogical]), mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                       "dllaplace"=dlaplace(q=log(yInSample[otLogical]),
+                                                            mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                             scale=scale, log=TRUE) -log(yInSample[otLogical]),
-                                       "dls"=ds(q=log(yInSample[otLogical]), mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                       "dls"=ds(q=log(yInSample[otLogical]),
+                                                mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                 scale=scale, log=TRUE) -log(yInSample[otLogical]),
-                                       "dlgnorm"=dgnorm(x=log(yInSample[otLogical]),mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
+                                       "dlgnorm"=dgnorm(x=log(yInSample[otLogical]),
+                                                        mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                         alpha=scale, beta=other, log=TRUE) -log(yInSample[otLogical]),
                                        # "dinvgauss"=dinvgauss(x=1+adamFitted$errors, mean=1,
                                        #                       dispersion=scale, log=TRUE)));
@@ -2441,12 +2357,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                        etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                                        modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                                        ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
-                                       componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
+                                       componentsNumberETS=componentsNumberETS,
+                                       componentsNumberETSSeasonal=componentsNumberETSSeasonal,
                                        componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                                        componentsNumberARIMA=componentsNumberARIMA,
                                        lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
                                        profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
-                                       matVt=adamCreated$matVt, matWt=adamCreated$matWt, matF=adamCreated$matF, vecG=adamCreated$vecG,
+                                       matVt=adamCreated$matVt, matWt=adamCreated$matWt,
+                                       matF=adamCreated$matF, vecG=adamCreated$vecG,
                                        persistenceEstimate=persistenceEstimate, persistenceLevelEstimate=persistenceLevelEstimate,
                                        persistenceTrendEstimate=persistenceTrendEstimate,
                                        persistenceSeasonalEstimate=persistenceSeasonalEstimate,
@@ -2483,12 +2401,14 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                                            modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                                            ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
-                                           componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
+                                           componentsNumberETS=componentsNumberETS,
+                                           componentsNumberETSSeasonal=componentsNumberETSSeasonal,
                                            componentsNumberETSNonSeasonal=componentsNumberETSNonSeasonal,
                                            componentsNumberARIMA=componentsNumberARIMA,
                                            lags=lags, lagsModel=lagsModel, lagsModelAll=lagsModelAll, lagsModelMax=lagsModelMax,
                                            profilesObservedTable=profilesObservedTable, profilesRecentTable=profilesRecentTable,
-                                           matVt=adamCreated$matVt, matWt=adamCreated$matWt, matF=adamCreated$matF, vecG=adamCreated$vecG,
+                                           matVt=adamCreated$matVt, matWt=adamCreated$matWt,
+                                           matF=adamCreated$matF, vecG=adamCreated$vecG,
                                            persistenceEstimate=persistenceEstimate,
                                            persistenceLevelEstimate=persistenceLevelEstimate,
                                            persistenceTrendEstimate=persistenceTrendEstimate,
@@ -2577,9 +2497,10 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
 
             # Extract the errors corrrectly
             errors <- switch(distribution,
-                             "dlnorm"=, "dllaplace"=, "dls"=, "dlgnorm"=, "dinvgauss"=switch(Etype,
-                                                                                             "A"=1+adamFitted$errors/adamFitted$yFitted,
-                                                                                             "M"=adamFitted$errors),
+                             "dlnorm"=, "dllaplace"=, "dls"=,
+                             "dlgnorm"=, "dinvgauss"=switch(Etype,
+                                                            "A"=1+adamFitted$errors/adamFitted$yFitted,
+                                                            "M"=adamFitted$errors),
                              "dnorm"=, "dlaplace"=, "ds"=, "dgnorm"=, "dlogis"=, "dt"=, "dalaplace"=,adamFitted$errors);
             # Extract the errors and amend them to correspond to the distribution
             errors[] <- errors + switch(Etype,"A"=0,"M"=1);
@@ -2653,7 +2574,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
         }
 
         return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, logLikADAMValue=logLikADAMValue,
-                    xregModel=xregModel, xregData=xregData, xregNumber=xregNumber, xregNames=xregNames, xregModelInitials=xregModelInitials,
+                    xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
+                    xregNames=xregNames, xregModelInitials=xregModelInitials,
                     initialXregEstimate=initialXregEstimate, persistenceXregEstimate=persistenceXregEstimate,
                     arimaPolynomials=adamCreated$arimaPolynomials));
     }
@@ -3287,6 +3209,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     otherReturned$arPolynomialMatrix[,1] <- -arimaPolynomials$arPolynomial[-1];
                 }
             }
+            otherReturned$armaParameters <- armaParameters;
         }
 
         # Amend the class of state matrix
@@ -4296,6 +4219,104 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
     return(list(recent=profilesRecentTable,observed=profilesObservedTable));
 }
 
+#### ARI and MA polynomials function ####
+polynomialiser <- function(B, arOrders, iOrders, maOrders,
+                           arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags){
+
+    # Number of parameters that we have
+    nParamAR <- sum(arOrders);
+    nParamMA <- sum(maOrders);
+
+    # Matrices with parameters
+    arParameters <- matrix(0, max(arOrders * lags) + 1, length(arOrders));
+    iParameters <- matrix(0, max(iOrders * lags) + 1, length(iOrders));
+    maParameters <- matrix(0, max(maOrders * lags) + 1, length(maOrders));
+    # The first element is always 1
+    arParameters[1,] <- iParameters[1,] <- maParameters[1,] <- 1;
+
+    # nParam is used for B
+    nParam <- 1;
+    # armanParam is used for the provided arma parameters
+    armanParam <- 1;
+    # Fill in the matrices with the provided parameters
+    for(i in 1:length(lags)){
+        if(arOrders[i]*lags[i]!=0){
+            if(arEstimate){
+                arParameters[1+(1:arOrders[i])*lags[i],i] <- -B[nParam+c(1:arOrders[i])-1];
+                nParam <- nParam + arOrders[i];
+            }
+            else if(!arEstimate && arRequired){
+                arParameters[1+(1:arOrders[i])*lags[i],i] <- -armaParameters[armanParam+c(1:arOrders[i])-1];
+                armanParam <- armanParam + arOrders[i];
+            }
+        }
+
+        if(iOrders[i]*lags[i] != 0){
+            iParameters[1+lags[i],i] <- -1;
+        }
+
+        if(maOrders[i]*lags[i]!=0){
+            if(maEstimate){
+                maParameters[1+(1:maOrders[i])*lags[i],i] <- B[nParam+c(1:maOrders[i])-1];
+                nParam <- nParam + maOrders[i];
+            }
+            else if(!maEstimate && maRequired){
+                maParameters[1+(1:maOrders[i])*lags[i],i] <- armaParameters[armanParam+c(1:maOrders[i])-1];
+                armanParam <- armanParam + maOrders[i];
+            }
+        }
+    }
+
+    # Vectors of polynomials for the ARIMA
+    arPolynomial <- vector("numeric", sum(arOrders * lags) + 1);
+    iPolynomial <- vector("numeric", sum(iOrders * lags) + 1);
+    maPolynomial <- vector("numeric", sum(maOrders * lags) + 1);
+    ariPolynomial <- vector("numeric", sum(arOrders * lags) + sum(iOrders * lags) + 1);
+
+    # Fill in the first polynomials
+    arPolynomial[0:(arOrders[1]*lags[1])+1] <- arParameters[0:(arOrders[1]*lags[1])+1,1];
+    iPolynomial[0:(iOrders[1]*lags[1])+1] <- iParameters[0:(iOrders[1]*lags[1])+1,1];
+    maPolynomial[0:(maOrders[1]*lags[1])+1] <- maParameters[0:(maOrders[1]*lags[1])+1,1];
+
+    index1 <- 0
+    index2 <- 0;
+    # Fill in all the other polynomials
+    for(i in 1:length(lags)){
+        if(i!=1){
+            if(arOrders[i]>0){
+                index1[] <- tail(which(arPolynomial!=0),1);
+                index2[] <- tail(which(arParameters[,i]!=0),1);
+                arPolynomial[1:(index1+index2-1)] <- polyprod(arPolynomial[1:index1], arParameters[1:index2,i]);
+            }
+
+            if(maOrders[i]>0){
+                index1[] <- tail(which(maPolynomial!=0),1);
+                index2[] <- tail(which(maParameters[,i]!=0),1);
+                maPolynomial[1:(index1+index2-1)] <- polyprod(maPolynomial[1:index1], maParameters[1:index2,i]);
+            }
+
+            if(iOrders[i]>0){
+                index1[] <- tail(which(iPolynomial!=0),1);
+                index2[] <- tail(which(iParameters[,i]!=0),1);
+                iPolynomial[1:(index1+index2-1)] <- polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
+            }
+        }
+        # This part takes the power of (1-B)^D
+        if(iOrders[i]>1){
+            for(j in 2:iOrders[i]){
+                index1[] <- tail(which(iPolynomial!=0),1);
+                index2[] <- tail(which(iParameters[,i]!=0),1);
+                iPolynomial[1:(index1+index2-1)] = polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
+            }
+        }
+    }
+    # ARI polynomials
+    ariPolynomial[] <- polyprod(arPolynomial, iPolynomial);
+
+    return(list(arPolynomial=arPolynomial,iPolynomial=iPolynomial,
+                ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
+}
+
 #### Technical methods ####
 #' @export
 lags.adam <- function(object, ...){
@@ -5126,6 +5147,91 @@ print.adamCombined <- function(x, digits=4, ...){
 }
 
 #### Coefficients ####
+#### The functions needed for confint and refit
+
+# The function inverts the measurement matrix, setting infinite values to zero
+# This is needed for the stability check for xreg models with xregDo="adapt"
+measurementInverter <- function(measurement){
+    measurement[] <- 1/measurement;
+    measurement[is.infinite(measurement)] <- 0;
+    return(measurement);
+}
+
+# The function that returns the eigen values for specified parameters
+# The function returns TRUE if the condition is violated
+eigenValues <- function(object, persistence){
+    #### !!!! Eigne values checks do not work for xreg. So move to (0, 1) region
+    if(!is.null(object$xreg) && any(substr(names(object$persistence),1,5)=="delta")){
+        # We check the condition on average
+        return(any(abs(eigen((object$transition -
+                                  diag(as.vector(persistence)) %*%
+                                  t(measurementInverter(object$measurement[1:nobs(object),,drop=FALSE])) %*%
+                                  object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
+                             symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+    }
+    else{
+        return(any(abs(eigen(object$transition -
+                                 persistence %*% object$measurement[nobs(object),,drop=FALSE],
+                             symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+    }
+}
+
+# The function that returns the bounds for persistence parameters, based on eigen values
+eigenBounds <- function(object, persistence, variableNumber=1){
+    # The lower bound
+    persistence[variableNumber,] <- -5;
+    eigenValuesTested <- eigenValues(object, persistence);
+    while(eigenValuesTested){
+        persistence[variableNumber,] <- persistence[variableNumber,] + 0.01;
+        eigenValuesTested[] <- eigenValues(object, persistence);
+        if(persistence[variableNumber,]>5){
+            persistence[variableNumber,] <- -5;
+            break;
+        }
+    }
+    lowerBound <- persistence[variableNumber,]-0.01;
+    # The upper bound
+    persistence[variableNumber,] <- 5;
+    eigenValuesTested <- eigenValues(object, persistence);
+    while(eigenValuesTested){
+        persistence[variableNumber,] <- persistence[variableNumber,] - 0.01;
+        eigenValuesTested[] <- eigenValues(object, persistence);
+        if(persistence[variableNumber,]<-5){
+            persistence[variableNumber,] <- 5;
+            break;
+        }
+    }
+    upperBound <- persistence[variableNumber,]+0.01;
+    return(c(lowerBound, upperBound));
+}
+
+# Function for the bounds of the AR parameters
+arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
+    # The lower bound
+    arPolynomial[variableNumber] <- -5;
+    arPolynomialMatrix[,1] <- -arPolynomial[-1];
+    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    while(arPolyroots){
+        arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
+        arPolynomialMatrix[,1] <- -arPolynomial[-1];
+        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    }
+    lowerBound <- arPolynomial[variableNumber]-0.01;
+    # The upper bound
+    arPolynomial[variableNumber] <- 5;
+    arPolynomialMatrix[,1] <- -arPolynomial[-1];
+    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    while(arPolyroots){
+        arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
+        arPolynomialMatrix[,1] <- -arPolynomial[-1];
+        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    }
+    upperBound <- arPolynomial[variableNumber]+0.01;
+    return(c(lowerBound, upperBound));
+}
+
+
+# Confidence intervals
 #' @export
 confint.adam <- function(object, parm, level=0.95, ...){
     adamVcov <- vcov(object, ...);
@@ -5145,61 +5251,6 @@ confint.adam <- function(object, parm, level=0.95, ...){
     # If there is xreg, but no deltas, increase persistence by including zeroes
     if(!is.null(object$xreg) && !any(substr(names(object$persistence),1,5)=="delta")){
         persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
-    }
-
-    #### The function inverts the measurement matrix, setting infinite values to zero
-    # This is needed for the stability check for xreg models with xregDo="adapt"
-    measurementInverter <- function(measurement){
-        measurement[] <- 1/measurement;
-        measurement[is.infinite(measurement)] <- 0;
-        return(measurement);
-    }
-
-    # The function that returns the eigen values for specified parameters
-    # The function returns TRUE if the condition is violated
-    eigenValues <- function(object, persistence){
-        #### !!!! Eigne values checks do not work for xreg. So move to (0, 1) region
-        if(!is.null(object$xreg) && any(substr(names(object$persistence),1,5)=="delta")){
-            # We check the condition on average
-            return(any(abs(eigen((object$transition -
-                                      diag(as.vector(persistence)) %*%
-                                      t(measurementInverter(object$measurement[1:nobs(object),,drop=FALSE])) %*%
-                                      object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
-                                 symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
-        }
-        else{
-            return(any(abs(eigen(object$transition -
-                                     persistence %*% object$measurement[nobs(object),,drop=FALSE],
-                                 symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
-        }
-    }
-    # The function that returns the bounds, based on eigen values
-    eigenBounds <- function(object, persistence, variableNumber=1){
-        # The lower bound
-        persistence[variableNumber,] <- -5;
-        eigenValuesTested <- eigenValues(object, persistence);
-        while(eigenValuesTested){
-            persistence[variableNumber,] <- persistence[variableNumber,] + 0.01;
-            eigenValuesTested[] <- eigenValues(object, persistence);
-            if(persistence[variableNumber,]>5){
-                persistence[variableNumber,] <- -5;
-                break;
-            }
-        }
-        lowerBound <- persistence[variableNumber,]-0.01;
-        # The upper bound
-        persistence[variableNumber,] <- 5;
-        eigenValuesTested <- eigenValues(object, persistence);
-        while(eigenValuesTested){
-            persistence[variableNumber,] <- persistence[variableNumber,] - 0.01;
-            eigenValuesTested[] <- eigenValues(object, persistence);
-            if(persistence[variableNumber,]<-5){
-                persistence[variableNumber,] <- 5;
-                break;
-            }
-        }
-        upperBound <- persistence[variableNumber,]+0.01;
-        return(c(lowerBound, upperBound));
     }
 
     # Correct the bounds for the ETS model
@@ -5322,48 +5373,26 @@ confint.adam <- function(object, parm, level=0.95, ...){
         if(length(thetas)>0){
             # MA parameters
             for(i in 1:length(thetas)){
-                thetaBounds <- eigenBounds(object, persistence,
+                # In this case, we check, where the standard condition is violated for an element of persistence,
+                # and then substitute the ARI part from that.
+                psiBounds <- eigenBounds(object, persistence,
                                            variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
                 # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
                 if(any(nonZeroARI[,2]==i)){
                     ariIndex <- which(nonZeroARI[,2]==i);
-                    adamCoefBounds[thetas[i],1] <- max(thetaBounds[1]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                    adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
                                                        adamCoefBounds[thetas[i],1]);
-                    adamCoefBounds[thetas[i],2] <- min(thetaBounds[2]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                    adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
                                                        adamCoefBounds[thetas[i],2]);
                 }
                 else{
-                    adamCoefBounds[thetas[i],1] <- max(thetaBounds[1]-parameters[thetas[i]], adamCoefBounds[thetas[i],1]);
-                    adamCoefBounds[thetas[i],2] <- min(thetaBounds[2]-parameters[thetas[i]], adamCoefBounds[thetas[i],2]);
+                    adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]], adamCoefBounds[thetas[i],1]);
+                    adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]], adamCoefBounds[thetas[i],2]);
                 }
             }
         }
         # Locate phi for ARIMA (they are always phi1, phi2 etc)
         if(length(phis)>0){
-            arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
-                # The lower bound
-                arPolynomial[variableNumber] <- -5;
-                arPolynomialMatrix[,1] <- -arPolynomial[-1];
-                arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
-                while(arPolyroots){
-                    arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
-                    arPolynomialMatrix[,1] <- -arPolynomial[-1];
-                    arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
-                }
-                lowerBound <- arPolynomial[variableNumber]-0.01;
-                # The upper bound
-                arPolynomial[variableNumber] <- 5;
-                arPolynomialMatrix[,1] <- -arPolynomial[-1];
-                arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
-                while(arPolyroots){
-                    arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
-                    arPolynomialMatrix[,1] <- -arPolynomial[-1];
-                    arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
-                }
-                upperBound <- arPolynomial[variableNumber]+0.01;
-                return(c(lowerBound, upperBound));
-            }
-
             # AR parameters
             for(i in 1:length(phis)){
                 # Get bounds for AR based on stationarity condition
@@ -5582,10 +5611,11 @@ vcov.adam <- function(object, ...){
         modelReturn <- suppressWarnings(adam(y, h=0, model=object, FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
         brokenVariables <- apply(modelReturn$FI==0,1,all);
     }
-    # if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-    #     warning(paste0("Observed Fisher Information is not positive semi-definite, which means that the likelihood was not maximised properly. ",
-    #                    "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
-    # }
+    if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+        warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+                       "which means that the likelihood was not maximised properly. ",
+                       "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
+    }
     FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
@@ -7185,12 +7215,20 @@ refit.adam <- function(object, nsim=1000, ...){
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
     if(vcovEigen<=0){
-        warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
-                       "We will try fixing this, but it might make sense re-evaluating adam(), tuning the optimiser."),
-                call.=FALSE, immediate.=TRUE);
-        # Tune the thing a bit - one of simple ways to fix the issue
-        epsilon <- -vcovEigen+1e-10;
-        vcovAdam[] <- vcovAdam + epsilon*diag(nrow(vcovAdam));
+        if(vcovEigen>-1){
+            warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
+                           "We will try fixing this, but it might make sense re-estimating adam(), tuning the optimiser."),
+                    call.=FALSE, immediate.=TRUE);
+            # Tune the thing a bit - one of simple ways to fix the issue
+            epsilon <- -vcovEigen+1e-10;
+            vcovAdam[] <- vcovAdam + epsilon*diag(nrow(vcovAdam));
+        }
+        else{
+            stop(paste0("The covariance matrix of parameters is not positive semi-definite. ",
+                           "We cannot fix it, so it makes sense to re-estimate adam(), tuning the optimiser. ",
+                           "For example, try reoptimising via 'object <- adam(y, ..., B=object$B)'."),
+                    call.=FALSE);
+        }
     }
 
     # All the variables needed in the refitter
@@ -7207,6 +7245,12 @@ refit.adam <- function(object, nsim=1000, ...){
     lagsSeasonal <- lags[lags!=1];
     lagsModelAll <- object$lagsAll;
     lagsModelMax <- max(lagsModelAll);
+    persistence <- as.matrix(object$persistence);
+    # If there is xreg, but no deltas, increase persistence by including zeroes
+    if(!is.null(object$xreg) && !any(substr(names(object$persistence),1,5)=="delta")){
+        persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
+    }
+
     if(!is.null(object$initial$seasonal)){
         if(is.list(object$initial$seasonal)){
             componentsNumberETSSeasonal <- length(object$initial$seasonal);
@@ -7231,7 +7275,7 @@ refit.adam <- function(object, nsim=1000, ...){
     # Generate the data from the multivariate normal
     randomParameters <- mvrnorm(nsim, coef(object), vcovAdam);
 
-    # Rectify the random values for smoothing parameters
+    #### Rectify the random values for smoothing parameters ####
     if(etsModel){
         # Usual bounds
         if(object$bounds=="usual"){
@@ -7263,7 +7307,42 @@ refit.adam <- function(object, nsim=1000, ...){
             }
         }
         # Admissible bounds
-        else if(object$bounds=="admissible"){}
+        else if(object$bounds=="admissible"){
+            # Check, if there is alpha
+            if(any(parametersNames=="alpha")){
+                alphaBounds <- eigenBounds(object, persistence,
+                                           variableNumber=which(names(object$persistence)=="alpha"));
+                randomParameters[randomParameters[,"alpha"]<alphaBounds[1],"alpha"] <- alphaBounds[1];
+                randomParameters[randomParameters[,"alpha"]>alphaBounds[2],"alpha"] <- alphaBounds[2];
+            }
+            # Check, if there is beta
+            if(any(parametersNames=="beta")){
+                betaBounds <- eigenBounds(object, persistence,
+                                          variableNumber=which(names(object$persistence)=="beta"));
+                randomParameters[randomParameters[,"beta"]<betaBounds[1],"beta"] <- betaBounds[1];
+                randomParameters[randomParameters[,"beta"]>betaBounds[2],"beta"] <- betaBounds[2];
+            }
+            # Check, if there are gammas
+            if(any(substr(parametersNames,1,5)=="gamma")){
+                gammas <- which(substr(parametersNames,1,5)=="gamma");
+                for(i in 1:length(gammas)){
+                    gammaBounds <- eigenBounds(object, persistence,
+                                               variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
+                    randomParameters[randomParameters[,gammas[i]]<gammaBounds[1],gammas[i]] <- gammaBounds[1];
+                    randomParameters[randomParameters[,gammas[i]]>gammaBounds[2],gammas[i]] <- gammaBounds[2];
+                }
+            }
+            # Check, if there are deltas (for xreg)
+            if(any(substr(parametersNames,1,5)=="delta")){
+                deltas <- which(substr(parametersNames,1,5)=="delta");
+                for(i in 1:length(deltas)){
+                    deltaBounds <- eigenBounds(object, persistence,
+                                               variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
+                    randomParameters[randomParameters[,deltas[i]]<deltaBounds[1],deltas[i]] <- deltaBounds[1];
+                    randomParameters[randomParameters[,deltas[i]]>deltaBounds[2],deltas[i]] <- deltaBounds[2];
+                }
+            }
+        }
 
         # States
         # Set the bounds for trend
@@ -7278,13 +7357,60 @@ refit.adam <- function(object, nsim=1000, ...){
             }
         }
     }
+
+    # Correct the bounds for the ARIMA model
+    if(arimaModel){
+        #### Deal with ARIMA parameters ####
+        ariPolynomial <- object$other$polynomial$ariPolynomial;
+        arPolynomial <- object$other$polynomial$arPolynomial;
+        maPolynomial <- object$other$polynomial$maPolynomial;
+        nonZeroARI <- object$other$ARIMAIndices$nonZeroARI;
+        nonZeroMA <- object$other$ARIMAIndices$nonZeroMA;
+        arPolynomialMatrix <- object$other$arPolynomialMatrix;
+        # Locate all thetas for ARIMA
+        thetas <- which(substr(parametersNames,1,5)=="theta");
+        # Locate phi for ARIMA (they are always phi1, phi2 etc)
+        phis <- which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3));
+        # Do loop for thetas
+        if(length(thetas)>0){
+            # MA parameters
+            for(i in 1:length(thetas)){
+                psiBounds <- eigenBounds(object, persistence,
+                                         variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
+                # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
+                if(any(nonZeroARI[,2]==i)){
+                    ariIndex <- which(nonZeroARI[,2]==i);
+                    randomParameters[randomParameters[,thetas[i]]-ariPolynomial[nonZeroARI[ariIndex,1]]<psiBounds[1],thetas[i]] <-
+                        psiBounds[1]+ariPolynomial[nonZeroARI[ariIndex,1]];
+                    randomParameters[randomParameters[,thetas[i]]-ariPolynomial[nonZeroARI[ariIndex,1]]>psiBounds[2],thetas[i]] <-
+                        psiBounds[2]+ariPolynomial[nonZeroARI[ariIndex,1]];
+                }
+                else{
+                    randomParameters[randomParameters[,thetas[i]]<psiBounds[1],thetas[i]] <- psiBounds[1];
+                    randomParameters[randomParameters[,thetas[i]]>psiBounds[2],thetas[i]] <- psiBounds[2];
+                }
+            }
+        }
+        # Locate phi for ARIMA (they are always phi1, phi2 etc)
+        if(length(phis)>0){
+            # AR parameters
+            for(i in 1:length(phis)){
+                # Get bounds for AR based on stationarity condition
+                phiBounds <- arPolinomialsBounds(arPolynomialMatrix, arPolynomial,
+                                                 which(arPolynomial==arPolynomial[arPolynomial!=0][-1][i]));
+
+                randomParameters[randomParameters[,phis[i]]<phiBounds[1],phis[i]] <- phiBounds[1];
+                randomParameters[randomParameters[,phis[i]]>phiBounds[2],phis[i]] <- phiBounds[2];
+            }
+        }
+    }
+
     # Set the bounds for deltas
     if(any(substr(parametersNames,1,5)=="delta")){
         deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
         randomParameters[randomParameters[,deltaIndex]<0,deltaIndex] <- 0;
         randomParameters[randomParameters[,deltaIndex]>1,deltaIndex] <- 1;
     }
-    # ARIMA elements...
 
     # Prepare the necessary objects
     # States are defined similar to how it is done in adam.
@@ -7339,8 +7465,83 @@ refit.adam <- function(object, nsim=1000, ...){
         deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
         matG[colnames(randomParameters)[deltaIndex],] <- t(randomParameters[,deltaIndex,drop=FALSE]);
     }
+    # Fill in the persistence and transition for ARIMA
     if(arimaModel){
-        # Use nonZeroARI and nonZeroMA in order to get values in matG and arrF
+        if(is.list(object$orders)){
+            arOrders <- object$orders$ar;
+            iOrders <- object$orders$i;
+            maOrders <- object$orders$ma;
+        }
+        else if(is.vector(object$orders)){
+            arOrders <- object$orders[1];
+            iOrders <- object$orders[2];
+            maOrders <- object$orders[3];
+        }
+
+        # See if AR is needed
+        arRequired <- FALSE;
+        if(sum(arOrders)>0){
+            arRequired[] <- TRUE;
+        }
+        # See if I is needed
+        iRequired <- FALSE;
+        if(sum(iOrders)>0){
+            iRequired[] <- TRUE;
+        }
+        # See if I is needed
+        maRequired <- FALSE;
+        if(sum(maOrders)>0){
+            maRequired[] <- TRUE;
+        }
+
+        # Define maxOrder and make all the values look similar (for the polynomials)
+        maxOrder <- max(length(arOrders),length(iOrders),length(maOrders),length(lags));
+        if(length(arOrders)!=maxOrder){
+            arOrders <- c(arOrders,rep(0,maxOrder-length(arOrders)));
+        }
+        if(length(iOrders)!=maxOrder){
+            iOrders <- c(iOrders,rep(0,maxOrder-length(iOrders)));
+        }
+        if(length(maOrders)!=maxOrder){
+            maOrders <- c(maOrders,rep(0,maxOrder-length(maOrders)));
+        }
+        if(length(lags)!=maxOrder){
+            lagsNew <- c(lags,rep(0,maxOrder-length(lags)));
+            arOrders <- arOrders[lagsNew!=0];
+            iOrders <- iOrders[lagsNew!=0];
+            maOrders <- maOrders[lagsNew!=0];
+        }
+        # The provided parameters
+        armaParameters <- object$other$armaParameters;
+        # Check if the AR / MA parameters were estimated
+        arEstimate <- any((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3))
+        maEstimate <- any(substr(parametersNames,1,5)=="theta");
+        # Find, where the AR / MA estimate starts and then move one slot back
+        if(any(c(arEstimate,maEstimate))){
+            k <- min(which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3)),
+                     which(substr(parametersNames,1,5)=="theta")) -1;
+        }
+        else{
+            k <- -1;
+        }
+
+        for(i in 1:nsim){
+            # Call the function returning ARI and MA polynomials
+            arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                               arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                                               armaParameters, lags);
+
+            # Fill in the transition and persistence matrices
+            if(nrow(nonZeroARI)>0){
+                arrF[componentsNumberETS+nonZeroARI[,2],componentsNumberETS+1:componentsNumberARIMA,i] <-
+                    -arimaPolynomials$ariPolynomial[nonZeroARI[,1]];
+                matG[componentsNumberETS+nonZeroARI[,2],i] <- -arimaPolynomials$ariPolynomial[nonZeroARI[,1]];
+            }
+            if(nrow(nonZeroMA)>0){
+                matG[componentsNumberETS+nonZeroMA[,2],i] <- matG[componentsNumberETS+nonZeroMA[,2],i] +
+                    arimaPolynomials$maPolynomial[nonZeroMA[,1]];
+            }
+        }
     }
 
     # Fill in the profile values
@@ -7379,8 +7580,57 @@ refit.adam <- function(object, nsim=1000, ...){
             j <- j+max(initialSeasonalIndices);
         }
     }
-    if(arimaModel){}
-    if(xregNumber>0){}
+    # ARIMA states in the profileRecent
+    if(arimaModel){
+        # See if the initials were estimated
+        initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+        # This is needed in order to propagate initials of ARIMA to all components
+        if(object$initialType=="optimal" && any(c(arEstimate,maEstimate))){
+            if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                for(i in 1:nsim){
+                    # Call the function returning ARI and MA polynomials
+                    ### This is not optimal, as the polynomialiser() is called twice (for parameters and here),
+                    ### but this is simpler
+                    arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                       arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                                                       armaParameters, lags);
+                    profilesRecentArray[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber,i] <-
+                        switch(Etype,
+                               "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                   t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                                         1:initialArimaNumber,i]) /
+                                   tail(arimaPolynomials$ariPolynomial,1),
+                               "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                           t(log(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                                                     1:initialArimaNumber,i])) /
+                                           tail(arimaPolynomials$ariPolynomial,1)));
+                }
+            }
+            else{
+                for(i in 1:nsim){
+                    # Call the function returning ARI and MA polynomials
+                    arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                       arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                                                       armaParameters, lags);
+                    profilesRecentArray[componentsNumberETS+nonZeroMA[,2],
+                          1:initialArimaNumber,i] <-
+                        switch(Etype,
+                               "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                   t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                                         1:initialArimaNumber, i]) /
+                                   tail(arimaPolynomials$maPolynomial,1),
+                               "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                           t(log(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                                                     1:initialArimaNumber, i])) /
+                                           tail(arimaPolynomials$maPolynomial,1)));
+                }
+            }
+        }
+        j <- j+initialArimaNumber;
+    }
+    if(xregNumber>0){
+        profilesRecentArray[j+1:xregNumber,1,] <- t(randomParameters[,colnames(object$xreg)]);
+    }
 
     if(is.null(object$occurrence)){
         ot <- matrix(rep(1, obsInSample));
