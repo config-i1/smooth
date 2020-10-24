@@ -40,10 +40,9 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
 
         // Refine the head (in order for it to make sense)
         for (int i=0; i<lagsModelMax; i=i+1) {
-            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
-
+            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
         }
         ////// Run forward
         // Loop for the model construction
@@ -70,8 +69,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
             /* # Transition equation */
             profilesRecent(profilesObserved.col(i-lagsModelMax)) = adamFvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
-            adamGvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
-                   nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG, vecErrors(i-lagsModelMax));
+                adamGvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
+                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG, vecErrors(i-lagsModelMax));
 
             // Failsafe for cases, when nan values appear
             // if(matrixVt.col(i).has_nan()){
