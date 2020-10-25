@@ -7294,12 +7294,12 @@ refit.adam <- function(object, nsim=1000, ...){
             }
             # Set the bounds for gamma
             if(any(substr(parametersNames,1,5)=="gamma")){
-                gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
-                for(i in 1:length(gammaIndex)){
-                    randomParameters[randomParameters[,gammaIndex[i]]<0,gammaIndex[i]] <- 0;
-                    randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],
-                                     gammaIndex[i]] <- 1-
-                        randomParameters[randomParameters[,gammaIndex[i]]>randomParameters[,"alpha"],"alpha"];
+                gammas <- which(substr(colnames(randomParameters),1,5)=="gamma");
+                for(i in 1:length(gammas)){
+                    randomParameters[randomParameters[,gammas[i]]<0,gammas[i]] <- 0;
+                    randomParameters[randomParameters[,gammas[i]]>randomParameters[,"alpha"],
+                                     gammas[i]] <- 1-
+                        randomParameters[randomParameters[,gammas[i]]>randomParameters[,"alpha"],"alpha"];
                 }
             }
             # Set the bounds for phi
@@ -7409,12 +7409,12 @@ refit.adam <- function(object, nsim=1000, ...){
 
     # Set the bounds for deltas
     if(any(substr(parametersNames,1,5)=="delta")){
-        deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
-        randomParameters[randomParameters[,deltaIndex]<0,deltaIndex] <- 0;
-        randomParameters[randomParameters[,deltaIndex]>1,deltaIndex] <- 1;
+        deltas <- which(substr(colnames(randomParameters),1,5)=="delta");
+        randomParameters[randomParameters[,deltas]<0,deltas] <- 0;
+        randomParameters[randomParameters[,deltas]>1,deltas] <- 1;
     }
 
-    # Prepare the necessary objects
+    #### Prepare the necessary matrices ####
     # States are defined similar to how it is done in adam.
     # Inserting the existing one is needed in order to deal with the case, when one of the initials was provided
     arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states),nsim),
@@ -7434,11 +7434,6 @@ refit.adam <- function(object, nsim=1000, ...){
     # Transition and measurement
     arrF <- array(object$transition,c(dim(object$transition),nsim));
     arrWt <- array(object$measurement,c(dim(object$measurement),nsim));
-    # If we have phi, update the transition and measurement matrices
-    if(any(parametersNames=="phi")){
-        arrF[1,2,] <- arrF[2,2,] <- randomParameters[,"phi"];
-        arrWt[,2,] <- matrix(randomParameters[,"phi"],nrow(object$measurement),nsim,byrow=TRUE);
-    }
 
     # Persistence matrix
     if(xregNumber>0 && !any(substr(parametersNames,1,5)=="delta")){
@@ -7450,22 +7445,37 @@ refit.adam <- function(object, nsim=1000, ...){
         matG <- array(object$persistence, c(length(object$persistence), nsim),
                       dimnames=list(names(object$persistence), paste0("nsim",c(1:nsim))));
     }
+
+    #### Fill in the values in matrices ####
+    # k is the index for randomParameters columns
+    k <- 0;
     # Fill in the persistence
     if(etsModel){
         if(any(parametersNames=="alpha")){
             matG["alpha",] <- randomParameters[,"alpha"];
+            k <- k+1;
         }
         if(any(parametersNames=="beta")){
             matG["beta",] <- randomParameters[,"beta"];
+            k <- k+1;
         }
         if(any(substr(parametersNames,1,5)=="gamma")){
-            gammaIndex <- which(substr(colnames(randomParameters),1,5)=="gamma");
-            matG[colnames(randomParameters)[gammaIndex],] <- t(randomParameters[,gammaIndex,drop=FALSE]);
+            gammas <- which(substr(colnames(randomParameters),1,5)=="gamma");
+            matG[colnames(randomParameters)[gammas],] <- t(randomParameters[,gammas,drop=FALSE]);
+            k <- k+length(gammas);
+        }
+
+        # If we have phi, update the transition and measurement matrices
+        if(any(parametersNames=="phi")){
+            arrF[1,2,] <- arrF[2,2,] <- randomParameters[,"phi"];
+            arrWt[,2,] <- matrix(randomParameters[,"phi"],nrow(object$measurement),nsim,byrow=TRUE);
+            k <- k+1;
         }
     }
     if(xregNumber>0 && any(substr(parametersNames,1,5)=="delta")){
-        deltaIndex <- which(substr(colnames(randomParameters),1,5)=="delta");
-        matG[colnames(randomParameters)[deltaIndex],] <- t(randomParameters[,deltaIndex,drop=FALSE]);
+        deltas <- which(substr(colnames(randomParameters),1,5)=="delta");
+        matG[colnames(randomParameters)[deltas],] <- t(randomParameters[,deltas,drop=FALSE]);
+        k <- k+length(deltas);
     }
     # Fill in the persistence and transition for ARIMA
     if(arimaModel){
@@ -7518,18 +7528,20 @@ refit.adam <- function(object, nsim=1000, ...){
         # Check if the AR / MA parameters were estimated
         arEstimate <- any((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3))
         maEstimate <- any(substr(parametersNames,1,5)=="theta");
-        # Find, where the AR / MA estimate starts and then move one slot back
+
+        # polyIndex is the index of the phi / theta parameters -1
         if(any(c(arEstimate,maEstimate))){
-            k <- min(which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3)),
-                     which(substr(parametersNames,1,5)=="theta")) -1;
+            polyIndex <- min(which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3)),
+                             which(substr(parametersNames,1,5)=="theta")) -1;
         }
+        # If AR / MA are not estimated, then we don't care
         else{
-            k <- -1;
+            polyIndex <- -1;
         }
 
         for(i in 1:nsim){
             # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                armaParameters, lags);
 
@@ -7544,19 +7556,23 @@ refit.adam <- function(object, nsim=1000, ...){
                     arimaPolynomials$maPolynomial[nonZeroMA[,1]];
             }
         }
+        k <- k+sum(c(arOrders*arEstimate,maOrders*maEstimate));
     }
 
+    # j is the index for the components in the profile
+    j <- 0
     # Fill in the profile values
     profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
     if(etsModel && object$initialType=="optimal"){
-        j <- 0
         if(any(parametersNames=="level")){
             j <- j+1;
             profilesRecentArray[j,1,] <- randomParameters[,"level"];
+            k <- k+1;
         }
         if(any(parametersNames=="trend")){
             j <- j+1;
             profilesRecentArray[j,1,] <- randomParameters[,"trend"];
+            k <- k+1;
         }
         if(any(substr(parametersNames,1,8)=="seasonal")){
             # If there is only one seasonality
@@ -7580,6 +7596,7 @@ refit.adam <- function(object, nsim=1000, ...){
                            0);
             }
             j <- j+max(initialSeasonalIndices);
+            k <- k+length(initialSeasonalIndices);
         }
     }
     # ARIMA states in the profileRecent
@@ -7594,32 +7611,32 @@ refit.adam <- function(object, nsim=1000, ...){
                     # Call the function returning ARI and MA polynomials
                     ### This is not optimal, as the polynomialiser() is called twice (for parameters and here),
                     ### but this is simpler
-                    arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                        arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                        armaParameters, lags);
                     profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
-                        randomParameters[i, j+1:initialArimaNumber];
-                    profilesRecentArray[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber, i] <-
+                        randomParameters[i, k+1:initialArimaNumber];
+                    profilesRecentArray[j+nonZeroARI[,2], 1:initialArimaNumber, i] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                    t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
-                                                         1:initialArimaNumber,i]) /
+                                                         1:initialArimaNumber, i]) /
                                    tail(arimaPolynomials$ariPolynomial,1),
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                            t(log(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
-                                                                     1:initialArimaNumber,i])) /
+                                                                     1:initialArimaNumber, i])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
             }
             else{
                 for(i in 1:nsim){
                     # Call the function returning ARI and MA polynomials
-                    arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                        arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                        armaParameters, lags);
                     profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
-                        randomParameters[i,j+1:initialArimaNumber];
-                    profilesRecentArray[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber, i] <-
+                        randomParameters[i, k+1:initialArimaNumber];
+                    profilesRecentArray[j+nonZeroMA[,2], 1:initialArimaNumber, i] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
                                    t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
@@ -7633,6 +7650,7 @@ refit.adam <- function(object, nsim=1000, ...){
             }
         }
         j <- j+initialArimaNumber;
+        k <- k+initialArimaNumber;
     }
     if(xregNumber>0){
         profilesRecentArray[j+1:xregNumber,1,] <- t(randomParameters[,colnames(object$xreg)]);
