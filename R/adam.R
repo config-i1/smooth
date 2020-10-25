@@ -7210,7 +7210,7 @@ refit.adam <- function(object, nsim=1000, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    vcovAdam <- vcov(object, ...);
+    vcovAdam <- suppressWarnings(vcov(object, ...));
     parametersNames <- colnames(vcovAdam);
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
@@ -7224,10 +7224,12 @@ refit.adam <- function(object, nsim=1000, ...){
             vcovAdam[] <- vcovAdam + epsilon*diag(nrow(vcovAdam));
         }
         else{
-            stop(paste0("The covariance matrix of parameters is not positive semi-definite. ",
-                           "We cannot fix it, so it makes sense to re-estimate adam(), tuning the optimiser. ",
+            warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
+                           "We cannot fix it, so we will use the diagonal only. ",
+                           "It makes sense to re-estimate adam(), tuning the optimiser. ",
                            "For example, try reoptimising via 'object <- adam(y, ..., B=object$B)'."),
-                    call.=FALSE);
+                    call.=FALSE, immediate.=TRUE);
+            vcovAdam[] <- diag(diag(vcovAdam));
         }
     }
 
@@ -7584,6 +7586,7 @@ refit.adam <- function(object, nsim=1000, ...){
     if(arimaModel){
         # See if the initials were estimated
         initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+
         # This is needed in order to propagate initials of ARIMA to all components
         if(object$initialType=="optimal" && any(c(arEstimate,maEstimate))){
             if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
@@ -7594,7 +7597,9 @@ refit.adam <- function(object, nsim=1000, ...){
                     arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                        arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                        armaParameters, lags);
-                    profilesRecentArray[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber,i] <-
+                    profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
+                        randomParameters[i, j+1:initialArimaNumber];
+                    profilesRecentArray[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber, i] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                    t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
@@ -7612,8 +7617,9 @@ refit.adam <- function(object, nsim=1000, ...){
                     arimaPolynomials <- polynomialiser(randomParameters[i,k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                        arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                        armaParameters, lags);
-                    profilesRecentArray[componentsNumberETS+nonZeroMA[,2],
-                          1:initialArimaNumber,i] <-
+                    profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
+                        randomParameters[i,j+1:initialArimaNumber];
+                    profilesRecentArray[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber, i] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
                                    t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
