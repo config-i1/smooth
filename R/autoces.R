@@ -60,12 +60,9 @@ auto.ces <- function(y, models=c("none","simple","full"),
                 loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                oesmodel="MNN",
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
 # Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -76,8 +73,20 @@ auto.ces <- function(y, models=c("none","simple","full"),
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ### Depricate the old parameters
+    ellipsis <- list(...)
+    ellipsis <- depricator(ellipsis, "occurrence", "es");
+    ellipsis <- depricator(ellipsis, "updateX", "es");
+    ellipsis <- depricator(ellipsis, "persistenceX", "es");
+    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    updateX <- FALSE;
+    persistenceX <- transitionX <- NULL;
+    occurrence <- "none";
+    oesmodel <- "MNN";
+
 # Add all the variables in ellipsis to current environment
-    list2env(list(...),environment());
+    list2env(ellipsis,environment());
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
@@ -148,10 +157,9 @@ auto.ces <- function(y, models=c("none","simple","full"),
                         loss=loss,
                         h=h, holdout=holdout,cumulative=cumulative,
                         interval=intervalType, level=level,
-                        occurrence=occurrence, oesmodel=oesmodel,
                         bounds=bounds, silent=silent,
                         xreg=xreg, xregDo=xregDo, initialX=initialX,
-                        updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
+                        FI=FI);
         return(CESModel);
     }
 
@@ -185,10 +193,9 @@ auto.ces <- function(y, models=c("none","simple","full"),
                              loss=loss,
                              h=h, holdout=holdout,cumulative=cumulative,
                              interval=intervalType, level=level,
-                             occurrence=occurrence, oesmodel=oesmodel,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, xregDo=xregDo, initialX=initialX,
-                             updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, FI=FI);
+                             FI=FI);
         ICs[j] <- CESModel[[j]]$ICs[ic];
         j <- j+1;
     }

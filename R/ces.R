@@ -79,16 +79,11 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
-#' If the model is non-intermittent, then occurrence is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
 #' variables.
-#' \item \code{updateX} - boolean, defining, if the states of
 #' exogenous variables were estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
-#' \item \code{persistenceX} - persistence vector g for exogenous variables.
-#' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
 #' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
@@ -129,34 +124,15 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
 #'     interval="np",xreg=x,loss="TMSE")}
 #'
-#' # Exogenous variables in CES
-#' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-#' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
-#' ourModel <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
-#' # This will be the same model as in previous line but estimated on new portion of data
-#' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=ourModel,h=18,holdout=FALSE)}
-#'
-#' # Intermittent data example
-#' x <- rpois(100,0.2)
-#' # Best type of the occurrence model based on iETS(Z,Z,N)
-#' ourModel <- ces(x,occurrence="auto")
-#'
-#' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))
-#'
 #' @export ces
 ces <- function(y, seasonality=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                oesmodel="MNN",
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
 # Function estimates CES in state space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -167,8 +143,20 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ### Depricate the old parameters
+    ellipsis <- list(...)
+    ellipsis <- depricator(ellipsis, "occurrence", "es");
+    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    ellipsis <- depricator(ellipsis, "updateX", "es");
+    ellipsis <- depricator(ellipsis, "persistenceX", "es");
+    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    updateX <- FALSE;
+    persistenceX <- transitionX <- NULL;
+    occurrence <- "none";
+    oesmodel <- "MNN";
+
 # Add all the variables in ellipsis to current environment
-    list2env(list(...),environment());
+    list2env(ellipsis,environment());
 
     # If a previous model provided as a model, write down the variables
     if(exists("model",inherits=FALSE)){
@@ -475,8 +463,8 @@ CreatorCES <- function(silentText=FALSE,...){
     }
 
 ##### Prepare exogenous variables #####
-    xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
-                       persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
+    xregdata <- ssXreg(y=y, xreg=xreg, updateX=FALSE, ot=ot,
+                       persistenceX=NULL, transitionX=NULL, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
                        lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
 
@@ -857,8 +845,8 @@ CreatorCES <- function(silentText=FALSE,...){
                   nParam=parametersNumber,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
-                  y=y,holdout=yHoldout,occurrence=occurrenceModel,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
+                  y=y,holdout=yHoldout,
+                  xreg=xreg,initialX=initialX,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures,
                   B=B);
     return(structure(model,class="smooth"));

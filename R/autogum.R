@@ -61,12 +61,9 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=10, holdout=FALSE, cumulative=FALSE,
                      interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                     occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                     oesmodel="MNN",
                      bounds=c("restricted","admissible","none"),
                      silent=c("all","graph","legend","output","none"),
-                     xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                     updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                     xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
 # Function estimates several GUM models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2017 - Inf  Ivan Svetunkov
@@ -74,8 +71,20 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ### Depricate the old parameters
+    ellipsis <- list(...)
+    ellipsis <- depricator(ellipsis, "occurrence", "es");
+    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    ellipsis <- depricator(ellipsis, "updateX", "es");
+    ellipsis <- depricator(ellipsis, "persistenceX", "es");
+    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    updateX <- FALSE;
+    persistenceX <- transitionX <- NULL;
+    occurrence <- "none";
+    oesmodel <- "MNN";
+
 # Add all the variables in ellipsis to current environment
-    list2env(list(...),environment());
+    list2env(ellipsis,environment());
 
     # If this is Mcomp data, then take the frequency from it
     if(any(class(y)=="Mdata") && lags==frequency(y)){
@@ -155,10 +164,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             initial=initial,loss=loss,
                             cumulative=cumulative,
                             interval=intervalType, level=level,
-                            occurrence=occurrence, oesmodel=oesmodel,
                             bounds=bounds,
-                            xreg=xreg, xregDo=xregDo, initialX=initialX,
-                            updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+                            xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
             ics[i] <- gumModel$ICs[ic];
             if(!silentText){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
@@ -196,10 +203,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                                 initial=initial,loss=loss,
                                 cumulative=cumulative,
                                 interval=intervalType, level=level,
-                                occurrence=occurrence, oesmodel=oesmodel,
                                 bounds=bounds,
-                                xreg=xreg, xregDo=xregDo, initialX=initialX,
-                                updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+                                xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
                 ics[i] <- gumModel$ICs[ic];
             }
             if(!any(which(ics==min(ics))==lagsBest)){
@@ -238,10 +243,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             initial=initial,loss=loss,
                             cumulative=cumulative,
                             interval=intervalType, level=level,
-                            occurrence=occurrence, oesmodel=oesmodel,
                             bounds=bounds,
-                            xreg=xreg, xregDo=xregDo, initialX=initialX,
-                            updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+                            xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
             ics[i] <- gumModel$ICs[ic];
         }
         ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE);
@@ -265,10 +268,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      initial=initial,loss=loss,
                      cumulative=cumulative,
                      interval=intervalType, level=level,
-                     occurrence=occurrence, oesmodel=oesmodel,
                      bounds=bounds,
-                     xreg=xreg, xregDo=xregDo, initialX=initialX,
-                     updateX=updateX, persistenceX=persistenceX, transitionX=transitionX, ...);
+                     xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
 
     yFitted <- bestModel$fitted;
     yForecast <- bestModel$forecast;

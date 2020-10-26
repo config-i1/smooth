@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-10-24)
+smooth v3.0.0 (Release data: 2020-10-26)
 =======
 
 Changes:
@@ -20,6 +20,7 @@ Changes:
 * A follow-up method from that - reforecast(), which uses states produced by refit() method to produce possible paths from each generated combination of parameters in order to obtain conditional expectation and prediction interval.
 * adam() now works in cases of leap years and DST. In order to switch this functionality on, y needs to be a zoo object or any other object, containing dates and the lags parameter needs to be set to either 24, 48 or 365 - depending on the frequency of data.
 * ves() now uses the R code for the loss calculation - the C++ routine was not leading to huge performance gains, but was not as flexible.
+* Removed occurrence, updateX, transitionX and persistenceX from the es(), ces(), gum() ssarima(), msarima() and respective auto functions. Use adam() if you want that functionality (probably, nobody cares anyway... let me know if that's not true).
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.

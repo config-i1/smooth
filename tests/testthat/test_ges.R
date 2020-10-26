@@ -25,16 +25,9 @@ test_that("Test initials, measurement, transition and persistence of GUM on N256
     expect_equal(gum(Mcomp::M3$N2568$x, orders=c(1,1,1), lags=c(1,3,5), persistence=testModel$persistence, silent=TRUE)$persistence, testModel$persistence);
 })
 
-# Test exogenous (normal + updateX) with GUM
+# Test selection of exogenous with GUM
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- gum(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, loss="aTMSE", interval="np")
-test_that("Check exogenous variables for GUMX on N1457", {
-    expect_equal(suppressWarnings(gum(y, h=18, holdout=TRUE, xreg=x, silent=TRUE)$model), testModel$model);
-    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
-})
-
-# Test selection of exogenous with GUM
 testModel <- gum(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for GUMX on N1457", {
     expect_match(errorType(testModel),"A");

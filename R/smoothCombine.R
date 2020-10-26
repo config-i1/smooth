@@ -57,12 +57,8 @@
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
-#' If the model is non-intermittent, then occurrence is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
 #' then this value will contain only selected exogenous variables.
-#' \item \code{updateX} - boolean, defining, if the states of exogenous variables were
-#' estimated as well.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
 #' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
@@ -97,13 +93,9 @@ smoothCombine <- function(y, models=NULL,
                           h=10, holdout=FALSE, cumulative=FALSE,
                           interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                           bins=200, intervalCombine=c("quantile","probability"),
-                          occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","probability"),
-                          oesmodel="MNN",
                           bounds=c("admissible","none"),
                           silent=c("all","graph","legend","output","none"),
-                          xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                          updateX=FALSE, persistenceX=NULL, transitionX=NULL,
-                          ...){
+                          xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
 # Copyright (C) 2018 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -117,9 +109,21 @@ smoothCombine <- function(y, models=NULL,
         ourQuantiles <- NA;
     }
 
+    ### Depricate the old parameters
+    ellipsis <- list(...)
+    ellipsis <- depricator(ellipsis, "occurrence", "es");
+    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    ellipsis <- depricator(ellipsis, "updateX", "es");
+    ellipsis <- depricator(ellipsis, "persistenceX", "es");
+    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    updateX <- FALSE;
+    persistenceX <- transitionX <- NULL;
+    occurrence <- "none";
+    oesmodel <- "MNN";
+
 # Add all the variables in ellipsis to current environment
     thisEnvironment <- environment();
-    list2env(list(...),thisEnvironment);
+    list2env(ellipsis,thisEnvironment);
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssInput) <- thisEnvironment;
@@ -158,34 +162,26 @@ smoothCombine <- function(y, models=NULL,
             cat("ES");
         }
         esModel <- es(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
-                      cumulative=cumulative,interval="n",occurrence=occurrence,
-                      oesmodel=oesmodel,bounds=bounds,silent=TRUE,
-                      xreg=xreg,xregDo=xregDo,updateX=updateX,
-                      initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+                      cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
+                      xreg=xreg,xregDo=xregDo, initialX=initialX);
         if(!silentText){
             cat(", CES");
         }
         cesModel <- auto.ces(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
-                             cumulative=cumulative,interval="n",occurrence=occurrence,
-                             oesmodel=oesmodel,bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo,updateX=updateX,
-                             initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+                             cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
+                             xreg=xreg,xregDo=xregDo, initialX=initialX);
         if(!silentText){
             cat(", SSARIMA");
         }
         ssarimaModel <- auto.ssarima(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
-                                     cumulative=cumulative,interval="n",occurrence=occurrence,
-                                     oesmodel=oesmodel,bounds=bounds,silent=TRUE,
-                                     xreg=xreg,xregDo=xregDo,updateX=updateX,
-                                     initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+                                     cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
+                                     xreg=xreg,xregDo=xregDo, initialX=initialX);
         if(!silentText){
             cat(", GUM");
         }
         gumModel <- auto.gum(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
-                             cumulative=cumulative,interval="n",occurrence=occurrence,
-                             oesmodel=oesmodel,bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo,updateX=updateX,
-                             initialX=initialX,persistenceX=persistenceX,transitionX=transitionX);
+                             cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
+                             xreg=xreg,xregDo=xregDo, initialX=initialX);
         if(!silentText){
             cat(", SMA");
         }

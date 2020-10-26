@@ -119,11 +119,6 @@ or construct a model with selected exogenous (based on IC):
 es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, xregDo="select")
 ```
 
-or the one with the updated xreg:
-```{r es_N2457_xreg_update}
-ourModel <- es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=x, updateX=TRUE)
-```
-
 If we want to check if lagged x can be used for forecasting purposes, we can use `xregExpander()` function from `greybox` package:
 ```{r es_N2457_xreg_expanded_select}
 es(M3$N2457$x, model="ZZZ", h=18, holdout=TRUE, xreg=xregExpander(x), xregDo="select")

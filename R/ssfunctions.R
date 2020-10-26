@@ -837,6 +837,11 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         occurrence <- occurrence$occurrence;
         occurrenceModelProvided <- FALSE;
     }
+    else if(is.null(occurrence)){
+        occurrence <- "none";
+        occurrenceModel <- "MNN";
+        occurrenceModelProvided <- FALSE;
+    }
     else{
         if(is.null(oesmodel) || is.na(oesmodel)){
             occurrenceModel <- "MNN";
@@ -848,33 +853,6 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     }
 
     if(smoothType!="oes"){
-        if(exists("intermittent",envir=ParentEnvironment,inherits=FALSE)){
-            if(!is.null(intermittent)){
-                intermittent <- substr(intermittent[1],1,1);
-                warning("The parameter \"intermittent\" is obsolete. Please, use \"occurrence\" instead");
-                occurrence <- switch(intermittent,
-                                     "l"="o",
-                                     "p"="d",
-                                     "f"="f",
-                                     "n"="n",
-                                     "a"="a",
-                                     "i"=,
-                                     "s"="i");
-            }
-            else{
-                occurrence <- intermittent;
-            }
-        }
-        if(exists("imodel",envir=ParentEnvironment,inherits=FALSE)){
-            if(!is.null(imodel)){
-                oesmodel <- imodel;
-                warning("The parameter \"imodel\" is obsolete. Please, use \"oesmodel\" instead");
-            }
-            else{
-                oesmodel <- imodel;
-            }
-        }
-
         if(is.numeric(occurrence)){
             # If it is data, then it should either correspond to the whole sample (in-sample + holdout)
             # or be equal to forecating horizon.
@@ -1766,6 +1744,11 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
                 call.=FALSE);
         occurrenceModel <- modelType(occurrence);
         occurrence <- occurrenceModel$occurrence;
+        occurrenceModelProvided <- FALSE;
+    }
+    else if(is.null(occurrence)){
+        occurrence <- "none";
+        occurrenceModel <- "MNN";
         occurrenceModelProvided <- FALSE;
     }
     else{

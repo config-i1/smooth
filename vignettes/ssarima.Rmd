@@ -65,12 +65,12 @@ x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
 
 If we save model:
 ```{r auto_ssarima_N2457_xreg}
-ourModel <- auto.ssarima(M3$N2457$x, h=18, holdout=TRUE, xreg=x, updateX=TRUE)
+ourModel <- auto.ssarima(M3$N2457$x, h=18, holdout=TRUE, xreg=x)
 ```
 
 we can then reuse it:
 ```{r auto_ssarima_N2457_xreg_update}
-ssarima(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, xreg=x, updateX=TRUE, interval=TRUE)
+ssarima(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, xreg=x, interval=TRUE)
 ```
 
 Finally, we can combine several SARIMA models:

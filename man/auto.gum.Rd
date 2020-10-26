@@ -9,12 +9,10 @@ auto.gum(y, orders = 3, lags = frequency(y), type = c("additive",
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
-  "semiparametric", "nonparametric"), level = 0.95, occurrence = c("none",
-  "auto", "fixed", "general", "odds-ratio", "inverse-odds-ratio", "direct"),
-  oesmodel = "MNN", bounds = c("restricted", "admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, updateX = FALSE,
-  persistenceX = NULL, transitionX = NULL, ...)
+  "semiparametric", "nonparametric"), level = 0.95,
+  bounds = c("restricted", "admissible", "none"), silent = c("all",
+  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -91,20 +89,6 @@ quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{occurrence}{The type of model used in probability estimation. Can be
-\code{"none"} - none,
-\code{"fixed"} - constant probability,
-\code{"general"} - the general Beta model with two parameters,
-\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
-\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
-mechanism a+b=1,
-\code{"auto"} - the automatically selected type of occurrence model.}
-
-\item{oesmodel}{The type of ETS model used for the modelling of the time varying
-probability. Object of the class "oes" can be provided here, and its parameters
-would be used in iETS model.}
-
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
@@ -134,20 +118,6 @@ produced using \link[smooth]{es} function.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
-
-\item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xreg}.}
-
-\item{persistenceX}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for exogenous variables. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xreg}.}
-
-\item{transitionX}{The transition matrix \eqn{F_x} for exogenous variables. Can
-be provided as a vector. Matrix will be formed using the default
-\code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-\code{xreg}.}
 
 \item{...}{Other non-documented parameters. For example \code{FI=TRUE} will
 make the function also produce Fisher Information matrix, which then can be

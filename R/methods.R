@@ -1987,7 +1987,7 @@ print.smooth <- function(x, ...){
 
     ssOutput(x$timeElapsed, x$model, persistence=x$persistence, transition=x$transition, measurement=x$measurement,
              phi=x$phi, ARterms=x$AR, MAterms=x$MA, constant=x$constant, a=x$a, b=x$b,initialType=x$initialType,
-             nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=x$updateX,
+             nParam=x$nParam, s2=x$s2, hadxreg=!is.null(x$xreg), wentwild=FALSE,
              loss=x$loss, cfObjective=x$lossValue, interval=interval, cumulative=cumulative,
              intervalType=intervalType, level=x$level, ICs=x$ICs,
              holdout=holdout, insideinterval=insideinterval, errormeasures=x$accuracy,

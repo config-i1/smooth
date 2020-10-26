@@ -41,16 +41,9 @@ test_that("Test initials, initialSeason and persistence of ETS on N2568$x", {
     expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", phi=testModel$phi, silent=TRUE)$phi, testModel$phi);
 })
 
-# Test exogenous (normal + updateX) with ETS
+# Test selection of exogenous with ETS
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- es(y, h=18, holdout=TRUE, xreg=x, updateX=TRUE, silent=TRUE, interval="np")
-test_that("Check exogenous variables for ETS on N1457", {
-    expect_equal(suppressWarnings(es(y, "MNN", h=18, holdout=TRUE, xreg=x, loss="aTMSE", silent=TRUE)$model), testModel$model);
-    expect_equal(suppressWarnings(forecast(testModel, h=18, holdout=FALSE)$method), testModel$model);
-})
-
-# Test selection of exogenous with ETS
 testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for ETS on N1457 with selection", {
     expect_equal(ncol(testModel$xreg),3);
@@ -60,18 +53,4 @@ test_that("Select exogenous variables for ETS on N1457 with selection", {
 testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for ETSX combined on N1457", {
     expect_match(testModel$model, "ETSX");
-})
-
-# iETS test
-x <- c(0,1,2,0,0,0,1,0,0,1,0,0,0,2,0,0,0,1,0,0);
-testModel <- es(x, "MNN", occurrence="a", silent=TRUE, ic="AIC");
-test_that("Test ETS selection on N1234$x", {
-    expect_match(testModel$model, "iETS");
-})
-
-# Use simulated data in the model
-test_that("Simulate data and then apply ETS", {
-    x <- sim.es("MNN",probability=0.2,obs=100);
-    testModel <- es(x);
-    expect_equal(testModel$initial, x$initial);
 })

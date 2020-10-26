@@ -9,12 +9,10 @@ ces(y, seasonality = c("none", "simple", "partial", "full"),
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
   "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
-  "semiparametric", "nonparametric"), level = 0.95, occurrence = c("none",
-  "auto", "fixed", "general", "odds-ratio", "inverse-odds-ratio", "direct"),
-  oesmodel = "MNN", bounds = c("admissible", "none"), silent = c("all",
-  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
-  "select"), initialX = NULL, updateX = FALSE, persistenceX = NULL,
-  transitionX = NULL, ...)
+  "semiparametric", "nonparametric"), level = 0.95,
+  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
+  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
+  initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -98,20 +96,6 @@ quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{occurrence}{The type of model used in probability estimation. Can be
-\code{"none"} - none,
-\code{"fixed"} - constant probability,
-\code{"general"} - the general Beta model with two parameters,
-\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
-\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
-mechanism a+b=1,
-\code{"auto"} - the automatically selected type of occurrence model.}
-
-\item{oesmodel}{The type of ETS model used for the modelling of the time varying
-probability. Object of the class "oes" can be provided here, and its parameters
-would be used in iETS model.}
-
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
@@ -141,20 +125,6 @@ produced using \link[smooth]{es} function.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
-
-\item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xreg}.}
-
-\item{persistenceX}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for exogenous variables. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xreg}.}
-
-\item{transitionX}{The transition matrix \eqn{F_x} for exogenous variables. Can
-be provided as a vector. Matrix will be formed using the default
-\code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-\code{xreg}.}
 
 \item{...}{Other non-documented parameters.  For example parameter
 \code{model} can accept a previously estimated CES model and use all its
@@ -199,16 +169,11 @@ freedom into account).
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{y} - The data provided in the call of the function.
 \item \code{holdout} - the holdout part of the original data.
-\item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
-If the model is non-intermittent, then occurrence is \code{NULL}.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If
 \code{xregDo="s"}, then this value will contain only selected exogenous
 variables.
-\item \code{updateX} - boolean, defining, if the states of
 exogenous variables were estimated as well.
 \item \code{initialX} - initial values for parameters of exogenous variables.
-\item \code{persistenceX} - persistence vector g for exogenous variables.
-\item \code{transitionX} - transition matrix F for exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes
 AIC, AICc, BIC and BICc.
 \item \code{logLik} - log-likelihood of the function.
@@ -259,22 +224,6 @@ ces(y,h=18,holdout=TRUE,seasonality="f",interval="p")}
 \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
     interval="np",xreg=x,loss="TMSE")}
-
-# Exogenous variables in CES
-\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x)
-ourModel <- ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,xreg=x,updateX=TRUE)
-# This will be the same model as in previous line but estimated on new portion of data
-ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=ourModel,h=18,holdout=FALSE)}
-
-# Intermittent data example
-x <- rpois(100,0.2)
-# Best type of the occurrence model based on iETS(Z,Z,N)
-ourModel <- ces(x,occurrence="auto")
-
-summary(ourModel)
-forecast(ourModel)
-plot(forecast(ourModel))
 
 }
 \references{

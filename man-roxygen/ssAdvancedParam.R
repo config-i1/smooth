@@ -15,18 +15,6 @@
 #' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
 #' @param bounds What type of bounds to use in the model estimation. The first
 #' letter can be used instead of the whole word.
-#' @param occurrence The type of model used in probability estimation. Can be
-#' \code{"none"} - none,
-#' \code{"fixed"} - constant probability,
-#' \code{"general"} - the general Beta model with two parameters,
-#' \code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
-#' \code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-#' \code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
-#' mechanism a+b=1,
-#' \code{"auto"} - the automatically selected type of occurrence model.
-#' @param oesmodel The type of ETS model used for the modelling of the time varying
-#' probability. Object of the class "oes" can be provided here, and its parameters
-#' would be used in iETS model.
 #' @param xreg The vector (either numeric or time series) or the matrix (or
 #' data.frame) of exogenous variables that should be included in the model. If
 #' matrix included than columns should contain variables and rows - observations.
@@ -40,14 +28,3 @@
 #' \code{"combine"} will be available at some point in future...
 #' @param initialX The vector of initial parameters for exogenous variables.
 #' Ignored if \code{xreg} is NULL.
-#' @param updateX If \code{TRUE}, transition matrix for exogenous variables is
-#' estimated, introducing non-linear interactions between parameters.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param persistenceX The persistence vector \eqn{g_X}, containing smoothing
-#' parameters for exogenous variables. If \code{NULL}, then estimated.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param transitionX The transition matrix \eqn{F_x} for exogenous variables. Can
-#' be provided as a vector. Matrix will be formed using the default
-#' \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-#' state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-#' \code{xreg}.

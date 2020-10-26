@@ -131,17 +131,11 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{occurrence} - model of the class "oes" if the occurrence model was estimated.
-#' If the model is non-intermittent, then occurrence is \code{NULL}.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
 #' \code{xregDo="s"}, then this value will contain only selected exogenous
 #' variables.
-#' \item \code{updateX} - boolean,
-#' defining, if the states of exogenous variables were estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous
 #' variables.
-#' \item \code{persistenceX} - persistence vector g for exogenous variables.
-#' \item \code{transitionX} - transition matrix F for exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
 #' AIC, AICc, BIC and BICc.
 #' \item \code{logLik} - log-likelihood of the function.
@@ -188,10 +182,6 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")
 #'
-#' # SARIMA(0,1,1) with exogenous variables with crazy estimation of xreg
-#' ourModel <- msarima(rnorm(118,100,3),orders=list(i=1,ma=1),h=18,holdout=TRUE,
-#'                     xreg=c(1:118),updateX=TRUE)
-#'
 #' summary(ourModel)
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
@@ -203,12 +193,9 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                    occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
-                    oesmodel="MNN",
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
-                    xreg=NULL, xregDo=c("use","select"), initialX=NULL,
-                    updateX=FALSE, persistenceX=NULL, transitionX=NULL, ...){
+                    xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -217,8 +204,20 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    ### Depricate the old parameters
+    ellipsis <- list(...)
+    ellipsis <- depricator(ellipsis, "occurrence", "es");
+    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    ellipsis <- depricator(ellipsis, "updateX", "es");
+    ellipsis <- depricator(ellipsis, "persistenceX", "es");
+    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    updateX <- FALSE;
+    persistenceX <- transitionX <- NULL;
+    occurrence <- "none";
+    oesmodel <- "MNN";
+
 # Add all the variables in ellipsis to current environment
-    list2env(list(...),environment());
+    list2env(ellipsis,environment());
 
     # If a previous model provided as a model, write down the variables
     if(exists("model",inherits=FALSE)){
@@ -977,8 +976,8 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                   nParam=parametersNumber, modelLags=lagsModel,
                   fitted=yFitted,forecast=yForecast,lower=yLower,upper=yUpper,residuals=errors,
                   errors=errors.mat,s2=s2,interval=intervalType,level=level,cumulative=cumulative,
-                  y=y,holdout=yHoldout,occurrence=occurrenceModel,
-                  xreg=xreg,updateX=updateX,initialX=initialX,persistenceX=persistenceX,transitionX=transitionX,
+                  y=y,holdout=yHoldout,
+                  xreg=xreg,initialX=initialX,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,FI=FI,accuracy=errormeasures,
                   B=B);
     return(structure(model,class=c("smooth","msarima")));

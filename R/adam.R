@@ -1817,7 +1817,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                        # Suppres Warnings is needed, because the check is done for scalar alpha
                                                        "M"=suppressWarnings(dgnorm(x=yInSample[otLogical],
                                                                                    mu=adamFitted$yFitted[otLogical],
-                                                                                   alpha=scale*adamFitted$yFitted[otLogical],
+                                                                                   alpha=scale*(adamFitted$yFitted[otLogical])^other,
                                                                                    beta=other, log=TRUE))),
                                        "dlogis"=switch(Etype,
                                                        "A"=dlogis(x=yInSample[otLogical],
