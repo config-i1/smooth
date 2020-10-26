@@ -1313,22 +1313,11 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
 
     if((multi==true) & (CFSwitch<=16)){
         matErrors = errorer(matrixVt, matrixF, rowvecW, vecYt, hor, E, T, S, lags, matrixXt, matrixAt, matrixFX, vecOt);
-        if(E=='M'){
-            matErrors = log(1 + matErrors);
-            matErrors.elem(arma::find_nonfinite(matErrors)).fill(1e10);
-
-// This correction is needed in order to take the correct number of observations in the error matrix
-// !!! This needs to be revised !!! ///
-            yactsum = yactsum / obs * matobs;
-        }
     }
     else{
         arma::mat matErrorsfromfit(errorsfromfit.begin(), errorsfromfit.nrow(), errorsfromfit.ncol(), false);
         matErrors = matErrorsfromfit;
         matErrors = matErrors.elem(nonzeroes);
-        if(E=='M'){
-            matErrors = log(1 + matErrors);
-        }
     }
 
 // If this is an analytical multistep cost function
@@ -1363,9 +1352,9 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     }
 
     // Rounded CF
+    NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
     arma::vec vecYfit;
     if(CFSwitch==21){
-        NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
         vecYfit = as<arma::vec>(yfitfromfit);
     }
 

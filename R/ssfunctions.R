@@ -3088,15 +3088,12 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 }
 
 ##### *Likelihood function* #####
-likelihoodFunction <- function(B){
+likelihoodFunction <- function(B,yFittedSumLog=0){
     #### Concentrated logLikelihood based on B and CF ####
     logLikFromCF <- function(B, loss){
-        yotSumLog <- switch(Etype,
-                            "M" = sum(log(yot)),
-                            "A" = 0);
         if(Etype=="M" && any(loss==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
                                        "GPL","aTMSE","aGTMSE","aGPL"))){
-            yotSumLog <- yotSumLog * h;
+            yFittedSumLog <- yFittedSumLog * h;
         }
 
         if(all(loss!=c("GTMSE","GTMAE","GTHAM","GPL","aGPL","aGTMSE"))){
@@ -3104,18 +3101,18 @@ likelihoodFunction <- function(B){
         }
 
         if(any(loss==c("MAE","MAEh","MACE","TMAE","GTMAE"))){
-            return(- (obsInSample*(log(2) + 1 + CFValue) + obsZero) - yotSumLog);
+            return(- (obsInSample*(log(2) + 1 + CFValue) + obsZero) - yFittedSumLog);
         }
         else if(any(loss==c("HAM","HAMh","CHAM","THAM","GTHAM"))){
             #### This is a temporary fix for the oes models... Needs to be done properly!!! ####
-            return(- 2*(obsInSample*(log(2) + 1 + CFValue) + obsZero) - yotSumLog);
+            return(- 2*(obsInSample*(log(2) + 1 + CFValue) + obsZero) - yFittedSumLog);
         }
         else if(any(loss==c("GPL","aGPL","aGTMSE"))){
-            return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
+            return(- 0.5 *(obsInSample*(h*log(2*pi) + 1 + CFValue) + obsZero) - yFittedSumLog);
         }
         else{
             #if(loss==c("MSE","MSEh","MSCE")) obsNonzero
-            return(- 0.5 *(obsInSample*(log(2*pi) + 1 + CFValue) + obsZero) - yotSumLog);
+            return(- 0.5 *(obsInSample*(log(2*pi) + 1 + CFValue) + obsZero) - yFittedSumLog);
         }
     }
     CFValue <- CF(B);
@@ -3165,13 +3162,13 @@ likelihoodFunction <- function(B){
 
 ##### *Function calculates ICs* #####
 ICFunction <- function(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                       B,Etype=Etype){
+                       B,Etype=Etype,yFittedSumLog=0){
     # Information criteria are calculated with the constant part "log(2*pi*exp(1)*h+log(obs))*obs".
     # And it is based on the mean of the sum squared residuals either than sum.
     # Hyndman likelihood is: llikelihood <- obs*log(obs*cfObjective)
 
     nParamOverall <- nParam + nParamOccurrence;
-    llikelihood <- likelihoodFunction(B);
+    llikelihood <- likelihoodFunction(B,yFittedSumLog=yFittedSumLog);
 
     # max here is needed in order to take into account cases with higher
     ## number of parameters than observations

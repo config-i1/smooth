@@ -818,8 +818,18 @@ EstimatorES <- function(...){
         }
     }
 
+    yFittedSumLog <- 0;
+    if(Etype=="M"){
+        elements <- etsmatrices(matvt, vecg, phi, matrix(B,nrow=1), nComponents,
+                                lagsModel, initialType, Ttype, Stype, nExovars, matat,
+                                persistenceEstimate, phiEstimate, initialType=="o", initialSeasonEstimate, xregEstimate,
+                                matFX, vecgX, updateX, FXEstimate, gXEstimate, initialXEstimate);
+        yFittedSumLog[] <- sum(log(abs(fitterwrap(elements$matvt, elements$matF, elements$matw, yInSample, elements$vecg,
+                                                  lagsModel, Etype, Ttype, Stype, initialType,
+                                                  matxt, elements$matat, elements$matFX, elements$vecgX, ot)$yfit)));
+    }
     ICValues <- ICFunction(nParam=nParam,nParamOccurrence=nParamOccurrence,
-                           B=res$solution,Etype=Etype);
+                           B=res$solution,Etype=Etype,yFittedSumLog=yFittedSumLog);
     ICs <- ICValues$ICs;
     logLik <- ICValues$llikelihood;
 
