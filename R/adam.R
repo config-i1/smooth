@@ -2760,7 +2760,6 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         if(substring(modelCurrent,2,2)==substring(poolSmall[bestj],2,2)){
                             poolSeasonals <- results[[besti]]$Stype;
                             checkSeasonal <- FALSE;
-                            # j[] <- j+1;
                             j <- which(poolSmall!=poolSmall[bestj] &
                                            substring(poolSmall,nchar(poolSmall),nchar(poolSmall))==poolSeasonals);
                         }
@@ -2771,6 +2770,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                         }
                     }
                     else{
+                        # If the trend is the same
                         if(substring(modelCurrent,2,2) == substring(poolSmall[besti],2,2)){
                             poolSeasonals <- poolSeasonals[poolSeasonals!=results[[besti]]$Stype];
                             if(length(poolSeasonals)>1){
@@ -2783,6 +2783,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                             else{
                                 bestj[] <- j;
                                 besti[] <- i;
+                                # Move to checking the trend
                                 j <- which(substring(poolSmall,nchar(poolSmall),nchar(poolSmall))==poolSeasonals &
                                                substring(poolSmall,2,2)!=substring(modelCurrent,2,2));
                                 checkSeasonal[] <- FALSE;
@@ -2804,7 +2805,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     j <- 2;
                 }
 
-                if(j>=length(poolSmall)){
+                if(j>length(poolSmall)){
                     check[] <- FALSE;
                 }
             }
