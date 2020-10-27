@@ -1351,9 +1351,9 @@ CreatorES <- function(silent=FALSE,...){
     if(Stype!="N"){
         if(is.null(initialSeason)){
             initialSeasonEstimate <- TRUE;
-            seasonalCoefs <- decompose(ts(c(yInSample),frequency=dataFreq),type="additive")$seasonal[1:dataFreq];
+            seasonalCoefs <- decompose(ts(c(yInSample),frequency=dataFreq),type="additive")$figure;
             decompositionM <- decompose(ts(c(yInSample),frequency=dataFreq), type="multiplicative");
-            seasonalCoefs <- cbind(seasonalCoefs,decompositionM$seasonal[1:dataFreq]);
+            seasonalCoefs <- cbind(seasonalCoefs,decompositionM$figure);
             seasonalRandomness <- c(min(decompositionM$random,na.rm=TRUE),
                                     max(decompositionM$random,na.rm=TRUE));
         }
@@ -1372,13 +1372,7 @@ CreatorES <- function(silent=FALSE,...){
         smoothingParameters <- cbind(persistence,persistence);
     }
     else{
-        # smoothingParameters <- cbind(c(0.2,0.1,0.05),rep(0.05,3));
-        if(occurrence=="n"){
-            smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.1,0.05,0.01));
-        }
-        else{
-            smoothingParameters <- cbind(c(0.1,0.05,0.1),c(0.05,0.01,0.01));
-        }
+        smoothingParameters <- cbind(c(0.3,0.2,0.1),c(0.1,0.01,0.01));
 
         if(loss=="HAM"){
             smoothingParameters <- cbind(rep(0.01,3),rep(0.01,3));
