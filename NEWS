@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-10-26)
+smooth v3.0.0 (Release data: 2020-10-27)
 =======
 
 Changes:
@@ -29,6 +29,7 @@ Bugfixes:
 * Fixed a bug in ETS(M,M,A) models in adam.
 * Fixes for ETS(A,M,A) initialisation in adam.
 * A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
+* es() would not work well for some mixed models and data close to zero due to the initialisation. This should be fixed now.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

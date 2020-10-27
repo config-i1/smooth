@@ -113,7 +113,7 @@ RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SE
 // # Define the initial states for level and trend components
     switch(T){
     case 'N':
-        matrixVt.submat(0,0,lagsModelMax-1,0).each_row() = initial.submat(0,0,0,0);
+        matrixVt.submat(0,0,lagsModelMax-1,0).each_row() = initial.submat(0,4,0,4);
     break;
     case 'A':
         matrixVt.submat(0,0,lagsModelMax-1,1).each_row() = initial.submat(0,0,0,1);

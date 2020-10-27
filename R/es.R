@@ -1315,61 +1315,34 @@ CreatorES <- function(silent=FALSE,...){
     # First two columns are needed for additive seasonality, the 3rd and 4th - for the multiplicative
     if(Ttype!="N"){
         if(initialType!="p"){
-            initialstates <- matrix(NA,1,4);
+            initialstates <- matrix(NA,1,5);
             initialstates[1,2] <- (cov(yot[1:min(max(dataFreq,12),obsNonzero)],
                                        c(1:min(max(dataFreq,12),obsNonzero)))/
                                        var(c(1:min(max(dataFreq,12),obsNonzero))));
             initialstates[1,1] <- (mean(yot[1:min(max(dataFreq,12),obsNonzero)]) -
                                        initialstates[1,2] *
                                        mean(c(1:min(max(dataFreq,12), obsNonzero))));
-            if(any(loss=="LogisticD")){
-                if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
-                    initialstates[1,1] <- -50;
-                }
-                else if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==1)){
-                    initialstates[1,1] <- 50;
-                }
-                else{
-                    initialstates[1,1] <- (initialstates[1,1] - 0.5);
-                }
-            }
             if(allowMultiplicative){
-                if(any(loss=="LogisticL")){
-                    initialstates[1,3] <- initialstates[1,1];
-                    initialstates[1,4] <- exp(initialstates[1,2]);
-                    initialstates[1,3] <- exp((initialstates[1,3] - 0.5));
-                }
-                else{
-                    initialstates[1,4] <- exp(cov(log(yot[1:min(max(dataFreq,12),obsNonzero)]),
-                                                  c(1:min(max(dataFreq,12),obsNonzero)))/
-                                                  var(c(1:min(max(dataFreq,12),obsNonzero))));
-                    initialstates[1,3] <- exp(mean(log(yot[1:min(max(dataFreq,12),obsNonzero)])) -
-                                                  log(initialstates[1,4]) *
-                                                  mean(c(1:min(max(dataFreq,12),obsNonzero))));
-                }
+                initialstates[1,4] <- exp(cov(log(yot[1:min(max(dataFreq,12),obsNonzero)]),
+                                              c(1:min(max(dataFreq,12),obsNonzero)))/
+                                              var(c(1:min(max(dataFreq,12),obsNonzero))));
+                initialstates[1,3] <- exp(mean(log(yot[1:min(max(dataFreq,12),obsNonzero)])) -
+                                              log(initialstates[1,4]) *
+                                              mean(c(1:min(max(dataFreq,12),obsNonzero))));
             }
+            # Initials for non-trended model
+            initialstates[1,5] <- mean(yot[1:min(max(dataFreq,12),obsNonzero)]);
         }
         else{
-            initialstates <- matrix(rep(initialValue,2),nrow=1);
+            initialstates <- matrix(rep(initialValue,3)[1:5],nrow=1);
         }
     }
     else{
         if(initialType!="p"){
-            initialstates <- matrix(rep(mean(yot[1:min(max(dataFreq,12),obsNonzero)]),4),nrow=1);
-            if(any(loss=="LogisticL") & any(initialstates==0)){
-                initialstates[initialstates==0] <- 0.001;
-            }
-            if(any(loss=="LogisticD")){
-                if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==0)){
-                    initialstates[,] <- -50;
-                }
-                else if(all(yot[1:min(max(dataFreq,12),obsNonzero)]==1)){
-                    initialstates[,] <- 50;
-                }
-            }
+            initialstates <- matrix(rep(mean(yot[1:min(max(dataFreq,12),obsNonzero)]),5),nrow=1);
         }
         else{
-            initialstates <- matrix(rep(initialValue,4),nrow=1);
+            initialstates <- matrix(rep(initialValue,5),nrow=1);
         }
     }
 
@@ -1632,7 +1605,7 @@ CreatorES <- function(silent=FALSE,...){
             smoothingParameters <- matrix(0,3,2);
             initialValue <- mean(yInSample);
             initialType <- "p";
-            initialstates <- matrix(rep(initialValue,2),nrow=1);
+            initialstates <- matrix(rep(initialValue,3)[1:5],nrow=1);
             warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",
                     call.=FALSE);
             modelDo <- "nothing"
@@ -1652,7 +1625,7 @@ CreatorES <- function(silent=FALSE,...){
             smoothingParameters <- matrix(0,3,2);
             initialValue <- yInSample[yInSample!=0];
             initialType <- "p";
-            initialstates <- matrix(rep(initialValue,2),nrow=1);
+            initialstates <- matrix(rep(initialValue,3)[1:5],nrow=1);
             warning("We did not have enough of non-zero observations, so we used Naive.",call.=FALSE);
             modelDo <- "nothing"
             model <- "ANN";
