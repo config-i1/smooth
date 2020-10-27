@@ -3,7 +3,7 @@ context("Tests for es() function");
 # Basic ETS selection
 testModel <- es(Mcomp::M3$N1234$x, silent=TRUE);
 test_that("Test ETS selection on N1234$x", {
-    expect_match(testModel$model, "MAN");
+    expect_match(testModel$model, "MMN");
 })
 
 test_that("Test damped-trend ETS on N1234$x", {

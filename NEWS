@@ -30,6 +30,7 @@ Bugfixes:
 * Fixes for ETS(A,M,A) initialisation in adam.
 * A failsafe mechanism for ETS(M,A,M) for cases, when the initial trend becomes negative and larger than the lowest actual value.
 * es() would not work well for some mixed models and data close to zero due to the initialisation. This should be fixed now.
+* The models checked in branch-and-bound for es() now have aligned types of errors and seasonal components.
 
 
 smooth v2.6.1 (Release data: 2020-07-17)

@@ -950,7 +950,7 @@ PoolPreparerES <- function(...){
                 poolErrors <- Etype;
             }
             else{
-                small.pool.error <- "A";
+                small.pool.error <- c("A");
             }
 
             if(Ttype!="Z"){
@@ -1007,6 +1007,10 @@ PoolPreparerES <- function(...){
             small.pool <- paste0(rep(small.pool.error,length(small.pool.trend)*length(small.pool.season)),
                                  rep(small.pool.trend,each=length(small.pool.season)),
                                  rep(small.pool.season,length(small.pool.trend)));
+            # If the "M" is allowed, align errors with the seasonality
+            if(allowMultiplicative){
+                small.pool[substr(small.pool,3,3)=="M"] <- paste0("M",substr(small.pool[substr(small.pool,3,3)=="M"],2,3))
+            }
             tested.model <- NULL;
 
 # Counter + checks for the components
@@ -1910,7 +1914,6 @@ CreatorES <- function(silent=FALSE,...){
 # Write down the initials. Done especially for Nikos and issue #10
         if(persistenceEstimate){
             persistence <- as.vector(vecg);
-            parametersNumber[1,1] <- parametersNumber[1,1] + length(vecg);
         }
         if(Ttype!="N"){
             names(persistence) <- c("alpha","beta","gamma")[1:nComponents];
@@ -1921,9 +1924,6 @@ CreatorES <- function(silent=FALSE,...){
 
         if(initialType!="p"){
             initialValue <- matvt[lagsModelMax,1:(nComponents - (Stype!="N"))];
-            if(initialType!="b"){
-                parametersNumber[1,1] <- parametersNumber[1,1] + length(initialValue);
-            }
         }
 
         if(initialXEstimate){
@@ -1950,18 +1950,11 @@ CreatorES <- function(silent=FALSE,...){
             if(Stype!="N"){
                 initialSeason <- matvt[1:lagsModelMax,nComponents];
                 names(initialSeason) <- paste0("s",1:lagsModelMax);
-                if(initialType!="b"){
-                    parametersNumber[1,1] <- parametersNumber[1,1] + length(initialSeason);
-                }
             }
         }
 
-        if(phiEstimate & phi!=1){
-            parametersNumber[1,1] <- parametersNumber[1,1] + 1;
-        }
-
-        # Add variance estimation
-        parametersNumber[1,1] <- parametersNumber[1,1] + 1;
+        # Number of estimated parameters + variance
+        parametersNumber[1,1] <- length(B) + 1;
 
 # Write down the formula of ETS
         esFormula <- "l[t-1]";
