@@ -636,10 +636,6 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         else{
             multisteps <- FALSE;
         }
-        if(any(loss==c("LASSO","RIDGE"))){
-            warning(paste0(loss," is not yet implemented properly. This is an experimental option. Use with care."),
-                    call.=FALSE);
-        }
         lossFunction <- NULL;
     }
 

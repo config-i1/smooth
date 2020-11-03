@@ -1652,8 +1652,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                    arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                    arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                    xregModel, xregNumber,
-                   bounds, loss, lossFunction, distribution,
-                   horizon, multisteps, other, otherParameterEstimate, lambda,
+                   bounds, loss, lossFunction, distribution, horizon, multisteps, denominator=NULL,
+                   other, otherParameterEstimate, lambda,
                    arPolynomialMatrix, maPolynomialMatrix){
 
         # Fill in the matrices
@@ -1903,8 +1903,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
                 if(initialType=="optimal"){
                     # Standardise the level
-                    B[persistenceToSkip+j] <- (B[persistenceToSkip+j] - mean(yInSample[1:lagsModelMax])) /
-                        mean(yInSample[1:lagsModelMax]);
+                    B[persistenceToSkip+j] <- (B[persistenceToSkip+j] - mean(yInSample[1:max(lagsModelMax,2)])) /
+                        sd(yInSample[1:max(lagsModelMax,2)]);
                     # Change B values for the trend, so that it shrinks properly
                     if(Ttype=="M"){
                         j[] <- j+1;
@@ -1912,22 +1912,21 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     }
                     else if(Ttype=="A"){
                         j[] <- j+1;
-                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] / mean(yInSample[1:lagsModelMax]);
+                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] / sd(yInSample[1:max(lagsModelMax,2)]);
                     }
                     # Change B values for seasonality, so that it shrinks properly
                     if(Stype=="M"){
-                        B[persistenceToSkip+j+1:(sum(lagsModel)-j)] <- log(B[persistenceToSkip+j+1:(sum(lagsModel)-j)]);
+                        B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] <-
+                            log(B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)]);
                     }
                     else if(Stype=="A"){
-                        B[persistenceToSkip+j+1:(sum(lagsModel)-j)] <- B[persistenceToSkip+j+1:(sum(lagsModel)-j)] /
-                            mean(yInSample[1:lagsModelMax]);
+                        B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] <-
+                            B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] /
+                            sd(yInSample[1:max(lagsModelMax,2)]);
                     }
 
                     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
                     if(xregNumber>0 && Etype=="A"){
-                        denominator <- tail(colMeans(abs(matWt)),xregNumber);
-                        # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
-                        denominator[abs(denominator)<1] <- 1;
                         B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) / denominator;
                     }
                 }
@@ -2000,7 +1999,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                            arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                            xregModel, xregNumber,
-                           bounds, loss, lossFunction, distribution, horizon, multisteps,
+                           bounds, loss, lossFunction, distribution, horizon, multisteps, denominator=NULL,
                            other, otherParameterEstimate, lambda,
                            arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
 
@@ -2087,8 +2086,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                     arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                                     arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                     xregModel, xregNumber,
-                                    bounds="none", lossNew, lossFunction, distributionNew,
-                                    horizon, multisteps, other, otherParameterEstimate, lambda,
+                                    bounds="none", lossNew, lossFunction, distributionNew, horizon, multisteps,
+                                    denominator, other, otherParameterEstimate, lambda,
                                     arPolynomialMatrix, maPolynomialMatrix);
 
                 # If this is an occurrence model, add the probabilities
@@ -2140,8 +2139,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                                arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                xregModel, xregNumber,
-                               bounds="none", loss, lossFunction, distribution,
-                               horizon, multisteps, other, otherParameterEstimate, lambda,
+                               bounds="none", loss, lossFunction, distribution, horizon, multisteps,
+                               denominator, other, otherParameterEstimate, lambda,
                                arPolynomialMatrix, maPolynomialMatrix);
 
             logLikReturn[] <- -switch(loss,
@@ -2349,6 +2348,15 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             }
         }
 
+        # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE
+        if(any(loss==c("LASSO","RIDGE")) && xregNumber>0){
+            denominator <- apply(matWt, 2, sd);
+            denominator[is.infinite(denominator)] <- 1;
+        }
+        else{
+            denominator <- NULL;
+        }
+
         # Parameters are chosen to speed up the optimisation process and have decent accuracy
         res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
@@ -2380,7 +2388,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                        arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                                        xregModel=xregModel, xregNumber=xregNumber,
                                        bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                       horizon=horizon, multisteps=multisteps,
+                                       horizon=horizon, multisteps=multisteps, denominator=denominator,
                                        other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                                        arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix));
 
@@ -2425,7 +2433,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                            arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                                            xregModel=xregModel, xregNumber=xregNumber,
                                            bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                                           horizon=horizon, multisteps=multisteps,
+                                           horizon=horizon, multisteps=multisteps, denominator=denominator,
                                            other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix));
         }
@@ -2463,7 +2471,8 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
-                                                other, otherParameterEstimate, lambda, arPolynomialMatrix, maPolynomialMatrix),
+                                                denominator, other, otherParameterEstimate, lambda,
+                                                arPolynomialMatrix, maPolynomialMatrix),
                                      nobs=obsInSample,df=nParamEstimated,class="logLik");
 
         #### If we do variables selection, do it here, then reestimate the model. ####
@@ -3623,6 +3632,15 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames);
         list2env(adamCreated, environment());
 
+        # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE
+        if(xregNumber>0 && any(loss==c("LASSO","RIDGE"))){
+            denominator <- apply(matWt, 2, sd);
+            denominator[is.infinite(denominator)] <- 1;
+        }
+        else{
+            denominator <- NULL;
+        }
+
         CFValue <- CF(B=0, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                       modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                       ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, obsInSample=obsInSample,
@@ -3648,7 +3666,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                       arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                       xregModel=xregModel, xregNumber=xregNumber,
                       bounds=bounds, loss=loss, lossFunction=lossFunction, distribution=distributionNew,
-                      horizon=horizon, multisteps=multisteps,
+                      horizon=horizon, multisteps=multisteps, denominator=denominator,
                       other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                       arPolynomialMatrix=NULL, maPolynomialMatrix=NULL);
 
@@ -3670,7 +3688,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
                                                 bounds, loss, lossFunction, distributionNew, horizon,
-                                                multisteps, other, otherParameterEstimate, lambda,
+                                                multisteps, denominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix=NULL, maPolynomialMatrix=NULL)
                                      ,nobs=obsInSample,df=parametersNumber[1,4],class="logLik")
 
@@ -3844,7 +3862,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                            arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                            xregModel=xregModel, xregNumber=xregNumber,
                            bounds=boundsFI, loss=loss, lossFunction=lossFunction, distribution=distribution,
-                           horizon=horizon, multisteps=multisteps,
+                           horizon=horizon, multisteps=multisteps, denominator=denominator,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
                            arPolynomialMatrix=arPolynomialMatrix, maPolynomialMatrix=maPolynomialMatrix,
                            hessianCalculation=FALSE,h=stepSize);
