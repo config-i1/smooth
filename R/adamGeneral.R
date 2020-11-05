@@ -1433,7 +1433,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 xregNumber <- ncol(xreg);
                 # If this has enought observations for all the data, use it
                 if(obsXreg>=obsAll){
-                    xregData <- cbind(y,as.data.frame(xreg[1:obsAll,,drop=FALSE]));
+                    xregData <- cbind(as.vector(y),as.data.frame(xreg[1:obsAll,,drop=FALSE]));
                 }
                 # Less than perfect...
                 else{
@@ -1448,7 +1448,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                                                 matrix(rep(tail(as.matrix(xreg),1),each=newnRows),newnRows,xregNumber)));
                     }
                     else{
-                        xregData <- cbind(y,
+                        xregData <- cbind(as.vector(y),
                                           # as.matrix is needed in order to get rid of potential ts
                                           rbind(as.matrix(xreg),
                                                 matrix(rep(tail(as.matrix(xreg),1),each=newnRows),newnRows,xregNumber)));
