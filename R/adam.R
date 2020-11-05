@@ -6915,11 +6915,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(interval!="none"){
         # Make sensible values out of those weird quantiles
         if(!cumulative){
-            if(Etype=="A"){
-                yLower[levelLow==0] <- -Inf;
-            }
-            else{
-                yLower[levelLow==0] <- 0;
+            if(any(levelLow==0)){
+                if(Etype=="A"){
+                    yLower[levelLow==0] <- -Inf;
+                }
+                else{
+                    yLower[levelLow==0] <- 0;
+                }
             }
             if(any(levelUp==1)){
                 yUpper[levelUp==1] <- Inf;
