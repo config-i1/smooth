@@ -45,8 +45,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \link[greybox]{dlaplace} - Laplace distribution,
 #' \item \link[greybox]{ds} - S distribution,
 #' \item dgnorm - Generalised Normal distribution,
-#' \item \link[stats]{dlogis} - Logistic Distribution,
-#' \item \link[stats]{dt} - T distribution,
+# \item \link[stats]{dlogis} - Logistic Distribution,
+# \item \link[stats]{dt} - T distribution,
 #' \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
 #' \item \link[stats]{dlnorm} - Log normal distribution,
 # \item dllaplace - Log Laplace distribution,
@@ -341,7 +341,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @rdname adam
 #' @export adam
 adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c(0),ma=c(0)), formula=NULL,
-                 distribution=c("default","dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace",
+                 distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                 "dlnorm","dinvgauss"),
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                  h=0, holdout=FALSE,

@@ -294,7 +294,7 @@ In order to do the selection of the most appropriate distribution, you need to p
 
 ```{r}
 testModel <- auto.adam(M3[[1234]], "XXX", silent=FALSE,
-                       distribution=c("dnorm","dlogis","dlaplace","ds"))
+                       distribution=c("dnorm","dlaplace","ds"))
 testModel
 ```
 
@@ -308,7 +308,7 @@ If you want to add ARIMA or regression components, you can do it in the exactly 
 
 ```{r}
 testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE,
-                       distribution=c("dnorm","dlogis","dlaplace","ds","dgnorm"))
+                       distribution=c("dnorm","dlaplace","ds","dgnorm"))
 testModel
 ```
 

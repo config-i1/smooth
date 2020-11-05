@@ -245,9 +245,9 @@ test_that("Forecast of ADAM ETS(ZZZ) + SARIMA(2,1,2)(2,1,1)[12] with logS", {
 
 ### ARIMA / ARIMAX
 # Pure SARIMA(2,1,2)(2,1,1)[12], Normal
-testModel <- adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(2,2),i=c(1,1), ma=c(2,2)), distribution="dlogis");
+testModel <- adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(2,2),i=c(1,1), ma=c(2,2)), distribution="dgnorm");
 test_that("ADAM SARIMA(2,1,2)(2,1,2)[12] with Logistic on N2568", {
-    expect_match(testModel$distribution, "dlogis");
+    expect_match(testModel$distribution, "dgnorm");
 })
 
 # Forecast from SARIMA(2,1,2)(2,1,2)[12]
