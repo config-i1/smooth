@@ -1442,7 +1442,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                             call.=FALSE);
                     newnRows <- obsAll-obsXreg;
                     if(!holdout){
-                        xregData <- cbind(as.data.frame(c(y,rep(NA,h))),
+                        xregData <- cbind(c(as.vector(y),rep(NA,h)),
                                           # as.matrix is needed in order to get rid of potential ts
                                           rbind(as.matrix(xreg),
                                                 matrix(rep(tail(as.matrix(xreg),1),each=newnRows),newnRows,xregNumber)));
