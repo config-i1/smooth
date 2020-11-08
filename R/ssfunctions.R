@@ -2758,12 +2758,11 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                             call.=FALSE);
                     # If this is a binary variable, use iss function.
                     if(all((xreg==0) | (xreg==1))){
-                        xregForecast <- oes(xreg,model="MNN",h=obsAll-length(xreg),
-                                            occurrence="o",ic="AIC")$forecast;
+                        xregForecast <- oes(xreg, model="MNN", h=obsAll-length(xreg),
+                                            occurrence="o", ic="AIC")$forecast;
                     }
                     else{
-                        xregForecast <- es(xreg,h=obsAll-length(xreg),occurrence="auto",
-                                           ic="AICc",silent=TRUE)$forecast;
+                        xregForecast <- es(xreg, h=obsAll-length(xreg), ic="AICc",silent=TRUE)$forecast;
                     }
                     xreg <- c(as.vector(xreg),as.vector(xregForecast));
                 }
@@ -2835,12 +2834,10 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     }
 
                     if(all((xreg[,j]==0) | (xreg[,j]==1))){
-                        xregForecast[,j] <- oes(xreg[,j],model="MNN",h=obsAll-nrow(xreg),
-                                                occurrence="o",ic="AIC")$forecast;
+                        xregForecast[,j] <- oes(xreg[,j], model="MNN", h=obsAll-nrow(xreg), occurrence="o",ic="AIC")$forecast;
                     }
                     else{
-                        xregForecast[,j] <- es(xreg[,j],h=obsAll-nrow(xreg),
-                                               occurrence="auto",ic="AICc",silent=TRUE)$forecast;
+                        xregForecast[,j] <- es(xreg[,j], h=obsAll-nrow(xreg), ic="AICc")$forecast;
                     }
                 }
                 xreg <- rbind(xreg,xregForecast);
