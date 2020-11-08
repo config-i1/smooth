@@ -6549,7 +6549,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         if(any(level>1)){
             level[] <- level / 100;
         }
-        levelLow <- levelUp <- matrix(0,hFinal,nLevels);
+        levelLow <- levelUp <- matrix(0,nrow=hFinal,ncol=nLevels);
         levelNew <- matrix(level,nrow=hFinal,ncol=nLevels,byrow=TRUE);
 
         # If this is an occurrence model, then take probability into account in the level.
@@ -6916,15 +6916,24 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # Make sensible values out of those weird quantiles
         if(!cumulative){
             if(any(levelLow==0)){
+                # zoo does not like, when you work with matrices of indices... silly thing
+                yBoundBuffer <- levelLow;
+                yBoundBuffer[] <- yLower
                 if(Etype=="A"){
-                    yLower[levelLow==0] <- -Inf;
+                    yBoundBuffer[levelLow==0] <- -Inf;
+                    yLower[] <- yBoundBuffer;
                 }
                 else{
-                    yLower[levelLow==0] <- 0;
+                    yBoundBuffer[levelLow==0] <- 0;
+                    yLower[] <- yBoundBuffer;
                 }
             }
             if(any(levelUp==1)){
-                yUpper[levelUp==1] <- Inf;
+                # zoo does not like, when you work with matrices of indices... silly thing
+                yBoundBuffer <- levelUp;
+                yBoundBuffer[] <- yUpper
+                yBoundBuffer[levelUp==1] <- Inf;
+                yUpper[] <- yBoundBuffer;
             }
         }
         else{
@@ -8103,14 +8112,25 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(interval!="none"){
         # Make sensible values out of those weird quantiles
         if(!cumulative){
-            if(Etype=="A"){
-                yLower[levelLow==0] <- -Inf;
-            }
-            else{
-                yLower[levelLow==0] <- 0;
+            if(any(levelLow==0)){
+                # zoo does not like, when you work with matrices of indices... silly thing
+                yBoundBuffer <- levelLow;
+                yBoundBuffer[] <- yLower
+                if(Etype=="A"){
+                    yBoundBuffer[levelLow==0] <- -Inf;
+                    yLower[] <- yBoundBuffer;
+                }
+                else{
+                    yBoundBuffer[levelLow==0] <- 0;
+                    yLower[] <- yBoundBuffer;
+                }
             }
             if(any(levelUp==1)){
-                yUpper[levelUp==1] <- Inf;
+                # zoo does not like, when you work with matrices of indices... silly thing
+                yBoundBuffer <- levelUp;
+                yBoundBuffer[] <- yUpper
+                yBoundBuffer[levelUp==1] <- Inf;
+                yUpper[] <- yBoundBuffer;
             }
         }
         else{
