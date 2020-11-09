@@ -313,8 +313,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
         # Check the system and choose the package to use
         if(Sys.info()['sysname']=="Windows"){
             if(requireNamespace("doParallel", quietly = TRUE)){
-                cat(paste0("Setting up ", nCores, " clusters using 'doParallel'..."));
-                cat("\n");
+                cat("Setting up", nCores, "clusters using 'doParallel'...\n");
                 cluster <- parallel::makeCluster(nCores);
                 doParallel::registerDoParallel(cluster);
             }
@@ -329,8 +328,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                 cluster <- NULL;
             }
             else if(requireNamespace("doParallel", quietly = TRUE)){
-                cat(paste0("Setting up ", nCores, " clusters using 'doParallel'..."));
-                cat("\n");
+                cat("Setting up", nCores, "clusters using 'doParallel'...\n");
                 cluster <- parallel::makeCluster(nCores);
                 doParallel::registerDoParallel(cluster);
             }
@@ -347,7 +345,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
             cat("Evaluating models with different distributions... ");
         }
         else{
-            cat(paste0("Working... "));
+            cat("Working... ");
         }
     }
 
@@ -371,7 +369,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
             selectedModels <- vector("list",length(distribution));
             for(i in 1:length(distribution)){
                 if(!silent){
-                    cat(paste0(distribution[i],", "));
+                    cat(distribution[i],"\b, ");
                 }
                 selectedModels[[i]] <- adam(y=y, model=model, lags=lags, orders=ordersToUse,
                                             distribution=distribution[i],
@@ -493,7 +491,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
             obsNonzero <- nobs(testModelETS,all=FALSE);
 
             if(silentDebug){
-                cat("Best IC: "); cat(bestIC); cat("\n");
+                cat("Best IC:",bestIC,"\n");
             }
             if(!silent){
                 cat(" Selecting ARIMA orders...    ");
@@ -530,7 +528,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                 m <- m + 1;
                 if(!silent){
                     cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
-                    cat(paste0(round((m)/nModelsARIMA,2)*100,"%"));
+                    cat(round((m)/nModelsARIMA,2)*100,"\b%");
                 }
                 nParamInitial <- 0;
                 # If differences are zero, skip this step
@@ -548,7 +546,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                 # Extract Information criteria
                 ICValue <- ICFunction(testModel);
                 if(silentDebug){
-                    cat("I: "); cat(iOrders[d,]); cat(", "); cat(ICValue); cat("\n");
+                    cat("I:",iOrders[d,],"\b,",ICValue,"\n");
                 }
                 if(ICValue < bestICI){
                     bestICI <- ICValue;
@@ -579,7 +577,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                 m <- m + 1;
                                 if(!silent){
                                     cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
-                                    cat(paste0(round((m)/nModelsARIMA,2)*100,"%"));
+                                    cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                 }
                                 maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
 
@@ -600,7 +598,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                        nParamOriginal + nParamMA + nParamInitial,
                                                        obsNonzero);
                                 if(silentDebug){
-                                    cat("MA: "); cat(maTest); cat(", "); cat(ICValue); cat("\n");
+                                    cat("MA:",maTest,"\b,",ICValue,"\n");
                                 }
                                 if(ICValue < bestICMA){
                                     bestICMA <- ICValue;
@@ -636,7 +634,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                 m <- m + 1;
                                                 if(!silent){
                                                     cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
-                                                    cat(paste0(round((m)/nModelsARIMA,2)*100,"%"));
+                                                    cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                                 }
                                                 arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
 
@@ -657,7 +655,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                                        nParamOriginal + nParamMA + nParamAR + nParamInitial,
                                                                        obsNonzero);
                                                 if(silentDebug){
-                                                    cat("AR: "); cat(arTest); cat(", "); cat(ICValue); cat("\n");
+                                                    cat("AR:",arTest,"\b,",ICValue,"\n");
                                                 }
                                                 if(ICValue < bestICAR){
                                                     bestICAR <- ICValue;
@@ -699,7 +697,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                     m <- m + 1;
                                     if(!silent){
                                         cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
-                                        cat(paste0(round((m)/nModelsARIMA,2)*100,"%"));
+                                        cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                     }
                                     arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
 
@@ -720,7 +718,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                                                            nParamOriginal + nParamAR + nParamInitial,
                                                            obsNonzero);
                                     if(silentDebug){
-                                        cat("AR: "); cat(arTest); cat(", "); cat(ICValue); cat("\n");
+                                        cat("AR:",arTest,"\b,",ICValue,"\n");
                                     }
                                     if(ICValue < bestICAR){
                                         bestICAR <- ICValue;
@@ -751,7 +749,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
 
             if(!silent && fast){
                 cat(paste0(rep("\b",nchar(round(m/nModels,2)*100)+1),collapse=""));
-                cat(paste0(" ",100,"%"));
+                cat(" ",100,"\b%");
             }
 
             #### Reestimate the best model in order to get rid of bias ####
@@ -874,7 +872,7 @@ auto.adam <- function(y, model="ZXZ", lags=c(frequency(y)), orders=list(ar=c(0),
                 selectedModels <- vector("list",length(distribution));
                 for(i in 1:length(distribution)){
                     if(!silent){
-                        cat(paste0(distribution[i],": "));
+                        cat(distribution[i],": ");
                     }
                     selectedModels[[i]] <- arimaSelector(y=y, model=model,
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,

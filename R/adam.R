@@ -2714,7 +2714,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 i <- i + 1;
                 modelCurrent[] <- poolSmall[j];
                 if(!silent){
-                    cat(paste0(modelCurrent,", "));
+                    cat(modelCurrent,"\b, ");
                 }
                 Etype[] <- substring(modelCurrent,1,1);
                 Ttype[] <- substring(modelCurrent,2,2);
@@ -2844,7 +2844,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                     cat("\b");
                 }
                 cat(paste0(rep("\b",nchar(round((j-1)/modelsNumber,2)*100)+1),collapse=""));
-                cat(paste0(round(j/modelsNumber,2)*100,"%"));
+                cat(round(j/modelsNumber,2)*100,"\b%");
             }
 
             modelCurrent <- modelsPool[j];
@@ -4992,7 +4992,7 @@ print.adam <- function(x, digits=4, ...){
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
 
-    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds"));
+    cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
     cat(paste0("\nModel estimated using ",x$call[[1]],"() function: ",x$model));
 
     if(is.occurrence(x$occurrence)){
@@ -5009,7 +5009,7 @@ print.adam <- function(x, digits=4, ...){
                              "general"="General",
                              "p"=,
                              "provided"="Provided by user");
-        cat(paste0("\nOccurrence model type: ",occurrence));
+        cat("\nOccurrence model type:",occurrence);
     }
 
     distrib <- switch(x$distribution,
@@ -5030,19 +5030,19 @@ print.adam <- function(x, digits=4, ...){
     if(is.occurrence(x$occurrence)){
         distrib <- paste0("Mixture of Bernoulli and ", distrib);
     }
-    cat(paste0("\nDistribution assumed in the model: ", distrib));
+    cat("\nDistribution assumed in the model:", distrib);
 
-    cat(paste0("\nLoss function type: ",x$loss));
+    cat("\nLoss function type:",x$loss);
     if(!is.null(x$lossValue)){
-        cat(paste0("; Loss function value: ",round(x$lossValue,digits)));
+        cat("; Loss function value:",round(x$lossValue,digits));
         if(any(x$loss==c("LASSO","RIDGE"))){
-            cat(paste0("; lambda=",x$other$lambda));
+            cat("; lambda=",x$other$lambda);
         }
     }
 
     if(etsModel){
         if(!is.null(x$persistence)){
-            cat(paste0("\nPersistence vector g"));
+            cat("\nPersistence vector g");
             if(!is.null(x$xreg)){
                 cat(" (excluding xreg):\n");
             }
@@ -5058,14 +5058,14 @@ print.adam <- function(x, digits=4, ...){
 
         if(!is.null(x$phi)){
             if(gregexpr("d",x$model)!=-1){
-                cat(paste0("Damping parameter: ", round(x$phi,digits)));
+                cat("Damping parameter:", round(x$phi,digits));
             }
         }
     }
 
     # If this is ARIMA model
     if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
-        cat(paste0("\nARMA parameters of the model:\n"));
+        cat("\nARMA parameters of the model:\n");
         if(!is.null(x$arma$ar)){
             cat("AR:\n")
             print(round(x$arma$ar,digits));
@@ -5076,11 +5076,11 @@ print.adam <- function(x, digits=4, ...){
         }
     }
 
-    cat("\nSample size: "); cat(nobs(x));
-    cat("\nNumber of estimated parameters: "); cat(nparam(x));
-    cat("\nNumber of degrees of freedom: "); cat(nobs(x)-nparam(x));
+    cat("\nSample size:", nobs(x));
+    cat("\nNumber of estimated parameters:", nparam(x));
+    cat("\nNumber of degrees of freedom:", nobs(x)-nparam(x));
     if(x$nParam[2,4]>0){
-        cat("\nNumber of provided parameters: "); cat(x$nParam[2,4]);
+        cat("\nNumber of provided parameters:", x$nParam[2,4]);
     }
 
     if(x$loss=="likelihood" ||
@@ -5128,14 +5128,14 @@ print.adam <- function(x, digits=4, ...){
 
 #' @export
 print.adamCombined <- function(x, digits=4, ...){
-    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds"));
-    cat(paste0("\nModel estimated: ",x$model));
-    cat(paste0("\nLoss function type: ",x$models[[1]]$loss));
+    cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
+    cat("\nModel estimated:",x$model);
+    cat("\nLoss function type:",x$models[[1]]$loss);
 
-    cat(paste0("\n\nNumber of models combined: ", length(x$ICw)));
+    cat("\n\nNumber of models combined:", length(x$ICw));
     cat("\nSample size: "); cat(nobs(x));
-    cat("\nAverage number of estimated parameters: "); cat(round(nparam(x),digits=digits));
-    cat("\nAverage number of degrees of freedom: "); cat(round(nobs(x)-nparam(x),digits=digits));
+    cat("\nAverage number of estimated parameters:", round(nparam(x),digits=digits));
+    cat("\nAverage number of degrees of freedom:", round(nobs(x)-nparam(x),digits=digits));
 
     if(!is.null(x$accuracy)){
         cat("\n\nForecast errors:\n");
@@ -5550,10 +5550,10 @@ print.summary.adam <- function(x, ...){
     }
 
     cat(paste0("Model estimated using ",x$call[[1]],"() function: ",x$model));
-    cat(paste0("\nResponse variable: ", paste0(x$responseName,collapse="")));
+    cat("\nResponse variable:", paste0(x$responseName,collapse=""));
 
     if(!is.null(x$occurrence)){
-        cat(paste0("\nOccurrence model type: ",x$occurrence));
+        cat("\nOccurrence model type:",x$occurrence);
     }
 
     distrib <- switch(x$distribution,
@@ -5574,13 +5574,13 @@ print.summary.adam <- function(x, ...){
     if(!is.null(x$occurrence)){
         distrib <- paste0("\nMixture of Bernoulli and ", distrib);
     }
-    cat(paste0("\nDistribution used in the estimation: ", distrib));
+    cat("\nDistribution used in the estimation:", distrib);
 
-    cat(paste0("\nLoss function type: ",x$loss));
+    cat("\nLoss function type:",x$loss);
     if(!is.null(x$lossValue)){
-        cat(paste0("; Loss function value: ",round(x$lossValue,digits)));
+        cat("; Loss function value:",round(x$lossValue,digits));
         if(any(x$loss==c("LASSO","RIDGE"))){
-            cat(paste0("; lambda=",x$other$lambda));
+            cat("; lambda=",x$other$lambda);
         }
     }
 
@@ -5592,11 +5592,11 @@ print.summary.adam <- function(x, ...){
         cat("\nAll coefficients were provided");
     }
 
-    cat("\nSample size: "); cat(x$nobs);
-    cat("\nNumber of estimated parameters: "); cat(x$nparam);
-    cat("\nNumber of degrees of freedom: "); cat(x$nobs-x$nparam);
+    cat("\nSample size:", x$nobs);
+    cat("\nNumber of estimated parameters:", x$nparam);
+    cat("\nNumber of degrees of freedom:", x$nobs-x$nparam);
     if(x$nParam[2,4]>0){
-        cat("\nNumber of provided parameters: "); cat(x$nParam[2,4]);
+        cat("\nNumber of provided parameters:", x$nParam[2,4]);
     }
 
     if(x$loss=="likelihood" ||
@@ -7758,9 +7758,9 @@ plot.refit <- function(x, ...){
 #' @export
 print.refit <- function(x, ...){
     nsim <- ncol(x$refitted);
-    cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),2)," seconds"));
-    cat(paste0("\nModel refitted: ",x$model));
-    cat(paste0("\nNumber of simulation paths produced: ",nsim));
+    cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
+    cat("\nModel refitted:",x$model);
+    cat("\nNumber of simulation paths produced:",nsim);
 }
 
 #' @rdname refit
