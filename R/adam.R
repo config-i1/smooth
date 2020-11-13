@@ -254,7 +254,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{xtol_rel} - the relative precision of the optimiser (the default is 1E-6);
 #' \item \code{xtol_abs} - the absolute precision of the optimiser (the default is 1E-8);
 #' \item \code{ftol_rel} - the stopping criterion in case of the relative change in the loss
-#' function (the default is 1E-6);
+#' function (the default is 1E-8);
 #' \item \code{ftol_abs} - the stopping criterion in case of the absolute change in the loss
 #' function (the default is 0 - not used);
 #' \item \code{algorithm} - the algorithm to use in optimisation

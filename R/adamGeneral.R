@@ -1098,33 +1098,35 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                     #                    "We will use what we can."),call.=FALSE);
                     # }
                     # else{
-                        j <- 1;
-                        initialLevel <- initial[1];
-                        initialLevelEstimate[] <- FALSE;
-                        if(modelIsTrendy){
-                            j <- 2;
-                            # If there is something in the vector, use it
-                            if(all(!is.na(initial[j]))){
-                                initialTrend <- initial[j];
-                                initialTrendEstimate[] <- FALSE;
-                            }
-                        }
-                        if(Stype!="N"){
-                            # If there is something in the vector, use it
-                            if(length(initial[-c(1:j)])>0){
-                                initialSeasonal <- vector("list",componentsNumberETSSeasonal);
-                                m <- 0;
-                                for(i in 1:componentsNumberETSSeasonal){
-                                    if(all(!is.na(initial[j+m+1:lagsModelSeasonal[i]]))){
-                                        initialSeasonal[[i]] <- initial[j+m+1:lagsModelSeasonal[i]];
-                                        m <- m + lagsModelSeasonal[i];
-                                    }
-                                    else{
-                                        break;
-                                    }
+                        j <- 0;
+                        if(etsModel){
+                            initialLevel <- initial[1];
+                            initialLevelEstimate[] <- FALSE;
+                            if(modelIsTrendy){
+                                j <- 2;
+                                # If there is something in the vector, use it
+                                if(all(!is.na(initial[j]))){
+                                    initialTrend <- initial[j];
+                                    initialTrendEstimate[] <- FALSE;
                                 }
-                                j <- j+m;
-                                initialSeasonalEstimate[] <- FALSE;
+                            }
+                            if(Stype!="N"){
+                                # If there is something in the vector, use it
+                                if(length(initial[-c(1:j)])>0){
+                                    initialSeasonal <- vector("list",componentsNumberETSSeasonal);
+                                    m <- 0;
+                                    for(i in 1:componentsNumberETSSeasonal){
+                                        if(all(!is.na(initial[j+m+1:lagsModelSeasonal[i]]))){
+                                            initialSeasonal[[i]] <- initial[j+m+1:lagsModelSeasonal[i]];
+                                            m <- m + lagsModelSeasonal[i];
+                                        }
+                                        else{
+                                            break;
+                                        }
+                                    }
+                                    j <- j+m;
+                                    initialSeasonalEstimate[] <- FALSE;
+                                }
                             }
                         }
                         if(arimaModel){
@@ -2259,7 +2261,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         xtol_abs <- ellipsis$xtol_abs;
     }
     if(is.null(ellipsis$ftol_rel)){
-        ftol_rel <- 1E-6;
+        ftol_rel <- 1E-8;
     }
     else{
         ftol_rel <- ellipsis$ftol_rel;
@@ -2400,7 +2402,11 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         bounds[] <- "admissible";
     }
 
-    if(modelDo=="select" && loss!="likelihood"){
+    # If we do model selection / combination with non-standard losses, complain
+    if(any(modelDo==c("select","combine")) &&
+       ((any(loss==c("MSE","MSEh","MSCE","GPL")) && all(distribution!=c("default","dnorm"))) ||
+        (any(loss==c("MAE","MAEh","MACE")) && all(distribution!=c("default","dlaplace"))) ||
+        (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
         warning("The model selection only works in case of loss='likelihood'. We hope you know what you are doing.",
                 call.=FALSE);
     }
