@@ -2143,6 +2143,7 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                                denominator, other, otherParameterEstimate, lambda,
                                arPolynomialMatrix, maPolynomialMatrix);
 
+            # Concentrated log-likelihoods for the multistep losses
             logLikReturn[] <- -switch(loss,
                                       "MSEh"=, "aMSEh"=, "TMSE"=, "aTMSE"=, "MSCE"=, "aMSCE"=
                                           (obsInSample-h)/2*(log(2*pi)+1+log(logLikReturn)),
