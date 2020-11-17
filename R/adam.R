@@ -1760,12 +1760,22 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
             # Stability / invertibility condition for ETS / ARIMA.
             if(etsModel || arimaModel){
                 if(xregModel){
-                    # We check the condition on average
-                    eigenValues <- abs(eigen((adamElements$matF -
-                                                  diag(as.vector(adamElements$vecG)) %*%
-                                                  t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
-                                                  adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-                                             symmetric=TRUE, only.values=TRUE)$values);
+                    if(xregDo=="adapt"){
+                        # We check the condition on average
+                        eigenValues <- abs(eigen((adamElements$matF -
+                                                      diag(as.vector(adamElements$vecG)) %*%
+                                                      t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
+                                                      adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
+                                                 symmetric=TRUE, only.values=TRUE)$values);
+                    }
+                    else{
+                        # We drop the X parts from matrices
+                        indices <- c(1:(componentsNumberETS+componentsNumberARIMA))
+                        eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
+                                                     adamElements$vecG[indices,,drop=FALSE] %*%
+                                                     adamElements$matWt[obsInSample,indices,drop=FALSE],
+                                                 symmetric=TRUE, only.values=TRUE)$values);
+                    }
                 }
                 else{
                     eigenValues <- abs(eigen(adamElements$matF -
