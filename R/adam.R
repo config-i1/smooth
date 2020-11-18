@@ -3964,6 +3964,9 @@ adam <- function(y, model="ZXZ", lags=c(1,frequency(y)), orders=list(ar=c(0),i=c
                 }
             }
         }
+        if(xregDo=="adapt"){
+            modelName[] <- paste0(modelName,"{D}");
+        }
         if(!etsModel && !arimaModel){
             if(xregDo=="adapt"){
                 modelName[] <- paste0("Dynamic regression");

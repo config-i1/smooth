@@ -274,7 +274,9 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     if(nXreg>0){
         arma::vec vecWtxreg(1/rowvecW.cols(nETS+nArima,nComponents-1).t());
         vecWtxreg.rows(find_nonfinite(vecWtxreg)).fill(0);
-        g.rows(nETS+nArima,nComponents-1) = vecWtxreg;
+        // If there are xreg components, make this: delta * log(1+e)/x from this: delta * e / x
+        g.rows(nETS+nArima,nComponents-1) = vecWtxreg * log(1+error) / error;
+        g.rows(find_nonfinite(g)).fill(0);
     }
 
     // Do the multiplication in order to get the correct g(v) value
