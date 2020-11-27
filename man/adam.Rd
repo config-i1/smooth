@@ -3,35 +3,36 @@
 \name{adam}
 \alias{adam}
 \alias{auto.adam}
-\title{ADAM is Advanced Dynamic Adaptive Model}
+\title{ADAM is Augmented Dynamic Adaptive Model}
 \usage{
-adam(y, model = "ZXZ", lags = c(1, frequency(y)), orders = list(ar =
-  c(0), i = c(0), ma = c(0)), formula = NULL, distribution = c("default",
-  "dnorm", "dlaplace", "ds", "dgnorm", "dalaplace", "dlnorm", "dinvgauss"),
-  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
+adam(data, model = "ZXZ", lags = c(1, frequency(data)), orders = list(ar
+  = c(0), i = c(0), ma = c(0)), formula = NULL, regressors = c("use",
+  "select", "adapt"), distribution = c("default", "dnorm", "dlaplace", "ds",
+  "dgnorm", "dalaplace", "dlnorm", "dinvgauss"), loss = c("likelihood",
+  "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"),
+  h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
+  initial = c("optimal", "backcasting"), arma = NULL,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), xreg = NULL,
-  xregDo = c("use", "select", "adapt"), silent = TRUE, ...)
+  bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
 
-auto.adam(y, model = "ZXZ", lags = c(frequency(y)), orders = list(ar =
-  c(0), i = c(0), ma = c(0), select = FALSE), formula = NULL,
-  outliers = c("ignore", "use", "select"), level = 0.99,
+auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
+  orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
+  formula = NULL, outliers = c("ignore", "use", "select"), level = 0.99,
   distribution = c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm",
   "dinvgauss"), h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), arma = NULL,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), xreg = NULL,
-  xregDo = c("use", "select", "adapt"), silent = TRUE, parallel = FALSE,
-  fast = TRUE, ...)
+  bounds = c("usual", "admissible", "none"), regressors = c("use",
+  "select", "adapt"), silent = TRUE, parallel = FALSE, fast = TRUE, ...)
 }
 \arguments{
-\item{y}{Vector, containing data needed to be forecasted. If a matrix is
-provided, then the first column is used as a response variable, while the rest
-of the matrix is used as a set of explanatory variables.}
+\item{data}{Vector, containing data needed to be forecasted. If a matrix (or
+data.frame / data.table) is provided, then the first column is used as a
+response variable, while the rest of the matrix is used as a set of explanatory
+variables. \code{formula} can be used in the latter case in order to define what
+relation to have.}
 
 \item{model}{The type of ETS model. The first letter stands for the type of
 the error term ("A" or "M"), the second (and sometimes the third as well) is for
@@ -93,8 +94,14 @@ appropriate order using a mechanism similar to \code{auto.msarima()}. The values
 \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in this case.}
 
 \item{formula}{Formula to use in case of explanatory variables. If \code{NULL},
-then all the variables are used as is. Only considered if \code{xreg} is not
-\code{NULL} and \code{xregDo="use"}.}
+then all the variables are used as is. Only considered if \code{data} is a matrix and
+\code{regressors="use"}.}
+
+\item{regressors}{The variable defines what to do with the provided xreg:
+\code{"use"} means that all of the data should be used, while
+\code{"select"} means that a selection using \code{ic} should be done,
+\code{"adapt"} will trigger the mechanism of time varying parameters for the
+explanatory variables.}
 
 \item{distribution}{what density function to assume for the error term. The full
 name of the distribution should be provided, starting with the letter "d" -
@@ -188,20 +195,6 @@ estimation. Can be either \code{admissible} - guaranteeing the stability of the
 model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
 restrictions (potentially dangerous).}
 
-\item{xreg}{The vector (either numeric or time series) or the matrix (or
-data.frame / data.table) of exogenous variables that should be included in the
-model. If matrix is included than columns should contain variables and rows -
-observations.
-Note that \code{xreg} should have number of observations equal to
-the length of the response variable \code{y}. If it is not equal, then the
-function will either trim or extrapolate the data.}
-
-\item{xregDo}{The variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done,
-\code{"adapt"} will trigger the mechanism of time varying parameters for the
-explanatory variables.}
-
 \item{silent}{Specifies, whether to provide the progress of the function or not.
 If \code{TRUE}, then the function will print what it does and how much it has
 already done.}
@@ -266,7 +259,8 @@ following values:
 \itemize{
 \item \code{model} - the name of the constructed model,
 \item \code{timeElapsed} - the time elapsed for the estimation of the model,
-\item \code{y} - the in-sample part of the data used for the training of the model,
+\item \code{data} - the in-sample part of the data used for the training of the model. Includes
+the actual values in the first column,
 \item \code{holdout} - the holdout part of the data, excluded for purposes of model evaluation,
 \item \code{fitted} - the vector of fitted values,
 \item \code{residuals} - the vector of residuals,
@@ -286,7 +280,6 @@ the model,
 \item \code{arma} - the list of AR / MA parameters used in the model,
 \item \code{nParam} - the matrix of the estimated / provided parameters,
 \item \code{occurrence} - the oes model used for the occurrence part of the model,
-\item \code{xreg} - the matrix of explanatory variables after all expansions and transformations,
 \item \code{formula} - the formula used for the explanatory variables expansion,
 \item \code{loss} - the type of loss function used in the estimation,
 \item \code{lossValue} - the value of that loss function,

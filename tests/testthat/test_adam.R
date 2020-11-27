@@ -155,22 +155,22 @@ test_that("ADAM ETS(CCC) with double seasonality on N2568", {
 
 #### ETSX / Regression + formula ####
 # ETSX on N2568
-xreg <- temporaldummy(Mcomp::M3[[2568]]$x)[,-1];
-testModel <- adam(Mcomp::M3[[2568]]$x, "MMN", h=18, holdout=TRUE, xreg=xreg);
+xreg <- data.frame(y=Mcomp::M3[[2568]]$x, x=factor(temporaldummy(Mcomp::M3[[2568]]$x)[,-1] %*% c(1:11)))
+testModel <- adam(xreg, "MMN", h=18, holdout=TRUE);
 test_that("ADAM ETSX(MMN) on N2568", {
-    expect_false(is.null(testModel$xreg));
+    expect_false(ncol(testModel$data)==1);
 })
 
 # ETSX selection on N2568
-testModel <- adam(Mcomp::M3[[2568]]$x, "ZZZ", h=18, holdout=TRUE, xreg=xreg, xregDo="select");
+testModel <- adam(xreg, "ZZZ", h=18, holdout=TRUE, regressors="select");
 test_that("ADAM ETSX(ZZZ) + xreg selection on N2568", {
-    expect_null(testModel$xregDo);
+    expect_equal(testModel$regressors,"use");
 })
 
 # ETSX adaption on N2568
-testModel <- adam(Mcomp::M3[[2568]]$x, "MMN", h=18, holdout=TRUE, xreg=xreg, xregDo="adapt");
+testModel <- adam(xreg, "MMN", h=18, holdout=TRUE, regressors="adapt");
 test_that("ADAM ETSX(MMN) + xreg adapt on N2568", {
-    expect_match(testModel$xregDo, "adapt");
+    expect_match(testModel$regressors, "adapt");
 })
 
 # Forecast from ETSX with formula
@@ -180,27 +180,14 @@ test_that("Forecast for ADAM adaptive regression on N2568", {
 })
 
 # ETSX with formula
-xreg <- data.frame(y=Mcomp::M3[[2568]]$x, x=factor(xreg %*% c(1:11)));
 testModel <- adam(xreg, "MMN", h=18, holdout=TRUE, formula=y~x);
 test_that("ADAM ETSX(MMN) + xreg formula on N2568", {
-    expect_match(testModel$xregDo, "use");
+    expect_match(testModel$regressors, "use");
 })
 
 # Forecast from ETSX with formula
 testForecast <- forecast(testModel, h=18, newxreg=tail(xreg, 18), interval="nonp");
 test_that("Forecast for ADAM ETSX(MMN) + xreg formula on N2568", {
-    expect_equal(testForecast$level, 0.95);
-})
-
-# Adaptive regression
-testModel <- adam(xreg, "NNN", h=18, holdout=TRUE, formula=y~x, xregDo="adapt");
-test_that("ADAM adaptive regression on N2568", {
-    expect_match(testModel$xregDo, "adapt");
-})
-
-# Forecast from ETSX with formula
-testForecast <- forecast(testModel, h=18, newxreg=tail(xreg, 18), interval="nonp");
-test_that("Forecast for ADAM adaptive regression on N2568", {
     expect_equal(testForecast$level, 0.95);
 })
 
@@ -263,7 +250,7 @@ test_that("ADAM SARIMAX on N2568", {
 })
 
 # ARIMAX with dynamic xreg
-testModel <- adam(xreg, "NNN", h=18, orders=list(ar=c(2,0),i=c(1,0), ma=c(2,1)), holdout=TRUE, formula=y~x, xregDo="adapt");
+testModel <- adam(xreg, "NNN", h=18, orders=list(ar=c(2,0),i=c(1,0), ma=c(2,1)), holdout=TRUE, formula=y~x, regressors="adapt");
 test_that("ADAM SARIMAX with dynamic xreg on N2568", {
     expect_equal(length(testModel$persistence), 14);
 })
@@ -328,7 +315,7 @@ test_that("ADAM ETS(MMM) with provided gamma on N2568", {
 })
 
 # ETS(MMN) with provided deltas
-testModel <- adam(xreg, "MMN", formula=y~x, persistence=list(delta=0.01), xregDo="adapt");
+testModel <- adam(xreg, "MMN", formula=y~x, persistence=list(delta=0.01), regressors="adapt");
 test_that("ADAM ETS(MMN) with provided deltas on N2568", {
     expect_equivalent(testModel$persistence[substr(names(testModel$persistence),1,5)=="delta"],rep(0.01,11));
 })
@@ -386,7 +373,7 @@ test_that("Reuse ADAM SARIMA(2,1,2)(0,0,1)[12] on N2568", {
 })
 
 # Reuse ARIMAX
-testModel <- adam(xreg, "NNN", h=18, orders=list(ar=c(2,0),i=c(1,0), ma=c(2,1)), holdout=TRUE, formula=y~x, xregDo="adapt");
+testModel <- adam(xreg, "NNN", h=18, orders=list(ar=c(2,0),i=c(1,0), ma=c(2,1)), holdout=TRUE, formula=y~x, regressors="adapt");
 testModelNew <- adam(xreg, testModel);
 test_that("Reuse ADAM SARIMAX(2,1,2)(0,0,1)[12] with dynamic xreg on N2568", {
     expect_equal(testModel$persistence,testModelNew$persistence);
@@ -425,12 +412,12 @@ test_that("Best auto.adam ARIMA on N2568", {
 testModel <- auto.adam(Mcomp::M1[[291]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
                        outliers="use");
 test_that("Detect outliers for ARIMA on N291", {
-    expect_false(is.null(testModel$xreg));
+    expect_false(ncol(testModel$data)==1);
 })
 
 # Best ETS+ARIMA+Regression on the 2568
-testModel <- auto.adam(Mcomp::M3[[2568]]$x, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       xreg=temporaldummy(Mcomp::M3[[2568]]$x)[,-1], xregDo="select", initial="back");
+testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
+                       regressors="select", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression on N2568", {
     expect_match(testModel$loss, "likelihood");
 })
@@ -442,9 +429,8 @@ test_that("Summary of the produced ADAM model", {
 })
 
 # Best ETS+ARIMA+Regression on the 2568
-testModel <- auto.adam(Mcomp::M3[[2568]]$x, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       outliers="use",
-                       xreg=temporaldummy(Mcomp::M3[[2568]]$x)[,-1], xregDo="use", initial="back");
+testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
+                       outliers="use", regressors="use", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression+outliers on N2568", {
     expect_match(testModel$loss, "likelihood");
 })

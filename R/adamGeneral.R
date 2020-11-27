@@ -1,10 +1,10 @@
-parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
+parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                              "dlnorm","dinvgauss"),
                               loss, h, holdout,occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","admissible","none"),
-                              xreg, xregDo, yName,
+                              regressors, yName,
                               silent, modelDo, ParentEnvironment,
                               ellipsis, fast=FALSE){
 
@@ -14,84 +14,80 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     responseName <- yName;
 
     # If this is simulated, extract the actuals
-    if(is.adam.sim(y) || is.smooth.sim(y)){
-        y <- y$data;
+    if(is.adam.sim(data) || is.smooth.sim(data)){
+        data <- data$data;
     }
     # If this is Mdata, use all the available stuff
-    else if(inherits(y,"Mdata")){
-        h <- y$h;
+    else if(inherits(data,"Mdata")){
+        h <- data$h;
         holdout <- TRUE;
         if(modelDo!="use"){
-            lags <- frequency(y$x);
+            lags <- frequency(data$x);
         }
-        y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
+        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
     }
 
     # Extract index from the object in order to use it later
     ### tsibble has its own index function, so shit happens becaus of it...
-    if(inherits(y,"tbl_ts")){
-        yIndex <- y[[1]];
+    if(inherits(data,"tbl_ts")){
+        yIndex <- data[[1]];
         if(any(duplicated(yIndex))){
             warning(paste0("You have duplicated time stamps in the variable ",yName,
                            ". We will refactor this."),call.=FALSE);
-            yIndex <- yIndex[1] + c(1:length(y[[1]])) * diff(tail(yIndex,2));
+            yIndex <- yIndex[1] + c(1:length(data[[1]])) * diff(tail(yIndex,2));
         }
     }
     else{
-        yIndex <- try(time(y),silent=TRUE);
+        yIndex <- try(time(data),silent=TRUE);
         # If we cannot extract time, do something
         if(inherits(yIndex,"try-error")){
-            if(!is.data.frame(y) && !is.null(dim(y))){
-                yIndex <- as.POSIXct(rownames(y));
+            if(!is.data.frame(data) && !is.null(dim(data))){
+                yIndex <- as.POSIXct(rownames(data));
             }
-            else if(is.data.frame(y)){
-                yIndex <- c(1:nrow(y));
+            else if(is.data.frame(data)){
+                yIndex <- c(1:nrow(data));
             }
             else{
-                yIndex <- c(1:length(y));
+                yIndex <- c(1:length(data));
             }
         }
     }
-    yClasses <- class(y);
+    yClasses <- class(data);
 
     # If this is something like a matrix
-    if(!is.null(ncol(y)) && ncol(y)>1){
+    if(!is.null(ncol(data)) && ncol(data)>1){
+        xregData <- data;
         if(!is.null(formulaProvided)){
             responseName <- all.vars(formulaProvided)[1];
-            xregData <- y;
-            y <- y[,responseName];
+            y <- data[,responseName];
         }
         else{
-            xregData <- y;
             responseName <- colnames(xregData)[1];
             # If we deal with data.table / tibble / data.frame, the syntax is different.
             # We don't want to import specific classes, so just use inherits()
-            if(inherits(y,"tbl_ts")){
+            if(inherits(data,"tbl_ts")){
                 # With tsibble we cannot extract explanatory variables easily...
-                y <- y$value;
+                y <- data$value;
             }
-            else if(inherits(y,"data.table") || inherits(y,"tbl") || inherits(y,"data.frame")){
-                y <- y[[1]];
+            else if(inherits(data,"data.table") || inherits(data,"tbl") || inherits(data,"data.frame")){
+                y <- data[[1]];
             }
-            else if(inherits(y,"zoo")){
-                if(ncol(y)>1){
-                    xregData <- as.data.frame(y);
+            else if(inherits(data,"zoo")){
+                if(ncol(data)>1){
+                    xregData <- as.data.frame(data);
                 }
-                y <- zoo(y[,1],order.by=time(y));
+                y <- zoo(data[,1],order.by=time(data));
             }
             else{
-                if(ncol(y)>1){
-                    xregData <- y;
-                }
-                y <- y[,1];
+                y <- data[,1];
             }
         }
         # Give the indeces another try
         yIndex <- try(time(y),silent=TRUE);
         # If we cannot extract time, do something
         if(inherits(yIndex,"try-error")){
-            if(!is.null(dim(y))){
-                yIndex <- as.POSIXct(rownames(y));
+            if(!is.null(dim(data))){
+                yIndex <- as.POSIXct(rownames(data));
             }
             else{
                 yIndex <- c(1:length(y));
@@ -100,6 +96,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     }
     else{
         xregData <- NULL;
+        y <- data;
     }
 
     # Make the response a secure name
@@ -639,9 +636,9 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         lossFunction <- NULL;
     }
 
-    #### Explanatory variables: xregModel and xregDo ####
-    xregDo <- match.arg(xregDo,c("use","select","adapt"));
-    xregModel <- !is.null(xreg) | !is.null(xregData);
+    #### Explanatory variables: xregModel and regressors ####
+    regressors <- match.arg(regressors,c("use","select","adapt"));
+    xregModel <- !is.null(xregData);
 
     #### Persistence provided ####
     # Vectors for persistence of different components
@@ -1354,13 +1351,13 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
     }
 
     #### xreg preparation ####
-    # Check the xregDo
+    # Check the regressors
     if(!xregModel){
-        xregDo[] <- "use";
+        regressors[] <- "use";
         formulaProvided <- NULL;
     }
     else{
-        if(xregDo=="select"){
+        if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
             if(!is.null(initialXreg) && (initialType=="optimal")){
                 warning("Variables selection does not work with the provided initials for explantory variables. We will drop them.",
@@ -1380,12 +1377,12 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
 
     # Use alm() in order to fit the preliminary model for xreg
     if(xregModel){
+        # List of initials. The first element is additive error, the second is the multiplicative one
         xregModelInitials <- vector("list",2);
 
         # If the initials are not provided, estimate them using ALM.
         if(initialXregEstimate){
             initialXregProvided <- FALSE;
-            initialXregEstimate <- TRUE;
             # The function returns an ALM model
             xregInitialiser <- function(Etype,distribution,formulaProvided,subset,responseName){
                 # Fix the default distribution for ALM
@@ -1423,46 +1420,8 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 responseName <- all.vars(formulaProvided)[1];
             }
 
-            # If xregData is NULL (not provided in y), prepare one
-            if(is.null(xregData)){
-                # If this is not a matrix / data.frame, then convert to one
-                if(!is.data.frame(xreg) && !is.matrix(xreg)){
-                    xreg <- as.data.frame(xreg);
-                }
-
-                xregNames <- c(responseName,colnames(xreg));
-                obsXreg <- nrow(xreg);
-                xregNumber <- ncol(xreg);
-                # If this has enought observations for all the data, use it
-                if(obsXreg>=obsAll){
-                    xregData <- cbind(as.vector(y),as.data.frame(xreg[1:obsAll,,drop=FALSE]));
-                }
-                # Less than perfect...
-                else{
-                    warning(paste0("The xreg has ",obsXreg," observations, while ",obsAll," are needed. ",
-                                   "Using the last available values as future ones."),
-                            call.=FALSE);
-                    newnRows <- obsAll-obsXreg;
-                    if(!holdout){
-                        xregData <- cbind(c(as.vector(y),rep(NA,h)),
-                                          # as.matrix is needed in order to get rid of potential ts
-                                          rbind(as.matrix(xreg),
-                                                matrix(rep(tail(as.matrix(xreg),1),each=newnRows),newnRows,xregNumber)));
-                    }
-                    else{
-                        xregData <- cbind(as.vector(y),
-                                          # as.matrix is needed in order to get rid of potential ts
-                                          rbind(as.matrix(xreg),
-                                                matrix(rep(tail(as.matrix(xreg),1),each=newnRows),newnRows,xregNumber)));
-                    }
-                }
-                colnames(xregData) <- xregNames;
-                yName <- "xreg";
-            }
-            else{
-                # This allows to save the original data
-                xreg <- xregData;
-            }
+            # This allows to save the original data
+            xreg <- xregData;
             obsXreg <- nrow(xregData);
 
             # Form subset in order to use in-sample only
@@ -1474,7 +1433,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             }
 
             #### If this is just a regression, use stepwise / ALM
-            if((!etsModel && !arimaModel) && xregDo!="adapt"){
+            if((!etsModel && !arimaModel) && regressors!="adapt"){
                 # Return the estimated model based on the provided xreg
                 if(is.null(formulaProvided)){
                     formulaProvided <- as.formula(paste0("`",responseName,"`~."));
@@ -1495,7 +1454,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 }
 
                 # Either use or select the model via greybox functions
-                if(xregDo=="use"){
+                if(regressors=="use"){
                     warning("The specified model is just a regression. It is recommended to use alm() from greybox instead.",
                             call.=FALSE);
                     # Fisher Information
@@ -1508,87 +1467,96 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                     almModel <- do.call("alm", list(formula=formulaProvided, data=xregData,
                                                     distribution=distribution, loss=loss,
                                                     subset=which(subset),
-                                                    occurrence=occurrence,FI=FI));
+                                                    occurrence=oesModel,FI=FI));
                     almModel$call$data <- as.name(yName);
                     return(almModel);
                 }
-                else if(xregDo=="select"){
-                    warning(paste0("The specified model is just a stepwise regression. ",
-                                   "It is advised to use stepwise() function from greybox instead."),
+                else if(regressors=="select"){
+                    warning("The specified model is just a stepwise regression. ",
+                            "It is advised to use stepwise() function from greybox instead.",
                             call.=FALSE);
                     if(lossOriginal!="likelihood"){
                         warning("Stepwise only works with loss='likelihood'. Switching to it.",
                                 call.=FALSE);
                         loss <- "likelihood"
                     }
-                    almModel <- stepwise(xregData, distribution=distribution, subset=which(subset), occurrence=occurrence);
-                    # almModel <- do.call("alm", list(formula=formula(almModel), data=xregData,
-                    #                                 distribution=distribution, subset=c(1:obsInSample),
-                    #                                 occurrence=occurrence));
+                    almModel <- stepwise(xregData, distribution=distribution, subset=which(subset), occurrence=oesModel);
                     almModel$call$data <- as.name(yName);
                     return(almModel);
                 }
             }
 
+            #### !!!! I stopped here !!!! ####
+            # If a factor / character is provided in the xregData, mark that stuff
+            # if((is.data.frame(xregData) && any(sapply(xregData,is.factor) | sapply(xregData,is.character))) ||
+            #    any(sapply(xregData,is.character))){
+            #     # The first element is the response variable, we don't care
+            #     if(is.data.frame(xregData)){
+            #         xregFactors <- (sapply(xregData,is.factor) | sapply(xregData,is.character))[-1];
+            #     }
+            #     else{
+            #         xregFactors <- sapply(xregData,is.character)[-1];
+            #     }
+            #     xregFactorsNames
+            # }
+
+            almModel <- NULL;
             if(Etype!="Z"){
-                testModel <- xregInitialiser(Etype,distribution,formulaProvided,subset,responseName);
+                almModel <- xregInitialiser(Etype,distribution,formulaProvided,subset,responseName);
                 if(Etype=="A"){
                     # If this is just a regression, include intercept
                     if(!etsModel && !arimaModel){
-                        xregModelInitials[[1]]$initialXreg <- testModel$coefficients;
+                        xregModelInitials[[1]]$initialXreg <- almModel$coefficients;
                     }
                     else{
-                        xregModelInitials[[1]]$initialXreg <- testModel$coefficients[-1];
+                        xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                     }
-                    xregModelInitials[[1]]$other <- testModel$other;
+                    xregModelInitials[[1]]$other <- almModel$other;
                 }
                 else{
                     # If this is just a regression, include intercept
                     if(!etsModel && !arimaModel){
-                        xregModelInitials[[2]]$initialXreg <- testModel$coefficients;
+                        xregModelInitials[[2]]$initialXreg <- almModel$coefficients;
                     }
                     else{
-                        xregModelInitials[[2]]$initialXreg <- testModel$coefficients[-1];
+                        xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                     }
-                    xregModelInitials[[2]]$other <- testModel$other;
+                    xregModelInitials[[2]]$other <- almModel$other;
                 }
             }
             # If we are selecting the appropriate error, produce two models: for "M" and for "A"
             else{
                 # Additive model
-                testModel <- xregInitialiser("A",distribution,formulaProvided,subset,responseName);
+                almModel <- xregInitialiser("A",distribution,formulaProvided,subset,responseName);
                 # If this is just a regression, include intercept
                 if(!etsModel && !arimaModel){
-                    xregModelInitials[[1]]$initialXreg <- testModel$coefficients;
+                    xregModelInitials[[1]]$initialXreg <- almModel$coefficients;
                 }
                 else{
-                    xregModelInitials[[1]]$initialXreg <- testModel$coefficients[-1];
+                    xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                 }
-                xregModelInitials[[1]]$other <- testModel$other;
+                xregModelInitials[[1]]$other <- almModel$other;
                 # Multiplicative model
-                testModel[] <- xregInitialiser("M",distribution,formulaProvided,subset,responseName);
+                almModel[] <- xregInitialiser("M",distribution,formulaProvided,subset,responseName);
                 # If this is just a regression, include intercept
                 if(!etsModel && !arimaModel){
-                    xregModelInitials[[2]]$initialXreg <- testModel$coefficients;
+                    xregModelInitials[[2]]$initialXreg <- almModel$coefficients;
                 }
                 else{
-                    xregModelInitials[[2]]$initialXreg <- testModel$coefficients[-1];
+                    xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                 }
-                xregModelInitials[[2]]$other <- testModel$other;
+                xregModelInitials[[2]]$other <- almModel$other;
             }
 
             # If this is just a regression, include intercept
             if(!etsModel && !arimaModel){
-                xregNumber <- ncol(testModel$data);
-                xregNames <- names(coef(testModel));
-                # xregData <- testModel$data;
-                # xregData[,1] <- 1;
+                xregNumber <- ncol(almModel$data);
+                xregNames <- names(coef(almModel));
             }
             else{
                 # Write down the number and names of parameters
-                xregNumber <- ncol(testModel$data)-1;
-                xregNames <- names(coef(testModel))[-1];
-                # xregData <- testModel$data[,-1,drop=FALSE];
+                xregNumber <- ncol(almModel$data)-1;
+                xregNames <- names(coef(almModel))[-1];
             }
             # The original number of obs in xreg
             obsXreg <- nrow(xreg);
@@ -1596,16 +1564,18 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             # This formula is needed in order to expand the data
             formulaToUse <- formulaProvided;
             if(is.null(formulaProvided)){
-                formulaProvided <- formulaToUse <- formula(testModel);
+                formulaProvided <- formulaToUse <- formula(almModel);
             }
             # This is needed in order to succesfully expand the data
             formulaToUse[[2]] <- NULL;
 
             # Robustify the names of variables
             colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
+            # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
             xregData <- as.matrix(model.matrix(xregData,data=xregData));
-            # If there are more xreg values than the obsAll, redo stuff and use them
+
+            # If there are more obs in xreg than the obsAll cut the thing
             if(obsXreg>=obsAll){
                 xregData <- xregData[1:obsAll,xregNames,drop=FALSE]
             }
@@ -1615,10 +1585,13 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 xregData <- xregData[,xregNames,drop=FALSE];
                 xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
             }
+
+            # Remove xreg, just to preserve some memory
+            rm(xreg);
         }
         else{
-            #### If this is just a regression, then this must be the reuse of alm.
-            if((!etsModel && !arimaModel) && xregDo!="adapt"){
+            #### If this is just a regression, then this must be a reuse of alm.
+            if((!etsModel && !arimaModel) && regressors!="adapt"){
                 # Return the estimated model based on the provided xreg
                 if(is.null(formulaProvided)){
                     formulaProvided <- as.formula(paste0("`",responseName,"`~."));
@@ -1635,11 +1608,6 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 lossOriginal <- loss;
                 if(loss=="custom"){
                     loss <- lossFunction;
-                }
-
-                if(is.null(xregData)){
-                    xregData <- matrix(c(y,xreg),nrow=obsAll,ncol=ncol(xreg)+1,
-                                       dimnames=list(NULL,c(responseName,colnames(xreg))));
                 }
 
                 # Form subset in order to use in-sample only
@@ -1666,15 +1634,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                                                 distribution=distribution, loss=loss, subset=which(subset),
                                                 occurrence=occurrence,FI=FI,
                                                 parameters=B,fast=TRUE));
-                almModel$call$data <- as.name("xreg");
-                # # For some reason, this does not work with the normal distribution... So calculate it analytically
-                # if(vcovProduce && distribution=="dnorm"){
-                #     xregData[,1] <- 1;
-                #     colnames(xregData)[1] <- "(Intercept)";
-                #     xregData <- crossprod(xregData);
-                #     vcovMatrix <- chol2inv(chol(xregData));
-                #     almModel$vcov <- sigma(almModel, all=FALSE)^2 * vcovMatrix;
-                # }
+                almModel$call$data <- as.name(yName);
                 return(almModel);
             }
             else{
@@ -1695,46 +1655,18 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                     xregModelInitials[[2]]$initialXreg <- initialXreg;
                 }
 
-                # If xregData is NULL (not provided in y), prepare one
-                # We only need this to expand xregData, so we don't need response variable
-                if(is.null(xregData)){
-                    # If this is not a matrix / data.frame, then convert to one
-                    if(!is.data.frame(xreg) && !is.matrix(xreg)){
-                        xreg <- as.data.frame(xreg);
-                    }
-
-                    xregNames <- colnames(xreg);
-                    obsXreg <- nrow(xreg);
-                    if(obsXreg>=obsAll){
-                        xregData <- xreg[1:obsAll,,drop=FALSE];
-                    }
-                    else{
-                        warning(paste0("xreg contains less observations than needed: ", obsXreg,
-                                       " instead of ", obsAll,
-                                       ". Using the last values as future ones."), call.=FALSE);
-                        xregData <- matrix(0, obsAll, ncol(xreg));
-                        xregData[1:obsXreg,] <- xreg;
-                        xregData[(obsXreg+1):obsAll,] <- rep(tail(xreg,1), each=obsAll-obsXreg);
-                    }
-                    colnames(xregData) <- xregNames;
-                }
-                else{
-                    xregData <- xregData[1:obsAll,-1,drop=FALSE];
-                }
+                # Remove the first column. It is not needed for the expansion
+                xregData <- xregData[,-1,drop=FALSE];
                 obsXreg <- nrow(xregData);
                 # This variable is needed in order to do model.matrix only, when required.
                 xregDataIsDataFrame <- is.data.frame(xregData);
                 if(xregDataIsDataFrame){
-                    # xregData <- as.data.frame(xregData);
-                    # Expand xregData if it is data frame
+                    # Expand xregData if it is a data frame
                     xregData <- model.frame(formulaToUse,data=xregData);
                 }
 
                 # If there are more xreg values than the obsAll, redo stuff and use them
                 if(obsXreg<obsAll){
-                    warning(paste0("The xreg has ",obsXreg," observations, while ",obsAll," are needed. ",
-                                   "Using the last available values as future ones."),
-                            call.=FALSE);
                     newnRows <- obsAll-obsXreg;
                     if(xregDataIsDataFrame){
                         xregData <- as.matrix(model.matrix(xregData,data=xregData))[,-1,drop=FALSE];
@@ -1744,6 +1676,9 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
                 else{
                     if(xregDataIsDataFrame){
                         xregData <- as.matrix(model.matrix(xregData,data=xregData))[1:obsAll,-1,drop=FALSE];
+                    }
+                    else{
+                        xregData <- xregData[1:obsAll,,drop=FALSE];
                     }
                 }
 
@@ -1775,11 +1710,11 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         }
         else{
             # The persistenceXregEstimate is provided
-            if(xregDo=="adapt" && !persistenceXregEstimate){
+            if(regressors=="adapt" && !persistenceXregEstimate){
                 persistenceXregProvided <- TRUE;
                 persistenceXregEstimate <- FALSE;
             }
-            else if(xregDo=="adapt" && persistenceXregEstimate){
+            else if(regressors=="adapt" && persistenceXregEstimate){
                 persistenceXreg <- rep(0.05,xregNumber);
                 persistenceXregProvided <- FALSE;
                 persistenceXregEstimate <- TRUE;
@@ -1800,7 +1735,7 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
         }
         # If there's only one explanatory variable, then there's nothing to select
         if(xregNumber==1){
-            xregDo[] <- "use";
+            regressors[] <- "use";
         }
 
         # Fix the names of variables
@@ -1833,8 +1768,6 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
             }
         }
     }
-    # Remove xreg, just to preserve some memory
-    rm(xreg);
 
     # Redefine persitenceEstimate value
     persistenceEstimate[] <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,
@@ -2547,11 +2480,12 @@ parametersChecker <- function(y, model, lags, formulaProvided, orders, arma,
 
     ### Explanatory variables
     assign("xregModel",xregModel,ParentEnvironment);
-    assign("xregDo",xregDo,ParentEnvironment);
+    assign("regressors",regressors,ParentEnvironment);
     assign("xregModelInitials",xregModelInitials,ParentEnvironment);
     assign("xregData",xregData,ParentEnvironment);
     assign("xregNumber",xregNumber,ParentEnvironment);
     assign("xregNames",xregNames,ParentEnvironment);
+    assign("responseName",responseName,ParentEnvironment);
     assign("formula",formulaProvided,ParentEnvironment);
 
     ### Ellipsis thingies

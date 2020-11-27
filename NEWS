@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-11-03)
+smooth v3.0.0 (Release data: 2020-11-27)
 =======
 
 Changes:
@@ -22,6 +22,8 @@ Changes:
 * ves() now uses the R code for the loss calculation - the C++ routine was not leading to huge performance gains, but was not as flexible.
 * Removed occurrence, updateX, transitionX and persistenceX from the es(), ces(), gum() ssarima(), msarima() and respective auto functions. Use adam() if you want that functionality (probably, nobody cares anyway... let me know if that's not true).
 * LASSO and RIDGE do normalisation using sd instead of mean now. Also, removed the warning message.
+* Renamed y into data;
+* adam() now works only with data, xreg is removed. And xregDo is now renamed into "regressors".
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
