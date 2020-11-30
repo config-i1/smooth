@@ -1371,7 +1371,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                         call.=FALSE);
                 persistenceXreg <- NULL;
             }
-            formulaProvided <- NULL;
+            # formulaProvided <- NULL;
         }
     }
 
@@ -1486,19 +1486,24 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 }
             }
 
-            #### !!!! I stopped here !!!! ####
+            #### Treat factors differently
             # If a factor / character is provided in the xregData, mark that stuff
             # if((is.data.frame(xregData) && any(sapply(xregData,is.factor) | sapply(xregData,is.character))) ||
             #    any(sapply(xregData,is.character))){
             #     # The first element is the response variable, we don't care
-            #     if(is.data.frame(xregData)){
-            #         xregFactors <- (sapply(xregData,is.factor) | sapply(xregData,is.character))[-1];
+            #     if(!is.data.frame(xregData)){
+            #         xregData <- as.data.frame(xregData);
             #     }
-            #     else{
-            #         xregFactors <- sapply(xregData,is.character)[-1];
+            #     xregNumberOriginal <- ncol(xregData)-1;
+            #     xregNamesOriginal <- xregNames <- colnames(xregData)[-1];
+            #     xregFactors <- (sapply(xregData,is.factor) | sapply(xregData,is.character))[-1];
+            #     xregFactorsLabels <- lapply(xregData[,-1],levels);
+            #     xregFactorsNames <- vector("list",xregNumberOriginal);
+            #     for(i in 1+which(xregFactors)){
+            #         xregFactorsNames[[i]] <- paste0(xregNames[i-1],levels(xregData[[i]]))
             #     }
-            #     xregFactorsNames
             # }
+            #### !!!! I stopped here !!!! ####
 
             almModel <- NULL;
             if(Etype!="Z"){
@@ -1562,17 +1567,25 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             obsXreg <- nrow(xreg);
 
             # This formula is needed in order to expand the data
-            formulaToUse <- formulaProvided;
             if(is.null(formulaProvided)){
                 formulaProvided <- formulaToUse <- formula(almModel);
             }
-            # This is needed in order to succesfully expand the data
-            formulaToUse[[2]] <- NULL;
+            else{
+                formulaToUse <- formulaProvided;
+            }
 
             # Robustify the names of variables
             colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
+            # Get the response variable, just in case it was transformed
+            if(length(formulaProvided[[2]])>1){
+                y <- xregData[,1];
+                yInSample <- matrix(y[1:obsInSample],ncol=1);
+                if(holdout){
+                    yHoldout <- y[-c(1:obsInSample)];
+                }
+            }
             xregData <- as.matrix(model.matrix(xregData,data=xregData));
 
             # If there are more obs in xreg than the obsAll cut the thing
@@ -1760,12 +1773,12 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
         xregNumber <- 0;
         xregNames <- NULL;
         if(is.null(formulaProvided)){
-            if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
-                formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
-            }
-            else{
+            # if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
+            #     formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+            # }
+            # else{
                 formulaProvided <- as.formula(paste0("`",responseName,"`~."));
-            }
+            # }
         }
     }
 
