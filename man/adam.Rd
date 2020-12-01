@@ -342,6 +342,9 @@ distributions and returns the one with the most suitable one.
 }
 \examples{
 
+### The main examples are provided in the adam vignette, check it out via:
+# vignette("adam","smooth")
+
 # Model selection using a specified pool of models
 ourModel <- adam(rnorm(100,100,10), model=c("ANN","ANA","AAA"), lags=c(5,10))
 
