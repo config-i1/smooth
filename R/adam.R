@@ -6535,10 +6535,20 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
             if(is.data.frame(xreg)){
                 testFormula <- formula(object);
-                testFormula[[2]] <- NULL;
-                # Expand the variables and use only those that are in the model
-                newdata <- model.frame(testFormula, xreg);
-                newdata <- model.matrix(newdata,data=newdata)[,xregNames];
+                # Expand the variables. We cannot use alm, because it is based on obsInSample
+                xregData <- model.frame(testFormula,data=xreg);
+                # Binary, flagging factors in the data
+                # Expanded stuff with all levels for factors
+                if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
+                    xregModelMatrix <- model.matrix(xregData,xregData,
+                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                         contrasts, contrasts=FALSE));
+                }
+                else{
+                    xregModelMatrix <- model.matrix(xregData,data=xregData);
+                }
+                newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
+                rm(xregData);
             }
             else{
                 newdata <- xreg[,xregNames];
@@ -8073,7 +8083,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                          class=c("adam.predict","adam.forecast")));
     }
 
-    #### All the important matrices
+    #### All the important matrices ####
     # Last h observations of measurement
     arrWt <- objectRefitted$measurement[obsInSample-c(h:1)+1,,,drop=FALSE];
     # If the forecast horizon is higher than the in-sample, duplicate the last value in matWt
@@ -8121,10 +8131,20 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
             if(is.data.frame(xreg)){
                 testFormula <- formula(object);
-                testFormula[[2]] <- NULL;
-                # Expand the variables and use only those that are in the model
-                newdata <- model.frame(testFormula, xreg);
-                newdata <- model.matrix(newdata,data=newdata)[,xregNames];
+                # Expand the variables. We cannot use alm, because it is based on obsInSample
+                xregData <- model.frame(testFormula,data=xreg);
+                # Binary, flagging factors in the data
+                # Expanded stuff with all levels for factors
+                if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
+                    xregModelMatrix <- model.matrix(xregData,xregData,
+                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                         contrasts, contrasts=FALSE));
+                }
+                else{
+                    xregModelMatrix <- model.matrix(xregData,data=xregData);
+                }
+                newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
+                rm(xregData);
             }
             else{
                 newdata <- xreg[,xregNames];
