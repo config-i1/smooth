@@ -496,24 +496,21 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
 
         modelReturned <- list(model="Regression");
         modelReturned$timeElapsed <- Sys.time()-startTime;
+        if(is.null(formula)){
+            formula <- formula(checkerReturn);
+        }
         if(holdout){
             # Robustify the names of variables
             colnames(data) <- make.names(colnames(data),unique=TRUE);
-            if(is.null(formula)){
-                formula <- formula(checkerReturn);
-            }
-            # Expand the variables. We cannot use alm, because it is based on obsInSample
-            xregData <- model.frame(formula,data=as.data.frame(data));
-            xregData <- as.matrix(model.matrix(xregData,data=xregData));
-            modelReturned$holdout <- xregData[obsInSample+c(1:h),,drop=FALSE];
-            modelReturned$holdout[,1] <- data[obsInSample+c(1:h),1];
-            colnames(modelReturned$holdout)[1] <- colnames(checkerReturn$data)[1];
+            modelReturned$holdout <- data[obsInSample+c(1:h),,drop=FALSE];
         }
         else{
             modelReturned$holdout <- NULL;
         }
+        responseName <- all.vars(formulaProvided)[1];
+        y <- data[,responseName];
         # Extract indeces from the data
-        yIndex <- try(time(data),silent=TRUE);
+        yIndex <- try(time(y),silent=TRUE);
         # If we cannot extract time, do something
         if(inherits(yIndex,"try-error")){
             if(!is.data.frame(data) && !is.null(dim(data))){
@@ -527,8 +524,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
         }
         # Prepare fitted, residuals and the forecasts
-        if(inherits(data,"zoo")){
-            modelReturned$data <- zoo(checkerReturn$data, order.by=yIndex[1:obsInSample]);
+        if(inherits(y ,"zoo")){
+            modelReturned$data <- data[1:obsInSample,,drop=FALSE];
             modelReturned$fitted <- zoo(fitted(checkerReturn), order.by=yIndex[1:obsInSample]);
             modelReturned$residuals <- zoo(residuals(checkerReturn), order.by=yIndex[1:obsInSample]);
             # If we need to forecast and we had holdout=FALSE...
@@ -550,8 +547,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                         order.by=c(yIndex[1]-diff(yIndex[1:2]),yIndex[1:obsInSample]));
         }
         else{
-            yFrequency <- frequency(data);
-            modelReturned$data <- ts(checkerReturn$data, start=yIndex[1], frequency=yFrequency);
+            yFrequency <- frequency(y);
+            modelReturned$data <- ts(data[1:obsInSample,,drop=FALSE], start=yIndex[1], frequency=yFrequency);
             modelReturned$fitted <- ts(fitted(checkerReturn), start=yIndex[1], frequency=yFrequency);
             modelReturned$residuals <- ts(residuals(checkerReturn), start=yIndex[1], frequency=yFrequency);
             if(h>0){
@@ -609,7 +606,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         modelReturned$lagsAll <- rep(1,nParam);
         modelReturned$FI <- checkerReturn$FI;
         if(holdout){
-            modelReturned$accuracy <- measures(modelReturned$holdout[,1],modelReturned$forecast,modelReturned$data[,1]);
+            # This won't work if transformations of the response variable are done...
+            modelReturned$accuracy <- measures(modelReturned$holdout[,responseName],modelReturned$forecast,
+                                               modelReturned$data[,responseName]);
         }
         else{
             modelReturned$accuracy <- NULL;
@@ -2031,6 +2030,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                            arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                            arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                            xregModel, xregNumber,
+                           xregParametersMissing, xregParametersIncluded,
+                           xregParametersEstimated, xregParametersPersistence,
                            bounds, loss, lossFunction, distribution, horizon, multisteps, denominator=NULL,
                            other, otherParameterEstimate, lambda,
                            arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
@@ -2221,6 +2222,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                           arimaModel, arRequired, iRequired, maRequired, armaParameters,
                           componentsNumberARIMA, componentsNamesARIMA,
                           xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                          xregParametersMissing, xregParametersIncluded,
+                          xregParametersEstimated, xregParametersPersistence,
                           ot, otLogical, occurrenceModel, pFitted,
                           bounds, loss, lossFunction, distribution,
                           horizon, multisteps, other, otherParameterEstimate, lambda){
@@ -2521,11 +2524,14 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                                 adamCreated$arimaPolynomials,
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
+                                                xregParametersMissing, xregParametersIncluded,
+                                                xregParametersEstimated, xregParametersPersistence,
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
                                                 denominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix, maPolynomialMatrix),
                                      nobs=obsInSample,df=nParamEstimated,class="logLik");
 
+        xregIndex <- 1;
         #### If we do variables selection, do it here, then reestimate the model. ####
         if(regressors=="select"){
             # Fill in the matrices
@@ -2578,8 +2584,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
 
             # Call the xregSelector providing the original matrix with the data
-            xregIndex <- switch(Etype,"A"=1,"M"=2);
-            xregModelInitials[[xregIndex]] <- xregSelector(errors=errors, xregData=xregDataOriginal, ic=ic,
+            xregIndex[] <- switch(Etype,"A"=1,"M"=2);
+            xregModelInitials[[xregIndex]] <- xregSelector(errors=errors, xregData=data[,colnames(data)!=responseName], ic=ic,
                                                            df=df, distribution=distributionNew, occurrence=oesModel,
                                                            other=other);
             xregNumber <- length(xregModelInitials[[xregIndex]]$initialXreg);
@@ -2593,7 +2599,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 xregModel[] <- TRUE;
                 initialXregEstimate[] <- initialXregEstimateOriginal;
                 persistenceXregEstimate[] <- persistenceXregEstimateOriginal;
-                xregData <- xregDataOriginal[,xregNames,drop=FALSE];
+                # xregData <- xregDataOriginal[,xregNames,drop=FALSE];
 
                 # Redefine loss for ALM
                 lossNew <- switch(loss,
@@ -2605,13 +2611,89 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     lossNew <- lossFunction;
                 }
 
+                # Fix the name of the response variable
+                xregModelInitials[[xregIndex]]$formula[[2]] <- as.name(responseName);
+                formulaToUse <- xregModelInitials[[xregIndex]]$formula;
+                xregModelInitials[[which(c(1,2)!=xregIndex)]]$formula <- formulaToUse;
+
                 # Estimate alm again in order to get proper initials
-                almModel <- do.call(alm,list(formula=as.formula("y~."),
-                                             data=matrix(c(yInSample,xregData[1:obsInSample,,drop=FALSE]),
-                                                         obsInSample,xregNumber+1,
-                                                         dimnames=list(NULL,c("y",xregNames))),
+                almModel <- do.call(alm,list(formula=formulaToUse,
+                                             data=data[1:obsInSample,,drop=FALSE],
                                              distribution=distributionNew, loss=lossNew, occurrence=oesModel));
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
+
+                #### Fix xreg vectors based on the selected stuff ####
+                xregNames <- colnames(almModel$data[,-1]);
+                # Robustify the names of variables
+                colnames(data) <- make.names(colnames(data),unique=TRUE);
+                # The names of the original variables
+                xregNamesOriginal <- all.vars(formulaToUse)[-1];
+                # Levels for the factors
+                xregFactorsLevels <- lapply(data,levels);
+                xregFactorsLevels[[responseName]] <- NULL;
+                # Expand the variables. We cannot use alm, because it is based on obsInSample
+                xregData <- model.frame(formulaToUse,data=as.data.frame(data));
+                # Binary, flagging factors in the data
+                xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
+                # Expanded stuff with all levels for factors
+                if(any(xregFactors)){
+                    xregModelMatrix <- model.matrix(xregData,xregData,
+                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                         contrasts, contrasts=FALSE));
+                    xregNamesModified <- colnames(xregModelMatrix)[-1];
+                }
+                else{
+                    xregModelMatrix <- model.matrix(xregData,data=xregData);
+                    xregNamesModified <- xregNames;
+                }
+                xregData <- as.matrix(xregModelMatrix);
+                # Remove intercept
+                interceptIsPresent <- FALSE;
+                if(any(colnames(xregData)=="(Intercept)")){
+                    interceptIsPresent[] <- TRUE;
+                    xregData <- xregData[,-1,drop=FALSE];
+                }
+                xregNumber <- ncol(xregData);
+
+                # The indices of the original parameters
+                xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                # # The indices of the original parameters
+                xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                # The vector, marking the same values of smoothing parameters
+                if(interceptIsPresent){
+                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
+                }
+                else{
+                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
+                }
+
+                # If there are factors not in the alm data, create additional initials
+                if(any(!(xregNamesModified %in% xregNames))){
+                    xregAbsent <- !(xregNamesModified %in% xregNames);
+                    xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
+                    xregParametersNew[!xregAbsent] <- xregModelInitials[[xregIndex]]$initialXreg;
+                    # Go through new names and find, where they came from. Then get the missing parameters
+                    for(i in which(xregAbsent)){
+                        # Find the name of the original variable
+                        # Use only the last value... hoping that the names like x and x1 are not used.
+                        xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                        # Get the indices of all k-1 levels
+                        xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                               xregFactorsLevels[[xregNameFound]])]] <- i;
+                        # Get the index of the absent one
+                        xregParametersMissing[i] <- i;
+                        # Fill in the absent one
+                        xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
+                                                     na.rm=TRUE);
+                    }
+                    # Write down the new parameters
+                    xregModelInitials[[xregIndex]]$initialXreg <- xregParametersNew;
+                    xregNames <- xregNamesModified;
+                }
+                # The vector of parameters that should be estimated (numeric + original levels of factors)
+                xregParametersEstimated <- xregParametersIncluded
+                xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+                xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
 
                 return(estimator(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal, lagsModelARIMA,
                                  obsStates, obsInSample,
@@ -2628,17 +2710,20 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                  arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                  componentsNumberARIMA, componentsNamesARIMA,
                                  xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors="use",
+                                 xregParametersMissing, xregParametersIncluded,
+                                 xregParametersEstimated, xregParametersPersistence,
                                  ot, otLogical, occurrenceModel, pFitted,
                                  bounds, loss, lossFunction, distribution,
                                  horizon, multisteps, other, otherParameterEstimate, lambda));
-
             }
         }
 
         return(list(B=B, CFValue=CFValue, nParamEstimated=nParamEstimated, logLikADAMValue=logLikADAMValue,
                     xregModel=xregModel, xregData=xregData, xregNumber=xregNumber,
-                    xregNames=xregNames, xregModelInitials=xregModelInitials,
+                    xregNames=xregNames, xregModelInitials=xregModelInitials, formula=xregModelInitials[[xregIndex]]$formula,
                     initialXregEstimate=initialXregEstimate, persistenceXregEstimate=persistenceXregEstimate,
+                    xregParametersMissing=xregParametersMissing,xregParametersIncluded=xregParametersIncluded,
+                    xregParametersEstimated=xregParametersEstimated,xregParametersPersistence=xregParametersPersistence,
                     arimaPolynomials=adamCreated$arimaPolynomials));
     }
 
@@ -2661,6 +2746,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                          arimaModel, arRequired, iRequired, maRequired, armaParameters,
                          componentsNumberARIMA, componentsNamesARIMA,
                          xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                         xregParametersMissing, xregParametersIncluded,
+                         xregParametersEstimated, xregParametersPersistence,
                          ot, otLogical, occurrenceModel, pFitted, ICFunction,
                          bounds, loss, lossFunction, distribution,
                          horizon, multisteps, other, otherParameterEstimate, lambda){
@@ -2797,6 +2884,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                           arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                           componentsNumberARIMA, componentsNamesARIMA,
                                           xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                          xregParametersMissing, xregParametersIncluded,
+                                          xregParametersEstimated, xregParametersPersistence,
                                           ot, otLogical, occurrenceModel, pFitted,
                                           bounds, loss, lossFunction, distribution,
                                           horizon, multisteps, other, otherParameterEstimate, lambda);
@@ -2930,6 +3019,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                       arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                       componentsNumberARIMA, componentsNamesARIMA,
                                       xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                      xregParametersMissing, xregParametersIncluded,
+                                      xregParametersEstimated, xregParametersPersistence,
                                       ot, otLogical, occurrenceModel, pFitted,
                                       bounds, loss, lossFunction, distribution,
                                       horizon, multisteps, other, otherParameterEstimate, lambda);
@@ -3203,6 +3294,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             regressors <- NULL;
         }
 
+
         if(arimaModel){
             armaParametersList <- vector("list",arRequired+maRequired);
             j[] <- 1;
@@ -3388,6 +3480,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                    arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                    componentsNumberARIMA, componentsNamesARIMA,
                                    xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                   xregParametersMissing, xregParametersIncluded,
+                                   xregParametersEstimated, xregParametersPersistence,
                                    ot, otLogical, occurrenceModel, pFitted,
                                    bounds, loss, lossFunction, distribution,
                                    horizon, multisteps, other, otherParameterEstimate, lambda);
@@ -3455,6 +3549,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                   arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                   componentsNumberARIMA, componentsNamesARIMA,
                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                  xregParametersMissing, xregParametersIncluded,
+                                  xregParametersEstimated, xregParametersPersistence,
                                   ot, otLogical, occurrenceModel, pFitted, ICFunction,
                                   bounds, loss, lossFunction, distribution,
                                   horizon, multisteps, other, otherParameterEstimate, lambda);
@@ -3570,6 +3666,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                   arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                   componentsNumberARIMA, componentsNamesARIMA,
                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                  xregParametersMissing, xregParametersIncluded,
+                                  xregParametersEstimated, xregParametersPersistence,
                                   ot, otLogical, occurrenceModel, pFitted, ICFunction,
                                   bounds, loss, lossFunction, distribution,
                                   horizon, multisteps, other, otherParameterEstimate, lambda);
@@ -3748,6 +3846,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                                 arimaModel, nonZeroARI, nonZeroMA, arEstimate, maEstimate, arimaPolynomials,
                                                 arOrders, iOrders, maOrders, arRequired, maRequired, armaParameters,
                                                 xregModel, xregNumber,
+                                                xregParametersMissing, xregParametersIncluded,
+                                                xregParametersEstimated, xregParametersPersistence,
                                                 bounds, loss, lossFunction, distributionNew, horizon,
                                                 multisteps, denominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix=NULL, maPolynomialMatrix=NULL)
@@ -3847,62 +3947,10 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 maPolynomialMatrix <- arPolynomialMatrix <- NULL;
             }
 
-            ### All of this is needed in order to normalise level, trend, seasonal and xreg parameters
-            # This is needed in order to make hessian better behaved
-            BNew <- B;
-            # # Define, how many elements to skip (we don't normalise smoothing parameters)
-            # if(persistenceXregEstimate){
-            #     persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-            # }
-            # else{
-            #     persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
-            # }
-            # j <- 1;
-            # if(phiEstimateFI){
-            #     j[] <- 2;
-            # }
-            # if(initialTypeFI=="optimal"){
-            #     # Level
-            #     BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(diff(yInSample));
-            #     # Trend
-            #     if(Ttype!="N"){
-            #         j[] <- j+1;
-            #         if(Ttype=="A"){
-            #             BNew[persistenceToSkip+j] <- BNew[persistenceToSkip+j] / sd(diff(yInSample));
-            #         }
-            #     }
-            #     # Seasonality
-            #     if(Stype=="A"){
-            #         if(componentsNumberETSSeasonal>1){
-            #             for(k in 1:componentsNumberETSSeasonal){
-            #                 if(initialSeasonalEstimateFI[k]){
-            #                     # -1 is needed in order to remove the redundant seasonal element (normalisation)
-            #                     BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-            #                         BNew[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] /
-            #                         sd(diff(yInSample));
-            #                     j[] <- j+(lagsModelSeasonal[k]-1);
-            #                 }
-            #             }
-            #         }
-            #         else{
-            #             # -1 is needed in order to remove the redundant seasonal element (normalisation)
-            #             BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-            #                 BNew[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] / sd(diff(yInSample));
-            #         }
-            #     }
-            #
-            #     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
-            #     if(xregNumber>0 && Etype=="A"){
-            #         denominator <- tail(colMeans(abs(matWt)),xregNumber);
-            #         # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
-            #         denominator[abs(denominator)<1] <- 1;
-            #         BNew[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(BNew,xregNumber) / denominator;
-            #     }
-            # }
             # This is needed in order to avoid the 1e+300 in the CF
             boundsFI <- "none";
 
-            FI <- -hessian(logLikADAM, BNew, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
+            FI <- -hessian(logLikADAM, B, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
                            modelIsSeasonal=modelIsSeasonal, yInSample=yInSample,
                            ot=ot, otLogical=otLogical, occurrenceModel=occurrenceModel, pFitted=pFitted, obsInSample=obsInSample,
                            componentsNumberETS=componentsNumberETS, componentsNumberETSSeasonal=componentsNumberETSSeasonal,
@@ -3924,6 +3972,10 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                            arOrders=arOrders, iOrders=iOrders, maOrders=maOrders,
                            arRequired=arRequired, maRequired=maRequired, armaParameters=armaParameters,
                            xregModel=xregModel, xregNumber=xregNumber,
+                           xregParametersMissing=xregParametersMissing,
+                           xregParametersIncluded=xregParametersIncluded,
+                           xregParametersEstimated=xregParametersEstimated,
+                           xregParametersPersistence=xregParametersPersistence,
                            bounds=boundsFI, loss=loss, lossFunction=lossFunction, distribution=distribution,
                            horizon=horizon, multisteps=multisteps, denominator=denominator,
                            other=other, otherParameterEstimate=otherParameterEstimateFI, lambda=lambda,
@@ -4034,11 +4086,19 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;
         if(!is.null(xregData)){
-            modelReturned$data <- cbind(yInSample,xregData[1:obsInSample,,drop=FALSE]);
-            colnames(modelReturned$data) <- c(responseName,xregNames);
+            # Remove redundant columns from the data
+            modelReturned$data <- data[1:obsInSample,all.vars(modelReturned$formula),drop=FALSE]
             if(holdout){
-                modelReturned$holdout <- cbind(yHoldout,xregData[obsInSample+c(1:h),,drop=FALSE]);
-                colnames(modelReturned$holdout) <- c(responseName,xregNames);
+                modelReturned$holdout <- data[obsInSample+c(1:h),all.vars(modelReturned$formula),drop=FALSE];
+            }
+            # Fix the ts class, which is destroyed during subsetting
+            if(all(yClasses!="zoo")){
+                modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
+                                                        start=yStart, frequency=yFrequency);
+                if(holdout){
+                    modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
+                                                               start=yForecastStart, frequency=yFrequency);
+                }
             }
         }
         else{
@@ -4046,9 +4106,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             modelReturned$holdout <- yHoldout;
         }
         if(any(yNAValues)){
-            modelReturned$data[yNAValues[1:obsInSample],1] <- NA;
+            modelReturned$data[yNAValues[1:obsInSample],responseName] <- NA;
             if(length(yNAValues)==obsAll){
-                modelReturned$holdout[yNAValues[-c(1:obsInSample)],1] <- NA;
+                modelReturned$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
             }
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
         }
@@ -4133,11 +4193,20 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             modelReturned$models[[i]]$timeElapsed <- Sys.time()-startTime;
             parametersNumberOverall[1,1] <- parametersNumber[1,1] + parametersNumber[1,1] * adamSelected$icWeights[i];
             if(!is.null(xregData)){
-                modelReturned$models[[i]]$data <- cbind(yInSample,xregData[1:obsInSample,,drop=FALSE]);
-                colnames(modelReturned$models[[i]]$data) <- c(responseName,xregNames);
+                modelReturned$models[[i]]$data <- data[1:obsInSample,all.vars(modelReturned$models[[i]]$formula),
+                                                       drop=FALSE];
                 if(holdout){
-                    modelReturned$models[[i]]$holdout <- cbind(yHoldout,xregData[obsInSample+c(1:h),,drop=FALSE]);
-                    colnames(modelReturned$models[[i]]$holdout) <- c(responseName,xregNames);
+                    modelReturned$models[[i]]$holdout <- data[obsInSample+c(1:h),all.vars(modelReturned$models[[i]]$formula),
+                                                           drop=FALSE];
+                }
+                # Fix the ts class, which is destroyed during subsetting
+                if(all(yClasses!="zoo")){
+                    modelReturned$models[[i]]$data[,responseName] <- ts(modelReturned$models[[i]]$data[,responseName],
+                                                                        start=yStart, frequency=yFrequency);
+                    if(holdout){
+                        modelReturned$models[[i]]$holdout[,responseName] <- ts(modelReturned$models[[i]]$holdout[,responseName],
+                                                                               start=yForecastStart, frequency=yFrequency);
+                    }
                 }
             }
             else{
@@ -4145,9 +4214,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 modelReturned$models[[i]]$holdout <- yHoldout;
             }
             if(any(yNAValues)){
-                modelReturned$models[[i]]$data[yNAValues[1:obsInSample],1] <- NA;
+                modelReturned$models[[i]]$data[yNAValues[1:obsInSample],responseName] <- NA;
                 if(length(yNAValues)==obsAll){
-                    modelReturned$models[[i]]$holdout[yNAValues[-c(1:obsInSample)],1] <- NA;
+                    modelReturned$models[[i]]$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
                 }
                 modelReturned$models[[i]]$residuals[yNAValues[1:obsInSample]] <- NA;
             }
@@ -4195,11 +4264,18 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;
         if(!is.null(xregDataOriginal)){
-            modelReturned$data <- cbind(yInSample,xregDataOriginal[1:obsInSample,,drop=FALSE]);
-            colnames(modelReturned$data) <- c(responseName,xregNames);
+            modelReturned$data <- data[1:obsInSample,,drop=FALSE];
             if(holdout){
-                modelReturned$holdout <- cbind(yHoldout,xregDataOriginal[obsInSample+c(1:h),,drop=FALSE]);
-                colnames(modelReturned$holdout) <- c(responseName,xregNames);
+                modelReturned$holdout <- data[obsInSample+c(1:h),,drop=FALSE];
+            }
+            # Fix the ts class, which is destroyed during subsetting
+            if(all(yClasses!="zoo")){
+                modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
+                                                        start=yStart, frequency=yFrequency);
+                if(holdout){
+                    modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
+                                                               start=yForecastStart, frequency=yFrequency);
+                }
             }
         }
         else{
@@ -4209,9 +4285,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         modelReturned$fitted <- ts(yFittedCombined,start=yStart, frequency=yFrequency);
         modelReturned$residuals <- yInSample - yFittedCombined;
         if(any(yNAValues)){
-            modelReturned$data[yNAValues[1:obsInSample],1] <- NA;
+            modelReturned$data[yNAValues[1:obsInSample],responseName] <- NA;
             if(length(yNAValues)==obsAll){
-                modelReturned$holdout[yNAValues[-c(1:obsInSample)],1] <- NA;
+                modelReturned$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
             }
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
         }
@@ -5718,19 +5794,13 @@ vcov.adam <- function(object, ...){
     else{
         h <- 0;
     }
-    if(ncol(object$data)>1){
-        formulaToUse <- as.formula(paste0(colnames(object$data)[1],"~."));
-    }
-    else{
-        formulaToUse <- NULL;
-    }
-    modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formulaToUse,
+    modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
                                          FI=TRUE, stepSize=ellipsis$stepSize));
     # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
     brokenVariables <- apply(modelReturn$FI==0,1,all);
     # If there are issues, try the same stuff, but with a different step size for hessian
     if(any(brokenVariables)){
-        modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formulaToUse,
+        modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
                                              FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
         brokenVariables <- apply(modelReturn$FI==0,1,all);
     }
@@ -5767,11 +5837,12 @@ vcov.adam <- function(object, ...){
 #' @importFrom greybox actuals
 #' @export
 actuals.adam <- function(object, all=TRUE, ...){
+    responseName <- all.vars(formula(object))[1];
     if(all){
-        return(object$data[,1]);
+        return(object$data[,responseName]);
     }
     else{
-        return(object$y[object$y!=0,1]);
+        return(object$y[object$y!=0,responseName]);
     }
 }
 
@@ -6497,17 +6568,25 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     # Deal with explanatory variables
     if(ncol(object$data)>1){
-        xregNumber <- ncol(object$data)-1;
+        xregNumber <- length(object$initial$xreg);
+        xregNames <- names(object$initial$xreg);
         if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)<h){
-            warning("The newdata is not provided. Predicting the explanatory variables based on what we have in-sample.",
-                    call.=FALSE);
-            newdata <- matrix(NA,h,xregNumber);
-            for(i in 1:xregNumber){
-                newdata[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+            xreg <- tail(object$data,h);
+            if(!is.data.frame(newdata) & is.matrix(xreg)){
+                warning("The newdata is not provided.",
+                        "Predicting the explanatory variables based on what we have in-sample.",
+                        call.=FALSE);
+                for(i in 1:xregNumber){
+                    xreg[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+                }
+            }
+            else{
+                warning("The newdata is not provided. Using last h in-sample observations instead.",
+                        call.=FALSE);
             }
         }
         else if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)>=h){
-            newdata <- object$holdout[1:h,-1,drop=FALSE];
+            xreg <- object$holdout[1:h,,drop=FALSE];
         }
         else{
             # If this is not a matrix / data.frame, then convert to one
@@ -6531,30 +6610,30 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xreg <- newdata;
             }
-            xregNames <- colnames(object$data)[-1];
+        }
 
-            if(is.data.frame(xreg)){
-                testFormula <- formula(object);
-                # Expand the variables. We cannot use alm, because it is based on obsInSample
-                xregData <- model.frame(testFormula,data=xreg);
-                # Binary, flagging factors in the data
-                # Expanded stuff with all levels for factors
-                if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
-                    xregModelMatrix <- model.matrix(xregData,xregData,
-                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
-                                                                         contrasts, contrasts=FALSE));
-                }
-                else{
-                    xregModelMatrix <- model.matrix(xregData,data=xregData);
-                }
-                newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
-                rm(xregData);
+        # Expand the xreg if it is data frame to get the proper matrix
+        if(is.data.frame(xreg)){
+            testFormula <- formula(object);
+            # Expand the variables. We cannot use alm, because it is based on obsInSample
+            xregData <- model.frame(testFormula,data=xreg);
+            # Binary, flagging factors in the data
+            # Expanded stuff with all levels for factors
+            if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
+                xregModelMatrix <- model.matrix(xregData,xregData,
+                                                contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                     contrasts, contrasts=FALSE));
             }
             else{
-                newdata <- xreg[,xregNames];
+                xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
-            rm(xreg);
+            newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
+            rm(xregData,xregModelMatrix);
         }
+        else{
+            newdata <- xreg[,xregNames];
+        }
+        rm(xreg);
 
         matWt[,componentsNumberETS+componentsNumberARIMA+c(1:xregNumber)] <- newdata;
         # If this is not "adapt", then fill in the matrix with zeroes
@@ -8093,17 +8172,25 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     # Deal with explanatory variables
     if(ncol(object$data)>1){
-        xregNumber <- ncol(object$data)-1;
+        xregNumber <- length(object$initial$xreg);
+        xregNames <- names(object$initial$xreg);
         if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)<h){
-            warning("The newdata is not provided. Predicting the explanatory variables based on what we have in-sample.",
-                    call.=FALSE);
-            newdata <- matrix(NA,h,xregNumber);
-            for(i in 1:xregNumber){
-                newdata[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+            xreg <- tail(object$data,h);
+            if(!is.data.frame(newdata) & is.matrix(xreg)){
+                warning("The newdata is not provided.",
+                        "Predicting the explanatory variables based on what we have in-sample.",
+                        call.=FALSE);
+                for(i in 1:xregNumber){
+                    xreg[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+                }
+            }
+            else{
+                warning("The newdata is not provided. Using last h in-sample observations instead.",
+                        call.=FALSE);
             }
         }
         else if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)>=h){
-            newdata <- object$holdout[1:h,-1,drop=FALSE];
+            xreg <- object$holdout[1:h,,drop=FALSE];
         }
         else{
             # If this is not a matrix / data.frame, then convert to one
@@ -8127,30 +8214,31 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xreg <- newdata;
             }
-            xregNames <- colnames(object$data)[-1];
+        }
 
-            if(is.data.frame(xreg)){
-                testFormula <- formula(object);
-                # Expand the variables. We cannot use alm, because it is based on obsInSample
-                xregData <- model.frame(testFormula,data=xreg);
-                # Binary, flagging factors in the data
-                # Expanded stuff with all levels for factors
-                if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
-                    xregModelMatrix <- model.matrix(xregData,xregData,
-                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
-                                                                         contrasts, contrasts=FALSE));
-                }
-                else{
-                    xregModelMatrix <- model.matrix(xregData,data=xregData);
-                }
-                newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
-                rm(xregData);
+        # Expand the xreg if it is data frame to get the proper matrix
+        if(is.data.frame(xreg)){
+            testFormula <- formula(object);
+            # Expand the variables. We cannot use alm, because it is based on obsInSample
+            xregData <- model.frame(testFormula,data=xreg);
+            # Binary, flagging factors in the data
+            # Expanded stuff with all levels for factors
+            if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
+                xregModelMatrix <- model.matrix(xregData,xregData,
+                                                contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                     contrasts, contrasts=FALSE));
             }
             else{
-                newdata <- xreg[,xregNames];
+                xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
-            rm(xreg);
+            newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
+            rm(xregData,xregModelMatrix);
         }
+        else{
+            newdata <- xreg[,xregNames];
+        }
+        rm(xreg);
+
         arrWt[,componentsNumberETS+componentsNumberARIMA+c(1:xregNumber),] <- newdata;
     }
     else{

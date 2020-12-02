@@ -133,7 +133,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
     yInSample <- matrix(y[1:obsInSample],ncol=1);
     if(holdout){
         yForecastStart <- yIndex[obsInSample+1];
-        yHoldout <- y[-c(1:obsInSample)];
+        yHoldout <- matrix(y[-c(1:obsInSample)],ncol=1);
         yForecastIndex <- yIndex[-c(1:obsInSample)];
         yInSampleIndex <- yIndex[c(1:obsInSample)];
         yIndexAll <- yIndex;
@@ -1499,6 +1499,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     else{
                         xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                     }
+                    xregModelInitials[[1]]$formula <- formula(almModel);
                     xregModelInitials[[1]]$other <- almModel$other;
                 }
                 else{
@@ -1509,6 +1510,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     else{
                         xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                     }
+                    xregModelInitials[[2]]$formula <- formula(almModel);
                     xregModelInitials[[2]]$other <- almModel$other;
                 }
             }
@@ -1523,6 +1525,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 else{
                     xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                 }
+                xregModelInitials[[1]]$formula <- formula(almModel);
                 xregModelInitials[[1]]$other <- almModel$other;
                 # Multiplicative model
                 almModel[] <- xregInitialiser("M",distribution,formulaProvided,subset,responseName);
@@ -1533,6 +1536,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 else{
                     xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                 }
+                xregModelInitials[[2]]$formula <- formula(almModel);
                 xregModelInitials[[2]]$other <- almModel$other;
             }
 
@@ -1563,7 +1567,8 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             # The names of the original variables
             xregNamesOriginal <- colnames(xregData)[-1];
             # Levels for the factors
-            xregFactorsLevels <- lapply(xreg[,-1,drop=FALSE],levels);
+            xregFactorsLevels <- lapply(xreg,levels);
+            xregFactorsLevels[[responseName]] <- NULL;
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
             # Get the response variable, just in case it was transformed
@@ -1606,6 +1611,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
             }
 
+            #### Fix parameters for factors ####
             # The indices of the original parameters
             xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
             # # The indices of the original parameters
@@ -1617,7 +1623,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             else{
                 xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
             }
-            #### Fix parameters for factors ####
             # If there are factors not in the alm data, create additional initials
             if(any(!(xregNamesModified %in% xregNames))){
                 xregAbsent <- !(xregNamesModified %in% xregNames);
@@ -1629,7 +1634,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     for(i in which(xregAbsent)){
                         # Find the name of the original variable
                         # Use only the last value... hoping that the names like x and x1 are not used.
-                        xregNameFound <- tail(names(unlist(sapply(xregNamesOriginal,grep,xregNamesModified[i]))),1);
+                        xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
                         # Get the indices of all k-1 levels
                         xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
@@ -1649,7 +1654,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     for(i in which(xregAbsent)){
                         # Find the name of the original variable
                         # Use only the last value... hoping that the names like x and x1 are not used.
-                        xregNameFound <- tail(names(unlist(sapply(xregNamesOriginal,grep,xregNamesModified[i]))),1);
+                        xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
                         # Get the indices of all k-1 levels
                         xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
@@ -1724,55 +1729,158 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             }
             #### InitialXreg is provided ####
             else{
+                # Save the original data
+                xreg <- xregData;
                 initialXregProvided <- TRUE;
+                # Robustify the names of variables
+                colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
+
                 # This formula is needed only to expand xreg
                 if(is.null(formulaProvided)){
-                    formulaToUse <- as.formula(paste0("~."));
+                    responseName <- colnames(xreg)[1]
+                    formulaToUse <- as.formula(paste0(responseName,"~."));
                 }
                 # Extract names and form a proper matrix for the regression
                 else{
-                    formulaToUse <- formulaProvided;
                     responseName <- all.vars(formulaProvided)[1];
-                    formulaToUse[[2]] <- NULL
+                    formulaToUse <- formulaProvided;
                 }
 
-                xregModelInitials[[1]]$initialXreg <- initialXreg;
-                if(any(Etype==c("Z","M"))){
-                    xregModelInitials[[2]]$initialXreg <- initialXreg;
+                # Get the names of initials
+                xregNames <- names(initialXreg);
+
+                # The names of the original variables
+                xregNamesOriginal <- colnames(xregData)[-1];
+                # Levels for the factors
+                xregFactorsLevels <- lapply(xreg[,-1,drop=FALSE],levels);
+                # Expand the variables. We cannot use alm, because it is based on obsInSample
+                xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
+                # Get the response variable, just in case it was transformed
+                if(length(formulaProvided[[2]])>1){
+                    y <- xregData[,1];
+                    yInSample <- matrix(y[1:obsInSample],ncol=1);
+                    if(holdout){
+                        yHoldout <- y[-c(1:obsInSample)];
+                    }
                 }
 
-                # Remove the first column. It is not needed for the expansion
-                xregData <- xregData[,-1,drop=FALSE];
+                # Binary, flagging factors in the data
+                xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
+                # Expanded stuff with all levels for factors
+                if(any(xregFactors)){
+                    xregModelMatrix <- model.matrix(xregData,xregData,
+                                                    contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                         contrasts, contrasts=FALSE));
+                    xregNamesModified <- colnames(xregModelMatrix)[-1];
+                }
+                else{
+                    xregModelMatrix <- model.matrix(xregData,data=xregData);
+                    xregNamesModified <- xregNames;
+                }
+                xregData <- as.matrix(xregModelMatrix);
+
+                # Remove intercept
+                interceptIsPresent <- FALSE;
+                if(any(colnames(xregData)=="(Intercept)")){
+                    interceptIsPresent[] <- TRUE;
+                    xregData <- xregData[,-1,drop=FALSE];
+                }
+                xregNumber <- ncol(xregData);
                 obsXreg <- nrow(xregData);
+
+                # If there are more obs in xreg than the obsAll cut the thing
+                if(obsXreg>=obsAll){
+                    xregData <- xregData[1:obsAll,,drop=FALSE]
+                }
+                # If there are less xreg observations than obsAll, use Naive
+                else{
+                    newnRows <- obsAll-obsXreg;
+                    xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
+                }
+
                 # This variable is needed in order to do model.matrix only, when required.
                 xregDataIsDataFrame <- is.data.frame(xregData);
                 if(xregDataIsDataFrame){
                     # Expand xregData if it is a data frame
                     xregData <- model.frame(formulaToUse,data=xregData);
                 }
+                xregNumber[] <- ncol(xregData);
 
-                # If there are more xreg values than the obsAll, redo stuff and use them
-                if(obsXreg<obsAll){
-                    newnRows <- obsAll-obsXreg;
-                    if(xregDataIsDataFrame){
-                        xregData <- as.matrix(model.matrix(xregData,data=xregData))[,-1,drop=FALSE];
-                    }
-                    xregData <- rbind(xregData,matrix(rep(tail(xregData,1),each=newnRows),newnRows,xregNumber));
+                #### Fix parameters for factors ####
+                # The indices of the original parameters
+                xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                # # The indices of the original parameters
+                xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                # The vector, marking the same values of smoothing parameters
+                if(interceptIsPresent){
+                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
                 }
                 else{
-                    if(xregDataIsDataFrame){
-                        xregData <- as.matrix(model.matrix(xregData,data=xregData))[1:obsAll,-1,drop=FALSE];
-                    }
-                    else{
-                        xregData <- xregData[1:obsAll,,drop=FALSE];
-                    }
+                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
                 }
 
-                xregNumber <- ncol(xregData);
-                xregNames <- colnames(xregData);
-                obsXreg <- nrow(xregData);
+                # If there are factors and the number of initials is not the same as the number of parameters needed
+                # This stuff assumes that the provided xreg parameters are named.
+                if(any(xregFactors)){
+                    # Expand the data again in order to find the missing elements
+                    xregNames <- colnames(as.matrix(model.matrix(formulaToUse,
+                                                                 model.frame(formulaToUse,data=as.data.frame(xreg)))));
+                    if(any(xregNames=="(Intercept)")){
+                        xregNames <- xregNames[xregNames!="(Intercept)"];
+                    }
+                    if(length(xregNames)!=length(xregNamesModified)){
+                        if(!is.null(xregNames)){
+                            xregAbsent <- !(xregNamesModified %in% xregNames);
+                            xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
+                            # Deal with the expansion
+                            xregParametersNew[!xregAbsent] <- initialXreg;
+                            # Go through new names and find, where they came from. Then get the missing parameters
+                            for(i in which(xregAbsent)){
+                                # Find the name of the original variable
+                                # Use only the last value... hoping that the names like x and x1 are not used.
+                                xregNameFound <- tail(names(unlist(sapply(xregNamesOriginal,grep,xregNamesModified[i]))),1);
+                                # Get the indices of all k-1 levels
+                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
+                                # Get the index of the absent one
+                                xregParametersMissing[i] <- i;
+                                # Fill in the absent one
+                                xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
+                                                             na.rm=TRUE);
+                            }
+                        }
+                        else{
+                            warning("The provided parameters for explanatory variables do not contain names. ",
+                                    "It might be difficult to align them with the respective variables.",
+                                    call.=FALSE);
+
+                        }
+                        # Write down the new parameters
+                        xregModelInitials[[1]]$initialXreg <- xregParametersNew;
+
+                        # Write down the new parameters to the second part
+                        if(any(Etype==c("M","Z"))){
+                            xregModelInitials[[2]]$initialXreg <- xregParametersNew;
+                        }
+                        xregNames <- xregNamesModified;
+                    }
+                }
+                else{
+                    xregModelInitials[[1]]$initialXreg <- initialXreg;
+                    if(any(Etype==c("M","Z"))){
+                        xregModelInitials[[2]]$initialXreg <- initialXreg;
+                    }
+                }
+                # The vector of parameters that should be estimated (numeric + original levels of factors)
+                xregParametersEstimated <- xregParametersIncluded
+                xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+                xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
+
                 parametersNumber[2,2] <- parametersNumber[2,2] + xregNumber;
             }
+
+            # Remove xreg, just to preserve some memory
+            rm(xreg);
         }
 
         #### persistence for xreg ####
@@ -2433,6 +2541,12 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
         (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
         warning("The model selection only works in case of loss='likelihood'. We hope you know what you are doing.",
                 call.=FALSE);
+    }
+
+    # Just in case, give names to yHoldout and yInSample
+    colnames(yInSample) <- responseName;
+    if(holdout){
+        colnames(yHoldout) <- responseName;
     }
 
     #### Return the values to the previous environment ####
