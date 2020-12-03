@@ -1829,31 +1829,35 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                         xregNames <- xregNames[xregNames!="(Intercept)"];
                     }
                     if(length(xregNames)!=length(xregNamesModified)){
-                        if(!is.null(xregNames)){
-                            xregAbsent <- !(xregNamesModified %in% xregNames);
-                            xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
-                            # Deal with the expansion
-                            xregParametersNew[!xregAbsent] <- initialXreg[xregNames];
-                            # Go through new names and find, where they came from. Then get the missing parameters
-                            for(i in which(xregAbsent)){
-                                # Find the name of the original variable
-                                # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFound <- tail(names(unlist(sapply(xregNamesOriginal,grep,xregNamesModified[i]))),1);
-                                # Get the indices of all k-1 levels
-                                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
-                                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
-                                # Get the index of the absent one
-                                xregParametersMissing[i] <- i;
-                                # Fill in the absent one
-                                xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
-                                                             na.rm=TRUE);
-                            }
+                        xregAbsent <- !(xregNamesModified %in% xregNames);
+                        # Create the new vector of parameters
+                        xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
+                        if(!is.null(names(initialXreg))){
+                            xregParametersNew[xregNames] <- initialXreg[xregNames];
                         }
                         else{
-                            warning("The provided parameters for explanatory variables do not contain names. ",
-                                    "It might be difficult to align them with the respective variables.",
-                                    call.=FALSE);
-
+                            # Insert values one by one
+                            j <- 1;
+                            for(i in 1:length(xregNamesModified)){
+                                if(!xregAbsent[i]){
+                                    xregParametersNew[i] <- initialXreg[j];
+                                    j <- j+1;
+                                }
+                            }
+                        }
+                        # Go through new names and find, where they came from. Then get the missing parameters
+                        for(i in which(xregAbsent)){
+                            # Find the name of the original variable
+                            # Use only the last value... hoping that the names like x and x1 are not used.
+                            xregNameFound <- tail(names(unlist(sapply(xregNamesOriginal,grep,xregNamesModified[i]))),1);
+                            # Get the indices of all k-1 levels
+                            xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                                   xregFactorsLevels[[xregNameFound]])]] <- i;
+                            # Get the index of the absent one
+                            xregParametersMissing[i] <- i;
+                            # Fill in the absent one
+                            xregParametersNew[i] <- -sum(xregParametersNew[xregParametersIncluded==i],
+                                                         na.rm=TRUE);
                         }
                         # Write down the new parameters
                         xregModelInitials[[1]]$initialXreg <- xregParametersNew;
