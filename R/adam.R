@@ -7498,12 +7498,86 @@ refit.adam <- function(object, nsim=1000, ...){
     componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
     componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     if(!is.null(object$initial$xreg)){
-        xregNumber <- length(object$initial$xreg);
         xregModel <- TRUE;
+
+        #### Create xreg vectors ####
+        xreg <- object$data;
+        formula <- formula(object)
+        responseName <- all.vars(formula)[1];
+        # Robustify the names of variables
+        colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
+        # The names of the original variables
+        xregNamesOriginal <- all.vars(formula)[-1];
+        # Levels for the factors
+        xregFactorsLevels <- lapply(xreg,levels);
+        xregFactorsLevels[[responseName]] <- NULL;
+        # Expand the variables. We cannot use alm, because it is based on obsInSample
+        xregData <- model.frame(formula,data=as.data.frame(xreg));
+        # Binary, flagging factors in the data
+        xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
+        # Get the names from the standard model.matrix
+        xregNames <- colnames(model.matrix(xregData,data=xregData));
+        # Expanded stuff with all levels for factors
+        if(any(xregFactors)){
+            xregModelMatrix <- model.matrix(xregData,xregData,
+                                            contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                 contrasts, contrasts=FALSE));
+            xregNamesModified <- colnames(xregModelMatrix)[-1];
+        }
+        else{
+            xregModelMatrix <- model.matrix(xregData,data=xregData);
+            xregNamesModified <- xregNames;
+        }
+        xregData <- as.matrix(xregModelMatrix);
+        # Remove intercept
+        interceptIsPresent <- FALSE;
+        if(any(colnames(xregData)=="(Intercept)")){
+            interceptIsPresent[] <- TRUE;
+            xregData <- xregData[,-1,drop=FALSE];
+        }
+        xregNumber <- ncol(xregData);
+
+        # The indices of the original parameters
+        xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+        # # The indices of the original parameters
+        xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+        # The vector, marking the same values of smoothing parameters
+        if(interceptIsPresent){
+            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
+        }
+        else{
+            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
+        }
+
+        # If there are factors not in the alm data, create additional initials
+        if(any(!(xregNamesModified %in% xregNames))){
+            xregAbsent <- !(xregNamesModified %in% xregNames);
+            # Go through new names and find, where they came from. Then get the missing parameters
+            for(i in which(xregAbsent)){
+                # Find the name of the original variable
+                # Use only the last value... hoping that the names like x and x1 are not used.
+                xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                # Get the indices of all k-1 levels
+                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
+                # Get the index of the absent one
+                xregParametersMissing[i] <- i;
+            }
+            # Write down the new parameters
+            xregNames <- xregNamesModified;
+        }
+        # The vector of parameters that should be estimated (numeric + original levels of factors)
+        xregParametersEstimated <- xregParametersIncluded
+        xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+        xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
     }
     else{
-        xregNumber <- 0;
         xregModel <- FALSE;
+        xregNumber <- 0;
+        xregParametersMissing <- 0;
+        xregParametersIncluded <- 0;
+        xregParametersEstimated <- 0;
+        xregParametersPersistence <- 0;
     }
     profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$observed;
 
@@ -7705,7 +7779,7 @@ refit.adam <- function(object, nsim=1000, ...){
             k <- k+1;
         }
     }
-    if(xregNumber>0 && any(substr(parametersNames,1,5)=="delta")){
+    if(xregModel && any(substr(parametersNames,1,5)=="delta")){
         deltas <- which(substr(colnames(randomParameters),1,5)=="delta");
         matG[colnames(randomParameters)[deltas],] <- t(randomParameters[,deltas,drop=FALSE]);
         k <- k+length(deltas);
@@ -7885,8 +7959,13 @@ refit.adam <- function(object, nsim=1000, ...){
         j <- j+initialArimaNumber;
         k <- k+initialArimaNumber;
     }
-    if(xregNumber>0){
-        profilesRecentArray[j+1:xregNumber,1,] <- t(randomParameters[,colnames(object$initial$xreg)[-1]]);
+    if(xregModel){
+        xregNumberToEstimate <- sum(xregParametersEstimated);
+        profilesRecentArray[j+which(xregParametersEstimated==1),1,] <- t(randomParameters[,k+1:xregNumberToEstimate]);
+        # Normalise initials
+        for(i in which(xregParametersMissing!=0)){
+            profilesRecentArray[j+i,1,] <- -colSums(profilesRecentArray[j+which(xregParametersEstimated==1),1,]);
+        }
     }
 
     if(is.null(object$occurrence)){

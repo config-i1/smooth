@@ -3,7 +3,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                              "dlnorm","dinvgauss"),
                               loss, h, holdout,occurrence,
-                              ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","admissible","none"),
+                              ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","usual","admissible","none"),
                               regressors, yName,
                               silent, modelDo, ParentEnvironment,
                               ellipsis, fast=FALSE){
@@ -775,7 +775,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     persistenceEstimate[] <- persistenceLevelEstimate[] <- persistenceTrendEstimate[] <-
                         persistenceXregEstimate[] <- persistenceSeasonalEstimate[] <- FALSE;
                     parametersNumber[2,1] <- parametersNumber[2,1] + length(persistence);
-                    bounds <- "n";
+                    # bounds <- "none";
                 }
             }
             else{
@@ -1833,7 +1833,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                             xregAbsent <- !(xregNamesModified %in% xregNames);
                             xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
                             # Deal with the expansion
-                            xregParametersNew[!xregAbsent] <- initialXreg;
+                            xregParametersNew[!xregAbsent] <- initialXreg[xregNames];
                             # Go through new names and find, where they came from. Then get the missing parameters
                             for(i in which(xregAbsent)){
                                 # Find the name of the original variable
