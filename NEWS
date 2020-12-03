@@ -1,4 +1,4 @@
-smooth v3.0.0 (Release data: 2020-11-27)
+smooth v3.0.0 (Release data: 2020-12-03)
 =======
 
 Changes:
@@ -24,6 +24,7 @@ Changes:
 * LASSO and RIDGE do normalisation using sd instead of mean now. Also, removed the warning message.
 * Renamed y into data;
 * adam() now works only with data, xreg is removed. And xregDo is now renamed into "regressors".
+* adam() now treats categorical variables (factors) differently than the other variables. This becomes especially useful in case of regressors="adapt".
 
 Bugfixes:
 * Fixed dates for the holdout sample in case, when holdout=FALSE for zoo objects.
