@@ -1371,7 +1371,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                         call.=FALSE);
                 persistenceXreg <- NULL;
             }
-            # formulaProvided <- NULL;
         }
     }
 
@@ -1488,6 +1487,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 }
             }
 
+            #### ETSX / ARIMAX ####
             almModel <- NULL;
             if(Etype!="Z"){
                 almModel <- xregInitialiser(Etype,distribution,formulaProvided,subset,responseName);
@@ -1556,12 +1556,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             #### Data manipulations for further use ####
             # This formula is needed in order to expand the data
             if(is.null(formulaProvided)){
-                formulaToUse <- formulaProvided <- as.formula(paste0("`",responseName,"`~",
-                                                                     paste0(colnames(xreg)[colnames(xreg)!=responseName],
-                                                                            collapse="+")));
-            }
-            else{
-                formulaToUse <- formulaProvided;
+                formulaProvided <- as.formula(paste0("`",responseName,"`~",
+                                                     paste0(colnames(xreg)[colnames(xreg)!=responseName],
+                                                            collapse="+")));
             }
 
             # Robustify the names of variables
@@ -1572,7 +1569,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             xregFactorsLevels <- lapply(xreg,levels);
             xregFactorsLevels[[responseName]] <- NULL;
             # Expand the variables. We cannot use alm, because it is based on obsInSample
-            xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
+            xregData <- model.frame(formulaProvided,data=as.data.frame(xreg));
             # Get the response variable, just in case it was transformed
             if(length(formulaProvided[[2]])>1){
                 y <- xregData[,1];
@@ -1740,12 +1737,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 # This formula is needed only to expand xreg
                 if(is.null(formulaProvided)){
                     responseName <- colnames(xreg)[1]
-                    formulaToUse <- as.formula(paste0(responseName,"~."));
+                    formulaProvided <- as.formula(paste0("`",responseName,"`~",
+                                                         paste0(colnames(xreg)[colnames(xreg)!=responseName],
+                                                                collapse="+")));
                 }
                 # Extract names and form a proper matrix for the regression
                 else{
                     responseName <- all.vars(formulaProvided)[1];
-                    formulaToUse <- formulaProvided;
                 }
 
                 # Get the names of initials
@@ -1756,7 +1754,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 # Levels for the factors
                 xregFactorsLevels <- lapply(xreg[,-1,drop=FALSE],levels);
                 # Expand the variables. We cannot use alm, because it is based on obsInSample
-                xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
+                xregData <- model.frame(formulaProvided,data=as.data.frame(xreg));
                 # Get the response variable, just in case it was transformed
                 if(length(formulaProvided[[2]])>1){
                     y <- xregData[,1];
@@ -1804,7 +1802,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 xregDataIsDataFrame <- is.data.frame(xregData);
                 if(xregDataIsDataFrame){
                     # Expand xregData if it is a data frame
-                    xregData <- model.frame(formulaToUse,data=xregData);
+                    xregData <- model.frame(formulaProvided,data=xregData);
                 }
                 xregNumber[] <- ncol(xregData);
 
@@ -1825,8 +1823,8 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 # This stuff assumes that the provided xreg parameters are named.
                 if(any(xregFactors)){
                     # Expand the data again in order to find the missing elements
-                    xregNames <- colnames(as.matrix(model.matrix(formulaToUse,
-                                                                 model.frame(formulaToUse,data=as.data.frame(xreg)))));
+                    xregNames <- colnames(as.matrix(model.matrix(formulaProvided,
+                                                                 model.frame(formulaProvided,data=as.data.frame(xreg)))));
                     if(any(xregNames=="(Intercept)")){
                         xregNames <- xregNames[xregNames!="(Intercept)"];
                     }

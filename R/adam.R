@@ -13,7 +13,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
                          "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
                          "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
-                         "xregParametersPersistence"));
+                         "xregParametersPersistence","xregModelInitials"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -332,7 +332,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #'
 #' @importFrom forecast forecast na.interp
 #' @importFrom greybox dlaplace dalaplace ds stepwise alm is.occurrence is.alm polyprod
-#' @importFrom stats dnorm dlogis dt dlnorm frequency confint vcov formula update model.frame model.matrix predict
+#' @importFrom stats dnorm dlogis dt dlnorm frequency confint vcov predict
+#' @importFrom stats formula update model.frame model.matrix contrasts setNames terms
 #' @importFrom statmod dinvgauss
 #' @importFrom nloptr nloptr
 #' @importFrom pracma hessian
@@ -722,7 +723,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                         arOrders, iOrders, maOrders,
                         componentsNumberARIMA, componentsNamesARIMA,
                         # Explanatory variables
-                        xregModel, xregModelInitials, xregData, xregNumber, xregNames){
+                        xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                        xregParametersPersistence){
 
         # Matrix of states. Time in columns, components in rows
         matVt <- matrix(NA, componentsNumberETS+componentsNumberARIMA+xregNumber, obsStates,
@@ -791,7 +793,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             if(persistenceXregProvided && !persistenceXregEstimate){
                 vecG[j+1:xregNumber,] <- persistenceXreg;
             }
-            rownames(vecG)[j+1:xregNumber] <- paste0("delta",c(1:xregNumber));
+            rownames(vecG)[j+1:xregNumber] <- paste0("delta",xregParametersPersistence);
         }
 
         # Damping parameter value
@@ -2256,7 +2258,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                arOrders, iOrders, maOrders,
                                componentsNumberARIMA, componentsNamesARIMA,
-                               xregModel, xregModelInitials, xregData, xregNumber, xregNames);
+                               xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                               xregParametersPersistence);
 
         # If B is not provided, initialise it
         if(is.null(B)){
@@ -3514,7 +3517,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                arOrders, iOrders, maOrders,
                                componentsNumberARIMA, componentsNamesARIMA,
-                               xregModel, xregModelInitials, xregData, xregNumber, xregNames);
+                               xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                               xregParametersPersistence);
         list2env(adamCreated, environment());
 
         icSelection <- ICFunction(adamEstimated$logLikADAMValue);
@@ -3586,7 +3590,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                arOrders, iOrders, maOrders,
                                componentsNumberARIMA, componentsNamesARIMA,
-                               xregModel, xregModelInitials, xregData, xregNumber, xregNames);
+                               xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                               xregParametersPersistence);
         list2env(adamCreated, environment());
 
         parametersNumber[1,1] <- nParamEstimated;
@@ -3726,7 +3731,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                    arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                    arOrders, iOrders, maOrders,
                                    componentsNumberARIMA, componentsNamesARIMA,
-                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames);
+                                   xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                                   xregParametersPersistence);
 
             adamSelected$results[[i]]$matVt <- adamCreated$matVt;
             adamSelected$results[[i]]$matWt <- adamCreated$matWt;
@@ -3784,7 +3790,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                arimaModel, arRequired, iRequired, maRequired, armaParameters,
                                arOrders, iOrders, maOrders,
                                componentsNumberARIMA, componentsNamesARIMA,
-                               xregModel, xregModelInitials, xregData, xregNumber, xregNames);
+                               xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                               xregParametersPersistence);
         list2env(adamCreated, environment());
 
         # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE
@@ -6627,6 +6634,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
+            colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
             newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
             rm(xregData,xregModelMatrix);
         }
@@ -7489,11 +7497,13 @@ refit.adam <- function(object, nsim=1000, ...){
     }
     componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
     componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    if(ncol(object$data)>1){
-        xregNumber <- ncol(object$data)-1;
+    if(!is.null(object$initial$xreg)){
+        xregNumber <- length(object$initial$xreg);
+        xregModel <- TRUE;
     }
     else{
         xregNumber <- 0;
+        xregModel <- FALSE;
     }
     profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$observed;
 
@@ -7633,8 +7643,8 @@ refit.adam <- function(object, nsim=1000, ...){
     # Set the bounds for deltas
     if(any(substr(parametersNames,1,5)=="delta")){
         deltas <- which(substr(colnames(randomParameters),1,5)=="delta");
-        randomParameters[randomParameters[,deltas]<0,deltas] <- 0;
-        randomParameters[randomParameters[,deltas]>1,deltas] <- 1;
+        randomParameters[,deltas][randomParameters[,deltas]<0] <- 0;
+        randomParameters[,deltas][randomParameters[,deltas]>1] <- 1;
     }
 
     #### Prepare the necessary matrices ####
@@ -7659,7 +7669,7 @@ refit.adam <- function(object, nsim=1000, ...){
     arrWt <- array(object$measurement,c(dim(object$measurement),nsim));
 
     # Persistence matrix
-    if(xregNumber>0 && !any(substr(parametersNames,1,5)=="delta")){
+    if(xregModel && !any(substr(parametersNames,1,5)=="delta")){
         matG <- array(c(object$persistence,rep(0,xregNumber)), c(length(object$persistence)+xregNumber, nsim),
                       dimnames=list(c(names(object$persistence),paste0("delta",c(1:xregNumber))),
                                     paste0("nsim",c(1:nsim))));
@@ -7876,7 +7886,7 @@ refit.adam <- function(object, nsim=1000, ...){
         k <- k+initialArimaNumber;
     }
     if(xregNumber>0){
-        profilesRecentArray[j+1:xregNumber,1,] <- t(randomParameters[,colnames(object$data)[-1]]);
+        profilesRecentArray[j+1:xregNumber,1,] <- t(randomParameters[,colnames(object$initial$xreg)[-1]]);
     }
 
     if(is.null(object$occurrence)){
@@ -8231,6 +8241,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
+            colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
             newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
             rm(xregData,xregModelMatrix);
         }
