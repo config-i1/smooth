@@ -6643,6 +6643,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
         }
 
+        # If the names are wrong, transform to data frame and expand
+        if(!all(colnames(xreg) %in% xregNames)){
+            xreg <- as.data.frame(xreg);
+        }
+
         # Expand the xreg if it is data frame to get the proper matrix
         if(is.data.frame(xreg)){
             testFormula <- formula(object);
@@ -8327,6 +8332,11 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xreg <- newdata;
             }
+        }
+
+        # If the names are wrong, transform to data frame and expand
+        if(!all(colnames(xreg) %in% xregNames)){
+            xreg <- as.data.frame(xreg);
         }
 
         # Expand the xreg if it is data frame to get the proper matrix
