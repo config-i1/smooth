@@ -4100,11 +4100,19 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
             # Fix the ts class, which is destroyed during subsetting
             if(all(yClasses!="zoo")){
-                modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
-                                                        start=yStart, frequency=yFrequency);
-                if(holdout){
-                    modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
-                                                               start=yForecastStart, frequency=yFrequency);
+                if(any(yClasses=="data.frame")){
+                    modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
+                                                            start=yStart, frequency=yFrequency);
+                    if(holdout){
+                        modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
+                                                                   start=yForecastStart, frequency=yFrequency);
+                    }
+                }
+                else{
+                    modelReturned$data <- ts(modelReturned$data, start=yStart, frequency=yFrequency);
+                    if(holdout){
+                        modelReturned$holdout <- ts(modelReturned$holdout, start=yForecastStart, frequency=yFrequency);
+                    }
                 }
             }
         }
@@ -4206,11 +4214,19 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 }
                 # Fix the ts class, which is destroyed during subsetting
                 if(all(yClasses!="zoo")){
-                    modelReturned$models[[i]]$data[,responseName] <- ts(modelReturned$models[[i]]$data[,responseName],
-                                                                        start=yStart, frequency=yFrequency);
-                    if(holdout){
-                        modelReturned$models[[i]]$holdout[,responseName] <- ts(modelReturned$models[[i]]$holdout[,responseName],
-                                                                               start=yForecastStart, frequency=yFrequency);
+                    if(any(yClasses=="data.frame")){
+                        modelReturned$models[[i]]$data[,responseName] <- ts(modelReturned$models[[i]]$data[,responseName],
+                                                                            start=yStart, frequency=yFrequency);
+                        if(holdout){
+                            modelReturned$models[[i]]$holdout[,responseName] <- ts(modelReturned$models[[i]]$holdout[,responseName],
+                                                                                   start=yForecastStart, frequency=yFrequency);
+                        }
+                    }
+                    else{
+                        modelReturned$models[[i]]$data <- ts(modelReturned$models[[i]]$data, start=yStart, frequency=yFrequency);
+                        if(holdout){
+                            modelReturned$models[[i]]$holdout <- ts(modelReturned$models[[i]]$holdout, start=yForecastStart, frequency=yFrequency);
+                        }
                     }
                 }
             }
@@ -4277,11 +4293,19 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
             # Fix the ts class, which is destroyed during subsetting
             if(all(yClasses!="zoo")){
-                modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
-                                                        start=yStart, frequency=yFrequency);
-                if(holdout){
-                    modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
-                                                               start=yForecastStart, frequency=yFrequency);
+                if(any(yClasses=="data.frame")){
+                    modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
+                                                            start=yStart, frequency=yFrequency);
+                    if(holdout){
+                        modelReturned$holdout[,responseName] <- ts(modelReturned$holdout[,responseName],
+                                                                   start=yForecastStart, frequency=yFrequency);
+                    }
+                }
+                else{
+                    modelReturned$data <- ts(modelReturned$data, start=yStart, frequency=yFrequency);
+                    if(holdout){
+                        modelReturned$holdout <- ts(modelReturned$holdout, start=yForecastStart, frequency=yFrequency);
+                    }
                 }
             }
         }
