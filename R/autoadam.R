@@ -367,7 +367,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     cat(distribution[i],"\b, ");
                 }
                 selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
-                                            distribution=distribution[i],
+                                            distribution=distribution[i], formula=formula,
                                             h=h, holdout=holdout,
                                             persistence=persistence, phi=phi, initial=initial, arma=arma,
                                             occurrence=occurrence, ic=ic, bounds=bounds,
@@ -387,7 +387,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         else{
             selectedModels <- foreach::`%dopar%`(foreach::foreach(i=1:length(distribution)),{
                 testModel <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
-                                  distribution=distribution[i],
+                                  distribution=distribution[i], formula=formula,
                                   h=h, holdout=holdout,
                                   persistence=persistence, phi=phi, initial=initial, arma=arma,
                                   occurrence=occurrence, ic=ic, bounds=bounds,
@@ -472,7 +472,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
             else{
                 # Fit just mean
-                testModelETS <- adam(data, model="NNN",lags=1, distribution=distribution,
+                testModelETS <- adam(data, model="NNN",lags=1, distribution=distribution, formula=formula,
                                      h=h,holdout=holdout, occurrence=occurrence, bounds=bounds, silent=TRUE);
                 dataAR <- dataI <- dataMA <- yInSample <- actuals(testModelETS);
 
@@ -749,7 +749,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             # Run the model for MA
             bestModel <- adam(data=data, model=modelOriginal, lags=lags,
                               orders=list(ar=(arBest),i=(iBest),ma=(maBest)),
-                              distribution=distribution,
+                              distribution=distribution, formula=formula,
                               h=h, holdout=holdout,
                               persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
                               occurrence=occurrenceOriginal, ic=ic, bounds=bounds,
@@ -795,9 +795,13 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         formula <- update(as.formula(formula),
                                           as.formula(paste0("~.+",paste0(colnames(outliersXreg),collapse="+"))));
                     }
+                    else{
+                        formula <- as.formula(paste0(responseName,"~."));
+                    }
                     outliersDo <- regressors;
                 }
                 adamModel <- suppressWarnings(auto.adam(data, model, lags=lags, orders=orders,
+                                                        formula=formula,
                                                         distribution=distribution, h=h, holdout=holdout,
                                                         persistence=persistence, phi=phi, initial=initial, arma=arma,
                                                         occurrence=occurrence, ic=ic, bounds=bounds,
@@ -877,9 +881,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     selectedModels[[which.min(ICValues)]]$timeElapsed <- Sys.time()-startTime;
-    selectedModels[[which.min(ICValues)]]$formula <- as.formula(do.call("substitute",
-                                                                        list(expr=selectedModels[[which.min(ICValues)]]$formula,
-                                                                             env=list(y=as.name(responseName)))));
+    # selectedModels[[which.min(ICValues)]]$formula <- as.formula(do.call("substitute",
+    #                                                                     list(expr=selectedModels[[which.min(ICValues)]]$formula,
+    #                                                                          env=list(y=as.name(responseName)))));
     # names(ICValues) <- sapply(selectedModels, modelType);
     # selectedModels[[which.min(ICValues)]]$ICValues <- ICValues;
 

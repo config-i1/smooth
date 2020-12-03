@@ -1556,7 +1556,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
             #### Data manipulations for further use ####
             # This formula is needed in order to expand the data
             if(is.null(formulaProvided)){
-                formulaProvided <- formulaToUse <- formula(almModel);
+                formulaToUse <- formulaProvided <- as.formula(paste0("`",responseName,"`~",
+                                                                     paste0(colnames(xreg)[colnames(xreg)!=responseName],
+                                                                            collapse="+")));
             }
             else{
                 formulaToUse <- formulaProvided;

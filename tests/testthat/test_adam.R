@@ -252,7 +252,7 @@ test_that("ADAM SARIMAX on N2568", {
 # ARIMAX with dynamic xreg
 testModel <- adam(xreg, "NNN", h=18, orders=list(ar=c(2,0),i=c(1,0), ma=c(2,1)), holdout=TRUE, formula=y~x, regressors="adapt");
 test_that("ADAM SARIMAX with dynamic xreg on N2568", {
-    expect_equal(length(testModel$persistence), 14);
+        expect_equal(length(testModel$persistence), 15);
 })
 
 #### Provided initial / persistence / phi / arma / B / reuse the model ####
@@ -317,7 +317,7 @@ test_that("ADAM ETS(MMM) with provided gamma on N2568", {
 # ETS(MMN) with provided deltas
 testModel <- adam(xreg, "MMN", formula=y~x, persistence=list(delta=0.01), regressors="adapt");
 test_that("ADAM ETS(MMN) with provided deltas on N2568", {
-    expect_equivalent(testModel$persistence[substr(names(testModel$persistence),1,5)=="delta"],rep(0.01,11));
+    expect_equivalent(testModel$persistence[substr(names(testModel$persistence),1,5)=="delta"],rep(0.01,12));
 })
 
 ### Phi
