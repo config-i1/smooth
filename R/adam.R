@@ -4100,7 +4100,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
             # Fix the ts class, which is destroyed during subsetting
             if(all(yClasses!="zoo")){
-                if(any(yClasses=="data.frame")){
+                if(is.data.frame(data)){
                     modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
                                                             start=yStart, frequency=yFrequency);
                     if(holdout){
@@ -4214,7 +4214,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 }
                 # Fix the ts class, which is destroyed during subsetting
                 if(all(yClasses!="zoo")){
-                    if(any(yClasses=="data.frame")){
+                    if(is.data.frame(data)){
                         modelReturned$models[[i]]$data[,responseName] <- ts(modelReturned$models[[i]]$data[,responseName],
                                                                             start=yStart, frequency=yFrequency);
                         if(holdout){
@@ -4293,7 +4293,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             }
             # Fix the ts class, which is destroyed during subsetting
             if(all(yClasses!="zoo")){
-                if(any(yClasses=="data.frame")){
+                if(is.data.frame(data)){
                     modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName],
                                                             start=yStart, frequency=yFrequency);
                     if(holdout){
@@ -6644,7 +6644,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
 
         # If the names are wrong, transform to data frame and expand
-        if(!all(colnames(xreg) %in% xregNames)){
+        if(!all(xregNames %in% colnames(xreg))){
             xreg <- as.data.frame(xreg);
         }
 
@@ -6668,7 +6668,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             rm(xregData,xregModelMatrix);
         }
         else{
-            newdata <- xreg[,xregNames];
+            newdata <- xreg[,xregNames,drop=FALSE];
         }
         rm(xreg);
 
@@ -8335,7 +8335,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
 
         # If the names are wrong, transform to data frame and expand
-        if(!all(colnames(xreg) %in% xregNames)){
+        if(!all(xregNames %in% colnames(xreg))){
             xreg <- as.data.frame(xreg);
         }
 
