@@ -1403,13 +1403,21 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     distribution <- "dgnorm";
                     Etype <- "M";
                 }
-                # Return the estimated model based on the provided xreg
+                # If the formula is not provided, construct one
                 if(is.null(formulaProvided)){
                     if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
                         formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
                     }
                     else{
                         formulaProvided <- as.formula(paste0("`",responseName,"`~."));
+                    }
+                }
+                else{
+                     # If formula contains only one element, or seeral, but no logs, then change response formula
+                    if((length(formulaProvided[[2]])==1 ||
+                        (length(formulaProvided[[2]])>1 & !any(as.character(formulaProvided[[2]])=="log"))) &&
+                       (Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
+                        formulaProvided <- update(formulaProvided,log(.)~.);
                     }
                 }
                 return(do.call(alm,list(formula=formulaProvided,data=xregData,distribution=distribution,subset=which(subset))))
