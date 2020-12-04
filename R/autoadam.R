@@ -93,6 +93,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         else{
             yInSample <- data[1:obsInSample,1];
         }
+        if(is.null(formula)){
+            responseName <- colnames(data)[1];
+        }
+        else{
+            responseName <- all.vars(formula)[1];
+        }
     }
 
     # If this is non-positive data and positive defined distributions are used, fix this
@@ -799,6 +805,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         formula <- as.formula(paste0(responseName,"~."));
                     }
                     outliersDo <- regressors;
+                }
+                else{
+                    colnames(data)[1] <- responseName;
                 }
                 adamModel <- suppressWarnings(auto.adam(data, model, lags=lags, orders=orders,
                                                         formula=formula,
