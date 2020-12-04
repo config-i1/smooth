@@ -1507,7 +1507,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     else{
                         xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                     }
-                    xregModelInitials[[1]]$formula <- formula(almModel);
+                    if(is.null(formulaProvided)){
+                        xregModelInitials[[1]]$formula <- formulaProvided <- formula(almModel);
+                    }
                     xregModelInitials[[1]]$other <- almModel$other;
                 }
                 else{
@@ -1518,7 +1520,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                     else{
                         xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                     }
-                    xregModelInitials[[2]]$formula <- formula(almModel);
+                    if(is.null(formulaProvided)){
+                        xregModelInitials[[2]]$formula <- formulaProvided <- formula(almModel);
+                    }
                     xregModelInitials[[2]]$other <- almModel$other;
                 }
             }
@@ -1533,7 +1537,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 else{
                     xregModelInitials[[1]]$initialXreg <- almModel$coefficients[-1];
                 }
-                xregModelInitials[[1]]$formula <- formula(almModel);
+                if(is.null(formulaProvided)){
+                    xregModelInitials[[1]]$formula <- formula(almModel);
+                }
                 xregModelInitials[[1]]$other <- almModel$other;
                 # Multiplicative model
                 almModel[] <- xregInitialiser("M",distribution,formulaProvided,subset,responseName);
@@ -1544,7 +1550,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
                 else{
                     xregModelInitials[[2]]$initialXreg <- almModel$coefficients[-1];
                 }
-                xregModelInitials[[2]]$formula <- formula(almModel);
+                if(is.null(formulaProvided)){
+                    xregModelInitials[[2]]$formula <- formula(almModel);
+                }
                 xregModelInitials[[2]]$other <- almModel$other;
             }
 
