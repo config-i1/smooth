@@ -39,7 +39,7 @@ require(Mcomp)
 ```
 
 ## ADAM ETS
-First and foremost, ADAM implements ETS model, although in a more flexible way than [@Hyndman2008b]: it supports different distributions for the error term, which are regulated via `distribution` parameter. By default, the additive error model relies on Normal distribution, while the multiplicative error one asumes Inverse Gaussian. If you want to reproduce the classical ETS, you would need to specify `distribution="dnorm"`. Here is an example of ADAM ETS(MMM) with Normal distribution on a N2568 data from M3 competition (if you provide an `Mcomp` object, `adam()` will automatically set the train and test sets, the forecast horizon and even the needed lags):
+First and foremost, ADAM implements ETS model, although in a more flexible way than [@Hyndman2008b]: it supports different distributions for the error term, which are regulated via `distribution` parameter. By default, the additive error model relies on Normal distribution, while the multiplicative error one assumes Inverse Gaussian. If you want to reproduce the classical ETS, you would need to specify `distribution="dnorm"`. Here is an example of ADAM ETS(MMM) with Normal distribution on a N2568 data from M3 competition (if you provide an `Mcomp` object, `adam()` will automatically set the train and test sets, the forecast horizon and even the needed lags):
 
 ```{r}
 testModel <- adam(M3[[2568]], "MMM", lags=c(1,12), distribution="dnorm")

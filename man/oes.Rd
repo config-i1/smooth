@@ -144,9 +144,9 @@ values:
 (only for occurrence=c("o","i","d"));
 \item \code{lower} - the lower bound of the interval if \code{interval!="none"};
 \item \code{upper} - the upper bound of the interval if \code{interval!="none"};
-\item \code{lowerModel} - the lower bound of the interval of the undelying ETS model
+\item \code{lowerModel} - the lower bound of the interval of the underlying ETS model
 if \code{interval!="none"};
-\item \code{upperModel} - the upper bound of the interval of the undelying ETS model
+\item \code{upperModel} - the upper bound of the interval of the underlying ETS model
 if \code{interval!="none"};
 \item \code{states} - the values of the state vector;
 \item \code{logLik} - the log-likelihood value of the model;

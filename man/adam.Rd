@@ -49,7 +49,7 @@ chosen information criteria type. The Branch and Bound is used in the process.
 \item \code{model="XXX"} means that only additive components are tested, using
 Branch and Bound.
 \item \code{model="YYY"} implies selecting between multiplicative components.
-\item \code{model="CCC"} trigers the combination of forecasts of models using
+\item \code{model="CCC"} triggers the combination of forecasts of models using
 information criteria weights (Kolassa, 2011).
 \item combinations between these four and the classical components are also
 accepted. For example, \code{model="CAY"} will combine models with additive
@@ -74,7 +74,7 @@ to list all the models to check as a vector.
 
 The default value is set to \code{"ZXZ"}, because the multiplicative trend is explosive
 and dangerous. It should be used only for each separate time series, not for the
-atomated predictions for big  datasets.}
+automated predictions for big  datasets.}
 
 \item{lags}{Defines lags for the corresponding components. All components
 count, starting from level, so ETS(M,M,M) model for monthly data will have

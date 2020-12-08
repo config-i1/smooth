@@ -190,7 +190,7 @@ Similarly to the odds-ratio iETS, inverse-odds-ratio model uses only one model f
     \end{matrix}.
 \end{equation}
 
-This model resembles the logistic regression, where the probability is obtained from an underlying regressio model of $x_t'A$. In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{b,0}=\frac{1-\bar{p}}{\bar{p}}$ for multiplicative error model and $l_{b,0} = \log l_{b,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. The seasonality is treated similar to the iETS$_O$ model, but using the inverse-odds transformation.
+This model resembles the logistic regression, where the probability is obtained from an underlying regression model of $x_t'A$. In the estimation of the model, the initial level is set to the transformed mean probability of occurrence $l_{b,0}=\frac{1-\bar{p}}{\bar{p}}$ for multiplicative error model and $l_{b,0} = \log l_{b,0}$ for the additive one, where $\bar{p}=\frac{1}{T} \sum_{t=1}^T o_t$, the initial trend is equal to 0 in case of the additive and 1 in case of the multiplicative types. The seasonality is treated similar to the iETS$_O$ model, but using the inverse-odds transformation.
 
 The construction of the model is done via the set of equations similar to the ones for the iETS$_O$ model:
 \begin{equation} \label{eq:iETSIEstimation}

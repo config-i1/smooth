@@ -79,7 +79,7 @@ ssarima(M3$N2457$x, h=18, holdout=FALSE, interval=TRUE, combine=TRUE)
 ```
 
 # MSARIMA
-While SSARIMA is flexible, it is not very fast. In fact, it cannot handle high frequency data well and most probably will take ages to estimate the parameter and produce forecasts. The MSARIMA model (Multiple Seasonal ARIMA) is formulated in a different state-space form, which reduces the size of transition matrix, significanltly reducing the computational time for cases with high frequency data. However, due to that formulation, the only way to initialise the model is using backcasting.
+While SSARIMA is flexible, it is not very fast. In fact, it cannot handle high frequency data well and most probably will take ages to estimate the parameter and produce forecasts. The MSARIMA model (Multiple Seasonal ARIMA) is formulated in a different state-space form, which reduces the size of transition matrix, significantly reducing the computational time for cases with high frequency data. However, due to that formulation, the only way to initialise the model is using backcasting.
 
 There are `auto.msarima()` and `msarima()` function in the package, that do things similar to `auto.ssarima()` and `ssarima()`. Here's just one example of what can be done with it:
 ```{r mssarima_N2457_orders_multiple_seasonalities}
