@@ -259,7 +259,8 @@ CF <- function(B){
 
     # Calculate the loss
     if(loss=="l"){
-        cfRes <- log(det((fitting$errors / normalizer) %*% t(fitting$errors / normalizer) / otObs)) + nSeries * log(normalizer^2);
+        cfRes <- suppressWarnings(log(det((fitting$errors / normalizer) %*% t(fitting$errors / normalizer) / otObs)) +
+                                      nSeries * log(normalizer^2));
     }
     else if(loss=="d"){
         cfRes <- sum(log(apply(fitting$errors^2, 2, sum) / obsInSample));
