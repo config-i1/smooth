@@ -40,6 +40,9 @@ I've double checked, runnig the test on a separate MS Windows machine. It passes
 
 This is because doMC is not available for Windows.
 
+### Debian Linux, R-devel, GCC ASAN/UBSAN
+Gives PREPERROR because `dependencies ‘greybox’, ‘forecast’ are not available for package ‘smooth’`. This does not have any explanation, because both packages are available on CRAN.
+
 Everything was checked without major issues. The only thing is a note about the installed package size for different platforms (similar to R CMD check results).
 
 ## Downstream dependencies
