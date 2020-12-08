@@ -325,7 +325,7 @@ are regulated via the \code{distribution} parameter. This includes:
 \enumerate{
 \item \code{default} - Normal distribution is used for the Additive error models,
 Inverse Gaussian is used for the Multiplicative error models.
-\item \link[stats]{dnorm} - Normal distribution,
+\item \link[stats]{Normal} - Normal distribution,
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
 \item dgnorm - Generalised Normal distribution,
@@ -365,6 +365,11 @@ ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
 
 }
 \references{
+\itemize{
+\item Svetunkov, I. (2020) Time Series Analysis and Forecasting with ADAM:
+Lancaster, UK. \url{https://openforecast.org/adam}.
+}
+
 \itemize{
 \item Snyder, R. D., 1985. Recursive Estimation of Dynamic Linear Models.
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.

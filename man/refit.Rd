@@ -54,7 +54,7 @@ to different paths;
 \item \code{profile} - The array of profiles obtained by the end of each fit.
 }
 
-\code{reforecast()} returns the object of the class \link[smooth]{forecast.adam},
+\code{reforecast()} returns the object of the class \link[smooth]{forecast.smooth},
 which contains in addition to the standard list the variable \code{paths} - all
 simulated trajectories with h in rows, simulated future paths for each state in
 columns and different states (obtained from \code{refit()} function) in the
@@ -85,7 +85,7 @@ ourForecast <- reforecast(ourModel, nsim=50)
 
 }
 \seealso{
-\link[stats]{fitted}, \link[smooth]{forecast.adam}
+\link[smooth]{forecast.smooth}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

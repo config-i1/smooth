@@ -33,7 +33,7 @@ rmultistep(ourModel, h=13)
 
 }
 \seealso{
-\link[stats]{residuals}, \link[stats]{rstandard}, \link[stats]{rstudent}
+\link[stats]{residuals},
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

@@ -94,7 +94,7 @@ plot(forecast.smooth(ourModel,h=10,interval=TRUE))
 \references{
 Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+Springer-Verlag.
 }
 \seealso{
 \code{\link[forecast]{ets}, \link[forecast]{forecast}}

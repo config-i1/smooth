@@ -4,7 +4,7 @@
 #' multivariate forecasting. Statistical Modelling, 10 (4), pp.353-374
 #' \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 #' Forecasting with exponential smoothing: the state space approach,
-#' Springer-Verlag. \url{http://www.exponentialsmoothing.net}.
+#' Springer-Verlag.
 #' \item Lütkepohl, H. (2005). New Introduction to Multiple Time Series
 #' Analysis. New introduction to Multiple Time Series Analysis. Berlin,
 #' Heidelberg: Springer Berlin Heidelberg.

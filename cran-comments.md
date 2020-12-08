@@ -5,29 +5,33 @@ date: "08 December 2020"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.0.0.
-
-## Update to the previous submission
-I've removed links to the functions, which did not pass the test on r-devel-linux-x86_64-debian-gcc.
+This is ``smooth`` package, v3.0.0. It introduces a new function and C++ code needed for it, together with extensive testthat examples to make sure that it works well.
 
 ## Test environments
-* local ubuntu 19.10, R 3.6.3
+* local ubuntu 19.10, R 4.0.3
+* local Windows 10, R 4.0.3
 * ubuntu 16.04.6 (on travis-ci), R 4.0.0
-* win-builder (devel and release)
+* win-builder (devel and release) - see a comment below
 * rhub with rhub::check_for_cran() command
 
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-    installed size is 20.8Mb
+    installed size is 28.6Mb
     sub-directories of 1Mb or more:
-      doc    2.5Mb
-      libs  17.0Mb
+      R      1.3Mb
+      doc    3.9Mb
+      libs  22.9Mb
 0 errors | 0 warnings | 1 note
 
 ## win-builder check results
-Fixed the error related to the testthat on Windows (mentioned here: https://www.r-project.org/nosvn/R.check/r-release-windows-ix86+x86_64/smooth-00check.html)
-Now, all seems to be okay.
+win-bulder quits with the message:
+> * checking re-building of vignette outputs ... ERROR
+> Check process probably crashed or hung up for 20 minutes ... killed
+> Most likely this happened in the example checks (?),
+> if not, ignore the following last lines of example output:
+
+I've double checked, runnig the test on a separate MS Windows machine. It passes all the checks, only complaining about the 'doMC' package, which is not available for Windows. Not sure why this happens and what should be done with it.
 
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit

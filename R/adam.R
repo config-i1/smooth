@@ -43,7 +43,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \enumerate{
 #' \item \code{default} - Normal distribution is used for the Additive error models,
 #' Inverse Gaussian is used for the Multiplicative error models.
-#' \item \link[stats]{dnorm} - Normal distribution,
+#' \item \link[stats]{Normal} - Normal distribution,
 #' \item \link[greybox]{dlaplace} - Laplace distribution,
 #' \item \link[greybox]{ds} - S distribution,
 #' \item dgnorm - Generalised Normal distribution,
@@ -67,6 +67,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template ssADAMRef
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
 #' @template ssETSRef
@@ -5919,7 +5920,7 @@ residuals.adam <- function(object, ...){
 #' @return The matrix with observations in rows and h steps ahead values in columns.
 #' So, the first row corresponds to the forecast produced from the 0th observation
 #' from 1 to h steps ahead.
-#' @seealso \link[stats]{residuals}, \link[stats]{rstandard}, \link[stats]{rstudent}
+#' @seealso \link[stats]{residuals},
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
@@ -7434,13 +7435,13 @@ plot.adam.forecast <- function(x, ...){
 #' \item \code{profile} - The array of profiles obtained by the end of each fit.
 #' }
 #'
-#' \code{reforecast()} returns the object of the class \link[smooth]{forecast.adam},
+#' \code{reforecast()} returns the object of the class \link[smooth]{forecast.smooth},
 #' which contains in addition to the standard list the variable \code{paths} - all
 #' simulated trajectories with h in rows, simulated future paths for each state in
 #' columns and different states (obtained from \code{refit()} function) in the
 #' third dimension.
 #'
-#' @seealso \link[stats]{fitted}, \link[smooth]{forecast.adam}
+#' @seealso \link[smooth]{forecast.smooth}
 #' @examples
 #'
 #' x <- rnorm(100,0,1)
