@@ -367,7 +367,7 @@ ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
 \references{
 \itemize{
 \item Svetunkov, I. (2020) Time Series Analysis and Forecasting with ADAM:
-Lancaster, UK. \url{https://openforecast.org/adam}.
+Lancaster, UK. \url{https://openforecast.org/adam/}.
 }
 
 \itemize{
