@@ -3,6 +3,8 @@ smooth v3.0.1 (Release data: 2020-12-15)
 
 Changes:
 * The vector of parameters B now also has proper names in adam().
+* Switched off the head preheating for adam() states.
+* Reduced the default number of iterations for ARIMA to the same as for ETS.
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
