@@ -8,6 +8,7 @@ Changes:
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
+* auto.adam() would not select optimal ARIMA because of an issue with actuals.adam() method.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)

@@ -478,7 +478,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
             else{
                 # Fit just mean
-                testModelETS <- adam(data, model="NNN",lags=1, distribution=distribution, formula=formula,
+                testModelETS <- adam(data, model="NNN", lags=1, distribution=distribution, formula=formula,
                                      h=h,holdout=holdout, occurrence=occurrence, bounds=bounds, silent=TRUE);
                 dataAR <- dataI <- dataMA <- yInSample <- actuals(testModelETS);
 
@@ -588,6 +588,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                   persistence=NULL, phi=NULL, initial=initial,
                                                   occurrence="none", ic=ic, bounds=bounds,
                                                   regressors="use", silent=TRUE, ...);
+
                                 if(initial=="optimal" && (maTest %*% lags > nParamInitial)){
                                     nParamInitial[] <-  (maTest %*% lags);
                                 }

@@ -5878,7 +5878,7 @@ actuals.adam <- function(object, all=TRUE, ...){
         return(object$data[,responseName]);
     }
     else{
-        return(object$y[object$y!=0,responseName]);
+        return(object$data[object$data[,responseName]!=0,responseName]);
     }
 }
 
