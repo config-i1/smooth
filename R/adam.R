@@ -1092,7 +1092,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             if(arimaModel){
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
-                        switch(Etype, "A"=0, "M"=1);
+                        # switch(Etype, "A"=0, "M"=1);
+                        rep(yInSample[1:lagsModelARIMA[componentsNumberARIMA]],each=componentsNumberARIMA);
 
                     # If this is just ARIMA with optimisation, refine the initials
                     if(!etsModel && initialType!="backcasting"){
@@ -1108,10 +1109,10 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                   1:initialArimaNumber] <-
                                 switch(Etype,
                                        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
                                            tail(arimaPolynomials$ariPolynomial,1),
                                        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                                   t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
+                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                                    tail(arimaPolynomials$ariPolynomial,1)));
                         }
                         else{
@@ -1119,10 +1120,10 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                   1:initialArimaNumber] <-
                                 switch(Etype,
                                        "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                           t(matVt[componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
                                            tail(arimaPolynomials$maPolynomial,1),
                                        "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                                   t(log(matVt[componentsNumberARIMA, 1:initialArimaNumber])) /
+                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                                    tail(arimaPolynomials$maPolynomial,1)));
                         }
                     }
@@ -1301,7 +1302,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         if(arimaModel){
             if((initialType!="backcasting") && initialArimaEstimate){
                 if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                    # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
                     matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
@@ -1310,7 +1311,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
                 else{
-                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                    # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
                     matVt[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(B[j+1:initialArimaNumber]) /
@@ -2262,22 +2263,24 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                xregModel, xregModelInitials, xregData, xregNumber, xregNames,
                                xregParametersPersistence);
 
-        # If B is not provided, initialise it
-        if(is.null(B)){
-            BValues <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                   componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
-                                   lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
-                                   adamCreated$matVt,
-                                   persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                   persistenceSeasonalEstimate, persistenceXregEstimate,
-                                   phiEstimate, initialType, initialEstimate,
-                                   initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                   initialArimaEstimate, initialXregEstimate,
-                                   arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
-                                   componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-                                   xregModel, xregNumber,
-                                   xregParametersEstimated, xregParametersPersistence,
-                                   otherParameterEstimate);
+        # Initialise B
+        BValues <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                               componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
+                               lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
+                               adamCreated$matVt,
+                               persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+                               persistenceSeasonalEstimate, persistenceXregEstimate,
+                               phiEstimate, initialType, initialEstimate,
+                               initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                               initialArimaEstimate, initialXregEstimate,
+                               arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
+                               componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
+                               xregModel, xregNumber,
+                               xregParametersEstimated, xregParametersPersistence,
+                               otherParameterEstimate);
+        if(!is.null(B)){
+            BValues$B[] <- B;
+            names(B) <- names(BValues$B);
         }
         # print(BValues$B);
 
