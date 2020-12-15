@@ -2,7 +2,10 @@ smooth v3.0.1 (Release data: 2020-12-15)
 =======
 
 Changes:
-* The vector of parameters B now also has proper names in adam()
+* The vector of parameters B now also has proper names in adam().
+
+Bugfixes:
+* Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)

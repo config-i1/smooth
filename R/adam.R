@@ -1777,7 +1777,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 # Calculate the polynomial roots for AR
                 if(arEstimate){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
-                    arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
+                    arPolyroots <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
                         return(1E+100*max(arPolyroots));
                     }
@@ -1793,7 +1793,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                                       diag(as.vector(adamElements$vecG)) %*%
                                                       t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
                                                       adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-                                                 symmetric=TRUE, only.values=TRUE)$values);
+                                                 only.values=TRUE)$values);
                     }
                     else{
                         # We drop the X parts from matrices
@@ -1801,13 +1801,13 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                         eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
                                                      adamElements$vecG[indices,,drop=FALSE] %*%
                                                      adamElements$matWt[obsInSample,indices,drop=FALSE],
-                                                 symmetric=TRUE, only.values=TRUE)$values);
+                                                 only.values=TRUE)$values);
                     }
                 }
                 else{
                     eigenValues <- abs(eigen(adamElements$matF -
                                                  adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
-                                             symmetric=TRUE, only.values=TRUE)$values);
+                                             only.values=TRUE)$values);
                 }
                 if(any(eigenValues>1+1E-50)){
                     return(1E+100*max(eigenValues));
@@ -2351,7 +2351,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         #     ub <- BValues$Bu;
         # }
 
-        # Matrices needed for the polynomials calculation -> stationarity / stability checks
+        # Companion matrices for the polynomials calculation -> stationarity / stability checks
         if(arimaModel){
             # AR polynomials
             arPolynomialMatrix <- matrix(0, arOrders %*% lags, arOrders %*% lags);

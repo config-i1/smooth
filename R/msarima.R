@@ -219,6 +219,14 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 # Add all the variables in ellipsis to current environment
     list2env(ellipsis,environment());
 
+    # NLOPTR parameters
+    if(is.null(ellipsis$print_level)){
+        print_level <- 0;
+    }
+    if(is.null(ellipsis$maxeval)){
+        maxeval <- 1000;
+    }
+
     # If a previous model provided as a model, write down the variables
     if(exists("model",inherits=FALSE)){
         if(is.null(model$model)){
@@ -404,11 +412,13 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
         # print(B)
         # stop()
 # Optimise model. First run
-        res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
+        res <- nloptr(B, CF, opts=list(algorithm="NLOPT_LN_BOBYQA", xtol_rel=1e-8,
+                                       maxeval=maxeval, print_level=print_level));
         B <- res$solution;
 
 # Optimise model. Second run
-        res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-6, "maxeval"=200));
+        res2 <- nloptr(B, CF, opts=list(algorithm="NLOPT_LN_NELDERMEAD", xtol_rel=1e-6,
+                                        maxeval=ceiling(maxeval/5), print_level=print_level));
         # This condition is needed in order to make sure that we did not make the solution worse
         if(res2$objective <= res$objective){
             res <- res2;
