@@ -2507,13 +2507,12 @@ ssForecaster <- function(...){
         obsDF <- obsInSample;
     }
     if(!rounded){
-        # If error additive, estimate as normal. Otherwise - lognormal
+        s2 <- as.vector(sum((errors*ot)^2)/obsDF);
+        # If error is additive, s2g is just 1
         if(Etype=="A"){
-            s2 <- as.vector(sum((errors*ot)^2)/obsDF);
             s2g <- 1;
         }
         else{
-            s2 <- as.vector(sum(log(1 + errors*ot)^2,na.rm=TRUE)/obsDF);
             s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*%
                                                                         as.vector(errors*ot)))/obsDF;
         }
