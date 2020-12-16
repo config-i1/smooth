@@ -1,4 +1,4 @@
-parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
+parametersChecker <- function(data, model, lags, formulaProvided, orders, constant=FALSE, arma,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                              "dlnorm","dinvgauss"),
@@ -2528,13 +2528,15 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
 
     # If there is no model, return a constant level
     if(!etsModel && !arimaModel && !xregModel){
-        etsModel <- TRUE;
+        # etsModel <- TRUE;
         modelsPool <- NULL;
-        persistenceLevel <- 0;
-        persistenceEstimate <- persistenceLevelEstimate <- FALSE;
-        initialLevel <- NULL;
-        initialType <- "provided";
-        initialEstimate <- initialLevelEstimate <- TRUE;
+        constant <- TRUE;
+        # persistenceLevel <- 0;
+        # persistenceEstimate <- persistenceLevelEstimate <- FALSE;
+        # initialLevel <- NULL;
+        # initialType <- "provided";
+        # initialEstimate <- initialLevelEstimate <- TRUE;
+
         model <- "NNN";
         if(is.null(B)){
             modelDo <- "estimate";
@@ -2567,6 +2569,31 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
     colnames(yInSample) <- responseName;
     if(holdout){
         colnames(yHoldout) <- responseName;
+    }
+
+    # Add constant in the model
+    if(is.numeric(constant)){
+        constantRequired <- TRUE;
+        constantEstimate <- FALSE;
+        # This is just in case a vector was provided
+        constantValue <- constant[1];
+        constantName <- "constant";
+    }
+    else if(is.logical(constant)){
+        constantEstimate <- constantRequired <- constant;
+        constantValue <- NULL;
+        if(constantRequired){
+            constantName <- "constant";
+        }
+        else{
+            constantName <- NULL;
+        }
+    }
+    else{
+        warning("The parameter constant can only be TRUE or FALSE.",
+                "You have: ",constant,". Switching to FALSE",call.=FALSE);
+        constantEstimate <- constantRequired <- FALSE;
+        constantName <- NULL;
     }
 
     #### Return the values to the previous environment ####
@@ -2716,6 +2743,12 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, arma,
     assign("xregParametersIncluded",xregParametersIncluded,ParentEnvironment);
     assign("xregParametersEstimated",xregParametersEstimated,ParentEnvironment);
     assign("xregParametersPersistence",xregParametersPersistence,ParentEnvironment);
+
+    ### Constant
+    assign("constantRequired",constantRequired,ParentEnvironment);
+    assign("constantEstimate",constantEstimate,ParentEnvironment);
+    assign("constantValue",constantValue,ParentEnvironment);
+    assign("constantName",constantName,ParentEnvironment);
 
     ### Ellipsis thingies
     # Optimisation related

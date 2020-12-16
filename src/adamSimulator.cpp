@@ -12,7 +12,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
                    char const &E, char const &T, char const &S, arma::uvec &lags,
                    arma::umat const &profilesObserved, arma::mat profilesRecent,
                    unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                   unsigned int const &nArima, unsigned int const &nXreg) {
+                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
 
     unsigned int obs = matrixErrors.n_rows;
     unsigned int nSeries = matrixErrors.n_cols;
@@ -36,10 +36,10 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
             /* # Measurement equation and the error term */
             matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                               matrixWt.row(j-lagsModelMax), E, T, S,
-                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) +
+                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) +
                                                   adamRvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                                              matrixWt.row(j-lagsModelMax), E, T, S,
-                                                             nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) *
+                                                             nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
                                                                  matrixErrors(j-lagsModelMax,i));
 
             /* # Transition equation */
@@ -81,7 +81,7 @@ RcppExport SEXP adamSimulatorWrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP m
                                   SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll,
                                   SEXP profilesObservedTable, SEXP profilesRecentTable,
                                   SEXP componentsNumberSeasonal, SEXP componentsNumber,
-                                  SEXP componentsNumberArima, SEXP xregNumber){
+                                  SEXP componentsNumberArima, SEXP xregNumber, SEXP constantRequired){
 
     // ### arrvt should contain array of obs x ncomponents x nSeries elements.
     NumericVector arrVt_n(arrVt);
@@ -124,8 +124,9 @@ RcppExport SEXP adamSimulatorWrap(SEXP arrVt, SEXP matErrors, SEXP matOt, SEXP m
     unsigned int nNonSeasonal = as<int>(componentsNumber) - nSeasonal;
     unsigned int nArima = as<int>(componentsNumberArima);
     unsigned int nXreg = as<int>(xregNumber);
+    bool constant = as<bool>(constantRequired);
 
     return wrap(adamSimulator(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG,
                               E, T, S, lags, profilesObserved, profilesRecent,
-                              nNonSeasonal, nSeasonal, nArima, nXreg));
+                              nNonSeasonal, nSeasonal, nArima, nXreg, constant));
 }

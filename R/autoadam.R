@@ -457,7 +457,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                   persistence, phi, initial,
                                   occurrence, ic, bounds, fast,
                                   silent, regressors, testModelETS, ...){
-            silentDebug <- FALSE;
+            silentDebug <- TRUE;
 
             # Save the original values
             modelOriginal <- model;
@@ -530,7 +530,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     cat(round((m)/nModelsARIMA,2)*100,"\b%");
                 }
                 nParamInitial <- 0;
-                # If differences are zero, skip this step
                 if(!all(iOrders[d,]==0)){
                     # Run the model for differences
                     testModel <- adam(data=yInSample, model=model, lags=lags,
@@ -547,7 +546,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(silentDebug){
                     cat("I:",iOrders[d,],"\b,",ICValue,"\n");
                 }
-                if(ICValue < bestICI){
+                if(ICValue <= bestICI){
                     bestICI <- ICValue;
                     dataMA <- dataI <- residuals(testModel);
                     if(ICValue < bestIC){
@@ -752,10 +751,19 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 cat(" ",100,"\b%");
             }
 
+            # If no differences, then add constant
+            if(all(iBest==0)){
+                constant <- TRUE;
+            }
+            else{
+                constant <- FALSE;
+            }
+
             #### Reestimate the best model in order to get rid of bias ####
             # Run the model for MA
             bestModel <- adam(data=data, model=modelOriginal, lags=lags,
                               orders=list(ar=(arBest),i=(iBest),ma=(maBest)),
+                              constant=constant,
                               distribution=distribution, formula=formula,
                               h=h, holdout=holdout,
                               persistence=persistenceOriginal, phi=phiOriginal, initial=initial,

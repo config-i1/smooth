@@ -1357,7 +1357,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
     arma::vec vecYfit;
     // This is needed for rounded and for the likelihood
-    if(CFSwitch==21 || (E=='M' & CFSwitch==22)){
+    if(CFSwitch==21 || ((E=='M') & (CFSwitch==22))){
         vecYfit = as<arma::vec>(yfitfromfit);
     }
 

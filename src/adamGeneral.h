@@ -10,7 +10,8 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                          char const &E, char const &T, char const &S,
                          unsigned int const &nETS, unsigned int const &nNonSeasonal,
                          unsigned int const &nSeasonal, unsigned int const &nArima,
-                         unsigned int const &nXreg, unsigned int const &nComponents){
+                         unsigned int const &nXreg, unsigned int const &nComponents,
+                         bool const &constant){
     // vecVt is a vector here!
     double yfit = 0;
     if(E=='M'){
@@ -92,6 +93,18 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
             break;
         }
     }
+    else{
+        if(constant){
+            switch(E){
+            case 'A':
+                yfit += vecVt(nComponents-1);
+                break;
+            case 'M':
+                yfit = yfit * vecVt(nComponents-1);
+                break;
+            }
+        }
+    }
 
     return yfit;
 }
@@ -102,12 +115,13 @@ inline double adamRvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                          char const &E, char const &T, char const &S,
                          unsigned int const &nETS, unsigned int const &nNonSeasonal,
                          unsigned int const &nSeasonal, unsigned int const &nArima,
-                         unsigned int const &nXreg, unsigned int const &nComponents){
+                         unsigned int const &nXreg, unsigned int const &nComponents,
+                         bool const &constant){
 
     switch(E){
     // MZZ
     case 'M':
-        return adamWvalue(vecVt, rowvecW, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
+        return adamWvalue(vecVt, rowvecW, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
         break;
         // AZZ
     case 'A':
