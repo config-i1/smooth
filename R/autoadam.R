@@ -855,14 +855,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 selectedModels <- vector("list",length(distribution));
                 for(i in 1:length(distribution)){
                     if(!silent){
-                        cat(distribution[i],": ");
+                        cat(distribution[i],"\b: ");
                     }
                     selectedModels[[i]] <- arimaSelector(data=data, model=model,
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
                                                          distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
-                                                         silent=TRUE, regressors=regressors, testModelETS=NULL, ...);
+                                                         silent=FALSE, regressors=regressors, testModelETS=NULL, ...);
                 }
             }
             else{
