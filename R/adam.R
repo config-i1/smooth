@@ -1887,12 +1887,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                        "dlgnorm"=dgnorm(x=log(yInSample[otLogical]),
                                                         mu=Re(log(as.complex(adamFitted$yFitted[otLogical]))),
                                                         alpha=scale, beta=other, log=TRUE) -log(yInSample[otLogical]),
-                                       # "dinvgauss"=dinvgauss(x=1+adamFitted$errors, mean=1,
-                                       #                       dispersion=scale, log=TRUE)));
-                                       # "dinvgauss"=dinvgauss(x=yInSampleNew, mean=adamFitted$yFitted,
-                                       #                       dispersion=scale/adamFitted$yFitted, log=TRUE)));
-                                       "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=adamFitted$yFitted[otLogical],
-                                                             dispersion=scale/adamFitted$yFitted[otLogical], log=TRUE)));
+                                       # abs() is needed for rare cases, when negative values are produced for E="A" models
+                                       "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=abs(adamFitted$yFitted[otLogical]),
+                                                             dispersion=abs(scale/adamFitted$yFitted[otLogical]), log=TRUE)));
 
                 # Differential entropy for the logLik of occurrence model
                 if(occurrenceModel || any(!otLogical)){
