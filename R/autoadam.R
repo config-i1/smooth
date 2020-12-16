@@ -862,7 +862,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                          distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
-                                                         silent=FALSE, regressors=regressors, testModelETS=NULL, ...);
+                                                         silent=silent, regressors=regressors, testModelETS=NULL, ...);
                 }
             }
             else{
