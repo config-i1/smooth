@@ -163,19 +163,9 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
 #' msarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)
 #'
-#' # SARIMA of a peculiar order on AirPassengers data with Fisher Information
+#' # SARIMA of a peculiar order on AirPassengers data
 #' ourModel <- msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
-#'                     lags=c(1,6,12),h=10,holdout=TRUE,FI=TRUE)
-#'
-#' # Construct the 95% confidence interval for the parameters of the model
-#' ourCoefs <- coef(ourModel)
-#' ourCoefsSD <- sqrt(abs(diag(solve(ourModel$FI))))
-#' # Sort values accordingly
-#' ourCoefs <- ourCoefs[names(ourCoefsSD)]
-#' ourConfInt <- cbind(ourCoefs + qt(0.025,nobs(ourModel)) * ourCoefsSD,
-#'                     ourCoefs + qt(0.975,nobs(ourModel)) * ourCoefsSD)
-#' colnames(ourConfInt) <- c("2.25%","97.5%")
-#' ourConfInt
+#'                     lags=c(1,6,12),h=10,holdout=TRUE)
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
 #' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
@@ -190,7 +180,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                    loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("admissible","none"),

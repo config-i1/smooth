@@ -6,8 +6,8 @@
 \usage{
 ces(y, seasonality = c("none", "simple", "partial", "full"),
   initial = c("backcasting", "optimal"), a = NULL, b = NULL,
-  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("MSE", "MAE", "HAM",
-  "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
+  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
+  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
   "semiparametric", "nonparametric"), level = 0.95,
   bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
@@ -44,7 +44,8 @@ complex number.}
 \item{ic}{The information criterion used in the model selection procedure.}
 
 \item{loss}{The type of Loss Function used in optimization. \code{loss} can
-be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
+be: \code{likelihood} (assuming Normal distribution of error term),
+\code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.

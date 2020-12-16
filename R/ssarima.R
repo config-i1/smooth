@@ -197,7 +197,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, AR=NULL, MA=NULL,
                     initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                    loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=10, holdout=FALSE, cumulative=FALSE,
                     interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("admissible","none"),

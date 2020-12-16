@@ -331,14 +331,4 @@ plot(oETSAModel)
 
 The main restriction of the iETS models at the moment (`smooth` v.2.5.0) is that there is no model selection between the ETS models for the occurrence part. This needs to be done manually. Hopefully, this feature will appear in the next release of the package.
 
-
-## The integer-valued iETS
-By default, the models assume that the data is continuous, which sounds counter intuitive for the typical intermittent demand forecasting tasks. However, [@Svetunkov2017a] showed that these models perform quite well in terms of forecasting accuracy for many cases. Still, there is also an option for the rounded up values, which is implemented in the `es()` function. This is not described in the manual and can be triggered via the `rounded=TRUE` parameter provided in ellipsis. Here's an example:
-```{r iETSGRoundedExample}
-es(rpois(100,0.3), "MNN", occurrence="g", oesmodel="MNN", h=10, holdout=TRUE, silent=FALSE, interval=TRUE, rounded=TRUE)
-```
-
-Keep in mind that the model with the rounded up values is estimated differently than it continuous counterpart and produces more adequate results for the highly intermittent data with low level of demand sizes. In all the other cases, the continuous iETS models are recommended. In fact, if you need to produce integer-valued prediction interval, then you can produce the interval from a continuous model and then round them up (see discussion in [@Svetunkov2017a] for details).
-
-
 ## References

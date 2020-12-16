@@ -1,5 +1,6 @@
 #' @param loss The type of Loss Function used in optimization. \code{loss} can
-#' be: \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
+#' be: \code{likelihood} (assuming Normal distribution of error term),
+#' \code{MSE} (Mean Squared Error), \code{MAE} (Mean Absolute Error),
 #' \code{HAM} (Half Absolute Moment), \code{TMSE} - Trace Mean Squared Error,
 #' \code{GTMSE} - Geometric Trace Mean Squared Error, \code{MSEh} - optimisation
 #' using only h-steps ahead error, \code{MSCE} - Mean Squared Cumulative Error.

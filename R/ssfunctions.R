@@ -735,7 +735,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     ##### Loss function type #####
     loss <- loss[1];
-    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    if(any(loss==c("likelihood","MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
@@ -1668,7 +1668,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
 
     ##### Loss function type #####
     loss <- loss[1];
-    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    if(any(loss==c("likelihood","MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
@@ -1923,6 +1923,11 @@ ssIntervals <- function(errors, ev=median(errors), level=0.95, intervalType=c("a
     # Function constructs interval based on the provided random variable.
     # If errors is a matrix, then it is assumed that each column has a variable that needs an interval.
     # based on errors the horison is estimated as ncol(errors)
+
+    # Make a correction for the cases, when likelihood is used for the estimation
+    if(loss=="likelihood"){
+        loss <- "MSE";
+    }
 
     matrixpower <- function(A,n){
         if(n==0){
@@ -3088,6 +3093,10 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
 likelihoodFunction <- function(B,yFittedSumLog=0){
     #### Concentrated logLikelihood based on B and CF ####
     logLikFromCF <- function(B, loss){
+        if(loss=="likelihood"){
+            return(-CFValue);
+        }
+
         if(Etype=="M" && any(loss==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM",
                                        "GPL","aTMSE","aGTMSE","aGPL"))){
             yFittedSumLog <- yFittedSumLog * h;

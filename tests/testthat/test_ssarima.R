@@ -17,30 +17,6 @@ test_that("Test if crazy order SSARIMA was estimated on N1234$x", {
     expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]");
 })
 
-# Automatically select SSARIMA
-testModel <- auto.ssarima(Mcomp::M3$N2568$x, silent=TRUE, ic="AIC");
-# Define orders of the model
-SSARIMAModel <- testModel$model;
-arima.orders <- paste0(c("",substring(SSARIMAModel,unlist(gregexpr("\\(",SSARIMAModel))+1,unlist(gregexpr("\\)",SSARIMAModel))-1),"")
-                       ,collapse=";");
-comas <- unlist(gregexpr("\\,",arima.orders));
-semicolons <- unlist(gregexpr("\\;",arima.orders));
-ar.orders <- as.numeric(substring(arima.orders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
-i.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
-ma.orders <- as.numeric(substring(arima.orders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
-if(any(unlist(gregexpr("\\[",SSARIMAModel))!=-1)){
-    lags <- as.numeric(substring(SSARIMAModel,unlist(gregexpr("\\[",SSARIMAModel))+1,unlist(gregexpr("\\]",SSARIMAModel))-1));
-}else{
-    lags <- 1;
-}
-# Test how different passed values are accepted by SSARIMA
-test_that("Test initials, AR, MA and constant of SSARIMA on N2568$x", {
-    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, AR=testModel$AR, silent=TRUE)$AR, testModel$AR);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=TRUE, transition=testModel$MA, silent=TRUE)$MA, testModel$MA);
-    expect_equal(ssarima(Mcomp::M3$N2568$x, orders=NULL, ar.orders=ar.orders, i.orders=i.orders, ma.orders=ma.orders, lags=lags, constant=testModel$constant, silent=TRUE)$constant, testModel$constant);
-})
-
 # Combine SSARIMA
 testModel <- auto.ssarima(Mcomp::M3$N2568$x, combine=TRUE, silent=TRUE, ic="AIC");
 test_that("Test if combined ARIMA works", {

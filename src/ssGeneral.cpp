@@ -1231,9 +1231,11 @@ RcppExport SEXP errorerwrap(SEXP matvt, SEXP matF, SEXP matw, SEXP yt,
 }
 
 int CFtypeswitch (std::string const& CFtype) {
+    // likelihood
     // MSE, MAE, HAM, MSEh, TMSE, GTMSE, aMSEh, aTMSE, aGTMSE, MAEh, TMAE, GTMAE, HAMh, THAM, GTHAM,
     // GPL, aGPL, Rounded
-    if(CFtype=="MSE") return 1;
+    if(CFtype=="likelihood") return 22;
+    else if(CFtype=="MSE") return 1;
     else if(CFtype=="MAE") return 2;
     else if(CFtype=="HAM") return 3;
     else if(CFtype=="MSEh") return 4;
@@ -1354,13 +1356,19 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     // Rounded CF
     NumericMatrix yfitfromfit = as<NumericMatrix>(fitting["yfit"]);
     arma::vec vecYfit;
-    if(CFSwitch==21){
+    // This is needed for rounded and for the likelihood
+    if(CFSwitch==21 || (E=='M' & CFSwitch==22)){
         vecYfit = as<arma::vec>(yfitfromfit);
     }
 
     switch(E){
     case 'A':
         switch(CFSwitch){
+        // Likelihood
+        case 22:
+            // 2.837877=log(2*pi*e)
+            CFres = double(obs)/2 * (2.837877+log(arma::as_scalar(sum(pow(matErrors,2)) / double(obs))));
+        break;
         // Basic one-step aheads
         case 1:
             CFres = arma::as_scalar(sum(pow(matErrors,2)) / double(obs));
@@ -1448,6 +1456,12 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
     // (2 / double(obs)) and others are needed here in order to produce adequate likelihoods
     // exp(log(...) + ...) is needed in order to have the necessary part before producing logs in likelihood
         switch(CFSwitch){
+        // Likelihood
+        case 22:
+            // 2.837877=log(2*pi*e);
+            CFres = arma::as_scalar(double(obs)/2 *(2.837877+log(sum(pow(matErrors,2)) / double(obs))) +
+                sum(log(abs(vecYfit))));
+        break;
         // Basic one-step aheads
         case 1:
             CFres = arma::as_scalar(sum(pow(matErrors,2)) / double(obs));

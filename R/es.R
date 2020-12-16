@@ -227,7 +227,7 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' @export es
 es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
-               loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+               loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                bounds=c("usual","admissible","none"),
@@ -1648,7 +1648,7 @@ CreatorES <- function(silent=FALSE,...){
             modelCurrent <- model;
         }
         else{
-            if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+            if(!any(loss==c("likelihood","MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
                               "GPL","aGPL","Rounded","TSB","LogisticD","LogisticL"))){
                 if(modelDo=="combine"){
                     warning(paste0("'",loss,"' is used as loss function instead of 'MSE'.",
