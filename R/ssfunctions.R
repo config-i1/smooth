@@ -2513,7 +2513,7 @@ ssForecaster <- function(...){
             s2g <- 1;
         }
         else{
-            s2 <- as.vector(sum(log(1 + errors*ot)^2)/obsDF);
+            s2 <- as.vector(sum(log(1 + errors*ot)^2,na.rm=TRUE)/obsDF);
             s2g <- log(1 + vecg %*% as.vector(errors*ot)) %*% t(log(1 + vecg %*%
                                                                         as.vector(errors*ot)))/obsDF;
         }
