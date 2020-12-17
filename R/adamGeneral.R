@@ -758,10 +758,10 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     }
                     if(xregModel && length(persistence)>j){
                         if(j>0){
-                            persistenceXreg <- as.vector(persistence)[-c(1:j)];
+                            persistenceXreg <- persistence[-c(1:j)];
                         }
                         else{
-                            persistenceXreg <- as.vector(persistence);
+                            persistenceXreg <- persistence;
                         }
                         # If there are names, make sure that only deltas are used
                         if(!is.null(names(persistenceXreg))){
@@ -2514,63 +2514,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         stepSize <- ellipsis$stepSize;
     }
 
-    # See if the estimation of the model is not needed (do we estimate anything?)
-    if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
-                           persistenceSeasonalEstimate, phiEstimate,
-                           (initialType!="backcasting") & c(initialLevelEstimate,
-                                                            initialTrendEstimate,
-                                                            initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="backcasting") & initialArimaEstimate),
-              xregModel & c(persistenceXregEstimate, (initialType!="backcasting") & initialXregEstimate),
-              otherParameterEstimate))){
-        modelDo <- "use";
-    }
-
-    # If there is no model, return a constant level
-    if(!etsModel && !arimaModel && !xregModel){
-        # etsModel <- TRUE;
-        modelsPool <- NULL;
-        constant <- TRUE;
-        # persistenceLevel <- 0;
-        # persistenceEstimate <- persistenceLevelEstimate <- FALSE;
-        # initialLevel <- NULL;
-        # initialType <- "provided";
-        # initialEstimate <- initialLevelEstimate <- TRUE;
-
-        model <- "NNN";
-        if(is.null(B)){
-            modelDo <- "estimate";
-        }
-        Etype <- switch(distribution,
-                        "default"=,"dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
-                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"="M");
-        Ttype <- "N";
-        Stype <- "N";
-        phiEstimate <- FALSE;
-        parametersNumber[1,1] <- 0;
-        parametersNumber[2,1] <- 2;
-    }
-
-    # Switch usual bounds to the admissible if there's no ETS - this speeds up ARIMA
-    if(!etsModel && bounds=="usual"){
-        bounds[] <- "admissible";
-    }
-
-    # If we do model selection / combination with non-standard losses, complain
-    if(any(modelDo==c("select","combine")) &&
-       ((any(loss==c("MSE","MSEh","MSCE","GPL")) && all(distribution!=c("default","dnorm"))) ||
-        (any(loss==c("MAE","MAEh","MACE")) && all(distribution!=c("default","dlaplace"))) ||
-        (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
-        warning("The model selection only works in case of loss='likelihood'. We hope you know what you are doing.",
-                call.=FALSE);
-    }
-
-    # Just in case, give names to yHoldout and yInSample
-    colnames(yInSample) <- responseName;
-    if(holdout){
-        colnames(yHoldout) <- responseName;
-    }
-
     # Add constant in the model
     if(is.numeric(constant)){
         constantRequired <- TRUE;
@@ -2594,6 +2537,61 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 "You have: ",constant,". Switching to FALSE",call.=FALSE);
         constantEstimate <- constantRequired <- FALSE;
         constantName <- NULL;
+    }
+
+    # If there is no model, return a constant level
+    if(!etsModel && !arimaModel && !xregModel){
+        modelsPool <- NULL;
+        if(!constantRequired){
+            constantEstimate <- constantRequired <- TRUE;
+            constantName <- "constant";
+        }
+
+        model <- "NNN";
+        if(is.null(B)){
+            modelDo <- "estimate";
+        }
+        Etype <- switch(distribution,
+                        "default"=,"dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
+                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"="M");
+        Ttype <- "N";
+        Stype <- "N";
+        phiEstimate <- FALSE;
+        parametersNumber[1,1] <- 0;
+        parametersNumber[2,1] <- 2;
+    }
+
+    # See if the estimation of the model is not needed (do we estimate anything?)
+    if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
+                           persistenceSeasonalEstimate, phiEstimate,
+                           (initialType!="backcasting") & c(initialLevelEstimate,
+                                                            initialTrendEstimate,
+                                                            initialSeasonalEstimate)),
+              arimaModel & c(arEstimate, maEstimate, (initialType!="backcasting") & initialArimaEstimate),
+              xregModel & c(persistenceXregEstimate, (initialType!="backcasting") & initialXregEstimate),
+              constantEstimate,
+              otherParameterEstimate))){
+        modelDo <- "use";
+    }
+
+    # Switch usual bounds to the admissible if there's no ETS - this speeds up ARIMA
+    if(!etsModel && bounds=="usual"){
+        bounds[] <- "admissible";
+    }
+
+    # If we do model selection / combination with non-standard losses, complain
+    if(any(modelDo==c("select","combine")) &&
+       ((any(loss==c("MSE","MSEh","MSCE","GPL")) && all(distribution!=c("default","dnorm"))) ||
+        (any(loss==c("MAE","MAEh","MACE")) && all(distribution!=c("default","dlaplace"))) ||
+        (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
+        warning("The model selection only works in case of loss='likelihood'. We hope you know what you are doing.",
+                call.=FALSE);
+    }
+
+    # Just in case, give names to yHoldout and yInSample
+    colnames(yInSample) <- responseName;
+    if(holdout){
+        colnames(yHoldout) <- responseName;
     }
 
     #### Return the values to the previous environment ####

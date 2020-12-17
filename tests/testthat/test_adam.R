@@ -417,7 +417,7 @@ test_that("Detect outliers for ARIMA on N291", {
 
 # Best ETS+ARIMA+Regression on the 2568
 testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       regressors="select", initial="back");
+                       lags=c(1,12), regressors="select", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression on N2568", {
     expect_match(testModel$loss, "likelihood");
 })

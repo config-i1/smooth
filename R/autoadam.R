@@ -752,7 +752,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
 
             # If no differences, then add constant
-            if(all(iBest==0)){
+            if(!etsModel && all(iBest==0)){
                 constant <- TRUE;
             }
             else{
