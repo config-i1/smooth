@@ -3252,6 +3252,21 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         # Write down the recent profile for future use
         profilesRecentTable <- adamFitted$profile;
 
+        # Make sure that there are no negative values in multiplicative components
+        # This might appear in case of bounds="a"
+        if(Ttype=="M" && any(matVt[2,]<=0)){
+            i <- which(any(matVt[2,]<=0));
+            matVt[2,i] <- 1e-6;
+            profilesRecentTable[2,i] <- 1e-6;
+        }
+        if(Stype=="M" && any(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0)){
+            i <- which(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0);
+            matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,i] <- 1e-6;
+            i <- which(profilesRecentTable[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0);
+            profilesRecentTable[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,i] <- 1e-6;
+        }
+
+        # Prepare fitted and error with ts / zoo
         if(any(yClasses=="ts")){
             yFitted <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
             errors <- ts(rep(NA,obsInSample), start=yStart, frequency=yFrequency);
