@@ -88,7 +88,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     else{
         obsInSample <- nrow(data) - holdout*h;
         if(!is.null(formula)){
-            yInSample <- data[1:obsInSample,formula[[2]]];
+            yInSample <- data[1:obsInSample,all.vars(formula)[1]];
         }
         else{
             yInSample <- data[1:obsInSample,1];
@@ -807,8 +807,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(xregModel){
                     # Update formula if it is provided
                     if(!is.null(formula)){
-                        formula <- update(as.formula(formula),
-                                          as.formula(paste0("~.+",paste0(colnames(outliersXreg),collapse="+"))));
+                        # If this is not the formula of a type y~., then add outliers.
+                        if(!(length(all.vars(formula))==2 && all.vars(formula)[2]==".")){
+                            formula <- update.formula(as.formula(formula),
+                                                      as.formula(paste0("~.+",paste0(colnames(outliersXreg),collapse="+"))));
+                        }
                     }
                     else{
                         formula <- as.formula(paste0(responseName,"~."));

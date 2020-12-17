@@ -1413,11 +1413,17 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     }
                 }
                 else{
-                     # If formula contains only one element, or seeral, but no logs, then change response formula
-                    if((length(formulaProvided[[2]])==1 ||
-                        (length(formulaProvided[[2]])>1 & !any(as.character(formulaProvided[[2]])=="log"))) &&
-                       (Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
-                        formulaProvided <- update(formulaProvided,log(.)~.);
+                    # If formula only contains ".", then just change it
+                    if(length(all.vars(formulaProvided))==2 && all.vars(formulaProvided)[2]=="."){
+                        formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                    }
+                    else{
+                        # If formula contains only one element, or several, but no logs, then change response formula
+                        if((length(formulaProvided[[2]])==1 ||
+                            (length(formulaProvided[[2]])>1 & !any(as.character(formulaProvided[[2]])=="log"))) &&
+                           (Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
+                            formulaProvided <- update(formulaProvided,log(.)~.);
+                        }
                     }
                 }
                 return(do.call(alm,list(formula=formulaProvided,data=xregData,distribution=distribution,subset=which(subset))))
@@ -1499,6 +1505,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             almModel <- NULL;
             if(Etype!="Z"){
                 almModel <- xregInitialiser(Etype,distribution,formulaProvided,subset,responseName);
+                # If Intercept was not included, substitute with zero
+                if(!any(names(almModel$coefficients)=="(Intercept)")){
+                    almIntercept <- 0;
+                }
+                else{
+                    almIntercept <- almModel$coefficients["(Intercept)"];
+                }
                 if(Etype=="A"){
                     # If this is just a regression, include intercept
                     if(!etsModel && !arimaModel){
@@ -1530,6 +1543,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             else{
                 # Additive model
                 almModel <- xregInitialiser("A",distribution,formulaProvided,subset,responseName);
+                # If Intercept was not included, substitute with zero
+                if(!any(names(almModel$coefficients)=="(Intercept)")){
+                    almIntercept <- 0;
+                }
+                else{
+                    almIntercept <- almModel$coefficients["(Intercept)"];
+                }
                 # If this is just a regression, include intercept
                 if(!etsModel && !arimaModel){
                     xregModelInitials[[1]]$initialXreg <- almModel$coefficients;
@@ -1543,6 +1563,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 xregModelInitials[[1]]$other <- almModel$other;
                 # Multiplicative model
                 almModel[] <- xregInitialiser("M",distribution,formulaProvided,subset,responseName);
+                # If Intercept was not included, substitute with zero
+                if(!any(names(almModel$coefficients)=="(Intercept)")){
+                    almIntercept <- 0;
+                }
+                else{
+                    almIntercept <- almModel$coefficients["(Intercept)"];
+                }
                 # If this is just a regression, include intercept
                 if(!etsModel && !arimaModel){
                     xregModelInitials[[2]]$initialXreg <- almModel$coefficients;
@@ -1655,9 +1682,15 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
                         # Get the index of the absent one
                         xregParametersMissing[i] <- i;
-                        # Fill in the absent one
-                        xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
-                                                     na.rm=TRUE);
+                        # Fill in the absent one, add intercept
+                        xregParametersNew[i] <- almIntercept;
+                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                            xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                        # normalise all of them
+                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                            xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                            mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
+
                     }
                     # Write down the new parameters
                     xregModelInitials[[1]]$initialXreg <- xregParametersNew;
@@ -1675,9 +1708,14 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
                         # Get the index of the absent one
                         xregParametersMissing[i] <- i;
-                        # Fill in the absent one
-                        xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
-                                                     na.rm=TRUE);
+                        # Fill in the absent one, add intercept
+                        xregParametersNew[i] <- almIntercept;
+                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                            xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                        # normalise all of them
+                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                            xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                            mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
                     }
                     # Write down the new parameters
                     xregModelInitials[[2]]$initialXreg <- xregParametersNew;

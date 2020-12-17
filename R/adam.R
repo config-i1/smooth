@@ -2724,6 +2724,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 almModel <- do.call(alm,list(formula=formula,
                                              data=data[1:obsInSample,,drop=FALSE],
                                              distribution=distributionNew, loss=lossNew, occurrence=oesModel));
+                almIntercept <- almModel$coefficients["(Intercept)"];
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
 
                 #### Fix xreg vectors based on the selected stuff ####
@@ -2786,9 +2787,15 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
                         # Get the index of the absent one
                         xregParametersMissing[i] <- i;
-                        # Fill in the absent one
-                        xregParametersNew[i] <- -sum(xregParametersNew[xregNamesModified[xregParametersIncluded==i]],
-                                                     na.rm=TRUE);
+
+                        # Fill in the absent one, add intercept
+                        xregParametersNew[i] <- almIntercept;
+                        xregParametersNew[xregNamesModified[xregParametersIncluded==i]] <- almIntercept +
+                            xregParametersNew[xregNamesModified[xregParametersIncluded==i]];
+                        # normalise all of them
+                        xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] <-
+                            xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]] -
+                            mean(xregParametersNew[xregNamesModified[c(which(xregParametersIncluded==i),i)]]);
                     }
                     # Write down the new parameters
                     xregModelInitials[[xregIndex]]$initialXreg <- xregParametersNew;
