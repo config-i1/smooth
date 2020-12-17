@@ -457,7 +457,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                   persistence, phi, initial,
                                   occurrence, ic, bounds, fast,
                                   silent, regressors, testModelETS, ...){
-            silentDebug <- TRUE;
+            silentDebug <- FALSE;
 
             # Save the original values
             modelOriginal <- model;
