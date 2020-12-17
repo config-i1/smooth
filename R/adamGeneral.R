@@ -485,12 +485,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         componentsNamesARIMA <- paste0("ARIMAState",c(1:componentsNumberARIMA));
         # Number of initials needed. This is based on the longest one. The others are just its transformations
         initialArimaNumber <- max(lagsModelARIMA);
-
-        if(obsInSample < initialArimaNumber){
-            warning(paste0("In-sample size is ",obsInSample,", while number of ARIMA components is ",componentsNumberARIMA,
-                           ". Cannot fit the model."),call.=FALSE)
-            stop("Not enough observations for such a complicated model.",call.=FALSE);
-        }
     }
     else{
         arOrders <- NULL;
@@ -2154,6 +2148,12 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 lagsModelMax <- max(lagsModelAll);
             }
         }
+    }
+
+    if(arimaModel && obsNonzero < initialArimaNumber){
+        warning(paste0("In-sample size is ",obsNonzero,", while number of ARIMA components is ",initialArimaNumber,
+                       ". Cannot fit the model."),call.=FALSE)
+        stop("Not enough observations for such a complicated model.",call.=FALSE);
     }
 
     # Recalculate the number of parameters

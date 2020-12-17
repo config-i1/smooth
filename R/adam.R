@@ -1109,6 +1109,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
                         # switch(Etype, "A"=0, "M"=1);
                         rep(yInSample[1:lagsModelARIMA[componentsNumberARIMA]],each=componentsNumberARIMA);
+                    # Failsafe mechanism in case the sample is too small
+                    matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
 
                     # If this is just ARIMA with optimisation, refine the initials
                     if(!etsModel && initialType!="backcasting"){
