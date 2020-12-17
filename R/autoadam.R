@@ -817,10 +817,17 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
                 # If select outliers, then introduce lags and leads
                 if(outliers=="select"){
-                    outliersXreg <- xregExpander(outliersXreg,c(-1:1),gaps="zero");
+                    # data.frame is needed to bind the thing with ts() object few lines below
+                    outliersXreg <- as.data.frame(xregExpander(outliersXreg,c(-1:1),gaps="zero"));
+                    outliersXregNames <- colnames(outliersXreg);
                 }
                 outliersDo <- outliers;
                 data <- cbind(data,outliersXreg);
+                # If the names of xreg are wrong, fix them
+                if(!all(outliersXregNames %in% colnames(data))){
+                    colnames(data)[substr(colnames(data),1,12)=="outliersXreg"] <- outliersXregNames;
+                }
+
                 # Form new xreg matrix (check data and xreg)
                 if(xregModel){
                     # Update formula if it is provided
