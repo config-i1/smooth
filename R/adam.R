@@ -7033,8 +7033,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         else{
             for(i in 1:h){
-                if(Ttype=="M" || Stype=="M"){
-                    yForecast[i] <- mean(ySimulated[i,],na.rm=T);
+                if(Ttype=="M" || (Stype=="M" & h>lagsModelMin)){
+                    # Trim 1% of values just to resolve some issues with outliers
+                    yForecast[i] <- mean(ySimulated[i,],na.rm=T,trim=0.01);
                 }
                 yLower[i,] <- quantile(ySimulated[i,],levelLow[i,],na.rm=T,type=7);
                 yUpper[i,] <- quantile(ySimulated[i,],levelUp[i,],na.rm=T,type=7);
