@@ -6699,6 +6699,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Technical parameters
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
+    # This is needed in order to see, whether h>m or not in seasonal models
+    lagsModelMin <- lagsModelAll[lagsModelAll!=1];
+    if(length(lagsModelMin)==0){
+        lagsModelMin <- Inf;
+    }
+    else{
+        lagsModelMin <- min(lagsModelMin);
+    }
     profilesRecentTable <- object$profile;
     yClasses <- class(actuals(object));
 
@@ -6842,7 +6850,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     constantRequired <- !is.null(object$constant);
 
     # Produce point forecasts for non-multiplicative trend / seasonality
-    if(Ttype!="M" && Stype!="M"){
+    # Do this for cases, when h<=m as well
+    if(Ttype!="M" &&
+       (Stype!="M" |
+       (Stype=="M" & h<=lagsModelMin))){
         adamForecast <- adamForecasterWrap(matWt, matF,
                                            lagsModelAll, profilesObservedTable, profilesRecentTable,
                                            Etype, Ttype, Stype,
