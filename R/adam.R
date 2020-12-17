@@ -2730,7 +2730,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
 
                 #### Fix xreg vectors based on the selected stuff ####
-                xregNames <- colnames(almModel$data[,-1]);
+                xregNames <- colnames(almModel$data)[-1];
+
                 # Robustify the names of variables
                 colnames(data) <- make.names(colnames(data),unique=TRUE);
                 # The names of the original variables
