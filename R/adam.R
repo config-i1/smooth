@@ -1655,6 +1655,14 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         if(initialType!="backcasting" && arimaModel && initialArimaEstimate){
             B[j+1:initialArimaNumber] <- head(matVt[componentsNumberETS+componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
             names(B)[j+1:initialArimaNumber] <- paste0("ARIMAState",1:initialArimaNumber);
+            if(Etype=="A"){
+                Bl[j+1:initialArimaNumber] <- -Inf;
+                Bu[j+1:initialArimaNumber] <- Inf;
+            }
+            else{
+                Bl[j+1:initialArimaNumber] <- 0;
+                Bu[j+1:initialArimaNumber] <- Inf;
+            }
             j[] <- j+initialArimaNumber;
         }
 
@@ -2436,12 +2444,12 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         if(is.null(B)){
             B <- BValues$B
         }
-        # if(is.null(lb)){
-        #     lb <- BValues$Bl;
-        # }
-        # if(is.null(ub)){
-        #     ub <- BValues$Bu;
-        # }
+        if(is.null(lb)){
+            lb <- BValues$Bl;
+        }
+        if(is.null(ub)){
+            ub <- BValues$Bu;
+        }
 
         # Companion matrices for the polynomials calculation -> stationarity / stability checks
         if(arimaModel){
@@ -2680,8 +2688,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
 
             # This is failsafe for cases, when errors contain negative values, although they shouldn't
             if(any(distributionNew==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm")) &&
-               any(c(Etype,Ttype,Stype)=="A") && any(errors<0)){
-                errors[errors<0] <- 1e-100;
+               any(c(Etype,Ttype,Stype)=="A") && any(errors<=0)){
+                errors[errors<=0] <- 1e-100;
             }
 
             df <- length(B)+1;

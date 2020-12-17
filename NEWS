@@ -8,6 +8,7 @@ Changes:
 * adam() now contains the parameter constant, which adds constant (mean) in the model. This is needed for ARIMA part of the model.
 * New initials for the explanatory variables (factors). Should converge faster to the optimum.
 * We now use mean with 1% trimming in forecast.adam() for models with T="M". This should help in some cases with outliers.
+* Reintroduced the bounds for the parameters of adam().
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
