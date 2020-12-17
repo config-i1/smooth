@@ -2669,7 +2669,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                                          yInSample, ot, initialType=="backcasting");
 
             # Extract the errors corrrectly
-            errors <- switch(distribution,
+            errors <- switch(distributionNew,
                              "dlnorm"=, "dllaplace"=, "dls"=,
                              "dlgnorm"=, "dinvgauss"=switch(Etype,
                                                             "A"=1+adamFitted$errors/adamFitted$yFitted,
@@ -2678,12 +2678,14 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             # Extract the errors and amend them to correspond to the distribution
             errors[] <- errors + switch(Etype,"A"=0,"M"=1);
 
-            if(any(distribution==c("dlnorm","dllaplace","dls","dlgnorm")) && Etype=="A" && any(errors<0)){
+            # This is failsafe for cases, when errors contain negative values, although they shouldn't
+            if(any(distributionNew==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm")) &&
+               any(c(Etype,Ttype,Stype)=="A") && any(errors<0)){
                 errors[errors<0] <- 1e-100;
             }
 
             df <- length(B)+1;
-            if(any(distribution==c("dalaplace","dgnorm","dlgnorm","dt")) && otherParameterEstimate){
+            if(any(distributionNew==c("dalaplace","dgnorm","dlgnorm","dt")) && otherParameterEstimate){
                 other <- abs(B[length(B)]);
                 df[] <- df - 1;
             }
