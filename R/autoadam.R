@@ -819,8 +819,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(outliers=="select"){
                     # data.frame is needed to bind the thing with ts() object few lines below
                     outliersXreg <- as.data.frame(xregExpander(outliersXreg,c(-1:1),gaps="zero"));
-                    outliersXregNames <- colnames(outliersXreg);
                 }
+                outliersXregNames <- colnames(outliersXreg);
                 outliersDo <- outliers;
                 data <- cbind(data,outliersXreg);
                 # If the names of xreg are wrong, fix them
