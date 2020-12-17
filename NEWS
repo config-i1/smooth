@@ -1,16 +1,19 @@
-smooth v3.0.1 (Release data: 2020-12-16)
+smooth v3.0.1 (Release data: 2020-12-17)
 =======
 
 Changes:
 * The vector of parameters B now also has proper names in adam().
-* Switched off the head preheating for adam() states.
 * Reduced the default number of iterations for ARIMA to the same as for ETS.
 * The default loss for es(), ces(), ssarima(), msarima() is now "likelihood", assuming normality of the response variable.
+* adam() now contains the parameter constant, which adds constant (mean) in the model. This is needed for ARIMA part of the model.
+* New initials for the explanatory variables (factors). Should converge faster to the optimum.
+* We now use mean with 1% trimming in forecast.adam() for models with T="M". This should help in some cases with outliers.
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
 * auto.adam() would not select optimal ARIMA because of an issue with actuals.adam() method.
 * A failsafe in adam() for cases, with IG and negative values.
+* outlier="select" would not work for ts() objects in auto.adam().
 
 
 smooth v3.0.0 (Release data: 2020-12-07)

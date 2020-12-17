@@ -88,7 +88,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     else{
         obsInSample <- nrow(data) - holdout*h;
         if(!is.null(formula)){
-            yInSample <- data[1:obsInSample,formula[[2]]];
+            yInSample <- data[1:obsInSample,all.vars(formula)[1]];
         }
         else{
             yInSample <- data[1:obsInSample,1];
@@ -530,16 +530,20 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     cat(round((m)/nModelsARIMA,2)*100,"\b%");
                 }
                 nParamInitial <- 0;
-                # If differences are zero, skip this step
                 if(!all(iOrders[d,]==0)){
                     # Run the model for differences
-                    testModel <- adam(data=yInSample, model=model, lags=lags,
-                                      orders=list(ar=0,i=iOrders[d,],ma=0),
-                                      distribution=distribution,
-                                      h=h, holdout=FALSE,
-                                      persistence=persistence, phi=phi, initial=initial,
-                                      occurrence=occurrence, ic=ic, bounds=bounds,
-                                      regressors=regressors, silent=TRUE, ...);
+                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                                          orders=list(ar=0,i=iOrders[d,],ma=0),
+                                          distribution=distribution,
+                                          h=h, holdout=FALSE,
+                                          persistence=persistence, phi=phi, initial=initial,
+                                          occurrence=occurrence, ic=ic, bounds=bounds,
+                                          regressors=regressors, silent=TRUE, ...),
+                                     silent=TRUE);
+                    # If the function didn't work (e.g. small sample), go next
+                    if(inherits(testModel,"try-error")){
+                        next;
+                    }
                     nParamInitial[] <- (initial=="optimal") * (iOrders[d,] %*% lags);
                 }
                 # Extract Information criteria
@@ -547,7 +551,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(silentDebug){
                     cat("I:",iOrders[d,],"\b,",ICValue,"\n");
                 }
-                if(ICValue < bestICI){
+                if(ICValue <= bestICI){
                     bestICI <- ICValue;
                     dataMA <- dataI <- residuals(testModel);
                     if(ICValue < bestIC){
@@ -581,13 +585,17 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                 maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
 
                                 # Run the model for MA
-                                testModel <- adam(data=dataI, model="NNN", lags=lags,
-                                                  orders=list(ar=0,i=0,ma=maTest),
-                                                  distribution=distribution,
-                                                  h=h, holdout=FALSE,
-                                                  persistence=NULL, phi=NULL, initial=initial,
-                                                  occurrence="none", ic=ic, bounds=bounds,
-                                                  regressors="use", silent=TRUE, ...);
+                                testModel <- try(adam(data=dataI, model="NNN", lags=lags,
+                                                      orders=list(ar=0,i=0,ma=maTest),
+                                                      distribution=distribution,
+                                                      h=h, holdout=FALSE,
+                                                      persistence=NULL, phi=NULL, initial=initial,
+                                                      occurrence="none", ic=ic, bounds=bounds,
+                                                      regressors="use", silent=TRUE, ...),
+                                                 silent=TRUE);
+                                if(inherits(testModel,"try-error")){
+                                    next;
+                                }
 
                                 if(initial=="optimal" && (maTest %*% lags > nParamInitial)){
                                     nParamInitial[] <-  (maTest %*% lags);
@@ -639,13 +647,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                 arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
 
                                                 # Run the model for AR
-                                                testModel <- adam(data=dataMA, model="NNN", lags=lags,
-                                                                  orders=list(ar=arTest,i=0,ma=0),
-                                                                  distribution=distribution,
-                                                                  h=h, holdout=FALSE,
-                                                                  persistence=NULL, phi=NULL, initial=initial,
-                                                                  occurrence="none", ic=ic, bounds=bounds,
-                                                                  regressors="use", silent=TRUE, ...);
+                                                testModel <- try(adam(data=dataMA, model="NNN", lags=lags,
+                                                                      orders=list(ar=arTest,i=0,ma=0),
+                                                                      distribution=distribution,
+                                                                      h=h, holdout=FALSE,
+                                                                      persistence=NULL, phi=NULL, initial=initial,
+                                                                      occurrence="none", ic=ic, bounds=bounds,
+                                                                      regressors="use", silent=TRUE, ...),
+                                                                 silent=TRUE);
+                                                if(inherits(testModel,"try-error")){
+                                                    next;
+                                                }
+
                                                 if(initial=="optimal" && (arTest %*% lags > nParamInitial)){
                                                     nParamInitial[] <-  (arTest %*% lags);
                                                 }
@@ -702,13 +715,17 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                     arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
 
                                     # Run the model for MA
-                                    testModel <- adam(data=dataI, model="NNN", lags=lags,
-                                                      orders=list(ar=arTest,i=0,ma=0),
-                                                      distribution=distribution,
-                                                      h=h, holdout=FALSE,
-                                                      persistence=NULL, phi=NULL, initial=initial,
-                                                      occurrence="none", ic=ic, bounds=bounds,
-                                                      regressors="use", silent=TRUE, ...);
+                                    testModel <- try(adam(data=dataI, model="NNN", lags=lags,
+                                                          orders=list(ar=arTest,i=0,ma=0),
+                                                          distribution=distribution,
+                                                          h=h, holdout=FALSE,
+                                                          persistence=NULL, phi=NULL, initial=initial,
+                                                          occurrence="none", ic=ic, bounds=bounds,
+                                                          regressors="use", silent=TRUE, ...),
+                                                     silent=TRUE);
+                                    if(inherits(testModel,"try-error")){
+                                        next;
+                                    }
                                     if(initial=="optimal" && (arTest %*% lags > nParamInitial)){
                                         nParamInitial[] <-  (arTest %*% lags);
                                     }
@@ -752,10 +769,19 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 cat(" ",100,"\b%");
             }
 
+            # If no differences, then add constant
+            if(!etsModel && all(iBest==0)){
+                constant <- TRUE;
+            }
+            else{
+                constant <- FALSE;
+            }
+
             #### Reestimate the best model in order to get rid of bias ####
             # Run the model for MA
             bestModel <- adam(data=data, model=modelOriginal, lags=lags,
                               orders=list(ar=(arBest),i=(iBest),ma=(maBest)),
+                              constant=constant,
                               distribution=distribution, formula=formula,
                               h=h, holdout=holdout,
                               persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
@@ -791,16 +817,26 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
                 # If select outliers, then introduce lags and leads
                 if(outliers=="select"){
-                    outliersXreg <- xregExpander(outliersXreg,c(-1:1),gaps="zero");
+                    # data.frame is needed to bind the thing with ts() object few lines below
+                    outliersXreg <- as.data.frame(xregExpander(outliersXreg,c(-1:1),gaps="zero"));
                 }
+                outliersXregNames <- colnames(outliersXreg);
                 outliersDo <- outliers;
                 data <- cbind(data,outliersXreg);
+                # If the names of xreg are wrong, fix them
+                if(!all(outliersXregNames %in% colnames(data))){
+                    colnames(data)[substr(colnames(data),1,12)=="outliersXreg"] <- outliersXregNames;
+                }
+
                 # Form new xreg matrix (check data and xreg)
                 if(xregModel){
                     # Update formula if it is provided
                     if(!is.null(formula)){
-                        formula <- update(as.formula(formula),
-                                          as.formula(paste0("~.+",paste0(colnames(outliersXreg),collapse="+"))));
+                        # If this is not the formula of a type y~., then add outliers.
+                        if(!(length(all.vars(formula))==2 && all.vars(formula)[2]==".")){
+                            formula <- update.formula(as.formula(formula),
+                                                      as.formula(paste0("~.+",paste0(colnames(outliersXreg),collapse="+"))));
+                        }
                     }
                     else{
                         formula <- as.formula(paste0(responseName,"~."));

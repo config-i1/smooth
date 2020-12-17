@@ -13,7 +13,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
                   char const &E, char const &T, char const &S, arma::uvec &lags,
                   arma::umat const &profilesObserved, arma::cube arrayProfilesRecent,
                   unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                  unsigned int const &nArima, unsigned int const &nXreg) {
+                  unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
 
     unsigned int obs = matrixYt.n_rows;
     unsigned int nSeries = matrixG.n_cols;
@@ -39,7 +39,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
             /* # Measurement equation and the error term */
             matYfit(j-lagsModelMax,i) = adamWvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j-lagsModelMax)),
                     arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
-                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents);
+                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
             // Fix potential issue with negatives in mixed models
             if((E=='M' || T=='M' || S=='M') && (matYfit(j-lagsModelMax,i)<=0)){
@@ -77,7 +77,7 @@ RcppExport SEXP adamRefitterWrap(SEXP yt, SEXP ot, SEXP arrVt, SEXP arrF, SEXP a
                                  SEXP Etype, SEXP Ttype, SEXP Stype,
                                  SEXP lagsModelAll, SEXP profilesObservedTable, SEXP profilesRecentArray,
                                  SEXP componentsNumberETSSeasonal, SEXP componentsNumberETS,
-                                 SEXP componentsNumberARIMA, SEXP xregNumber){
+                                 SEXP componentsNumberARIMA, SEXP xregNumber, SEXP constantRequired){
 
     NumericMatrix yt_n(yt);
     arma::mat matrixYt(yt_n.begin(), yt_n.nrow(), yt_n.ncol(), false);
@@ -122,10 +122,11 @@ RcppExport SEXP adamRefitterWrap(SEXP yt, SEXP ot, SEXP arrVt, SEXP arrF, SEXP a
     unsigned int nNonSeasonal = as<int>(componentsNumberETS) - nSeasonal;
     unsigned int nArima = as<int>(componentsNumberARIMA);
     unsigned int nXreg = as<int>(xregNumber);
+    bool constant = as<bool>(constantRequired);
 
     return wrap(adamRefitter(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG,
                              E, T, S, lags, profilesObserved, arrayProfilesRecent,
-                             nNonSeasonal, nSeasonal, nArima, nXreg));
+                             nNonSeasonal, nSeasonal, nArima, nXreg, constant));
 }
 
 
@@ -135,7 +136,7 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                       char const &E, char const &T, char const &S, arma::uvec &lags,
                       arma::umat const &profilesObserved, arma::cube arrayProfileRecent,
                       unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                      unsigned int const &nArima, unsigned int const &nXreg) {
+                      unsigned int const &nArima, unsigned int const &nXreg, bool const &constant) {
 
     unsigned int obs = arrayErrors.n_rows;
     unsigned int nSeries = arrayErrors.n_cols;
@@ -156,10 +157,10 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                 arrY(j-lagsModelMax,i,k) = arrayOt(j-lagsModelMax,i,k) *
                         (adamWvalue(arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)),
                                     arrayWt.slice(k).row(j-lagsModelMax), E, T, S,
-                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) +
+                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) +
                                         adamRvalue(arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)),
                                                    arrayWt.slice(k).row(j-lagsModelMax), E, T, S,
-                                                   nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents) *
+                                                   nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
                                                        arrayErrors.slice(k)(j-lagsModelMax,i));
 
                 // Fix potential issue with negatives in mixed models
@@ -189,7 +190,7 @@ RcppExport SEXP adamReforecasterWrap(SEXP arrErrors, SEXP arrOt, SEXP arrF, SEXP
                                      SEXP Etype, SEXP Ttype, SEXP Stype, SEXP lagsModelAll,
                                      SEXP profilesObservedTable, SEXP profilesRecentArray,
                                      SEXP componentsNumberSeasonal, SEXP componentsNumber,
-                                     SEXP componentsNumberArima, SEXP xregNumber){
+                                     SEXP componentsNumberArima, SEXP xregNumber, SEXP constantRequired){
 
     NumericVector arrErrors_n(arrErrors);
     IntegerVector arrErrors_dim = arrErrors_n.attr("dim");
@@ -232,8 +233,9 @@ RcppExport SEXP adamReforecasterWrap(SEXP arrErrors, SEXP arrOt, SEXP arrF, SEXP
     unsigned int nNonSeasonal = as<int>(componentsNumber) - nSeasonal;
     unsigned int nArima = as<int>(componentsNumberArima);
     unsigned int nXreg = as<int>(xregNumber);
+    bool constant = as<bool>(constantRequired);
 
     return wrap(adamReforecaster(arrayErrors, arrayOt, arrayF, arrayWt, matrixG,
                                  E, T, S, lags, profilesObserved, arrayProfileRecent,
-                                 nNonSeasonal, nSeasonal, nArima, nXreg));
+                                 nNonSeasonal, nSeasonal, nArima, nXreg, constant));
 }
