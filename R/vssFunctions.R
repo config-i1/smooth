@@ -2,11 +2,10 @@ utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobabili
                          "intermittent","intermittentModel","imodelProvided","seasonal"));
 
 ##### *Checker of input of vector functions* #####
-vssInput <- function(smoothType=c("ves"),...){
+vssInput <- function(smoothType=c("ves"),ParentEnvironment,...){
     smoothType <- smoothType[1];
 
     ellipsis <- list(...);
-    ParentEnvironment <- ellipsis[['ParentEnvironment']];
 
     ##### silent #####
     silent <- silent[1];
@@ -929,7 +928,7 @@ vssInput <- function(smoothType=c("ves"),...){
         maxeval <- ellipsis$maxeval;
     }
     else{
-        maxeval <- 1000;
+        maxeval <- NULL;
     }
     if(!is.null(ellipsis$algorithm1)){
         algorithm1 <- ellipsis$algorithm1;
@@ -954,6 +953,12 @@ vssInput <- function(smoothType=c("ves"),...){
     }
     else{
         xtol_rel2 <- 1e-6;
+    }
+    if(!is.null(ellipsis$print_level)){
+        print_level <- ellipsis$print_level;
+    }
+    else{
+        print_level <- 0;
     }
 
     ##### Return values to previous environment #####
@@ -1043,6 +1048,7 @@ vssInput <- function(smoothType=c("ves"),...){
     assign("algorithm2",algorithm2,ParentEnvironment);
     assign("xtol_rel1",xtol_rel1,ParentEnvironment);
     assign("xtol_rel2",xtol_rel2,ParentEnvironment);
+    assign("print_level",print_level,ParentEnvironment);
 }
 
 ##### *Likelihood function* #####

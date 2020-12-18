@@ -109,12 +109,18 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' used to calculated variances of smoothing parameters and initial states of
 #' the model. The vector of initial parameter for the optimiser can be provided
 #' here as the variable \code{B}. The upper bound for the optimiser is provided
-#' via \code{ub}, while the lower one is \code{lb}. \code{maxeval=1000} is the
-#' default number of iterations for both optimisers used in the function.
-#' \code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first optimiser,
-#' while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one. \code{xtol_rel1=1e-8}
-#' is the relative tolerance in the first optimiser, while \code{xtol_rel2=1e-6} is for
-#' the second one. All of this can be amended and passed in ellipsis for finer tuning.
+#' via \code{ub}, while the lower one is \code{lb}. Also, the options for nloptr can be
+#' passed here:
+#' \itemize{
+#' \item \code{maxeval=40*k} is the default number of iterations for both optimisers
+#' used in the function (k is the number of parameters to estimate).
+#' \item \code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first
+#' optimiser, while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one.
+#' \item \code{xtol_rel1=1e-8} is the relative tolerance in the first optimiser,
+#' while \code{xtol_rel2=1e-6} is for the second one. All of this can be amended and
+#' passed in ellipsis for finer tuning.
+#' \item \code{print_level} - the level of output for the optimiser (0 by default).
+#' If equal to 41, then the detailed results of the optimisation are returned.}
 #' @return Object of class "vsmooth" is returned. It contains the following list of
 #' values:
 #' \itemize{
@@ -239,7 +245,7 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
 
 ##### Set environment for vssInput and make all the checks #####
     environment(vssInput) <- environment();
-    vssInput("ves",ParentEnvironment=environment());
+    vssInput("ves",ParentEnvironment=environment(),...);
 
 ##### Cost Function for VES #####
 CF <- function(B){
@@ -918,11 +924,21 @@ EstimatorVES <- function(...){
         }
     }
 
+    maxevalUsed <- maxeval;
+    if(is.null(maxeval)){
+        maxevalUsed <- length(B) * 40;
+    }
+
+    print_level_hidden <- print_level;
+    if(print_level==41){
+        print_level[] <- 0;
+    }
+
     normalizer <- sum(colMeans(abs(diff(t(yInSample))),na.rm=TRUE));
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
-                  opts=list(algorithm=algorithm1, xtol_rel=xtol_rel1, maxeval=maxeval));
+                  opts=list(algorithm=algorithm1, xtol_rel=xtol_rel1, maxeval=maxeval, print_level=print_level));
     B <- res$solution;
 
     # This is just in case something went out of the bounds
@@ -931,13 +947,21 @@ EstimatorVES <- function(...){
         BList$BLower[B<=BList$BLower] <- B[B<=BList$BLower] - 1;
     }
 
+    if(print_level_hidden>0){
+        print(res);
+    }
+
     res2 <- nloptr(B, CF, lb=BList$BLower, ub=BList$BUpper,
-                  opts=list(algorithm=algorithm2, xtol_rel=xtol_rel2, maxeval=maxeval));
+                  opts=list(algorithm=algorithm2, xtol_rel=xtol_rel2, maxeval=maxeval, print_level=print_level));
     # This condition is needed in order to make sure that we did not make the solution worse
     if(res2$objective <= res$objective){
         res <- res2;
     }
     B <- res$solution;
+
+    if(print_level_hidden>0){
+        print(res);
+    }
 
     if(all(B==BList$B) & modelDo=="estimate"){
         if(persistenceEstimate){
