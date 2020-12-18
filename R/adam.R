@@ -1107,10 +1107,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             if(arimaModel){
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:lagsModelARIMA[componentsNumberARIMA]] <-
-                        # switch(Etype, "A"=0, "M"=1);
-                        switch(Etype,
-                               "A"=rep(yInSample[1:lagsModelARIMA[componentsNumberARIMA]],each=componentsNumberARIMA),
-                               "M"=rep(log(yInSample[1:lagsModelARIMA[componentsNumberARIMA]]),each=componentsNumberARIMA));
+                        switch(Etype, "A"=0, "M"=1);
+                        # rep(yInSample[1:lagsModelARIMA[componentsNumberARIMA]],each=componentsNumberARIMA);
                     # Failsafe mechanism in case the sample is too small
                     matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
 
@@ -3293,8 +3291,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         yFitted[] <- adamFitted$yFitted;
         # Check what was returned in the end
         if(any(is.nan(yFitted)) || any(is.na(yFitted))){
-            warning("Something went wrong in the estimation of the model ETS(",
-                    Etype,Ttype,ifelse(damped,"d",""),Stype,") and NaNs were produced. ",
+            warning("Something went wrong in the estimation of the model and NaNs were produced. ",
                     "If this is a mixed model, consider using the pure ones instead.",
                     call.=FALSE);
         }
