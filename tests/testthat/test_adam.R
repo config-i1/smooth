@@ -4,7 +4,7 @@ context("Tests for ADAM");
 # Basic ADAM selection
 testModel <- adam(Mcomp::M3[[1234]], "ZZZ");
 test_that("ADAM ETS(ZZZ) selection on N1234", {
-    expect_match(modelType(testModel), "MMN");
+    expect_match(errorType(testModel), "M");
 })
 
 # Basic ADAM selection on 2568
@@ -16,7 +16,7 @@ test_that("ADAM ETS(ZZZ) selection on N2568", {
 # Full ADAM selection
 testModel <- adam(Mcomp::M3[[1234]], "FFF");
 test_that("ADAM ETS(FFF) selection on N1234", {
-    expect_match(modelType(testModel), "MMN");
+    expect_match(modelType(testModel), "M");
 })
 
 # ADAM with specified pool

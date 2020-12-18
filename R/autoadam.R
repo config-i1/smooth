@@ -15,6 +15,7 @@
 #'                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))
 #'
 #' @rdname adam
+#' @importFrom stats update.formula
 #' @export
 auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                       formula=NULL, outliers=c("ignore","use","select"), level=0.99,
