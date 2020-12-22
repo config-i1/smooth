@@ -44,7 +44,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
-    ICFunction <- switch(ic,
+    IC <- switch(ic,
                          "AIC"=AIC,
                          "AICc"=AICc,
                          "BIC"=BIC,
@@ -487,8 +487,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 nParamOriginal <- 1;
             }
             testModel <- testModelETS;
-            bestIC <- bestICI <- ICFunction(testModel);
-            obsNonzero <- nobs(testModelETS,all=FALSE);
+            bestIC <- bestICI <- IC(testModel);
+            ICValue <- 1E+100;
+            testLogLikAR <- testLogLikI <- testLogLikMA <- testLogLik <- logLik(testModel);
+            obsNonzero <- nobs(testModel,all=FALSE);
 
             if(silentDebug){
                 cat("Best IC:",bestIC,"\n");
@@ -504,7 +506,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             else{
                 nModelsARIMA <- prod(iMax + 1) * (1 + sum(maMax*(1 + sum(arMax))));
             }
-            ICValue <- 1E+100;
             m <- 0;
 
             lagsTest <- maTest <- arTest <- rep(0,length(lags));
@@ -546,9 +547,24 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         next;
                     }
                     nParamInitial[] <- (initial=="optimal") * (iOrders[d,] %*% lags);
+
+                    # If a positive distribution is used, modify logLik
+                    if(any(distribution==c("dlnorm","dinvgauss"))){
+                        testLogLikI <- testLogLik + logLik(testModel);
+                    }
+                    else{
+                        testLogLikI <- logLik(testModel);
+                    }
+                    ICValue <- icCorrector(testLogLikI, ic,
+                                           nParamOriginal + nParamInitial,
+                                           obsNonzero);
                 }
-                # Extract Information criteria
-                ICValue <- ICFunction(testModel);
+                else{
+                    testLogLikI <- logLik(testModel);
+                    # Extract Information criterion and logLik
+                    ICValue <- IC(testModel);
+                }
+
                 if(silentDebug){
                     cat("I:",iOrders[d,],"\b,",ICValue,"\n");
                 }
@@ -598,12 +614,20 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                     next;
                                 }
 
+                                # If a positive distribution is used, modify logLik
+                                if(any(distribution==c("dlnorm","dinvgauss"))){
+                                    testLogLikMA <- testLogLikI + logLik(testModel);
+                                }
+                                else{
+                                    testLogLikMA <- logLik(testModel);
+                                }
+
                                 if(initial=="optimal" && (maTest %*% lags > nParamInitial)){
                                     nParamInitial[] <-  (maTest %*% lags);
                                 }
                                 # Exclude the initials from the number of parameters
                                 nParamMA <- sum(maTest);
-                                ICValue <- icCorrector(logLik(testModel), ic,
+                                ICValue <- icCorrector(testLogLikMA, ic,
                                                        nParamOriginal + nParamMA + nParamInitial,
                                                        obsNonzero);
                                 if(silentDebug){
@@ -660,12 +684,20 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                     next;
                                                 }
 
+                                                # If a positive distribution is used, modify logLik
+                                                if(any(distribution==c("dlnorm","dinvgauss"))){
+                                                    testLogLikAR <- testLogLikMA + logLik(testModel);
+                                                }
+                                                else{
+                                                    testLogLikAR <- logLik(testModel);
+                                                }
+
                                                 if(initial=="optimal" && (arTest %*% lags > nParamInitial)){
                                                     nParamInitial[] <-  (arTest %*% lags);
                                                 }
                                                 # Exclude the initials (in order not to duplicate them)
                                                 nParamAR <- sum(arTest);
-                                                ICValue <- icCorrector(logLik(testModel), ic,
+                                                ICValue <- icCorrector(testLogLikAR, ic,
                                                                        nParamOriginal + nParamMA + nParamAR + nParamInitial,
                                                                        obsNonzero);
                                                 if(silentDebug){
@@ -727,12 +759,21 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                     if(inherits(testModel,"try-error")){
                                         next;
                                     }
+
+                                    # If a positive distribution is used, modify logLik
+                                    if(any(distribution==c("dlnorm","dinvgauss"))){
+                                        testLogLikAR <- testLogLikI + logLik(testModel);
+                                    }
+                                    else{
+                                        testLogLikAR <- logLik(testModel);
+                                    }
+
                                     if(initial=="optimal" && (arTest %*% lags > nParamInitial)){
                                         nParamInitial[] <-  (arTest %*% lags);
                                     }
                                     # Exclude the initials (in order not to duplicate them)
                                     nParamAR <- sum(arTest);
-                                    ICValue <- icCorrector(logLik(testModel), ic,
+                                    ICValue <- icCorrector(testLogLikAR, ic,
                                                            nParamOriginal + nParamAR + nParamInitial,
                                                            obsNonzero);
                                     if(silentDebug){
@@ -917,7 +958,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     if(modelDo=="select"){
-        ICValues <- sapply(selectedModels, ICFunction);
+        ICValues <- sapply(selectedModels, IC);
     }
     else{
         ICValues <- vector("numeric",length(distribution));

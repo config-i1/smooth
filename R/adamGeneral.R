@@ -385,11 +385,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         arOrders <- orders$ar;
         iOrders <- orders$i;
         maOrders <- orders$ma;
+        select <- orders$select;
     }
     else if(is.vector(orders)){
         arOrders <- orders[1];
         iOrders <- orders[2];
         maOrders <- orders[3];
+        select <- NULL;
     }
 
     # If there is arima, prepare orders
@@ -2793,6 +2795,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     assign("armaParameters",armaParameters,ParentEnvironment);
     assign("nonZeroARI",nonZeroARI,ParentEnvironment);
     assign("nonZeroMA",nonZeroMA,ParentEnvironment);
+    assign("select",select,ParentEnvironment);
 
     ### Explanatory variables
     assign("xregModel",xregModel,ParentEnvironment);
@@ -2836,4 +2839,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian
     assign("stepSize",stepSize,ParentEnvironment);
+
+    # This stuff is needed for switch to auto.adam.
+    return(list(select=select));
 }

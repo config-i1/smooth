@@ -630,6 +630,17 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         return(modelReturned);
     }
 
+    #### If select was provided in the model, do ARIMA selection ####
+    if(!is.null(checkerReturn$select) && checkerReturn$select){
+        return(auto.adam(data, model=model, lags=lags, orders=orders,
+                         formula=formula, regressors=regressors,
+                         distribution=distribution, loss=loss,
+                         h=h, holdout=holdout,
+                         persistence=persistence, phi=phi, initial=initial, arma=arma,
+                         occurrence=occurrence,
+                         ic=ic, bounds=bounds, silent=silent, ...));
+    }
+
     #### The function creates the technical variables (lags etc) based on the type of the model ####
     architector <- function(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
                             xregNumber, obsInSample, initialType,
@@ -1578,7 +1589,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                         j[] <- j + arOrders[i];
                     }
                     if(maRequired && maEstimate && maOrders[i]>0){
-                        B[j+c(1:maOrders[i])] <- rep(0.1,maOrders[i]);
+                        B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
                         Bl[j+c(1:maOrders[i])] <- -5;
                         Bu[j+c(1:maOrders[i])] <- 5;
                         names(B)[j+1:maOrders[i]] <- paste0("theta",1:maOrders[i],"[",lags[i],"]");
@@ -1917,7 +1928,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         # Write down the initials in the recent profile
         profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
 
-        #### Fitter and the losss calculation ####
+        #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
                                      lagsModelAll, profilesObservedTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,

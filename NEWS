@@ -18,6 +18,7 @@ Bugfixes:
 * A failsafe in adam() for cases, with IG and negative values.
 * outlier="select" would not work for ts() objects in auto.adam().
 * Bugfix in ADAM ARIMA for the profilesObserved and constant. The model should be initialised correctly now.
+* Fixing auto.adam ARIMA selection and non standard distributions.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)
