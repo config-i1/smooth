@@ -1886,7 +1886,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             if(arimaModel){
                 # Calculate the polynomial roots for AR
                 if(arEstimate){
-                    if(abs(sum(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                    if(any(abs(adamElements$arimaPolynomials$arPolynomial[-1])>=1)){
                         arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                         arPolyroots <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
                         if(any(arPolyroots>1)){
@@ -1917,7 +1917,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     }
                 }
                 else{
-                    if(etsModel || (arimaModel && maEstimate && abs(sum(adamElements$arimaPolynomials$maPolynomial[-1]))>=1)){
+                    if(etsModel || (arimaModel && maEstimate && any(abs(adamElements$arimaPolynomials$maPolynomial[-1])>=1))){
                         eigenValues <- abs(eigen(adamElements$matF -
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
                                                  only.values=TRUE)$values);
