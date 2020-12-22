@@ -183,12 +183,18 @@ make the function also produce Fisher Information matrix, which then can be
 used to calculated variances of smoothing parameters and initial states of
 the model. The vector of initial parameter for the optimiser can be provided
 here as the variable \code{B}. The upper bound for the optimiser is provided
-via \code{ub}, while the lower one is \code{lb}. \code{maxeval=1000} is the
-default number of iterations for both optimisers used in the function.
-\code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first optimiser,
-while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one. \code{xtol_rel1=1e-8}
-is the relative tolerance in the first optimiser, while \code{xtol_rel2=1e-6} is for
-the second one. All of this can be amended and passed in ellipsis for finer tuning.}
+via \code{ub}, while the lower one is \code{lb}. Also, the options for nloptr can be
+passed here:
+\itemize{
+\item \code{maxeval=40*k} is the default number of iterations for both optimisers
+used in the function (k is the number of parameters to estimate).
+\item \code{algorithm1="NLOPT_LN_BOBYQA"} is the algorithm used in the first
+optimiser, while \code{algorithm2="NLOPT_LN_NELDERMEAD"} is the second one.
+\item \code{xtol_rel1=1e-8} is the relative tolerance in the first optimiser,
+while \code{xtol_rel2=1e-6} is for the second one. All of this can be amended and
+passed in ellipsis for finer tuning.
+\item \code{print_level} - the level of output for the optimiser (0 by default).
+If equal to 41, then the detailed results of the optimisation are returned.}}
 }
 \value{
 Object of class "vsmooth" is returned. It contains the following list of
