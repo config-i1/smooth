@@ -1828,7 +1828,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             # Stationarity and invertibility conditions for ARIMA
             if(arimaModel && any(c(arEstimate,maEstimate))){
                 # Calculate the polynomial roots for AR
-                if(arEstimate){
+                if(arEstimate && sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     arPolyroots <- abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values);
                     if(any(arPolyroots>1)){
@@ -1836,7 +1836,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     }
                 }
                 # Calculate the polynomial roots of MA
-                if(maEstimate){
+                if(maEstimate && sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1){
                     maPolynomialMatrix[,1] <- adamElements$arimaPolynomials$maPolynomial[-1];
                     maPolyroots <- abs(eigen(maPolynomialMatrix, symmetric=TRUE ,only.values=TRUE)$values);
                     if(any(maPolyroots>1)){
@@ -1885,13 +1885,11 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             # Stationarity condition of ARIMA
             if(arimaModel){
                 # Calculate the polynomial roots for AR
-                if(arEstimate){
-                    if(any(abs(adamElements$arimaPolynomials$arPolynomial[-1])>=1)){
-                        arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
-                        arPolyroots <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
-                        if(any(arPolyroots>1)){
-                            return(1E+100*max(arPolyroots));
-                        }
+                if(arEstimate && sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                    arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
+                    eigenValues <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
+                    if(any(eigenValues>1)){
+                        return(1E+100*max(eigenValues));
                     }
                 }
             }
@@ -1917,7 +1915,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     }
                 }
                 else{
-                    if(etsModel || (arimaModel && maEstimate && any(abs(adamElements$arimaPolynomials$maPolynomial[-1])>=1))){
+                    if(etsModel || (arimaModel && maEstimate && sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1)){
                         eigenValues <- abs(eigen(adamElements$matF -
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
                                                  only.values=TRUE)$values);
