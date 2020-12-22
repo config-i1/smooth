@@ -1886,10 +1886,12 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             if(arimaModel){
                 # Calculate the polynomial roots for AR
                 if(arEstimate){
-                    arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
-                    arPolyroots <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
-                    if(any(arPolyroots>1)){
-                        return(1E+100*max(arPolyroots));
+                    if(abs(sum(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                        arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
+                        arPolyroots <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
+                        if(any(arPolyroots>1)){
+                            return(1E+100*max(arPolyroots));
+                        }
                     }
                 }
             }
@@ -1915,12 +1917,14 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     }
                 }
                 else{
-                    eigenValues <- abs(eigen(adamElements$matF -
-                                                 adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
-                                             only.values=TRUE)$values);
-                }
-                if(any(eigenValues>1+1E-50)){
-                    return(1E+100*max(eigenValues));
+                    if(etsModel || (arimaModel && maEstimate && abs(sum(adamElements$arimaPolynomials$maPolynomial[-1]))>=1)){
+                        eigenValues <- abs(eigen(adamElements$matF -
+                                                     adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
+                                                 only.values=TRUE)$values);
+                        if(any(eigenValues>1+1E-50)){
+                            return(1E+100*max(eigenValues));
+                        }
+                    }
                 }
             }
         }
@@ -2398,9 +2402,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         # print(BValues$B);
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
-        # This is also not needed for I(d) model, as the backcasting hurts in this case
+        # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && (arEstimate | maEstimate) &&
-           is.null(B)){
+           is.null(B) && all(iOrders<2)){
             adamElements <- filler(BValues$B,
                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                    componentsNumberETS, componentsNumberETSNonSeasonal,
