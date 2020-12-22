@@ -49,7 +49,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
         for (int i=lagsModelMax; i<obs+lagsModelMax; i=i+1) {
 
             /* # Measurement equation and the error term */
-            vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+            vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i)),
                     matrixWt.row(i-lagsModelMax), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
@@ -67,9 +67,9 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
             }
 
             /* # Transition equation */
-            profilesRecent(profilesObserved.col(i-lagsModelMax)) = adamFvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+            profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
-                adamGvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
+                adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
                            nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG, vecErrors(i-lagsModelMax));
 
             // Failsafe for cases, when nan values appear
@@ -91,7 +91,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
             //     }
             // }
 
-            matrixVt.col(i) = profilesRecent(profilesObserved.col(i-lagsModelMax));
+            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
         }
 
         ////// Backwards run
@@ -99,7 +99,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
 
             for (int i=obs+lagsModelMax-1; i>=lagsModelMax; i=i-1) {
                 /* # Measurement equation and the error term */
-                vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+                vecYfit(i-lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i)),
                         matrixWt.row(i-lagsModelMax), E, T, S,
                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
@@ -117,9 +117,9 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
                 }
 
                 /* # Transition equation */
-                profilesRecent(profilesObserved.col(i-lagsModelMax)) = adamFvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)),
+                profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
-                                   adamGvalue(profilesRecent(profilesObserved.col(i-lagsModelMax)), matrixF,
+                                   adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF,
                                               matrixWt.row(i-lagsModelMax), E, T, S,
                                               nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG,
                                               vecErrors(i-lagsModelMax));
@@ -146,7 +146,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
                 //     }
                 // }
 
-                matrixVt.col(i) = profilesRecent(profilesObserved.col(i-lagsModelMax));
+                // matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             }
 
             // Fill in the head of the series
@@ -154,7 +154,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
                 profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                              matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
 
-                matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
+                // matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
                 // /* Failsafe for cases when unreasonable value for state vector was produced */
                 // if(!matrixVt.col(i).is_finite()){
                 //     matrixVt.col(i) = matrixVt(lagrows);

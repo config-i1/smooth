@@ -483,8 +483,26 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         componentsNumberARIMA <- length(lagsModelARIMA);
         # Their names
         componentsNamesARIMA <- paste0("ARIMAState",c(1:componentsNumberARIMA));
-        # Number of initials needed. This is based on the longest one. The others are just its transformations
-        initialArimaNumber <- max(lagsModelARIMA);
+
+        # If all orders are zero, drop ARIMA part
+        if(all(c(arOrders,iOrders,maOrders)==0)){
+            arOrders <- NULL;
+            iOrders <- NULL;
+            maOrders <- NULL;
+            arimaModel <- FALSE;
+            arRequired <- arEstimate <- FALSE;
+            iRequired <- FALSE;
+            maRequired <- maEstimate <- FALSE;
+            lagsModelARIMA <- initialArimaNumber <- 0;
+            componentsNumberARIMA <- 0;
+            componentsNamesARIMA <- NULL;
+            nonZeroARI <- NULL;
+            nonZeroMA <- NULL;
+        }
+        else{
+            # Number of initials needed. This is based on the longest one. The others are just its transformations
+            initialArimaNumber <- max(lagsModelARIMA);
+        }
     }
     else{
         arOrders <- NULL;
@@ -2558,13 +2576,23 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         constantEstimate <- FALSE;
         # This is just in case a vector was provided
         constantValue <- constant[1];
-        constantName <- "constant";
+        if(any(iOrders!=0) || etsModel){
+            constantName <- "drift";
+        }
+        else{
+            constantName <- "constant";
+        }
     }
     else if(is.logical(constant)){
         constantEstimate <- constantRequired <- constant;
         constantValue <- NULL;
         if(constantRequired){
-            constantName <- "constant";
+            if(any(iOrders!=0) || etsModel){
+                constantName <- "drift";
+            }
+            else{
+                constantName <- "constant";
+            }
         }
         else{
             constantName <- NULL;

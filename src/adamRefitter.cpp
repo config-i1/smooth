@@ -37,7 +37,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
         for(unsigned int j=lagsModelMax; j<obs+lagsModelMax; j=j+1) {
 
             /* # Measurement equation and the error term */
-            matYfit(j-lagsModelMax,i) = adamWvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j-lagsModelMax)),
+            matYfit(j-lagsModelMax,i) = adamWvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)),
                     arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
@@ -55,15 +55,15 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
             }
 
             /* # Transition equation */
-            arrayProfilesRecent.slice(i).elem(profilesObserved.col(j-lagsModelMax)) =
-            adamFvalue(arrayProfilesRecent.slice(i)(profilesObserved.col(j-lagsModelMax)),
+            arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)) =
+            adamFvalue(arrayProfilesRecent.slice(i)(profilesObserved.col(j)),
                        arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
-                           adamGvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j-lagsModelMax)),
+                           adamGvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)),
                                       arrayF.slice(i), arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
                                       nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents,
                                       matrixG.col(i), vecErrors(j-lagsModelMax));
 
-            arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(profilesObserved.col(j-lagsModelMax));
+            arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(profilesObserved.col(j));
         }
     }
 
