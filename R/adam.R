@@ -505,6 +505,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
 
         modelReturned <- list(model="Regression");
         modelReturned$timeElapsed <- Sys.time()-startTime;
+        modelReturned$call <- checkerReturn$call;
         if(is.null(formula)){
             formula <- formula(checkerReturn);
         }
@@ -557,7 +558,8 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         }
         else{
             yFrequency <- frequency(y);
-            modelReturned$data <- ts(data[1:obsInSample,,drop=FALSE], start=yIndex[1], frequency=yFrequency);
+            modelReturned$data <- data[1:obsInSample,,drop=FALSE]
+            modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName], start=yIndex[1], frequency=yFrequency);
             modelReturned$fitted <- ts(fitted(checkerReturn), start=yIndex[1], frequency=yFrequency);
             modelReturned$residuals <- ts(residuals(checkerReturn), start=yIndex[1], frequency=yFrequency);
             if(h>0){
@@ -6036,40 +6038,57 @@ vcov.adam <- function(object, ...){
     else{
         h <- 0;
     }
-    modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                         FI=TRUE, stepSize=ellipsis$stepSize));
-    # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-    brokenVariables <- apply(modelReturn$FI==0,1,all);
-    # If there are issues, try the same stuff, but with a different step size for hessian
-    if(any(brokenVariables)){
+    if(substr(object$model,1,10)=="Regression"){
+        modelFormula <- formula(object);
+        testModel <- structure(list(call=object$call,
+                                    data=as.matrix(model.matrix(modelFormula,
+                                                                data=model.frame(modelFormula, data=object$data))),
+                                    distribution=object$distribution, occurrence=object$occurrence,
+                                    coefficients=coef(object), logLik=logLik(object),
+                                    residuals=residuals(object), df=nparam(object), loss=object$loss,
+                                    other=object$other),
+                               class=c("alm","greybox"));
+        testModel$call$formula <- modelFormula;
+        testModel$data[,1] <- object$data[,1];
+        colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
+        return(vcov(testModel));
+    }
+    else{
         modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                             FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                                             FI=TRUE, stepSize=ellipsis$stepSize));
+        # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
         brokenVariables <- apply(modelReturn$FI==0,1,all);
-    }
-    if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-        warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                       "which means that the likelihood was not maximised properly. ",
-                       "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
-    }
-    FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
-
-    vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-    if(inherits(vcovMatrix,"try-error")){
-        vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-        if(inherits(vcovMatrix,"try-error")){
-            warning(paste0("Sorry, but the hessian is singular, so we could not invert it.\n",
-                           "We failed to produce the covariance matrix of parameters."),
-                    call.=FALSE);
-            vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+        # If there are issues, try the same stuff, but with a different step size for hessian
+        if(any(brokenVariables)){
+            modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
+                                                 FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+            brokenVariables <- apply(modelReturn$FI==0,1,all);
         }
-    }
-    # If there were broken variables, reproduce the zero elements.
-    # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-    modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-    modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+        if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+            warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+                           "which means that the likelihood was not maximised properly. ",
+                           "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
+        }
+        FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
-    # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-    diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+        vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+        if(inherits(vcovMatrix,"try-error")){
+            vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
+            if(inherits(vcovMatrix,"try-error")){
+                warning(paste0("Sorry, but the hessian is singular, so we could not invert it.\n",
+                               "We failed to produce the covariance matrix of parameters."),
+                        call.=FALSE);
+                vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+            }
+        }
+        # If there were broken variables, reproduce the zero elements.
+        # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+        modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+        modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+
+        # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+        diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+    }
 
     return(modelReturn$FI);
 }
