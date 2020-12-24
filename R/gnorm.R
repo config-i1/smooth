@@ -44,18 +44,24 @@ pgnorm <- function(q, mu = 0, alpha = 1, beta = 1,
     beta[is.na(beta)] <- 0
   }
 
-  p <- (1/2 + sign(q - mu[])* pgamma(abs(q - mu)^beta, shape = 1/beta, rate = (1/alpha)^beta)/2)
-  if (lower.tail) {
-    if (!log.p) {
-      return(p)
-    } else {
-      return(log(p))
-    }
-  } else if (!lower.tail) {
-    if (!log.p) {
-      return(1 - p)
-    } else {
-      return(log(1 - p))
+  # Failsafe mechanism. If beta is too high, switch to uniform
+  if(beta>100){
+    return(punif(q, min=mu-alpha, mu+alpha, lower.tail=lower.tail, log.p=log.p))
+  }
+  else{
+    p <- (1/2 + sign(q - mu[])* pgamma(abs(q - mu)^beta, shape = 1/beta, rate = (1/alpha)^beta)/2)
+    if (lower.tail) {
+      if (!log.p) {
+        return(p)
+      } else {
+        return(log(p))
+      }
+    } else if (!lower.tail) {
+      if (!log.p) {
+        return(1 - p)
+      } else {
+        return(log(1 - p))
+      }
     }
   }
 }
@@ -89,8 +95,14 @@ qgnorm <- function(p, mu = 0, alpha = 1, beta = 1,
     p <- log(1 - p)
   }
 
-  lambda <- (1/alpha)^beta
-  gnormValues <- (sign(p-0.5)*qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = 1/lambda)^(1/beta) + mu)
+  # Failsafe mechanism. If beta is too high, switch to uniform
+  if(beta>100){
+    gnormValues <- qunif(p, min=mu-alpha, mu+alpha);
+  }
+  else{
+    lambda <- (1/alpha)^beta
+    gnormValues <- (sign(p-0.5)*qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = 1/lambda)^(1/beta) + mu)
+  }
 
   return(gnormValues)
 }
@@ -113,7 +125,8 @@ rgnorm <- function(n, mu = 0, alpha = 1, beta = 1) {
     beta[is.na(beta)] <- 0
   }
 
-  lambda <- (1/alpha)^beta
-  gnormValues <- qgamma(runif(n), shape = 1/beta, scale = alpha^beta)^(1/beta)*((-1)^rbinom(n, 1, 0.5)) + mu
+  gnormValues <- qgnorm(runif(n), mu=mu, alpha=alpha, beta=beta)
+  # lambda <- (1/alpha)^beta
+  # gnormValues <- qgamma(runif(n), shape = 1/beta, scale = alpha^beta)^(1/beta)*((-1)^rbinom(n, 1, 0.5)) + mu
   return(gnormValues)
 }
