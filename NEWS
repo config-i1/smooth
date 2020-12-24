@@ -5,12 +5,12 @@ Changes:
 * The vector of parameters B now also has proper names in adam().
 * Reduced the default number of iterations for ARIMA to the same as for ETS.
 * The default loss for es(), ces(), ssarima(), msarima() is now "likelihood", assuming normality of the response variable.
-* adam() now contains the parameter constant, which adds constant (mean) in the model. This is needed for ARIMA part of the model.
+* adam() now contains the parameter constant, which adds constant (mean) in the model. This is needed for ARIMA part of the model. It acts as a mean / drift, depending on the differences.
 * New initials for the explanatory variables (factors). Should converge faster to the optimum.
 * We now use mean with 1% trimming in forecast.adam() for models with T="M". This should help in some cases with outliers.
 * Reintroduced the bounds for the parameters of adam().
 * maxeval in ves() now depends on the number of parameters to estimate.
-* constant in ADAM ARIMA now acts as mean / drift, depending on the differences.
+* adam() now accepts orders=list(...,select=TRUE), calling for auto.adam() in this case.
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.

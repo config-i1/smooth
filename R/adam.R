@@ -129,11 +129,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' a type \code{orders=list(ar=c(p,P),i=c(d,D),ma=c(q,Q))}, in which case the \code{lags}
 #' variable is used in order to determine the seasonality m. See \link[smooth]{msarima}
 #' for details.
-#'
-#' In case of \code{auto.adam()} function, \code{orders} accepts one more parameters:
-#' \code{orders=list(select=FALSE)}. If \code{TRUE}, then the function will select the most
-#' appropriate order using a mechanism similar to \code{auto.msarima()}. The values
-#' \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in this case.
+#' In addition, \code{orders} accepts one more parameter: \code{orders=list(select=FALSE)}.
+#' If \code{TRUE}, then the function will select the most appropriate order using a
+#' mechanism similar to \code{auto.msarima()}, but implemented in \code{auto.adam()}.
+#' The values \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in
+#' this case.
 #' @param formula Formula to use in case of explanatory variables. If \code{NULL},
 #' then all the variables are used as is. Only considered if \code{data} is a matrix and
 #' \code{regressors="use"}.
@@ -345,7 +345,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @importFrom utils head
 #' @rdname adam
 #' @export adam
-adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0)),
+adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                  constant=FALSE, formula=NULL, regressors=c("use","select","adapt"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                 "dlnorm","dinvgauss"),

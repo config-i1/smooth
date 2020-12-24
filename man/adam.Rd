@@ -6,12 +6,13 @@
 \title{ADAM is Augmented Dynamic Adaptive Model}
 \usage{
 adam(data, model = "ZXZ", lags = c(1, frequency(data)), orders = list(ar
-  = c(0), i = c(0), ma = c(0)), constant = FALSE, formula = NULL,
-  regressors = c("use", "select", "adapt"), distribution = c("default",
-  "dnorm", "dlaplace", "ds", "dgnorm", "dalaplace", "dlnorm", "dinvgauss"),
-  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
+  = c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
+  formula = NULL, regressors = c("use", "select", "adapt"),
+  distribution = c("default", "dnorm", "dlaplace", "ds", "dgnorm",
+  "dalaplace", "dlnorm", "dinvgauss"), loss = c("likelihood", "MSE", "MAE",
+  "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
+  holdout = FALSE, persistence = NULL, phi = NULL,
+  initial = c("optimal", "backcasting"), arma = NULL,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
   bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
@@ -86,11 +87,11 @@ either as a vector (in which case the non-seasonal ARIMA is assumed) or as a lis
 a type \code{orders=list(ar=c(p,P),i=c(d,D),ma=c(q,Q))}, in which case the \code{lags}
 variable is used in order to determine the seasonality m. See \link[smooth]{msarima}
 for details.
-
-In case of \code{auto.adam()} function, \code{orders} accepts one more parameters:
-\code{orders=list(select=FALSE)}. If \code{TRUE}, then the function will select the most
-appropriate order using a mechanism similar to \code{auto.msarima()}. The values
-\code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in this case.}
+In addition, \code{orders} accepts one more parameter: \code{orders=list(select=FALSE)}.
+If \code{TRUE}, then the function will select the most appropriate order using a
+mechanism similar to \code{auto.msarima()}, but implemented in \code{auto.adam()}.
+The values \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in
+this case.}
 
 \item{constant}{Logical, determining, whether the constant is needed in the model or not.
 This is mainly needed for ARIMA part of the model, but can be used for ETS as well. In
