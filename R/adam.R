@@ -1714,10 +1714,6 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             B[j] <- other;
             names(B)[j] <- "other";
             Bl[j] <- 1e-10;
-            # In case of multiplicative error, low value is dangerous
-            if(distribution=="dgnorm" && Etype=="M"){
-                Bl[j] <- 1;
-            }
             Bu[j] <- Inf;
         }
 

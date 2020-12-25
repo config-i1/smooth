@@ -103,10 +103,10 @@ qgnorm <- function(p, mu = 0, alpha = 1, beta = 1,
   else if((1/alpha)^beta<1e-300){
     lambdaScale <- ceiling(alpha) / 10
     lambda <- (alpha/lambdaScale)^(beta)
-    gnormValues <- (sign(p-0.5)*(qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda))^(1/beta) + mu)*lambdaScale
+    gnormValues <- (sign(p-0.5)*(qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda))^(1/beta)*lambdaScale + mu)
   }
   else{
-    lambda <- alpha^(-beta)
+    lambda <- alpha^(beta)
     gnormValues <- (sign(p-0.5)*qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda)^(1/beta) + mu)
   }
 
@@ -132,7 +132,6 @@ rgnorm <- function(n, mu = 0, alpha = 1, beta = 1) {
   }
 
   gnormValues <- qgnorm(runif(n), mu=mu, alpha=alpha, beta=beta)
-  # lambda <- (1/alpha)^beta
   # gnormValues <- qgamma(runif(n), shape = 1/beta, scale = alpha^beta)^(1/beta)*((-1)^rbinom(n, 1, 0.5)) + mu
   return(gnormValues)
 }

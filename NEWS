@@ -11,7 +11,6 @@ Changes:
 * Reintroduced the bounds for the parameters of adam().
 * maxeval in ves() now depends on the number of parameters to estimate.
 * adam() now accepts orders=list(...,select=TRUE), calling for auto.adam() in this case.
-* Impose restrictions on the parameter beta of GN distribution (>1)
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
