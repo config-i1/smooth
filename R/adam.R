@@ -1714,6 +1714,10 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
             B[j] <- other;
             names(B)[j] <- "other";
             Bl[j] <- 1e-10;
+            # In case of multiplicative error, low value is dangerous
+            if(distribution=="dgnorm" && Etype=="M"){
+                Bl[j] <- 1;
+            }
             Bu[j] <- Inf;
         }
 
@@ -7094,7 +7098,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
         # States, Errors, Ot, Transition, Measurement, Persistence
         ySimulated <- adamSimulatorWrap(arrVt, matErrors,
-                                        # matrix(rep(1,h*nsim), h, nsim),
                                         matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
                                         array(matF,c(dim(matF),nsim)), matWt,
                                         matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
