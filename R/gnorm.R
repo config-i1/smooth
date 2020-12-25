@@ -96,11 +96,11 @@ qgnorm <- function(p, mu = 0, alpha = 1, beta = 1,
   }
 
   # Failsafe mechanism. If beta is too high, switch to uniform
-  if(beta>100){
+  if(all(beta>100)){
     gnormValues <- qunif(p, min=mu-alpha, mu+alpha);
   }
   # If it is not too bad, scale the scale parameter
-  else if((1/alpha)^beta<1e-300){
+  else if(any((1/alpha)^beta<1e-300)){
     lambdaScale <- ceiling(alpha) / 10
     lambda <- (alpha/lambdaScale)^(beta)
     gnormValues <- (sign(p-0.5)*(qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda))^(1/beta)*lambdaScale + mu)
