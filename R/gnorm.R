@@ -99,9 +99,15 @@ qgnorm <- function(p, mu = 0, alpha = 1, beta = 1,
   if(beta>100){
     gnormValues <- qunif(p, min=mu-alpha, mu+alpha);
   }
+  # If it is not too bad, scale the scale parameter
+  else if((1/alpha)^beta<1e-300){
+    lambdaScale <- ceiling(alpha) / 10
+    lambda <- (alpha/lambdaScale)^(beta)
+    gnormValues <- (sign(p-0.5)*(qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda))^(1/beta) + mu)*lambdaScale
+  }
   else{
-    lambda <- (1/alpha)^beta
-    gnormValues <- (sign(p-0.5)*qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = 1/lambda)^(1/beta) + mu)
+    lambda <- alpha^(-beta)
+    gnormValues <- (sign(p-0.5)*qgamma(abs(p - 0.5)*2, shape = 1/beta, scale = lambda)^(1/beta) + mu)
   }
 
   return(gnormValues)
