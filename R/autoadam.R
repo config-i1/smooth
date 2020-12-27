@@ -600,8 +600,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                     cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
                                     cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                 }
-                                # maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
-                                maTest[seasSelectMA] <- maSelect;
+                                maTest[seasSelectMA] <- maMax[seasSelectMA] - maSelect + 1;
+                                # maTest[seasSelectMA] <- maSelect;
 
                                 # Run the model for MA
                                 testModel <- try(adam(data=dataI, model="NNN", lags=lags,
@@ -671,8 +671,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                     cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
                                                     cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                                 }
-                                                # arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
-                                                arTest[seasSelectAR] <- arSelect;
+                                                arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
+                                                # arTest[seasSelectAR] <- arSelect;
 
                                                 # Run the model for AR
                                                 testModel <- try(adam(data=dataMA, model="NNN", lags=lags,
@@ -748,8 +748,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                         cat(paste0(rep("\b",nchar(round(m/nModelsARIMA,2)*100)+1),collapse=""));
                                         cat(round((m)/nModelsARIMA,2)*100,"\b%");
                                     }
-                                    # arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
-                                    arTest[seasSelectAR] <- arSelect;
+                                    arTest[seasSelectAR] <- arMax[seasSelectAR] - arSelect + 1;
+                                    # arTest[seasSelectAR] <- arSelect;
 
                                     # Run the model for MA
                                     testModel <- try(adam(data=dataI, model="NNN", lags=lags,
@@ -816,12 +816,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
 
             # If no differences, then add constant
-            # if(!etsModel && all(iBest==0)){
+            if(!etsModel && all(iBest==0)){
                 constant <- TRUE;
-            # }
-            # else{
-            #     constant <- FALSE;
-            # }
+            }
+            else{
+                constant <- FALSE;
+            }
 
             #### Reestimate the best model in order to get rid of bias ####
             # Run the model for MA
