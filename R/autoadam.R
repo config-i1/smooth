@@ -816,12 +816,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
 
             # If no differences, then add constant
-            if(!etsModel && all(iBest==0)){
+            # if(!etsModel && all(iBest==0)){
                 constant <- TRUE;
-            }
-            else{
-                constant <- FALSE;
-            }
+            # }
+            # else{
+            #     constant <- FALSE;
+            # }
 
             #### Reestimate the best model in order to get rid of bias ####
             # Run the model for MA
