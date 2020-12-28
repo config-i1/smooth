@@ -1583,41 +1583,42 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         if(arimaModel){
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
-                # If this is ETS + ARIMA model, then don't bother with initials
-                # if(etsModel){
-                #     acfValues <- rep(0.1, maOrders %*% lags);
-                #     pacfValues <- rep(-0.1, arOrders %*% lags);
-                # }
-                # # Otherwise use ACF / PACF values as starting parameters for ARIMA
-                # else{
-                #     yDifferenced <- yInSample;
-                #     # If the model has differences, take them
-                #     if(any(iOrders>0)){
-                #         for(i in 1:length(iOrders)){
-                #             if(iOrders[i]>0){
-                #                 yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
-                #             }
-                #         }
-                #     }
-                #     if(maRequired && maEstimate){
-                #         acfValues <- acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
-                #     }
-                #     if(arRequired && arEstimate){
-                #         pacfValues <- pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
-                #     }
-                # }
+                # If this is ETS + ARIMA model or no differences model, then don't bother with initials
+                # The latter does not make sense because of non-stationarity in ACF / PACF
+                if(etsModel || all(iOrders==0)){
+                    acfValues <- rep(0.1, maOrders %*% lags);
+                    pacfValues <- rep(-0.1, arOrders %*% lags);
+                }
+                # Otherwise use ACF / PACF values as starting parameters for ARIMA
+                else{
+                    yDifferenced <- yInSample;
+                    # If the model has differences, take them
+                    if(any(iOrders>0)){
+                        for(i in 1:length(iOrders)){
+                            if(iOrders[i]>0){
+                                yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
+                            }
+                        }
+                    }
+                    if(maRequired && maEstimate){
+                        acfValues <- acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
+                    }
+                    if(arRequired && arEstimate){
+                        pacfValues <- pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
+                    }
+                }
                 for(i in 1:length(lags)){
                     if(arRequired && arEstimate && arOrders[i]>0){
-                        # B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
-                        B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
+                        B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                        # B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
                         Bl[j+c(1:arOrders[i])] <- -5;
                         Bu[j+c(1:arOrders[i])] <- 5;
                         names(B)[j+1:arOrders[i]] <- paste0("phi",1:arOrders[i],"[",lags[i],"]");
                         j[] <- j + arOrders[i];
                     }
                     if(maRequired && maEstimate && maOrders[i]>0){
-                        # B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
-                        B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
+                        B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                        # B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
                         Bl[j+c(1:maOrders[i])] <- -5;
                         Bu[j+c(1:maOrders[i])] <- 5;
                         names(B)[j+1:maOrders[i]] <- paste0("theta",1:maOrders[i],"[",lags[i],"]");
