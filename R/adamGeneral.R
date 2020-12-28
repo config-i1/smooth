@@ -2132,7 +2132,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     # If the sample is smaller than the number of parameters
     if(obsNonzero <= nParamMax){
         # If there is both ETS and ARIMA, remove ARIMA
-        if(etsModel && arimaModel){
+        if(etsModel && arimaModel && !select){
             warning("We don't have enough observations to fit ETS with ARIMA terms. We will construct the simple ETS.",
                     call.=FALSE);
             lagsModelAll <- lagsModelAll[-c(componentsNumberETS+c(1:componentsNumberARIMA)),,drop=FALSE];
@@ -2143,7 +2143,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             initialArimaNumber <- componentsNumberARIMA <- 0;
             lagsModelMax <- max(lagsModelAll);
         }
-        else if(arimaModel && !etsModel){
+        else if(arimaModel && !etsModel && !select){
             # If the backacasting helps, switch to it.
             if(initialType=="optimal" && (obsNonzero > (nParamMax - (initialType=="optimal")*initialArimaNumber))){
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
@@ -2170,7 +2170,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         }
     }
 
-    if(arimaModel && obsNonzero < initialArimaNumber){
+    if(arimaModel && obsNonzero < initialArimaNumber && !select){
         warning(paste0("In-sample size is ",obsNonzero,", while number of ARIMA components is ",initialArimaNumber,
                        ". Cannot fit the model."),call.=FALSE)
         stop("Not enough observations for such a complicated model.",call.=FALSE);
