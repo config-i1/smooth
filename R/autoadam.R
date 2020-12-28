@@ -484,12 +484,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                      h=h,holdout=holdout, occurrence=occurrence, bounds=bounds, silent=TRUE);
                 dataAR <- dataI <- dataMA <- yInSample <- actuals(testModelETS);
 
-                # Originally, we only have a constant
-                nParamOriginal <- 1;
+                # This should be zero, because we do not use residuals of this
+                nParamOriginal <- 0;
             }
             testModel <- testModelETS;
-            bestIC <- bestICI <- IC(testModel);
-            ICValue <- 1E+100;
+            ICValue <- bestIC <- bestICI <- IC(testModel);
             testLogLikAR <- testLogLikI <- testLogLikMA <- testLogLik <- logLik(testModel);
             obsNonzero <- nobs(testModel,all=FALSE);
 
@@ -560,11 +559,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                            nParamOriginal + nParamInitial,
                                            obsNonzero);
                 }
-                else{
-                    testLogLikI <- logLik(testModel);
-                    # Extract Information criterion and logLik
-                    ICValue <- IC(testModel);
-                }
 
                 if(silentDebug){
                     cat("I:",iOrders[d,],"\b,",ICValue,"\n");
@@ -572,6 +566,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(ICValue <= bestICI){
                     bestICI <- ICValue;
                     dataMA <- dataI <- residuals(testModel);
+                    nParamOriginal <- nparam(testModelETS)-1;
                     if(ICValue < bestIC){
                         iBest <- iOrders[d,];
                         bestIC <- ICValue;
