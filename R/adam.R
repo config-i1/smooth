@@ -1610,6 +1610,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                 for(i in 1:length(lags)){
                     if(arRequired && arEstimate && arOrders[i]>0){
                         B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                        if(sum(B[j+c(1:arOrders[i])])>1){
+                            B[j+c(1:arOrders[i])] <- B[j+c(1:arOrders[i])] / sum(B[j+c(1:arOrders[i])]) - 0.01;
+                        }
                         # B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
                         Bl[j+c(1:arOrders[i])] <- -5;
                         Bu[j+c(1:arOrders[i])] <- 5;
@@ -1618,6 +1621,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
                     }
                     if(maRequired && maEstimate && maOrders[i]>0){
                         B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                        if(sum(B[j+c(1:maOrders[i])])>1){
+                            B[j+c(1:maOrders[i])] <- B[j+c(1:maOrders[i])] / sum(B[j+c(1:maOrders[i])]) - 0.01;
+                        }
                         # B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
                         Bl[j+c(1:maOrders[i])] <- -5;
                         Bu[j+c(1:maOrders[i])] <- 5;
