@@ -248,7 +248,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' You can also pass parameters to the optimiser in order to fine tune its work:
 #' \itemize{
 #' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 40 per
-#' estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
+#' estimated parameter for ETS, 80 per parameter for ARIMA and at least 500 if
 #' explanatory variables are introduced in the model;
 #' \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
 #' \item \code{xtol_rel} - the relative precision of the optimiser (the default is 1E-6);
@@ -2432,8 +2432,7 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && (arEstimate | maEstimate) &&
-           is.null(B) && all(iOrders<2)){
+        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             adamElements <- filler(BValues$B,
                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                    componentsNumberETS, componentsNumberETSNonSeasonal,
@@ -2543,9 +2542,9 @@ adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(
         if(is.null(maxeval)){
             maxevalUsed <- length(B) * 40;
             # If this is pure ARIMA, take more time
-            # if(arimaModel && !etsModel){
-            #     maxevalUsed <- max(1000,maxevalUsed);
-            # }
+            if(arimaModel && !etsModel){
+                maxevalUsed <- length(B) * 80;
+            }
             # # If it is xregModel, do at least 500 iterations
             # else
             if(xregModel){

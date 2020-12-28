@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2020-12-25)
+smooth v3.0.1 (Release data: 2020-12-28)
 =======
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 * Reintroduced the bounds for the parameters of adam().
 * maxeval in ves() now depends on the number of parameters to estimate.
 * adam() now accepts orders=list(...,select=TRUE), calling for auto.adam() in this case.
+* Tuning of initials for ADAM ARIMA and increased maxeval for ARIMA.
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
