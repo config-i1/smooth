@@ -248,7 +248,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' You can also pass parameters to the optimiser in order to fine tune its work:
 #' \itemize{
 #' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 40 per
-#' estimated parameter, at least 1000 if pure ARIMA is considered and at least 500 if
+#' estimated parameter for ETS, 80 per parameter for ARIMA and at least 500 if
 #' explanatory variables are introduced in the model;
 #' \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
 #' \item \code{xtol_rel} - the relative precision of the optimiser (the default is 1E-6);
@@ -1583,16 +1583,48 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
+                # If this is ETS + ARIMA model or no differences model, then don't bother with initials
+                # The latter does not make sense because of non-stationarity in ACF / PACF
+                if(etsModel || all(iOrders==0)){
+                    acfValues <- rep(0.1, maOrders %*% lags);
+                    pacfValues <- rep(-0.1, arOrders %*% lags);
+                }
+                # Otherwise use ACF / PACF values as starting parameters for ARIMA
+                else{
+                    yDifferenced <- yInSample;
+                    # If the model has differences, take them
+                    if(any(iOrders>0)){
+                        for(i in 1:length(iOrders)){
+                            if(iOrders[i]>0){
+                                yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
+                            }
+                        }
+                    }
+                    if(maRequired && maEstimate){
+                        acfValues <- acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
+                    }
+                    if(arRequired && arEstimate){
+                        pacfValues <- pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
+                    }
+                }
                 for(i in 1:length(lags)){
                     if(arRequired && arEstimate && arOrders[i]>0){
-                        B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
+                        B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                        if(sum(B[j+c(1:arOrders[i])])>1){
+                            B[j+c(1:arOrders[i])] <- B[j+c(1:arOrders[i])] / sum(B[j+c(1:arOrders[i])]) - 0.01;
+                        }
+                        # B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
                         Bl[j+c(1:arOrders[i])] <- -5;
                         Bu[j+c(1:arOrders[i])] <- 5;
                         names(B)[j+1:arOrders[i]] <- paste0("phi",1:arOrders[i],"[",lags[i],"]");
                         j[] <- j + arOrders[i];
                     }
                     if(maRequired && maEstimate && maOrders[i]>0){
-                        B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
+                        B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                        if(sum(B[j+c(1:maOrders[i])])>1){
+                            B[j+c(1:maOrders[i])] <- B[j+c(1:maOrders[i])] / sum(B[j+c(1:maOrders[i])]) - 0.01;
+                        }
+                        # B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
                         Bl[j+c(1:maOrders[i])] <- -5;
                         Bu[j+c(1:maOrders[i])] <- 5;
                         names(B)[j+1:maOrders[i]] <- paste0("theta",1:maOrders[i],"[",lags[i],"]");
@@ -1888,7 +1920,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Stationarity condition of ARIMA
             if(arimaModel){
                 # Calculate the polynomial roots for AR
-                if(arEstimate && sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1){
+                if(arEstimate && (sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1 |
+                                  sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))<0)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
                     eigenValues <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
@@ -1918,7 +1951,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
                 else{
-                    if(etsModel || (arimaModel && maEstimate && sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1)){
+                    if(etsModel || (arimaModel && maEstimate && (sum(adamElements$arimaPolynomials$maPolynomial[-1])>=1 |
+                                                                 sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
                         eigenValues <- abs(eigen(adamElements$matF -
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
                                                  only.values=TRUE)$values);
@@ -2404,8 +2438,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && (arEstimate | maEstimate) &&
-           is.null(B) && all(iOrders<2)){
+        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             adamElements <- filler(BValues$B,
                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                    componentsNumberETS, componentsNumberETSNonSeasonal,
@@ -2515,9 +2548,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(is.null(maxeval)){
             maxevalUsed <- length(B) * 40;
             # If this is pure ARIMA, take more time
-            # if(arimaModel && !etsModel){
-            #     maxevalUsed <- max(1000,maxevalUsed);
-            # }
+            if(arimaModel && !etsModel){
+                maxevalUsed <- length(B) * 80;
+            }
             # # If it is xregModel, do at least 500 iterations
             # else
             if(xregModel){
