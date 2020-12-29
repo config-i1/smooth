@@ -2536,16 +2536,18 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             other <- ellipsis$alpha;
             otherParameterEstimate <- FALSE;
         }
+        names(other) <- "alpha";
     }
     else if(any(distribution==c("dgnorm","dlgnorm"))){
-        if(is.null(ellipsis$beta)){
+        if(is.null(ellipsis$shape)){
             other <- 2
             otherParameterEstimate <- TRUE;
         }
         else{
-            other <- ellipsis$beta;
+            other <- ellipsis$shape;
             otherParameterEstimate <- FALSE;
         }
+        names(other) <- "shape";
     }
     else if(distribution=="dt"){
         if(is.null(ellipsis$nu)){
@@ -2556,6 +2558,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             other <- ellipsis$nu;
             otherParameterEstimate <- FALSE;
         }
+        names(other) <- "nu";
     }
     # Fisher Information
     if(is.null(ellipsis$FI)){

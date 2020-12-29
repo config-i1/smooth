@@ -80,9 +80,9 @@ testModel
 
 Note that you need to have parameters actual, fitted and B in the function, which correspond to the vector of actual values, vector of fitted values on each iteration and a vector of the optimised parameters.
 
-`loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can. Some of distributions assume that there is an additional parameter, which can either be estimated or provided by user. These include Asymmetric Laplace (`distribution="dalaplace"`) with `alpha`, Generalised Normal and Log Generalised normal (`distribution=c("gnorm","dlgnorm")`) with `beta` and Student's T (`distribution="dt"`) with `nu`:
+`loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can. Some of distributions assume that there is an additional parameter, which can either be estimated or provided by user. These include Asymmetric Laplace (`distribution="dalaplace"`) with `alpha`, Generalised Normal and Log Generalised normal (`distribution=c("gnorm","dlgnorm")`) with `shape` and Student's T (`distribution="dt"`) with `nu`:
 ```{r}
-testModel <- adam(M3[[1234]], "MMN", silent=FALSE, distribution="dgnorm", beta=3)
+testModel <- adam(M3[[1234]], "MMN", silent=FALSE, distribution="dgnorm", shape=3)
 ```
 
 The model selection in ADAM ETS relies on information criteria and works correctly only for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):

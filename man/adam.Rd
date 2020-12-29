@@ -239,7 +239,7 @@ If equal to 41, then the detailed results of the optimisation are returned.
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
-Laplace, \code{beta} for the Generalised Normal and \code{nu} for Student's distributions
+Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
 
 \item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
@@ -333,7 +333,7 @@ Inverse Gaussian is used for the Multiplicative error models.
 \item \link[stats]{Normal} - Normal distribution,
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
-\item dgnorm - Generalised Normal distribution,
+\item \link[greybox]{dgnorm} - Generalised Normal distribution,
 \item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
 \item \link[stats]{dlnorm} - Log normal distribution,
 \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
