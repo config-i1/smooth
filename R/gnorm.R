@@ -66,6 +66,7 @@ pgnorm <- function(q, mu = 0, alpha = 1, beta = 1,
   }
 }
 
+#' @importFrom stats punif qunif
 qgnorm <- function(p, mu = 0, alpha = 1, beta = 1,
                    lower.tail = TRUE, log.p = FALSE) {
   # A failsafe for NaN / NAs of alpha / beta
