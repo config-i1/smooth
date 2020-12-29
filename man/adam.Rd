@@ -5,8 +5,8 @@
 \alias{auto.adam}
 \title{ADAM is Augmented Dynamic Adaptive Model}
 \usage{
-adam(data, model = "ZXZ", lags = c(1, frequency(data)), orders = list(ar
-  = c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
+adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
+  c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
   formula = NULL, regressors = c("use", "select", "adapt"),
   distribution = c("default", "dnorm", "dlaplace", "ds", "dgnorm",
   "dalaplace", "dlnorm", "dinvgauss"), loss = c("likelihood", "MSE", "MAE",

@@ -346,7 +346,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @importFrom utils head
 #' @rdname adam
 #' @export adam
-adam <- function(data, model="ZXZ", lags=c(1,frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
+adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                  constant=FALSE, formula=NULL, regressors=c("use","select","adapt"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                 "dlnorm","dinvgauss"),
