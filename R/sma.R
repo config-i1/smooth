@@ -80,7 +80,7 @@ utils::globalVariables(c("yForecastStart"));
 #' \item Svetunkov, I., & Petropoulos, F. (2017). Old dog, new tricks: a
 #' modelling view of simple moving averages. International Journal of
 #' Production Research, 7543(January), 1-14.
-#' \url{https://doi.org/10.1080/00207543.2017.1380326}
+#' \doi{10.1080/00207543.2017.1380326}
 #' }
 #'
 #' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},

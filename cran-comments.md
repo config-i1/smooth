@@ -9,7 +9,7 @@ This is ``smooth`` package, v3.0.0. It introduces a new function and C++ code ne
 
 ## Test environments
 * local ubuntu 20.04, R 4.0.3
-* ubuntu 16.04.6 (on travis-ci), R 4.0.0
+* ubuntu 16.04.6 (on travis-ci), R 4.0.3
 * win-builder (devel and release) - see a comment below
 * rhub with rhub::check_for_cran() command
 
@@ -24,13 +24,22 @@ checking installed package size ... NOTE
 0 errors | 0 warnings | 1 note
 
 ## win-builder check results
-win-bulder quits with the message:
-> * checking re-building of vignette outputs ... ERROR
-> Check process probably crashed or hung up for 20 minutes ... killed
-> Most likely this happened in the example checks (?),
-> if not, ignore the following last lines of example output:
+>* checking package dependencies ... NOTE
+>Package suggested but not available for checking: 'doMC'
 
-I've double checked, runnig the test on a separate MS Windows machine. It passes all the checks, only complaining about the 'doMC' package, which is not available for Windows. Not sure why this happens and what should be done with it.
+This is expected, because doMC is not available for Windows.
+
+>** running examples for arch 'i386' ... [60s] NOTE
+>Examples with CPU (user + system) or elapsed time > 10s
+>      user system elapsed
+>adam 13.78   0.08   13.85
+>** running examples for arch 'x64' ... [57s] NOTE
+>Examples with CPU (user + system) or elapsed time > 10s
+>      user system elapsed
+>adam 13.19   0.08   13.31
+
+Not sure what has happened - the updated version of the function introduces improvements in terms of speed (based on microbenchmark tests), so this is unexpected.
+
 
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
