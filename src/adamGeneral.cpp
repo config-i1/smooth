@@ -39,7 +39,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
     for (unsigned int j=1; j<nIterations; j=j+1) {
 
         // Refine the head (in order for it to make sense)
-        if(!backcast || nETS!=0){
+        // This is only needed for ETS(*,Z,*) models, with trend.
+        if(!backcast && nETS!=0 && T!='N'){
             for (int i=0; i<lagsModelMax; i=i+1) {
                 profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
