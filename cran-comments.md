@@ -45,7 +45,7 @@ Not sure what has happened - the updated version of the function introduces impr
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
 > Package suggested but not available: 'doMC'
 > The suggested packages are required for a complete check.
-
+    
 This is because doMC is not available for Windows.
 
 ### Debian Linux, R-devel, GCC ASAN/UBSAN
