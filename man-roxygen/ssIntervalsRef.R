@@ -5,5 +5,5 @@
 #' \item Lichtendahl Kenneth C., Jr., Grushka-Cockayne Yael, Winkler
 #' Robert L., (2013) Is It Better to Average Probabilities or
 #' Quantiles? Management Science 59(7):1594-1611. DOI:
-#' [10.1287/mnsc.1120.1667](https://doi.org/10.1287/mnsc.1120.1667)
+#' \doi{10.1287/mnsc.1120.1667}
 #' }

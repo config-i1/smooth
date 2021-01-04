@@ -188,7 +188,7 @@ plot(forecast(ourModel))
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
+Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 
 \itemize{
@@ -207,7 +207,7 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 \itemize{
 \item Svetunkov, I., & Boylan, J. E. (2019). State-space ARIMA for supply-chain forecasting.
 International Journal of Production Research, 0(0), 1–10.
-\url{https://doi.org/10.1080/00207543.2019.1600764}
+\doi{10.1080/00207543.2019.1600764}
 }
 }
 \seealso{

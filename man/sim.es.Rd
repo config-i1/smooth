@@ -142,7 +142,7 @@ iETSMNN <- sim.es("MNN",obs=50,frequency=12,persistence=0.2,initial=4,
 Journal of the Royal Statistical Society, Series B (Methodological) 47 (2), 272-276.
 \item Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 Forecasting with exponential smoothing: the state space approach,
-Springer-Verlag. \url{http://dx.doi.org/10.1007/978-3-540-71918-2}.
+Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 }
 \seealso{

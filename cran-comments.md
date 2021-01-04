@@ -1,15 +1,14 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "08 December 2020"
+date: "05 January 2021"
 output: html_document
 ---
 ## Version
 This is ``smooth`` package, v3.0.0. It introduces a new function and C++ code needed for it, together with extensive testthat examples to make sure that it works well.
 
 ## Test environments
-* local ubuntu 19.10, R 4.0.3
-* local Windows 10, R 4.0.3
+* local ubuntu 20.04, R 4.0.3
 * ubuntu 16.04.6 (on travis-ci), R 4.0.0
 * win-builder (devel and release) - see a comment below
 * rhub with rhub::check_for_cran() command

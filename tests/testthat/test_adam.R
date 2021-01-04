@@ -391,46 +391,53 @@ test_that("Reuse ADAM ETSX(ANN)+SARIMA(2,1,2)(0,0,1)[12] on N2568", {
 
 #### auto.adam ####
 # Select the best distribution for ETS(ZZZ) on 2568
-testModel <- auto.adam(Mcomp::M3[[2568]], "ZZZ");
 test_that("Best auto.adam on N2568", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testModel <- auto.adam(Mcomp::M3[[2568]], "ZZZ")
+    expect_match(testModel$loss, "likelihood")
 })
 
 # Outliers detection for ETS on series N291 of M1 in parallel
-testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use");
 test_that("Detect outliers for ETS(ZZZ) on N291", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testModel <- auto.adam(Mcomp::M1[[291]], "ZZZ", outliers="use")
+    expect_match(testModel$loss, "likelihood")
 })
 
 # Best ARIMA on the 2568
-testModel <- auto.adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE));
 test_that("Best auto.adam ARIMA on N2568", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testModel <- auto.adam(Mcomp::M3[[2568]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE))
+    expect_match(testModel$loss, "likelihood")
 })
 
 # Outliers detection for ARIMA on series N291 of M1 in parallel
-testModel <- auto.adam(Mcomp::M1[[291]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       outliers="use");
 test_that("Detect outliers for ARIMA on N291", {
-    expect_equal(ncol(testModel$data),2);
+    skip_on_cran()
+    testModel <- auto.adam(Mcomp::M1[[291]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
+                           outliers="use")
+    expect_equal(ncol(testModel$data),2)
 })
 
 # Best ETS+ARIMA+Regression on the 2568
-testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       lags=c(1,12), regressors="select", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression on N2568", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
+                           lags=c(1,12), regressors="select", initial="back")
+    expect_match(testModel$loss, "likelihood")
 })
 
 # Summary of the best model
-testSummary <- summary(testModel);
 test_that("Summary of the produced ADAM model", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testSummary <- summary(testModel)
+    expect_match(testModel$loss, "likelihood")
 })
 
 # Best ETS+ARIMA+Regression on the 2568
-testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
-                       outliers="use", regressors="use", initial="back");
 test_that("Best auto.adam ETS+ARIMA+Regression+outliers on N2568", {
-    expect_match(testModel$loss, "likelihood");
+    skip_on_cran()
+    testModel <- auto.adam(xreg, "ZZZ", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
+                           outliers="use", regressors="use", initial="back")
+    expect_match(testModel$loss, "likelihood")
 })

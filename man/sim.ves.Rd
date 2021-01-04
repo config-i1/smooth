@@ -135,7 +135,7 @@ Springer-Verlag.
 \item Lütkepohl, H. (2005). New Introduction to Multiple Time Series
 Analysis. New introduction to Multiple Time Series Analysis. Berlin,
 Heidelberg: Springer Berlin Heidelberg.
-\url{https://doi.org/10.1007/978-3-540-27752-1}
+\doi{10.1007/978-3-540-27752-1}
 }
 }
 \seealso{
