@@ -328,11 +328,12 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' plot(ourModel, c(1:11))
 #'
 #' # Model combination using a specified pool
-#' ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"), lags=c(5,10))
+#' \dontrun{ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"),
+#'                           lags=c(5,10))}
 #'
 #' # ADAM ARIMA
-#' ourModel <- adam(rnorm(100,100,10), model="NNN",
-#'                  lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))
+#' \dontrun{ourModel <- adam(rnorm(100,100,10), model="NNN",
+#'                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
 #'
 #' @importFrom forecast forecast na.interp
 #' @importFrom greybox dlaplace dalaplace ds dgnorm
