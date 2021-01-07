@@ -896,12 +896,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         else{
             occurrenceModelProvided <- TRUE;
         }
+        pFitted <- matrix(fitted(oesModel), obsInSample, 1);
     }
     else{
         occurrenceModelProvided <- FALSE;
         oesModel <- NULL;
+        pFitted <- matrix(1, obsInSample, 1);
     }
-    pFitted <- matrix(1, obsInSample, 1);
     pForecast <- rep(NA,h);
 
     if(is.numeric(occurrence)){
@@ -1627,6 +1628,20 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             xregFactorsLevels[[responseName]] <- NULL;
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(formulaProvided,data=as.data.frame(xreg));
+            # If the number of rows is different, this might be because of NAs
+            if(nrow(xregData)!=nrow(xreg)){
+                warning("Some explanatory variables contained NAs. This might cause issues in the estimation. ",
+                        "We will substitute those values with the first non-NA values",
+                        call.=FALSE);
+                # Get indices of NAs and nonNAs
+                xregNAs <- which(is.na(xreg),arr.ind=TRUE);
+                xregNonNAs <- which(!is.na(xreg),arr.ind=TRUE);
+                # Go through variables and substitute values
+                for(i in unique(xregNAs[,2])){
+                    xreg[xregNAs[xregNAs[,2]==i,]] <- xreg[xregNonNAs[which(xregNonNAs[,2]==i)[1],,drop=FALSE]];
+                }
+                xregData <- model.frame(formulaProvided,data=as.data.frame(xreg));
+            }
             # Get the response variable, just in case it was transformed
             if(length(formulaProvided[[2]])>1){
                 y <- xregData[,1];

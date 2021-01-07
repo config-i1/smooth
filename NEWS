@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-05)
+smooth v3.0.1 (Release data: 2021-01-06)
 =======
 
 Changes:
@@ -22,6 +22,8 @@ Bugfixes:
 * Bugfix in ADAM ARIMA for the profilesObserved and constant. The model should be initialised correctly now.
 * Fixing auto.adam ARIMA selection and non standard distributions.
 * A bugfix in ADAM regression and vcov(). We now use alm() directly.
+* A fix for cases, when explanatory variables contain NAs.
+* A fix in fitted for mixture models in adam().
 
 
 smooth v3.0.0 (Release data: 2020-12-07)
