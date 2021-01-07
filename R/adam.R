@@ -7649,14 +7649,16 @@ plot.adam.forecast <- function(x, ...){
     }
 
     if(!is.null(x$model$holdout)){
+        responseName <- all.vars(formula(x$model))[1];
+        yHoldout <- x$model$holdout[,responseName]
         if(any(yClasses=="ts")){
-            ellipsis$actuals <- ts(c(actuals(x$model),x$model$holdout[,1]),
+            ellipsis$actuals <- ts(c(actuals(x$model),yHoldout),
                                    start=start(actuals(x$model)),
                                    frequency=frequency(actuals(x$model)));
         }
         else{
-            ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(x$model$holdout[,1])),
-                                    order.by=c(time(actuals(x$model)),time(x$model$holdout)));
+            ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(yHoldout)),
+                                    order.by=c(time(actuals(x$model)),time(yHoldout)));
         }
     }
     else{
