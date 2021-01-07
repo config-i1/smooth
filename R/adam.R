@@ -5177,12 +5177,14 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         ellipsis$actuals <- actuals(x);
         if(!is.null(x$holdout)){
+            responseName <- all.vars(formula(x))[1];
+            yHoldout <- x$holdout[,responseName]
             if(is.zoo(ellipsis$actuals)){
-                ellipsis$actuals <- zoo(c(as.vector(ellipsis$actuals),as.vector(x$holdout[,1])),
-                                        order.by=c(time(ellipsis$actuals),time(x$holdout)));
+                ellipsis$actuals <- zoo(c(as.vector(ellipsis$actuals),as.vector(yHoldout)),
+                                        order.by=c(time(ellipsis$actuals),time(yHoldout)));
             }
             else{
-                ellipsis$actuals <- ts(c(ellipsis$actuals,x$holdout[,1]),
+                ellipsis$actuals <- ts(c(ellipsis$actuals,yHoldout),
                                        start=start(ellipsis$actuals),
                                        frequency=frequency(ellipsis$actuals));
             }
@@ -8835,7 +8837,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
     # Model type
     Ttype <- substr(modelType(object),2,2);
 
-    h <- length(object$holdout);
+    h <- length(object$forecast);
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
     lagsOriginal <- lags(object);

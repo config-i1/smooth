@@ -24,6 +24,7 @@ Bugfixes:
 * A bugfix in ADAM regression and vcov(). We now use alm() directly.
 * A fix for cases, when explanatory variables contain NAs.
 * A fix in fitted for mixture models in adam().
+* A fix for the plot of objects in case of holdout.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)
