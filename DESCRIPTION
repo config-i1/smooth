@@ -42,8 +42,6 @@ Suggests:
     doMC,
     doParallel,
     foreach
-Remotes:
-    config-i1/greybox
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 Encoding: UTF-8

@@ -1,11 +1,11 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "05 January 2021"
+date: "09 January 2021"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.0.0. It introduces a new function and C++ code needed for it, together with extensive testthat examples to make sure that it works well.
+This is ``smooth`` package, v3.0.1.
 
 ## Test environments
 * local ubuntu 20.04, R 4.0.3
@@ -16,11 +16,11 @@ This is ``smooth`` package, v3.0.0. It introduces a new function and C++ code ne
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-    installed size is 28.6Mb
-    sub-directories of 1Mb or more:
-      R      1.3Mb
-      doc    3.9Mb
-      libs  22.9Mb
+     installed size is 28.7Mb
+     sub-directories of 1Mb or more:
+       R      1.3Mb
+       doc    3.9Mb
+       libs  23.0Mb
 0 errors | 0 warnings | 1 note
 
 ## win-builder check results
@@ -29,17 +29,7 @@ checking installed package size ... NOTE
 
 This is expected, because doMC is not available for Windows.
 
->** running examples for arch 'i386' ... [60s] NOTE
->Examples with CPU (user + system) or elapsed time > 10s
->      user system elapsed
->adam 13.78   0.08   13.85
->** running examples for arch 'x64' ... [57s] NOTE
->Examples with CPU (user + system) or elapsed time > 10s
->      user system elapsed
->adam 13.19   0.08   13.31
-
-Not sure what has happened - the updated version of the function introduces improvements in terms of speed (based on microbenchmark tests), so this is unexpected.
-
+I had to remove almost all examples in the adam() function, because they were working too slow for some reason. In reality the function is faster than the v3.0.0
 
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
