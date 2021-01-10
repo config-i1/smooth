@@ -156,6 +156,17 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         stop("The provided data is not numeric! Can't construct any model!", call.=FALSE);
     }
 
+    # If the user asked for trend, but it's not in the data, add it
+    if(!is.null(formulaProvided) &&
+       any(all.vars(formulaProvided)=="trend") && all(colnames(xregData)!="trend")){
+        if(!is.null(xregData)){
+            xregData <- cbind(xregData,trend=c(1:obsAll));
+        }
+        else{
+            xregData <- cbind(y=y,trend=c(1:obsAll));
+        }
+    }
+
     # Number of parameters to estimate / provided
     parametersNumber <- matrix(0,2,4,
                                dimnames=list(c("Estimated","Provided"),
@@ -1418,30 +1429,64 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     distribution <- "dgnorm";
                     Etype <- "M";
                 }
+                trendIncluded <- any(colnames(xregData)[-1]=="trend");
                 # If the formula is not provided, construct one
                 if(is.null(formulaProvided)){
                     if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
-                        formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                        if(trendIncluded){
+                            formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                        }
+                        else{
+                            formulaProvided <- as.formula(paste0("log(`",responseName,"`)~.+trend"));
+                        }
                     }
                     else{
-                        formulaProvided <- as.formula(paste0("`",responseName,"`~."));
+                        if(trendIncluded){
+                            formulaProvided <- as.formula(paste0("`",responseName,"`~."));
+                        }
+                        else{
+                            formulaProvided <- as.formula(paste0("`",responseName,"`~.+trend"));
+                        }
                     }
                 }
                 else{
                     # If formula only contains ".", then just change it
                     if(length(all.vars(formulaProvided))==2 && all.vars(formulaProvided)[2]=="."){
-                        formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                        if(trendIncluded){
+                            formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                        }
+                        else{
+                            formulaProvided <- as.formula(paste0("log(`",responseName,"`)~.+trend"));
+                        }
                     }
                     else{
+                        trendIncluded <- any(all.vars(formulaProvided)[-1]=="trend");
                         # If formula contains only one element, or several, but no logs, then change response formula
                         if((length(formulaProvided[[2]])==1 ||
                             (length(formulaProvided[[2]])>1 & !any(as.character(formulaProvided[[2]])=="log"))) &&
                            (Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
-                            formulaProvided <- update(formulaProvided,log(.)~.);
+                            if(trendIncluded){
+                                formulaProvided <- update(formulaProvided,log(.)~.);
+                            }
+                            else{
+                                formulaProvided <- update(formulaProvided,log(.)~.+trend);
+                            }
+                        }
+                        else{
+                            if(!trendIncluded){
+                                formulaProvided <- update(formulaProvided,.~.+trend);
+                            }
                         }
                     }
                 }
-                return(do.call(alm,list(formula=formulaProvided,data=xregData,distribution=distribution,subset=which(subset))))
+                almModel <- do.call(alm,list(formula=formulaProvided,data=xregData,distribution=distribution,subset=which(subset)));
+                # Remove trend
+                if(!trendIncluded){
+                    almModel$coefficients <- almModel$coefficients[names(almModel$coefficients)!="trend"];
+                    almModel$data <- almModel$data[,colnames(almModel$data)!="trend",drop=FALSE];
+                    almModel$call$formula <- update(almModel$call$formula, .~.-trend);
+                }
+                return(almModel);
             }
             # Extract names and form a proper matrix for the regression
             if(!is.null(formulaProvided)){

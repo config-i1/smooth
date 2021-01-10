@@ -13,6 +13,7 @@ Changes:
 * adam() now accepts orders=list(...,select=TRUE), calling for auto.adam() in this case.
 * Tuning of initials for ADAM ARIMA and increased maxeval for ARIMA.
 * We now import gnorm functions from greybox.
+* trend in formula of adam().
 
 Bugfixes:
 * Fixed an issue with ARIMA, which calculated the polynomials incorrectly.
@@ -25,6 +26,7 @@ Bugfixes:
 * A fix for cases, when explanatory variables contain NAs.
 * A fix in fitted for mixture models in adam().
 * A fix for the plot of objects in case of holdout.
+* Do simulations for forecast with prediction interval if regression model was constructed.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)

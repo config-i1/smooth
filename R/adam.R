@@ -135,8 +135,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' The values \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in
 #' this case.
 #' @param formula Formula to use in case of explanatory variables. If \code{NULL},
-#' then all the variables are used as is. Only considered if \code{data} is a matrix and
-#' \code{regressors="use"}.
+#' then all the variables are used as is. Can also include \code{trend}, which would add
+#' the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.
 #' @param constant Logical, determining, whether the constant is needed in the model or not.
 #' This is mainly needed for ARIMA part of the model, but can be used for ETS as well. In
 #' case of pure regression, this is completely ignored (use \code{formula} instead).
@@ -4311,9 +4311,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;
-        if(!is.null(xregData)){
+        if(!is.null(xregData) && !is.null(ncol(data))){
             # Remove redundant columns from the data
-            modelReturned$data <- data[1:obsInSample,,drop=FALSE]
+            modelReturned$data <- data[1:obsInSample,,drop=FALSE];
             if(holdout){
                 modelReturned$holdout <- data[obsInSample+c(1:h),,drop=FALSE];
             }
@@ -4443,7 +4443,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             modelReturned$models[[i]]$model <- modelName;
             modelReturned$models[[i]]$timeElapsed <- Sys.time()-startTime;
             parametersNumberOverall[1,1] <- parametersNumber[1,1] + parametersNumber[1,1] * adamSelected$icWeights[i];
-            if(!is.null(xregData)){
+            if(!is.null(xregData) && !is.null(ncol(data))){
                 modelReturned$models[[i]]$data <- data[1:obsInSample,,drop=FALSE];
                 if(holdout){
                     modelReturned$models[[i]]$holdout <- data[obsInSample+c(1:h),,drop=FALSE];
@@ -6801,17 +6801,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     Ttype <- substr(model,2,2);
     Stype <- substr(model,nchar(model),nchar(model));
 
-    # If this is "prediction", do simulations for multiplicative components
-    if(interval=="prediction"){
-        # Simulate stuff for the ETS only
-        if(any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN"){
-            interval <- "simulated";
-        }
-        else{
-            interval <- "approximate";
-        }
-    }
-
     # Technical parameters
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
@@ -6880,6 +6869,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(ncol(object$data)>1){
         xregNumber <- length(object$initial$xreg);
         xregNames <- names(object$initial$xreg);
+        # The newdata is not provided
         if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)<h){
             xreg <- tail(object$data,h);
             if(!is.data.frame(newdata) & is.matrix(xreg)){
@@ -6895,9 +6885,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                         call.=FALSE);
             }
         }
+        # The newdata is not provided, but we have holdout
         else if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)>=h){
             xreg <- object$holdout[1:h,,drop=FALSE];
         }
+        # The newdata is provided
         else{
             # If this is not a matrix / data.frame, then convert to one
             if(!is.data.frame(newdata) && !is.matrix(newdata)){
@@ -6920,6 +6912,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xreg <- newdata;
             }
+        }
+
+        # If the user asked for trend, but it's not in the data, add it
+        if(any(all.vars(formula(object))=="trend") && all(colnames(object$data)!="trend")){
+            xreg <- cbind(xreg,trend=nobs(object)+c(1:h));
         }
 
         # If the names are wrong, transform to data frame and expand
@@ -6959,9 +6956,24 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     else{
         xregNumber <- 0;
+        # If the user asked for trend, but it's not in the data, add it
+        if(any(all.vars(formula(object))=="trend") && all(colnames(object$data)!="trend")){
+            xreg <- matrix(nobs(object)+c(1:h),h,1);
+            xregNumber <- 1;
+        }
     }
     matF <- object$transition;
 
+    # If this is "prediction", do simulations for multiplicative components
+    if(interval=="prediction"){
+        # Simulate stuff for the ETS only
+        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0){
+            interval <- "simulated";
+        }
+        else{
+            interval <- "approximate";
+        }
+    }
     # See if constant is required
     constantRequired <- !is.null(object$constant);
 
