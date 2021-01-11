@@ -98,8 +98,8 @@ This is mainly needed for ARIMA part of the model, but can be used for ETS as we
 case of pure regression, this is completely ignored (use \code{formula} instead).}
 
 \item{formula}{Formula to use in case of explanatory variables. If \code{NULL},
-then all the variables are used as is. Only considered if \code{data} is a matrix and
-\code{regressors="use"}.}
+then all the variables are used as is. Can also include \code{trend}, which would add
+the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.}
 
 \item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while

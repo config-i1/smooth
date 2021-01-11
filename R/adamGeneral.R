@@ -1430,21 +1430,24 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     Etype <- "M";
                 }
                 trendIncluded <- any(colnames(xregData)[-1]=="trend");
+                formulaOriginal <- formulaProvided;
                 # If the formula is not provided, construct one
                 if(is.null(formulaProvided)){
                     if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
                         if(trendIncluded){
-                            formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
+                            formulaOriginal <- formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
                         }
                         else{
+                            formulaOriginal <- as.formula(paste0("log(`",responseName,"`)~."));
                             formulaProvided <- as.formula(paste0("log(`",responseName,"`)~.+trend"));
                         }
                     }
                     else{
                         if(trendIncluded){
-                            formulaProvided <- as.formula(paste0("`",responseName,"`~."));
+                            formulaOriginal <- formulaProvided <- as.formula(paste0("`",responseName,"`~."));
                         }
                         else{
+                            formulaOriginal <- as.formula(paste0("`",responseName,"`~."));
                             formulaProvided <- as.formula(paste0("`",responseName,"`~.+trend"));
                         }
                     }
@@ -1484,7 +1487,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 if(!trendIncluded){
                     almModel$coefficients <- almModel$coefficients[names(almModel$coefficients)!="trend"];
                     almModel$data <- almModel$data[,colnames(almModel$data)!="trend",drop=FALSE];
-                    almModel$call$formula <- update(almModel$call$formula, .~.-trend);
+                    almModel$call$formula <- formulaOriginal;
+                    # Reset terms, they are not needed for what comes, but confuse the formula() method
+                    almModel$terms <- NULL;
                 }
                 return(almModel);
             }
