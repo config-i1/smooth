@@ -11,8 +11,8 @@
 #' skipped in the order selection. This is not advised for models with \code{lags} greater than 12.
 #'
 #' @examples
-#' ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
-#'                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))
+#' \dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
+#'                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 #'
 #' @rdname adam
 #' @importFrom stats update.formula

@@ -366,8 +366,8 @@ plot(ourModel, c(1:11))
 \dontrun{ourModel <- adam(rnorm(100,100,10), model="NNN",
                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
 
-ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
-                      orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))
+\dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
+                      orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 
 }
 \references{
