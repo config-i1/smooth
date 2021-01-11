@@ -8362,7 +8362,7 @@ plot.refit <- function(x, ...){
     }
 
     if(is.null(ellipsis$ylim)){
-        ellipsis$ylim <- range(c(ellipsis$x,fitted(x)),na.rm=TRUE);
+        ellipsis$ylim <- range(c(as.vector(ellipsis$x),as.vector(fitted(x))),na.rm=TRUE);
     }
     if(is.null(ellipsis$main)){
         ellipsis$main <- paste0("Refitted values of ",x$model);
@@ -8372,11 +8372,16 @@ plot.refit <- function(x, ...){
     }
 
     do.call(plot, ellipsis);
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,1],rev(yQuantiles[,11])), col=rgb(0.8,0.8,0.8,0.4), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,2],rev(yQuantiles[,10])), col=rgb(0.8,0.8,0.8,0.5), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,3],rev(yQuantiles[,9])), col=rgb(0.8,0.8,0.8,0.6), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,4],rev(yQuantiles[,8])), col=rgb(0.8,0.8,0.8,0.7), border="grey")
-    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(yQuantiles[,5],rev(yQuantiles[,7])), col=rgb(0.8,0.8,0.8,0.8), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
+            col=rgb(0.8,0.8,0.8,0.4), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
+            col=rgb(0.8,0.8,0.8,0.5), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
+            col=rgb(0.8,0.8,0.8,0.6), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
+            col=rgb(0.8,0.8,0.8,0.7), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
+            col=rgb(0.8,0.8,0.8,0.8), border="grey")
     lines(ellipsis$x,col="black",lwd=1);
     lines(fitted(x),col="purple",lwd=2,lty=2);
 }

@@ -1,3 +1,10 @@
+smooth v3.0.2 (Release data: 2021-01-12)
+=======
+
+Bugfixes:
+* plot.refit would not work with zoo objects.
+
+
 smooth v3.0.1 (Release data: 2021-01-11)
 =======
 
