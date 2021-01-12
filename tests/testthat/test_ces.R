@@ -25,9 +25,10 @@ test_that("Test initials, a and b of CES on N2568$x", {
 })
 
 # Test selection of exogenous with CES
-x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
-y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- ces(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for CESX on N1457 with selection", {
+    skip_on_cran()
+    x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
+    y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
+    testModel <- ces(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
     expect_equal(suppressWarnings(ncol(testModel$xreg)),3);
 })

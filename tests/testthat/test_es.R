@@ -16,14 +16,16 @@ test_that("Test on N1234$x, predefined ETS", {
 })
 
 # Test combinations of ETS
-testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
 test_that("Test ETS(CCC) with BIC on N2568$x", {
+    skip_on_cran
+    testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
     expect_equal(testModel$s2, mean(testModel$residuals^2));
 })
 
 # Test model selection of non-multiplicative trend ETS
-testModel <- es(Mcomp::M3$N2568$x, "MXM", silent=TRUE, ic="AIC");
 test_that("Test ETS(MXM) with AIC on N2568$x", {
+    skip_on_cran()
+    testModel <- es(Mcomp::M3$N2568$x, "MXM", silent=TRUE, ic="AIC");
     expect_match(testModel$loss, "likelihood");
 })
 
@@ -35,22 +37,25 @@ test_that("Test AIC of ETS on N2568$x", {
 
 # Test how different passed values are accepted by ETS
 test_that("Test initials, initialSeason and persistence of ETS on N2568$x", {
+    skip_on_cran()
     expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
     expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", persistence=testModel$persistence, silent=TRUE)$persistence, testModel$persistence);
     expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", initialSeason=testModel$initialSeason, silent=TRUE)$initialSeason, testModel$initialSeason);
     expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", phi=testModel$phi, silent=TRUE)$phi, testModel$phi);
 })
 
-# Test selection of exogenous with ETS
 x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
 y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
-testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
+# Test selection of exogenous with ETS
 test_that("Select exogenous variables for ETS on N1457 with selection", {
+    skip_on_cran()
+    testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
     expect_equal(ncol(testModel$xreg),3);
 })
 
 # Test combination of ETS with exogenous selection
-testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
 test_that("Select exogenous variables for ETSX combined on N1457", {
+    skip_on_cran()
+    testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
     expect_match(testModel$model, "ETSX");
 })

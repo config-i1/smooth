@@ -1,11 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "11 January 2021"
+date: "12 January 2021"
 output: html_document
 ---
 ## Version
 This is ``smooth`` package, v3.0.1.
+
+## Update from the previous submission
+I've added skip_on_cran() for the majority of tests now, which should reduce the computational time.
+I plan to merge some of C++ functions in future releases, so that the compilation will take less time.
 
 ## Test environments
 * local ubuntu 20.04, R 4.0.3

@@ -1535,8 +1535,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
 
                 # Either use or select the model via greybox functions
                 if(regressors=="use"){
-                    warning("The specified model is just a regression. It is recommended to use alm() from greybox instead.",
-                            call.=FALSE);
                     # Fisher Information
                     if(is.null(ellipsis$FI)){
                         FI <- FALSE;
