@@ -32,7 +32,6 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
             arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)) = adamFvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)),
                                       arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
         }
-        ////// Run forward
         // Loop for the model construction
         for(unsigned int j=lagsModelMax; j<obs+lagsModelMax; j=j+1) {
 

@@ -7848,6 +7848,8 @@ refit.adam <- function(object, nsim=1000, ...){
     }
     componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
     componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
         xregModel <- TRUE;
 
@@ -7868,6 +7870,11 @@ refit.adam <- function(object, nsim=1000, ...){
         xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
         # Get the names from the standard model.matrix
         xregNames <- colnames(model.matrix(xregData,data=xregData));
+        interceptIsPresent <- FALSE;
+        if(any(xregNames=="(Intercept)")){
+            interceptIsPresent[] <- TRUE;
+            xregNames <- xregNames[xregNames!="(Intercept)"];
+        }
         # Expanded stuff with all levels for factors
         if(any(xregFactors)){
             xregModelMatrix <- model.matrix(xregData,xregData,
@@ -7881,9 +7888,7 @@ refit.adam <- function(object, nsim=1000, ...){
         }
         xregData <- as.matrix(xregModelMatrix);
         # Remove intercept
-        interceptIsPresent <- FALSE;
-        if(any(colnames(xregData)=="(Intercept)")){
-            interceptIsPresent[] <- TRUE;
+        if(interceptIsPresent){
             xregData <- xregData[,-1,drop=FALSE];
         }
         xregNumber <- ncol(xregData);
@@ -8095,15 +8100,8 @@ refit.adam <- function(object, nsim=1000, ...){
 
     # Persistence matrix
     # The first one is a failsafe mechanism for xreg
-    if(xregModel && !any(substr(parametersNames,1,5)=="delta")){
-        matG <- array(c(object$persistence,rep(0,xregNumber)), c(length(object$persistence)+xregNumber, nsim),
-                      dimnames=list(c(names(object$persistence),paste0("delta",c(1:xregNumber))),
-                                    paste0("nsim",c(1:nsim))));
-    }
-    else{
-        matG <- array(object$persistence, c(length(object$persistence), nsim),
-                      dimnames=list(names(object$persistence), paste0("nsim",c(1:nsim))));
-    }
+    matG <- array(object$persistence, c(length(object$persistence), nsim),
+                  dimnames=list(names(object$persistence), paste0("nsim",c(1:nsim))));
 
     #### Fill in the values in matrices ####
     # k is the index for randomParameters columns
@@ -8136,6 +8134,7 @@ refit.adam <- function(object, nsim=1000, ...){
         matG[colnames(randomParameters)[deltas],] <- t(randomParameters[,deltas,drop=FALSE]);
         k <- k+length(deltas);
     }
+
     # Fill in the persistence and transition for ARIMA
     if(arimaModel){
         if(is.list(object$orders)){
@@ -8311,6 +8310,7 @@ refit.adam <- function(object, nsim=1000, ...){
         j <- j+initialArimaNumber;
         k <- k+initialArimaNumber;
     }
+    # Regression part
     if(xregModel){
         xregNumberToEstimate <- sum(xregParametersEstimated);
         profilesRecentArray[j+which(xregParametersEstimated==1),1,] <- t(randomParameters[,k+1:xregNumberToEstimate]);
@@ -8626,14 +8626,26 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(ncol(object$data)>1){
         xregNumber <- length(object$initial$xreg);
         xregNames <- names(object$initial$xreg);
-        if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)<h){
-            xreg <- tail(object$data,h);
-            if(!is.data.frame(newdata) & is.matrix(xreg)){
+        # The newdata is not provided
+        if(is.null(newdata) && ((!is.null(object$holdout) && nrow(object$holdout)<h) ||
+                                is.null(object$holdout))){
+            # Salvage what data we can (if there is something)
+            if(!is.null(object$holdout)){
+                hNeeded <- h-nrow(object$holdout);
+                xreg <- tail(object$data,h);
+                xreg[1:nrow(object$holdout),] <- object$holdout;
+            }
+            else{
+                hNeeded <- h;
+                xreg <- tail(object$data,h);
+            }
+
+            if(is.matrix(xreg)){
                 warning("The newdata is not provided.",
                         "Predicting the explanatory variables based on what we have in-sample.",
                         call.=FALSE);
                 for(i in 1:xregNumber){
-                    xreg[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+                    xreg[,i] <- adam(object$data[,i+1],h=hNeeded,silent=TRUE)$forecast;
                 }
             }
             else{
@@ -8676,6 +8688,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # Expand the xreg if it is data frame to get the proper matrix
         if(is.data.frame(xreg)){
             testFormula <- formula(object);
+            # Remove response variable
+            testFormula[[2]] <- NULL;
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(testFormula,data=xreg);
             # Binary, flagging factors in the data
