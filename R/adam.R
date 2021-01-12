@@ -6870,14 +6870,25 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         xregNumber <- length(object$initial$xreg);
         xregNames <- names(object$initial$xreg);
         # The newdata is not provided
-        if(is.null(newdata) && !is.null(object$holdout) && nrow(object$holdout)<h){
-            xreg <- tail(object$data,h);
-            if(!is.data.frame(newdata) & is.matrix(xreg)){
+        if(is.null(newdata) && ((!is.null(object$holdout) && nrow(object$holdout)<h) ||
+                                is.null(object$holdout))){
+            # Salvage what data we can (if there is something)
+            if(!is.null(object$holdout)){
+                hNeeded <- h-nrow(object$holdout);
+                xreg <- tail(object$data,h);
+                xreg[1:nrow(object$holdout),] <- object$holdout;
+            }
+            else{
+                hNeeded <- h;
+                xreg <- tail(object$data,h);
+            }
+
+            if(is.matrix(xreg)){
                 warning("The newdata is not provided.",
                         "Predicting the explanatory variables based on what we have in-sample.",
                         call.=FALSE);
                 for(i in 1:xregNumber){
-                    xreg[,i] <- adam(object$data[,i+1],h=h,silent=TRUE)$forecast;
+                    xreg[,i] <- adam(object$data[,i+1],h=hNeeded,silent=TRUE)$forecast;
                 }
             }
             else{
@@ -6927,6 +6938,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # Expand the xreg if it is data frame to get the proper matrix
         if(is.data.frame(xreg)){
             testFormula <- formula(object);
+            # Remove response variable
+            testFormula[[2]] <- NULL;
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(testFormula,data=xreg);
             # Binary, flagging factors in the data
