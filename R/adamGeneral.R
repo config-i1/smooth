@@ -1430,9 +1430,10 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     Etype <- "M";
                 }
                 trendIncluded <- any(colnames(xregData)[-1]=="trend");
+                formulaIsAbsent <- is.null(formulaProvided);
                 formulaOriginal <- formulaProvided;
                 # If the formula is not provided, construct one
-                if(is.null(formulaProvided)){
+                if(formulaIsAbsent){
                     if(Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace"))){
                         if(trendIncluded){
                             formulaOriginal <- formulaProvided <- as.formula(paste0("log(`",responseName,"`)~."));
@@ -1487,7 +1488,12 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 if(!trendIncluded){
                     almModel$coefficients <- almModel$coefficients[names(almModel$coefficients)!="trend"];
                     almModel$data <- almModel$data[,colnames(almModel$data)!="trend",drop=FALSE];
-                    almModel$call$formula <- formulaOriginal;
+                    if(formulaIsAbsent){
+                        almModel$call$formula <- as.formula(paste0("`",responseName,"`~."));
+                    }
+                    else{
+                        almModel$call$formula <- formulaOriginal;
+                    }
                     # Reset terms, they are not needed for what comes, but confuse the formula() method
                     almModel$terms <- NULL;
                 }
@@ -1695,7 +1701,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 y <- xregData[,1];
                 yInSample <- matrix(y[1:obsInSample],ncol=1);
                 if(holdout){
-                    yHoldout <- y[-c(1:obsInSample)];
+                    yHoldout <- matrix(y[-c(1:obsInSample)],ncol=1);
                 }
             }
 
@@ -1917,7 +1923,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     y <- xregData[,1];
                     yInSample <- matrix(y[1:obsInSample],ncol=1);
                     if(holdout){
-                        yHoldout <- y[-c(1:obsInSample)];
+                        yHoldout <- matrix(y[-c(1:obsInSample)],ncol=1);
                     }
                 }
 

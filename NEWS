@@ -29,6 +29,7 @@ Bugfixes:
 * Do simulations for forecast with prediction interval if regression model was constructed.
 * plot.refit would not work with zoo objects.
 * A bugfix in adam() in cases, when alm() drops some variables.
+* A bugfix for xreg, Etype="M" and distribution="dnorm".
 
 
 smooth v3.0.0 (Release data: 2020-12-07)
