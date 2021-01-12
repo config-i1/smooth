@@ -28,6 +28,7 @@ Bugfixes:
 * A fix for the plot of objects in case of holdout.
 * Do simulations for forecast with prediction interval if regression model was constructed.
 * plot.refit would not work with zoo objects.
+* A bugfix in adam() in cases, when alm() drops some variables.
 
 
 smooth v3.0.0 (Release data: 2020-12-07)

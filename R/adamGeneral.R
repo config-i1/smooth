@@ -1698,6 +1698,30 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     yHoldout <- y[-c(1:obsInSample)];
                 }
             }
+
+            #### Drop the variables with no variability and perfectly correlated
+            xregExpanded <- colnames(model.matrix(xregData,data=xregData));
+            # Remove intercept
+            if(any(xregExpanded=="(Intercept)")){
+                xregExpanded <- xregExpanded[-1];
+            }
+            if(any(!(xregExpanded %in% xregNames))){
+                xregNamesRetained <- rep(TRUE,length(xregNamesOriginal));
+                for(i in 1:length(xregNamesOriginal)){
+                    xregNamesRetained[i] <- any(grepl(xregNamesOriginal[i], xregNames));
+                }
+                # If the dropped variables are in the formula, update the formula
+                if(length(all.vars(formulaProvided))>2 &&
+                   any(all.vars(formulaProvided) %in% xregNamesOriginal[!xregNamesRetained])){
+                    formulaProvided <- update.formula(formulaProvided,
+                                                      paste0(".~.-",
+                                                             paste(xregNamesOriginal[!xregNamesRetained],
+                                                                   collapse="-")));
+                }
+                xregNamesOriginal <- c(responseName,xregNamesOriginal[xregNamesRetained]);
+                xregData <- model.frame(formulaProvided,data=as.data.frame(xreg[,xregNamesOriginal,drop=FALSE]));
+            }
+
             # Binary, flagging factors in the data
             xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
             # Expanded stuff with all levels for factors
@@ -1711,7 +1735,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 xregModelMatrix <- model.matrix(xregData,data=xregData);
                 xregNamesModified <- xregNames;
             }
+            # Drop the unused variables
             xregData <- as.matrix(xregModelMatrix);
+
             # Remove intercept
             interceptIsPresent <- FALSE;
             if(any(colnames(xregData)=="(Intercept)")){
