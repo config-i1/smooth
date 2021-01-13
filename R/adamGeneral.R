@@ -981,7 +981,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             otLogical <- rep(TRUE,obsInSample);
         }
         else if(occurrence=="provided"){
-            occurrenceModel <- FALSE;
+            occurrenceModel <- TRUE;
             oesModel$y <- matrix(otLogical*1,ncol=1);
         }
         else{
@@ -1015,7 +1015,8 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             if(any(modelsPoolMultiplicative)){
                 modelsPool <- modelsPool[!modelsPoolMultiplicative];
 
-                if(any(model==c("PPP","FFF","YYY"))){
+                # This is needed, because PPP and FFF use pool, not Branch and bound
+                if(!any(c(any(unlist(strsplit(model,""))=="P"),any(unlist(strsplit(model,""))=="F")))){
                     warning("Only additive models are allowed for your data. Amending the pool.",
                             call.=FALSE);
                 }
@@ -1033,6 +1034,11 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         else if(any(model==c("PPP","FFF")) && allowMultiplicative){
             model <- "ZZZ";
         }
+    }
+
+    # Fix the occurrenceModel for "provided"
+    if(occurrence=="provided"){
+        occurrenceModel <- FALSE;
     }
 
     #### Initial values ####

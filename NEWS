@@ -7,7 +7,8 @@ Changes:
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
-* A fix for the selection between "ANN" and "ANA" on some data.
+* A fix for the selection between "ANN" and "ANA" on some data in adam()
+* adam() would not work with provided occurrence
 
 
 smooth v3.0.1 (Release data: 2021-01-12)
