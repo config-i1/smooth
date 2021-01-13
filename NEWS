@@ -1,3 +1,10 @@
+smooth v3.0.1 (Release data: 2021-01-13)
+=======
+
+Changes:
+* plot.smooth, 7 now will include the holdout.
+
+
 smooth v3.0.1 (Release data: 2021-01-12)
 =======
 

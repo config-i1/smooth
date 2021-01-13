@@ -1545,6 +1545,18 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         ellipsis <- list(...);
 
         ellipsis$actuals <- actuals(x);
+        if(!is.null(x$holdout)){
+            yHoldout <- x$holdout;
+            if(is.zoo(ellipsis$actuals)){
+                ellipsis$actuals <- zoo(c(as.vector(ellipsis$actuals),as.vector(yHoldout)),
+                                        order.by=c(time(ellipsis$actuals),time(yHoldout)));
+            }
+            else{
+                ellipsis$actuals <- ts(c(ellipsis$actuals,yHoldout),
+                                       start=start(ellipsis$actuals),
+                                       frequency=frequency(ellipsis$actuals));
+            }
+        }
         if(is.null(ellipsis$main)){
             ellipsis$main <- x$model;
         }
