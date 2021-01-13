@@ -1694,11 +1694,17 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             # Levels for the factors
             xregFactorsLevels <- lapply(xreg,levels);
             xregFactorsLevels[[responseName]] <- NULL;
+            if((is.matrix(xreg) && any(apply(xreg,2,is.character))) ||
+               (!is.matrix(xreg) && any(sapply(xreg,is.character)))){
+                warning("You have character variables in your data. ",
+                        "I will treat them as factors, but it is advised to convert them to factors manually",
+                        call.=FALSE);
+            }
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(formulaProvided,data=as.data.frame(xreg));
             # If the number of rows is different, this might be because of NAs
             if(nrow(xregData)!=nrow(xreg)){
-                warning("Some explanatory variables contained NAs. This might cause issues in the estimation. ",
+                warning("Some variables contained NAs. This might cause issues in the estimation. ",
                         "We will substitute those values with the first non-NA values",
                         call.=FALSE);
                 # Get indices of NAs and nonNAs
