@@ -1024,6 +1024,8 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         if((any(model==c("PPP","FFF","YYY")) || any(unlist(strsplit(model,""))=="Z")) && !allowMultiplicative){
             model <- "XXX";
             Etype <- "A";
+            Ttype <- "X";
+            Stype <- "X";
             modelsPool <- NULL;
             warning("Only additive models are allowed for your data. Changing the selection mechanism.",
                     call.=FALSE);
