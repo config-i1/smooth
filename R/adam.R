@@ -5915,12 +5915,12 @@ sigma.adam <- function(object, ...){
                        "dgnorm"=,
                        "dt"=,
                        "dlogis"=,
-                       "dalaplace"=sum(residuals(object)^2),
+                       "dalaplace"=sum(residuals(object)^2,na.rm=TRUE),
                        "dlnorm"=,
                        "dllaplace"=,
-                       "dls"=sum(log(residuals(object))^2),
-                       "dlgnorm"=sum(log(residuals(object)-object$scale^2/2)^2),
-                       "dinvgauss"=sum((residuals(object)-1)^2))
+                       "dls"=sum(log(residuals(object))^2,na.rm=TRUE),
+                       "dlgnorm"=sum(log(residuals(object)-object$scale^2/2)^2,na.rm=TRUE),
+                       "dinvgauss"=sum((residuals(object)-1)^2,na.rm=TRUE))
                 /df));
 }
 
@@ -7177,18 +7177,18 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
         #### Note that the cumulative doesn't work with oes at the moment!
         if(cumulative){
-            yForecast[] <- mean(colSums(ySimulated,na.rm=T));
-            yLower[] <- quantile(colSums(ySimulated,na.rm=T),levelLow,type=7);
-            yUpper[] <- quantile(colSums(ySimulated,na.rm=T),levelUp,type=7);
+            yForecast[] <- mean(colSums(ySimulated,na.rm=TRUE));
+            yLower[] <- quantile(colSums(ySimulated,na.rm=TRUE),levelLow,type=7);
+            yUpper[] <- quantile(colSums(ySimulated,na.rm=TRUE),levelUp,type=7);
         }
         else{
             for(i in 1:h){
                 if(Ttype=="M" || (Stype=="M" & h>lagsModelMin)){
                     # Trim 1% of values just to resolve some issues with outliers
-                    yForecast[i] <- mean(ySimulated[i,],na.rm=T,trim=0.01);
+                    yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE,trim=0.01);
                 }
-                yLower[i,] <- quantile(ySimulated[i,],levelLow[i,],na.rm=T,type=7);
-                yUpper[i,] <- quantile(ySimulated[i,],levelUp[i,],na.rm=T,type=7);
+                yLower[i,] <- quantile(ySimulated[i,],levelLow[i,],na.rm=TRUE,type=7);
+                yUpper[i,] <- quantile(ySimulated[i,],levelUp[i,],na.rm=TRUE,type=7);
             }
         }
         # This step is needed in order to make intervals similar between the different methods
@@ -7437,8 +7437,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     }
                     else{
                         for(i in 1:h){
-                            yLower[i] <- quantile(adamErrors[,i],levelLow[i],na.rm=T,type=7);
-                            yUpper[i] <- quantile(adamErrors[,i],levelUp[i],na.rm=T,type=7);
+                            yLower[i] <- quantile(adamErrors[,i],levelLow[i],na.rm=TRUE,type=7);
+                            yUpper[i] <- quantile(adamErrors[,i],levelUp[i],na.rm=TRUE,type=7);
                         }
                     }
                 }
@@ -8798,26 +8798,26 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     #### Note that the cumulative doesn't work with oes at the moment!
     if(cumulative){
-        yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=T,trim=trim));
+        yForecast[] <- mean(apply(arrayYSimulated,1,sum,na.rm=TRUE,trim=trim));
         if(interval!="none"){
-            yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelLow,type=7);
-            yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=T),levelUp,type=7);
+            yLower[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=TRUE),levelLow,type=7);
+            yUpper[] <- quantile(apply(arrayYSimulated,1,sum,na.rm=TRUE),levelUp,type=7);
         }
     }
     else{
-        yForecast[] <- apply(arrayYSimulated,1,mean,na.rm=T,trim=trim);
+        yForecast[] <- apply(arrayYSimulated,1,mean,na.rm=TRUE,trim=trim);
         if(interval=="prediction"){
             for(i in 1:h){
                 for(j in 1:nLevels){
-                    yLower[i,j] <- quantile(arrayYSimulated[i,,],levelLow[i,j],na.rm=T,type=7);
-                    yUpper[i,j] <- quantile(arrayYSimulated[i,,],levelUp[i,j],na.rm=T,type=7);
+                    yLower[i,j] <- quantile(arrayYSimulated[i,,],levelLow[i,j],na.rm=TRUE,type=7);
+                    yUpper[i,j] <- quantile(arrayYSimulated[i,,],levelUp[i,j],na.rm=TRUE,type=7);
                 }
             }
         }
         else if(interval=="confidence"){
             for(i in 1:h){
-                yLower[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T,trim=trim),levelLow[i,],na.rm=T,type=7);
-                yUpper[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=T,trim=trim),levelUp[i,],na.rm=T,type=7);
+                yLower[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=TRUE,trim=trim),levelLow[i,],na.rm=TRUE,type=7);
+                yUpper[i,] <- quantile(apply(arrayYSimulated[i,,],2,mean,na.rm=TRUE,trim=trim),levelUp[i,],na.rm=TRUE,type=7);
             }
         }
     }
