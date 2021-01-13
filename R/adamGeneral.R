@@ -33,7 +33,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         yIndex <- data[[1]];
         if(any(duplicated(yIndex))){
             warning(paste0("You have duplicated time stamps in the variable ",yName,
-                           ". We will refactor this."),call.=FALSE);
+                           ". I will refactor this."),call.=FALSE);
             yIndex <- yIndex[1] + c(1:length(data[[1]])) * diff(tail(yIndex,2));
         }
     }
@@ -1223,7 +1223,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 # Is the number of initials in each season correct? Use the correct ones only
                 if(any(!(sapply(initialSeasonal,length) %in% lagsModelSeasonal))){
                     warning(paste0("Some of initial seasonals have a wrong length, ",
-                                   "not corresponding to the provided lags. We will estimate them."),
+                                   "not corresponding to the provided lags. I will estimate them."),
                             call.=FALSE);
                     initialSeasonalToUse <- sapply(initialSeasonal,length) %in% lagsModelSeasonal;
                     initialSeasonal <- initialSeasonal[initialSeasonalToUse];
@@ -1296,13 +1296,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     # Check if the length of the provided parameters is correct
                     if(arRequired && !is.null(arma$ar) && length(arma$ar)!=sum(arOrders)){
                         warning(paste0("The number of provided AR parameters is ",length(arma$ar),
-                                       "while we need ",sum(arOrders),". ",
+                                       "while I need ",sum(arOrders),". ",
                                        "Switching to estimation."),call.=FALSE);
                         arEstimate[] <- TRUE;
                     }
                     if(maRequired && !is.null(arma$ma) && length(arma$ma)!=sum(maOrders)){
                         warning(paste0("The number of provided MA parameters is ",length(arma$ma),
-                                       "while we need ",sum(maOrders),". ",
+                                       "while I need ",sum(maOrders),". ",
                                        "Switching to estimation."),call.=FALSE);
                         maEstimate[] <- TRUE;
                     }
@@ -1346,7 +1346,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     # Check if the length of the provided parameters is correct
                     if(length(armaParameters)!=sum(arOrders)+sum(maOrders)){
                         warning(paste0("The number of provided ARMA parameters is ",length(armaParameters),
-                                       "while we need ",sum(arOrders)+sum(maOrders),". ",
+                                       "while I need ",sum(arOrders)+sum(maOrders),". ",
                                        "Switching to estimation."),call.=FALSE);
                         maEstimate <- arEstimate[] <- TRUE;
                         armaParameters <- NULL;
@@ -1357,7 +1357,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 # Check the length of the vector
                 if(length(arma)!=sum(arOrders)+sum(maOrders)){
                     warning(paste0("The number of provided ARMA parameters is ",length(arma),
-                                   "while we need ",sum(arOrders)+sum(maOrders),". ",
+                                   "while I need ",sum(arOrders)+sum(maOrders),". ",
                                    "Switching to estimation."),call.=FALSE);
                     maEstimate <- arEstimate[] <- TRUE;
                     armaParameters <- NULL;
@@ -1400,14 +1400,14 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
             if(!is.null(initialXreg) && (initialType=="optimal")){
-                warning("Variables selection does not work with the provided initials for explantory variables. We will drop them.",
+                warning("Variables selection does not work with the provided initials for explantory variables. I will drop them.",
                         call.=FALSE);
                 initialXreg <- NULL;
                 initialXregEstimate <- TRUE;
             }
             if(!is.null(persistenceXreg) && any(persistenceXreg!=0)){
-                warning(paste0("We cannot do variables selection with the provided smoothing parameters ",
-                               "for explantory variables. We will estimate them instead."),
+                warning(paste0("I cannot do variables selection with the provided smoothing parameters ",
+                               "for explantory variables. I will estimate them instead."),
                         call.=FALSE);
                 persistenceXreg <- NULL;
             }
@@ -1705,7 +1705,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             # If the number of rows is different, this might be because of NAs
             if(nrow(xregData)!=nrow(xreg)){
                 warning("Some variables contained NAs. This might cause issues in the estimation. ",
-                        "We will substitute those values with the first non-NA values",
+                        "I will substitute those values with the first non-NA values",
                         call.=FALSE);
                 # Get indices of NAs and nonNAs
                 xregNAs <- which(is.na(xreg),arr.ind=TRUE);
@@ -2126,7 +2126,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
 
         # If there are no variables after all of that, then xreg doesn't exist
         if(xregNumber==0){
-            warning("It looks like there are no suitable explanatory variables. Check the xreg! We dropped them out.",
+            warning("It looks like there are no suitable explanatory variables. Check the xreg! I dropped them out.",
                     call.=FALSE);
             xregModel[] <- FALSE;
             xregData <- NULL;
@@ -2248,7 +2248,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     if(obsNonzero <= nParamMax){
         # If there is both ETS and ARIMA, remove ARIMA
         if(etsModel && arimaModel && !select){
-            warning("We don't have enough observations to fit ETS with ARIMA terms. We will construct the simple ETS.",
+            warning("I don't have enough observations to fit ETS with ARIMA terms. I will construct the simple ETS.",
                     call.=FALSE);
             lagsModelAll <- lagsModelAll[-c(componentsNumberETS+c(1:componentsNumberARIMA)),,drop=FALSE];
             arRequired <- iRequired <- maRequired <- arimaModel <- FALSE;
@@ -2351,7 +2351,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                     }
                 }
 
-                warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what we can...",
+                warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
                         call.=FALSE);
                 if(modelDo=="combine"){
                     model <- "CNN";
@@ -2395,7 +2395,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 }
 
                 modelsPool <- unique(modelsPool);
-                warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what we can...",
+                warning("Not enough of non-zero observations for the fit of ETS(",model,")! Fitting what I can...",
                         call.=FALSE);
                 if(modelDo=="combine"){
                     model <- "CNN";
@@ -2481,7 +2481,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 }
                 persistenceLevel <- 0;
                 persistenceEstimate <- persistenceLevelEstimate <- FALSE;
-                warning("We did not have enough of non-zero observations, so persistence value was set to zero.",
+                warning("I did not have enough of non-zero observations, so persistence value was set to zero.",
                         call.=FALSE);
                 phiEstimate <- FALSE;
             }
@@ -2493,7 +2493,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 initialLevel <- mean(yInSample);
                 initialType <- "provided";
                 initialEstimate <- initialLevelEstimate <- FALSE;
-                warning("We did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",
+                warning("I did not have enough of non-zero observations, so persistence value was set to zero and initial was preset.",
                         call.=FALSE);
                 modelDo <- "use";
                 model <- "ANN";
@@ -2512,7 +2512,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 initialLevel <- yInSample[yInSample!=0];
                 initialType <- "provided";
                 initialEstimate <- initialLevelEstimate <- FALSE;
-                warning("We did not have enough of non-zero observations, so we used Naive.",call.=FALSE);
+                warning("I did not have enough of non-zero observations, so I used Naive.",call.=FALSE);
                 modelDo <- "nothing"
                 model <- "ANN";
                 Etype <- "A";
@@ -2634,7 +2634,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     # lambda for LASSO
     if(any(loss==c("LASSO","RIDGE"))){
         if(is.null(ellipsis$lambda)){
-            warning(paste0("You have not provided lambda parameter. We will set it to zero."), call.=FALSE);
+            warning(paste0("You have not provided lambda parameter. I will set it to zero."), call.=FALSE);
             lambda <- 0;
         }
         else{
@@ -2770,7 +2770,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
        ((any(loss==c("MSE","MSEh","MSCE","GPL")) && all(distribution!=c("default","dnorm"))) ||
         (any(loss==c("MAE","MAEh","MACE")) && all(distribution!=c("default","dlaplace"))) ||
         (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
-        warning("The model selection only works in case of loss='likelihood'. We hope you know what you are doing.",
+        warning("The model selection only works in case of loss='likelihood'. I hope you know what you are doing.",
                 call.=FALSE);
     }
 

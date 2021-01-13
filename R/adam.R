@@ -5957,7 +5957,7 @@ summary.adam <- function(object, level=0.95, ...){
                 parametersValues <- c(object$persistence,object$initial);
             }
             warning(paste0("Parameters are not available. You have probably provided them in the model, ",
-                           "so there was nothing to estimate. We extracted smoothing parameters and initials."),
+                           "so there was nothing to estimate. I extracted smoothing parameters and initials."),
                     call.=FALSE);
         }
         parametersConfint[,2:3] <- parametersValues + parametersConfint[,2:3];
@@ -6117,8 +6117,8 @@ vcov.adam <- function(object, ...){
         if(inherits(vcovMatrix,"try-error")){
             vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
             if(inherits(vcovMatrix,"try-error")){
-                warning(paste0("Sorry, but the hessian is singular, so we could not invert it.\n",
-                               "We failed to produce the covariance matrix of parameters."),
+                warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
+                               "I failed to produce the covariance matrix of parameters. Shame on me!"),
                         call.=FALSE);
                 vcovMatrix <- diag(1e+100,ncol(FIMatrix));
             }
@@ -6507,7 +6507,7 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
     side <- match.arg(side);
 
     if(length(level)>1){
-        warning(paste0("Sorry, but we only support scalar for the level, ",
+        warning(paste0("Sorry, but I only support scalar for the level, ",
                        "when constructing in-sample interval. ",
                        "Using the first provided value."),
                 call.=FALSE);
@@ -6889,7 +6889,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
             if(is.matrix(xreg)){
                 warning("The newdata is not provided.",
-                        "Predicting the explanatory variables based on what we have in-sample.",
+                        "Predicting the explanatory variables based on what I have in-sample.",
                         call.=FALSE);
                 for(i in 1:xregNumber){
                     xreg[,i] <- adam(object$data[,i+1],h=hNeeded,silent=TRUE)$forecast;
@@ -7816,7 +7816,7 @@ refit.adam <- function(object, nsim=1000, ...){
     if(vcovEigen<=0){
         if(vcovEigen>-1){
             warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
-                           "We will try fixing this, but it might make sense re-estimating adam(), tuning the optimiser."),
+                           "I will try fixing this, but it might make sense re-estimating adam(), tuning the optimiser."),
                     call.=FALSE, immediate.=TRUE);
             # Tune the thing a bit - one of simple ways to fix the issue
             epsilon <- -vcovEigen+1e-10;
@@ -7824,7 +7824,7 @@ refit.adam <- function(object, nsim=1000, ...){
         }
         else{
             warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
-                           "We cannot fix it, so we will use the diagonal only. ",
+                           "I cannot fix it, so I will use the diagonal only. ",
                            "It makes sense to re-estimate adam(), tuning the optimiser. ",
                            "For example, try reoptimising via 'object <- adam(y, ..., B=object$B)'."),
                     call.=FALSE, immediate.=TRUE);
@@ -8668,7 +8668,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
             if(is.matrix(xreg)){
                 warning("The newdata is not provided.",
-                        "Predicting the explanatory variables based on what we have in-sample.",
+                        "Predicting the explanatory variables based on the in-sample data.",
                         call.=FALSE);
                 for(i in 1:xregNumber){
                     xreg[,i] <- adam(object$data[,i+1],h=hNeeded,silent=TRUE)$forecast;
