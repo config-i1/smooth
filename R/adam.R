@@ -7073,8 +7073,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         yUpper <- yLower <- ts(matrix(0,hFinal,nLevels), start=yForecastStart, frequency=yFrequency);
     }
     else{
-        yForecast <- zoo(vector("numeric", hFinal), order.by=yForecastIndex);
-        yUpper <- yLower <- zoo(matrix(0,hFinal,nLevels), order.by=yForecastIndex);
+        if(cumulative){
+            yForecast <- zoo(vector("numeric", hFinal), order.by=yForecastIndex[1]);
+            yUpper <- yLower <- zoo(matrix(0,hFinal,nLevels), order.by=yForecastIndex[1]);
+        }
+        else{
+            yForecast <- zoo(vector("numeric", hFinal), order.by=yForecastIndex);
+            yUpper <- yLower <- zoo(matrix(0,hFinal,nLevels), order.by=yForecastIndex);
+        }
     }
     # Fill in the point forecasts
     if(cumulative){
@@ -7532,7 +7538,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
 
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
-                          level=level, interval=interval, side=side, cumulative=cumulative),
+                          level=level, interval=interval, side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
 
@@ -7638,16 +7644,6 @@ plot.adam.forecast <- function(x, ...){
     digits <- 2;
 
     ellipsis <- list(...);
-    if(is.null(ellipsis$ylim)){
-        vectorOfValues <- switch(x$side,
-                                 "both"=c(as.vector(actuals(x$model)),as.vector(x$mean),
-                                          as.vector(x$lower),as.vector(x$upper)),
-                                 "lower"=c(as.vector(actuals(x$model)),as.vector(x$mean),
-                                           as.vector(x$lower)),
-                                 "upper"=c(as.vector(actuals(x$model)),as.vector(x$mean),
-                                           as.vector(x$upper)));
-        ellipsis$ylim <- range(vectorOfValues[is.finite(vectorOfValues)],na.rm=TRUE);
-    }
 
     if(is.null(ellipsis$legend)){
         ellipsis$legend <- FALSE;
@@ -7676,7 +7672,7 @@ plot.adam.forecast <- function(x, ...){
 
     if(!is.null(x$model$holdout)){
         responseName <- all.vars(formula(x$model))[1];
-        yHoldout <- x$model$holdout[,responseName]
+        yHoldout <- x$model$holdout[,responseName];
         if(any(yClasses=="ts")){
             ellipsis$actuals <- ts(c(actuals(x$model),yHoldout),
                                    start=start(actuals(x$model)),
@@ -7692,10 +7688,36 @@ plot.adam.forecast <- function(x, ...){
     }
 
     ellipsis$forecast <- x$mean;
-    ellipsis$fitted <- fitted(x);
     ellipsis$lower <- x$lower;
     ellipsis$upper <- x$upper;
+    ellipsis$fitted <- fitted(x);
     ellipsis$level <- x$level;
+
+    if(x$cumulative){
+        if(any(yClasses=="ts")){
+            ellipsis$forecast <- ts(ellipsis$forecast / x$h,
+                                    start=start(ellipsis$forecast),
+                                    frequency=frequency(ellipsis$forecast));
+            ellipsis$lower <- ts(ellipsis$lower / x$h,
+                                    start=start(ellipsis$lower),
+                                    frequency=frequency(ellipsis$lower));
+            ellipsis$upper <- ts(ellipsis$upper / x$h,
+                                    start=start(ellipsis$upper),
+                                    frequency=frequency(ellipsis$upper));
+            ellipsis$main <- paste0("Mean ", ellipsis$main);
+        }
+        else{
+            ellipsis$forecast <- zoo(ellipsis$forecast / x$h,
+                                    order.by=time(ellipsis$forecast)+c(1:h)-1);
+            ellipsis$lower <- zoo(ellipsis$lower / x$h,
+                                    order.by=time(ellipsis$lower)+c(1:h)-1);
+            ellipsis$upper <- zoo(ellipsis$upper / x$h,
+                                    order.by=time(ellipsis$upper)+c(1:h)-1);
+            ellipsis$main <- paste0("Mean ", ellipsis$main);
+            ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(yHoldout)),
+                                    order.by=c(time(actuals(x$model)),time(yHoldout)));
+        }
+    }
 
     do.call(graphmaker, ellipsis);
 }
