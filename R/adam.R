@@ -7033,8 +7033,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # If this is a mixture model, produce forecasts for the occurrence
         if(is.occurrence(object$occurrence)){
             occurrenceModel <- TRUE;
-            if(is.alm(object$occurrence)){
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+            if(object$occurrence$occurrence=="provided"){
+                pForecast <- rep(1,h);
             }
             else{
                 pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
