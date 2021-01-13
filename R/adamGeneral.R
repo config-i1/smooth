@@ -96,7 +96,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     }
     else{
         xregData <- NULL;
-        y <- data;
+        if(ncol(data)==1){
+            responseName <- colnames(data)[1];
+            y <- data[,1];
+        }
+        else{
+            y <- data;
+        }
     }
 
     # Make the response a secure name
@@ -106,7 +112,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     yNAValues <- is.na(y);
     if(any(yNAValues)){
         warning("Data contains NAs. The values will be ignored during the model construction.",call.=FALSE);
-        y[yNAValues] <- na.interp(y)[yNAValues];
+        y[yNAValues] <- as.vector(na.interp(y)[yNAValues]);
     }
 
     # Define obs, the number of observations of in-sample
@@ -901,7 +907,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     if(is.occurrence(occurrence)){
         oesModel <- occurrence;
         occurrence <- oesModel$occurrence;
-        if(oesModel$occurrence=="provided"){
+        if(occurrence=="provided"){
             occurrenceModelProvided <- FALSE;
         }
         else{

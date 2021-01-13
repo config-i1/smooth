@@ -4345,7 +4345,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         if(any(yNAValues)){
             modelReturned$data[yNAValues[1:obsInSample],responseName] <- NA;
-            if(length(yNAValues)==obsAll){
+            if(holdout && length(yNAValues)==obsAll){
                 modelReturned$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
             }
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
@@ -4476,7 +4476,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             if(any(yNAValues)){
                 modelReturned$models[[i]]$data[yNAValues[1:obsInSample],responseName] <- NA;
-                if(length(yNAValues)==obsAll){
+                if(holdout && length(yNAValues)==obsAll){
                     modelReturned$models[[i]]$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
                 }
                 modelReturned$models[[i]]$residuals[yNAValues[1:obsInSample]] <- NA;
@@ -4557,7 +4557,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         modelReturned$residuals <- yInSample - yFittedCombined;
         if(any(yNAValues)){
             modelReturned$data[yNAValues[1:obsInSample],responseName] <- NA;
-            if(length(yNAValues)==obsAll){
+            if(holdout && length(yNAValues)==obsAll){
                 modelReturned$holdout[yNAValues[-c(1:obsInSample)],responseName] <- NA;
             }
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
@@ -8559,11 +8559,11 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # If this is a mixture model, produce forecasts for the occurrence
         if(is.occurrence(object$occurrence)){
             occurrenceModel <- TRUE;
-            if(is.alm(object$occurrence)){
-                pForecast <- suppressWarnings(forecast(object$occurrence,h=h,newdata=newdata)$mean);
+            if(object$occurrence$occurrence=="provided"){
+                pForecast <- rep(1,h);
             }
             else{
-                pForecast <- suppressWarnings(forecast(object$occurrence,h=h,newdata=newdata)$mean);
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
             }
         }
         else{
