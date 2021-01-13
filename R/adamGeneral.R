@@ -1021,7 +1021,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 }
             }
         }
-        if((any(model==c("PPP","FFF")) || any(unlist(strsplit(model,""))=="Z")) && !allowMultiplicative){
+        if((any(model==c("PPP","FFF","YYY")) || any(unlist(strsplit(model,""))=="Z")) && !allowMultiplicative){
             model <- "XXX";
             Etype <- "A";
             modelsPool <- NULL;

@@ -5,6 +5,9 @@ Changes:
 * plot.smooth, 7 now will include the holdout.
 * plot.adam.forecast now produces mean forecast in case of cumulative.
 
+Bugfixes:
+* A fix for "YYY" and non-positive data in adam().
+
 
 smooth v3.0.1 (Release data: 2021-01-12)
 =======
