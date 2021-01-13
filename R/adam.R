@@ -7708,11 +7708,11 @@ plot.adam.forecast <- function(x, ...){
         }
         else{
             ellipsis$forecast <- zoo(ellipsis$forecast / x$h,
-                                    order.by=time(ellipsis$forecast)+c(1:h)-1);
+                                    order.by=time(ellipsis$forecast)+c(1:x$h)-1);
             ellipsis$lower <- zoo(ellipsis$lower / x$h,
-                                    order.by=time(ellipsis$lower)+c(1:h)-1);
+                                    order.by=time(ellipsis$lower)+c(1:x$h)-1);
             ellipsis$upper <- zoo(ellipsis$upper / x$h,
-                                    order.by=time(ellipsis$upper)+c(1:h)-1);
+                                    order.by=time(ellipsis$upper)+c(1:x$h)-1);
             ellipsis$main <- paste0("Mean ", ellipsis$main);
             ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(yHoldout)),
                                     order.by=c(time(actuals(x$model)),time(yHoldout)));
