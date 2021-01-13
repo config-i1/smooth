@@ -1015,7 +1015,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             if(any(modelsPoolMultiplicative)){
                 modelsPool <- modelsPool[!modelsPoolMultiplicative];
 
-                if(!any(model==c("PPP","FFF"))){
+                if(any(model==c("PPP","FFF","YYY"))){
                     warning("Only additive models are allowed for your data. Amending the pool.",
                             call.=FALSE);
                 }
@@ -1023,9 +1023,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         }
         if((any(model==c("PPP","FFF","YYY")) || any(unlist(strsplit(model,""))=="Z")) && !allowMultiplicative){
             model <- "XXX";
-            Etype <- "A";
-            Ttype <- "X";
-            Stype <- "X";
+            Etype[] <- "A";
+            Ttype[] <- switch(Ttype,"Y"=,"Z"=,"P"=,"F"="X",Ttype);
+            Stype[] <- switch(Stype,"Y"=,"Z"=,"P"=,"F"="X",Stype);
             modelsPool <- NULL;
             warning("Only additive models are allowed for your data. Changing the selection mechanism.",
                     call.=FALSE);

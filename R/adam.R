@@ -3139,6 +3139,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     j <- 2;
                 }
 
+                # If this is NULL, then this was a short pool and we checked everything
+                if(length(j)==0){
+                    j <- length(poolSmall);
+                }
                 if(j>length(poolSmall)){
                     check[] <- FALSE;
                 }
