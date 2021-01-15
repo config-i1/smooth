@@ -725,6 +725,13 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         bounds <- "a";
     }
 
+    if(bounds=="n"){
+        warning("You have defined bounds='none'. ",
+                "This is dangerous and might lead to an unstable model or even break the function. ",
+                "Hopefully, you know what you are doing :).",
+                call.=FALSE);
+    }
+
     ##### Information Criteria #####
     ic <- ic[1];
     if(all(ic!=c("AICc","AIC","BIC","BICc"))){
@@ -1656,6 +1663,13 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     if(all(bounds!=c("n","a","r"))){
         warning("Strange bounds are defined. Switching to 'admissible'.",call.=FALSE);
         bounds <- "a";
+    }
+
+    if(bounds=="n"){
+        warning("You have defined bounds='none'. ",
+                "This is dangerous and might lead to an unstable model or even break the function. ",
+                "Hopefully, you know what you are doing :).",
+                call.=FALSE);
     }
 
     ##### Information Criteria #####
