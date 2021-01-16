@@ -863,22 +863,35 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
                 outliersXregNames <- colnames(outliersXreg);
                 outliersDo <- outliers;
+                # Additional variables to preserve the class of the object
                 yClasses <- class(data);
+                yIndex <- time(data);
+                notAMatrix <- (is.null(ncol(data)) || (!is.null(ncol(data)) & ncol(data)==1));
+                data <- data.frame(data,outliersXreg);
                 # Don't loose the zoo class
                 if(any(yClasses=="zoo")){
-                    yIndex <- time(data);
-                    data <- data.frame(data,outliersXreg);
-                    data[[1]] <- zoo(data[[1]], order.by=yIndex);
+                    if(notAMatrix){
+                        data[[1]] <- zoo(data[[1]], order.by=yIndex);
+                        colnames(data)[1] <- responseName;
+                    }
+                    else{
+                        data[[responseName]] <- zoo(data[[responseName]], order.by=yIndex);
+                    }
                 }
                 else{
-                    data <- data.frame(data,outliersXreg);
+                    if(notAMatrix){
+                        data[[1]] <- ts(data[[1]], start=yIndex[1], deltat=yIndex[2]-yIndex[1]);
+                        colnames(data)[1] <- responseName;
+                    }
+                    else{
+                        data[[responseName]] <- ts(data[[responseName]], start=yIndex[1], deltat=yIndex[2]-yIndex[1]);
+                    }
                 }
 
                 # If the names of xreg are wrong, fix them
                 if(!all(outliersXregNames %in% colnames(data))){
                     colnames(data)[substr(colnames(data),1,12)=="outliersXreg"] <- outliersXregNames;
                 }
-                colnames(data)[1] <- responseName;
 
                 # Form new xreg matrix (check data and xreg)
                 if(xregModel){
