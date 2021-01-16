@@ -350,12 +350,13 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @export adam
 adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                  constant=FALSE, formula=NULL, regressors=c("use","select","adapt"),
+                 outliers=c("ignore","use","select"), level=0.99,
+                 occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                 "dlnorm","dinvgauss"),
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
-                 occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                  silent=TRUE, ...){
     # Copyright (C) 2019 - Inf  Ivan Svetunkov
@@ -496,6 +497,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### Check the parameters of the function and create variables based on them ####
     checkerReturn <- parametersChecker(data, model, lags, formula, orders, constant, arma,
+                                       outliers, level,
                                        persistence, phi, initial,
                                        distribution, loss, h, holdout, occurrence, ic, bounds,
                                        regressors, yName,
@@ -637,13 +639,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### If select was provided in the model, do ARIMA selection ####
     if(!is.null(checkerReturn$select) && checkerReturn$select){
-        return(auto.adam(data, model=model, lags=lags, orders=orders,
+        if(phiEstimate){
+            phi <- NULL;
+        }
+        return(do.call("auto.adam",list(data=substitute(data), model=model, lags=lags, orders=orders,
                          formula=formula, regressors=regressors,
                          distribution=distribution, loss=loss,
-                         h=h, holdout=holdout,
+                         h=h, holdout=holdout, outliers=outliers, level=level,
                          persistence=persistence, phi=phi, initial=initial, arma=arma,
                          occurrence=occurrence,
-                         ic=ic, bounds=bounds, silent=silent, ...));
+                         ic=ic, bounds=bounds, silent=silent, ...)));
     }
 
     #### The function creates the technical variables (lags etc) based on the type of the model ####

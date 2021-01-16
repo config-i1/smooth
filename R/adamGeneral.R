@@ -1,4 +1,5 @@
 parametersChecker <- function(data, model, lags, formulaProvided, orders, constant=FALSE, arma,
+                              outliers=c("ignore","use","select"), level=0.99,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm","dalaplace",
                                              "dlnorm","dinvgauss"),
@@ -629,6 +630,11 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     }
     else{
         componentsNumberETSSeasonal <- 0;
+    }
+
+    outliers <- match.arg(outliers);
+    if(outliers!="ignore"){
+        select <- TRUE;
     }
 
     if(!fast){
@@ -2890,6 +2896,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     assign("pForecast",pForecast,ParentEnvironment);
     assign("ot",ot,ParentEnvironment);
     assign("otLogical",otLogical,ParentEnvironment);
+
+    ### Outliers detection
+    assign("outliers",outliers,ParentEnvironment);
 
     ### Distribution, loss, bounds and IC
     assign("distribution",distribution,ParentEnvironment);

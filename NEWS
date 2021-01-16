@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-15)
+smooth v3.0.1 (Release data: 2021-01-16)
 =======
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * plot.adam.forecast now produces mean forecast in case of cumulative.
 * Let ADAM speak for himself - all warnings are now "I cannot do this and that".
 * warning in case of bounds="none".
+* outliers and level are now also available in adam() - no need to use auto.adam() for that.
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
@@ -13,6 +14,7 @@ Bugfixes:
 * adam() would not work with provided occurrence.
 * A fix for sigma.adam() from the model with NAs (returned NA instead of the number).
 * A fix in vcov.adam() for the data with NAs.
+* outliers="select" would not work with zoo objects.
 
 
 smooth v3.0.1 (Release data: 2021-01-12)

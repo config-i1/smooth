@@ -863,11 +863,22 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
                 outliersXregNames <- colnames(outliersXreg);
                 outliersDo <- outliers;
-                data <- cbind(data,outliersXreg);
+                yClasses <- class(data);
+                # Don't loose the zoo class
+                if(any(yClasses=="zoo")){
+                    yIndex <- time(data);
+                    data <- data.frame(data,outliersXreg);
+                    data[[1]] <- zoo(data[[1]], order.by=yIndex);
+                }
+                else{
+                    data <- data.frame(data,outliersXreg);
+                }
+
                 # If the names of xreg are wrong, fix them
                 if(!all(outliersXregNames %in% colnames(data))){
                     colnames(data)[substr(colnames(data),1,12)=="outliersXreg"] <- outliersXregNames;
                 }
+                colnames(data)[1] <- responseName;
 
                 # Form new xreg matrix (check data and xreg)
                 if(xregModel){
@@ -893,7 +904,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                         persistence=persistence, phi=phi, initial=initial, arma=arma,
                                                         occurrence=occurrence, ic=ic, bounds=bounds,
                                                         regressors=outliersDo,
-                                                        silent=TRUE, parallel=parallel, fast=fast));
+                                                        silent=TRUE, parallel=parallel, fast=fast, ...));
             }
             else{
                 if(!silent){

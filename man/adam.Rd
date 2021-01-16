@@ -8,14 +8,15 @@
 adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
   formula = NULL, regressors = c("use", "select", "adapt"),
-  distribution = c("default", "dnorm", "dlaplace", "ds", "dgnorm",
-  "dalaplace", "dlnorm", "dinvgauss"), loss = c("likelihood", "MSE", "MAE",
-  "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
-  holdout = FALSE, persistence = NULL, phi = NULL,
-  initial = c("optimal", "backcasting"), arma = NULL,
+  outliers = c("ignore", "use", "select"), level = 0.99,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
-  "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), silent = TRUE, ...)
+  "inverse-odds-ratio", "direct"), distribution = c("default", "dnorm",
+  "dlaplace", "ds", "dgnorm", "dalaplace", "dlnorm", "dinvgauss"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
+  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
+  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
+  ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
+  "none"), silent = TRUE, ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
@@ -107,6 +108,29 @@ the global trend. Only needed if \code{data} is a matrix or if \code{trend} is p
 \code{"adapt"} will trigger the mechanism of time varying parameters for the
 explanatory variables.}
 
+\item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
+\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+or detect and \code{"select"} those of them that reduce \code{ic} value.}
+
+\item{level}{What confidence level to use for detection of outliers. The default is 99.9%. The statistics
+values depends on the distribution used in the model.}
+
+\item{occurrence}{The type of model used in probability estimation. Can be
+\code{"none"} - none,
+\code{"fixed"} - constant probability,
+\code{"general"} - the general Beta model with two parameters,
+\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
+\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
+\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
+mechanism a+b=1,
+\code{"auto"} - the automatically selected type of occurrence model.
+
+The type of model used in the occurrence is equal to the one provided in the
+\code{model} parameter.
+
+Also, a model produced using \link[smooth]{oes} or \link[greybox]{alm} function
+can be used here.}
+
 \item{distribution}{what density function to assume for the error term. The full
 name of the distribution should be provided, starting with the letter "d" -
 "density". The names align with the names of distribution functions in R.
@@ -175,22 +199,6 @@ without any gaps.}
 The number of elements should correspond to the specified orders e.g.
 \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}}
 
-\item{occurrence}{The type of model used in probability estimation. Can be
-\code{"none"} - none,
-\code{"fixed"} - constant probability,
-\code{"general"} - the general Beta model with two parameters,
-\code{"odds-ratio"} - the Odds-ratio model with b=1 in Beta distribution,
-\code{"inverse-odds-ratio"} - the model with a=1 in Beta distribution,
-\code{"direct"} - the TSB-like (Teunter et al., 2011) probability update
-mechanism a+b=1,
-\code{"auto"} - the automatically selected type of occurrence model.
-
-The type of model used in the occurrence is equal to the one provided in the
-\code{model} parameter.
-
-Also, a model produced using \link[smooth]{oes} or \link[greybox]{alm} function
-can be used here.}
-
 \item{ic}{The information criterion to use in the model selection / combination
 procedure.}
 
@@ -241,13 +249,6 @@ You can read more about these parameters by running the function
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
-
-\item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
-or detect and \code{"select"} those of them that reduce \code{ic} value.}
-
-\item{level}{What confidence level to use for detection of outliers. The default is 99.9%. The statistics
-values depends on the distribution used in the model.}
 
 \item{parallel}{If TRUE, the estimation of ADAM models is done in parallel (used in \code{auto.adam} only).
 If the number is provided (e.g. \code{parallel=41}), then the specified number of cores is set up.
