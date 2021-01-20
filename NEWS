@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-16)
+smooth v3.0.1 (Release data: 2021-01-20)
 =======
 
 Changes:
@@ -15,6 +15,7 @@ Bugfixes:
 * A fix for sigma.adam() from the model with NAs (returned NA instead of the number).
 * A fix in vcov.adam() for the data with NAs.
 * outliers="select" would not work with zoo objects.
+* A bugfix for orders=list(select=TRUE) without providing ar i ma orders.
 
 
 smooth v3.0.1 (Release data: 2021-01-12)

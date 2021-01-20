@@ -226,6 +226,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         arMax <- iMax <- maMax <- NULL;
         arimaModelSelect <- FALSE;
         initialArimaNumber <- 0;
+        orders <- c(0,0,0);
     }
 
     #### Maximum number of parameters to estimate ####

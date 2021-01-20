@@ -409,7 +409,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         arOrders <- orders[1];
         iOrders <- orders[2];
         maOrders <- orders[3];
-        select <- NULL;
+        select <- FALSE;
     }
 
     # If there is arima, prepare orders
@@ -537,6 +537,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         componentsNamesARIMA <- NULL;
         nonZeroARI <- NULL;
         nonZeroMA <- NULL;
+        select <- FALSE;
     }
 
     if(etsModel){
