@@ -5,7 +5,7 @@
 \alias{reforecast}
 \title{Refit the model with randomly generated initial parameters and produce forecasts}
 \usage{
-refit(object, nsim = 1000, ...)
+refit(object, nsim = 1000, bootstrap = FALSE, ...)
 
 reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
   interval = c("prediction", "confidence", "none"), level = 0.95,
@@ -16,6 +16,9 @@ reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
 \item{object}{Model estimated using one of the functions of smooth package.}
 
 \item{nsim}{Number of paths to generate (number of simulations to do).}
+
+\item{bootstrap}{The logical, which determines, whether to use bootstrap for the
+covariance matrix of parameters or not.}
 
 \item{...}{Other parameters passed to \code{mean()} function in case of
 \code{reforecast} (this mainly refers to \code{trim} variable, which is set to

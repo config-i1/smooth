@@ -5714,182 +5714,193 @@ arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
 
 # Confidence intervals
 #' @export
-confint.adam <- function(object, parm, level=0.95, ...){
-    adamVcov <- vcov(object, ...);
+confint.adam <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
     parameters <- coef(object);
-    adamSD <- sqrt(abs(diag(adamVcov)));
-    parametersNames <- names(adamSD);
-    nParam <- length(adamSD);
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
-    adamCoefBounds <- matrix(0,nParam,2,
-                             dimnames=list(parametersNames,NULL));
-    # Fill in the values with normal bounds
-    adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
-    adamCoefBounds[,2] <- qt((1+level)/2, df=nobs(object)+nparam(object))*adamSD;
+    confintNames <- c(paste0((1-level)/2*100,"%"),
+                      paste0((1+level)/2*100,"%"));
 
-    persistence <- as.matrix(object$persistence);
-    # If there is xreg, but no deltas, increase persistence by including zeroes
-    # This can be considered as a failsafe mechanism
-    if(ncol(object$data)>1 && !any(substr(names(object$persistence),1,5)=="delta")){
-        persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
+    if(bootstrap){
+        coefValues <- coefbootstrap(object, ...);
+        adamReturn <- cbind(sqrt(diag(coefValues$vcov)),
+                            apply(coefValues$coefficients,2,quantile,probs=(1-level)/2)-parameters,
+                            apply(coefValues$coefficients,2,quantile,probs=(1+level)/2)-parameters);
+        colnames(adamReturn) <- c("S.E.",confintNames);
     }
+    else{
+        adamVcov <- vcov(object, ...);
+        adamSD <- sqrt(abs(diag(adamVcov)));
+        parametersNames <- names(adamSD);
+        nParam <- length(adamSD);
+        etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+        arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+        adamCoefBounds <- matrix(0,nParam,2,
+                                 dimnames=list(parametersNames,NULL));
+        # Fill in the values with normal bounds
+        adamCoefBounds[,1] <- qt((1-level)/2, df=nobs(object)-nparam(object))*adamSD;
+        adamCoefBounds[,2] <- qt((1+level)/2, df=nobs(object)+nparam(object))*adamSD;
 
-    # Correct the bounds for the ETS model
-    if(etsModel){
-        #### The usual bounds ####
-        if(object$bounds=="usual"){
-            # Check, if there is alpha
-            if(any(parametersNames=="alpha")){
-                adamCoefBounds["alpha",1] <- max(-parameters["alpha"],adamCoefBounds["alpha",1]);
-                adamCoefBounds["alpha",2] <- min(1-parameters["alpha"],adamCoefBounds["alpha",2]);
-            }
-            # Check, if there is beta
-            if(any(parametersNames=="beta")){
-                adamCoefBounds["beta",1] <- max(-parameters["beta"],adamCoefBounds["beta",1]);
+        persistence <- as.matrix(object$persistence);
+        # If there is xreg, but no deltas, increase persistence by including zeroes
+        # This can be considered as a failsafe mechanism
+        if(ncol(object$data)>1 && !any(substr(names(object$persistence),1,5)=="delta")){
+            persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
+        }
+
+        # Correct the bounds for the ETS model
+        if(etsModel){
+            #### The usual bounds ####
+            if(object$bounds=="usual"){
+                # Check, if there is alpha
                 if(any(parametersNames=="alpha")){
-                    adamCoefBounds["beta",2] <- min(parameters["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                    adamCoefBounds["alpha",1] <- max(-parameters["alpha"],adamCoefBounds["alpha",1]);
+                    adamCoefBounds["alpha",2] <- min(1-parameters["alpha"],adamCoefBounds["alpha",2]);
                 }
-                else{
-                    adamCoefBounds["beta",2] <- min(object$persistence["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                # Check, if there is beta
+                if(any(parametersNames=="beta")){
+                    adamCoefBounds["beta",1] <- max(-parameters["beta"],adamCoefBounds["beta",1]);
+                    if(any(parametersNames=="alpha")){
+                        adamCoefBounds["beta",2] <- min(parameters["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                    }
+                    else{
+                        adamCoefBounds["beta",2] <- min(object$persistence["alpha"]-parameters["beta"],adamCoefBounds["beta",2]);
+                    }
+                }
+                # Check, if there are gammas
+                if(any(substr(parametersNames,1,5)=="gamma")){
+                    gammas <- which(substr(parametersNames,1,5)=="gamma");
+                    adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
+                    if(any(parametersNames=="alpha")){
+                        adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                                (1-parameters["alpha"])-parameters[gammas]),1,min);
+                    }
+                    else{
+                        adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
+                                                                (1-object$persistence["alpha"])-parameters[gammas]),1,min);
+                    }
+                }
+                # Check, if there are deltas (for xreg)
+                if(any(substr(parametersNames,1,5)=="delta")){
+                    deltas <- which(substr(parametersNames,1,5)=="delta");
+                    adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
+                    adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
+                }
+                # These are "usual" bounds for phi. We don't care about other bounds
+                if(any(parametersNames=="phi")){
+                    adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
+                    adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
                 }
             }
-            # Check, if there are gammas
-            if(any(substr(parametersNames,1,5)=="gamma")){
-                gammas <- which(substr(parametersNames,1,5)=="gamma");
-                adamCoefBounds[gammas,1] <- apply(cbind(adamCoefBounds[gammas,1],-parameters[gammas]),1,max);
+            #### Admissible bounds ####
+            else if(object$bounds=="admissible"){
+                # Check, if there is alpha
                 if(any(parametersNames=="alpha")){
-                    adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                            (1-parameters["alpha"])-parameters[gammas]),1,min);
+                    alphaBounds <- eigenBounds(object, persistence,
+                                               variableNumber=which(names(object$persistence)=="alpha"));
+                    adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
+                    adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
                 }
-                else{
-                    adamCoefBounds[gammas,2] <- apply(cbind(adamCoefBounds[gammas,2],
-                                                            (1-object$persistence["alpha"])-parameters[gammas]),1,min);
+                # Check, if there is beta
+                if(any(parametersNames=="beta")){
+                    betaBounds <- eigenBounds(object, persistence,
+                                              variableNumber=which(names(object$persistence)=="beta"));
+                    adamCoefBounds["beta",1] <- max(betaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
+                    adamCoefBounds["beta",2] <- min(betaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
+                }
+                # Check, if there are gammas
+                if(any(substr(parametersNames,1,5)=="gamma")){
+                    gammas <- which(substr(parametersNames,1,5)=="gamma");
+                    for(i in 1:length(gammas)){
+                        gammaBounds <- eigenBounds(object, persistence,
+                                                   variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
+                        adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
+                        adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
+                    }
+                }
+                # Check, if there are deltas (for xreg)
+                if(any(substr(parametersNames,1,5)=="delta")){
+                    deltas <- which(substr(parametersNames,1,5)=="delta");
+                    for(i in 1:length(deltas)){
+                        deltaBounds <- eigenBounds(object, persistence,
+                                                   variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
+                        adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
+                        adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
+                    }
                 }
             }
-            # Check, if there are deltas (for xreg)
-            if(any(substr(parametersNames,1,5)=="delta")){
-                deltas <- which(substr(parametersNames,1,5)=="delta");
-                adamCoefBounds[deltas,1] <- apply(cbind(adamCoefBounds[deltas,1],-parameters[deltas]),1,max);
-                adamCoefBounds[deltas,2] <- apply(cbind(adamCoefBounds[deltas,2],1-parameters[deltas]),1,min);
+
+            # Restrictions on the initials for the multiplicative models (greater than zero)
+            # Level
+            # if(errorType(object)=="M" && any(parametersNames=="level")){
+            #     adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
+            #     adamCoefBounds["level",2] <- max(-parameters["level"],adamCoefBounds["level",2]);
+            # }
+            adamModelType <- modelType(object);
+            # Trend
+            if(substr(adamModelType,2,2)=="M" && any(parametersNames=="trend")){
+                adamCoefBounds["trend",1] <- max(-parameters["trend"],adamCoefBounds["trend",1]);
+                adamCoefBounds["trend",2] <- max(-parameters["trend"],adamCoefBounds["trend",2]);
             }
-            # These are "usual" bounds for phi. We don't care about other bounds
-            if(any(parametersNames=="phi")){
-                adamCoefBounds["phi",1] <- max(-parameters["phi"],adamCoefBounds["phi",1]);
-                adamCoefBounds["phi",2] <- min(1-parameters["phi"],adamCoefBounds["phi",2]);
+            # Seasonality
+            if(substr(adamModelType,nchar(adamModelType),nchar(adamModelType))=="M" &&
+               any(substr(parametersNames,1,8)=="seasonal")){
+                seasonals <- which(substr(parametersNames,1,8)=="seasonal");
+                adamCoefBounds[seasonals,1] <- max(-parameters[seasonals],adamCoefBounds[seasonals,1]);
+                adamCoefBounds[seasonals,2] <- max(-parameters[seasonals],adamCoefBounds[seasonals,2]);
             }
         }
-        #### Admissible bounds ####
-        else if(object$bounds=="admissible"){
-            # Check, if there is alpha
-            if(any(parametersNames=="alpha")){
-                alphaBounds <- eigenBounds(object, persistence,
-                                           variableNumber=which(names(object$persistence)=="alpha"));
-                adamCoefBounds["alpha",1] <- max(alphaBounds[1]-parameters["alpha"],adamCoefBounds["alpha",1]);
-                adamCoefBounds["alpha",2] <- min(alphaBounds[2]-parameters["alpha"],adamCoefBounds["alpha",2]);
-            }
-            # Check, if there is beta
-            if(any(parametersNames=="beta")){
-                betaBounds <- eigenBounds(object, persistence,
-                                          variableNumber=which(names(object$persistence)=="beta"));
-                adamCoefBounds["beta",1] <- max(betaBounds[1]-parameters["beta"],adamCoefBounds["beta",1]);
-                adamCoefBounds["beta",2] <- min(betaBounds[2]-parameters["beta"],adamCoefBounds["beta",2]);
-            }
-            # Check, if there are gammas
-            if(any(substr(parametersNames,1,5)=="gamma")){
-                gammas <- which(substr(parametersNames,1,5)=="gamma");
-                for(i in 1:length(gammas)){
-                    gammaBounds <- eigenBounds(object, persistence,
-                                               variableNumber=which(substr(names(object$persistence),1,5)=="gamma")[i]);
-                    adamCoefBounds[gammas[i],1] <- max(gammaBounds[1]-parameters[gammas[i]],adamCoefBounds[gammas[i],1]);
-                    adamCoefBounds[gammas[i],2] <- min(gammaBounds[2]-parameters[gammas[i]],adamCoefBounds[gammas[i],2]);
+
+        # Correct the bounds for the ARIMA model
+        if(arimaModel){
+            #### Deal with ARIMA parameters ####
+            ariPolynomial <- object$other$polynomial$ariPolynomial;
+            arPolynomial <- object$other$polynomial$arPolynomial;
+            maPolynomial <- object$other$polynomial$maPolynomial;
+            nonZeroARI <- object$other$ARIMAIndices$nonZeroARI;
+            nonZeroMA <- object$other$ARIMAIndices$nonZeroMA;
+            arPolynomialMatrix <- object$other$arPolynomialMatrix;
+            # Locate all thetas for ARIMA
+            thetas <- which(substr(parametersNames,1,5)=="theta");
+            # Locate phi for ARIMA (they are always phi1, phi2 etc)
+            phis <- which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3));
+            # Do loop for thetas
+            if(length(thetas)>0){
+                # MA parameters
+                for(i in 1:length(thetas)){
+                    # In this case, we check, where the standard condition is violated for an element of persistence,
+                    # and then substitute the ARI part from that.
+                    psiBounds <- eigenBounds(object, persistence,
+                                             variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
+                    # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
+                    if(any(nonZeroARI[,2]==i)){
+                        ariIndex <- which(nonZeroARI[,2]==i);
+                        adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                                                           adamCoefBounds[thetas[i],1]);
+                        adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
+                                                           adamCoefBounds[thetas[i],2]);
+                    }
+                    else{
+                        adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]], adamCoefBounds[thetas[i],1]);
+                        adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]], adamCoefBounds[thetas[i],2]);
+                    }
                 }
             }
-            # Check, if there are deltas (for xreg)
-            if(any(substr(parametersNames,1,5)=="delta")){
-                deltas <- which(substr(parametersNames,1,5)=="delta");
-                for(i in 1:length(deltas)){
-                    deltaBounds <- eigenBounds(object, persistence,
-                                               variableNumber=which(substr(names(object$persistence),1,5)=="delta")[i]);
-                    adamCoefBounds[deltas[i],1] <- max(deltaBounds[1]-parameters[deltas[i]],adamCoefBounds[deltas[i],1]);
-                    adamCoefBounds[deltas[i],2] <- min(deltaBounds[2]-parameters[deltas[i]],adamCoefBounds[deltas[i],2]);
+            # Locate phi for ARIMA (they are always phi1, phi2 etc)
+            if(length(phis)>0){
+                # AR parameters
+                for(i in 1:length(phis)){
+                    # Get bounds for AR based on stationarity condition
+                    phiBounds <- arPolinomialsBounds(arPolynomialMatrix, arPolynomial,
+                                                     which(arPolynomial==arPolynomial[arPolynomial!=0][-1][i]));
+
+                    adamCoefBounds[phis[i],1] <- max(phiBounds[1]-parameters[phis[i]], adamCoefBounds[phis[i],1]);
+                    adamCoefBounds[phis[i],2] <- min(phiBounds[2]-parameters[phis[i]], adamCoefBounds[phis[i],2]);
                 }
             }
         }
 
-        # Restrictions on the initials for the multiplicative models (greater than zero)
-        # Level
-        # if(errorType(object)=="M" && any(parametersNames=="level")){
-        #     adamCoefBounds["level",1] <- max(-parameters["level"],adamCoefBounds["level",1]);
-        #     adamCoefBounds["level",2] <- max(-parameters["level"],adamCoefBounds["level",2]);
-        # }
-        adamModelType <- modelType(object);
-        # Trend
-        if(substr(adamModelType,2,2)=="M" && any(parametersNames=="trend")){
-            adamCoefBounds["trend",1] <- max(-parameters["trend"],adamCoefBounds["trend",1]);
-            adamCoefBounds["trend",2] <- max(-parameters["trend"],adamCoefBounds["trend",2]);
-        }
-        # Seasonality
-        if(substr(adamModelType,nchar(adamModelType),nchar(adamModelType))=="M" &&
-           any(substr(parametersNames,1,8)=="seasonal")){
-            seasonals <- which(substr(parametersNames,1,8)=="seasonal");
-            adamCoefBounds[seasonals,1] <- max(-parameters[seasonals],adamCoefBounds[seasonals,1]);
-            adamCoefBounds[seasonals,2] <- max(-parameters[seasonals],adamCoefBounds[seasonals,2]);
-        }
+        adamReturn <- cbind(adamSD,adamCoefBounds);
+        colnames(adamReturn) <- c("S.E.", confintNames);
     }
-
-    # Correct the bounds for the ARIMA model
-    if(arimaModel){
-        #### Deal with ARIMA parameters ####
-        ariPolynomial <- object$other$polynomial$ariPolynomial;
-        arPolynomial <- object$other$polynomial$arPolynomial;
-        maPolynomial <- object$other$polynomial$maPolynomial;
-        nonZeroARI <- object$other$ARIMAIndices$nonZeroARI;
-        nonZeroMA <- object$other$ARIMAIndices$nonZeroMA;
-        arPolynomialMatrix <- object$other$arPolynomialMatrix;
-        # Locate all thetas for ARIMA
-        thetas <- which(substr(parametersNames,1,5)=="theta");
-        # Locate phi for ARIMA (they are always phi1, phi2 etc)
-        phis <- which((substr(parametersNames,1,3)=="phi") & (nchar(parametersNames)>3));
-        # Do loop for thetas
-        if(length(thetas)>0){
-            # MA parameters
-            for(i in 1:length(thetas)){
-                # In this case, we check, where the standard condition is violated for an element of persistence,
-                # and then substitute the ARI part from that.
-                psiBounds <- eigenBounds(object, persistence,
-                                           variableNumber=which(substr(names(object$persistence),1,3)=="psi")[nonZeroMA[i,2]]);
-                # If there are ARI elements in persistence, subtract (-(-x)) them to get proper bounds
-                if(any(nonZeroARI[,2]==i)){
-                    ariIndex <- which(nonZeroARI[,2]==i);
-                    adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
-                                                       adamCoefBounds[thetas[i],1]);
-                    adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]]+ariPolynomial[nonZeroARI[ariIndex,1]],
-                                                       adamCoefBounds[thetas[i],2]);
-                }
-                else{
-                    adamCoefBounds[thetas[i],1] <- max(psiBounds[1]-parameters[thetas[i]], adamCoefBounds[thetas[i],1]);
-                    adamCoefBounds[thetas[i],2] <- min(psiBounds[2]-parameters[thetas[i]], adamCoefBounds[thetas[i],2]);
-                }
-            }
-        }
-        # Locate phi for ARIMA (they are always phi1, phi2 etc)
-        if(length(phis)>0){
-            # AR parameters
-            for(i in 1:length(phis)){
-                # Get bounds for AR based on stationarity condition
-                phiBounds <- arPolinomialsBounds(arPolynomialMatrix, arPolynomial,
-                                                 which(arPolynomial==arPolynomial[arPolynomial!=0][-1][i]));
-
-                adamCoefBounds[phis[i],1] <- max(phiBounds[1]-parameters[phis[i]], adamCoefBounds[phis[i],1]);
-                adamCoefBounds[phis[i],2] <- min(phiBounds[2]-parameters[phis[i]], adamCoefBounds[phis[i],2]);
-            }
-        }
-    }
-
-    adamReturn <- cbind(adamSD,adamCoefBounds);
-    colnames(adamReturn) <- c("S.E.",
-                              paste0((1-level)/2*100,"%"), paste0((1+level)/2*100,"%"));
 
     # If parm was not provided, return everything.
     if(!exists("parm",inherits=FALSE)){
@@ -5930,7 +5941,7 @@ sigma.adam <- function(object, ...){
 }
 
 #' @export
-summary.adam <- function(object, level=0.95, ...){
+summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
     ourReturn <- list(model=object$model,responseName=all.vars(formula(object))[1]);
 
     occurrence <- NULL;
@@ -5953,7 +5964,7 @@ summary.adam <- function(object, level=0.95, ...){
     # Collect parameters and their standard errors
     parametersValues <- coef(object);
     if(!is.null(parametersValues)){
-        parametersConfint <- confint(object, level=level, ...);
+        parametersConfint <- confint(object, level=level, bootstrap=bootstrap, ...);
         if(is.null(parametersValues)){
             if(ncol(object$data)>1 && all(object$persistenceXreg!=0)){
                 parametersValues <- c(object$persistence,object$persistenceXreg,object$initial,object$initialXreg);
@@ -6075,69 +6086,246 @@ print.summary.adam <- function(x, ...){
     }
 }
 
-#' @export
-vcov.adam <- function(object, ...){
-    ellipsis <- list(...);
-    # If the forecast is in numbers, then use its length as a horizon
-    if(any(!is.na(object$forecast))){
-        h <- length(object$forecast)
-    }
-    else{
-        h <- 0;
-    }
-    if(substr(object$model,1,10)=="Regression"){
-        modelFormula <- formula(object);
-        testModel <- structure(list(call=object$call,
-                                    data=as.matrix(model.matrix(modelFormula,
-                                                                data=model.frame(modelFormula, data=object$data))),
-                                    distribution=object$distribution, occurrence=object$occurrence,
-                                    coefficients=coef(object), logLik=logLik(object),
-                                    residuals=residuals(object), df=nparam(object), loss=object$loss,
-                                    other=object$other),
-                               class=c("alm","greybox"));
-        testModel$call$formula <- modelFormula;
-        testModel$data[,1] <- object$data[,1];
-        colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
-        return(vcov(testModel));
-    }
-    else{
-        modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                             FI=TRUE, stepSize=ellipsis$stepSize));
-        # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-        brokenVariables <- apply(modelReturn$FI==0,1,all);
-        # If there are issues, try the same stuff, but with a different step size for hessian
-        if(any(brokenVariables)){
-            modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                                 FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
-            brokenVariables <- apply(modelReturn$FI==0,1,all);
-        }
-        if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-            warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                           "which means that the likelihood was not maximised properly. ",
-                           "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
-        }
-        FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
-        vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-        if(inherits(vcovMatrix,"try-error")){
-            vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-            if(inherits(vcovMatrix,"try-error")){
-                warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
-                               "I failed to produce the covariance matrix of parameters. Shame on me!"),
-                        call.=FALSE);
-                vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+#' @importFrom greybox coefbootstrap
+#' @export
+coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
+                               replace=FALSE, prob=NULL, parallel=FALSE, ...){
+
+    startTime <- Sys.time();
+
+    cl <- match.call();
+
+    if(is.numeric(parallel)){
+        nCores <- parallel;
+        parallel <- TRUE;
+    }
+    else if(is.logical(parallel) && parallel){
+        # Detect number of cores for parallel calculations
+        nCores <- min(parallel::detectCores() - 1, nsim);
+    }
+
+    # If they asked for parallel, make checks and try to do that
+    if(parallel){
+        if(!requireNamespace("foreach", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'foreach' package must be installed.", call. = FALSE);
+        }
+        if(!requireNamespace("parallel", quietly = TRUE)){
+            stop("In order to run the function in parallel, 'parallel' package must be installed.", call. = FALSE);
+        }
+
+        # Check the system and choose the package to use
+        if(Sys.info()['sysname']=="Windows"){
+            if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need 'doParallel' package.",
+                     call. = FALSE);
             }
         }
-        # If there were broken variables, reproduce the zero elements.
-        # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-        modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-        modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
-
-        # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-        diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+        else{
+            if(requireNamespace("doMC", quietly = TRUE)){
+                doMC::registerDoMC(nCores);
+                cluster <- NULL;
+            }
+            else if(requireNamespace("doParallel", quietly = TRUE)){
+                cluster <- parallel::makeCluster(nCores);
+                doParallel::registerDoParallel(cluster);
+            }
+            else{
+                stop("Sorry, but in order to run the function in parallel, you need either 'doMC' (prefered) or 'doParallel' packages.",
+                     call. = FALSE);
+            }
+        }
     }
 
-    return(modelReturn$FI);
+    # Coefficients of the model
+    coefficientsOriginal <- coef(object);
+    nVariables <- length(coefficientsOriginal);
+    variablesNames <- names(coefficientsOriginal);
+    # interceptIsNeeded <- any(variablesNames=="(Intercept)");
+    # variablesNamesMade <- make.names(variablesNames);
+    # if(interceptIsNeeded){
+    #     variablesNamesMade[1] <- variablesNames[1];
+    # }
+    obsInsample <- nobs(object);
+
+    # The matrix with coefficients
+    coefBootstrap <- matrix(0, nsim, nVariables, dimnames=list(NULL, variablesNames));
+    # Indices for the observations to use and the vector of subsets
+    indices <- c(1:obsInsample);
+
+    # Form the call for alm
+    newCall <- object$call;
+    newCall$formula <- formula(object);
+    newCall$data <- object$data;
+    # This is based on the split data, so no need to do holdout
+    newCall$holdout <- FALSE;
+    newCall$distribution <- object$distribution;
+    if(object$loss=="custom"){
+        newCall$loss <- object$lossFunction;
+    }
+    else{
+        newCall$loss <- object$loss;
+    }
+    # If ETS was selected
+    if(any(object$call!=modelType(object))){
+        newCall$model <- modelType(object);
+    }
+    # If ARIMA was selected
+    if(is.null(object$call$orders$select)){
+        newCall$orders <- orders(object);
+        newCall$orders$select <- FALSE;
+    }
+
+    # Get lags and the minimum possible sample (2 seasons)
+    lags <- lags(object);
+    obsMinimum <- max(c(lags*2,nVariables))+1;
+
+    # If this is ARIMA, and the size wasn't specified, make it changable
+    if(substr(object$model,1,10)=="Regression"){
+        regressionPure <- TRUE;
+    }
+    else{
+        regressionPure <- FALSE;
+    }
+
+    newCall$fast <- TRUE;
+    if(any(object$distribution==c("dchisq","dt"))){
+        newCall$nu <- object$other$nu;
+    }
+    else if(object$distribution=="dalaplace"){
+        newCall$alpha <- object$other$alpha;
+    }
+    else if(object$distribution=="dbcnorm"){
+        newCall$lambdaBC <- object$other$lambdaBC;
+    }
+    else if(any(object$distribution==c("dgnorm","dlgnorm"))){
+        newCall$shape <- object$other$shape;
+    }
+    newCall$occurrence <- object$occurrence;
+
+    # Use the available parameters as starting point
+    newCall$B <- object$B;
+
+    # Function creates a random sample. Needed for dynamic models
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE){
+        if(regressionPure){
+            return(sample(indices,size=size,replace=replace,prob=prob));
+        }
+        else{
+            # This way we return the continuos sample, starting from the first observation
+            return(c(1:ceiling(runif(1,obsMinimum,obsInsample))));
+        }
+    }
+
+    if(!parallel){
+        for(i in 1:nsim){
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure);
+            newCall$data <- object$data[subsetValues,];
+            testModel <- suppressWarnings(eval(newCall));
+            coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
+        }
+    }
+    else{
+        # We don't do rbind for security reasons - in order to deal with skipped variables
+        coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure);
+            newCall$data <- object$data[subsetValues,];
+            testModel <- eval(newCall);
+            return(coef(testModel));
+        })
+        # Prepare the matrix with parameters
+        for(i in 1:nsim){
+            coefBootstrap[i,variablesNames %in% names(coefBootstrapParallel[[i]])] <- coefBootstrapParallel[[i]];
+        }
+    }
+
+    # Get rid of NAs. They mean "zero"
+    coefBootstrap[is.na(coefBootstrap)] <- 0;
+
+    # Rename the variables to the originals
+    colnames(coefBootstrap) <- names(coefficientsOriginal);
+
+    # Centre the coefficients for the calculation of the vcov
+    coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
+
+    return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
+                          coefficients=coefBootstrap,
+                          nsim=nsim, size=size, replace=replace, prob=prob, parallel=parallel,
+                          model=object$call[[1]], timeElapsed=Sys.time()-startTime),
+                     class="bootstrap"));
+}
+
+#' @export
+vcov.adam <- function(object, bootstrap=FALSE, ...){
+    ellipsis <- list(...);
+    if(bootstrap){
+        return(coefbootstrap(object, ...)$vcov);
+    }
+    else{
+        # If the forecast is in numbers, then use its length as a horizon
+        if(any(!is.na(object$forecast))){
+            h <- length(object$forecast)
+        }
+        else{
+            h <- 0;
+        }
+        if(substr(object$model,1,10)=="Regression"){
+            modelFormula <- formula(object);
+            testModel <- structure(list(call=object$call,
+                                        data=as.matrix(model.matrix(modelFormula,
+                                                                    data=model.frame(modelFormula, data=object$data))),
+                                        distribution=object$distribution, occurrence=object$occurrence,
+                                        coefficients=coef(object), logLik=logLik(object),
+                                        residuals=residuals(object), df=nparam(object), loss=object$loss,
+                                        other=object$other),
+                                   class=c("alm","greybox"));
+            testModel$call$formula <- modelFormula;
+            testModel$data[,1] <- object$data[,1];
+            colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
+            return(vcov(testModel));
+        }
+        else{
+            modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
+                                                 FI=TRUE, stepSize=ellipsis$stepSize));
+            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+            brokenVariables <- apply(modelReturn$FI==0,1,all);
+            # If there are issues, try the same stuff, but with a different step size for hessian
+            if(any(brokenVariables)){
+                modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
+                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                brokenVariables <- apply(modelReturn$FI==0,1,all);
+            }
+            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+                               "which means that the likelihood was not maximised properly. ",
+                               "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
+            }
+            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
+
+            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+            if(inherits(vcovMatrix,"try-error")){
+                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
+                if(inherits(vcovMatrix,"try-error")){
+                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
+                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
+                            call.=FALSE);
+                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+                }
+            }
+            # If there were broken variables, reproduce the zero elements.
+            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+
+            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+            return(modelReturn$FI);
+        }
+    }
 }
 
 #### Residuals and actuals functions ####
@@ -7752,6 +7940,8 @@ plot.adam.forecast <- function(x, ...){
 #' @param nsim Number of paths to generate (number of simulations to do).
 #' @param h Forecast horizon.
 #' @param newdata The new data needed in order to produce forecasts.
+#' @param bootstrap The logical, which determines, whether to use bootstrap for the
+#' covariance matrix of parameters or not.
 #' @param occurrence The vector containing the future occurrence variable
 #' (values in [0,1]), if it is known.
 #' @param interval What type of mechanism to use for interval construction. The options
@@ -7798,10 +7988,10 @@ plot.adam.forecast <- function(x, ...){
 #'
 #' @rdname refit
 #' @export refit
-refit <- function(object, nsim=1000, ...) UseMethod("refit")
+refit <- function(object, nsim=1000, bootstrap=FALSE, ...) UseMethod("refit")
 
 #' @export
-refit.default <- function(object, nsim=1000, ...){
+refit.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
     warning(paste0("The method is not implemented for the object of the class ",class(object)[1]),
             call.=FALSE);
     return(structure(list(states=object$states, fitted=fitted(object)),
@@ -7810,11 +8000,11 @@ refit.default <- function(object, nsim=1000, ...){
 
 #' @importFrom MASS mvrnorm
 #' @export
-refit.adam <- function(object, nsim=1000, ...){
+refit.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    vcovAdam <- suppressWarnings(vcov(object, ...));
+    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, ...));
     parametersNames <- colnames(vcovAdam);
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
@@ -8303,16 +8493,16 @@ refit.adam <- function(object, nsim=1000, ...){
                     arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                        arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
                                                        armaParameters, lags);
-                    profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
+                    profilesRecentArray[j+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroARI[,2], 1:initialArimaNumber, i] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                   t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                   t(profilesRecentArray[j+componentsNumberARIMA,
                                                          1:initialArimaNumber, i]) /
                                    tail(arimaPolynomials$ariPolynomial,1),
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(log(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
+                                           t(log(profilesRecentArray[j+componentsNumberARIMA,
                                                                      1:initialArimaNumber, i])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
@@ -8461,8 +8651,8 @@ reforecast.default <- function(object, h=10, newdata=NULL, occurrence=NULL,
 reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("prediction", "confidence", "none"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
-                            nsim=100, ...){
-    objectRefitted <- refit(object, nsim=nsim, ...);
+                            nsim=100, bootstrap=FALSE, ...){
+    objectRefitted <- refit(object, nsim=nsim, bootstrap=bootstrap, ...);
     ellipsis <- list(...);
 
     # If the trim is not provided, set it to 1%
@@ -9081,6 +9271,7 @@ modelLags.adam <- function(object, ...){
 orders.adam <- function(object, ...){
     return(object$orders);
 }
+
 
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}

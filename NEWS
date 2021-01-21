@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-20)
+smooth v3.0.1 (Release data: 2021-01-21)
 =======
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 * Let ADAM speak for himself - all warnings are now "I cannot do this and that".
 * warning in case of bounds="none".
 * outliers and level are now also available in adam() - no need to use auto.adam() for that.
+* coefbootstrap() for adam. And support for bootstrap in vcov, confint and summary.
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
