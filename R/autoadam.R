@@ -866,7 +866,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 outliersDo <- outliers;
                 # Additional variables to preserve the class of the object
                 yClasses <- class(data);
-                yIndex <- time(data);
+                if(is.data.frame(data)){
+                    yIndex <- time(data[[responseName]]);
+                }
+                else{
+                    yIndex <- time(data);
+                }
                 notAMatrix <- (is.null(ncol(data)) || (!is.null(ncol(data)) & ncol(data)==1));
                 data <- data.frame(data,outliersXreg);
                 # Don't loose the zoo class

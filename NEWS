@@ -17,6 +17,7 @@ Bugfixes:
 * A fix in vcov.adam() for the data with NAs.
 * outliers="select" would not work with zoo objects.
 * A bugfix for orders=list(select=TRUE) without providing ar i ma orders.
+* A bugfix for outlier!="ignore" and data.frame as a data.
 
 
 smooth v3.0.1 (Release data: 2021-01-12)
