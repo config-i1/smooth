@@ -21,6 +21,7 @@ Bugfixes:
 * A bugfix for orders=list(select=TRUE) without providing ar i ma orders.
 * A bugfix for outlier!="ignore" and data.frame as a data.
 * A bugfix in auto.adam() with outliers. We use call now.
+* A bugfix for vcov.adam() in case of regression and is.matrix(data).
 
 
 smooth v3.0.1 (Release data: 2021-01-12)

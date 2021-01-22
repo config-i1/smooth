@@ -6299,7 +6299,8 @@ vcov.adam <- function(object, bootstrap=FALSE, ...){
             modelFormula <- formula(object);
             testModel <- structure(list(call=object$call,
                                         data=as.matrix(model.matrix(modelFormula,
-                                                                    data=model.frame(modelFormula, data=object$data))),
+                                                                    data=model.frame(modelFormula,
+                                                                                     data=as.data.frame(object$data)))),
                                         distribution=object$distribution, occurrence=object$occurrence,
                                         coefficients=coef(object), logLik=logLik(object),
                                         residuals=residuals(object), df=nparam(object), loss=object$loss,
