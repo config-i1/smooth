@@ -6218,23 +6218,34 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
     }
     newCall$occurrence <- object$occurrence;
 
+    # If this is backcasting, do sampling with moving origin
+    changeOrigin <- FALSE;
+    if(object$initialType=="backcasting"){
+        changeOrigin[] <- TRUE;
+    }
+
     # Use the available parameters as starting point
     newCall$B <- object$B;
 
     # Function creates a random sample. Needed for dynamic models
-    sampler <- function(indices,size,replace,prob,regressionPure=FALSE){
+    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
         if(regressionPure){
             return(sample(indices,size=size,replace=replace,prob=prob));
         }
         else{
+            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+            startingIndex <- 0
+            if(changeOrigin){
+                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+            }
             # This way we return the continuos sample, starting from the first observation
-            return(c(1:ceiling(runif(1,obsMinimum,obsInsample))));
+            return(startingIndex+indices);
         }
     }
 
     if(!parallel){
         for(i in 1:nsim){
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure);
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
             newCall$data <- object$data[subsetValues,];
             testModel <- suppressWarnings(eval(newCall));
             coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
@@ -6243,7 +6254,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
     else{
         # We don't do rbind for security reasons - in order to deal with skipped variables
         coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure);
+            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
             newCall$data <- object$data[subsetValues,];
             testModel <- eval(newCall);
             return(coef(testModel));

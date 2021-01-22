@@ -8,6 +8,7 @@ Changes:
 * warning in case of bounds="none".
 * outliers and level are now also available in adam() - no need to use auto.adam() for that.
 * coefbootstrap() for adam. And support for bootstrap in vcov, confint and summary. This now works with auto.adam() as well.
+* Change origin in coefbootstrap() if initial="backcasting".
 * We now only take the needed values of B if a longer vector is provided.
 
 Bugfixes:
