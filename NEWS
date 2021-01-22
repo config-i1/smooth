@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-21)
+smooth v3.0.1 (Release data: 2021-01-22)
 =======
 
 Changes:
@@ -7,7 +7,8 @@ Changes:
 * Let ADAM speak for himself - all warnings are now "I cannot do this and that".
 * warning in case of bounds="none".
 * outliers and level are now also available in adam() - no need to use auto.adam() for that.
-* coefbootstrap() for adam. And support for bootstrap in vcov, confint and summary.
+* coefbootstrap() for adam. And support for bootstrap in vcov, confint and summary. This now works with auto.adam() as well.
+* We now only take the needed values of B if a longer vector is provided.
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
@@ -18,6 +19,7 @@ Bugfixes:
 * outliers="select" would not work with zoo objects.
 * A bugfix for orders=list(select=TRUE) without providing ar i ma orders.
 * A bugfix for outlier!="ignore" and data.frame as a data.
+* A bugfix in auto.adam() with outliers. We use call now.
 
 
 smooth v3.0.1 (Release data: 2021-01-12)

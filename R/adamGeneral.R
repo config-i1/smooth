@@ -1801,6 +1801,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
             else{
                 xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
             }
+            if(length(xregParametersPersistence)==0){
+                xregParametersPersistence <- 0;
+            }
             # If there are factors not in the alm data, create additional initials
             if(any(!(xregNamesModified %in% xregNames))){
                 xregAbsent <- !(xregNamesModified %in% xregNames);
@@ -2007,6 +2010,9 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                 }
                 else{
                     xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
+                }
+                if(length(xregParametersPersistence)==0){
+                    xregParametersPersistence <- 0;
                 }
 
                 # If there are factors and the number of initials is not the same as the number of parameters needed

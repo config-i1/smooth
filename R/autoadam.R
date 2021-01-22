@@ -30,6 +30,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
     # Start measuring the time of calculations
     startTime <- Sys.time();
+    cl <- match.call();
 
     # paste0() is needed in order to get rid of potential issues with names
     responseName <- paste0(deparse(substitute(data)),collapse="");
@@ -917,13 +918,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 else{
                     colnames(data)[1] <- responseName;
                 }
-                adamModel <- suppressWarnings(auto.adam(data, model, lags=lags, orders=orders,
-                                                        formula=formula,
-                                                        distribution=distribution, h=h, holdout=holdout,
-                                                        persistence=persistence, phi=phi, initial=initial, arma=arma,
-                                                        occurrence=occurrence, ic=ic, bounds=bounds,
-                                                        regressors=outliersDo,
-                                                        silent=TRUE, parallel=parallel, fast=fast, ...));
+                newCall <- cl;
+                newCall$data <- data;
+                newCall$silent <- TRUE;
+                newCall$regressors <- outliersDo;
+                adamModel <- eval(newCall);
+                # adamModel <- suppressWarnings(auto.adam(data, model, lags=lags, orders=orders,
+                #                                         formula=formula,
+                #                                         distribution=distribution, h=h, holdout=holdout,
+                #                                         persistence=persistence, phi=phi, initial=initial, arma=arma,
+                #                                         occurrence=occurrence, ic=ic, bounds=bounds,
+                #                                         regressors=outliersDo,
+                #                                         silent=TRUE, parallel=parallel, fast=fast, ...));
             }
             else{
                 if(!silent){
@@ -1014,6 +1020,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         }
         plot(selectedModels[[which.min(ICValues)]],7);
     }
+
+    selectedModels[[which.min(ICValues)]]$call <- cl;
 
     return(selectedModels[[which.min(ICValues)]]);
 }

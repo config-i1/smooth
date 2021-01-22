@@ -2438,8 +2438,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                xregParametersEstimated, xregParametersPersistence,
                                constantEstimate, constantName, otherParameterEstimate);
         if(!is.null(B)){
-            BValues$B[] <- B;
-            names(B) <- names(BValues$B);
+            if(!is.null(names(B))){
+                B <- B[names(B) %in% names(BValues$B)];
+                BValues$B[] <- B;
+            }
+            else{
+                BValues$B[] <- B;
+                names(B) <- names(BValues$B);
+            }
         }
         # print(BValues$B);
 
@@ -6159,8 +6165,11 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # Form the call for alm
     newCall <- object$call;
+    # If this was auto.adam, use just adam
+    if(newCall[[1]]=="auto.adam"){
+        newCall[[1]] <- as.symbol("adam");
+    }
     newCall$formula <- formula(object);
-    newCall$data <- object$data;
     # This is based on the split data, so no need to do holdout
     newCall$holdout <- FALSE;
     newCall$distribution <- object$distribution;
@@ -6175,10 +6184,13 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
-    if(is.null(object$call$orders$select)){
+    if(!is.null(object$call$orders$select)){
         newCall$orders <- orders(object);
         newCall$orders$select <- FALSE;
     }
+    newCall$constant <- object$constant;
+
+    newCall$outliers <- "ignore";
 
     # Get lags and the minimum possible sample (2 seasons)
     lags <- lags(object);
@@ -6192,7 +6204,6 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
         regressionPure <- FALSE;
     }
 
-    newCall$fast <- TRUE;
     if(any(object$distribution==c("dchisq","dt"))){
         newCall$nu <- object$other$nu;
     }
