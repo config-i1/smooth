@@ -193,25 +193,25 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
-    # Check if the old value of parameters are passed
-    if(any(c("group","g") %in% c(persistence, transition, phi, initial, initialSeason))){
-        warning("You are using the old value of the parameters. We now have 'common' instead of 'group'.");
-        persistence[c("group","g") %in% persistence] <- "common";
-        transition[c("group","g") %in% transition] <- "common";
-        phi[c("group","g") %in% phi] <- "common";
-        initial[c("group","g") %in% initial] <- "common";
-        initialSeason[c("group","g") %in% initialSeason] <- "common";
-    }
-    if(any("independent" %in% c(persistence, transition, phi, initial, initialSeason))){
-        warning("You are using the old value of the parameters. We now have 'common' instead of 'group'.");
-        persistence["independent" %in% persistence] <- "individual";
-        transition["independent" %in% transition] <- "individual";
-        phi["independent" %in% phi] <- "individual";
-        initial["independent" %in% initial] <- "individual";
-        initialSeason["independent" %in% initialSeason] <- "individual";
-        interval["independent" %in% interval] <- "individual";
-    }
-    ##### Up until here
+    # # Check if the old value of parameters are passed
+    # if(any(c("group","g") %in% c(persistence, transition, phi, initial, initialSeason))){
+    #     warning("You are using the old value of the parameters. We now have 'common' instead of 'group'.");
+    #     persistence[c("group","g") %in% persistence] <- "common";
+    #     transition[c("group","g") %in% transition] <- "common";
+    #     phi[c("group","g") %in% phi] <- "common";
+    #     initial[c("group","g") %in% initial] <- "common";
+    #     initialSeason[c("group","g") %in% initialSeason] <- "common";
+    # }
+    # if(any("independent" %in% c(persistence, transition, phi, initial, initialSeason))){
+    #     warning("You are using the old value of the parameters. We now have 'common' instead of 'group'.");
+    #     persistence["independent" %in% persistence] <- "individual";
+    #     transition["independent" %in% transition] <- "individual";
+    #     phi["independent" %in% phi] <- "individual";
+    #     initial["independent" %in% initial] <- "individual";
+    #     initialSeason["independent" %in% initialSeason] <- "individual";
+    #     interval["independent" %in% interval] <- "individual";
+    # }
+    # ##### Up until here
 
 # If a previous model provided as a model, write down the variables
     if(any(is.vsmooth(model))){

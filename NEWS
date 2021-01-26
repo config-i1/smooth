@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-22)
+smooth v3.0.1 (Release data: 2021-01-26)
 =======
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * coefbootstrap() for adam. And support for bootstrap in vcov, confint and summary. This now works with auto.adam() as well.
 * Change origin in coefbootstrap() if initial="backcasting".
 * We now only take the needed values of B if a longer vector is provided.
+* Removed checks of obsolete parameters in ves().
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
