@@ -1,4 +1,4 @@
-smooth v3.0.1 (Release data: 2021-01-26)
+smooth v3.0.1 (Release data: 2021-01-27)
 =======
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 * Change origin in coefbootstrap() if initial="backcasting".
 * We now only take the needed values of B if a longer vector is provided.
 * Removed checks of obsolete parameters in ves().
+* Scale the MSE part of LASSO and RIDGE in adam() by the sd(diff(y)).
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
