@@ -123,7 +123,10 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @param lags Defines lags for the corresponding components. All components
 #' count, starting from level, so ETS(M,M,M) model for monthly data will have
 #' \code{lags=c(1,1,12)}. However, the function will also accept \code{lags=c(12)},
-#' assuming that the lags 1 were dropped.
+#' assuming that the lags 1 were dropped. In case of ARIMA, lags specify what should be
+#' the seasonal component lag. e.g. \code{lags=c(1,12)} will lead to the
+#' seasonal ARIMA with m=12. This can accept several lags, supporting multiple seasonal ETS
+#' and ARIMA models.
 #' @param orders The order of ARIMA to be included in the model. This should be passed
 #' either as a vector (in which case the non-seasonal ARIMA is assumed) or as a list of
 #' a type \code{orders=list(ar=c(p,P),i=c(d,D),ma=c(q,Q))}, in which case the \code{lags}
