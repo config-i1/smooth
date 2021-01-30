@@ -540,6 +540,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 yIndex <- c(1:length(data));
             }
         }
+
         # Prepare fitted, residuals and the forecasts
         if(inherits(y ,"zoo")){
             modelReturned$data <- data[1:obsInSample,,drop=FALSE];

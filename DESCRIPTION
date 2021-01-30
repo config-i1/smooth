@@ -19,7 +19,7 @@ Description: Functions implementing Single Source of Error state space models fo
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2),
-    greybox (>= 0.6.5)
+    greybox (>= 0.6.7)
 Imports:
     Rcpp (>= 0.12.3),
     stats,
@@ -42,6 +42,8 @@ Suggests:
     doMC,
     doParallel,
     foreach
+Remotes:
+    config-i1/greybox
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
 Encoding: UTF-8
