@@ -680,8 +680,6 @@ fitted.smooth.forecast <- function(object, ...){
 }
 
 #' @importFrom greybox forecast
-#' @export forecast
-NULL
 
 #' Forecasting time series using smooth functions
 #'

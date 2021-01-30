@@ -218,7 +218,7 @@ test_that("Forecast for ADAM ETSX(MMN) + xreg formula on N2568", {
 # Pure regression
 test_that("ADAM regression (ALM) on N2568", {
     skip_on_cran()
-    testModel <- adam(xreg, "NNN", h=18, holdout=TRUE, formula=y~x)
+    testModel <- adam(xreg, "NNN", h=18, holdout=TRUE, formula=y~x+trend, distribution="dlnorm")
     expect_equal(modelType(testModel),"NNN")
 })
 

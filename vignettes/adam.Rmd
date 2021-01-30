@@ -44,7 +44,7 @@ First and foremost, ADAM implements ETS model, although in a more flexible way t
 ```{r}
 testModel <- adam(M3[[2568]], "MMM", lags=c(1,12), distribution="dnorm")
 summary(testModel)
-plot(forecast(testModel,h=18,interval="parametric"))
+plot(forecast(testModel,h=18,interval="prediction"))
 ```
 
 You might notice that the summary contains more than what is reported by other `smooth` functions. This one also produces standard errors for the estimated parameters based on Fisher Information calculation. Note that this is computationally expensive, so if you have a model with more than 30 variables, the calculation of standard errors might take plenty of time. As for the default `print()` method, it will produce a shorter summary from the model, without the standard errors (similar to what `es()` does):
