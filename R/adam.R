@@ -6340,7 +6340,8 @@ vcov.adam <- function(object, bootstrap=FALSE, ...){
             if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
                 warning(paste0("Observed Fisher Information is not positive semi-definite, ",
                                "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser."), call.=FALSE);
+                               "Consider reestimating the model, tuning the optimiser or ",
+                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
             }
             FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
 
