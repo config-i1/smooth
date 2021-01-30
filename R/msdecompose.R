@@ -37,7 +37,7 @@
 #' plot(ourModel)
 #' plot(forecast(ourModel, model="AAN", h=12))
 #'
-#' @importFrom stats filter
+#' @importFrom stats filter poly .lm.fit
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
@@ -53,24 +53,31 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         return(filter(y, weigths))
     }
 
+    obsInSample <- length(y);
+    yNAValues <- is.na(y);
+
+    # Transform the data if needed and split the sample
     if(type=="multiplicative"){
         shiftedData <- FALSE;
-        # If there are negative values, stop
-        if(any(y<0)){
-            stop("Multiplicative decomposition is not available for the data with negative values.",
-                 call.=FALSE);
+        # If there are non-positive values
+        if(any(y[!yNAValues]<=0)){
+            yNAValues[] <- yNAValues | y<=0;
         }
-        # If there are zeroes, shift the variable up.
-        # In the perfect world, we would need to interpolate and repeate seasonal patterns.
-        else if(any(y==0)){
-            shiftedData[] <- TRUE;
-            y[] <- y + 1;
-        }
-        yInsample <- log(y);
+        yInsample <- suppressWarnings(log(y));
     }
     else{
         yInsample <- y;
     }
+
+    # Treat the missing values
+    if(any(yNAValues)){
+        X <- cbind(1,poly(c(1:obsInSample),degree=min(max(trunc(obsInSample/10),1),5)),
+                   sinpi(matrix(c(1:obsInSample)*rep(c(1:max(lags)),each=obsInSample)/max(lags), ncol=max(lags))));
+        lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(yInsample[!yNAValues],ncol=1));
+        yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
+        rm(X)
+    }
+
     # paste0() is needed in order to avoid line breaks in the name
     yName <- paste0(deparse(substitute(y)),collapse="");
 

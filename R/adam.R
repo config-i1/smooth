@@ -13,7 +13,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
                          "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
                          "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
-                         "xregParametersPersistence","xregModelInitials","constantName"));
+                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'

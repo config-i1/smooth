@@ -109,13 +109,6 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     # Make the response a secure name
     responseName <- make.names(responseName);
 
-    # Substitute NAs with mean values.
-    yNAValues <- is.na(y);
-    if(any(yNAValues)){
-        warning("Data contains NAs. The values will be ignored during the model construction.",call.=FALSE);
-        y[yNAValues] <- as.vector(na.interp(y)[yNAValues]);
-    }
-
     # Define obs, the number of observations of in-sample
     obsAll <- length(y) + (1 - holdout)*h;
     obsInSample <- length(y) - holdout*h;
@@ -123,6 +116,20 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     if(obsInSample<=0){
         stop("The number of in-sample observations is not positive. Cannot do anything.",
              call.=FALSE);
+    }
+
+    # Interpolate NAs using fourier + polynomials
+    yNAValues <- is.na(y);
+    if(any(yNAValues)){
+        warning("Data contains NAs. The values will be ignored during the model construction.",call.=FALSE);
+        X <- cbind(1,poly(c(1:obsAll),degree=min(max(trunc(obsAll/10),1),5)),
+                   sinpi(matrix(c(1:obsAll)*rep(c(1:max(max(lags),10)),each=obsAll)/max(max(lags),10), ncol=max(max(lags),10))));
+        lmFit <- .lm.fit(X[!yNAValues,,drop=FALSE], matrix(y[!yNAValues],ncol=1));
+        y[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
+        if(!is.null(xregData)){
+            xregData[yNAValues,responseName] <- y[yNAValues];
+        }
+        rm(X)
     }
 
     # If this is just a numeric variable, use ts class
