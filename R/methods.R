@@ -679,9 +679,14 @@ fitted.smooth.forecast <- function(object, ...){
     return(fitted(object$model));
 }
 
-#' @importFrom forecast forecast
+
+#### !!!This needs to be removed from smooth v3.0.3, when greybox v0.6.7 is on CRAN!!! ####
+#' @rdname forecast.smooth
+#' @aliases forecast
 #' @export forecast
-NULL
+forecast <- function(object, ...) UseMethod("forecast")
+#### !!!
+
 
 #' Forecasting time series using smooth functions
 #'
