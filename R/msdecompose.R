@@ -37,11 +37,22 @@
 #' plot(ourModel)
 #' plot(forecast(ourModel, model="AAN", h=12))
 #'
-#' @importFrom forecast ma
+#' @importFrom stats filter
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
+
+    ma <- function(y, order){
+        if (order%%2 == 0){
+            weigths <- c(0.5, rep(1, order - 1), 0.5) / order;
+        }
+        else {
+            weigths <- rep(1, order) / order;
+        }
+        return(filter(y, weigths))
+    }
+
     if(type=="multiplicative"){
         shiftedData <- FALSE;
         # If there are negative values, stop
@@ -74,7 +85,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     yClear <- vector("list",lagsLength);
     # Smooth time series with different lags
     for(i in 1:lagsLength){
-        ySmooth[[i+1]] <- ma(yInsample,lags[i],centre=TRUE);
+        ySmooth[[i+1]] <- ma(yInsample,lags[i]);
     }
     trend <- ySmooth[[lagsLength+1]];
 
