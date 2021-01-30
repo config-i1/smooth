@@ -315,7 +315,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
             initial <- "o";
         }
     }
-    else if(forecast::is.ets(model)){
+    else if(inherits(model,"ets")){
         # Extract smoothing parameters
         i <- 1;
         persistence <- coef(model)[i];

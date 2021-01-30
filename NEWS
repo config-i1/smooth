@@ -13,6 +13,7 @@ Changes:
 * Removed checks of obsolete parameters in ves().
 * Scale the MSE part of LASSO and RIDGE in adam() by the sd(diff(y)).
 * We now use filter() function from stats instaed of ma() from forecast package in msdecompose().
+* We don't use is.ets from forecast package anymore.
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
