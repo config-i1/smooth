@@ -57,7 +57,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @export auto.ces
 auto.ces <- function(y, models=c("none","simple","full"),
                 initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                loss=c("MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("admissible","none"),

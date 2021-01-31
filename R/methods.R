@@ -679,8 +679,6 @@ fitted.smooth.forecast <- function(object, ...){
     return(fitted(object$model));
 }
 
-#' @importFrom greybox forecast
-
 #' Forecasting time series using smooth functions
 #'
 #' This function is created in order for the package to be compatible with Rob
@@ -728,6 +726,7 @@ fitted.smooth.forecast <- function(object, ...){
 #' plot(forecast.smooth(ourModel,h=10,interval=TRUE))
 #'
 #' @rdname forecast.smooth
+#' @importFrom greybox forecast
 #' @export forecast.smooth
 #' @export
 forecast.smooth <- function(object, h=10,
