@@ -82,8 +82,7 @@ University 2017:1, 1-52.
 }
 }
 \seealso{
-\code{\link[forecast]{ma}, \link[smooth]{es},
-\link[smooth]{ssarima}}
+\code{\link[smooth]{es}, \link[smooth]{ssarima}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

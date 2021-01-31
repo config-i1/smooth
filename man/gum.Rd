@@ -275,7 +275,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 }
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
+\code{\link[smooth]{adam}, \link[smooth]{es}, \link[smooth]{ces},
 \link[smooth]{sim.es}}
 }
 \author{

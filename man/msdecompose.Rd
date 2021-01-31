@@ -31,7 +31,7 @@ Function decomposes multiple seasonal time series into components using
 the principles of classical decomposition.
 }
 \details{
-The function applies centred moving averages based on \link[forecast]{ma}
+The function applies centred moving averages based on \link[stats]{filter}
 function and order specified in \code{lags} variable in order to smooth the
 original series and obtain level, trend and seasonal components of the series.
 }
@@ -46,7 +46,7 @@ plot(forecast(ourModel, model="AAN", h=12))
 
 }
 \seealso{
-\code{\link[forecast]{ma}}
+\code{\link[stats]{filter}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

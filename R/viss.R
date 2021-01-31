@@ -63,8 +63,7 @@
 #' calculations. Useful only in the case of \code{intermittent="l"} and
 #' \code{probability="d"}.
 #' }
-#' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
-#' \link[smooth]{es}}
+#' @seealso \code{\link[smooth]{oes}, \link[smooth]{es}}
 #' @keywords iss intermittent demand intermittent demand state space model
 #' exponential smoothing forecasting
 #' @examples

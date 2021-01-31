@@ -116,9 +116,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' \item \code{B} - the vector of all the estimated parameters (in case of "odds-ratio",
 #' "inverse-odds-ratio" and "direct" models).
 #' }
-#' @seealso \code{\link[forecast]{ets}, \link[smooth]{oesg}, \link[smooth]{es}}
-#' @keywords iss intermittent demand intermittent demand state space model
-#' exponential smoothing forecasting
+#' @seealso \code{\link[smooth]{adam}, \link[smooth]{oesg}, \link[smooth]{es}}
 #' @examples
 #'
 #' y <- rpois(100,0.1)

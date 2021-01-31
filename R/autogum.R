@@ -40,7 +40,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' used to calculated variances of parameters of the model.
 #' @return Object of class "smooth" is returned. See \link[smooth]{gum} for
 #' details.
-#' @seealso \code{\link[smooth]{gum}, \link[forecast]{ets}, \link[smooth]{es},
+#' @seealso \code{\link[smooth]{gum}, \link[smooth]{es},
 #' \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ssarima}}
 #'
 #' @examples

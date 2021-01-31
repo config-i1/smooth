@@ -79,8 +79,7 @@ utils::globalVariables(c("mvrnorm"));
 #' or array, depending on \code{nsim}.
 #' }
 #'
-#' @seealso \code{\link[smooth]{es}, \link[forecast]{ets},
-#' \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
+#' @seealso \code{\link[smooth]{es}, \link[stats]{ts}, \link[stats]{Distributions}}
 #'
 #' @examples
 #'

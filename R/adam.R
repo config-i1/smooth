@@ -315,7 +315,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' polynomials.
 #' }
 #'
-#' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}}
+#' @seealso \code{\link[smooth]{es}, \link[smooth]{msarima}}
 #'
 #' @examples
 #'

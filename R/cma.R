@@ -52,8 +52,7 @@
 #' \item \code{loss} - Type of loss function used in the estimation.
 #' }
 #'
-#' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},
-#' \link[smooth]{ssarima}}
+#' @seealso \code{\link[smooth]{es}, \link[smooth]{ssarima}}
 #'
 #' @examples
 #'

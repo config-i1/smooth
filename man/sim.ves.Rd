@@ -139,8 +139,7 @@ Heidelberg: Springer Berlin Heidelberg.
 }
 }
 \seealso{
-\code{\link[smooth]{es}, \link[forecast]{ets},
-\link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
+\code{\link[smooth]{es}, \link[stats]{ts}, \link[stats]{Distributions}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

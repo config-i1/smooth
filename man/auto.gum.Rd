@@ -180,7 +180,7 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 }
 \seealso{
-\code{\link[smooth]{gum}, \link[forecast]{ets}, \link[smooth]{es},
+\code{\link[smooth]{gum}, \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ssarima}}
 }
 \author{

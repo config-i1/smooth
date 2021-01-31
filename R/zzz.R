@@ -1,6 +1,6 @@
 .onAttach <- function(libname, pkgname) {
     startUpMessage <- paste0("This is package \"smooth\", v",packageVersion(pkgname));
-    randomNumber <- ceiling(runif(1,0,100));
+    randomNumber <- trunc(runif(1,1,101));
     if(randomNumber==1){
         startUpMessage <- paste0(startUpMessage,"\nBy the way, have you already tried adam() function from smooth?");
     }

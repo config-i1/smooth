@@ -55,7 +55,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
 #' @return Object of class "smooth" is returned. See \link[smooth]{msarima} for
 #' details.
-#' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
+#' @seealso \code{\link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{sim.es}, \link[smooth]{gum}, \link[smooth]{msarima}}
 #'
 #' @examples

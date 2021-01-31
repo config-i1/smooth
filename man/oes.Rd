@@ -202,23 +202,14 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{oesg}, \link[smooth]{es}}
+\code{\link[smooth]{adam}, \link[smooth]{oesg}, \link[smooth]{es}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{demand}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{intermittent}
-\keyword{iss}
-\keyword{model}
 \keyword{models}
 \keyword{nonlinear}
 \keyword{regression}
 \keyword{smooth}
-\keyword{smoothing}
-\keyword{space}
-\keyword{state}
 \keyword{ts}
 \keyword{univar}

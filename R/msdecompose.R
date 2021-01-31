@@ -3,7 +3,7 @@
 #' Function decomposes multiple seasonal time series into components using
 #' the principles of classical decomposition.
 #'
-#' The function applies centred moving averages based on \link[forecast]{ma}
+#' The function applies centred moving averages based on \link[stats]{filter}
 #' function and order specified in \code{lags} variable in order to smooth the
 #' original series and obtain level, trend and seasonal components of the series.
 #'
@@ -26,7 +26,7 @@
 #' \item \code{yName} - the name of the provided data.
 #' }
 #'
-#' @seealso \code{\link[forecast]{ma}}
+#' @seealso \code{\link[stats]{filter}}
 #'
 #' @examples
 #'

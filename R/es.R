@@ -188,41 +188,39 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' \item \code{xreg},
 #' \item \code{accuracy}.
 #' }
-#' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
+#' @seealso \code{\link[smooth]{adam}, \link[greybox]{forecast},
 #' \link[stats]{ts}, \link[smooth]{sim.es}}
 #'
 #' @examples
 #'
-#' library(Mcomp)
-#'
 #' # See how holdout and trace parameters influence the forecast
-#' es(M3$N1245$x,model="AAdN",h=8,holdout=FALSE,loss="MSE")
-#' \dontrun{es(M3$N2568$x,model="MAM",h=18,holdout=TRUE,loss="TMSE")}
+#' es(Mcomp::M3$N1245$x,model="AAdN",h=8,holdout=FALSE,loss="MSE")
+#' \dontrun{es(Mcomp::M3$N2568$x,model="MAM",h=18,holdout=TRUE,loss="TMSE")}
 #'
 #' # Model selection example
-#' es(M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
+#' es(Mcomp::M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
 #'
 #' # Model selection. Compare AICc of these two models:
-#' \dontrun{es(M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
-#' es(M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
+#' \dontrun{es(Mcomp::M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
+#' es(Mcomp::M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
 #'
 #' # Model selection, excluding multiplicative trend
-#' \dontrun{es(M3$N1245$x,model="ZXZ",h=8,holdout=TRUE)}
+#' \dontrun{es(Mcomp::M3$N1245$x,model="ZXZ",h=8,holdout=TRUE)}
 #'
 #' # Combination example
-#' \dontrun{es(M3$N1245$x,model="CCN",h=8,holdout=TRUE)}
+#' \dontrun{es(Mcomp::M3$N1245$x,model="CCN",h=8,holdout=TRUE)}
 #'
 #' # Model selection using a specified pool of models
-#' ourModel <- es(M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
+#' ourModel <- es(Mcomp::M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
 #'
 #' # Redo previous model and produce prediction interval
-#' es(M3$N1587$x,model=ourModel,h=18,interval="p")
+#' es(Mcomp::M3$N1587$x,model=ourModel,h=18,interval="p")
 #'
 #' # Semiparametric interval example
-#' \dontrun{es(M3$N1587$x,h=18,holdout=TRUE,interval="sp")}
+#' \dontrun{es(Mcomp::M3$N1587$x,h=18,holdout=TRUE,interval="sp")}
 #'
 #' # This will be the same model as in previous line but estimated on new portion of data
-#' \dontrun{es(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),model=ourModel,h=18,holdout=FALSE)}
+#' \dontrun{es(Mcomp::M3[[1457]],model=ourModel,h=18,holdout=FALSE)}
 #'
 #' @export es
 es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,

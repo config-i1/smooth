@@ -99,8 +99,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \code{holdout=TRUE}.
 #' \item \code{B} - the vector of all the estimated parameters.
 #' }
-#' @seealso \code{\link[forecast]{ets}, \link[forecast]{forecast},
-#' \link[stats]{ts}, \link[smooth]{auto.ces}}
+#' @seealso \code{\link[smooth]{es}, \link[stats]{ts}, \link[smooth]{auto.ces}}
 #'
 #' @examples
 #'
@@ -111,18 +110,14 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
 #' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 #'
-#' library("Mcomp")
-#' y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
-#' ces(y,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
+#' ces(Mcomp::M3[[740]],h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 #'
-#' \dontrun{y <- ts(c(M3$N1683$x,M3$N1683$xx),start=start(M3$N1683$x),frequency=frequency(M3$N1683$x))
-#' ces(y,h=18,holdout=TRUE,seasonality="s",interval="sp")
-#' ces(y,h=18,holdout=TRUE,seasonality="p",interval="np")
-#' ces(y,h=18,holdout=TRUE,seasonality="f",interval="p")}
+#' \dontrun{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
+#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="p",interval="np")
+#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="f",interval="p")}
 #'
 #' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-#' ces(ts(c(M3$N1457$x,M3$N1457$xx),frequency=12),h=18,holdout=TRUE,
-#'     interval="np",xreg=x,loss="TMSE")}
+#' ces(Mcomp::M3[[1457]],holdout=TRUE,interval="np",xreg=x,loss="TMSE")}
 #'
 #' @export ces
 ces <- function(y, seasonality=c("none","simple","partial","full"),

@@ -154,7 +154,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{accuracy} - the values of the error measures. Currently not available.
 #' \item \code{FI} - Fisher information if user asked for it using \code{FI=TRUE}.
 #' }
-#' @seealso \code{\link[smooth]{es}, \link[forecast]{ets}}
+#' @seealso \code{\link[smooth]{es}, \link[smooth]{adam}}
 #'
 #' @examples
 #'

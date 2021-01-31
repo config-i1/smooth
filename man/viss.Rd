@@ -112,8 +112,7 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast},
-\link[smooth]{es}}
+\code{\link[smooth]{oes}, \link[smooth]{es}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

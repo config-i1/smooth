@@ -164,8 +164,7 @@ Production Research, 7543(January), 1-14.
 }
 }
 \seealso{
-\code{\link[forecast]{ma}, \link[smooth]{es},
-\link[smooth]{ssarima}}
+\code{\link[stats]{filter}, \link[smooth]{es}, \link[smooth]{ssarima}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

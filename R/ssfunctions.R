@@ -1697,9 +1697,9 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         multisteps <- FALSE;
     }
 
-    if(!any(loss==c("MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
+    if(!any(loss==c("likelihood","MSE","MAE","HAM","MSEh","MAEh","HAMh","MSCE","MACE","CHAM",
                       "GPL","aGPL"))){
-        warning(paste0("'",loss,"' is used as loss function instead of 'MSE'. ",
+        warning(paste0("'",loss,"' is used as loss function instead of 'likelihood'. ",
                        "The results of the model selection may be wrong."),
                 call.=FALSE);
     }

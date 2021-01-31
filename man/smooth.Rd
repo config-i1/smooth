@@ -118,7 +118,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 }
 }
 \seealso{
-\code{\link[forecast:forecast]{forecast}, \link[smooth]{es},
+\code{\link[greybox]{forecast}, \link[smooth]{es},
 \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{gum}}
 }
 \author{

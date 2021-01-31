@@ -151,7 +151,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @seealso \code{\link[smooth]{auto.ssarima}, \link[smooth]{orders},
 #' \link[smooth]{msarima}, \link[smooth]{auto.msarima},
-#' \link[smooth]{sim.ssarima}, \link[forecast]{auto.arima}}
+#' \link[smooth]{sim.ssarima}, \link[smooth]{adam}}
 #'
 #' @examples
 #'

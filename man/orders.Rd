@@ -74,7 +74,7 @@ sim.es(model=modelType(ourModel))
 
 }
 \seealso{
-\link[forecast]{forecast}, \link[smooth]{ssarima}
+\link[smooth]{ssarima}, \link[smooth]{msarima}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

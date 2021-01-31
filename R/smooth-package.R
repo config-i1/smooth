@@ -53,7 +53,7 @@
 #' @author Ivan Svetunkov
 #'
 #' Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
-#' @seealso \code{\link[forecast:forecast]{forecast}, \link[smooth]{es},
+#' @seealso \code{\link[greybox]{forecast}, \link[smooth]{es},
 #' \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{gum}}
 #'
 #' @template ssGeneralRef

@@ -116,7 +116,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' \code{holdout=TRUE}.
 #' \item \code{B} - the vector of all the estimated parameters.
 #' }
-#' @seealso \code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
+#' @seealso \code{\link[smooth]{adam}, \link[smooth]{es}, \link[smooth]{ces},
 #' \link[smooth]{sim.es}}
 #'
 #' @examples

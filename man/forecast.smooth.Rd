@@ -86,9 +86,9 @@ function, then go ahead!
 
 ourModel <- ces(rnorm(100,0,1),h=10)
 
-forecast.smooth(ourModel,h=10)
-forecast.smooth(ourModel,h=10,interval=TRUE)
-plot(forecast.smooth(ourModel,h=10,interval=TRUE))
+forecast(ourModel,h=10)
+forecast(ourModel,h=10,interval=TRUE)
+plot(forecast(ourModel,h=10,interval=TRUE))
 
 }
 \references{
@@ -97,7 +97,7 @@ Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag.
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[forecast]{forecast}}
+\code{\link[greybox]{forecast}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

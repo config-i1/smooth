@@ -83,8 +83,7 @@ utils::globalVariables(c("yForecastStart"));
 #' \doi{10.1080/00207543.2017.1380326}
 #' }
 #'
-#' @seealso \code{\link[forecast]{ma}, \link[smooth]{es},
-#' \link[smooth]{ssarima}}
+#' @seealso \code{\link[stats]{filter}, \link[smooth]{es}, \link[smooth]{ssarima}}
 #'
 #' @keywords SARIMA ARIMA
 #' @examples

@@ -323,7 +323,7 @@ Heidelberg: Springer Berlin Heidelberg.
 }
 }
 \seealso{
-\code{\link[smooth]{es}, \link[forecast]{ets}}
+\code{\link[smooth]{es}, \link[smooth]{adam}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

@@ -20,9 +20,9 @@ In this vignette we will use data from `Mcomp` package, so it is advised to inst
 
 Let's load the necessary packages:
 ```{r load_libraries, message=FALSE, warning=FALSE}
+require(Mcomp)
 require(smooth)
 require(greybox)
-require(Mcomp)
 ```
 
 You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.

@@ -37,8 +37,7 @@
 #' \item \code{logLik} - Log-likelihood of the constructed model.
 #' }
 #'
-#' @seealso \code{\link[smooth]{es}, \link[forecast]{ets},
-#' \link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
+#' @seealso \code{\link[smooth]{es}, \link[stats]{ts}, \link[stats]{Distributions}}
 #'
 #' @examples
 #'

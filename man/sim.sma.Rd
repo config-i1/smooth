@@ -79,8 +79,7 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 }
 }
 \seealso{
-\code{\link[smooth]{es}, \link[forecast]{ets},
-\link[forecast]{forecast}, \link[stats]{ts}, \link[stats]{Distributions}}
+\code{\link[smooth]{es}, \link[stats]{ts}, \link[stats]{Distributions}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

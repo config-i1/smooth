@@ -141,12 +141,11 @@ y <- ts(rnorm(100,10,3),frequency=12)
 auto.ces(y,h=20,holdout=TRUE)
 auto.ces(y,h=20,holdout=FALSE)
 
-library("Mcomp")
-\dontrun{y <- ts(c(M3$N0740$x,M3$N0740$xx),start=start(M3$N0740$x),frequency=frequency(M3$N0740$x))
+\dontrun{
 # Selection between "none" and "full" seasonalities
-auto.ces(y,h=8,holdout=TRUE,models=c("n","f"),interval="p",level=0.8,ic="AIC")}
+auto.ces(AirPassengers,h=8,holdout=TRUE,models=c("n","f"),interval="p",level=0.8,ic="AIC")}
 
-ourModel <- auto.ces(M3[[1683]],interval="sp")
+ourModel <- auto.ces(AirPassengers,interval="sp")
 
 summary(ourModel)
 forecast(ourModel)
@@ -163,8 +162,8 @@ for Time Series Forecasting. Not yet published.
 }
 }
 \seealso{
-\code{\link[smooth]{ces}, \link[forecast]{ets},
-\link[forecast]{forecast}, \link[stats]{ts}}
+\code{\link[smooth]{ces}, \link[smooth]{es},
+\link[greybox]{forecast}, \link[stats]{ts}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

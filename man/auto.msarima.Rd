@@ -211,7 +211,7 @@ International Journal of Production Research, 0(0), 1–10.
 }
 }
 \seealso{
-\code{\link[forecast]{ets}, \link[smooth]{es}, \link[smooth]{ces},
+\code{\link[smooth]{es}, \link[smooth]{ces},
 \link[smooth]{sim.es}, \link[smooth]{gum}, \link[smooth]{msarima}}
 }
 \author{
