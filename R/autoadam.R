@@ -375,12 +375,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
-                                            distribution=distribution[i], formula=formula,
-                                            h=h, holdout=holdout,
-                                            persistence=persistence, phi=phi, initial=initial, arma=arma,
-                                            occurrence=occurrence, ic=ic, bounds=bounds,
-                                            regressors=regressors, silent=TRUE, ...);
+                if(etsModel){
+                    selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
+                                                distribution=distribution[i], formula=formula,
+                                                h=h, holdout=holdout,
+                                                persistence=persistence, phi=phi, initial=initial, arma=arma,
+                                                occurrence=occurrence, ic=ic, bounds=bounds,
+                                                regressors=regressors, silent=TRUE, ...);
+                }
 
                 if(arimaModelSelect){
                     selectedModels[[i]] <- arimaSelector(data=data, model=model,
@@ -395,12 +397,17 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         }
         else{
             selectedModels <- foreach::`%dopar%`(foreach::foreach(i=1:length(distribution)),{
-                testModel <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
-                                  distribution=distribution[i], formula=formula,
-                                  h=h, holdout=holdout,
-                                  persistence=persistence, phi=phi, initial=initial, arma=arma,
-                                  occurrence=occurrence, ic=ic, bounds=bounds,
-                                  regressors=regressors, silent=TRUE, ...)
+                if(etsModel){
+                    testModel <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
+                                      distribution=distribution[i], formula=formula,
+                                      h=h, holdout=holdout,
+                                      persistence=persistence, phi=phi, initial=initial, arma=arma,
+                                      occurrence=occurrence, ic=ic, bounds=bounds,
+                                      regressors=regressors, silent=TRUE, ...)
+                }
+                else{
+                    testModel <- NULL;
+                }
 
                 if(arimaModelSelect){
                     testModel <- arimaSelector(data=data, model=model,
@@ -468,6 +475,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             occurrenceOriginal <- occurrence;
             persistenceOriginal <- persistence;
             phiOriginal <- phi;
+            holdoutOriginal <- holdout;
 
             # If the ETS model was done before this, then extract residuals
             if(is.adam(testModelETS)){
@@ -476,6 +484,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 occurrence <- "none"
                 persistence <- NULL;
                 phi <- NULL;
+                holdout <- FALSE;
             }
             else{
                 yInSample <- data;
@@ -543,9 +552,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                           occurrence=occurrence, ic=ic, bounds=bounds,
                                           regressors=regressors, silent=TRUE, ...),
                                      silent=TRUE);
-                    iOrdersICs[d] <- IC(testModel);
-                    if(!is.null(testModel$B)){
-                        BValues[[d]] <- testModel$B;
+                    if(!inherits(testModel,"try-error")){
+                        iOrdersICs[d] <- IC(testModel);
+                        if(!is.null(testModel$B)){
+                            BValues[[d]] <- testModel$B;
+                        }
+                    }
+                    else{
+                        iOrdersICs[d] <- Inf;
                     }
             }
             d <- which.min(iOrdersICs);
@@ -654,7 +668,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                   orders=list(ar=arBest,i=iBest,ma=maBest),
                                   constant=constantValue,
                                   distribution=distribution,
-                                  h=h, holdout=holdout,
+                                  h=h, holdout=holdoutOriginal,
                                   persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
                                   occurrence=occurrenceOriginal, ic=ic, bounds=bounds,
                                   regressors=regressors, silent=TRUE, ...);
@@ -748,14 +762,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 newCall$data <- data;
                 newCall$silent <- TRUE;
                 newCall$regressors <- outliersDo;
+                newCall$outliers <- "ignore";
+                # These two are needed for cases with Mcomp data
+                newCall$holdout <- holdout;
+                newCall$h <- h;
                 adamModel <- eval(newCall);
-                # adamModel <- suppressWarnings(auto.adam(data, model, lags=lags, orders=orders,
-                #                                         formula=formula,
-                #                                         distribution=distribution, h=h, holdout=holdout,
-                #                                         persistence=persistence, phi=phi, initial=initial, arma=arma,
-                #                                         occurrence=occurrence, ic=ic, bounds=bounds,
-                #                                         regressors=outliersDo,
-                #                                         silent=TRUE, parallel=parallel, fast=fast, ...));
             }
             else{
                 if(!silent){

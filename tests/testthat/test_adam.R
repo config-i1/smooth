@@ -469,7 +469,7 @@ test_that("Detect outliers for ARIMA on N291", {
     skip_on_cran()
     testModel <- auto.adam(Mcomp::M1[[291]], "NNN", orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2),select=TRUE),
                            outliers="use")
-    expect_equal(ncol(testModel$data),2)
+    expect_equal(ncol(testModel$data),1)
 })
 
 # Best ETS+ARIMA+Regression on the 2568
