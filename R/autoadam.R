@@ -236,7 +236,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                       etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
                                     (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                       # ARIMA components: initials + parameters
-                      arimaModel*((initial=="optimal")*initialArimaNumber + sum(arMax) + sum(maMax)) +
+                      arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                       # Xreg initials and smoothing parameters
                       xregModel*(xregNumber*(1+(regressors=="adapt"))));
 
@@ -244,7 +244,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     if((nParamMax > obsInSample) && arimaModelSelect){
         # If this is ARIMA, remove some orders
         if(arimaModel){
-            nParamMaxNonARIMA <- nParamMax - ((initial=="optimal")*initialArimaNumber + sum(arMax) + sum(maMax));
+            nParamMaxNonARIMA <- nParamMax - (initialArimaNumber + sum(arMax) + sum(maMax));
             if(obsInSample > nParamMaxNonARIMA){
                 # Drop out some ARIMA orders, start with seasonal
                 # Reduce maximum order of AR
@@ -258,7 +258,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
                                                           (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
-                                            arimaModel*((initial=="optimal")*initialArimaNumber + sum(arMax) + sum(maMax)) +
+                                            arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
                                             xregModel*(xregNumber*(1+(regressors=="adapt"))));
                     }
@@ -272,7 +272,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
                                                           (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
-                                            arimaModel*((initial=="optimal")*initialArimaNumber + sum(arMax) + sum(maMax)) +
+                                            arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
                                             xregModel*(xregNumber*(1+(regressors=="adapt"))));
                     }
@@ -286,7 +286,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                             etsModel*((Etype!="N") + (Ttype!="N") + (Stype!="N")*length(lags) + damped +
                                                           (initial=="optimal") * ((Etype!="N") + (Ttype!="N") + (Stype!="N")*sum(lags))) +
                                             # ARIMA components: initials + parameters
-                                            arimaModel*((initial=="optimal")*initialArimaNumber + sum(arMax) + sum(maMax)) +
+                                            arimaModel*(initialArimaNumber + sum(arMax) + sum(maMax)) +
                                             # Xreg initials and smoothing parameters
                                             xregModel*(xregNumber*(1+(regressors=="adapt"))));
                     }
@@ -600,9 +600,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         }
                         acfValues <- acf(residuals(bestModel), lag.max=max((maMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf[-1];
                         maTest[i] <- which.max(abs(acfValues[c(1:maMax[i])*lags[i]]));
-                        if(silentDebug){
-                            cat("\nTesting MA:", maTest);
-                        }
 
                         testModel <- adam(data=yInSample, model=model, lags=lags,
                                           orders=list(ar=arBest,i=iBest,ma=maTest),
@@ -614,6 +611,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                           regressors=regressors, silent=TRUE, ...);
                         ICValue <- IC(testModel);
 
+                        if(silentDebug){
+                            cat("\nTested MA:", maTest, "IC:", ICValue);
+                        }
                         if(ICValue < bestIC){
                             maBest[i] <- maTest[i];
                             bestIC <- ICValue;
@@ -637,9 +637,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         }
                         pacfValues <- pacf(residuals(bestModel), lag.max=max((arMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf;
                         arTest[i] <- which.max(abs(pacfValues[c(1:arMax[i])*lags[i]]));
-                        if(silentDebug){
-                            cat("\nTesting AR:", arTest);
-                        }
 
                         testModel <- adam(data=yInSample, model=model, lags=lags,
                                           orders=list(ar=arTest,i=iBest,ma=maBest),
@@ -650,6 +647,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                           occurrence=occurrence, ic=ic, bounds=bounds,
                                           regressors=regressors, silent=TRUE, ...);
                         ICValue <- IC(testModel);
+                        if(silentDebug){
+                            cat("\nTested AR:", arTest, "IC:", ICValue);
+                        }
 
                         if(ICValue < bestIC){
                             arBest[i] <- arTest[i];
