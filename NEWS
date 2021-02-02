@@ -1,4 +1,15 @@
-smooth v3.0.1 (Release data: 2021-01-27)
+smooth v3.1.0 (Release data: 2021-02-02)
+=======
+
+Changes:
+* We now use filter() function from stats instaed of ma() from forecast package in msdecompose().
+* We don't use is.ets from forecast package anymore.
+* msdecompose() now treats NAs automatically, interpolating them with a combination of fourier and polynomial.
+* adam() now relies on the same interpolation mechanism as msdecompose() in case of NAs.
+* Implemented a new auto.adam() ARIMA selection mechanism. It is faster and produces more accurate ARIMA models (e.g. more accurate than auto.ssarima()).
+
+
+smooth v3.0.2 (Release data: 2021-01-27)
 =======
 
 Changes:
@@ -12,10 +23,6 @@ Changes:
 * We now only take the needed values of B if a longer vector is provided.
 * Removed checks of obsolete parameters in ves().
 * Scale the MSE part of LASSO and RIDGE in adam() by the sd(diff(y)).
-* We now use filter() function from stats instaed of ma() from forecast package in msdecompose().
-* We don't use is.ets from forecast package anymore.
-* msdecompose() now treats NAs automatically, interpolating them with a combination of fourier and polynomial.
-* adam() now relies on the same interpolation mechanism as msdecompose().
 
 Bugfixes:
 * A fix for "YYY" and non-positive data in adam().
