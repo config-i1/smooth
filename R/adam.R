@@ -640,7 +640,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         return(modelReturned);
     }
 
-    #### If select was provided in the model, do ARIMA selection ####
+    #### If select was provided in the model, do auto.adam selection ####
     if(!is.null(checkerReturn$select) && checkerReturn$select){
         return(do.call("auto.adam",list(data=substitute(data), model=model, lags=lags, orders=orders,
                                         formula=formula, regressors=regressors,
@@ -7214,7 +7214,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # If this is "prediction", do simulations for multiplicative components
     if(interval=="prediction"){
         # Simulate stuff for the ETS only
-        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0){
+        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0 ||
+           any(object$distribution==c("dinvgauss","dlnorm"))){
             interval <- "simulated";
         }
         else{
