@@ -640,18 +640,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         return(modelReturned);
     }
 
-    #### If select was provided in the model, do ARIMA selection ####
+    #### If select was provided in the model, do auto.adam selection ####
     if(!is.null(checkerReturn$select) && checkerReturn$select){
-        if(phiEstimate){
-            phi <- NULL;
-        }
         return(do.call("auto.adam",list(data=substitute(data), model=model, lags=lags, orders=orders,
-                         formula=formula, regressors=regressors,
-                         distribution=distribution, loss=loss,
-                         h=h, holdout=holdout, outliers=outliers, level=level,
-                         persistence=persistence, phi=phi, initial=initial, arma=arma,
-                         occurrence=occurrence,
-                         ic=ic, bounds=bounds, silent=silent, ...)));
+                                        formula=formula, regressors=regressors,
+                                        distribution=distribution, loss=loss,
+                                        h=h, holdout=holdout, outliers=outliers, level=level,
+                                        persistence=persistence, phi=phi, initial=initial, arma=arma,
+                                        occurrence=occurrence,
+                                        ic=ic, bounds=bounds, silent=silent, ...)));
     }
 
     #### The function creates the technical variables (lags etc) based on the type of the model ####
@@ -1593,14 +1590,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
+                acfValues <- rep(0.1, maOrders %*% lags);
+                pacfValues <- rep(-0.1, arOrders %*% lags);
                 # If this is ETS + ARIMA model or no differences model, then don't bother with initials
                 # The latter does not make sense because of non-stationarity in ACF / PACF
-                if(etsModel || all(iOrders==0)){
-                    acfValues <- rep(0.1, maOrders %*% lags);
-                    pacfValues <- rep(-0.1, arOrders %*% lags);
-                }
                 # Otherwise use ACF / PACF values as starting parameters for ARIMA
-                else{
+                if(!(etsModel || all(iOrders==0))){
                     yDifferenced <- yInSample;
                     # If the model has differences, take them
                     if(any(iOrders>0)){
@@ -1611,10 +1606,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         }
                     }
                     if(maRequired && maEstimate){
-                        acfValues <- acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        acfValues[1:min(maOrders %*% lags, length(yDifferenced)-1)] <-
+                            acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
                     }
                     if(arRequired && arEstimate){
-                        pacfValues <- pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        pacfValues[1:min(arOrders %*% lags, length(yDifferenced)-1)] <-
+                            pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
                     }
                 }
                 for(i in 1:length(lags)){
@@ -7217,7 +7216,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # If this is "prediction", do simulations for multiplicative components
     if(interval=="prediction"){
         # Simulate stuff for the ETS only
-        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0){
+        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0 ||
+           any(object$distribution==c("dinvgauss","dlnorm"))){
             interval <- "simulated";
         }
         else{
