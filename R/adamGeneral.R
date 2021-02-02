@@ -411,11 +411,17 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         iOrders <- orders$i;
         maOrders <- orders$ma;
         select <- orders$select;
+        if(is.null(select)){
+            select <- FALSE;
+        }
     }
     else if(is.vector(orders)){
         arOrders <- orders[1];
         iOrders <- orders[2];
         maOrders <- orders[3];
+        select <- FALSE;
+    }
+    else{
         select <- FALSE;
     }
 
@@ -648,6 +654,13 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     if(!fast){
         #### Distribution selected ####
         distribution <- match.arg(distribution);
+    }
+
+    if(select){
+        assign("distribution",distribution,ParentEnvironment);
+        assign("outliers",outliers,ParentEnvironment);
+        # This stuff is needed for switch to auto.adam.
+        return(list(select=select));
     }
 
     #### Loss function type ####
@@ -2981,6 +2994,5 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     # Step size for the hessian
     assign("stepSize",stepSize,ParentEnvironment);
 
-    # This stuff is needed for switch to auto.adam.
-    return(list(select=select));
+    return(list(select=FALSE));
 }

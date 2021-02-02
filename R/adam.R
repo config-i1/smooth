@@ -642,16 +642,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     #### If select was provided in the model, do ARIMA selection ####
     if(!is.null(checkerReturn$select) && checkerReturn$select){
-        if(phiEstimate){
-            phi <- NULL;
-        }
         return(do.call("auto.adam",list(data=substitute(data), model=model, lags=lags, orders=orders,
-                         formula=formula, regressors=regressors,
-                         distribution=distribution, loss=loss,
-                         h=h, holdout=holdout, outliers=outliers, level=level,
-                         persistence=persistence, phi=phi, initial=initial, arma=arma,
-                         occurrence=occurrence,
-                         ic=ic, bounds=bounds, silent=silent, ...)));
+                                        formula=formula, regressors=regressors,
+                                        distribution=distribution, loss=loss,
+                                        h=h, holdout=holdout, outliers=outliers, level=level,
+                                        persistence=persistence, phi=phi, initial=initial, arma=arma,
+                                        occurrence=occurrence,
+                                        ic=ic, bounds=bounds, silent=silent, ...)));
     }
 
     #### The function creates the technical variables (lags etc) based on the type of the model ####
