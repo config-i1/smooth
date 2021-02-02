@@ -1590,14 +1590,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
+                acfValues <- rep(0.1, maOrders %*% lags);
+                pacfValues <- rep(-0.1, arOrders %*% lags);
                 # If this is ETS + ARIMA model or no differences model, then don't bother with initials
                 # The latter does not make sense because of non-stationarity in ACF / PACF
-                if(etsModel || all(iOrders==0)){
-                    acfValues <- rep(0.1, maOrders %*% lags);
-                    pacfValues <- rep(-0.1, arOrders %*% lags);
-                }
                 # Otherwise use ACF / PACF values as starting parameters for ARIMA
-                else{
+                if(!(etsModel || all(iOrders==0))){
                     yDifferenced <- yInSample;
                     # If the model has differences, take them
                     if(any(iOrders>0)){
@@ -1608,10 +1606,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         }
                     }
                     if(maRequired && maEstimate){
-                        acfValues <- acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        acfValues[1:min(maOrders %*% lags, length(yDifferenced)-1)] <-
+                            acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
                     }
                     if(arRequired && arEstimate){
-                        pacfValues <- pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        pacfValues[1:min(arOrders %*% lags, length(yDifferenced)-1)] <-
+                            pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
                     }
                 }
                 for(i in 1:length(lags)){

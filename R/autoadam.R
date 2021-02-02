@@ -490,9 +490,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 yInSample <- data;
             }
 
-            if(silentDebug){
-                cat("Best IC:",bestIC,"\n");
-            }
             if(!silent){
                 cat(" Selecting ARIMA orders... ");
             }
@@ -576,6 +573,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                            regressors=regressors, silent=TRUE, B=BValues[[d]], ...);
             bestIC <- iOrdersICs[d];
 
+            if(silentDebug){
+                cat("Best IC:",bestIC,"\n");
+            }
             maTest <- rep(0,ordersLength);
             arTest <- rep(0,ordersLength);
 
@@ -600,6 +600,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         }
                         acfValues <- acf(residuals(bestModel), lag.max=max((maMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf[-1];
                         maTest[i] <- which.max(abs(acfValues[c(1:maMax[i])*lags[i]]));
+                        if(silentDebug){
+                            cat("\nTesting MA:", maTest);
+                        }
 
                         testModel <- adam(data=yInSample, model=model, lags=lags,
                                           orders=list(ar=arBest,i=iBest,ma=maTest),
@@ -634,6 +637,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         }
                         pacfValues <- pacf(residuals(bestModel), lag.max=max((arMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf;
                         arTest[i] <- which.max(abs(pacfValues[c(1:arMax[i])*lags[i]]));
+                        if(silentDebug){
+                            cat("\nTesting AR:", arTest);
+                        }
 
                         testModel <- adam(data=yInSample, model=model, lags=lags,
                                           orders=list(ar=arTest,i=iBest,ma=maBest),
