@@ -1,4 +1,4 @@
-smooth v3.1.0 (Release data: 2021-02-02)
+smooth v3.1.0 (Release data: 2021-02-04)
 =======
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 
 Bugfixes:
 * Bugfix in the initialisation of ARIMA on small samples.
+* Bugfix in ETSX(A,*,*){D}, which previously had the wrong persistence element.
 
 
 smooth v3.0.2 (Release data: 2021-01-27)
