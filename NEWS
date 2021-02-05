@@ -1,4 +1,4 @@
-smooth v3.1.0 (Release data: 2021-02-04)
+smooth v3.1.0 (Release data: 2021-02-05)
 =======
 
 Changes:
@@ -7,6 +7,8 @@ Changes:
 * msdecompose() now treats NAs automatically, interpolating them with a combination of fourier and polynomial.
 * adam() now relies on the same interpolation mechanism as msdecompose() in case of NAs.
 * Implemented a new auto.adam() ARIMA selection mechanism. It is faster and produces more accurate ARIMA models (e.g. more accurate than auto.ssarima()).
+* Tell if bootstrap was used in summary.adam().
+* Add stars for the coefficients that are significant on the selected level.
 
 Bugfixes:
 * Bugfix in the initialisation of ARIMA on small samples.

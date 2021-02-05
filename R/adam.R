@@ -6004,6 +6004,8 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
                                        paste0("Lower ",(1-level)/2*100,"%"),
                                        paste0("Upper ",(1+level)/2*100,"%"));
         ourReturn$coefficients <- parametersTable;
+        # Mark those that are significant on the selected level
+        ourReturn$significance <- !(parametersTable[,3]<=0 & parametersTable[,4]>=0);
     }
     ourReturn$loss <- object$loss;
     ourReturn$lossValue <- object$lossValue;
@@ -6021,6 +6023,7 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
         names(ICs) <- c("AIC","AICc","BIC","BICc");
         ourReturn$ICs <- ICs;
     }
+    ourReturn$bootstrap <- bootstrap;
     return(structure(ourReturn, class="summary.adam"));
 }
 
@@ -6080,9 +6083,17 @@ print.summary.adam <- function(x, ...){
         }
     }
 
+    if(x$bootstrap){
+        cat("\nBootstrap was used for the estimation of uncertainty of parameters");
+    }
+
     if(!is.null(x$coefficients)){
         cat("\nCoefficients:\n");
-        print(round(x$coefficients,digits));
+        stars <- setNames(vector("character",length(x$significance)),
+                          names(x$significance));
+        stars[x$significance] <- "*";
+        print(data.frame(round(x$coefficients,digits),stars,
+                         check.names=FALSE,fix.empty.names=FALSE));
     }
     else{
         cat("\nAll coefficients were provided");
@@ -6180,6 +6191,8 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # Form the call for alm
     newCall <- object$call;
+    # Switch off this, just in case.
+    newCall$silent <- TRUE;
     # If this was auto.adam, use just adam
     if(newCall[[1]]=="auto.adam"){
         newCall[[1]] <- as.symbol("adam");
