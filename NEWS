@@ -13,6 +13,7 @@ Changes:
 Bugfixes:
 * Bugfix in the initialisation of ARIMA on small samples.
 * Bugfix in ETSX(A,*,*){D}, which previously had the wrong persistence element.
+* A fix in coefbootstrap and lags variable, when M3 data is used.
 
 
 smooth v3.0.2 (Release data: 2021-01-27)

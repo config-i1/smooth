@@ -6222,6 +6222,8 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # Get lags and the minimum possible sample (2 seasons)
     lags <- lags(object);
+    # This is needed for cases, when lags changed in the function
+    newCall$lags <- lags;
     obsMinimum <- max(c(lags*2,nVariables))+1;
 
     # If this is ARIMA, and the size wasn't specified, make it changable
