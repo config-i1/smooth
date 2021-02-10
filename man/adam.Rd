@@ -11,12 +11,12 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   outliers = c("ignore", "use", "select"), level = 0.99,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), distribution = c("default", "dnorm",
-  "dlaplace", "ds", "dgnorm", "dalaplace", "dlnorm", "dinvgauss"),
-  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
-  ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
-  "none"), silent = TRUE, ...)
+  "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss"), loss = c("likelihood",
+  "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"),
+  h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
+  initial = c("optimal", "backcasting"), arma = NULL, ic = c("AICc",
+  "AIC", "BIC", "BICc"), bounds = c("usual", "admissible", "none"),
+  silent = TRUE, ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
@@ -105,7 +105,8 @@ case of pure regression, this is completely ignored (use \code{formula} instead)
 then all the variables are used as is. Can also include \code{trend}, which would add
 the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.}
 
-\item{regressors}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided explanatory
+variables:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done,
 \code{"adapt"} will trigger the mechanism of time varying parameters for the
@@ -338,7 +339,6 @@ Inverse Gaussian is used for the Multiplicative error models.
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
 \item \link[greybox]{dgnorm} - Generalised Normal distribution,
-\item \link[greybox]{dalaplace} - Asymmetric Laplace distribution,
 \item \link[stats]{dlnorm} - Log normal distribution,
 \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
 }
