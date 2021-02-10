@@ -2,7 +2,7 @@ utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobabili
                          "intermittent","intermittentModel","imodelProvided","seasonal"));
 
 ##### *Checker of input of vector functions* #####
-vssInput <- function(smoothType=c("ves"),ParentEnvironment,...){
+vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
     smoothType <- smoothType[1];
 
     ellipsis <- list(...);

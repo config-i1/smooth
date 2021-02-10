@@ -15,10 +15,10 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' model of the following type:
 #'
 #' \deqn{
-#' \mathbf{y}_{t} = \mathbf{o}_{t} (\mathbf{W} \mathbf{v}_{t-l} + \mathbf{x}_t
+#' \mathbf{y}_{t} = (\mathbf{W} \mathbf{v}_{t-l} + \mathbf{x}_t
 #' \mathbf{a}_{t-1} + \mathbf{\epsilon}_{t})
 #' }{
-#' y_{t} = o_{t} (W v_{t-l} + x_t a_{t-1} + \epsilon_{t})
+#' y_{t} = (W v_{t-l} + x_t a_{t-1} + \epsilon_{t})
 #' }
 #'
 #' \deqn{
@@ -32,9 +32,8 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \mathbf{\epsilon}_{t} / \mathbf{x}_{t}}{a_{t} = F_{X} a_{t-1} + G_{X} \epsilon_{t}
 #' / x_{t}}
 #'
-#' Where \eqn{y_{t}} is the vector of time series on observation \eqn{t}, \eqn{o_{t}}
-#' is the vector of Bernoulli distributed random variable (in case of normal data it
-#' becomes unit vector for all observations), \eqn{\mathbf{v}_{t}} is the matrix of
+#' Where \eqn{y_{t}} is the vector of time series on observation \eqn{t},
+#' \eqn{\mathbf{v}_{t}} is the matrix of
 #' states and \eqn{l} is the matrix of lags, \eqn{\mathbf{x}_t} is the vector of
 #' exogenous variables. \eqn{\mathbf{W}} is the measurement matrix, \eqn{\mathbf{F}}
 #' is the transition matrix and \eqn{\mathbf{G}} is the persistence matrix.
@@ -75,16 +74,12 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA}, \code{MMdM} etc.
 #' \code{ZZZ} means that the model will be selected based on the chosen
 #' information criteria type.
-#' ATTENTION! ONLY PURE ADDITIVE AND PURE MULTIPLICATIVE MODELS ARE CURRENTLY
+#' ATTENTION! ONLY PURE ADDITIVE AND PURE MULTIPLICATIVE MODELS ARE
 #' AVAILABLE + NO MODEL SELECTION IS AVAILABLE AT THIS STAGE!
 #' Pure multiplicative models are done as additive model applied to log(data).
 #'
 #' Also \code{model} can accept a previously estimated VES model and use all its
 #' parameters.
-#'
-#' Keep in mind that model selection with "Z" components uses Branch and Bound
-#' algorithm and may skip some models that could have slightly smaller
-#' information criteria.
 
 #' @param phi In cases of damped trend this parameter defines whether the \eqn{phi}
 #' should be estimated separately for each series (\code{"individual"}) or for the whole
@@ -104,6 +99,39 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' so that the component is shared across the series.
 #' @param weights The weights for the errors between the series with the common
 #' seasonal component. Ignored if \code{seasonal="individual"}.
+#' @param persistence Persistence matrix \eqn{G}, containing smoothing
+#' parameters. Can be:
+#' \itemize{
+#' \item \code{"independent"} - each series has its own smoothing parameters
+#' and no interactions are modelled (all the other values in the matrix are set
+#' to zero);
+#' \item \code{"dependent"} - each series has its own smoothing parameters, but
+#' interactions between the series are modelled (the whole matrix is estimated);
+#' \item \code{"group"} each series has the same smoothing parameters for respective
+#' components (the values of smoothing parameters are repeated, all the other values
+#' in the matrix are set to zero).
+#' \item \code{"seasonal"} - each component has its own smoothing parameter, except
+#' for the seasonal one, which is common across the time series.
+#' \item provided by user as a vector or as a matrix. The value is used by the model.
+#' }
+#' You can also use the first letter instead of writing the full word.
+#' @param transition Transition matrix \eqn{F}. Can be:
+#' \itemize{
+#' \item \code{"independent"} - each series has its own preset transition matrix
+#' and no interactions are modelled (all the other values in the matrix are set
+#' to zero);
+#' \item \code{"dependent"} - each series has its own transition matrix, but
+#' interactions between the series are modelled (the whole matrix is estimated). The
+#' estimated model behaves similar to VAR in this case;
+#' \item \code{"group"} each series has the same transition matrix for respective
+#' components (the values are repeated, all the other values in the matrix are set to
+#' zero).
+#' \item provided by user as a vector or as a matrix. The value is used by the model.
+#' }
+#' You can also use the first letter instead of writing the full word.
+#' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
+#' interval are produced instead of the normal ones. This is useful for
+#' inventory control systems.
 #' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
@@ -184,8 +212,6 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 interval=c("none","conditional","unconditional","individual","likelihood"), level=0.95,
                 cumulative=FALSE,
-                intermittent=c("none","fixed","logistic"), imodel="ANN",
-                iprobability=c("dependent","independent"),
                 bounds=c("admissible","usual","none"),
                 silent=c("all","graph","output","none"), ...){
 # Copyright (C) 2017 - Inf  Ivan Svetunkov

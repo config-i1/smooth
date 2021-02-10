@@ -14,19 +14,3 @@
 #' letter can be used instead of the whole word. \code{"admissible"} means that the
 #' model stability is ensured, while \code{"usual"} means that the all the parameters
 #' are restricted by the (0, 1) region.
-#' @param intermittent Defines type of intermittent model used. Can be:
-#' \itemize{
-#' \item \code{none}, meaning that the data should be considered as non-intermittent;
-#' \item \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurrences;
-#' \item \code{tsb}, based on Teunter et al., 2011 method.
-#' \item \code{auto} - automatic selection of intermittency type based on information
-#' criteria. The first letter can be used instead.
-#' }
-#' @param imodel Either character specifying what type of VES / ETS model should be
-#' used for probability modelling, or a model estimated using \link[smooth]{viss}
-#' function.
-#' @param iprobability Type of multivariate probability used in the model. Can be
-#' either \code{"independent"} or \code{"dependent"}. In the former case it is
-#' assumed that non-zeroes occur in each series independently. In the latter case
-#' each possible outcome is treated separately.
