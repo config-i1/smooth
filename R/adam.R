@@ -224,7 +224,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
-#' @param regressors The variable defines what to do with the provided xreg:
+#' @param regressors The variable defines what to do with the provided explanatory
+#' variables:
 #' \code{"use"} means that all of the data should be used, while
 #' \code{"select"} means that a selection using \code{ic} should be done,
 #' \code{"adapt"} will trigger the mechanism of time varying parameters for the
