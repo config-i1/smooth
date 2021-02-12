@@ -2094,6 +2094,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
                 j <- 1;
                 if(phiEstimate){
+                    B[persistenceToSkip+j] <- 1-B[persistenceToSkip+j];
                     j[] <- 2;
                 }
                 if(initialType=="optimal"){
