@@ -1138,35 +1138,35 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
 
                     # Failsafe mechanism in case the sample is too small
-                    matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
+                    # matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
 
                     # If this is just ARIMA with optimisation, refine the initials
-                    if(!etsModel && initialType!="backcasting"){
-                        arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
-                                                           arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
-                        if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                            matVt[componentsNumberETS+nonZeroARI[,2],
-                                  1:initialArimaNumber] <-
-                                switch(Etype,
-                                       "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                                           tail(arimaPolynomials$ariPolynomial,1),
-                                       "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                                                   tail(arimaPolynomials$ariPolynomial,1)));
-                        }
-                        else{
-                            matVt[componentsNumberETS+nonZeroMA[,2],
-                                  1:initialArimaNumber] <-
-                                switch(Etype,
-                                       "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                                           tail(arimaPolynomials$maPolynomial,1),
-                                       "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                                                   tail(arimaPolynomials$maPolynomial,1)));
-                        }
-                    }
+                    # if(!etsModel && initialType!="backcasting"){
+                    #     arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
+                    #                                        arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+                    #     if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                    #         matVt[componentsNumberETS+nonZeroARI[,2],
+                    #               1:initialArimaNumber] <-
+                    #             switch(Etype,
+                    #                    "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                    #                        tail(arimaPolynomials$ariPolynomial,1),
+                    #                    "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                    #                                tail(arimaPolynomials$ariPolynomial,1)));
+                    #     }
+                    #     else{
+                    #         matVt[componentsNumberETS+nonZeroMA[,2],
+                    #               1:initialArimaNumber] <-
+                    #             switch(Etype,
+                    #                    "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                    #                        tail(arimaPolynomials$maPolynomial,1),
+                    #                    "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                    #                                tail(arimaPolynomials$maPolynomial,1)));
+                    #     }
+                    # }
                 }
                 else{
                     # Fill in the matrix with 0 / 1, just in case if the state will not be updated anymore
@@ -1177,29 +1177,29 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         initialArima[1:initialArimaNumber];
 
                     # If only AR is needed, but provided or if both are needed, but provided
-                    if(((arRequired && !arEstimate) && !maRequired) ||
-                       ((arRequired && !arEstimate) && (maRequired && !maEstimate)) ||
-                       (iRequired && !arEstimate && !maEstimate)){
-                        matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
-                            switch(Etype,
-                                   "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                       t(initialArima[1:initialArimaNumber]) /
-                                       tail(arimaPolynomials$ariPolynomial,1),
-                                   "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                               t(log(initialArima[1:initialArimaNumber])) /
-                                               tail(arimaPolynomials$ariPolynomial,1)));
-                    }
+                    # if(((arRequired && !arEstimate) && !maRequired) ||
+                    #    ((arRequired && !arEstimate) && (maRequired && !maEstimate)) ||
+                    #    (iRequired && !arEstimate && !maEstimate)){
+                    #     matVt[componentsNumberETS+nonZeroARI[,2],1:initialArimaNumber] <-
+                    #         switch(Etype,
+                    #                "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #                    t(initialArima[1:initialArimaNumber]) /
+                    #                    tail(arimaPolynomials$ariPolynomial,1),
+                    #                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #                            t(log(initialArima[1:initialArimaNumber])) /
+                    #                            tail(arimaPolynomials$ariPolynomial,1)));
+                    # }
                     # If only MA is needed, but provided
-                    else if(((maRequired && !maEstimate) && !arRequired)){
-                        matVt[componentsNumberETS+nonZeroMA[,2],1:initialArimaNumber] <-
-                            switch(Etype,
-                                   "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                       t(initialArima[1:initialArimaNumber]) /
-                                       tail(arimaPolynomials$maPolynomial,1),
-                                   "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                               t(log(initialArima[1:initialArimaNumber])) /
-                                               tail(arimaPolynomials$maPolynomial,1)));
-                    }
+                    # else if(((maRequired && !maEstimate) && !arRequired)){
+                    #     matVt[componentsNumberETS+nonZeroMA[,2],1:initialArimaNumber] <-
+                    #         switch(Etype,
+                    #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                    #                    t(initialArima[1:initialArimaNumber]) /
+                    #                    tail(arimaPolynomials$maPolynomial,1),
+                    #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                    #                            t(log(initialArima[1:initialArimaNumber])) /
+                    #                            tail(arimaPolynomials$maPolynomial,1)));
+                    # }
                 }
             }
 
@@ -1391,7 +1391,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Initials of ARIMA
         if(arimaModel){
             if((initialType!="backcasting") && initialArimaEstimate){
-                if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
                     # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
                     matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
@@ -1399,16 +1400,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    tail(arimaPolynomials$ariPolynomial,1),
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
-                }
-                else{
-                    # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                    matVt[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber] <-
-                        switch(Etype,
-                               "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(B[j+1:initialArimaNumber]) /
-                                   tail(arimaPolynomials$maPolynomial,1),
-                               "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
-                                           tail(arimaPolynomials$maPolynomial,1)));
-                }
+                # }
+                # else{
+                #     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
+                #     matVt[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber] <-
+                #         switch(Etype,
+                #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(B[j+1:initialArimaNumber]) /
+                #                    tail(arimaPolynomials$maPolynomial,1),
+                #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
+                #                            tail(arimaPolynomials$maPolynomial,1)));
+                # }
                 j[] <- j+initialArimaNumber;
             }
             # This is needed in order to propagate initials of ARIMA to all components
@@ -1423,17 +1424,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
                 }
-                else{
-                    matVt[componentsNumberETS+nonZeroMA[,2],
-                          1:initialArimaNumber] <-
-                        switch(Etype,
-                               "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                   t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                                   tail(arimaPolynomials$maPolynomial,1),
-                               "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                                           tail(arimaPolynomials$maPolynomial,1)));
-                }
+                # else{
+                #     matVt[componentsNumberETS+nonZeroMA[,2],
+                #           1:initialArimaNumber] <-
+                #         switch(Etype,
+                #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                #                    t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                #                    tail(arimaPolynomials$maPolynomial,1),
+                #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                #                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                #                            tail(arimaPolynomials$maPolynomial,1)));
+                # }
             }
         }
 
