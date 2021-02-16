@@ -104,15 +104,15 @@ modelType.vsmooth <- function(object, ...){
 #' @export
 plot.viss <- function(x, ...){
     ellipsis <- list(...);
-    intermittent <- x$intermittent
-    if(intermittent=="f"){
-        intermittent <- "Fixed probability";
+    occurrence <- x$occurrence
+    if(occurrence=="f"){
+        occurrence <- "Fixed probability";
     }
-    else if(intermittent=="l"){
-        intermittent <- "Logistic probability";
+    else if(occurrence=="l"){
+        occurrence <- "Logistic probability";
     }
     else{
-        intermittent <- "None";
+        occurrence <- "None";
     }
 
     y <- actuals(x);
@@ -192,24 +192,24 @@ plot.vsmooth.sim <- function(x, ...){
 print.viss <- function(x, ...){
 
     if(x$probability=="i"){
-        intermittent <- "Independent ";
+        occurrence <- "Independent ";
     }
     else if(x$probability=="d"){
-        intermittent <- "Dependent ";
+        occurrence <- "Dependent ";
     }
 
-    if(x$intermittent=="l"){
-        intermittent <- paste0(intermittent,"logistic probability");
+    if(x$occurrence=="l"){
+        occurrence <- paste0(occurrence,"logistic probability");
     }
-    else if(x$intermittent=="f"){
-        intermittent <- paste0(intermittent,"fixed probability");
+    else if(x$occurrence=="f"){
+        occurrence <- paste0(occurrence,"fixed probability");
     }
     else{
-        intermittent <- "None";
+        occurrence <- "None";
     }
     ICs <- round(c(AIC(x),AICc(x),BIC(x),BICc(x)),4);
     names(ICs) <- c("AIC","AICc","BIC","BICc");
-    cat(paste0("Intermittent state space model estimated: ",intermittent,"\n"));
+    cat(paste0("Occurrence state space model estimated: ",occurrence,"\n"));
     if(!is.null(x$model)){
         cat(paste0("Underlying ETS model: ",x$model,"\n"));
     }
@@ -241,27 +241,27 @@ print.vsmooth <- function(x, ...){
 
     cat(paste0("Time elapsed: ",round(as.numeric(x$timeElapsed,units="secs"),digits)," seconds\n"));
     cat(paste0("Model estimated: ",x$model,"\n"));
-    if(!is.null(x$imodel)){
-        if(x$imodel$probability=="i"){
-            intermittent <- "Independent ";
+    if(!is.null(x$occurrence)){
+        if(x$occurrence$probability=="i"){
+            occurrence <- "Independent ";
         }
-        else if(x$imodel$probability=="d"){
-            intermittent <- "Dependent ";
+        else if(x$occurrence$probability=="d"){
+            occurrence <- "Dependent ";
         }
 
-        if(x$imodel$intermittent=="l"){
-            intermittent <- paste0(intermittent,"logistic probability");
+        if(x$occurrence$occurrence=="l"){
+            occurrence <- paste0(occurrence,"logistic probability");
         }
-        else if(x$imodel$intermittent=="f"){
-            intermittent <- paste0(intermittent,"fixed probability");
+        else if(x$occurrence$occurrence=="f"){
+            occurrence <- paste0(occurrence,"fixed probability");
         }
         else{
-            intermittent <- "None";
+            occurrence <- "None";
         }
 
-        cat(paste0("Intermittent model estimated: ",intermittent,"\n"));
-        if(!is.null(x$imodel$model)){
-            cat(paste0("Occurrence ETS model: ",x$model,"\n"));
+        cat(paste0("Occurrence model estimated: ",occurrence,"\n"));
+        if(!is.null(x$occurrence$model)){
+            cat(paste0("Underlying ETS model: ",x$model,"\n"));
         }
     }
 

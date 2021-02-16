@@ -14,3 +14,14 @@
 #' letter can be used instead of the whole word. \code{"admissible"} means that the
 #' model stability is ensured, while \code{"usual"} means that the all the parameters
 #' are restricted by the (0, 1) region.
+#' @param occurrence Defines type of occurrence model used. Can be:
+#' \itemize{
+#' \item \code{none}, meaning that the data should be considered as non-intermittent;
+#' \item \code{fixed}, taking into account constant Bernoulli distribution of
+#' demand occurrences;
+#' \item \code{logistic}, based on logistic regression.
+#' }
+#' In this case, the ETS model inside the occurrence part will correspond to
+#' \code{model} and \code{probability="dependent"}.
+#' Alternatively, model estimated using \link[smooth]{viss} function can be provided
+#' here.

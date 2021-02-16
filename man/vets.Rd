@@ -161,7 +161,7 @@ values:
 \item \code{initial} - The initial values of the non-seasonal components;
 \item \code{initialSeason} - The initial values of the seasonal components;
 \item \code{nParam} - The number of estimated parameters;
-\item \code{imodel} - The intermittent model estimated with VETS;
+\item \code{occurrence} - The occurrence model estimated with VETS;
 \item \code{y} - The matrix with the original data;
 \item \code{fitted} - The matrix of the fitted values;
 \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
@@ -243,12 +243,10 @@ vignette: \code{vignette("ves","smooth")}
 Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)),frequency=12)
 
 # The simplest model applied to the data with the default values
-vets(Y,model="ANN",h=10,holdout=TRUE)
 
 # Multiplicative damped trend model with common parameters
 # and initial seasonal indices
-vets(Y,model="MMdM",h=10,holdout=TRUE,parameters=c("l","t","s","d"),
-     initials="seasonal")
+
 
 }
 \references{

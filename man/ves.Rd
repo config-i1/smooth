@@ -4,16 +4,15 @@
 \alias{ves}
 \title{Vector Exponential Smoothing in SSOE state space model}
 \usage{
-ves(y, model = "ANN", persistence = c("common", "individual", "dependent",
-  "seasonal-common"), transition = c("common", "individual", "dependent"),
-  phi = c("common", "individual"), initial = c("individual", "common"),
-  initialSeason = c("common", "individual"), seasonal = c("individual",
-  "common"), weights = rep(1/ncol(y), ncol(y)), loss = c("likelihood",
+ves(y, model = "ANN", persistence = c("common", "individual", "dependent"),
+  transition = c("common", "individual", "dependent"), phi = c("common",
+  "individual"), initial = c("individual", "common"),
+  initialSeason = c("common", "individual"), loss = c("likelihood",
   "diagonal", "trace"), ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
   holdout = FALSE, interval = c("none", "conditional", "unconditional",
-  "individual", "likelihood"), level = 0.95, cumulative = FALSE,
-  bounds = c("admissible", "usual", "none"), silent = c("all", "graph",
-  "output", "none"), ...)
+  "individual", "likelihood"), level = 0.95, occurrence = c("none",
+  "fixed", "logistic"), cumulative = FALSE, bounds = c("admissible",
+  "usual", "none"), silent = c("all", "graph", "output", "none"), ...)
 }
 \arguments{
 \item{y}{The matrix with the data, where series are in columns and
@@ -78,13 +77,6 @@ a matrix, assuming that these values are provided for the whole group.}
 states. Treated the same way as \code{initial}. This means that different time
 series may share the same initial seasonal component.}
 
-\item{seasonal}{The type of seasonal component across the series. Can be
-\code{"individual"}, so that each series has its own component or \code{"common"},
-so that the component is shared across the series.}
-
-\item{weights}{The weights for the errors between the series with the common
-seasonal component. Ignored if \code{seasonal="individual"}.}
-
 \item{loss}{Type of Loss Function used in optimization. \code{loss} can
 be:
 \itemize{
@@ -133,6 +125,18 @@ the independent interval are constructed, while the latter is equivalent to
 You can also use the first letter instead of writing the full word.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
+
+\item{occurrence}{Defines type of occurrence model used. Can be:
+\itemize{
+\item \code{none}, meaning that the data should be considered as non-intermittent;
+\item \code{fixed}, taking into account constant Bernoulli distribution of
+demand occurrences;
+\item \code{logistic}, based on logistic regression.
+}
+In this case, the ETS model inside the occurrence part will correspond to
+\code{model} and \code{probability="dependent"}.
+Alternatively, model estimated using \link[smooth]{viss} function can be provided
+here.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
 interval are produced instead of the normal ones. This is useful for
@@ -187,7 +191,7 @@ values:
 \item \code{initial} - The initial values of the non-seasonal components;
 \item \code{initialSeason} - The initial values of the seasonal components;
 \item \code{nParam} - The number of estimated parameters;
-\item \code{imodel} - The intermittent model estimated with VES;
+\item \code{occurrence} - The occurrence part of the model estimated with VES;
 \item \code{y} - The matrix with the original data;
 \item \code{fitted} - The matrix of the fitted values;
 \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
@@ -280,7 +284,7 @@ Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
            c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
 
 # Intermittent VES with logistic probability
-ves(Y,model="MNN",h=10,holdout=TRUE,intermittent="l")
+ves(Y,model="MNN",h=10,holdout=TRUE,occurrence="l")
 
 }
 \references{

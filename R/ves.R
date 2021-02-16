@@ -94,11 +94,11 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' @param initialSeason Can be either character or a vector / matrix of initial
 #' states. Treated the same way as \code{initial}. This means that different time
 #' series may share the same initial seasonal component.
-#' @param seasonal The type of seasonal component across the series. Can be
-#' \code{"individual"}, so that each series has its own component or \code{"common"},
-#' so that the component is shared across the series.
-#' @param weights The weights for the errors between the series with the common
-#' seasonal component. Ignored if \code{seasonal="individual"}.
+# @param seasonal The type of seasonal component across the series. Can be
+# \code{"individual"}, so that each series has its own component or \code{"common"},
+# so that the component is shared across the series.
+# @param weights The weights for the errors between the series with the common
+# seasonal component. Ignored if \code{seasonal="individual"}.
 #' @param persistence Persistence matrix \eqn{G}, containing smoothing
 #' parameters. Can be:
 #' \itemize{
@@ -163,7 +163,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{initial} - The initial values of the non-seasonal components;
 #' \item \code{initialSeason} - The initial values of the seasonal components;
 #' \item \code{nParam} - The number of estimated parameters;
-#' \item \code{imodel} - The intermittent model estimated with VES;
+#' \item \code{occurrence} - The occurrence part of the model estimated with VES;
 #' \item \code{y} - The matrix with the original data;
 #' \item \code{fitted} - The matrix of the fitted values;
 #' \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
@@ -201,16 +201,17 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #'            c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
 #'
 #' # Intermittent VES with logistic probability
-#' ves(Y,model="MNN",h=10,holdout=TRUE,intermittent="l")
+#' ves(Y,model="MNN",h=10,holdout=TRUE,occurrence="l")
 #'
 #' @export
-ves <- function(y, model="ANN", persistence=c("common","individual","dependent","seasonal-common"),
+ves <- function(y, model="ANN", persistence=c("common","individual","dependent"),
                 transition=c("common","individual","dependent"), phi=c("common","individual"),
                 initial=c("individual","common"), initialSeason=c("common","individual"),
-                seasonal=c("individual","common"), weights=rep(1/ncol(y),ncol(y)),
+                # seasonal=c("individual","common"), weights=rep(1/ncol(y),ncol(y)),
                 loss=c("likelihood","diagonal","trace"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                 interval=c("none","conditional","unconditional","individual","likelihood"), level=0.95,
+                occurrence=c("none","fixed","logistic"),
                 cumulative=FALSE,
                 bounds=c("admissible","usual","none"),
                 silent=c("all","graph","output","none"), ...){
@@ -268,6 +269,10 @@ ves <- function(y, model="ANN", persistence=c("common","individual","dependent",
 
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
+
+    # Set up seasonal components as individual. Use vets() otherwise.
+    seasonal <- "individual";
+    weights <- rep(1/ncol(y),ncol(y));
 
 ##### Set environment for vssInput and make all the checks #####
     environment(vssInput) <- environment();
@@ -1310,7 +1315,7 @@ CreatorVES <- function(silent=FALSE,...){
     modelname <- "VES";
     modelname <- paste0(modelname,"(",model,")");
 
-    if(intermittent!="n"){
+    if(occurrence!="n"){
         modelname <- paste0("i",modelname);
     }
 
@@ -1412,7 +1417,7 @@ CreatorVES <- function(silent=FALSE,...){
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
                   measurement=matW, phi=dampedValue, B=B,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
-                  nParam=parametersNumber, imodel=imodel,
+                  nParam=parametersNumber, imodel=oesModel,
                   y=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,interval=intervalType,level=level,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errorMeasures,

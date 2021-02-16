@@ -1,5 +1,5 @@
-utils::globalVariables(c("initialSeason","persistence","phi","otObs","iprobability",
-                         "intermittent","intermittentModel","imodelProvided","seasonal"));
+utils::globalVariables(c("initialSeason","persistence","phi","otObs",
+                         "occurrence","oesModel","occurrenceModelProvided","seasonal"));
 
 ##### *Checker of input of vector functions* #####
 vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
@@ -71,10 +71,8 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
         }
     }
 
-    if(!is.data.frame(y)){
-        if(!is.numeric(y)){
-            stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
-        }
+    if(!is.data.frame(y) && !is.numeric(y)){
+        stop("The provided data is not a numeric matrix! Can't construct any model!", call.=FALSE);
     }
 
     if(is.null(dim(y))){
@@ -91,21 +89,24 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
 
     correlatedSeries <- cor(y)[upper.tri(cor(y))];
     if(any(correlatedSeries>0.999)){
-        warning(paste0("Some of series are almost perfectly correlated. This might cause difficulties in the estimation. ",
-                       "Please, try removing some of them if you encounter any problems."),
+        warning("Some of series are almost perfectly correlated. This might cause difficulties in the estimation. ",
+                "Please, try removing some of them if you encounter any problems.",
                 call.=FALSE);
     }
 
     if(is.null(ncol(y))){
-        stop("The provided data is not a matrix! Use es() function instead!", call.=FALSE);
+        stop("The provided data is not a matrix! Use es() or adam() function instead!",
+             call.=FALSE);
     }
     if(ncol(y)==1){
-        stop("The provided data contains only one column. Use es() function instead!", call.=FALSE);
+        stop("The provided data contains only one column. Use es() or adam() function instead!",
+             call.=FALSE);
     }
     # Check the data for NAs
     if(any(is.na(y))){
         if(!silentText){
-            warning("Data contains NAs. These observations will be substituted by zeroes.", call.=FALSE);
+            warning("Data contains NAs. These observations will be substituted by zeroes.",
+                    call.=FALSE);
         }
         y[is.na(y)] <- 0;
     }
@@ -118,19 +119,18 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
 
     # If obsInSample is negative, this means that we can't do anything...
     if(obsInSample<=0){
-        stop("Not enough observations in sample.", call.=FALSE);
+        stop("Not enough observations in sample.",
+             call.=FALSE);
     }
     # Define the actual values. Transpose the matrix!
-    yInSample <- matrix(y[1:obsInSample,],nSeries,obsInSample,byrow=TRUE);
+    yInSample <- t(y[1:obsInSample,,drop=FALSE]);
     dataFreq <- frequency(y);
     dataDeltat <- deltat(y);
     dataStart <- start(y);
     yForecastStart <- time(y)[obsInSample]+deltat(y);
     dataNames <- colnames(y);
     if(!is.null(dataNames)){
-        dataNames <- gsub(" ", "_", dataNames, fixed = TRUE);
-        dataNames <- gsub(":", "_", dataNames, fixed = TRUE);
-        dataNames <- gsub("$", "_", dataNames, fixed = TRUE);
+        dataNames <- make.names(dataNames);
     }
     else{
         dataNames <- paste0("Series",c(1:nSeries));
@@ -142,10 +142,11 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
                                              c("nParamInternal","nParamXreg","nParamIntermittent","nParamAll")));
 
     ##### model for VES #####
-    if(smoothType=="ves"){
+    if(any(smoothType==c("ves","vets"))){
         if(!is.character(model)){
             stop(paste0("Something strange is provided instead of character object in model: ",
-                        paste0(model,collapse=",")),call.=FALSE);
+                        paste0(model,collapse=",")),
+                 call.=FALSE);
         }
 
         # If chosen model is "AAdN" or anything like that, we are taking the appropriate values
@@ -181,14 +182,16 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
         #### Check error type ####
         if(all(Etype!=c("A","M","L"))){
             warning(paste0("Wrong error type: ",Etype,". Should be 'A' or 'M'.\n",
-                           "Changing to 'A'"),call.=FALSE);
+                           "Changing to 'A'"),
+                    call.=FALSE);
             Etype <- "A";
         }
 
         #### Check trend type ####
         if(all(Ttype!=c("N","A","M"))){
             warning(paste0("Wrong trend type: ",Ttype,". Should be 'N', 'A' or 'M'.\n",
-                           "Changing to 'A'"),call.=FALSE);
+                           "Changing to 'A'"),
+                    call.=FALSE);
             Ttype <- "A";
         }
 
@@ -203,7 +206,8 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
         # Check if seasonality makes sense
         if(all(Stype!=c("N","A","M"))){
             warning(paste0("Wrong seasonality type: ",Stype,". Should be 'N', 'A' or 'M'.",
-                           "Setting to 'A'."),call.=FALSE);
+                           "Setting to 'A'."),
+                    call.=FALSE);
             if(dataFreq==1){
                 Stype <- "N";
             }
@@ -213,7 +217,8 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
         }
         if(Stype!="N" & dataFreq==1){
             warning(paste0("Cannot build the seasonal model on data with frequency 1.\n",
-                           "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"));
+                           "Switching to non-seasonal model: ETS(",substring(model,1,nchar(model)-1),"N)"),
+                    call.=FALSE);
             Stype <- "N";
         }
 
@@ -238,21 +243,20 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
         nComponentsAll <- nComponentsNonSeasonal + modelIsSeasonal*1;
     }
 
-    ##### imodel #####
-    if(is.viss(imodel)){
-        intermittentModel <- imodel$model;
-        intermittent <- imodel$intermittent;
-        imodelProvided <- TRUE;
+    ##### oesModel #####
+    if(is.viss(occurrence)){
+        oesModel <- occurrence$model;
+        occurrence <- occurrence$occurrence;
+        occurrenceModelProvided <- TRUE;
     }
     else{
-        intermittentModel <- imodel;
-        imodelProvided <- FALSE;
-        imodel <- NULL;
+        oesModel <- occurrence;
+        occurrenceModelProvided <- FALSE;
     }
 
-    ##### intermittent #####
-    intermittent <- substring(intermittent[1],1,1);
-    if(intermittent!="n"){
+    ##### occurrence #####
+    occurrence <- substring(occurrence[1],1,1);
+    if(occurrence!="n"){
         ot <- (yInSample!=0)*1;
         # Matrix of non-zero observations for the loss function
         otObs <- diag(rowSums(ot));
@@ -271,12 +275,10 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
     }
 
     # If the data is not intermittent, let's assume that the parameter was switched unintentionally.
-    if(all(ot==1) & intermittent!="n"){
-        intermittent <- "n";
-        imodelProvided <- FALSE;
+    if(all(ot==1) & occurrence!="n"){
+        occurrence <- "n";
+        occurrenceModelProvided <- FALSE;
     }
-
-    iprobability <- substring(iprobability[1],1,1)
 
     # Check if multiplicative model can be applied
     if(any(c(Etype,Ttype,Stype)=="M")){
@@ -291,7 +293,7 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
             modelIsMultiplicative <- TRUE;
         }
         else{
-            if(intermittent=="n"){
+            if(occurrence=="n"){
                 warning("Sorry, but we cannot construct multiplicative model on non-positive data. Changing to additive.",
                         call.=FALSE);
                 Etype <- "A";
@@ -315,367 +317,368 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
     # This is the number of parameters to estimate per series
     nParamMax <- 0;
 
-    ##### Persistence matrix ####
-    # persistence type can be: "i" - individual, "d" - dependent, "c" - common (all),
-    # "s" - seasonal smoothing parameter is the same
-    persistenceValue <- persistence;
-    if(is.null(persistenceValue)){
-        warning("persistence value is not selected. Switching to group.");
-        persistenceType <- "c";
-        persistenceEstimate <- TRUE;
-    }
-    else{
-        if(is.character(persistenceValue)){
-            persistenceValue <- substring(persistenceValue[1],1,1);
-            if(all(persistenceValue!=c("c","i","d","s"))){
-                warning("You asked for a strange persistence value. We don't do that here. Switching to group",
-                        call.=FALSE);
-                persistenceType <- "c";
-            }
-            else{
-                if(persistenceValue=="s" & Stype=="N"){
-                    warning(paste0("Non-seasonal model is selected, but you've asked for common ",
-                                   "seasonal smoothing parameter. Switching to persistence='individual'."),
-                            call.=FALSE);
-                    persistenceValue <- "i";
-                }
-                persistenceType <- persistenceValue;
-            }
-            persistenceValue <- NULL;
+    #### VES parameters ####
+    if(smoothType=="ves"){
+        ##### * Persistence matrix ####
+        # persistence type can be: "i" - individual, "d" - dependent, "c" - common (all),
+        # "s" - seasonal smoothing parameter is the same
+        persistenceValue <- persistence;
+        if(is.null(persistenceValue)){
+            warning("persistence value is not selected. Switching to group.");
+            persistenceType <- "c";
             persistenceEstimate <- TRUE;
         }
-        else if(is.numeric(persistenceValue)){
-            if(all(length(persistenceValue) != c(nComponentsAll*nSeries^2,nComponentsAll))){
-                warning(paste0("Length of persistence matrix is wrong! It should be either ",
-                               nComponentsAll*nSeries^2, " or ", nComponentsAll,
-                               " instead of ",length(persistenceValue),".\n",
+        else{
+            if(is.character(persistenceValue)){
+                persistenceValue <- substring(persistenceValue[1],1,1);
+                if(all(persistenceValue!=c("c","i","d","s"))){
+                    warning("You asked for a strange persistence value. We don't do that here. Switching to group",
+                            call.=FALSE);
+                    persistenceType <- "c";
+                }
+                else{
+                    if(persistenceValue=="s" & Stype=="N"){
+                        warning(paste0("Non-seasonal model is selected, but you've asked for common ",
+                                       "seasonal smoothing parameter. Switching to persistence='individual'."),
+                                call.=FALSE);
+                        persistenceValue <- "i";
+                    }
+                    persistenceType <- persistenceValue;
+                }
+                persistenceValue <- NULL;
+                persistenceEstimate <- TRUE;
+            }
+            else if(is.numeric(persistenceValue)){
+                if(all(length(persistenceValue) != c(nComponentsAll*nSeries^2,nComponentsAll))){
+                    warning(paste0("Length of persistence matrix is wrong! It should be either ",
+                                   nComponentsAll*nSeries^2, " or ", nComponentsAll,
+                                   " instead of ",length(persistenceValue),".\n",
+                                   "Values of persistence matrix will be estimated as group."),call.=FALSE);
+                    persistenceValue <- NULL;
+                    persistenceType <- "c";
+                    persistenceEstimate <- TRUE;
+                }
+                else{
+                    persistenceType <- "p";
+                    persistenceEstimate <- FALSE;
+
+                    if(length(persistenceValue)==nComponentsAll){
+                        persistenceBuffer <- matrix(0,nSeries*nComponentsAll,nSeries);
+                        for(i in 1:nSeries){
+                            persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),i] <- persistenceValue;
+                        }
+                        persistenceValue <- persistenceBuffer;
+                        parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(persistenceValue));
+                    }
+                    else{
+                        ### Check the persistence matrix in order to decide number of parameters
+                        persistencePartial <- matrix(persistenceValue[1:nComponentsAll,1:nSeries],
+                                                     nComponentsAll,nSeries);
+                        persistenceValue <- matrix(persistenceValue,nSeries*nComponentsAll,nSeries);
+
+                        # Check if persistence is dependent
+                        if(all(persistencePartial[,nSeries]==0)){
+                            # Check if persistence is grouped
+                            if(persistenceValue[1,1]==persistenceValue[1+nComponentsAll,nSeries]){
+                                parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                            }
+                            else{
+                                parametersNumber[2,1] <- parametersNumber[2,1] + nSeries*nComponentsAll;
+                            }
+                        }
+                        else{
+                            parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(persistenceValue));
+                        }
+                    }
+                }
+            }
+            else if(!is.numeric(persistenceValue)){
+                warning(paste0("persistence matrix is not numeric!\n",
                                "Values of persistence matrix will be estimated as group."),call.=FALSE);
                 persistenceValue <- NULL;
                 persistenceType <- "c";
                 persistenceEstimate <- TRUE;
             }
-            else{
-                persistenceType <- "p";
-                persistenceEstimate <- FALSE;
+        }
 
-                if(length(persistenceValue)==nComponentsAll){
-                    persistenceBuffer <- matrix(0,nSeries*nComponentsAll,nSeries);
-                    for(i in 1:nSeries){
-                        persistenceBuffer[1:nComponentsAll+nComponentsAll*(i-1),i] <- persistenceValue;
-                    }
-                    persistenceValue <- persistenceBuffer;
-                    parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(persistenceValue));
+        # If it is individual, then it increases by nComponentsAll
+        if(persistenceType=="i"){
+            # if(any(persistenceType==c("c","i","s"))){
+            nParamMax <- nParamMax + nComponentsAll;
+        }
+        # The seasonal is shared across series, the other parameters are individual
+        else if(persistenceType=="s"){
+            nParamMax <- nParamMax + nComponentsNonSeasonal + 1/nSeries;
+        }
+        # All parameters are shared
+        else if(persistenceType=="c"){
+            nParamMax <- nParamMax + nComponentsAll/nSeries;
+        }
+        else if(persistenceType=="d"){
+            # In case with "dependent" the whole matrix needs to be estimated
+            nParamMax <- nParamMax + nComponentsAll*nSeries;
+        }
+
+        ##### * Transition matrix ####
+        # transition type can be: "i" - individual, "d" - dependent, "c" - common
+        transitionValue <- transition;
+        if(is.null(transitionValue)){
+            warning("transition value is not selected. Switching to common");
+            transitionType <- "c";
+            transitionEstimate <- FALSE;
+        }
+        else{
+            if(is.character(transitionValue)){
+                transitionValue <- substring(transitionValue[1],1,1);
+                if(all(transitionValue!=c("c","i","d"))){
+                    warning("You asked for a strange transition value. We don't do that here. Switching to common",
+                            call.=FALSE);
+                    transitionType <- "c";
                 }
                 else{
-                    ### Check the persistence matrix in order to decide number of parameters
-                    persistencePartial <- matrix(persistenceValue[1:nComponentsAll,1:nSeries],
-                                                 nComponentsAll,nSeries);
-                    persistenceValue <- matrix(persistenceValue,nSeries*nComponentsAll,nSeries);
-
-                    # Check if persistence is dependent
-                    if(all(persistencePartial[,nSeries]==0)){
-                        # Check if persistence is grouped
-                        if(persistenceValue[1,1]==persistenceValue[1+nComponentsAll,nSeries]){
-                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                    transitionType <- transitionValue;
+                }
+                transitionValue <- NULL;
+                transitionEstimate <- FALSE;
+            }
+            else if(is.numeric(transitionValue)){
+                if(all(length(transitionValue) != c((nSeries*nComponentsAll)^2,nComponentsAll^2))){
+                    warning(paste0("Length of transition matrix is wrong! It should be either ",
+                                   (nSeries*nComponentsAll)^2, " or ", nComponentsAll^2,
+                                   " instead of ",length(transitionValue),".\n",
+                                   "Values of transition matrix will be estimated as a common one."),call.=FALSE);
+                    transitionValue <- NULL;
+                    transitionType <- "c";
+                    transitionEstimate <- FALSE;
+                }
+                else{
+                    transitionType <- "p";
+                    transitionEstimate <- FALSE;
+                    ### Check the transition matrix in order to decide number of parameters
+                    transitionPartial <- matrix(transitionValue[1:nComponentsAll,1:nComponentsAll],
+                                                nComponentsAll,nComponentsAll);
+                    transitionIsStandard <- FALSE;
+                    transitionContainsPhi <- FALSE;
+                    if(ncol(transitionPartial)==3){
+                        if(all(transitionPartial[,c(1,3)]==matrix(c(1,0,0,1,1,0,0,0,1),3,3)[,c(1,3)])){
+                            transitionIsStandard <- TRUE;
+                            if(transitionPartial[2,2]!=1){
+                                # If there is phi in the matrix, add it
+                                transitionContainsPhi <- TRUE;
+                            }
                         }
-                        else{
-                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries*nComponentsAll;
+                    }
+                    else if(ncol(transitionPartial)==2){
+                        if(all(transitionPartial[,1]==c(1,0))){
+                            transitionIsStandard <- TRUE;
+                            if(transitionPartial[2,2]!=1){
+                                # If there is phi in the matrix, add it
+                                transitionContainsPhi <- TRUE;
+                            }
                         }
                     }
                     else{
-                        parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(persistenceValue));
+                        if(transitionPartial[1,1]==1){
+                            transitionIsStandard <- TRUE;
+                        }
+                    }
+                    # If transition is not standard, take unique values from it.
+                    if(!transitionIsStandard){
+                        parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(transitionValue));
+                    }
+                    else{
+                        # If there is phi, check if it is grouped
+                        if(transitionContainsPhi){
+                            # If phi is grouped, add one parameter
+                            if(transitionValue[2,2]==transitionValue[2+nComponentsAll,2+nComponentsAll]){
+                                parametersNumber[2,1] <- parametersNumber[2,1] + 1;
+                                phi <- transitionValue[2,2];
+                            }
+                            # Else phi is individual
+                            else{
+                                parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
+                                phi <- rep(NA,nSeries);
+                                for(i in 1:nSeries){
+                                    phi[i] <- transitionValue[2+(i-1)*nComponentsAll,2+(i-1)*nComponentsAll];
+                                }
+                            }
+                        }
+                    }
+
+                    if(length(transitionValue) == nComponentsAll^2){
+                        transitionValue <- matrix(transitionValue,nComponentsAll,nComponentsAll);
+                        transitionBuffer <- diag(nSeries*nComponentsAll);
+                        for(i in 1:nSeries){
+                            transitionBuffer[c(1:nComponentsAll)+nComponentsAll*(i-1),
+                                             c(1:nComponentsAll)+nComponentsAll*(i-1)] <- transitionValue;
+                        }
+                        transitionValue <- transitionBuffer;
+                    }
+                    else{
+                        transitionValue <- matrix(transitionValue,nSeries*nComponentsAll,nSeries*nComponentsAll);
                     }
                 }
             }
-        }
-        else if(!is.numeric(persistenceValue)){
-            warning(paste0("persistence matrix is not numeric!\n",
-                           "Values of persistence matrix will be estimated as group."),call.=FALSE);
-            persistenceValue <- NULL;
-            persistenceType <- "c";
-            persistenceEstimate <- TRUE;
-        }
-    }
-
-    # If it is individual, then it increases by nComponentsAll
-    if(persistenceType=="i"){
-    # if(any(persistenceType==c("c","i","s"))){
-        nParamMax <- nParamMax + nComponentsAll;
-    }
-    # The seasonal is shared across series, the other parameters are individual
-    else if(persistenceType=="s"){
-        nParamMax <- nParamMax + nComponentsNonSeasonal + 1/nSeries;
-    }
-    # All parameters are shared
-    else if(persistenceType=="c"){
-        nParamMax <- nParamMax + nComponentsAll/nSeries;
-    }
-    else if(persistenceType=="d"){
-        # In case with "dependent" the whole matrix needs to be estimated
-        nParamMax <- nParamMax + nComponentsAll*nSeries;
-    }
-
-    ##### Transition matrix ####
-    # transition type can be: "i" - individual, "d" - dependent, "c" - common
-    transitionValue <- transition;
-    if(is.null(transitionValue)){
-        warning("transition value is not selected. Switching to common");
-        transitionType <- "c";
-        transitionEstimate <- FALSE;
-    }
-    else{
-        if(is.character(transitionValue)){
-            transitionValue <- substring(transitionValue[1],1,1);
-            if(all(transitionValue!=c("c","i","d"))){
-                warning("You asked for a strange transition value. We don't do that here. Switching to common",
-                        call.=FALSE);
-                transitionType <- "c";
-            }
-            else{
-                transitionType <- transitionValue;
-            }
-            transitionValue <- NULL;
-            transitionEstimate <- FALSE;
-        }
-        else if(is.numeric(transitionValue)){
-            if(all(length(transitionValue) != c((nSeries*nComponentsAll)^2,nComponentsAll^2))){
-                warning(paste0("Length of transition matrix is wrong! It should be either ",
-                               (nSeries*nComponentsAll)^2, " or ", nComponentsAll^2,
-                               " instead of ",length(transitionValue),".\n",
-                               "Values of transition matrix will be estimated as a common one."),call.=FALSE);
+            else if(!is.numeric(transitionValue)){
+                warning(paste0("transition matrix is not numeric!\n",
+                               "Values of transition vector will be estimated as a common group."),call.=FALSE);
                 transitionValue <- NULL;
                 transitionType <- "c";
                 transitionEstimate <- FALSE;
             }
-            else{
-                transitionType <- "p";
-                transitionEstimate <- FALSE;
-                ### Check the transition matrix in order to decide number of parameters
-                transitionPartial <- matrix(transitionValue[1:nComponentsAll,1:nComponentsAll],
-                                            nComponentsAll,nComponentsAll);
-                transitionIsStandard <- FALSE;
-                transitionContainsPhi <- FALSE;
-                if(ncol(transitionPartial)==3){
-                    if(all(transitionPartial[,c(1,3)]==matrix(c(1,0,0,1,1,0,0,0,1),3,3)[,c(1,3)])){
-                        transitionIsStandard <- TRUE;
-                        if(transitionPartial[2,2]!=1){
-                            # If there is phi in the matrix, add it
-                            transitionContainsPhi <- TRUE;
-                        }
-                    }
-                }
-                else if(ncol(transitionPartial)==2){
-                    if(all(transitionPartial[,1]==c(1,0))){
-                        transitionIsStandard <- TRUE;
-                        if(transitionPartial[2,2]!=1){
-                            # If there is phi in the matrix, add it
-                            transitionContainsPhi <- TRUE;
-                        }
-                    }
-                }
-                else{
-                    if(transitionPartial[1,1]==1){
-                        transitionIsStandard <- TRUE;
-                    }
-                }
-                # If transition is not standard, take unique values from it.
-                if(!transitionIsStandard){
-                    parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(transitionValue));
-                }
-                else{
-                    # If there is phi, check if it is grouped
-                    if(transitionContainsPhi){
-                        # If phi is grouped, add one parameter
-                        if(transitionValue[2,2]==transitionValue[2+nComponentsAll,2+nComponentsAll]){
-                            parametersNumber[2,1] <- parametersNumber[2,1] + 1;
-                            phi <- transitionValue[2,2];
-                        }
-                        # Else phi is individual
-                        else{
-                            parametersNumber[2,1] <- parametersNumber[2,1] + nSeries;
-                            phi <- rep(NA,nSeries);
-                            for(i in 1:nSeries){
-                                phi[i] <- transitionValue[2+(i-1)*nComponentsAll,2+(i-1)*nComponentsAll];
-                            }
-                        }
-                    }
-                }
-
-                if(length(transitionValue) == nComponentsAll^2){
-                    transitionValue <- matrix(transitionValue,nComponentsAll,nComponentsAll);
-                    transitionBuffer <- diag(nSeries*nComponentsAll);
-                    for(i in 1:nSeries){
-                        transitionBuffer[c(1:nComponentsAll)+nComponentsAll*(i-1),
-                                         c(1:nComponentsAll)+nComponentsAll*(i-1)] <- transitionValue;
-                    }
-                    transitionValue <- transitionBuffer;
-                }
-                else{
-                    transitionValue <- matrix(transitionValue,nSeries*nComponentsAll,nSeries*nComponentsAll);
-                }
-            }
         }
-        else if(!is.numeric(transitionValue)){
-            warning(paste0("transition matrix is not numeric!\n",
-                           "Values of transition vector will be estimated as a common group."),call.=FALSE);
-            transitionValue <- NULL;
-            transitionType <- "c";
-            transitionEstimate <- FALSE;
+
+        if(transitionType=="d"){
+            ## !!! Each separate transition matrix is not evaluated, but the off-diagonals are
+            transitionEstimate <- TRUE;
+            nParamMax <- nParamMax + (nSeries-1)*nSeries*nComponentsAll^2;
         }
-    }
 
-    if(transitionType=="d"){
-        ## !!! Each separate transition matrix is not evaluated, but the off-diagonals are
-        transitionEstimate <- TRUE;
-        nParamMax <- nParamMax + (nSeries-1)*nSeries*nComponentsAll^2;
-    }
-
-    ##### Damping parameter ####
-    # phi type can be: "i" - individual, "c" - common
-    dampedValue <- phi;
-    if(transitionType!="p"){
-        if(damped){
-            if(is.null(dampedValue)){
-                warning("phi value is not selected. Switching to common.");
-                dampedType <- "c";
-                dampedEstimate <- TRUE;
-            }
-            else{
-                if(is.character(dampedValue)){
-                    dampedValue <- substring(dampedValue[1],1,1);
-                    if(all(dampedValue!=c("i","c"))){
-                        warning("You asked for a strange phi value. We don't do that here. Switching to common.",
-                                call.=FALSE);
-                        dampedType <- "c";
-                    }
-                    else{
-                        dampedType <- dampedValue;
-                    }
-                    dampedValue <- matrix(1,nSeries,1);
+        ##### * Damping parameter ####
+        # phi type can be: "i" - individual, "c" - common
+        dampedValue <- phi;
+        if(transitionType!="p"){
+            if(damped){
+                if(is.null(dampedValue)){
+                    warning("phi value is not selected. Switching to common.");
+                    dampedType <- "c";
                     dampedEstimate <- TRUE;
                 }
-                else if(is.numeric(dampedValue)){
-                    if((length(dampedValue) != nSeries) & (length(dampedValue)!= 1)){
-                        warning(paste0("Length of phi vector is wrong! It should be ",
-                                       nSeries,
-                                       " instead of ",length(dampedValue),".\n",
+                else{
+                    if(is.character(dampedValue)){
+                        dampedValue <- substring(dampedValue[1],1,1);
+                        if(all(dampedValue!=c("i","c"))){
+                            warning("You asked for a strange phi value. We don't do that here. Switching to common.",
+                                    call.=FALSE);
+                            dampedType <- "c";
+                        }
+                        else{
+                            dampedType <- dampedValue;
+                        }
+                        dampedValue <- matrix(1,nSeries,1);
+                        dampedEstimate <- TRUE;
+                    }
+                    else if(is.numeric(dampedValue)){
+                        if((length(dampedValue) != nSeries) & (length(dampedValue)!= 1)){
+                            warning(paste0("Length of phi vector is wrong! It should be ",
+                                           nSeries,
+                                           " instead of ",length(dampedValue),".\n",
+                                           "Values of phi vector will be estimated as a common one."),call.=FALSE);
+                            dampedValue <- matrix(1,nSeries,1);
+                            dampedType <- "c";
+                            dampedEstimate <- TRUE;
+                        }
+                        else{
+                            dampedType <- "p";
+                            dampedValue <- matrix(dampedValue,nSeries,1);
+                            dampedEstimate <- FALSE;
+                            parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(dampedValue));
+                        }
+                    }
+                    else if(!is.numeric(dampedValue)){
+                        warning(paste0("phi vector is not numeric!\n",
                                        "Values of phi vector will be estimated as a common one."),call.=FALSE);
                         dampedValue <- matrix(1,nSeries,1);
                         dampedType <- "c";
                         dampedEstimate <- TRUE;
                     }
+                }
+
+                if(any(dampedType==c("c","i"))){
+                    dampedValue <- matrix(1,nSeries,1);
+                    # In case of common, the parameter is shared.
+                    if(dampedType=="c"){
+                        nParamMax <- nParamMax + 1/nSeries;
+                    }
                     else{
-                        dampedType <- "p";
-                        dampedValue <- matrix(dampedValue,nSeries,1);
-                        dampedEstimate <- FALSE;
-                        parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(dampedValue));
+                        nParamMax <- nParamMax + 1;
                     }
                 }
-                else if(!is.numeric(dampedValue)){
-                    warning(paste0("phi vector is not numeric!\n",
-                                   "Values of phi vector will be estimated as a common one."),call.=FALSE);
-                    dampedValue <- matrix(1,nSeries,1);
-                    dampedType <- "c";
-                    dampedEstimate <- TRUE;
-                }
             }
-
-            if(any(dampedType==c("c","i"))){
+            else{
                 dampedValue <- matrix(1,nSeries,1);
-                # In case of common, the parameter is shared.
-                if(dampedType=="c"){
-                    nParamMax <- nParamMax + 1/nSeries;
-                }
-                else{
-                    nParamMax <- nParamMax + 1;
-                }
+                dampedType <- "c";
+                dampedEstimate <- FALSE;
             }
         }
         else{
-            dampedValue <- matrix(1,nSeries,1);
             dampedType <- "c";
             dampedEstimate <- FALSE;
         }
-    }
-    else{
-        dampedType <- "c";
-        dampedEstimate <- FALSE;
-    }
 
-    ##### initials ####
-    # initial type can be: "i" - individual, "c" - common
-    initialValue <- initial;
-    if(is.null(initialValue)){
-        warning("Initial value is not selected. Switching to individual.");
-        initialType <- "i";
-        initialEstimate <- TRUE;
-    }
-    else{
-        if(is.character(initialValue)){
-            initialValue <- substring(initialValue[1],1,1);
-            if(all(initialValue!=c("i","c"))){
-                warning("You asked for a strange initial value. We don't do that here. Switching to individual.",
-                        call.=FALSE);
-                initialType <- "i";
-            }
-            else{
-                initialType <- initialValue;
-            }
-            initialValue <- NULL;
+        ##### * initials ####
+        # initial type can be: "i" - individual, "c" - common
+        initialValue <- initial;
+        if(is.null(initialValue)){
+            warning("Initial value is not selected. Switching to individual.");
+            initialType <- "i";
             initialEstimate <- TRUE;
         }
-        else if(is.numeric(initialValue)){
-            if(smoothType=="ves"){
-                if(length(initialValue)>2*nSeries){
-                    warning(paste0("Length of initial vector is wrong! It should not be greater than",
-                                   2*nSeries,"\n",
-                                   "Values of initial vector will be estimated."),call.=FALSE);
-                    initialValue <- NULL;
+        else{
+            if(is.character(initialValue)){
+                initialValue <- substring(initialValue[1],1,1);
+                if(all(initialValue!=c("i","c"))){
+                    warning("You asked for a strange initial value. We don't do that here. Switching to individual.",
+                            call.=FALSE);
                     initialType <- "i";
-                    initialEstimate <- TRUE;
                 }
                 else{
-                    if(all(length(initialValue) != c(nComponentsNonSeasonal,nComponentsNonSeasonal * nSeries))){
-                        warning(paste0("Length of initial vector is wrong! It should be either ",
-                                       nComponentsNonSeasonal*nSeries, " or ", nComponentsNonSeasonal,
-                                       " instead of ",length(initialValue),".\n",
+                    initialType <- initialValue;
+                }
+                initialValue <- NULL;
+                initialEstimate <- TRUE;
+            }
+            else if(is.numeric(initialValue)){
+                if(smoothType=="ves"){
+                    if(length(initialValue)>2*nSeries){
+                        warning(paste0("Length of initial vector is wrong! It should not be greater than",
+                                       2*nSeries,"\n",
                                        "Values of initial vector will be estimated."),call.=FALSE);
                         initialValue <- NULL;
                         initialType <- "i";
                         initialEstimate <- TRUE;
                     }
                     else{
-                        initialType <- "p";
-                        initialValue <- matrix(initialValue,nComponentsNonSeasonal * nSeries,1);
-                        initialEstimate <- FALSE;
-                        parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(initialValue));
+                        if(all(length(initialValue) != c(nComponentsNonSeasonal,nComponentsNonSeasonal * nSeries))){
+                            warning(paste0("Length of initial vector is wrong! It should be either ",
+                                           nComponentsNonSeasonal*nSeries, " or ", nComponentsNonSeasonal,
+                                           " instead of ",length(initialValue),".\n",
+                                           "Values of initial vector will be estimated."),call.=FALSE);
+                            initialValue <- NULL;
+                            initialType <- "i";
+                            initialEstimate <- TRUE;
+                        }
+                        else{
+                            initialType <- "p";
+                            initialValue <- matrix(initialValue,nComponentsNonSeasonal * nSeries,1);
+                            initialEstimate <- FALSE;
+                            parametersNumber[2,1] <- parametersNumber[2,1] + length(as.vector(initialValue));
+                        }
                     }
                 }
             }
+            else if(!is.numeric(initialValue)){
+                warning(paste0("Initial vector is not numeric!\n",
+                               "Values of initial vector will be estimated."),call.=FALSE);
+                initialValue <- NULL;
+                initialType <- "i";
+                initialEstimate <- TRUE;
+            }
         }
-        else if(!is.numeric(initialValue)){
-            warning(paste0("Initial vector is not numeric!\n",
-                           "Values of initial vector will be estimated."),call.=FALSE);
-            initialValue <- NULL;
-            initialType <- "i";
-            initialEstimate <- TRUE;
+
+        # Individual initials
+        if(initialType=="i"){
+            nParamMax <- nParamMax + nComponentsNonSeasonal;
         }
-    }
+        # Common initials are shared across series
+        else{
+            nParamMax <- nParamMax + nComponentsNonSeasonal / nSeries;
+        }
 
-    # Individual initials
-    if(initialType=="i"){
-        nParamMax <- nParamMax + nComponentsNonSeasonal;
-    }
-    # Common initials are shared across series
-    else{
-        nParamMax <- nParamMax + nComponentsNonSeasonal / nSeries;
-    }
-
-    if(smoothType=="ves"){
-    ##### initialSeason and seasonal for VES #####
-    # Here we should check if initialSeason is character or not...
-    # if length(initialSeason) == dataFreq*nSeries, then ok
-    # if length(initialSeason) == dataFreq, then use it for all nSeries
+        ##### * initialSeason and seasonal for VES #####
+        # Here we should check if initialSeason is character or not...
+        # if length(initialSeason) == dataFreq*nSeries, then ok
+        # if length(initialSeason) == dataFreq, then use it for all nSeries
         if(Stype!="N"){
             #### Seasonal component
             seasonalType <- seasonal;
@@ -802,6 +805,40 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
             initialSeasonType <- "c";
             initialSeasonEstimate <- FALSE;
             seasonalType <- "i";
+        }
+    }
+    #### VETS parameters ####
+    # vets doesn't have provided parameters.
+    else if(smoothType=="vets"){
+        parameters <- substr(parameters,1,1);
+        parametersCommonLevel <- any(parameters=="l");
+        parametersCommonTrend <- any(parameters=="t");
+        parametersCommonSeasonal <- any(parameters=="s");
+        parametersCommonDamped <- any(parameters=="d");
+        initials <- substr(initials,1,1);
+        initialsCommonLevel <- any(initials=="l");
+        initialsCommonTrend <- any(initials=="t");
+        initialsCommonSeasonal <- any(initials=="s");
+        components <- substr(components,1,1);
+        componentsCommonLevel <- any(components=="l");
+        componentsCommonTrend <- any(components=="t");
+        componentsCommonSeasonal <- any(components=="s");
+
+        # Sanity checks. Make components common if they are...
+        if(componentsCommonLevel && !initialsCommonLevel){
+            warning("Sory, but we cannot do model with common level component, but individual initials.",
+                    "Switchin to common both.", call.=FALSE);
+            initialsCommonLevel <- TRUE;
+        }
+        if(componentsCommonTrend && !initialsCommonTrend){
+            warning("Sory, but we cannot do model with common trend component, but individual initials.",
+                    "Switchin to common both.", call.=FALSE);
+            initialsCommonTrend <- TRUE;
+        }
+        if(componentsCommonSeasonal && !initialsCommonSeasonal){
+            warning("Sory, but we cannot do model with common seasonal component, but individual initials.",
+                    "Switchin to common both.", call.=FALSE);
+            initialsCommonSeasonal <- TRUE;
         }
     }
 
@@ -1022,13 +1059,11 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
     assign("intervalType",intervalType,ParentEnvironment);
     assign("interval",interval,ParentEnvironment);
 
-    assign("intermittent",intermittent,ParentEnvironment);
+    assign("occurrence",occurrence,ParentEnvironment);
     assign("ot",ot,ParentEnvironment);
     assign("otObs",otObs,ParentEnvironment);
-    assign("intermittentModel",intermittentModel,ParentEnvironment);
-    assign("imodelProvided",imodelProvided,ParentEnvironment);
-    assign("imodel",imodel,ParentEnvironment);
-    assign("iprobability",iprobability,ParentEnvironment);
+    assign("oesModel",oesModel,ParentEnvironment);
+    assign("occurrenceModelProvided",occurrenceModelProvided,ParentEnvironment);
 
     # assign("yot",yot,ParentEnvironment);
     # assign("pt",pt,ParentEnvironment);
@@ -1107,7 +1142,7 @@ vssFitter <- function(...){
 
     if(modelIsMultiplicative){
         yFitted <- exp(yFitted);
-        if(intermittent!="n"){
+        if(occurrence!="n"){
             yFitted[ot==0] <- 0;
         }
     }
@@ -1336,17 +1371,17 @@ vssForecaster <- function(...){
         PI[] <- exp(PI);
     }
 
-    if(intermittent!="n"){
-        if(!imodelProvided){
-            imodel <- viss(ts(t(ot),frequency=dataFreq),
-                           intermittent=intermittent, h=h, holdout=FALSE,
-                           probability=iprobability, model=intermittentModel);
+    if(occurrence!="n"){
+        if(!occurrenceModelProvided){
+            oesModel <- viss(ts(t(ot),frequency=dataFreq),
+                           occurrence=occurrence, h=h, holdout=FALSE,
+                           probability="dependent", model=oesModel);
         }
-        yForecast[] <- yForecast * t(imodel$forecast);
+        yForecast[] <- yForecast * t(oesModel$forecast);
     }
 
     assign("Sigma",Sigma,ParentEnvironment);
     assign("yForecast",yForecast,ParentEnvironment);
     assign("PI",PI,ParentEnvironment);
-    assign("imodel",imodel,ParentEnvironment);
+    assign("oesModel",oesModel,ParentEnvironment);
 }

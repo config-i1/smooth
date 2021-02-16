@@ -1,6 +1,6 @@
-#' Vector Intermittent State Space
+#' Occurrence part of Vector State Space
 #'
-#' Function calculates the probability for vector intermittent state space model.
+#' Function calculates the probability for the occurrence part of vector state space model.
 #' This is needed in order to forecast intermittent demand using other functions.
 #'
 #' The function estimates probability of demand occurrence, using one of the VES
@@ -12,7 +12,7 @@
 #'
 #' @param y The matrix with data, where series are in columns and
 #' observations are in rows.
-#' @param intermittent Type of method used in probability estimation. Can be
+#' @param occurrence Type of method used in probability estimation. Can be
 #' \code{"none"} - none, \code{"fixed"} - constant probability or
 #' \code{"logistic"} - probability based on logit model.
 #' @param ic Information criteria to use in case of model selection.
@@ -57,37 +57,35 @@
 #' \item \code{persistence} - the vector of smoothing parameters;
 #' \item \code{initial} - initial values of the state vector;
 #' \item \code{initialSeason} - the matrix of initials seasonal states;
-#' \item \code{intermittent} - type of intermittent model used;
+#' \item \code{occurrence} - type of occurrence model used;
 #' \item \code{probability} - type of probability used;
 #' \item \code{issModel} - intermittent state-space model used for
-#' calculations. Useful only in the case of \code{intermittent="l"} and
+#' calculations. Useful only in the case of \code{occurrence="l"} and
 #' \code{probability="d"}.
 #' }
 #' @seealso \code{\link[smooth]{oes}, \link[smooth]{es}}
-#' @keywords iss intermittent demand intermittent demand state space model
-#' exponential smoothing forecasting
 #' @examples
 #'
 #'     Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
 #'                c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
 #'
-#'     viss(Y, intermittent="l")
-#'     viss(Y, intermittent="l", probability="i")
+#'     viss(Y, occurrence="l")
+#'     viss(Y, occurrence="l", probability="i")
 #'
 #' @export viss
-viss <- function(y, intermittent=c("logistic","none","fixed"),
+viss <- function(y, occurrence=c("logistic","none","fixed"),
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
                  probability=c("dependent","independent"),
                  model="ANN", persistence=NULL, transition=NULL, phi=NULL,
                  initial=NULL, initialSeason=NULL, xreg=NULL, ...){
-# Function returns intermittent State-Space model
+# Function returns occurrence State-Space model
 # probability="i" - assume that ot[,1] is independent from ot[,2], but has similar dynamics;
 # probability="d" - assume that ot[,1] and ot[,2] are dependent, so that sum(P)=1;
 
-    intermittent <- substring(intermittent[1],1,1);
-    if(all(intermittent!=c("n","f","l"))){
-        warning(paste0("Unknown value of intermittent provided: '",intermittent,"'."));
-        intermittent <- "f";
+    occurrence <- substring(occurrence[1],1,1);
+    if(all(occurrence!=c("n","f","l"))){
+        warning(paste0("Unknown value of occurrence provided: '",occurrence,"'."));
+        occurrence <- "f";
     }
 
     ic <- ic[1];
@@ -110,8 +108,8 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
         probability <- substr(probability[1],1,1);
     }
 
-    # There's no difference in probabilities when intermittent=="f" or "n". So use simpler one.
-    if((intermittent!="l") & probability=="d"){
+    # There's no difference in probabilities when occurrence=="f" or "n". So use simpler one.
+    if((occurrence!="l") & probability=="d"){
         probability <- "i";
     }
 
@@ -178,7 +176,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
         y[is.na(y)] <- 0;
     }
 
-    if(intermittent=="n"){
+    if(occurrence=="n"){
         probability <- "n";
     }
 
@@ -210,7 +208,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
                                          c("nParamInternal","nParamXreg",
                                            "nParamIntermittent","nParamAll")));
 #### Fixed probability ####
-    if(intermittent=="f"){
+    if(occurrence=="f"){
         if(!initialIsNumeric){
             pFitted[,] <- rep(apply(ot,2,mean),each=obsInSample);
             pForecast[,] <- rep(pFitted[obsInSample,],each=h);
@@ -228,7 +226,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
         issModel <- NULL
     }
 #### Logistic probability ####
-    else if(intermittent=="l"){
+    else if(occurrence=="l"){
         if(probability=="i"){
             Etype <- ifelse(Etype=="M","A",Etype);
             Ttype <- ifelse(Ttype=="M","A",Ttype);
@@ -242,8 +240,9 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
             initialValues <- list(NA);
             initialSeasonValues <- list(NA);
             persistenceValues <- list(NA);
+            occurrence <- switch(occurrence, "l"="odds-ratio", "f"="fixed", "n"="none");
             for(i in 1:nSeries){
-                issModel <- oes(ot[,i],intermittent=intermittent,ic=ic,h=h,model=model,persistence=persistence,
+                issModel <- oes(ot[,i],occurrence=occurrence,ic=ic,h=h,model=model,persistence=persistence,
                                      initial=initial,initialSeason=initialSeason,xreg=xreg,holdout=holdout);
                 pFitted[,i] <- issModel$fitted;
                 pForecast[,i] <- issModel$forecast;
@@ -329,7 +328,7 @@ viss <- function(y, intermittent=c("logistic","none","fixed"),
     output <- list(model=model, fitted=pFitted, forecast=pForecast, states=states,
                    variance=pForecast*(1-pForecast), logLik=logLik, nParam=nParam,
                    residuals=errors, y=otAll, persistence=persistence, initial=initial,
-                   initialSeason=initialSeason, intermittent=intermittent, issModel=issModel,
+                   initialSeason=initialSeason, occurrence=occurrence, issModel=issModel,
                    probability=probability);
 
     return(structure(output,class="viss"));

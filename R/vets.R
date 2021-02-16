@@ -103,17 +103,6 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' The order is not important, and the first letters can be used instead of the full
 #' words. Please, note that making components common automatically sets the
 #' respective \code{initials} common as well.
-#' @param occurrence Defines type of occurrence model used. Can be:
-#' \itemize{
-#' \item \code{none}, meaning that the data should be considered as non-intermittent;
-#' \item \code{fixed}, taking into account constant Bernoulli distribution of
-#' demand occurrences;
-#' \item \code{logistic}, based on logistic regression.
-#' }
-#' In this case, the ETS model inside the occurrence part will correspond to
-#' \code{model} and \code{probability="dependent"}.
-#' Alternatively, model estimated using \link[smooth]{viss} function can be provided
-#' here.
 #' @param ... Other non-documented parameters. For example \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of
@@ -145,7 +134,7 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' \item \code{initial} - The initial values of the non-seasonal components;
 #' \item \code{initialSeason} - The initial values of the seasonal components;
 #' \item \code{nParam} - The number of estimated parameters;
-#' \item \code{imodel} - The intermittent model estimated with VETS;
+#' \item \code{occurrence} - The occurrence model estimated with VETS;
 #' \item \code{y} - The matrix with the original data;
 #' \item \code{fitted} - The matrix of the fitted values;
 #' \item \code{holdout} - The matrix with the holdout values (if \code{holdout=TRUE} in
@@ -171,14 +160,14 @@ utils::globalVariables(c("nParamMax","nComponentsAll","nComponentsNonSeasonal","
 #' Y <- ts(cbind(rnorm(100,100,10),rnorm(100,75,8)),frequency=12)
 #'
 #' # The simplest model applied to the data with the default values
-#' vets(Y,model="ANN",h=10,holdout=TRUE)
+# vets(Y,model="ANN",h=10,holdout=TRUE)
 #'
 #' # Multiplicative damped trend model with common parameters
 #' # and initial seasonal indices
-#' vets(Y,model="MMdM",h=10,holdout=TRUE,parameters=c("l","t","s","d"),
-#'      initials="seasonal")
+# vets(Y,model="MMdM",h=10,holdout=TRUE,parameters=c("l","t","s","d"),
+#      initials="seasonal")
 #'
-#' @export
+#'
 vets <- function(y, model="ANN",
                  parameters=c("level","trend","seasonal","damped"),
                  initials=c("seasonal"), components=c("none"),
@@ -765,7 +754,7 @@ BasicInitialiserVETS <- function(matvt,matF,matG,matW,B){
                     persistenceBuffer[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1),
                                       i] <- persistenceValue[1:nComponentsNonSeasonal];
                 }
-                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,] <- weights*persistenceValue[nComponentsAll];
+                persistenceBuffer[nSeries*nComponentsNonSeasonal+1,] <- persistenceValue[nComponentsAll];
                 persistenceValue <- persistenceBuffer;
             }
             # Independent values
@@ -777,7 +766,7 @@ BasicInitialiserVETS <- function(matvt,matF,matG,matW,B){
                                       i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
                 }
                 persistenceBuffer[nSeries*nComponentsNonSeasonal+1,
-                                  ] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+c(1:nSeries)];
+                                  ] <- persistenceValue[nComponentsNonSeasonal*nSeries+c(1:nSeries)];
                 persistenceValue <- persistenceBuffer;
             }
             # Dependent values
@@ -794,7 +783,7 @@ BasicInitialiserVETS <- function(matvt,matF,matG,matW,B){
                                       i] <- persistenceValue[1:nComponentsNonSeasonal+nComponentsNonSeasonal*(i-1)];
                 }
                 persistenceBuffer[nSeries*nComponentsNonSeasonal+1,
-                                  ] <- weights*persistenceValue[nComponentsNonSeasonal*nSeries+1];
+                                  ] <- persistenceValue[nComponentsNonSeasonal*nSeries+1];
                 persistenceValue <- persistenceBuffer;
             }
             matG[,] <- persistenceValue;
@@ -1262,7 +1251,7 @@ CreatorVETS <- function(silent=FALSE,...){
     modelname <- "VETS";
     modelname <- paste0(modelname,"(",model,")");
 
-    if(intermittent!="n"){
+    if(occurrence!="n"){
         modelname <- paste0("i",modelname);
     }
 
@@ -1364,7 +1353,7 @@ CreatorVETS <- function(silent=FALSE,...){
                   states=matvt,persistence=persistenceValue,transition=transitionValue,
                   measurement=matW, phi=dampedValue, B=B,
                   initialType=initialType,initial=initialValue,initialSeason=initialSeasonValue,
-                  nParam=parametersNumber, imodel=imodel,
+                  nParam=parametersNumber, occurrence=oesModel,
                   y=y,fitted=yFitted,holdout=yHoldout,residuals=errors,Sigma=Sigma,
                   forecast=yForecast,PI=PI,interval=intervalType,level=level,
                   ICs=ICs,logLik=logLik,lossValue=cfObjective,loss=loss,accuracy=errorMeasures,

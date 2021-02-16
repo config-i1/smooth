@@ -2,19 +2,18 @@
 % Please edit documentation in R/viss.R
 \name{viss}
 \alias{viss}
-\title{Vector Intermittent State Space}
+\title{Occurrence part of Vector State Space}
 \usage{
-viss(y, intermittent = c("logistic", "none", "fixed"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  probability = c("dependent", "independent"), model = "ANN",
-  persistence = NULL, transition = NULL, phi = NULL, initial = NULL,
-  initialSeason = NULL, xreg = NULL, ...)
+viss(y, occurrence = c("logistic", "none", "fixed"), ic = c("AICc", "AIC",
+  "BIC", "BICc"), h = 10, holdout = FALSE, probability = c("dependent",
+  "independent"), model = "ANN", persistence = NULL, transition = NULL,
+  phi = NULL, initial = NULL, initialSeason = NULL, xreg = NULL, ...)
 }
 \arguments{
 \item{y}{The matrix with data, where series are in columns and
 observations are in rows.}
 
-\item{intermittent}{Type of method used in probability estimation. Can be
+\item{occurrence}{Type of method used in probability estimation. Can be
 \code{"none"} - none, \code{"fixed"} - constant probability or
 \code{"logistic"} - probability based on logit model.}
 
@@ -73,15 +72,15 @@ values:
 \item \code{persistence} - the vector of smoothing parameters;
 \item \code{initial} - initial values of the state vector;
 \item \code{initialSeason} - the matrix of initials seasonal states;
-\item \code{intermittent} - type of intermittent model used;
+\item \code{occurrence} - type of occurrence model used;
 \item \code{probability} - type of probability used;
 \item \code{issModel} - intermittent state-space model used for
-calculations. Useful only in the case of \code{intermittent="l"} and
+calculations. Useful only in the case of \code{occurrence="l"} and
 \code{probability="d"}.
 }
 }
 \description{
-Function calculates the probability for vector intermittent state space model.
+Function calculates the probability for the occurrence part of vector state space model.
 This is needed in order to forecast intermittent demand using other functions.
 }
 \details{
@@ -93,8 +92,8 @@ state-space models.
     Y <- cbind(c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)),
                c(rpois(25,0.1),rpois(25,0.5),rpois(25,1),rpois(25,5)))
 
-    viss(Y, intermittent="l")
-    viss(Y, intermittent="l", probability="i")
+    viss(Y, occurrence="l")
+    viss(Y, occurrence="l", probability="i")
 
 }
 \references{
@@ -117,18 +116,9 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
 }
-\keyword{demand}
-\keyword{exponential}
-\keyword{forecasting}
-\keyword{intermittent}
-\keyword{iss}
-\keyword{model}
 \keyword{models}
 \keyword{nonlinear}
 \keyword{regression}
 \keyword{smooth}
-\keyword{smoothing}
-\keyword{space}
-\keyword{state}
 \keyword{ts}
 \keyword{univar}

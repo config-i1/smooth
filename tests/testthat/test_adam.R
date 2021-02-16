@@ -50,13 +50,6 @@ test_that("ADAM forecast with simulated interval", {
 
 
 #### Advanced losses for ADAM ####
-# ADAM with dalaplace
-test_that("ADAM ETS(MAN) with asymmetric Laplace on N1234", {
-    skip_on_cran()
-    testModel <- adam(Mcomp::M3[[1234]], "MAN", distribution="dalaplace", alpha=0.05)
-    expect_match(testModel$distribution, "dalaplace")
-})
-
 # ADAM with GN distribution
 test_that("ADAM ETS(MAN) with Generalised Normal on N1234", {
     skip_on_cran()
