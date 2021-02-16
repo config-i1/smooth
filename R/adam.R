@@ -2568,9 +2568,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(is.null(maxeval)){
             maxevalUsed <- length(B) * 40;
             # If this is pure ARIMA, take more time
-            if(arimaModel && !etsModel){
-                maxevalUsed <- length(B) * 80;
-            }
+            # if(arimaModel && !etsModel){
+            #     maxevalUsed <- length(B) * 80;
+            # }
             # # If it is xregModel, do at least 500 iterations
             # else
             if(xregModel){
