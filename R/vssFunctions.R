@@ -810,36 +810,41 @@ vssInput <- function(smoothType=c("ves","vets"),ParentEnvironment,...){
     #### VETS parameters ####
     # vets doesn't have provided parameters.
     else if(smoothType=="vets"){
+        # Define common parameters
         parameters <- substr(parameters,1,1);
         parametersCommonLevel <- any(parameters=="l");
         parametersCommonTrend <- any(parameters=="t");
         parametersCommonSeasonal <- any(parameters=="s");
         parametersCommonDamped <- any(parameters=="d");
+        # Define common initials
         initials <- substr(initials,1,1);
         initialsCommonLevel <- any(initials=="l");
         initialsCommonTrend <- any(initials=="t");
         initialsCommonSeasonal <- any(initials=="s");
+        # Defin common components
         components <- substr(components,1,1);
         componentsCommonLevel <- any(components=="l");
         componentsCommonTrend <- any(components=="t");
         componentsCommonSeasonal <- any(components=="s");
 
-        # Sanity checks. Make components common if they are...
+        # Sanity checks. Make initials common if the respective components are
         if(componentsCommonLevel && !initialsCommonLevel){
-            warning("Sory, but we cannot do model with common level component, but individual initials.",
-                    "Switchin to common both.", call.=FALSE);
             initialsCommonLevel <- TRUE;
         }
         if(componentsCommonTrend && !initialsCommonTrend){
-            warning("Sory, but we cannot do model with common trend component, but individual initials.",
-                    "Switchin to common both.", call.=FALSE);
             initialsCommonTrend <- TRUE;
         }
         if(componentsCommonSeasonal && !initialsCommonSeasonal){
-            warning("Sory, but we cannot do model with common seasonal component, but individual initials.",
-                    "Switchin to common both.", call.=FALSE);
             initialsCommonSeasonal <- TRUE;
         }
+        if(componentsCommonTrend && !parametersCommonDamped){
+            parametersCommonDamped <- TRUE;
+        }
+
+        nParamMax <-  nParamMax +
+            nSeries^(!parametersCommonLevel) + nSeries^(!parametersCommonTrend) + nSeries^(!parametersCommonSeasonal) +
+            nSeries^(!parametersCommonDamped) +
+            nSeries^(!initialsCommonLevel) + nSeries^(!initialsCommonTrend) + nSeries^(!initialsCommonSeasonal);
     }
 
     ##### Loss function type #####
