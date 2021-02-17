@@ -19,7 +19,7 @@
 #' @export
 auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                       formula=NULL, outliers=c("ignore","use","select"), level=0.99,
-                      distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss"),
+                      distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
                       h=0, holdout=FALSE,
                       persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
                       occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),

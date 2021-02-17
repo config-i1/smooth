@@ -1,4 +1,4 @@
-smooth v3.1.0 (Release data: 2021-02-06)
+smooth v3.1.0 (Release data: 2021-02-17)
 =======
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * Implemented a new auto.adam() ARIMA selection mechanism. It is faster and produces more accurate ARIMA models (e.g. more accurate than auto.ssarima()).
 * Tell if bootstrap was used in summary.adam().
 * Add stars for the coefficients that are significant on the selected level.
+* Gamma distribution in adam().
 
 Bugfixes:
 * Bugfix in the initialisation of ARIMA on small samples.

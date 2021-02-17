@@ -11,19 +11,19 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   outliers = c("ignore", "use", "select"), level = 0.99,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), distribution = c("default", "dnorm",
-  "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh", "TMSE", "GTMSE", "MSCE"),
-  h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
-  initial = c("optimal", "backcasting"), arma = NULL, ic = c("AICc",
-  "AIC", "BIC", "BICc"), bounds = c("usual", "admissible", "none"),
-  silent = TRUE, ...)
+  "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
+  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
+  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
+  ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
+  "none"), silent = TRUE, ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
   formula = NULL, outliers = c("ignore", "use", "select"), level = 0.99,
   distribution = c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm",
-  "dinvgauss"), h = 0, holdout = FALSE, persistence = NULL, phi = NULL,
-  initial = c("optimal", "backcasting"), arma = NULL,
+  "dinvgauss", "dgamma"), h = 0, holdout = FALSE, persistence = NULL,
+  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
   bounds = c("usual", "admissible", "none"), regressors = c("use",
@@ -340,6 +340,7 @@ Inverse Gaussian is used for the Multiplicative error models.
 \item \link[greybox]{ds} - S distribution,
 \item \link[greybox]{dgnorm} - Generalised Normal distribution,
 \item \link[stats]{dlnorm} - Log normal distribution,
+\item \link[stats]{dgamma} - Gamma distribution,
 \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
 }
 

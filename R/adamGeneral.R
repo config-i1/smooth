@@ -2,7 +2,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                               outliers=c("ignore","use","select"), level=0.99,
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","ds","dgnorm",
-                                             "dlnorm","dinvgauss"),
+                                             "dlnorm","dinvgauss","dgamma"),
                               loss, h, holdout,occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","usual","admissible","none"),
                               regressors, yName,
@@ -1293,7 +1293,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
 
         # If ETS is switched off, set error to whatever, based on the used distribution
         Etype[] <- switch(distribution,
-                          "dinvgauss"=,"dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"="M",
+                          "dinvgauss"=,"dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dgamma"="M",
                           "A");
     }
 
@@ -2243,7 +2243,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
     # Define the number of cols that should be in the matvt
     obsStates <- obsInSample + lagsModelMax;
 
-    if(any(yInSample<=0) && any(distribution==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm")) && !occurrenceModel){
+    if(any(yInSample<=0) && any(distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && !occurrenceModel){
         warning(paste0("You have non-positive values in the data. ",
                        "The distribution ",distribution," does not support that. ",
                        "This might lead to problems in the estimation."),
@@ -2779,7 +2779,7 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
         }
         Etype <- switch(distribution,
                         "default"=,"dnorm"=,"dlaplace"=,"ds"=,"dgnorm"=,"dlogis"=,"dt"=,"dalaplace"="A",
-                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"="M");
+                        "dlnorm"=,"dllaplace"=,"dls"=,"dlgnorm"=,"dinvgauss"=,"dgamma"="M");
         Ttype <- "N";
         Stype <- "N";
         phiEstimate <- FALSE;
