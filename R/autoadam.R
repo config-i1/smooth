@@ -669,13 +669,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             if(any(maMax!=0)){
                 # First columns - I(d), the last ones are MA(q)
                 additionalModels <- cbind(iOrders[1:iCombinations,-3],iOrders[1:iCombinations,-3]);
+                modelsLeft <- rep(TRUE,iCombinations);
+                for(i in 1:ordersLength){
+                    modelsLeft[] <- modelsLeft & additionalModels[,ordersLength+i] <= maMax[i];
+                }
+                additionalModels <- additionalModels[modelsLeft,,drop=FALSE];
             }
             if(!is.null(additionalModels)){
                 # Save B from models to speed up calculation afterwards
                 BValues <- vector("list",iCombinations);
                 imaOrdersICs <- vector("numeric",iCombinations);
-                imaOrdersICs[1] <- Inf;
-                for(d in 2:iCombinations){
+                imaOrdersICs[] <- Inf;
+                for(d in 2:nrow(additionalModels)){
                     # Run the model for differences
                     testModel <- try(adam(data=yInSample, model=model, lags=lags,
                                           orders=list(ar=0,
