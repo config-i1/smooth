@@ -63,10 +63,3 @@ test_that("GUM(1[1]) with intermittent data", {
 test_that("SMA(10) with intermittent data", {
     expect_match(sim.sma(10,nsim=10,obs=100,probability=0.2)$model, "iSMA")
 })
-
-#### VES ####
-Y <- cbind(Mcomp::M3$N2570$x,Mcomp::M3$N2571$x)
-testModel <- ves(Y,"AAN", silent=TRUE)
-test_that("VES based on pre-estimated model", {
-    expect_match(simulate(testModel,nsim=10,obs=100)$model, "VES")
-})

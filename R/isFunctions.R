@@ -11,17 +11,11 @@
 #' \link[smooth]{msarima} function;
 #' \item \code{is.smoothC()} tests if the object was produced by a combination
 #' function (currently applies only to \link[smooth]{smoothCombine});
-#' \item \code{is.vsmooth()} tests if the object was produced by a vector model (e.g.
-#' \link[smooth]{ves});
 #' \item \code{is.oes()} tests if the object was produced by \link[smooth]{oes}
-#' function;
-#' \item \code{is.viss()} tests if the object was produced by \link[smooth]{viss}
 #' function;
 #' \item \code{is.smooth.sim()} tests if the object was produced by simulate functions
 #' (e.g. \link[smooth]{sim.es} / \link[smooth]{sim.ces} / \link[smooth]{sim.ssarima}
 #' / \link[smooth]{sim.sma} / \link[smooth]{sim.gum});
-#' \item \code{is.vsmooth.sim()} tests if the object was produced by the functions
-#' \link[smooth]{sim.ves};
 #' \item \code{is.smooth.forecast()} checks if the forecast was produced from a smooth
 #' function using forecast() function.
 #' }
@@ -37,18 +31,11 @@
 #'
 #' is.smooth(ourModel)
 #' is.msarima(ourModel)
-#' is.vsmooth(ourModel)
 #'
 #' @rdname isFunctions
 #' @export
 is.smooth <- function(x){
     return(inherits(x,"smooth"))
-}
-
-#' @rdname isFunctions
-#' @export
-is.vsmooth <- function(x){
-    return(inherits(x,"vsmooth"))
 }
 
 #' @rdname isFunctions
@@ -77,20 +64,8 @@ is.oesg <- function(x){
 
 #' @rdname isFunctions
 #' @export
-is.viss <- function(x){
-    return(inherits(x,"viss"))
-}
-
-#' @rdname isFunctions
-#' @export
 is.smooth.sim <- function(x){
     return(inherits(x,"smooth.sim"))
-}
-
-#' @rdname isFunctions
-#' @export
-is.vsmooth.sim <- function(x){
-    return(inherits(x,"vsmooth.sim"))
 }
 
 #' @rdname isFunctions

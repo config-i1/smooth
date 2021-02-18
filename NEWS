@@ -10,6 +10,7 @@ Changes:
 * Tell if bootstrap was used in summary.adam().
 * Add stars for the coefficients that are significant on the selected level.
 * Gamma distribution in adam().
+* Removed ves(), vets() and viss() from the package. They are now available in legion package.
 
 Bugfixes:
 * Bugfix in the initialisation of ARIMA on small samples.

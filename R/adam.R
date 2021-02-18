@@ -13,7 +13,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
                          "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
                          "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
-                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator"));
+                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
+                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval",
+                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'

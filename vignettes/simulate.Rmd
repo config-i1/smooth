@@ -237,19 +237,3 @@ ourModel <- sma(x)
 ourData <- simulate(ourModel, nsim=50, obs=1000)
 plot(ourData)
 ```
-
-## Vector Exponential Smoothing
-In addition starting from smooth v2.4.5 there is now an option of simulating data from [VES](ves.html) model. As an example, we start from the scratch:
-```{r simulate_smooth_ves}
-x <- sim.ves("ANN",frequency=4,obs=40,nSeries=3,randomizer="rnorm",mean=0,sd=100)
-```
-This way the we generate two independent time series with similar DGPs and the same parameters (initials, persistence etc). We can use options similar to the ones used in `sim.es()` in order to specify a more flexible model.
-
-In addition, we can simulate multivariate series from an estimated VES model:
-```{r simulate_smooth_ves_estimated}
-ourModel <- ves(x$data,model="AAN",persistence="dependent")
-Y <- simulate(ourModel)
-plot(Y)
-```
-
-When using simulate with ves, you can specify randomizer and additional parameters for distributions. For example, you can use `mvrnorm()` from MASS package and if you don't provide `mu` and `Sigma` then they will be extracted from the model.

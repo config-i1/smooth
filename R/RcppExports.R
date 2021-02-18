@@ -85,19 +85,3 @@ simulatorwrap <- function(arrvt, matErrors, matot, matF, matw, matg, Etype, Ttyp
     .Call('_smooth_simulatorwrap', PACKAGE = 'smooth', arrvt, matErrors, matot, matF, matw, matg, Etype, Ttype, Stype, modellags)
 }
 
-vSimulatorWrap <- function(arrayStates, arrayErrors, arrayF, arrayW, arrayG, modelLags) {
-    .Call('_smooth_vSimulatorWrap', PACKAGE = 'smooth', arrayStates, arrayErrors, arrayF, arrayW, arrayG, modelLags)
-}
-
-vFitterWrap <- function(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, ot) {
-    .Call('_smooth_vFitterWrap', PACKAGE = 'smooth', yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, ot)
-}
-
-vForecasterWrap <- function(matvt, matF, matw, series, h, Etype, Ttype, Stype, modellags) {
-    .Call('_smooth_vForecasterWrap', PACKAGE = 'smooth', matvt, matF, matw, series, h, Etype, Ttype, Stype, modellags)
-}
-
-vOptimiserWrap <- function(yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot, otObs) {
-    .Call('_smooth_vOptimiserWrap', PACKAGE = 'smooth', yt, matvt, matF, matw, matG, modellags, Etype, Ttype, Stype, cfType, normalizer, bounds, ot, otObs)
-}
-

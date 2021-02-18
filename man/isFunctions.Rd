@@ -2,14 +2,11 @@
 % Please edit documentation in R/isFunctions.R, R/msdecompose.R
 \name{is.smooth}
 \alias{is.smooth}
-\alias{is.vsmooth}
 \alias{is.smoothC}
 \alias{is.msarima}
 \alias{is.oes}
 \alias{is.oesg}
-\alias{is.viss}
 \alias{is.smooth.sim}
-\alias{is.vsmooth.sim}
 \alias{is.smooth.forecast}
 \alias{is.adam}
 \alias{is.adam.sim}
@@ -19,8 +16,6 @@
 \usage{
 is.smooth(x)
 
-is.vsmooth(x)
-
 is.smoothC(x)
 
 is.msarima(x)
@@ -29,11 +24,7 @@ is.oes(x)
 
 is.oesg(x)
 
-is.viss(x)
-
 is.smooth.sim(x)
-
-is.vsmooth.sim(x)
 
 is.smooth.forecast(x)
 
@@ -68,17 +59,11 @@ The list of functions includes:
 \link[smooth]{msarima} function;
 \item \code{is.smoothC()} tests if the object was produced by a combination
 function (currently applies only to \link[smooth]{smoothCombine});
-\item \code{is.vsmooth()} tests if the object was produced by a vector model (e.g.
-\link[smooth]{ves});
 \item \code{is.oes()} tests if the object was produced by \link[smooth]{oes}
-function;
-\item \code{is.viss()} tests if the object was produced by \link[smooth]{viss}
 function;
 \item \code{is.smooth.sim()} tests if the object was produced by simulate functions
 (e.g. \link[smooth]{sim.es} / \link[smooth]{sim.ces} / \link[smooth]{sim.ssarima}
 / \link[smooth]{sim.sma} / \link[smooth]{sim.gum});
-\item \code{is.vsmooth.sim()} tests if the object was produced by the functions
-\link[smooth]{sim.ves};
 \item \code{is.smooth.forecast()} checks if the forecast was produced from a smooth
 function using forecast() function.
 }
@@ -95,7 +80,6 @@ ourModel <- msarima(rnorm(100,100,10))
 
 is.smooth(ourModel)
 is.msarima(ourModel)
-is.vsmooth(ourModel)
 
 
 ourModel <- adam(rnorm(100,100,10))
