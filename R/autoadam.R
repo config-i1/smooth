@@ -664,6 +664,57 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
             }
 
+            #### Additional checks for ARIMA(0,d,d) models ####
+            additionalModels <- NULL;
+            if(any(maMax!=0)){
+                # First columns - I(d), the last ones are MA(q)
+                additionalModels <- cbind(iOrders[1:iCombinations,-3],iOrders[1:iCombinations,-3]);
+            }
+            if(!is.null(additionalModels)){
+                # Save B from models to speed up calculation afterwards
+                BValues <- vector("list",iCombinations);
+                imaOrdersICs <- vector("numeric",iCombinations);
+                imaOrdersICs[1] <- Inf;
+                for(d in 2:iCombinations){
+                    # Run the model for differences
+                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                                          orders=list(ar=0,
+                                                      i=additionalModels[d,1:ordersLength],
+                                                      ma=additionalModels[d,1:ordersLength]),
+                                          constant=FALSE,
+                                          distribution=distribution,
+                                          h=h, holdout=holdout,
+                                          persistence=persistence, phi=phi, initial=initial,
+                                          occurrence=occurrence, ic=ic, bounds=bounds,
+                                          regressors=regressors, silent=TRUE, ...),
+                                     silent=TRUE);
+                    if(!inherits(testModel,"try-error")){
+                        imaOrdersICs[d] <- IC(testModel);
+                        if(!is.null(testModel$B)){
+                            BValues[[d]] <- testModel$B;
+                        }
+                    }
+                    else{
+                        imaOrdersICs[d] <- Inf;
+                    }
+                }
+                d <- which.min(imaOrdersICs);
+                imaBest <- additionalModels[d,1:ordersLength];
+                if(imaOrdersICs[d]<bestIC){
+                    arBest <- 0;
+                    iBest <- maBest <- imaBest;
+                    constantValue <- FALSE;
+                    bestModel <- adam(data=yInSample, model=model, lags=lags,
+                                      orders=list(ar=0,i=iBest,ma=maBest),
+                                      constant=constantValue,
+                                      distribution=distribution,
+                                      h=h, holdout=holdout,
+                                      persistence=persistence, phi=phi, initial=initial,
+                                      occurrence=occurrence, ic=ic, bounds=bounds,
+                                      regressors=regressors, silent=TRUE, B=BValues[[d]], ...);
+                }
+            }
+
             if(!silent){
                 cat("\nThe best ARIMA is selected. ");
             }
