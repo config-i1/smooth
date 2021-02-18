@@ -30,13 +30,13 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
     arma::vec vecErrors(obs, arma::fill::zeros);
 
     // Loop for the backcasting
-    unsigned int nIterations = 2;
+    unsigned int nIterations = 1;
     if(backcast){
-        nIterations = 3;
+        nIterations = 2;
     }
 
     // Loop for the backcast
-    for (unsigned int j=1; j<nIterations; j=j+1) {
+    for (unsigned int j=1; j<=nIterations; j=j+1) {
 
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
@@ -98,7 +98,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
         }
 
         ////// Backwards run
-        if(backcast && j<(nIterations-1)){
+        if(backcast && j<(nIterations)){
 
             for (int i=obs+lagsModelMax-1; i>=lagsModelMax; i=i-1) {
                 /* # Measurement equation and the error term */
