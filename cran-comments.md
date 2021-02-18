@@ -1,15 +1,11 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "12 January 2021"
+date: "18 February 2021"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.0.1.
-
-## Update from the previous submission
-I've added skip_on_cran() for the majority of tests now, which should reduce the computational time.
-I plan to merge some of C++ functions in future releases, so that the compilation will take less time.
+This is ``smooth`` package, v3.1.0.
 
 ## Test environments
 * local ubuntu 20.04, R 4.0.3
@@ -33,7 +29,8 @@ checking installed package size ... NOTE
 
 This is expected, because doMC is not available for Windows.
 
-I had to remove almost all examples in the adam() function, because they were working too slow for some reason. In reality the function is faster than the v3.0.0
+The package cannot be checked on x64, because the package vctrs is not available for that architecture (CRAN checks fail for the package).
+
 
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
