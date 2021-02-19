@@ -82,15 +82,15 @@ NULL
 
 #' @export
 ves <- function(...){
-    .Defunct("ves", package = "legion", msg)
+    .Defunct("ves", package = "legion", "The function ves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
 }
 
 #' @export
 viss <- function(...){
-    .Defunct("oves", package = "legion", msg)
+    .Defunct("oves", package = "legion", "The function oves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
 }
 
 #' @export
 sim.ves <- function(...){
-    .Defunct("sim.ves", package = "legion", msg)
+    .Defunct("sim.ves", package = "legion", "The function viss() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
 }
