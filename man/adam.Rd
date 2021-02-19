@@ -116,8 +116,8 @@ explanatory variables.}
 \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
 or detect and \code{"select"} those of them that reduce \code{ic} value.}
 
-\item{level}{What confidence level to use for detection of outliers. The default is 99.9%. The statistics
-values depends on the distribution used in the model.}
+\item{level}{What confidence level to use for detection of outliers. The default is 99\%. The specific
+bounds of confidence interval depend on the distribution used in the model.}
 
 \item{occurrence}{The type of model used in probability estimation. Can be
 \code{"none"} - none,

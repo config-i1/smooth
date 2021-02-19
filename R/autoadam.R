@@ -5,8 +5,8 @@
 #' @param outliers Defines what to do with outliers: \code{"ignore"}, so just returning the model,
 #' \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
 #' or detect and \code{"select"} those of them that reduce \code{ic} value.
-#' @param level What confidence level to use for detection of outliers. The default is 99.9%. The statistics
-#' values depends on the distribution used in the model.
+#' @param level What confidence level to use for detection of outliers. The default is 99\%. The specific
+#' bounds of confidence interval depend on the distribution used in the model.
 #'
 #' @examples
 #' \dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
