@@ -74,22 +74,33 @@
 #' @import zoo Rcpp
 #' @importFrom nloptr nloptr
 #' @importFrom graphics abline layout legend lines par points polygon
-#' @importFrom stats AIC BIC cov dbeta decompose deltat end frequency is.ts median coef optimize nlminb cor qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif start time ts var simulate lm as.formula residuals plnorm pnorm
+#' @importFrom stats AIC BIC cov decompose median coef optimize nlminb cor var simulate lm as.formula residuals
+#' @importFrom stats dbeta qnorm qt qlnorm quantile rbinom rlnorm rnorm rt runif plnorm pnorm
+#' @importFrom stats deltat end frequency is.ts start time ts
 #' @importFrom utils packageVersion
 #' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace graphmaker measures hm
 #' @useDynLib smooth
 NULL
 
+#' Vector exponential smoothing
+#'
+#' VES and related functions. These have been moved to legion package starting from smooth v3.1.0.
+#'
+#' @param ... parameters of the model
+#'
+#' @rdname ves
 #' @export
 ves <- function(...){
     .Defunct("ves", package = "legion", "The function ves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
 }
 
+#' @rdname ves
 #' @export
 viss <- function(...){
     .Defunct("oves", package = "legion", "The function oves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
 }
 
+#' @rdname ves
 #' @export
 sim.ves <- function(...){
     .Defunct("sim.ves", package = "legion", "The function viss() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
