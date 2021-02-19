@@ -169,7 +169,9 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE},
 Last but not least, user can provide their own function here as well, making sure
 that it accepts parameters \code{actual}, \code{fitted} and \code{B}. Here is an
 example:
+
 \code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
+
 \code{loss=lossFunction}}
 
 \item{h}{The forecast horizon. Mainly needed for the multistep loss functions.}

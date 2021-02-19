@@ -181,7 +181,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' Last but not least, user can provide their own function here as well, making sure
 #' that it accepts parameters \code{actual}, \code{fitted} and \code{B}. Here is an
 #' example:
+#'
 #' \code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
+#'
 #' \code{loss=lossFunction}
 #' @param h The forecast horizon. Mainly needed for the multistep loss functions.
 #' @param holdout Logical. If \code{TRUE}, then the holdout of the size \code{h}
