@@ -8,9 +8,9 @@ output: html_document
 This is ``smooth`` package, v3.1.0.
 
 ## Test environments
-* local ubuntu 20.04, R 4.0.3
-* ubuntu 16.04.6 (on travis-ci), R 4.0.3
-* win-builder (devel and release) - see a comment below
+* local ubuntu 20.04, R 4.0.4
+* ubuntu 16.04.6 (on travis-ci), R 4.0.4
+* win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
 
 ## R CMD check results
@@ -28,8 +28,6 @@ checking installed package size ... NOTE
 >Package suggested but not available for checking: 'doMC'
 
 This is expected, because doMC is not available for Windows.
-
-The package cannot be checked on x64, because the package vctrs is not available for that architecture (CRAN checks fail for the package).
 
 
 ## rhub checks

@@ -80,5 +80,17 @@
 #' @useDynLib smooth
 NULL
 
+#' @export
+ves <- function(...){
+    .Defunct("ves", package = "legion", msg)
+}
 
+#' @export
+viss <- function(...){
+    .Defunct("oves", package = "legion", msg)
+}
 
+#' @export
+sim.ves <- function(...){
+    .Defunct("sim.ves", package = "legion", msg)
+}
