@@ -38,9 +38,11 @@ This is expected, because doMC is not available for Windows.
 This is because doMC is not available for Windows.
 
 ### Debian Linux, R-devel, GCC ASAN/UBSAN
-Gives PREPERROR because `dependencies ‘greybox’, ‘forecast’ are not available for package ‘smooth’`. This does not have any explanation, because both packages are available on CRAN.
+Gives PREPERROR:
+> ERROR: compilation failed for package ‘forecast’
 
-Everything was checked without major issues. The only thing is a note about the installed package size for different platforms (similar to R CMD check results).
+Not clear, why the compilation of `forecast` package failed.
+
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
