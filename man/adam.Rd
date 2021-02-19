@@ -27,7 +27,7 @@ auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
   bounds = c("usual", "admissible", "none"), regressors = c("use",
-  "select", "adapt"), silent = TRUE, parallel = FALSE, fast = TRUE, ...)
+  "select", "adapt"), silent = TRUE, parallel = FALSE, ...)
 }
 \arguments{
 \item{data}{Vector, containing data needed to be forecasted. If a matrix (or
@@ -258,9 +258,6 @@ can be provided here as well.}
 If the number is provided (e.g. \code{parallel=41}), then the specified number of cores is set up.
 WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
 or \code{doParallel} are needed in order to run the function in parallel.}
-
-\item{fast}{If \code{TRUE}, then some of the orders of ARIMA are
-skipped in the order selection. This is not advised for models with \code{lags} greater than 12.}
 }
 \value{
 Object of class "adam" is returned. It contains the list of the
@@ -335,7 +332,7 @@ are regulated via the \code{distribution} parameter. This includes:
 \enumerate{
 \item \code{default} - Normal distribution is used for the Additive error models,
 Inverse Gaussian is used for the Multiplicative error models.
-\item \link[stats]{Normal} - Normal distribution,
+\item dnorm - \link[stats]{Normal} distribution,
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
 \item \link[greybox]{dgnorm} - Generalised Normal distribution,
@@ -345,10 +342,12 @@ Inverse Gaussian is used for the Multiplicative error models.
 }
 
 For some more information about the model and its implementation, see the
-vignette: \code{vignette("adam","smooth")}.
+vignette: \code{vignette("adam","smooth")}. The more detailed explanation
+of ADAM is provided by Svetunkov (2020).
 
 The function \code{auto.adam()} tries out models with the specified
-distributions and returns the one with the most suitable one.
+distributions and returns the one with the most suitable one based on selected
+information criterion.
 }
 \examples{
 

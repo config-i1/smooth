@@ -45,7 +45,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \enumerate{
 #' \item \code{default} - Normal distribution is used for the Additive error models,
 #' Inverse Gaussian is used for the Multiplicative error models.
-#' \item \link[stats]{Normal} - Normal distribution,
+#' \item dnorm - \link[stats]{Normal} distribution,
 #' \item \link[greybox]{dlaplace} - Laplace distribution,
 #' \item \link[greybox]{ds} - S distribution,
 #' \item \link[greybox]{dgnorm} - Generalised Normal distribution,
@@ -62,10 +62,12 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #'
 #' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("adam","smooth")}.
+#' vignette: \code{vignette("adam","smooth")}. The more detailed explanation
+#' of ADAM is provided by Svetunkov (2020).
 #'
 #' The function \code{auto.adam()} tries out models with the specified
-#' distributions and returns the one with the most suitable one.
+#' distributions and returns the one with the most suitable one based on selected
+#' information criterion.
 #'
 #' @template ssAuthor
 #' @template ssKeywords

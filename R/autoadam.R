@@ -7,8 +7,6 @@
 #' or detect and \code{"select"} those of them that reduce \code{ic} value.
 #' @param level What confidence level to use for detection of outliers. The default is 99.9%. The statistics
 #' values depends on the distribution used in the model.
-#' @param fast If \code{TRUE}, then some of the orders of ARIMA are
-#' skipped in the order selection. This is not advised for models with \code{lags} greater than 12.
 #'
 #' @examples
 #' \dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
@@ -24,8 +22,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                       persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
                       occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                       ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                      regressors=c("use","select","adapt"),
-                      silent=TRUE, parallel=FALSE, fast=TRUE, ...){
+                      regressors=c("use","select","adapt"), silent=TRUE, parallel=FALSE, ...){
     # Copyright (C) 2020 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -389,7 +386,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
                                                          distribution=selectedModels[[i]]$distribution, h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
-                                                         occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
+                                                         occurrence=occurrence, ic=ic, bounds=bounds,
                                                          silent=silent, regressors=regressors,
                                                          testModelETS=selectedModels[[i]], ...)
                 }
@@ -414,8 +411,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
                                                distribution=testModel$distribution, h=h, holdout=holdout,
                                                persistence=persistence, phi=phi, initial=initial,
-                                               occurrence=occurrence, ic=ic,
-                                               bounds=bounds, fast=fast,
+                                               occurrence=occurrence, ic=ic, bounds=bounds,
                                                silent=TRUE, regressors=regressors,
                                                testModelETS=testModel, ...)
                 }
@@ -465,7 +461,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                   distribution, h, holdout,
                                   persistence, phi, initial,
-                                  occurrence, ic, bounds, fast,
+                                  occurrence, ic, bounds,
                                   silent, regressors, testModelETS, ...){
             silentDebug <- FALSE;
             # silentDebug <- TRUE;
@@ -873,7 +869,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
                                                          distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
-                                                         occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
+                                                         occurrence=occurrence, ic=ic, bounds=bounds,
                                                          silent=silent, regressors=regressors, testModelETS=NULL, ...);
                 }
             }
@@ -883,7 +879,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                                lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
                                                distribution=distribution[i], h=h, holdout=holdout,
                                                persistence=persistence, phi=phi, initial=initial,
-                                               occurrence=occurrence, ic=ic, bounds=bounds, fast=fast,
+                                               occurrence=occurrence, ic=ic, bounds=bounds,
                                                silent=TRUE, regressors=regressors, testModelETS=NULL, ...);
                     return(testModel);
                 })

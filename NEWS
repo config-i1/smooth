@@ -1,4 +1,4 @@
-smooth v3.1.0 (Release data: 2021-02-18)
+smooth v3.1.0 (Release data: 2021-02-19)
 =======
 
 Changes:
@@ -6,7 +6,7 @@ Changes:
 * We don't use is.ets from forecast package anymore.
 * msdecompose() now treats NAs automatically, interpolating them with a combination of fourier and polynomial.
 * adam() now relies on the same interpolation mechanism as msdecompose() in case of NAs.
-* Implemented a new auto.adam() ARIMA selection mechanism. It is faster and produces more accurate ARIMA models (e.g. more accurate than auto.ssarima()).
+* Implemented a new auto.adam() ARIMA selection mechanism. It is faster and produces more accurate ARIMA models (e.g. more accurate than auto.ssarima()). Removed the redundant fast parameter from auto.adam().
 * Tell if bootstrap was used in summary.adam().
 * Add stars for the coefficients that are significant on the selected level.
 * Gamma distribution in adam().
