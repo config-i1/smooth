@@ -7217,7 +7217,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             xregData <- model.frame(testFormula,data=xreg);
             # Binary, flagging factors in the data
             # Expanded stuff with all levels for factors
-            if(any((attr(terms(xregData),"dataClasses")=="factor")[-1])){
+
+            if(any((attr(terms(xregData),"dataClasses")=="factor"))){
                 xregModelMatrix <- model.matrix(xregData,xregData,
                                                 contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
                                                                      contrasts, contrasts=FALSE));

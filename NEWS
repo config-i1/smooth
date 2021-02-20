@@ -1,6 +1,13 @@
 smooth v3.1.0 (Release data: 2021-02-19)
 =======
 
+Bugfixes:
+* Fix for forecast.adam() and factor variables in newdata.
+
+
+smooth v3.1.0 (Release data: 2021-02-19)
+=======
+
 Changes:
 * We now use filter() function from stats instaed of ma() from forecast package in msdecompose().
 * We don't use is.ets from forecast package anymore.
