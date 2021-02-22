@@ -429,34 +429,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             arma <- NULL;
         }
 
-        #### Function corrects IC taking number of parameters on previous step ####
-        icCorrector <- function(llikelihood, ic, nParam, obsNonzero){
-            if(ic=="AIC"){
-                correction <- 2*nParam - 2*llikelihood;
-            }
-            else if(ic=="AICc"){
-                if(nParam>=obsNonzero-1){
-                    correction <- Inf;
-                }
-                else{
-                    correction <- 2*nParam*obsNonzero/(obsNonzero-nParam-1) - 2*llikelihood;
-                }
-            }
-            else if(ic=="BIC"){
-                correction <- nParam*log(obsNonzero) - 2*llikelihood;
-            }
-            else if(ic=="BICc"){
-                if(nParam>=obsNonzero-1){
-                    correction <- Inf;
-                }
-                else{
-                    correction <- (nParam*log(obsNonzero)*obsNonzero)/(obsNonzero-nParam-1) - 2*llikelihood;
-                }
-            }
-
-            return(correction);
-        }
-
         #### The function that selects ARIMA orders for the provided data ####
         arimaSelector <- function(data, model, lags, arMax, iMax, maMax,
                                   distribution, h, holdout,
@@ -824,6 +796,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 # These two are needed for cases with Mcomp data
                 newCall$holdout <- holdout;
                 newCall$h <- h;
+                newCall$lags <- lags;
                 adamModel <- eval(newCall);
             }
             else{
