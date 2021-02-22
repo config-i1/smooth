@@ -1,8 +1,9 @@
-smooth v3.1.0 (Release data: 2021-02-19)
+smooth v3.1.0 (Release data: 2021-02-22)
 =======
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
+* Fix for Mcomp data and outliers detection mechanism loosing lags.
 
 
 smooth v3.1.0 (Release data: 2021-02-19)
