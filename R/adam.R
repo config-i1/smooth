@@ -3032,7 +3032,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 checkTrend <- TRUE;
             }
 
-            # If Stype is not Z, then crete specific pools
+            # If Stype is not Z, then create specific pools
             if(Stype!="Z"){
                 if(Stype=="X"){
                     poolSeasonals <- poolSeasonalsSmall <- c("N","A");
@@ -3060,6 +3060,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                 rep(poolTrendsSmall,each=length(poolSeasonalsSmall)),
                                 rep(poolSeasonalsSmall,length(poolTrendsSmall)));
             # Align error and seasonality, if the error was not forced to be additive
+            # The new pool: "ANN" "ANA" "MNM" "AAN" "AAA" "MAM"
             if(any(substr(poolSmall,3,3)=="M") && all(Etype!=c("A","X"))){
                 multiplicativeSeason <- (substr(poolSmall,3,3)=="M");
                 poolSmall[multiplicativeSeason] <- paste0("M",substr(poolSmall[multiplicativeSeason],2,3));
