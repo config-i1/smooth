@@ -225,7 +225,7 @@ If you work with ADAM ARIMA model, then there is no such thing as "usual" bounds
 
 Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam()` function, not in the `adam()`!** However, if you do `orders=list(..., select=TRUE)` in `adam()`, it will call `auto.adam()` and do the selection.
 
-Finally, ARIMA is typically slower than ETS, mainly because the `maxeval` is set by default to be at least 1000. But this is inevitable due to an increased complexity of the model - otherwise it won't be estimated properly. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations.
+Finally, ARIMA is typically slower than ETS, mainly because its initial states are more difficult to estimate due to an increased complexity of the model. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations via `maxeval` parameter.
 
 # ADAM ETSX / ARIMAX / ETSX+ARIMA
 Another important feature of ADAM is introduction of explanatory variables. Unlike in `es()`, `adam()` expects a matrix for `data` and can work with a formula. If the latter is not provided, then it will use all explanatory variables. Here is a brief example:
