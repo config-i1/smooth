@@ -195,17 +195,15 @@ testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
 testModel
 ```
 
-Second, it does not have intercept. If you want to have one, you can do this reintroducing ETS component and imposing some restrictions:
+Second, if you want the model with intercept / drift, you can do it using `constant` parameter:
 
 ```{r}
-testModel <- adam(M3[[2568]], "ANN", silent=FALSE, lags=c(1,12), persistence=0,
+testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12), constant=TRUE,
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm")
 testModel
 ```
 
-This way we get the global level, which acts as an intercept. The drift is not supported in the model either.
-
-Third, you can specify parameters of ARIMA via the `arma` parameter in the following manner:
+If the model contains non-zero differences, then the constant acts as a drift. Third, you can specify parameters of ARIMA via the `arma` parameter in the following manner:
 
 ```{r}
 testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
