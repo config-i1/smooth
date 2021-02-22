@@ -223,7 +223,7 @@ testModel
 
 If you work with ADAM ARIMA model, then there is no such thing as "usual" bounds for the parameters, so the function will use the `bounds="admissible"`, checking the AR / MA polynomials in order to make sure that the model is stationary and invertible (aka stable).
 
-Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam()` function, not in the `adam()`!**
+Similarly to ETS, you can use different distributions and losses for the estimation. **Note that the order selection for ARIMA is done in `auto.adam()` function, not in the `adam()`!** However, if you do `orders=list(..., select=TRUE)` in `adam()`, it will call `auto.adam()` and do the selection.
 
 Finally, ARIMA is typically slower than ETS, mainly because the `maxeval` is set by default to be at least 1000. But this is inevitable due to an increased complexity of the model - otherwise it won't be estimated properly. If you want to speed things up, use `initial="backcasting"` and reduce the number of iterations.
 
