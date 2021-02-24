@@ -1721,6 +1721,14 @@ parametersChecker <- function(data, model, lags, formulaProvided, orders, consta
                                                             collapse="+")));
             }
 
+            # Remove variables without variability
+            noVariability <- setNames(vector("logical",ncol(xreg)),colnames(xreg));
+            noVariability[] <- apply((as.matrix(xreg[1:obsInSample,])==matrix(xreg[1,],obsInSample,ncol(xreg),byrow=TRUE)),2,all);
+            noVariabilityNames <- names(noVariability)[noVariability];
+            if(any(noVariability) && any(all.vars(formulaProvided) %in% names(noVariability))){
+                formulaProvided <- update.formula(formulaProvided,paste0(".~",paste0("-",noVariabilityNames)));
+            }
+
             # Robustify the names of variables
             colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
             # The names of the original variables

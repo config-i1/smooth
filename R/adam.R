@@ -6213,6 +6213,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
         newCall[[1]] <- as.symbol("adam");
     }
     newCall$formula <- formula(object);
+    newCall$regressors <- switch(newCall$regressors,"select"="use",newCall$regressors);
     # This is based on the split data, so no need to do holdout
     newCall$holdout <- FALSE;
     newCall$distribution <- object$distribution;
@@ -6291,7 +6292,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
     if(!parallel){
         for(i in 1:nsim){
             subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,];
+            newCall$data <- object$data[subsetValues,,drop=FALSE];
             testModel <- suppressWarnings(eval(newCall));
             coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
         }
@@ -6300,7 +6301,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
         # We don't do rbind for security reasons - in order to deal with skipped variables
         coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
             subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,];
+            newCall$data <- object$data[subsetValues,,drop=FALSE];
             testModel <- eval(newCall);
             return(coef(testModel));
         })
