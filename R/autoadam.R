@@ -445,14 +445,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             phiOriginal <- phi;
             holdoutOriginal <- holdout;
 
+            etsModelType <- model;
+
             # If the ETS model was done before this, then extract residuals
             if(is.adam(testModelETS)){
                 dataAR <- dataI <- dataMA <- yInSample <- residuals(testModelETS);
+                etsModelType <- modelType(testModelETS);
                 model <- "NNN";
                 occurrence <- "none"
                 persistence <- NULL;
                 phi <- NULL;
                 holdout <- FALSE;
+                ICOriginal <- IC(testModelETS);
             }
             else{
                 yInSample <- data;
@@ -460,6 +464,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             if(!silent){
                 cat(" Selecting ARIMA orders... ");
+            }
+
+            ### Kick off IMA elements if ETS was fitted
+            # Remove non-seasonal d and q
+            if(any(substr(etsModelType,1,1) %in% c("A","M"))){
+                iMax[lags==1] <- 0;
+                maMax[lags==1] <- 0;
+            }
+            # Remove the seasonal D_j and Q_j
+            if(any(substr(etsModelType,nchar(etsModelType),nchar(etsModelType)) %in% c("A","M"))){
+                iMax[lags!=1] <- 0;
+                maMax[lags!=1] <- 0;
             }
 
             # 1 stands for constant/no constant, another one stands for ARIMA(0,0,0)
@@ -702,6 +718,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                                   persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
                                   occurrence=occurrenceOriginal, ic=ic, bounds=bounds,
                                   regressors=regressors, silent=TRUE, ...);
+
+                # If this is not better than just ETS, use ETS
+                if(IC(bestModel) >= ICOriginal){
+                    bestModel <- testModelETS;
+                }
             }
 
             return(bestModel);

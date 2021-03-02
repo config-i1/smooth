@@ -1,5 +1,8 @@
-smooth v3.1.0 (Release data: 2021-02-23)
+smooth v3.1.1 (Release data: 2021-03-02)
 =======
+
+Changes:
+* Kick off redundant d and q in ETS+ARIMA, when ARIMA is selected automatically.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
