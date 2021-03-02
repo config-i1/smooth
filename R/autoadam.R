@@ -449,13 +449,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             # If the ETS model was done before this, then extract residuals
             if(is.adam(testModelETS)){
-                dataAR <- dataI <- dataMA <- yInSample <- residuals(testModelETS);
-                etsModelType <- modelType(testModelETS);
-                model <- "NNN";
-                occurrence <- "none"
-                persistence <- NULL;
-                phi <- NULL;
-                holdout <- FALSE;
+                yInSample <- data;
+                model <- etsModelType <- modelType(testModelETS);
                 ICOriginal <- IC(testModelETS);
             }
             else{

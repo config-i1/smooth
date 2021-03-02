@@ -3,6 +3,7 @@ smooth v3.1.1 (Release data: 2021-03-02)
 
 Changes:
 * Kick off redundant d and q in ETS+ARIMA, when ARIMA is selected automatically.
+* A fix in auto.adam() in case of ETS + ARIMA + Regression and automatic selection. The code is slower but more accurate now.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
