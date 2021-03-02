@@ -5552,7 +5552,7 @@ print.adam <- function(x, digits=4, ...){
         }
 
         if(!is.null(x$phi)){
-            if(gregexpr("d",x$model)!=-1){
+            if(gregexpr("d",modelType(x))!=-1){
                 cat("Damping parameter:", round(x$phi,digits));
             }
         }
