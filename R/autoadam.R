@@ -467,6 +467,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 iMax[lags==1] <- 0;
                 maMax[lags==1] <- 0;
             }
+            # Remove AR if dampening parameter is used
+            if(any(substr(etsModelType,3,3)=="d")){
+                arMax[lags==1] <- 0;
+            }
             # Remove the seasonal D_j and Q_j
             if(any(substr(etsModelType,nchar(etsModelType),nchar(etsModelType)) %in% c("A","M"))){
                 iMax[lags!=1] <- 0;
