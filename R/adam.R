@@ -349,7 +349,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @importFrom greybox dlaplace dalaplace ds dgnorm
 #' @importFrom greybox stepwise alm is.occurrence is.alm polyprod
 #' @importFrom stats dnorm dlogis dt dlnorm dgamma frequency confint vcov predict
-#' @importFrom stats formula update model.frame model.matrix contrasts setNames terms
+#' @importFrom stats formula update model.frame model.matrix contrasts setNames terms reformulate
 #' @importFrom stats acf pacf
 #' @importFrom statmod dinvgauss
 #' @importFrom nloptr nloptr
