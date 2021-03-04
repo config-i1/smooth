@@ -2086,7 +2086,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 # "dinvgauss" =0);
                                                 "dinvgauss" = 0.5*(obsZero*(log(pi/2)+1+suppressWarnings(log(scale)))-
                                                                        sum(log(adamFitted$yFitted[!otLogical]))),
-                                                "dgamma" = obsZero*(1/scale + log(scale*adamFitted$yFitted[!otLogical]) +
+                                                "dgamma" = obsZero*(1/scale + sum(log(scale*adamFitted$yFitted[!otLogical])) +
                                                                         log(gamma(1/scale)) + (1-1/scale)*digamma(1/scale))
                                                 );
                 }
