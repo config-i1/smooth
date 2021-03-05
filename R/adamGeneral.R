@@ -2300,7 +2300,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # Update the number of parameters
     if(occurrenceModelProvided){
         parametersNumber[2,3] <- nparam(oesModel);
-        pForecast <- c(forecast(oesModel, h=h)$mean);
+        pForecast <- c(forecast(oesModel, h=h, interval="none")$mean);
     }
 
 

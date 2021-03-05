@@ -557,11 +557,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # If we need to forecast and we had holdout=FALSE...
             if(h>0){
                 if(holdout){
-                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h,newdata=tail(data,h))$mean,
+                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h,newdata=tail(data,h),interval="none")$mean,
                                                   order.by=yIndex[obsInSample+1:h]);
                 }
                 else{
-                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h)$mean,
+                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h,interval="none")$mean,
                                                   order.by=yIndex[obsInSample+1:h]);
                 }
             }
@@ -580,11 +580,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             modelReturned$residuals <- ts(residuals(checkerReturn), start=yIndex[1], frequency=yFrequency);
             if(h>0){
                 if(holdout){
-                    modelReturned$forecast <- ts(forecast(checkerReturn,h=h,newdata=tail(data,h))$mean,
+                    modelReturned$forecast <- ts(forecast(checkerReturn,h=h,newdata=tail(data,h),interval="none")$mean,
                                                  start=yIndex[obsInSample+1], frequency=yFrequency);
                 }
                 else{
-                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h)$mean,
+                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h,interval="none")$mean,
                                                   order.by=yIndex[obsInSample]+diff(yIndex[1:2])*c(1:h));
                 }
             }
@@ -2569,7 +2569,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else{
             distributionNew <- distribution;
         }
-        # print(B)
+        print(B)
         # print(Etype)
         # print(Ttype)
         # print(Stype)
@@ -3428,7 +3428,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * c(forecast(oesModel, h=h)$mean);
+                yForecast[] <- yForecast * c(forecast(oesModel, h=h, interval="none")$mean);
             }
             else if(occurrenceModel && occurrenceModelProvided){
                 yForecast[] <- yForecast * pForecast;
@@ -7310,7 +7310,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 pForecast <- rep(1,h);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata,interval="none")$mean;
             }
         }
         else{
@@ -8848,7 +8848,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 pForecast <- rep(1,h);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata,interval="none")$mean;
             }
         }
         else{

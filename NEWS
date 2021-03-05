@@ -1,10 +1,11 @@
-smooth v3.1.1 (Release data: 2021-03-04)
+smooth v3.1.1 (Release data: 2021-03-05)
 =======
 
 Changes:
 * Kick off redundant d and q in ETS+ARIMA, when ARIMA is selected automatically.
 * A fix in auto.adam() in case of ETS + ARIMA + Regression and automatic selection. The code is slower but more accurate now.
 * Speed up regression estimation in case of is.matrix(data) and no formula.
+* I minor improvement, when calling forecast() from adam() - don't ask for interval to speed things up.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
