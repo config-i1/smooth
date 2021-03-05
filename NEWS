@@ -12,6 +12,7 @@ Bugfixes:
 * A fix for ADAM ETSX / ARIMAX in cases of no variability in explanatory variables.
 * And another one for coefbootstrap() in case of regressors="select".
 * A fix for likelihood calculation for occurrence model and distribution="dgamma".
+* Just testing.
 
 
 smooth v3.1.0 (Release data: 2021-02-19)
