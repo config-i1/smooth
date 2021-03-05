@@ -6,6 +6,7 @@ Changes:
 * A fix in auto.adam() in case of ETS + ARIMA + Regression and automatic selection. The code is slower but more accurate now.
 * Speed up regression estimation in case of is.matrix(data) and no formula.
 * I minor improvement, when calling forecast() from adam() - don't ask for interval to speed things up.
+* Further optimised adam() code with regressors, in case of regressors="select", removing unnecessary steps.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.

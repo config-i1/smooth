@@ -2569,7 +2569,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else{
             distributionNew <- distribution;
         }
-        print(B)
+        # print(B)
         # print(Etype)
         # print(Ttype)
         # print(Stype)
@@ -2845,15 +2845,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 colnames(data) <- make.names(colnames(data),unique=TRUE);
                 # The names of the original variables
                 xregNamesOriginal <- all.vars(formula)[-1];
-                # Levels for the factors
-                xregFactorsLevels <- lapply(data,levels);
-                xregFactorsLevels[[responseName]] <- NULL;
                 # Expand the variables. We cannot use alm, because it is based on obsInSample
                 xregData <- model.frame(formula,data=as.data.frame(data));
                 # Binary, flagging factors in the data
                 xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
                 # Expanded stuff with all levels for factors
                 if(any(xregFactors)){
+                    # Levels for the factors
+                    xregFactorsLevels <- lapply(data,levels);
+                    xregFactorsLevels[[responseName]] <- NULL;
                     xregModelMatrix <- model.matrix(xregData,xregData,
                                                     contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
                                                                          contrasts, contrasts=FALSE));
@@ -2872,20 +2872,20 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
                 xregNumber <- ncol(xregData);
 
-                # The indices of the original parameters
-                xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                # # The indices of the original parameters
-                xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
-                # The vector, marking the same values of smoothing parameters
-                if(interceptIsPresent){
-                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
-                }
-                else{
-                    xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
-                }
-
                 # If there are factors not in the alm data, create additional initials
-                if(any(!(xregNamesModified %in% xregNames))){
+                if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
+                    # The indices of the original parameters
+                    xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                    # # The indices of the original parameters
+                    xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+                    # The vector, marking the same values of smoothing parameters
+                    if(interceptIsPresent){
+                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
+                    }
+                    else{
+                        xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
+                    }
+
                     xregAbsent <- !(xregNamesModified %in% xregNames);
                     xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
                     xregParametersNew[!xregAbsent] <- xregModelInitials[[xregIndex]]$initialXreg;
@@ -2912,11 +2912,19 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     # Write down the new parameters
                     xregModelInitials[[xregIndex]]$initialXreg <- xregParametersNew;
                     xregNames <- xregNamesModified;
+
+                    # The vector of parameters that should be estimated (numeric + original levels of factors)
+                    xregParametersEstimated <- xregParametersIncluded
+                    xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+                    xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
                 }
-                # The vector of parameters that should be estimated (numeric + original levels of factors)
-                xregParametersEstimated <- xregParametersIncluded
-                xregParametersEstimated[xregParametersEstimated!=0] <- 1;
-                xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
+                else{
+                    xregFactors <- FALSE;
+                    xregParametersPersistence <- setNames(c(1:xregNumber),xregNames);
+                    xregParametersEstimated <- setNames(rep(1,xregNumber),xregNames);
+                    xregParametersMissing <- setNames(c(1:xregNumber),xregNames);
+                    xregParametersIncluded <- setNames(c(1:xregNumber),xregNames);
+                }
 
                 return(estimator(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal, lagsModelARIMA,
                                  obsStates, obsInSample,
