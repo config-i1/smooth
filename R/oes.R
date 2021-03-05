@@ -1295,6 +1295,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
     # This is needed in order to standardise the output and make plots work
     output$loss <- "likelihood";
+    output$distribution <- "plogis";
 
     return(structure(output,class=c("oes","smooth","occurrence")));
 }

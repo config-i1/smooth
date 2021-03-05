@@ -1088,6 +1088,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     # This is needed in order to standardise the output and make plots work
     output$loss <- "likelihood";
+    output$distribution <- "plogis";
     output$B <- B;
     return(structure(output,class=c("oesg","oes","occurrence","smooth")));
 }

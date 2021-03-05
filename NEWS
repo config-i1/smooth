@@ -7,6 +7,8 @@ Changes:
 * Speed up regression estimation in case of is.matrix(data) and no formula.
 * I minor improvement, when calling forecast() from adam() - don't ask for interval to speed things up.
 * Further optimised adam() code with regressors, in case of regressors="select", removing unnecessary steps.
+* Return distribution="plogis" in oes() and oesg().
+* Select regressors on the model with alpha=0.01, so that it does not overfit the data.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.

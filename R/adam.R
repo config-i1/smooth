@@ -2086,8 +2086,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 # "dinvgauss" =0);
                                                 "dinvgauss" = 0.5*(obsZero*(log(pi/2)+1+suppressWarnings(log(scale)))-
                                                                        sum(log(adamFitted$yFitted[!otLogical]))),
-                                                "dgamma" = obsZero*(1/scale + sum(log(scale*adamFitted$yFitted[!otLogical])) +
-                                                                        log(gamma(1/scale)) + (1-1/scale)*digamma(1/scale))
+                                                "dgamma" = obsZero*(1/scale + log(gamma(1/scale)) +
+                                                                        (1-1/scale)*digamma(1/scale)) +
+                                                    sum(log(scale*adamFitted$yFitted[!otLogical]))
                                                 );
                 }
             }
@@ -2422,6 +2423,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      profilesRecentTable, profilesRecentProvided);
         list2env(adamArchitect, environment());
 
+        # If we do selection of variables, fit the deterministic model
+        if(regressors=="select"){
+            # Record the original values
+            persistenceLevelEstimateOriginal <- persistenceLevelEstimate;
+            persistenceLevelOriginal <- persistenceLevel;
+            persistenceEstimateOriginal <- persistenceEstimate;
+            # New values
+            persistenceLevelEstimate <- FALSE;
+            persistenceLevel <- 0.01;
+            persistenceEstimate <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,persistenceSeasonalEstimate));
+        }
         # Create the matrices for the specific ETS model
         adamCreated <- creator(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                lags, lagsModel, lagsModelARIMA, lagsModelAll, lagsModelMax,
@@ -2928,8 +2940,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
                 return(estimator(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal, lagsModelARIMA,
                                  obsStates, obsInSample,
-                                 yInSample, persistence, persistenceEstimate,
-                                 persistenceLevel, persistenceLevelEstimate,
+                                 yInSample, persistence, persistenceEstimateOriginal,
+                                 persistenceLevelOriginal, persistenceLevelEstimateOriginal,
                                  persistenceTrend, persistenceTrendEstimate,
                                  persistenceSeasonal, persistenceSeasonalEstimate,
                                  persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
@@ -3382,7 +3394,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             matVt[2,i] <- 1e-6;
             profilesRecentTable[2,i] <- 1e-6;
         }
-        if(Stype=="M" && any(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0)){
+
+        if(Stype=="M" && all(!is.na(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,])) &&
+           any(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0)){
             i <- which(matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0);
             matVt[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,i] <- 1e-6;
             i <- which(profilesRecentTable[componentsNumberETSNonSeasonal+1:componentsNumberETSSeasonal,]<=0);
