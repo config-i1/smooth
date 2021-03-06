@@ -2423,17 +2423,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      profilesRecentTable, profilesRecentProvided);
         list2env(adamArchitect, environment());
 
-        # If we do selection of variables, fit the deterministic model
-        if(regressors=="select"){
-            # Record the original values
-            persistenceLevelEstimateOriginal <- persistenceLevelEstimate;
-            persistenceLevelOriginal <- persistenceLevel;
-            persistenceEstimateOriginal <- persistenceEstimate;
-            # New values
-            persistenceLevelEstimate <- FALSE;
-            persistenceLevel <- 0.01;
-            persistenceEstimate <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,persistenceSeasonalEstimate));
-        }
         # Create the matrices for the specific ETS model
         adamCreated <- creator(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                lags, lagsModel, lagsModelARIMA, lagsModelAll, lagsModelMax,
@@ -2940,8 +2929,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
                 return(estimator(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal, lagsModelARIMA,
                                  obsStates, obsInSample,
-                                 yInSample, persistence, persistenceEstimateOriginal,
-                                 persistenceLevelOriginal, persistenceLevelEstimateOriginal,
+                                 yInSample, persistence, persistenceEstimate,
+                                 persistenceLevel, persistenceLevelEstimate,
                                  persistenceTrend, persistenceTrendEstimate,
                                  persistenceSeasonal, persistenceSeasonalEstimate,
                                  persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
