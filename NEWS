@@ -1,4 +1,4 @@
-smooth v3.1.1 (Release data: 2021-03-05)
+smooth v3.1.1 (Release data: 2021-03-09)
 =======
 
 Changes:
@@ -16,6 +16,7 @@ Bugfixes:
 * A fix for ADAM ETSX / ARIMAX in cases of no variability in explanatory variables.
 * And another one for coefbootstrap() in case of regressors="select".
 * A fix for likelihood calculation for occurrence model and distribution="dgamma".
+* confint() now returns proper intervals for parameters of adam(), not intervals around zero.
 
 
 smooth v3.1.0 (Release data: 2021-02-19)

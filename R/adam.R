@@ -5766,8 +5766,8 @@ confint.adam <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
     if(bootstrap){
         coefValues <- coefbootstrap(object, ...);
         adamReturn <- cbind(sqrt(diag(coefValues$vcov)),
-                            apply(coefValues$coefficients,2,quantile,probs=(1-level)/2)-parameters,
-                            apply(coefValues$coefficients,2,quantile,probs=(1+level)/2)-parameters);
+                            apply(coefValues$coefficients,2,quantile,probs=(1-level)/2),
+                            apply(coefValues$coefficients,2,quantile,probs=(1+level)/2));
         colnames(adamReturn) <- c("S.E.",confintNames);
     }
     else{
@@ -5940,6 +5940,8 @@ confint.adam <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
                     adamCoefBounds[phis[i],2] <- min(phiBounds[2]-parameters[phis[i]], adamCoefBounds[phis[i],2]);
                 }
             }
+
+            adamCoefBounds[] <- adamCoefBounds+parameters;
         }
 
         adamReturn <- cbind(adamSD,adamCoefBounds);
@@ -6022,7 +6024,6 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
                            "so there was nothing to estimate. I extracted smoothing parameters and initials."),
                     call.=FALSE);
         }
-        parametersConfint[,2:3] <- parametersValues + parametersConfint[,2:3];
         parametersTable <- cbind(parametersValues,parametersConfint);
         rownames(parametersTable) <- rownames(parametersConfint);
         colnames(parametersTable) <- c("Estimate","Std. Error",
