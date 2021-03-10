@@ -1,4 +1,4 @@
-smooth v3.1.1 (Release data: 2021-03-09)
+smooth v3.1.1 (Release data: 2021-03-10)
 =======
 
 Changes:
@@ -9,6 +9,7 @@ Changes:
 * Further optimised adam() code with regressors, in case of regressors="select", removing unnecessary steps.
 * Return distribution="plogis" in oes() and oesg().
 * Select regressors on the model with alpha=0.01, so that it does not overfit the data.
+* Minor optimisations in adam() for RAM consumption in case of explanatory variables and / or backcasting.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.

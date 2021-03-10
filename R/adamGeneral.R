@@ -136,7 +136,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         if(!is.null(xregData)){
             xregData[yNAValues,responseName] <- y[yNAValues];
         }
-        rm(X)
+        rm(X);
+        gc(verbose=FALSE);
     }
 
     # If this is just a numeric variable, use ts class
@@ -1943,6 +1944,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
                 # Remove xreg, just to preserve some memory
                 rm(xreg);
+                gc(verbose=FALSE);
             }
             #### Initial xreg are provided ####
             else{
@@ -2156,6 +2158,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
                 # Remove xreg, just to preserve some memory
                 rm(xreg);
+                gc(verbose=FALSE);
             }
         }
         else{

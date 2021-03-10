@@ -2476,41 +2476,41 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            adamElements <- filler(BValues$B,
-                                   etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                   componentsNumberETS, componentsNumberETSNonSeasonal,
-                                   componentsNumberETSSeasonal, componentsNumberARIMA,
-                                   lags, lagsModel, lagsModelMax,
-                                   adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                   persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                   persistenceSeasonalEstimate, persistenceXregEstimate,
-                                   phiEstimate,
-                                   initialType, initialEstimate,
-                                   initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                   initialArimaEstimate, initialXregEstimate,
-                                   arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-                                   arRequired, maRequired, armaParameters,
-                                   nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-                                   xregModel, xregNumber,
-                                   xregParametersMissing, xregParametersIncluded,
-                                   xregParametersEstimated, xregParametersPersistence, constantEstimate);
+            adamCreated[] <- filler(BValues$B,
+                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                                    componentsNumberETS, componentsNumberETSNonSeasonal,
+                                    componentsNumberETSSeasonal, componentsNumberARIMA,
+                                    lags, lagsModel, lagsModelMax,
+                                    adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+                                    persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+                                    persistenceSeasonalEstimate, persistenceXregEstimate,
+                                    phiEstimate,
+                                    initialType, initialEstimate,
+                                    initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                                    initialArimaEstimate, initialXregEstimate,
+                                    arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+                                    arRequired, maRequired, armaParameters,
+                                    nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+                                    xregModel, xregNumber,
+                                    xregParametersMissing, xregParametersIncluded,
+                                    xregParametersEstimated, xregParametersPersistence, constantEstimate);
 
             # Write down the initials in the recent profile
-            profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+            profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
 
             # Do initial fit to get the state values from the backcasting
-            adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
+            adamFitted <- adamFitterWrap(adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
                                          lagsModelAll, profilesObservedTable, profilesRecentTable,
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
                                          yInSample, ot, TRUE);
 
-            adamElements$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
+            adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
             # Produce new initials
             BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
                                       componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
                                       lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
-                                      adamElements$matVt,
+                                      adamCreated$matVt,
                                       persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
                                       persistenceSeasonalEstimate, persistenceXregEstimate,
                                       phiEstimate, initialType, initialEstimate,
@@ -2747,30 +2747,30 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         #### If we do variables selection, do it here, then reestimate the model. ####
         if(regressors=="select"){
             # Fill in the matrices
-            adamElements <- filler(B,
-                                   etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                   componentsNumberETS, componentsNumberETSNonSeasonal,
-                                   componentsNumberETSSeasonal, componentsNumberARIMA,
-                                   lags, lagsModel, lagsModelMax,
-                                   adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                   persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                   persistenceSeasonalEstimate, persistenceXregEstimate,
-                                   phiEstimate,
-                                   initialType, initialEstimate,
-                                   initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                   initialArimaEstimate, initialXregEstimate,
-                                   arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-                                   arRequired, maRequired, armaParameters,
-                                   nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-                                   xregModel, xregNumber,
-                                   xregParametersMissing, xregParametersIncluded,
-                                   xregParametersEstimated, xregParametersPersistence, constantEstimate);
+            adamCreated[] <- filler(B,
+                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                                    componentsNumberETS, componentsNumberETSNonSeasonal,
+                                    componentsNumberETSSeasonal, componentsNumberARIMA,
+                                    lags, lagsModel, lagsModelMax,
+                                    adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+                                    persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+                                    persistenceSeasonalEstimate, persistenceXregEstimate,
+                                    phiEstimate,
+                                    initialType, initialEstimate,
+                                    initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                                    initialArimaEstimate, initialXregEstimate,
+                                    arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+                                    arRequired, maRequired, armaParameters,
+                                    nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+                                    xregModel, xregNumber,
+                                    xregParametersMissing, xregParametersIncluded,
+                                    xregParametersEstimated, xregParametersPersistence, constantEstimate);
 
             # Write down the initials in the recent profile
-            profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+            profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
 
             # Fit the model to the data
-            adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
+            adamFitted <- adamFitterWrap(adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
                                          lagsModelAll, profilesObservedTable, profilesRecentTable,
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
@@ -3553,7 +3553,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else if(!xregModel){
             regressors <- NULL;
         }
-
 
         if(arimaModel){
             armaParametersList <- vector("list",arRequired+maRequired);
