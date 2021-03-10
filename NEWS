@@ -10,6 +10,7 @@ Changes:
 * Return distribution="plogis" in oes() and oesg().
 * Select regressors on the model with alpha=0.01, so that it does not overfit the data.
 * Minor optimisations in adam() for RAM consumption in case of explanatory variables and / or backcasting.
+* forecast.adam() now produces point forecasts (not conditional means) if interval=c("nonparametric","semiparametric","approximate").
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
@@ -18,6 +19,7 @@ Bugfixes:
 * And another one for coefbootstrap() in case of regressors="select".
 * A fix for likelihood calculation for occurrence model and distribution="dgamma".
 * confint() now returns proper intervals for parameters of adam(), not intervals around zero.
+* Fix in forecast.adam() for iETS models and different objects used in oes() and adam().
 
 
 smooth v3.1.0 (Release data: 2021-02-19)

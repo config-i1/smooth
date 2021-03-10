@@ -7279,10 +7279,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     constantRequired <- !is.null(object$constant);
 
     # Produce point forecasts for non-multiplicative trend / seasonality
-    # Do this for cases, when h<=m as well
-    if(Ttype!="M" &&
-       (Stype!="M" |
-       (Stype=="M" & h<=lagsModelMin))){
+    # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
+    if(Ttype!="M" && (Stype!="M" | (Stype=="M" & h<=lagsModelMin)) ||
+       any(interval==c("nonparametric","semiparametric","approximate"))){
         adamForecast <- adamForecasterWrap(matWt, matF,
                                            lagsModelAll, profilesObservedTable, profilesRecentTable,
                                            Etype, Ttype, Stype,
@@ -7372,10 +7371,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     # Fill in the point forecasts
     if(cumulative){
-        yForecast[] <- sum(adamForecast * pForecast);
+        yForecast[] <- sum(as.vector(adamForecast) * as.vector(pForecast));
     }
     else{
-        yForecast[] <- adamForecast * pForecast;
+        yForecast[] <- as.vector(adamForecast) * as.vector(pForecast);
     }
 
     if(interval!="none"){
