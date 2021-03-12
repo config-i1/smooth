@@ -5939,10 +5939,9 @@ confint.adam <- function(object, parm, level=0.95, bootstrap=FALSE, ...){
                     adamCoefBounds[phis[i],2] <- min(phiBounds[2]-parameters[phis[i]], adamCoefBounds[phis[i],2]);
                 }
             }
-
-            adamCoefBounds[] <- adamCoefBounds+parameters;
         }
 
+        adamCoefBounds[] <- adamCoefBounds+parameters;
         adamReturn <- cbind(adamSD,adamCoefBounds);
         colnames(adamReturn) <- c("S.E.", confintNames);
     }
