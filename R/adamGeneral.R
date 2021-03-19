@@ -137,7 +137,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             xregData[yNAValues,responseName] <- y[yNAValues];
         }
         rm(X);
-        gc(verbose=FALSE);
+        # Clean memory if have a big object
+        if(obsInSample>10000){
+            gc(verbose=FALSE);
+        }
     }
 
     # If this is just a numeric variable, use ts class
@@ -1944,7 +1947,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
                 # Remove xreg, just to preserve some memory
                 rm(xreg);
-                gc(verbose=FALSE);
+                # Clean memory if have a big object
+                if(obsInSample>10000){
+                    gc(verbose=FALSE);
+                }
             }
             #### Initial xreg are provided ####
             else{
@@ -2158,7 +2164,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
                 # Remove xreg, just to preserve some memory
                 rm(xreg);
-                gc(verbose=FALSE);
+                # Clean memory if have a big object
+                if(obsInSample>10000){
+                    gc(verbose=FALSE);
+                }
             }
         }
         else{

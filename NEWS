@@ -1,4 +1,4 @@
-smooth v3.1.1 (Release data: 2021-03-10)
+smooth v3.1.1 (Release data: 2021-03-19)
 =======
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 * Select regressors on the model with alpha=0.01, so that it does not overfit the data.
 * Minor optimisations in adam() for RAM consumption in case of explanatory variables and / or backcasting.
 * forecast.adam() now produces point forecasts (not conditional means) if interval=c("nonparametric","semiparametric","approximate").
+* Do Garbage Collection for ADAMX if the sample is bigger than 10k observations. We need to preserve memory in this case.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
