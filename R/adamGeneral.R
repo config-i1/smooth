@@ -2265,8 +2265,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     # Redefine persitenceEstimate value
+    # This is only for the conventional ETS states, Xreg not included
     persistenceEstimate[] <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,
-                                   persistenceSeasonalEstimate,persistenceXregEstimate));
+                                   persistenceSeasonalEstimate));
 
     #### Conclusions about the initials ####
     # Make sure that only important elements are estimated.
