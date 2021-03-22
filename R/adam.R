@@ -1088,16 +1088,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         # level
                         if(initialLevelEstimate){
                             matVt[1,1:lagsModelMax] <- mean(yInSample[1:max(lagsModelMax,ceiling(obsInSample*0.2))]);
-                            if(xregModel){
-                                if(Etype=="A"){
-                                    matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] -
-                                        as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
-                                }
-                                else{
-                                    matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] /
-                                        as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
-                                }
-                            }
+                            # if(xregModel){
+                            #     if(Etype=="A"){
+                            #         matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] -
+                            #             as.vector(xregModelInitials[[1]]$initialXreg %*% xregData[1,]);
+                            #     }
+                            #     else{
+                            #         matVt[1,1:lagsModelMax] <- matVt[1,lagsModelMax] /
+                            #             as.vector(exp(xregModelInitials[[2]]$initialXreg %*% xregData[1,]));
+                            #     }
+                            # }
                         }
                         else{
                             matVt[1,1:lagsModelMax] <- initialLevel;
@@ -1515,7 +1515,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         j <- 0;
         if(etsModel){
             # Fill in persistence
-            if(persistenceEstimate){
+            if(persistenceEstimate && any(persistenceEstimateVector)){
                 if(any(c(Etype,Ttype,Stype)=="M")){
                     # A special type of model which is not safe: AAM, MAA, MAM
                     if((Etype=="A" && Ttype=="A" && Stype=="M") || (Etype=="A" && Ttype=="M" && Stype=="A") ||

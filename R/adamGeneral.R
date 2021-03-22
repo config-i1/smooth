@@ -1877,7 +1877,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             for(i in which(xregAbsent)){
                                 # Find the name of the original variable
                                 # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                xregNameFound <- names(xregNameFoundID)[xregNameFoundID];
                                 # Get the indices of all k-1 levels
                                 xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                        xregFactorsLevels[[xregNameFound]])]] <- i;
@@ -1903,10 +1904,12 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             for(i in which(xregAbsent)){
                                 # Find the name of the original variable
                                 # Use only the last value... hoping that the names like x and x1 are not used.
-                                xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                                xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                                xregNameFound <- names(xregNameFoundID)[xregNameFoundID];
                                 # Get the indices of all k-1 levels
                                 xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                        xregFactorsLevels[[xregNameFound]])]] <- i;
+
                                 # Get the index of the absent one
                                 xregParametersMissing[i] <- i;
                                 # Fill in the absent one, add intercept
@@ -2265,9 +2268,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     # Redefine persitenceEstimate value
-    # This is only for the conventional ETS states, Xreg not included
     persistenceEstimate[] <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,
-                                   persistenceSeasonalEstimate));
+                                   persistenceSeasonalEstimate,persistenceXregEstimate));
 
     #### Conclusions about the initials ####
     # Make sure that only important elements are estimated.

@@ -22,6 +22,7 @@ Bugfixes:
 * confint() now returns proper intervals for parameters of adam(), not intervals around zero.
 * Fix in forecast.adam() for iETS models and different objects used in oes() and adam().
 * A fix for provided smoothing parameters in case of estimated deltas in adam().
+* Fix for factors in adam().
 
 
 smooth v3.1.0 (Release data: 2021-02-19)
