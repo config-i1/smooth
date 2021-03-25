@@ -2894,7 +2894,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     for(i in which(xregAbsent)){
                         # Find the name of the original variable
                         # Use only the last value... hoping that the names like x and x1 are not used.
-                        xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                        xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
+                        xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
                         # Get the indices of all k-1 levels
                         xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                xregFactorsLevels[[xregNameFound]])]] <- i;
