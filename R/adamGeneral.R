@@ -1810,6 +1810,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         }
                         xregNamesOriginal <- c(responseName,xregNamesOriginal[xregNamesRetained]);
                         xregData <- model.frame(formulaToUse,data=as.data.frame(xreg[,xregNamesOriginal,drop=FALSE]));
+                        # Remove response variable
+                        xregNamesOriginal <- xregNamesOriginal[-1]
                     }
 
                     # Binary, flagging factors in the data
@@ -1870,7 +1872,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     if(any(xregFactors) && any(!(xregNamesModified %in% xregNames))){
                         xregAbsent <- !(xregNamesModified %in% xregNames);
                         xregParametersNew <- setNames(rep(NA,xregNumber),xregNamesModified);
-                        # If the first initials are not NULL, fix parameters
+                        # If there is stuff for additive error model, fix parameters
                         if(!is.null(xregModelInitials[[1]])){
                             xregParametersNew[!xregAbsent] <- xregModelInitials[[1]]$initialXreg;
                             # Go through new names and find, where they came from. Then get the missing parameters
@@ -1878,7 +1880,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                 # Find the name of the original variable
                                 # Use only the last value... hoping that the names like x and x1 are not used.
                                 xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- names(xregNameFoundID)[xregNameFoundID];
+                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
                                 # Get the indices of all k-1 levels
                                 xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                        xregFactorsLevels[[xregNameFound]])]] <- i;
@@ -1897,7 +1899,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             # Write down the new parameters
                             xregModelInitials[[1]]$initialXreg <- xregParametersNew;
                         }
-                        # If the second initials are not NULL, fix parameters
+                        # If there is stuff for multiplicative error model, fix parameters
                         if(!is.null(xregModelInitials[[2]])){
                             xregParametersNew[!xregAbsent] <- xregModelInitials[[2]]$initialXreg;
                             # Go through new names and find, where they came from. Then get the missing parameters
@@ -1905,7 +1907,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                 # Find the name of the original variable
                                 # Use only the last value... hoping that the names like x and x1 are not used.
                                 xregNameFoundID <- sapply(xregNamesOriginal,grepl,xregNamesModified[i]);
-                                xregNameFound <- names(xregNameFoundID)[xregNameFoundID];
+                                xregNameFound <- tail(names(xregNameFoundID)[xregNameFoundID],1);
                                 # Get the indices of all k-1 levels
                                 xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
                                                                                        xregFactorsLevels[[xregNameFound]])]] <- i;
