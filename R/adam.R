@@ -7483,6 +7483,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         else{
             yLower[] <- yLower / yForecast;
             yUpper[] <- yUpper / yForecast;
+            # Substitute NaNs with zeroes - it means that both values were originally zeroes
+            yLower[as.vector(is.nan(yLower))] <- 0;
+            yUpper[as.vector(is.nan(yUpper))] <- 0;
         }
     }
     else{
