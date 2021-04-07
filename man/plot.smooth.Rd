@@ -19,7 +19,7 @@
   dev.interactive(), lowess = TRUE, ...)
 }
 \arguments{
-\item{x}{Time series model for which forecasts are required.}
+\item{x}{Estimated smooth model.}
 
 \item{which}{Which of the plots to produce. The possible options (see details for explanations):
 \enumerate{
@@ -52,7 +52,7 @@
 The function produces the number of plots, specified in the parameter \code{which}.
 }
 \description{
-The function produces plot actuals, fitted values and forecasts and states of the model
+The function produces diagnostics plots for a \code{smooth} model
 }
 \details{
 The list of produced plots includes:

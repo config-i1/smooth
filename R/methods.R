@@ -1206,7 +1206,7 @@ orders.Arima <- function(object, ...){
 #### Plots of smooth objects ####
 #' Plots for the fit and states
 #'
-#' The function produces plot actuals, fitted values and forecasts and states of the model
+#' The function produces diagnostics plots for a \code{smooth} model
 #'
 #' The list of produced plots includes:
 #' \enumerate{
@@ -1240,7 +1240,7 @@ orders.Arima <- function(object, ...){
 #' }
 #' Which of the plots to produce, is specified via the \code{which} parameter.
 #'
-#' @param x Time series model for which forecasts are required.
+#' @param x Estimated smooth model.
 #' @param which Which of the plots to produce. The possible options (see details for explanations):
 #' \enumerate{
 #' \item Actuals vs Fitted values;
