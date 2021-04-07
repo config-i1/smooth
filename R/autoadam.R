@@ -340,6 +340,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
         }
     }
+    else{
+        cluster <- NULL;
+    }
 
     if(!silent){
         if(!parallel){
@@ -910,6 +913,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     selectedModels[[which.min(ICValues)]]$call <- cl;
+
+    # Check if the clusters have been made
+    if(!is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
 
     return(selectedModels[[which.min(ICValues)]]);
 }
