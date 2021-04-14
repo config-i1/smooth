@@ -245,7 +245,7 @@ An option with the additive model in this case has a different, more complicated
         y_t = o_t z_t \\
 		o_t \sim \text{Bernoulli} \left(a_t \right) \\
 		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
-		l_{a,t} = l_{a,t-1}  + \alpha_{a} \epsilon_{a,t} \\
+		l_{a,t} = l_{a,t-1}  \left( 1 + \alpha_{a} \epsilon_{a,t}\right) \\
 		\mu_{a,t} = \max \left( \min(l_{a,t-1}, 1), 0 \right)
     \end{matrix}.
 \end{equation}
