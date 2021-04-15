@@ -1,26 +1,26 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "19 February 2021"
+date: "15 April 2021"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.1.0.
+This is ``smooth`` package, v3.1.1.
 
 ## Test environments
-* local ubuntu 20.04, R 4.0.4
-* ubuntu 16.04.6 (on travis-ci), R 4.0.4
+* local ubuntu 20.04, R 4.0.5
+* ubuntu 16.04.6 (on travis-ci), R 4.0.2
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
 
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-     installed size is 28.7Mb
-     sub-directories of 1Mb or more:
-       R      1.3Mb
-       doc    3.9Mb
-       libs  23.0Mb
+    installed size is 25.2Mb
+    sub-directories of 1Mb or more:
+      R      1.2Mb
+      doc    3.7Mb
+      libs  19.8Mb
 0 errors | 0 warnings | 1 note
 
 ## win-builder check results
@@ -41,7 +41,7 @@ This is because doMC is not available for Windows.
 Gives PREPERROR:
 > ERROR: compilation failed for package ‘forecast’
 
-Not clear, why the compilation of `forecast` package failed.
+Not clear, why the compilation of `forecast` package failed, but smooth cannot be checked without it.
 
 
 ## Downstream dependencies
