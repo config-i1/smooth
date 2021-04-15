@@ -6224,7 +6224,9 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
         newCall[[1]] <- as.symbol("adam");
     }
     newCall$formula <- formula(object);
-    newCall$regressors <- switch(newCall$regressors,"select"="use",newCall$regressors);
+    if(!is.null(newCall$regressors)){
+        newCall$regressors <- switch(newCall$regressors,"select"="use",newCall$regressors);
+    }
     # This is based on the split data, so no need to do holdout
     newCall$holdout <- FALSE;
     newCall$distribution <- object$distribution;
