@@ -94,6 +94,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 yIndex <- c(1:length(y));
             }
         }
+        else{
+            yClasses <- class(y);
+        }
     }
     else{
         xregData <- NULL;
@@ -1765,6 +1768,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     xregNumber <- ncol(xregData);
                     xregNames <- colnames(xregData);
                 }
+
                 # If the number of rows is different, this might be because of NAs
                 if(additionalManipulations && nrow(xregData)!=nrow(xreg)){
                     warning("Some variables contained NAs. This might cause issues in the estimation. ",
@@ -1775,7 +1779,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     xregNonNAs <- which(!is.na(xreg),arr.ind=TRUE);
                     # Go through variables and substitute values
                     for(i in unique(xregNAs[,2])){
-                        xreg[xregNAs[xregNAs[,2]==i,]] <- xreg[xregNonNAs[which(xregNonNAs[,2]==i)[1],,drop=FALSE]];
+                        # This split on [row, column] is needed, because data.table is funny with cbind(row,column)
+                        xreg[xregNAs[xregNAs[,2]==i,]] <- xreg[xregNonNAs[which(xregNonNAs[,2]==i)[1],1],
+                                                               xregNonNAs[which(xregNonNAs[,2]==i)[1],2]];
                     }
                     xregData <- model.frame(formulaToUse,data=as.data.frame(xreg));
                 }

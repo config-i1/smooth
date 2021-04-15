@@ -1,4 +1,4 @@
-smooth v3.1.1 (Release data: 2021-04-14)
+smooth v3.1.1 (Release data: 2021-04-15)
 =======
 
 Changes:
@@ -25,6 +25,9 @@ Bugfixes:
 * Fix for factors in adam().
 * A fix for the previous fix of factors.
 * A fix for iETS in forecast.adam() for cases of zero mean and zeroes in quantiles.
+* Fixed a funny bug in adam() with data.table and cbind.
+* A fix for the case of data.frame() and is.zoo(y).
+* A fix for vcov.adam() in case, when Fisher Information contains NaNs.
 
 
 smooth v3.1.0 (Release data: 2021-02-19)

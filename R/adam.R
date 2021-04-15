@@ -6372,12 +6372,17 @@ vcov.adam <- function(object, bootstrap=FALSE, ...){
             modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
                                                  FI=TRUE, stepSize=ellipsis$stepSize));
             # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-            brokenVariables <- apply(modelReturn$FI==0,1,all);
+            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
             # If there are issues, try the same stuff, but with a different step size for hessian
             if(any(brokenVariables)){
                 modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
                                                      FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
                 brokenVariables <- apply(modelReturn$FI==0,1,all);
+            }
+            # If there are NaNs, then this has not been estimated well
+            if(any(is.nan(modelReturn$FI))){
+                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
+                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
             }
             if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
                 warning(paste0("Observed Fisher Information is not positive semi-definite, ",
