@@ -4366,9 +4366,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
         }
         if(all(occurrence!=c("n","none"))){
-            modelName[] <- paste0("i",modelName);
+            modelName[] <- paste0("i",modelName,
+                                  switch(occurrence,
+                                         "f"=,"fixed"="[F]",
+                                         "d"=,"direct"="[D]",
+                                         "o"=,"odds-ratio"="[O]",
+                                         "i"=,"invese-odds-ratio"="[I]",
+                                         "g"=,"general"="[G]",
+                                         ""));
         }
-
 
         modelReturned$model <- modelName;
         modelReturned$timeElapsed <- Sys.time()-startTime;
