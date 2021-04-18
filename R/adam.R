@@ -3440,7 +3440,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * c(forecast(oesModel, h=h, interval="none")$mean);
+                yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h, interval="none"))$mean);
             }
             else if(occurrenceModel && occurrenceModelProvided){
                 yForecast[] <- yForecast * pForecast;
