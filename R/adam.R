@@ -4978,7 +4978,6 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         # Get the IDs of outliers and statistic
         outliers <- outlierdummy(x, level=level, type=type);
-        outliersID <- outliers$id;
         statistic <- outliers$statistic;
 
         # Analyse stuff in logarithms if the error is multiplicative
@@ -5304,7 +5303,6 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         # Get the IDs of outliers and statistic
         outliers <- outlierdummy(x, level=level, type=type);
-        outliersID <- outliers$id;
         statistic <- outliers$statistic;
 
         # Analyse stuff in logarithms if the error is multiplicative
@@ -6731,7 +6729,7 @@ outlierdummy.adam <- function(object, level=0.999, type=c("rstandard","rstudent"
     outliersNumber <- length(outliersID);
     if(outliersNumber>0){
         outliers <- matrix(0, nobs(object), outliersNumber,
-                           dimnames=list(rownames(object$data),
+                           dimnames=list(rownames(actuals(object)),
                                          paste0("outlier",c(1:outliersNumber))));
         outliers[cbind(outliersID,c(1:outliersNumber))] <- 1;
     }
