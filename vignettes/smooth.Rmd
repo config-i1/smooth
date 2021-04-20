@@ -39,28 +39,34 @@ Some other functions, which are not considered as core and important:
 
 There are several methods that can be used together with the forecasting functions of the package. When a model is saved to some object `ourModel`, these function will do some magic. Here's the list of all the available methods with brief explanations:
 
-1. `summary(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
-2. `fitted(ourModel)` -- fitted values of the model;
-3. `forecast(ourModel)` -- point and interval forecasts. This is needed for compatibility with Rob Hyndman's "forecast" package. `forecast(ourModel)` returns object of class `forecastSmooth`;
-4. `residuals(ourModel)` -- residuals of constructed model;
-5. `rstandard(ourModel)` -- standardised residuals of the model;
-6. `rstudent(ourModel)` -- studentised residuals of the model;
-7. `AIC(ourModel)`, `BIC(ourModel)`, `AICc(ourModel)` and `BICc(ourModel)` -- information criteria of the constructed model. `AICc()` and `BICc()` functions are not standard `stats` functions and are imported from `greybox` package and modified in `smooth` for the specific models;
-8. `plot(ourModel)` -- produces plots for the diagnostics of the constructed model. There are 9 options of what to produce, see `?plot.smooth()` for more details. Note that if the number of states is higher than 10, then several graphs are produced for the option `which=9`.
-9. `simulate(ourModel)` -- produces data simulated from provided model;
-10. `summary(forecast(ourModel))` -- prints point and interval forecasts;
-11. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and prediction interval using `graphmaker()` function from `greybox` package.
-12. `logLik(ourModel)` -- returns log-likelihood of the model;
-13. `nobs(ourModel)` -- returns number of observations in-sample we had;
-14. `nParam(ourModel)` -- number of estimated parameters (originally from `greybox` package);
-15. `pointLik(ourModel)` -- likelihood values for each separate observation;
-16. `sigma(ourModel)` -- variance of the residuals of the model;
-17. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `gum()`);
-18. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `gum()` and `sma()`);
-19. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()` and `ets()`;
-20. `errorType(ourModel)` -- the type of the error of a model (additive or multiplicative);
-21. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
-22. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
-23. `actuals(ourModel)` -- returns actual values;
-24. `multicov(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
-25. `pls(ourModel)` - Prediction Likelihood Score for the model and the provided holdout. This is buggy and needs to be updated. Don't rely on this method too much.
+1. `print(ourModel)` -- function prints brief output with explanation of what was fitted, with what parameters and errors;
+2. `summary(ourModel)` -- returns an output with parameters, standard errors and confidence intervals in case of `adam()` function. For the other functions it is equivalent to `print(ourModel)`;
+3. `actuals(ourModel)` -- returns actual values;
+4. `fitted(ourModel)` -- fitted values of the model;
+5. `forecast(ourModel)` -- point and interval forecasts. This is needed for compatibility with Rob Hyndman's "forecast" package. `forecast(ourModel)` returns object of class `smooth.forecast`;
+6. `residuals(ourModel)` -- residuals of constructed model;
+7. `rstandard(ourModel)` -- standardised residuals of the model;
+8. `rstudent(ourModel)` -- studentised residuals of the model;
+9. `rmultistep(ourModel)` -- returns in sample multiple steps ahead forecast errors;
+10. `AIC(ourModel)`, `BIC(ourModel)`, `AICc(ourModel)` and `BICc(ourModel)` -- information criteria of the constructed model. `AICc()` and `BICc()` functions are not standard `stats` functions and are imported from `greybox` package and modified in `smooth` for the specific models;
+11. `plot(ourModel)` -- produces plots for the diagnostics of the constructed model. There are 9 options of what to produce, see `?plot.smooth()` for more details. Note that if the number of states is higher than 10, then several graphs are produced for the option `which=9`.
+12. `simulate(ourModel)` -- produces data simulated from provided model (not supported by `adam()` yet);
+13. `summary(forecast(ourModel))` -- prints point and interval forecasts;
+14. `plot(forecast(ourModel))` -- produces graph with actuals, forecast, fitted and prediction interval using `graphmaker()` function from `greybox` package.
+15. `logLik(ourModel)` -- returns log-likelihood of the model;
+16. `nobs(ourModel)` -- returns number of observations in-sample we had;
+17. `nparam(ourModel)` -- number of estimated parameters (originally from `greybox` package);
+18. `pointLik(ourModel)` -- likelihood values for each separate observation;
+19. `sigma(ourModel)` -- variance of the residuals of the model;
+20. `lags(ourModel)` -- lags of the model (used with `ssarima()` and `gum()`);
+21. `orders(ourModel)` -- orders of the model (can be used with `ssarima()`, `gum()` and `sma()`);
+22. `modelType(ourModel)` -- returns the type of the model. Returns something like "MMM" for ETS(MMM). Can be used with `es()`, `ces()` and `ets()`;
+23. `errorType(ourModel)` -- the type of the error of a model (additive or multiplicative);
+24. `coef(ourModel)` -- returns the vector of all the estimated coefficients of the model;
+25. `confint(ourModel)` -- returns confidence intervals for parameters of the model. Only works with `adam()`;
+26. `vcov(ourModel)` -- returns the covariance matrix of parameters. Only works with `adam()`;
+27. `coefbootstrap(ourModel)` -- returns the bootstrapped coefficients of model (imported from `greybox` package). Only works with `adam()`;
+28. `formula(ourModel)` -- returns the formula for the measurement equation. This is just for the information and general understanding what we work with;
+29. `multicov(ourModel)` -- covariance matrix of multiple steps ahead forecast errors;
+30. `refit(ourModel)` -- produces bootstrapped trajectories from `adam()` model. Only works with `adam()`;
+31. `reforecast(ourModel)` -- produces forecasts based on bootstrapped trajectories from a model. Only works with `adam()`;
