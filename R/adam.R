@@ -5281,8 +5281,9 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             yName <- "Studentised";
         }
 
+        # If there is occurrence part, substitute zeroes with NAs
         if(is.occurrence(x$occurrence)){
-            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
+            ellipsis$x[actuals(x$occurrence)==0] <- NA;
         }
 
         if(!any(names(ellipsis)=="main")){
@@ -5317,7 +5318,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
 
         if(!any(names(ellipsis)=="ylim")){
-            ellipsis$ylim <- c(-max(abs(ellipsis$x)),max(abs(ellipsis$x)))*1.2;
+            ellipsis$ylim <- c(-max(abs(ellipsis$x),na.rm=TRUE),
+                               max(abs(ellipsis$x),na.rm=TRUE))*1.2;
         }
 
         if(legend){
@@ -5332,7 +5334,15 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             points(time(ellipsis$x)[outliers], ellipsis$x[outliers], pch=16);
             text(time(ellipsis$x)[outliers], ellipsis$x[outliers], labels=outliers, pos=(ellipsis$x[outliers]>0)*2+1);
         }
+        # If there is occurrence model, plot points to fill in breaks
+        if(is.occurrence(x$occurrence)){
+            points(time(ellipsis$x), ellipsis$x);
+        }
         if(lowess){
+            # Substitute NAs with the mean
+            if(any(is.na(ellipsis$x))){
+                ellipsis$x[is.na(ellipsis$x)] <- mean(ellipsis$x, na.rm=TRUE);
+            }
             lines(lowess(c(1:length(ellipsis$x)),ellipsis$x), col="red");
         }
         abline(h=0, col="grey", lty=2);

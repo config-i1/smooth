@@ -1,10 +1,11 @@
-smooth v3.1.2 (Release data: 2021-04-20)
+smooth v3.1.2 (Release data: 2021-04-21)
 =======
 
 Changes:
 * Make forecast.oes() shut up in adam().
 * Print names of oETS models in the adam() model (e.g. [G], [F], etc.).
 * Updated methods description in the vignette of smooth.
+* plot.adam(..., which=c(8,9)) now drops residuals for zero actuals if occurrence model is present. Should look better and provide a proper message.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)
