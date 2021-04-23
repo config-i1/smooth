@@ -7120,7 +7120,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         lagsModelMin <- min(lagsModelMin);
     }
     profilesRecentTable <- object$profile;
-    yClasses <- class(actuals(object));
 
     if(!is.null(object$initial$seasonal)){
         if(is.list(object$initial$seasonal)){
@@ -7140,28 +7139,24 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     obsInSample <- nobs(object);
 
     yIndex <- time(actuals(object));
+    yClasses <- class(actuals(object));
     # Create indices for the future
-    if(any(yClasses=="ts")){
-        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:h);
-    }
-    else{
-        yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:h);
-    }
-    # Get the observed profiles
-    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h,
-                                                lags(object), c(yIndex,yForecastIndex),
-                                                yClasses)$observed[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
-
     if(any(yClasses=="ts")){
         # ts structure
         yForecastStart <- time(actuals(object))[obsInSample]+deltat(actuals(object));
         yFrequency <- frequency(actuals(object));
+        yForecastIndex <- yIndex[obsInSample]+as.numeric(diff(tail(yIndex,2)))*c(1:h);
     }
     else{
-        # zoo thingy
+        # zoo
         yIndex <- time(actuals(object));
         yForecastIndex <- yIndex[obsInSample]+diff(tail(yIndex,2))*c(1:h);
     }
+
+    # Get the observed profiles
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h,
+                                                lags(object), c(yIndex,yForecastIndex),
+                                                yClasses)$observed[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
 
     # All the important matrices
     matVt <- t(object$states[obsStates-(lagsModelMax:1)+1,,drop=FALSE]);
