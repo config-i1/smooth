@@ -452,12 +452,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             # If the ETS model was done before this, then extract residuals
             if(is.adam(testModelETS)){
-                yInSample <- data;
                 model <- etsModelType <- modelType(testModelETS);
                 ICOriginal <- IC(testModelETS);
-            }
-            else{
-                yInSample <- data;
             }
 
             if(!silent){
@@ -526,7 +522,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             # Skip ARIMA(0,0,0) without constant
             for(d in 2:(iCombinations*2)){
                     # Run the model for differences
-                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                    testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,i=iOrders[d,1:ordersLength],ma=0),
                                           constant=(iOrders[d,ordersLength+1]==1),
                                           distribution=distribution,
@@ -549,7 +545,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             iBest <- iOrders[d,1:ordersLength];
             constantValue <- iOrders[d,ordersLength+1]==1;
 
-            bestModel <- testModel <- adam(data=yInSample, model=model, lags=lags,
+            # Refit the best model
+            bestModel <- testModel <- adam(data=data, model=model, lags=lags,
                                            orders=list(ar=0,i=iBest,ma=0),
                                            constant=constantValue,
                                            distribution=distribution,
@@ -587,7 +584,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         acfValues <- acf(residuals(bestModel), lag.max=max((maMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf[-1];
                         maTest[i] <- which.max(abs(acfValues[c(1:maMax[i])*lags[i]]));
 
-                        testModel <- adam(data=yInSample, model=model, lags=lags,
+                        testModel <- adam(data=data, model=model, lags=lags,
                                           orders=list(ar=arBest,i=iBest,ma=maTest),
                                           constant=constantValue,
                                           distribution=distribution,
@@ -624,7 +621,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         pacfValues <- pacf(residuals(bestModel), lag.max=max((arMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf;
                         arTest[i] <- which.max(abs(pacfValues[c(1:arMax[i])*lags[i]]));
 
-                        testModel <- adam(data=yInSample, model=model, lags=lags,
+                        testModel <- adam(data=data, model=model, lags=lags,
                                           orders=list(ar=arTest,i=iBest,ma=maBest),
                                           constant=constantValue,
                                           distribution=distribution,
@@ -668,7 +665,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 imaOrdersICs[] <- Inf;
                 for(d in 2:nrow(additionalModels)){
                     # Run the model for differences
-                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                    testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,
                                                       i=additionalModels[d,1:ordersLength],
                                                       ma=additionalModels[d,1:ordersLength]),
@@ -695,7 +692,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     arBest <- 0;
                     iBest <- maBest <- imaBest;
                     constantValue <- FALSE;
-                    bestModel <- adam(data=yInSample, model=model, lags=lags,
+                    bestModel <- adam(data=data, model=model, lags=lags,
                                       orders=list(ar=0,i=iBest,ma=maBest),
                                       constant=constantValue,
                                       distribution=distribution,

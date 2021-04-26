@@ -1599,8 +1599,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
-                acfValues <- rep(0.1, maOrders %*% lags);
-                pacfValues <- rep(-0.1, arOrders %*% lags);
+                acfValues <- rep(-0.1, maOrders %*% lags);
+                pacfValues <- rep(0.1, arOrders %*% lags);
                 # If this is ETS + ARIMA model or no differences model, then don't bother with initials
                 # The latter does not make sense because of non-stationarity in ACF / PACF
                 # Otherwise use ACF / PACF values as starting parameters for ARIMA
@@ -2830,12 +2830,36 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # Fix the name of the response variable
                 xregModelInitials[[xregIndex]]$formula[[2]] <- as.name(responseName);
                 formula <- xregModelInitials[[xregIndex]]$formula;
-                xregModelInitials[[which(c(1,2)!=xregIndex)]]$formula <- formula;
+                xregModelInitials[[which(c(1,2)!=xregIndex)]]$formula <- formulaToUse <- formula;
+
+                # Fix formula if dnorm / dlaplace / ds etc are used for Etype=="M"
+                trendIncluded <- any(all.vars(formulaToUse)[-1]=="trend");
+                if((length(formulaToUse[[2]])==1 ||
+                    (length(formulaToUse[[2]])>1 & !any(as.character(formulaToUse[[2]])=="log"))) &&
+                   (Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
+                    if(trendIncluded){
+                        formulaToUse <- update(formulaToUse,log(.)~.);
+                    }
+                    else{
+                        formulaToUse <- update(formulaToUse,log(.)~.+trend);
+                    }
+                }
+                else{
+                    if(!trendIncluded){
+                        formulaToUse <- update(formulaToUse,.~.+trend);
+                    }
+                }
 
                 # Estimate alm again in order to get proper initials
-                almModel <- do.call(alm,list(formula=formula,
+                almModel <- do.call(alm,list(formula=formulaToUse,
                                              data=data[1:obsInSample,,drop=FALSE],
                                              distribution=distributionNew, loss=lossNew, occurrence=oesModel));
+
+                # Remove trend
+                if(!trendIncluded){
+                    almModel$coefficients <- almModel$coefficients[names(almModel$coefficients)!="trend"];
+                    almModel$data <- almModel$data[,colnames(almModel$data)!="trend",drop=FALSE];
+                }
                 almIntercept <- almModel$coefficients["(Intercept)"];
                 xregModelInitials[[xregIndex]]$initialXreg <- coef(almModel)[-1];
 

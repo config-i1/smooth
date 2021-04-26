@@ -139,7 +139,7 @@ RcppExport SEXP adamFitterWrap(NumericMatrix &matVt, NumericMatrix &matWt, Numer
 
     arma::mat matrixVt(matVt.begin(), matVt.nrow(), matVt.ncol());
     arma::mat matrixWt(matWt.begin(), matWt.nrow(), matWt.ncol(), false);
-    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol());
+    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol(), false);
     arma::vec vectorG(vecG.begin(), vecG.nrow(), false);
     arma::uvec lags = as<arma::uvec>(lagsModelAll);
 

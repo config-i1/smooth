@@ -8,6 +8,10 @@ Changes:
 * plot.adam(..., which=c(8,9)) now drops residuals for zero actuals if occurrence model is present. Should look better and provide a proper message.
 * Update in C++ code, substituting SEXP by the expected objects (matrices and vectors) in adam(). This should result in a slight speed up and memory consumption reduction.
 * adam() now has a trick in case of initial="backcasting", changing the value of state obtained in the tail of series. This helps the function to come back to the start of the series with a more meaningful initial.
+* New initialisation for phi and theta of ADAM ARIMA.
+
+Bugfixes:
+* Fixed a bug in adam() with regressors="select" and errorType=="M".
 
 
 smooth v3.1.1 (Release data: 2021-04-16)
