@@ -8,7 +8,7 @@
 using namespace Rcpp;
 
 // # Fitter for univariate models
-List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const &matrixF, arma::vec const &vectorG,
+List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matrixF, arma::vec const &vectorG,
                 arma::uvec &lags, arma::umat const &profilesObserved, arma::mat profilesRecent,
                 char const &E, char const &T, char const &S,
                 unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
@@ -75,6 +75,13 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
 
         ////// Backwards run
         if(backcast && j<(nIterations)){
+            // Change the specific element in the state vector to negative
+            if(T=='A'){
+                profilesRecent(1) = -profilesRecent(1);
+            }
+            else if(T=='M'){
+                profilesRecent(1) = 1/profilesRecent(1);
+            }
 
             for (int i=obs+lagsModelMax-1; i>=lagsModelMax; i=i-1) {
                 /* # Measurement equation and the error term */
@@ -106,6 +113,14 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat const 
 
                 matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             }
+
+            // Change back the specific element in the state vector
+            if(T=='A'){
+                profilesRecent(1) = -profilesRecent(1);
+            }
+            else if(T=='M'){
+                profilesRecent(1) = 1/profilesRecent(1);
+            }
         }
     }
 
@@ -124,7 +139,7 @@ RcppExport SEXP adamFitterWrap(NumericMatrix &matVt, NumericMatrix &matWt, Numer
 
     arma::mat matrixVt(matVt.begin(), matVt.nrow(), matVt.ncol());
     arma::mat matrixWt(matWt.begin(), matWt.nrow(), matWt.ncol(), false);
-    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol(), false);
+    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol());
     arma::vec vectorG(vecG.begin(), vecG.nrow(), false);
     arma::uvec lags = as<arma::uvec>(lagsModelAll);
 
