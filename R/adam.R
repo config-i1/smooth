@@ -7659,10 +7659,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else if(object$distribution=="dlnorm"){
-                yLower[] <- qlnorm(levelLow, Re(1-sqrt(abs(1-vcovMulti))),
-                                   sqrt(2*Re(1-sqrt(abs(1-vcovMulti)))));
-                yUpper[] <- qlnorm(levelUp, Re(1-sqrt(abs(1-vcovMulti))),
-                                   sqrt(2*Re(1-sqrt(abs(1-vcovMulti)))));
+                yLower[] <- qlnorm(levelLow, sqrt(abs(1-vcovMulti))-1,
+                                   sqrt(2*1-sqrt(abs(1-vcovMulti))));
+                yUpper[] <- qlnorm(levelUp, sqrt(abs(1-vcovMulti))-1,
+                                   sqrt(2*1-sqrt(abs(1-vcovMulti))));
                 if(Etype=="A"){
                     yLower[] <- (yLower-1)*yForecast;
                     yUpper[] <-(yUpper-1)*yForecast;
