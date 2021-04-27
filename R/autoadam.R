@@ -101,9 +101,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     # If this is non-positive data and positive defined distributions are used, fix this
-    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss") %in% distribution) &&
+    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
        (!is.occurrence(occurrence) && occurrence[1]=="none")){
-        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss")[c("dlnorm","dllaplace","dls","dinvgauss") %in% distribution];
+        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
+            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
         warning(paste0("The data is not strictly positive, so not all the distributions make sense. ",
                        "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
                 call.=FALSE);

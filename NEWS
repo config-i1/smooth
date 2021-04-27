@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-04-26)
+smooth v3.1.2 (Release data: 2021-04-27)
 =======
 
 Changes:
@@ -12,6 +12,7 @@ Changes:
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
+* auto.adam() would not check positivity of data for dgamma.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)
