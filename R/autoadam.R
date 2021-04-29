@@ -650,12 +650,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             #### Additional checks for ARIMA(0,d,d) models ####
             additionalModels <- NULL;
-            if(any(maMax!=0)){
+            # Form the table with IMA orders, where q=d
+            if(any(maMax!=0) && any(iMax!=0)){
                 # First columns - I(d), the last ones are MA(q)
-                additionalModels <- cbind(iOrders[1:iCombinations,-3],iOrders[1:iCombinations,-3]);
+                additionalModels <- iOrders[1:iCombinations,1:ordersLength,drop=FALSE];
                 modelsLeft <- rep(TRUE,iCombinations);
+                # Make sure that MA orders do not exceed maMax
                 for(i in 1:ordersLength){
-                    modelsLeft[] <- modelsLeft & additionalModels[,ordersLength+i] <= maMax[i];
+                    modelsLeft[] <- (additionalModels[,i] <= maMax[i]);
                 }
                 additionalModels <- additionalModels[modelsLeft,,drop=FALSE];
             }
