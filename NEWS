@@ -16,6 +16,7 @@ Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
 * auto.adam() would not check positivity of data for dgamma.
 * A bugfix in auto.adam for additional checks in ARIMA in case of d=0.
+* A bugfix in oesg() and damped trend model with estimated phi.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)

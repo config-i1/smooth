@@ -279,12 +279,12 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
     #### Second call for the environment ####
     ## Set environment for ssInput and make all the checks
-    model[] <- modelB;
-    persistence[] <- persistenceB;
-    phi[] <- phiB;
-    initial[] <- initialB;
-    initialSeason[] <- initialSeasonB;
-    xreg[] <- xregB;
+    model <- modelB;
+    persistence <- persistenceB;
+    phi <- phiB;
+    initial <- initialB;
+    initialSeason <- initialSeasonB;
+    xreg <- xregB;
     xregDo <- xregDoB;
 
     environment(ssInput) <- environment();
