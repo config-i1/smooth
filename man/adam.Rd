@@ -365,14 +365,14 @@ par(mfcol=c(3,4))
 plot(ourModel, c(1:11))
 
 # Model combination using a specified pool
-\dontrun{ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"),
+\donttest{ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"),
                           lags=c(5,10))}
 
 # ADAM ARIMA
-\dontrun{ourModel <- adam(rnorm(100,100,10), model="NNN",
+\donttest{ourModel <- adam(rnorm(100,100,10), model="NNN",
                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
 
-\dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
+\donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 
 }

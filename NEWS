@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-04-27)
+smooth v3.1.2 (Release data: 2021-04-29)
 =======
 
 Changes:
@@ -9,6 +9,8 @@ Changes:
 * Update in C++ code, substituting SEXP by the expected objects (matrices and vectors) in adam(). This should result in a slight speed up and memory consumption reduction.
 * adam() now has a trick in case of initial="backcasting", changing the value of state obtained in the tail of series. This helps the function to come back to the start of the series with a more meaningful initial.
 * New initialisation for phi and theta of ADAM ARIMA.
+* /donttest{} instead of /dontrun{} in examples in the documentation.
+* on.exit() restore par for plot functions.
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".

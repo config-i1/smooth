@@ -215,11 +215,11 @@ ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 
 ces(Mcomp::M3[[740]],h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 
-\dontrun{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
+\donttest{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
 ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="p",interval="np")
 ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="f",interval="p")}
 
-\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
+\donttest{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
 ces(Mcomp::M3[[1457]],holdout=TRUE,interval="np",xreg=x,loss="TMSE")}
 
 }

@@ -257,8 +257,8 @@ ourModel <- ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1)),lags=c(
                              holdout=TRUE,interval="p")
 
 # The previous one is equivalent to:
-\dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
-                    holdout=TRUE,interval="p")}
+\donttest{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),
+                              lags=c(1),h=18,holdout=TRUE,interval="p")}
 
 # Model with the same lags and orders, applied to a different data
 ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
@@ -267,20 +267,20 @@ ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdou
 ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 
 # Example of SARIMA(2,0,0)(1,0,0)[4]
-\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
+\donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
 
 # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
+\donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
         lags=c(1,4),h=18,holdout=TRUE)
 ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 
 # SARIMA of a peculiar order on AirPassengers data
-\dontrun{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
-        h=10,holdout=TRUE)}
+\donttest{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
+                  lags=c(1,6,12),h=10,holdout=TRUE)}
 
 # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-\dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
+\donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
 ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")}
 
 # SARIMA(0,1,1) with exogenous variables

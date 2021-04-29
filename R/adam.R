@@ -339,11 +339,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' plot(ourModel, c(1:11))
 #'
 #' # Model combination using a specified pool
-#' \dontrun{ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"),
+#' \donttest{ourModel <- adam(rnorm(100,100,10), model=c("ANN","AAN","MNN","CCC"),
 #'                           lags=c(5,10))}
 #'
 #' # ADAM ARIMA
-#' \dontrun{ourModel <- adam(rnorm(100,100,10), model="NNN",
+#' \donttest{ourModel <- adam(rnorm(100,100,10), model="NNN",
 #'                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
 #'
 #' @importFrom greybox dlaplace dalaplace ds dgnorm
@@ -5434,6 +5434,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 12. Plot of states
     plot8 <- function(x, ...){
         parDefault <- par(no.readonly = TRUE);
+        on.exit(par(parDefault));
         if(any(unlist(gregexpr("C",x$model))==-1)){
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
@@ -5470,7 +5471,6 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             # If we did combinations, we cannot return anything
             message("Combination of models was done. Sorry, but there is nothing to plot.");
         }
-        par(parDefault);
     }
 
     # Do plots

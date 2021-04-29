@@ -232,23 +232,23 @@ vignette: \code{vignette("gum","smooth")}
 gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval="p")
 
 # A more complicated model with seasonality
-\dontrun{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
+\donttest{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
 # Redo previous model on a new data and produce prediction interval
-\dontrun{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
+\donttest{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
 
 # Produce something crazy with optimal initials (not recommended)
-\dontrun{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
+\donttest{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
 
 # Simpler model estiamted using trace forecast error loss function and its analytical analogue
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
 gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aTMSE")}
 
 # Introduce exogenous variables
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
 
 # Or select the most appropriate one
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")
 
 summary(ourModel)
 forecast(ourModel)

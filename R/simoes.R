@@ -73,8 +73,8 @@
 #' @examples
 #'
 #' # This example uses rinvgauss function from statmod package.
-#' \dontrun{oETSMNNIG <- sim.oes(model="MNN",frequency=12,obs=60,
-#'                               randomizer="rinvgauss",mean=1,dispersion=0.5)}
+#' \donttest{oETSMNNIG <- sim.oes(model="MNN",frequency=12,obs=60,
+#'                                randomizer="rinvgauss",mean=1,dispersion=0.5)}
 #'
 #' # A simpler example with log normal distribution
 #' oETSMNNlogN <- sim.oes(model="MNN",frequency=12,obs=60,initial=1,

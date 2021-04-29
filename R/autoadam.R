@@ -9,7 +9,7 @@
 #' bounds of confidence interval depend on the distribution used in the model.
 #'
 #' @examples
-#' \dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
+#' \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
 #'                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 #'
 #' @rdname adam

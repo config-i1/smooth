@@ -169,12 +169,12 @@ ourModel <- auto.msarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12
                      h=18,holdout=TRUE,interval="np")
 
 # The other one using optimised states
-\dontrun{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                     initial="o",h=18,holdout=TRUE)}
+\donttest{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
+                       initial="o",h=18,holdout=TRUE)}
 
 # And now combined ARIMA
-\dontrun{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                      combine=TRUE,h=18,holdout=TRUE)}
+\donttest{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
+                       combine=TRUE,h=18,holdout=TRUE)}
 
 summary(ourModel)
 forecast(ourModel)

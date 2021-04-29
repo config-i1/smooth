@@ -43,9 +43,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' auto.ces(y,h=20,holdout=TRUE)
 #' auto.ces(y,h=20,holdout=FALSE)
 #'
-#' \dontrun{
+#'
 #' # Selection between "none" and "full" seasonalities
-#' auto.ces(AirPassengers,h=8,holdout=TRUE,models=c("n","f"),interval="p",level=0.8,ic="AIC")}
+#' \donttest{auto.ces(AirPassengers,h=8,holdout=TRUE,
+#'                    models=c("n","f"),interval="p",level=0.8,ic="AIC")}
 #'
 #' ourModel <- auto.ces(AirPassengers,interval="sp")
 #'
