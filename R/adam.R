@@ -7132,6 +7132,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     Ttype <- substr(model,2,2);
     Stype <- substr(model,nchar(model),nchar(model));
 
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+
     # Technical parameters
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
@@ -7307,8 +7310,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # If this is "prediction", do simulations for multiplicative components
     if(interval=="prediction"){
         # Simulate stuff for the ETS only
-        if((any(c(Etype,Ttype,Stype)=="M") && modelType(object)!="NNN") || xregNumber>0 ||
-           any(object$distribution==c("dinvgauss","dgamma","dlnorm"))){
+        if(etsModel || xregNumber>0){
             interval <- "simulated";
         }
         else{
@@ -7534,7 +7536,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         if(any(interval==c("approximate","confidence"))){
             s2 <- sigma(object)^2;
             # IG and Lnorm can use approximations from the multiplications
-            if(any(object$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && Etype=="M"){
+            if(etsModel && any(object$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && Etype=="M"){
                 vcovMulti <- adamVarAnal(lagsModelAll, h, matWt[1,,drop=FALSE], matF, vecG, s2);
                 if(any(object$distribution==c("dlnorm","dls","dllaplace","dlgnorm"))){
                     vcovMulti[] <- log(1+vcovMulti);

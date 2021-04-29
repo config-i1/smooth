@@ -11,6 +11,7 @@ Changes:
 * New initialisation for phi and theta of ADAM ARIMA.
 * /donttest{} instead of /dontrun{} in examples in the documentation.
 * on.exit() restore par for plot functions.
+* Use "approximate" intervals for !etsModel in adam().
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
