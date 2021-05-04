@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-04-29)
+smooth v3.1.2 (Release data: 2021-05-04)
 =======
 
 Changes:
@@ -12,6 +12,7 @@ Changes:
 * /donttest{} instead of /dontrun{} in examples in the documentation.
 * on.exit() restore par for plot functions.
 * Use "approximate" intervals for !etsModel in adam().
+* Multistep losses in adam() now do not do log(1+et) and minimise et directly.
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".

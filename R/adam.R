@@ -2164,11 +2164,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           componentsNumberARIMA, xregNumber, constantRequired, h,
                                           yInSample, ot);
 
-            # This is a fix for the multistep in case of Etype=="M", assuming logN
-            if(Etype=="M"){
-                adamErrors[] <- log(1+adamErrors);
-            }
-
             # Not done yet: "aMSEh","aTMSE","aGTMSE","aMSCE","aGPL"
             CFValue <- switch(loss,
                               "MSEh"=sum(adamErrors[,h]^2)/(obsInSample-h),
