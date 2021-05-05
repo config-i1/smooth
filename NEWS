@@ -13,6 +13,7 @@ Changes:
 * on.exit() restore par for plot functions.
 * Use "approximate" intervals for !etsModel in adam().
 * Multistep losses in adam() now do not do log(1+et) and minimise et directly.
+* adam() now does regressors selection between those that are specified in formula if formula is provided.
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
@@ -20,6 +21,7 @@ Bugfixes:
 * A bugfix in auto.adam for additional checks in ARIMA in case of d=0.
 * A bugfix in oesg() and damped trend model with estimated phi.
 * Fixes in ts() for pure regression in adam().
+* A fix for outliers selection in ADAMX andprovided formula.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)

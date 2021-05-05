@@ -2182,6 +2182,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             }
         }
         else{
+            # Include only variables from the formula
+            if(is.null(formulaToUse)){
+                formulaToUse <- as.formula(paste0("`",responseName,"`~."));
+            }
+            else{
+                xregData <- xregData[,all.vars(formulaToUse)[-1],drop=FALSE];
+            }
             xregNumber <- ncol(xregData);
             xregNames <- colnames(xregData);
             initialXregProvided <- FALSE;
@@ -2190,9 +2197,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             xregParametersEstimated <- setNames(rep(1,xregNumber),xregNames);
             xregParametersMissing <- setNames(c(1:xregNumber),xregNames);
             xregParametersIncluded <- setNames(c(1:xregNumber),xregNames);
-            if(is.null(formulaToUse)){
-                formulaToUse <- as.formula(paste0("`",responseName,"`~."));
-            }
         }
 
         #### persistence for xreg ####

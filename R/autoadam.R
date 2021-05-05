@@ -806,13 +806,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     else{
                         formula <- as.formula(paste0(responseName,"~."));
                     }
-                    outliersDo <- regressors;
+                    # outliersDo <- regressors;
                 }
                 else{
                     colnames(data)[1] <- responseName;
                 }
                 newCall <- cl;
                 newCall$data <- data;
+                newCall$formula <- formula;
                 newCall$silent <- TRUE;
                 newCall$regressors <- outliersDo;
                 newCall$outliers <- "ignore";

@@ -2794,7 +2794,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Call the xregSelector providing the original matrix with the data
             xregIndex[] <- switch(Etype,"A"=1,"M"=2);
-            xregModelInitials[[xregIndex]] <- xregSelector(errors=errors, xregData=data[,colnames(data)!=responseName,drop=FALSE],
+            xregModelInitials[[xregIndex]] <- xregSelector(errors=errors,
+                                                           xregData=xregDataOriginal[1:obsInSample,
+                                                                                     colnames(xregDataOriginal)!=responseName,
+                                                                                     drop=FALSE],
                                                            ic=ic,
                                                            df=df, distribution=distributionNew, occurrence=oesModel,
                                                            other=other);
