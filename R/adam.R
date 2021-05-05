@@ -592,7 +592,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             modelReturned$states <- ts(matrix(coef(checkerReturn), obsInSample+1, nParam, byrow=TRUE,
                                            dimnames=list(NULL, names(coef(checkerReturn)))),
-                                       start=yIndex-diff(yIndex[1:2]), frequency=yFrequency);
+                                       start=yIndex[1]-diff(yIndex[1:2]), frequency=yFrequency);
         }
         modelReturned$persistence <- rep(0, nParam);
         names(modelReturned$persistence) <- paste0("delta",c(1:nParam));
