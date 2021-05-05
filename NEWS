@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-04)
+smooth v3.1.2 (Release data: 2021-05-05)
 =======
 
 Changes:
@@ -19,6 +19,7 @@ Bugfixes:
 * auto.adam() would not check positivity of data for dgamma.
 * A bugfix in auto.adam for additional checks in ARIMA in case of d=0.
 * A bugfix in oesg() and damped trend model with estimated phi.
+* Fixes in ts() for pure regression in adam().
 
 
 smooth v3.1.1 (Release data: 2021-04-16)

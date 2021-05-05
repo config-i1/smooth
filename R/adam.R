@@ -574,8 +574,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         else{
             yFrequency <- frequency(y);
-            modelReturned$data <- data[1:obsInSample,,drop=FALSE]
-            modelReturned$data[,responseName] <- ts(modelReturned$data[,responseName], start=yIndex[1], frequency=yFrequency);
+            modelReturned$data <- ts(data[1:obsInSample,,drop=FALSE], start=yIndex[1], frequency=yFrequency);
             modelReturned$fitted <- ts(fitted(checkerReturn), start=yIndex[1], frequency=yFrequency);
             modelReturned$residuals <- ts(residuals(checkerReturn), start=yIndex[1], frequency=yFrequency);
             if(h>0){
@@ -584,8 +583,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                  start=yIndex[obsInSample+1], frequency=yFrequency);
                 }
                 else{
-                    modelReturned$forecast <- zoo(forecast(checkerReturn,h=h,interval="none")$mean,
-                                                  order.by=yIndex[obsInSample]+diff(yIndex[1:2])*c(1:h));
+                    modelReturned$forecast <- ts(as.numeric(forecast(checkerReturn,h=h,interval="none")$mean),
+                                                 start=yIndex[obsInSample]+diff(yIndex[1:2]), frequency=yFrequency);
                 }
             }
             else{
@@ -6631,7 +6630,7 @@ rstandard.adam <- function(model, ...){
     }
     else if(model$distribution=="dlnorm"){
         # Debias the residuals
-        errors[] <- log(errors) - model$scale^2/2;
+        errors[] <- log(errors) + model$scale^2/2;
         return(exp((errors - mean(errors[residsToGo])) / sqrt(model$scale^2 * obs / df)));
     }
     else if(model$distribution=="dllaplace"){
