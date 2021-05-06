@@ -7266,7 +7266,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
 
         # If the names are wrong, transform to data frame and expand
-        if(!all(xregNames %in% colnames(xreg))){
+        if(!all(xregNames %in% colnames(xreg)) && !is.data.frame(xreg)){
             xreg <- as.data.frame(xreg);
         }
 
@@ -7288,7 +7288,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
-            colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
+            # colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
             newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
             rm(xregData,xregModelMatrix);
         }
@@ -7298,10 +7298,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         rm(xreg);
 
         matWt[,componentsNumberETS+componentsNumberARIMA+c(1:xregNumber)] <- newdata;
-        # If this is not "adapt", then fill in the matrix with zeroes
-        # if(object$regressors!="adapt"){
-        #     vecG <- matrix(c(vecG,rep(0,xregNumber)),ncol=1);
-        # }
     }
     else{
         xregNumber <- 0;

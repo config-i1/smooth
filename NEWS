@@ -23,6 +23,7 @@ Bugfixes:
 * A bugfix in oesg() and damped trend model with estimated phi.
 * Fixes in ts() for pure regression in adam().
 * A fix for outliers selection in ADAMX andprovided formula.
+* A fix in ADAMX and forecast().
 
 
 smooth v3.1.1 (Release data: 2021-04-16)
