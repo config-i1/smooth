@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-05)
+smooth v3.1.2 (Release data: 2021-05-06)
 =======
 
 Changes:
@@ -14,6 +14,7 @@ Changes:
 * Use "approximate" intervals for !etsModel in adam().
 * Multistep losses in adam() now do not do log(1+et) and minimise et directly.
 * adam() now does regressors selection between those that are specified in formula if formula is provided.
+* More iterations for xreg models in adam().
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".

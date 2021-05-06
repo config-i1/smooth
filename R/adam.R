@@ -259,8 +259,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' You can also pass parameters to the optimiser in order to fine tune its work:
 #' \itemize{
 #' \item \code{maxeval} - maximum number of evaluations to carry out. The default is 40 per
-#' estimated parameter for ETS and / or ARIMA and at least 500 if explanatory variables
-#' are introduced in the model;
+#' estimated parameter for ETS and / or ARIMA and at least 1000 if explanatory variables
+#' are introduced in the model (100 per parameter for explanatory variables, but not less
+#' than 1000);
 #' \item \code{maxtime} - stop, when the optimisation time (in seconds) exceeds this;
 #' \item \code{xtol_rel} - the relative precision of the optimiser (the default is 1E-6);
 #' \item \code{xtol_abs} - the absolute precision of the optimiser (the default is 1E-8);
@@ -2572,6 +2573,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         print_level_hidden <- print_level;
         if(print_level==41){
+            cat("Initial parameters:",B,"\n");
             print_level[] <- 0;
         }
 
@@ -2585,7 +2587,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # # If it is xregModel, do at least 500 iterations
             # else
             if(xregModel){
-                maxevalUsed <- max(500,maxevalUsed);
+                maxevalUsed[] <- length(B) * 100;
+                maxevalUsed[] <- max(1000,maxevalUsed);
             }
         }
 
