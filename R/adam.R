@@ -5307,8 +5307,14 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$x[actuals(x$occurrence)==0] <- NA;
         }
 
+        # Main, labs etc
         if(!any(names(ellipsis)=="main")){
-            ellipsis$main <- paste0(yName," Residuals vs Time");
+            if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                ellipsis$main <- paste0("log(",yName," Residuals) vs Time");
+            }
+            else{
+                ellipsis$main <- paste0(yName," Residuals vs Time");
+            }
         }
 
         if(!any(names(ellipsis)=="xlab")){
