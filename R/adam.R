@@ -7288,7 +7288,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xregModelMatrix <- model.matrix(xregData,data=xregData);
             }
-            # colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
+            xregNames[] <- make.names(xregNames, unique=TRUE);
+            colnames(xregModelMatrix) <- make.names(colnames(xregModelMatrix), unique=TRUE);
             newdata <- as.matrix(xregModelMatrix)[,xregNames,drop=FALSE];
             rm(xregData,xregModelMatrix);
         }
