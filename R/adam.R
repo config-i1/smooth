@@ -5002,7 +5002,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         statistic <- outliers$statistic;
 
         # Analyse stuff in logarithms if the error is multiplicative
-        if(any(x$distribution==c("dinvgauss","dgamma","dlnorm"))){
+        if(any(x$distribution==c("dinvgauss","dgamma"))){
             ellipsis$y[] <- log(ellipsis$y);
             statistic <- log(statistic);
         }
@@ -5334,7 +5334,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         statistic <- outliers$statistic;
 
         # Analyse stuff in logarithms if the error is multiplicative
-        if(any(x$distribution==c("dinvgauss","dgamma","dlnorm"))){
+        if(any(x$distribution==c("dinvgauss","dgamma"))){
             ellipsis$x[] <- log(ellipsis$x);
             statistic <- log(statistic);
         }
