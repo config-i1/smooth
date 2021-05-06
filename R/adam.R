@@ -5006,7 +5006,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$y[] <- log(ellipsis$y);
             statistic <- log(statistic);
         }
-        else if(any(x$distribution==c("dllaplace","dls","dlgnorm"))){
+        else if(any(x$distribution==c("dlnorm","dllaplace","dls","dlgnorm"))){
             ellipsis$y[] <- log(ellipsis$y);
         }
         outliers <- which(ellipsis$y >statistic[2] | ellipsis$y <statistic[1]);
@@ -5338,7 +5338,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$x[] <- log(ellipsis$x);
             statistic <- log(statistic);
         }
-        else if(any(x$distribution==c("dllaplace","dls","dlgnorm"))){
+        else if(any(x$distribution==c("dlnorm","dllaplace","dls","dlgnorm"))){
             ellipsis$x[] <- log(ellipsis$x);
         }
         outliers <- which(ellipsis$x >statistic[2] | ellipsis$x <statistic[1]);
