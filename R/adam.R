@@ -44,7 +44,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' are regulated via the \code{distribution} parameter. This includes:
 #' \enumerate{
 #' \item \code{default} - Normal distribution is used for the Additive error models,
-#' Inverse Gaussian is used for the Multiplicative error models.
+#' Gamma is used for the Multiplicative error models.
 #' \item dnorm - \link[stats]{Normal} distribution,
 #' \item \link[greybox]{dlaplace} - Laplace distribution,
 #' \item \link[greybox]{ds} - S distribution,
@@ -2557,7 +2557,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
             distributionNew <- switch(loss,
-                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dgamma"),
                                       "MAEh"=, "MACE"=, "MAE"= "dlaplace",
                                       "HAMh"=, "CHAM"=, "HAM"= "ds",
                                       "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
@@ -3482,7 +3482,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
             distribution[] <- switch(loss,
-                                     "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                     "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dgamma"),
                                      "MAEh"=, "MACE"=, "MAE"= "dlaplace",
                                      "HAMh"=, "CHAM"=, "HAM"= "ds",
                                      "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
@@ -4045,7 +4045,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # If the distribution is default, change it according to the error term
         if(distribution=="default"){
             distributionNew <- switch(loss,
-                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dinvgauss"),
+                                      "likelihood"= switch(Etype, "A"= "dnorm", "M"= "dgamma"),
                                       "MAEh"=, "MACE"=, "MAE"= "dlaplace",
                                       "HAMh"=, "CHAM"=, "HAM"= "ds",
                                       "MSEh"=, "MSCE"=, "MSE"=, "GPL"=, "dnorm");
