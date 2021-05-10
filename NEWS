@@ -26,6 +26,7 @@ Bugfixes:
 * Fixes in ts() for pure regression in adam().
 * A fix for outliers selection in ADAMX andprovided formula.
 * A fix in ADAMX and forecast().
+* A fix for weird cases of ETS(M,N,N) with constant on some time series with very low values.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)

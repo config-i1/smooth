@@ -1755,7 +1755,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             j[] <- j+1;
             B[j] <- matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
             names(B)[j] <- constantName;
-            Bu[j] <- max(abs(yInSample));
+            # B[j]*1.01 is needed to make sure that the bounds cover the initial value
+            Bu[j] <- max(abs(yInSample),B[j]*1.01);
             Bl[j] <- -Bu[j];
         }
 
