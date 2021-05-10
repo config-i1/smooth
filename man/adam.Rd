@@ -334,7 +334,7 @@ The error term \eqn{\epsilon_t} can follow different distributions, which
 are regulated via the \code{distribution} parameter. This includes:
 \enumerate{
 \item \code{default} - Normal distribution is used for the Additive error models,
-Inverse Gaussian is used for the Multiplicative error models.
+Gamma is used for the Multiplicative error models.
 \item dnorm - \link[stats]{Normal} distribution,
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
