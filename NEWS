@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-06)
+smooth v3.1.2 (Release data: 2021-05-10)
 =======
 
 Changes:
@@ -15,6 +15,7 @@ Changes:
 * Multistep losses in adam() now do not do log(1+et) and minimise et directly.
 * adam() now does regressors selection between those that are specified in formula if formula is provided.
 * More iterations for xreg models in adam().
+* Refine head of time series in adam() for backcasting (previously was only done for optimal).
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
