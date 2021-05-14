@@ -742,12 +742,12 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     ##### Loss function type #####
     loss <- loss[1];
-    if(any(loss==c("likelihood","MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
-    else if(any(loss==c("MSE","MAE","HAM","Rounded"))){
+    else if(any(loss==c("likelihood","MSE","MAE","HAM","Rounded"))){
         multisteps <- FALSE;
     }
     else{
@@ -1682,12 +1682,12 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
 
     ##### Loss function type #####
     loss <- loss[1];
-    if(any(loss==c("likelihood","MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
+    if(any(loss==c("MSEh","TMSE","GTMSE","MSCE","MAEh","TMAE","GTMAE","MACE",
                      "HAMh","THAM","GTHAM","CHAM",
                      "GPL","aMSEh","aTMSE","aGTMSE","aGPL"))){
         multisteps <- TRUE;
     }
-    else if(any(loss==c("MSE","MAE","HAM","Rounded"))){
+    else if(any(loss==c("likelihood","MSE","MAE","HAM","Rounded"))){
         multisteps <- FALSE;
     }
     else{

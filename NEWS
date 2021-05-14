@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-13)
+smooth v3.1.2 (Release data: 2021-05-14)
 =======
 
 Changes:
@@ -29,6 +29,7 @@ Bugfixes:
 * A fix for weird cases of ETS(M,N,N) with constant on some time series with very low values.
 * A fix in auto.adam() for ARIMA orders selection in case of the provided formula.
 * A fix in forecast.adam() for interval="approximate" and distribution="dlnorm".
+* Weird bug in es(), where loss="likelihood" was considered as a multistep.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)

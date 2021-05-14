@@ -7691,10 +7691,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else if(object$distribution=="dlnorm"){
                 yLower[] <- qlnorm(levelLow, sqrt(abs(1-vcovMulti))-1, sqrt(vcovMulti));
                 yUpper[] <- qlnorm(levelUp, sqrt(abs(1-vcovMulti))-1, sqrt(vcovMulti));
-                # yLower[] <- qlnorm(levelLow, sqrt(abs(1-vcovMulti))-1,
-                #                    sqrt(2*1-sqrt(abs(1-vcovMulti))));
-                # yUpper[] <- qlnorm(levelUp, sqrt(abs(1-vcovMulti))-1,
-                #                    sqrt(2*1-sqrt(abs(1-vcovMulti))));
                 if(Etype=="A"){
                     yLower[] <- (yLower-1)*yForecast;
                     yUpper[] <-(yUpper-1)*yForecast;
@@ -7720,6 +7716,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 scale <- sqrt(vcovMulti*(gamma(1/object$other$shape)/gamma(3/object$other$shape)));
                 yLower[] <- suppressWarnings(exp(qgnorm(levelLow, 0, scale, object$other$shape)));
                 yUpper[] <- suppressWarnings(exp(qgnorm(levelUp, 0, scale, object$other$shape)));
+                if(Etype=="A"){
+                    yLower[] <- (yLower-1)*yForecast;
+                    yUpper[] <-(yUpper-1)*yForecast;
+                }
             }
             else if(object$distribution=="dinvgauss"){
                 yLower[] <- qinvgauss(levelLow, 1, dispersion=vcovMulti);
