@@ -388,7 +388,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(arimaModelSelect){
                     selectedModels[[i]] <- arimaSelector(data=data, model=model,
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                                                         distribution=selectedModels[[i]]$distribution, h=h, holdout=holdout,
+                                                         distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds,
                                                          silent=silent, regressors=regressors,
@@ -413,7 +413,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(arimaModelSelect){
                     testModel <- arimaSelector(data=data, model=model,
                                                lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                                               distribution=testModel$distribution, h=h, holdout=holdout,
+                                               distribution=distribution[i], h=h, holdout=holdout,
                                                persistence=persistence, phi=phi, initial=initial,
                                                occurrence=occurrence, ic=ic, bounds=bounds,
                                                silent=TRUE, regressors=regressors,
@@ -522,6 +522,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             # Start the loop for differences
             # Skip ARIMA(0,0,0) without constant
             for(d in 2:(iCombinations*2)){
+                print(iOrders[d,1:ordersLength])
                     # Run the model for differences
                     testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,i=iOrders[d,1:ordersLength],ma=0),
@@ -567,6 +568,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 cat("\nSelecting ARMA... |");
                 mSymbols <- c("/","-","\\","|","/","-","\\","|","/","-","\\","|","/","-","\\","|");
             }
+
+            stop()
             ##### Loop for ARMA #####
             # Include MA / AR terms starting from furthest lags
             for(i in ordersLength:1){
@@ -843,7 +846,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
     else{
         #### If there is ETS(X), do ARIMA selection on residuals ####
-        # Extract residuals from adams for each distribution, fit best ARIMA for each, refit the models.
+        # Extract residuals from adam for each distribution, fit best ARIMA for each, refit the models.
         if(etsModel || xregModel){
             selectedModels <- adamReturner(data, model, lags, orders,
                                            distribution, h, holdout,

@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-14)
+smooth v3.1.2 (Release data: 2021-05-16)
 =======
 
 Changes:
@@ -30,6 +30,7 @@ Bugfixes:
 * A fix in auto.adam() for ARIMA orders selection in case of the provided formula.
 * A fix in forecast.adam() for interval="approximate" and distribution="dlnorm".
 * Weird bug in es(), where loss="likelihood" was considered as a multistep.
+* Fix in auto.adam() and ARIMA selection with non-default distributions.
 
 
 smooth v3.1.1 (Release data: 2021-04-16)
