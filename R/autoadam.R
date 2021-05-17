@@ -522,7 +522,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             # Start the loop for differences
             # Skip ARIMA(0,0,0) without constant
             for(d in 2:(iCombinations*2)){
-                print(iOrders[d,1:ordersLength])
                     # Run the model for differences
                     testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,i=iOrders[d,1:ordersLength],ma=0),
@@ -569,7 +568,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 mSymbols <- c("/","-","\\","|","/","-","\\","|","/","-","\\","|","/","-","\\","|");
             }
 
-            stop()
             ##### Loop for ARMA #####
             # Include MA / AR terms starting from furthest lags
             for(i in ordersLength:1){
