@@ -130,7 +130,9 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' provided parameters will take this into account.
 #' \item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
 #' fitted are multiplied by the probability of occurrence.
-#' \item \code{forecast} - point forecast of ETS.
+#' \item \code{forecast} - the point forecast for h steps ahead (by default NA is returned). NOTE
+#' that these do not always correspond to the conditional expectations. See ADAM
+#' textbook, Section 4.4. for details (\url{https://openforecast.org/adam/ETSTaxonomyMaths.html}),
 #' \item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
 #' then NA is returned.
 #' \item \code{upper} - higher bound of prediction interval. When \code{interval="none"}

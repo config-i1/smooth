@@ -273,7 +273,9 @@ the actual values in the first column,
 \item \code{holdout} - the holdout part of the data, excluded for purposes of model evaluation,
 \item \code{fitted} - the vector of fitted values,
 \item \code{residuals} - the vector of residuals,
-\item \code{forecast} - the point forecast for h steps ahead (by default NA is returned),
+\item \code{forecast} - the point forecast for h steps ahead (by default NA is returned). NOTE
+that these do not always correspond to the conditional expectations for ETS models. See ADAM
+textbook, Section 4.4. for details (\url{https://openforecast.org/adam/ETSTaxonomyMaths.html}),
 \item \code{states} - the matrix of states with observations in rows and states in columns,
 \item \code{persisten} - the vector of smoothing parameters,
 \item \code{phi} - the value of damping parameter,
@@ -346,7 +348,7 @@ Gamma is used for the Multiplicative error models.
 
 For some more information about the model and its implementation, see the
 vignette: \code{vignette("adam","smooth")}. The more detailed explanation
-of ADAM is provided by Svetunkov (2020).
+of ADAM is provided by Svetunkov (2021).
 
 The function \code{auto.adam()} tries out models with the specified
 distributions and returns the one with the most suitable one based on selected
@@ -379,7 +381,7 @@ plot(ourModel, c(1:11))
 }
 \references{
 \itemize{
-\item Svetunkov, I. (2020) Time Series Analysis and Forecasting with ADAM:
+\item Svetunkov, I. (2021) Time Series Analysis and Forecasting with ADAM:
 Lancaster, UK. \url{https://openforecast.org/adam/}.
 }
 
