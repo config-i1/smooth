@@ -5482,6 +5482,80 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
     }
 
+    # 13 and 14. Fitted vs (std. Residuals)^2 or Fitted vs |std. Residuals|
+    plot9 <- function(x, type="abs", ...){
+        ellipsis <- list(...);
+
+        ellipsis$x <- as.vector(fitted(x));
+        ellipsis$y <- as.vector(rstandard(x));
+        if(any(x$distribution==c("dinvgauss","dgamma"))){
+            ellipsis$y[] <- log(ellipsis$y);
+        }
+        if(type=="abs"){
+            ellipsis$y[] <- abs(ellipsis$y);
+        }
+        else{
+            ellipsis$y[] <- ellipsis$y^2;
+        }
+
+        if(is.occurrence(x$occurrence)){
+            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
+            ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
+        }
+        # Remove NAs
+        if(any(is.na(ellipsis$x))){
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
+        }
+
+        if(!any(names(ellipsis)=="main")){
+            if(type=="abs"){
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$main <- paste0("|log(Standardised Residuals)| vs Fitted");
+                }
+                else{
+                    ellipsis$main <- "|Standardised Residuals| vs Fitted";
+                }
+            }
+            else{
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$main <- paste0("log(Standardised Residuals)^2 vs Fitted");
+                }
+                else{
+                    ellipsis$main <- "Standardised Residuals^2 vs Fitted";
+                }
+            }
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Fitted";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            if(type=="abs"){
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$ylab <- "|log(Standardised Residuals)|";
+                }
+                else{
+                    ellipsis$ylab <- "|Standardised Residuals|";
+                }
+            }
+            else{
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$ylab <- "log(Standardised Residuals)^2";
+                }
+                else{
+                    ellipsis$ylab <- "Standardised Residuals^2";
+                }
+            }
+        }
+
+        do.call(plot,ellipsis);
+        abline(h=0, col="grey", lty=2);
+        if(lowess){
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+        }
+    }
+
     # Do plots
     if(any(which==1)){
         plot1(x, ...);
@@ -5529,6 +5603,14 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     if(any(which==12)){
         plot8(x, ...);
+    }
+
+    if(any(which==13)){
+        plot9(x, type="squared", ...);
+    }
+
+    if(any(which==14)){
+        plot9(x, ...);
     }
 }
 

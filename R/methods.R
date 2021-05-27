@@ -1236,7 +1236,14 @@ orders.Arima <- function(object, ...){
 #' \item Plot of the states of the model. It is not recommended to produce this plot together with
 #' the others, because there might be several states, which would cause the creation of a different
 #' canvas. In case of "msdecompose", this will produce the decomposition of the series into states
-#' on a different canvas.
+#' on a different canvas;
+#' \item Squared standardised residuals vs Fitted. This is an additional plot needed to diagnose
+#' heteroscedasticity in a model with varying scale. The variance on this plot will be constant if
+#' the adequate model for \code{scale} was constructed. This is more appropriate for normal and
+#' the related distributions;
+#' \item Absolute standardised residuals vs Fitted. Similar to the previous, but with absolute
+#' values. This is more relevant to the models where scale is calculated as an absolute value of
+#' something (e.g. Laplace).
 #' }
 #' Which of the plots to produce, is specified via the \code{which} parameter.
 #'
@@ -1253,8 +1260,10 @@ orders.Arima <- function(object, ...){
 #' \item Standardised residuals vs Time;
 #' \item Studentised residuals vs Time;
 #' \item ACF of the residuals;
-#' \item PACF of the residuals.
-#' \item Plot of states of the model.
+#' \item PACF of the residuals;
+#' \item Plot of states of the model;
+#' \item Absolute standardised residuals vs Fitted;
+#' \item Squared standardised residuals vs Fitted.
 #' }
 #' @param level Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7), (8),
 #' (9), (10) and (11).
@@ -1782,6 +1791,80 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
     }
 
+    # 13 and 14. Fitted vs (std. Residuals)^2 or Fitted vs |std. Residuals|
+    plot9 <- function(x, type="abs", ...){
+        ellipsis <- list(...);
+
+        ellipsis$x <- as.vector(fitted(x));
+        ellipsis$y <- as.vector(rstandard(x));
+        if(any(x$distribution==c("dinvgauss","dgamma"))){
+            ellipsis$y[] <- log(ellipsis$y);
+        }
+        if(type=="abs"){
+            ellipsis$y[] <- abs(ellipsis$y);
+        }
+        else{
+            ellipsis$y[] <- ellipsis$y^2;
+        }
+
+        if(is.occurrence(x$occurrence)){
+            ellipsis$x <- ellipsis$x[actuals(x$occurrence)!=0];
+            ellipsis$y <- ellipsis$y[actuals(x$occurrence)!=0];
+        }
+        # Remove NAs
+        if(any(is.na(ellipsis$x))){
+            ellipsis$x <- ellipsis$x[!is.na(ellipsis$x)];
+            ellipsis$y <- ellipsis$y[!is.na(ellipsis$y)];
+        }
+
+        if(!any(names(ellipsis)=="main")){
+            if(type=="abs"){
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$main <- paste0("|log(Standardised Residuals)| vs Fitted");
+                }
+                else{
+                    ellipsis$main <- "|Standardised Residuals| vs Fitted";
+                }
+            }
+            else{
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$main <- paste0("log(Standardised Residuals)^2 vs Fitted");
+                }
+                else{
+                    ellipsis$main <- "Standardised Residuals^2 vs Fitted";
+                }
+            }
+        }
+
+        if(!any(names(ellipsis)=="xlab")){
+            ellipsis$xlab <- "Fitted";
+        }
+        if(!any(names(ellipsis)=="ylab")){
+            if(type=="abs"){
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$ylab <- "|log(Standardised Residuals)|";
+                }
+                else{
+                    ellipsis$ylab <- "|Standardised Residuals|";
+                }
+            }
+            else{
+                if(any(x$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                    ellipsis$ylab <- "log(Standardised Residuals)^2";
+                }
+                else{
+                    ellipsis$ylab <- "Standardised Residuals^2";
+                }
+            }
+        }
+
+        do.call(plot,ellipsis);
+        abline(h=0, col="grey", lty=2);
+        if(lowess){
+            lines(lowess(ellipsis$x[!is.na(ellipsis$y)], ellipsis$y[!is.na(ellipsis$y)]), col="red");
+        }
+    }
+
     # Do plots
     if(any(which==1)){
         plot1(x, ...);
@@ -1829,6 +1912,14 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     if(any(which==12)){
         plot8(x, ...);
+    }
+
+    if(any(which==13)){
+        plot9(x, type="squared", ...);
+    }
+
+    if(any(which==14)){
+        plot9(x, ...);
     }
 }
 

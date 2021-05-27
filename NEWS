@@ -1,4 +1,4 @@
-smooth v3.1.2 (Release data: 2021-05-19)
+smooth v3.1.2 (Release data: 2021-05-27)
 =======
 
 Changes:
@@ -17,6 +17,7 @@ Changes:
 * More iterations for xreg models in adam().
 * Refine head of time series in adam() for backcasting (previously was only done for optimal).
 * Gamma is now the default distribution for Etype="M" in ETS.
+* (standardised residuals)^2 vs fitted and abs(standardised residuals) in plot.smooth() and plot.adam() (which=c(13,14)). This should allow doing diagnostics in case of scale model (TBA).
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
