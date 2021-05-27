@@ -5606,11 +5606,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     if(any(which==13)){
-        plot9(x, type="squared", ...);
+        plot9(x, ...);
     }
 
     if(any(which==14)){
-        plot9(x, ...);
+        plot9(x, type="squared", ...);
     }
 }
 

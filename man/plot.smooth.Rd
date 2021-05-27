@@ -86,13 +86,13 @@ package for details;
 the others, because there might be several states, which would cause the creation of a different
 canvas. In case of "msdecompose", this will produce the decomposition of the series into states
 on a different canvas;
+\item Absolute standardised residuals vs Fitted. Similar to the previous, but with absolute
+values. This is more relevant to the models where scale is calculated as an absolute value of
+something (e.g. Laplace);
 \item Squared standardised residuals vs Fitted. This is an additional plot needed to diagnose
 heteroscedasticity in a model with varying scale. The variance on this plot will be constant if
 the adequate model for \code{scale} was constructed. This is more appropriate for normal and
-the related distributions;
-\item Absolute standardised residuals vs Fitted. Similar to the previous, but with absolute
-values. This is more relevant to the models where scale is calculated as an absolute value of
-something (e.g. Laplace).
+the related distributions.
 }
 Which of the plots to produce, is specified via the \code{which} parameter.
 }
