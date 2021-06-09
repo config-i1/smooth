@@ -963,6 +963,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     pForecast <- rep(NA,h);
 
+    # If it is logical, convert to numeric
+    if(is.logical(occurrence)){
+        occurrence <- occurrence*1;
+    }
     if(is.numeric(occurrence)){
         # If it is data, then it should correspond to the in-sample.
         if(all(occurrence==1)){
@@ -2327,7 +2331,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # Define the number of cols that should be in the matvt
     obsStates <- obsInSample + lagsModelMax;
 
-    if(any(yInSample<=0) && any(distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && !occurrenceModel){
+    if(any(yInSample<=0) && any(distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) &&
+       !occurrenceModel && (occurrence!="provided")){
         warning(paste0("You have non-positive values in the data. ",
                        "The distribution ",distribution," does not support that. ",
                        "This might lead to problems in the estimation."),

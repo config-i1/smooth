@@ -18,6 +18,7 @@ Changes:
 * Refine head of time series in adam() for backcasting (previously was only done for optimal).
 * Gamma is now the default distribution for Etype="M" in ETS.
 * (standardised residuals)^2 vs fitted and abs(standardised residuals) in plot.smooth() and plot.adam() (which=c(13,14)). This should allow doing diagnostics in case of scale model (TBA).
+* occurrence parameter in adam() now also accepts logical vector.
 
 Bugfixes:
 * Fixed a bug in adam() with regressors="select" and errorType=="M".
