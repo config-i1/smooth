@@ -3,7 +3,7 @@
 ^doc$
 ^.*\.Rproj$
 ^\.Rproj\.user$
-.travis.yml
+.github
 vignettes/rsconnect
 man-roxygen
 ^revdep$
