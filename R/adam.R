@@ -1679,7 +1679,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
                 else{
                     Bl[j] <- 0;
-                    Bu[j] <- Inf;
+                    # 2 is already too much for the multiplicative model
+                    Bu[j] <- 2;
                 }
             }
             if(modelIsSeasonal && any(initialSeasonalEstimate)){
