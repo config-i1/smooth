@@ -1,6 +1,6 @@
 name: R-CMD-check
 
-on: [pull_request, workflow_dispatch]
+on: [pull_request]
   schedule:
     - cron:  '0 0 * * 1'
 
