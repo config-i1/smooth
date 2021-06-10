@@ -1,6 +1,16 @@
 name: R-CMD-check
 
-on: [pull_request, workflow_dispatch]
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    branches:
+      - main
+  schedule:
+    - cron:  '0 0 * * 1'
+    branches:
+      - main
 
 jobs:
   R-CMD-check:
