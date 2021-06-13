@@ -1,15 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "16 April 2021"
+date: "14 June 2021"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.1.1.
+This is ``smooth`` package, v3.1.2.
 
 ## Test environments
-* local ubuntu 20.04, R 4.0.5
-* ubuntu 16.04.6 (on travis-ci), R 4.0.2
+* local ubuntu 20.04.2, R 4.1.0
+* github actions
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
 
@@ -23,26 +23,26 @@ checking installed package size ... NOTE
       libs  19.8Mb
 0 errors | 0 warnings | 1 note
 
+## Github actions
+Successful checks for:
+
+- Windows latest release with R 4.1.0
+- MacOS latest macOS Catalina 10.15.7 with R 4.1.0
+- Ubuntu 20.04 with R 4.1.0
+- Ubuntu 20.04 with R 4.0.5
+- Ubuntu 20.04 with R unstable 2021-06-09 r80471
+
 ## win-builder check results
 >* checking package dependencies ... NOTE
 >Package suggested but not available for checking: 'doMC'
 
 This is expected, because doMC is not available for Windows.
 
-
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
-> Package suggested but not available: 'doMC'
-> The suggested packages are required for a complete check.
-    
-This is because doMC is not available for Windows.
+> Error: Bioconductor does not yet build and check packages for R version 4.2;
 
-### Debian Linux, R-devel, GCC ASAN/UBSAN
-Gives PREPERROR:
-> ERROR: compilation failed for package ‘forecast’
-
-Not clear, why the compilation of `forecast` package failed, but smooth cannot be checked without it.
-
+This has nothing to do with the package
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
