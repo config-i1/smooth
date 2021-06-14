@@ -43,10 +43,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
     IC <- switch(ic,
-                         "AIC"=AIC,
-                         "AICc"=AICc,
-                         "BIC"=BIC,
-                         "BICc"=BICc);
+                 "AIC"=AIC,
+                 "AICc"=AICc,
+                 "BIC"=BIC,
+                 "BICc"=BICc);
 
     initial <- match.arg(initial);
     outliers <- match.arg(outliers);
@@ -376,7 +376,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                if(etsModel){
+                if(etsModel || xregModel){
                     selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                                 distribution=distribution[i], formula=formula,
                                                 h=h, holdout=holdout,
@@ -398,7 +398,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         }
         else{
             selectedModels <- foreach::`%dopar%`(foreach::foreach(i=1:length(distribution)),{
-                if(etsModel){
+                if(etsModel || xregModel){
                     testModel <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                       distribution=distribution[i], formula=formula,
                                       h=h, holdout=holdout,
