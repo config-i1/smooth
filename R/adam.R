@@ -5740,9 +5740,9 @@ print.adam <- function(x, digits=4, ...){
             cat(paste(paste0("ME: ",round(x$accuracy["ME"],3)),
                       paste0("MAE: ",round(x$accuracy["MAE"],3)),
                       paste0("RMSE: ",round(sqrt(x$accuracy["MSE"]),3),"\n")
-                      # paste0("Bias: ",round(x$accuracy["cbias"],3)*100,"%"),
                       ,sep="; "));
             cat(paste(paste0("sCE: ",round(x$accuracy["sCE"],5)*100,"%"),
+                      paste0("Asymmetry: ",round(x$accuracy["asymmetry"],3)*100,"%"),
                       paste0("sMAE: ",round(x$accuracy["sMAE"],5)*100,"%"),
                       paste0("sMSE: ",round(x$accuracy["sMSE"],5)*100,"%\n")
                       ,sep="; "));
@@ -5753,7 +5753,7 @@ print.adam <- function(x, digits=4, ...){
                       ,sep="; "));
         }
         else{
-            cat(paste(paste0("Bias: ",round(x$accuracy["cbias"],5)*100,"%"),
+            cat(paste(paste0("Asymmetry: ",round(x$accuracy["asymmetry"],5)*100,"%"),
                       paste0("sMSE: ",round(x$accuracy["sMSE"],5)*100,"%"),
                       paste0("rRMSE: ",round(x$accuracy["rRMSE"],3)),
                       paste0("sPIS: ",round(x$accuracy["sPIS"],5)*100,"%"),

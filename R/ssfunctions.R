@@ -3430,7 +3430,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
         if(any(occurrence==c("none","n"))){
             cat(paste(paste0("MPE: ",round(errormeasures["MPE"],3)*100,"%"),
                       paste0("sCE: ",round(errormeasures["sCE"],3)*100,"%"),
-                      paste0("Bias: ",round(errormeasures["cbias"],3)*100,"%"),
+                      paste0("Asymmetry: ",round(errormeasures["asymmetry"],3)*100,"%"),
                       paste0("MAPE: ",round(errormeasures["MAPE"],3)*100,"%\n"),sep="; "));
             cat(paste(paste0("MASE: ",round(errormeasures["MASE"],3)),
                       paste0("sMAE: ",round(errormeasures["sMAE"],3)*100,"%"),
@@ -3439,7 +3439,7 @@ ssOutput <- function(timeelapsed, modelname, persistence=NULL, transition=NULL, 
                       paste0("rRMSE: ",round(errormeasures["rRMSE"],3),"\n"),sep="; "));
         }
         else{
-            cat(paste(paste0("Bias: ",round(errormeasures["cbias"],3)*100,"%"),
+            cat(paste(paste0("Asymmetry: ",round(errormeasures["asymmetry"],3)*100,"%"),
                       paste0("sMSE: ",round(errormeasures["sMSE"],3)*100,"%"),
                       paste0("rRMSE: ",round(errormeasures["rRMSE"],3)),
                       paste0("sPIS: ",round(errormeasures["sPIS"],3)*100,"%"),
