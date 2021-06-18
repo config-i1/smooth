@@ -4747,28 +4747,32 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
             }
             # Get the start and the end of DST
             dstValues <- detectdst(yIndex);
-            # If the start date is not positioned before the end, introduce the artificial one
-            if(nrow(dstValues$start)==0 ||
-               (nrow(dstValues$end)>0 && dstValues$start$id[1]>dstValues$end$id[1])){
-                dstValues$start <- rbind(data.frame(id=1,date=yIndex[1]),dstValues$start);
-            }
-            # If the end date is not present or the length of the end is not the same as the start,
-            # set the end of series as one
-            if(nrow(dstValues$end)==0 ||
-               nrow(dstValues$end)<nrow(dstValues$start)){
-                dstValues$end <- rbind(dstValues$end,data.frame(id=obsAll,date=tail(yIndex,1)));
-            }
-            # Shift everything from start to end dates by 1 obs forward.
-            for(i in 1:nrow(dstValues$start)){
-                # If the end date is natural, just shift
-                if(dstValues$end$id[i]+shiftValue<=obsAll){
-                    profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
-                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]+shiftValue];
+            # If there are DST issues, do something
+            doShifts <- (nrow(dstValues$start)!=0) | (nrow(dstValues$end)!=0)
+            if(doShifts){
+                # If the start date is not positioned before the end, introduce the artificial one
+                if(nrow(dstValues$start)==0 ||
+                   (nrow(dstValues$end)>0 && dstValues$start$id[1]>dstValues$end$id[1])){
+                    dstValues$start <- rbind(data.frame(id=1,date=yIndex[1]),dstValues$start);
                 }
-                # If it isn't, we need to come up with the values for the end of sample
-                else{
-                    profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
-                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]-lagsModelMax+shiftValue];
+                # If the end date is not present or the length of the end is not the same as the start,
+                # set the end of series as one
+                if(nrow(dstValues$end)==0 ||
+                   nrow(dstValues$end)<nrow(dstValues$start)){
+                    dstValues$end <- rbind(dstValues$end,data.frame(id=obsAll,date=tail(yIndex,1)));
+                }
+                # Shift everything from start to end dates by 1 obs forward.
+                for(i in 1:nrow(dstValues$start)){
+                    # If the end date is natural, just shift
+                    if(dstValues$end$id[i]+shiftValue<=obsAll){
+                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
+                            profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]+shiftValue];
+                    }
+                    # If it isn't, we need to come up with the values for the end of sample
+                    else{
+                        profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]] <-
+                            profilesObservedTable[shiftRows,dstValues$start$id[i]:dstValues$end$id[i]-lagsModelMax+shiftValue];
+                    }
                 }
             }
         }
