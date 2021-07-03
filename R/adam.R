@@ -292,7 +292,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{residuals} - the vector of residuals,
 #' \item \code{forecast} - the point forecast for h steps ahead (by default NA is returned). NOTE
 #' that these do not always correspond to the conditional expectations for ETS models. See ADAM
-#' textbook, Section 4.4. for details (\url{https://openforecast.org/adam/ETSTaxonomyMaths.html}),
+#' textbook, Section 6.4. for details (\url{https://openforecast.org/adam/ETSTaxonomyMaths.html}),
 #' \item \code{states} - the matrix of states with observations in rows and states in columns,
 #' \item \code{persisten} - the vector of smoothing parameters,
 #' \item \code{phi} - the value of damping parameter,

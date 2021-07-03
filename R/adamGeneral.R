@@ -938,11 +938,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     #### This needs to be amended after developing the first prototype! ####
     # If we have the zoo class and weird lags, amend profiles
     # Weird lags (dst and fractional): 24, 24*2 (half hour), 52, 24*4 (15 minutes), 7*24, 7*48, 365, 24*52, 24*365
-    if(any(yClasses=="zoo") && any(lags %in% c(24, 48, 52, 96, 168, 336, 365, 1248, 8760))){
+    # if(any(yClasses=="zoo") && any(lags %in% c(24, 48, 52, 96, 168, 336, 365, 1248, 8760))){
         # For hourly, half-hourly and quarter hour data, just amend the profiles for DST.
         # For daily, repeat profile of 28th on 29th February.
         # For weekly, repeat the last week, when we have 53 instead of 52.
-    }
+    # }
 
     #### Occurrence variable ####
     if(is.occurrence(occurrence)){
