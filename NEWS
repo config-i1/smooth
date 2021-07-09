@@ -7,6 +7,7 @@ Bugfixes:
 * empirical interval in forecast for adam(), which relies on quantiles of multistep forecast errors.
 * Fix in auto.adam() for ETS+ARIMA: the function would enforce drift, when it would not be needed.
 * Fix in rmultistep - it would not use the original profile and would result in ridiculous forecasts.
+* Fix in adamErrorer. It now has a correct alignment of profiles. This will impact the rmultistep() and multistep losses.
 
 
 smooth v3.1.2 (Release data: 2021-06-14)

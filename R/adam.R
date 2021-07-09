@@ -6669,13 +6669,13 @@ rmultistep.adam <- function(object, h=10, ...){
     else{
         ot <- matrix(1,obsInSample,1);
     }
-    adamProfiles <- adamProfileCreator(lagsModelAll, max(lagsModelAll), obsInSample,
+    adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample,
                                        lagsOriginal, time(actuals(object)), yClasses);
     profilesRecentTable <- adamProfiles$recent;
     profilesObservedTable <- adamProfiles$observed;
 
-    # Fill in the profile
-    profilesRecentTable[,1:max(lagsModelAll)] <- t(object$states[1:max(lagsModelAll),,drop=FALSE]);
+    # Fill in the profile. This is done in Errorer as well, but this is just in case
+    profilesRecentTable[] <- t(object$states[1:lagsModelMax,,drop=FALSE]);
 
     # Return multi-step errors matrix
     if(any(yClasses=="ts")){

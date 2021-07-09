@@ -241,18 +241,25 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
                       unsigned int const &horizon,
                       arma::vec const &vectorYt, arma::vec const &vectorOt){
     unsigned int obs = vectorYt.n_rows;
+    unsigned int lagsModelMax = max(lags);
     // This is needed for cases, when hor>obs
     unsigned int hh = 0;
     arma::mat matErrors(horizon, obs, arma::fill::zeros);
 
+    // Fill in the head, similar to how it's done in the fitter
+    for (int i=0; i<lagsModelMax; i=i+1) {
+        profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
+    }
+
     for(unsigned int i = 0; i < (obs-horizon); i=i+1){
         hh = std::min(horizon, obs-i);
         // Update the profile to get the recent value from the state matrix
-        profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
+        profilesRecent(profilesObserved.col(i+lagsModelMax-1)) = matrixVt.col(i+lagsModelMax-1);
+        // profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
         // This also needs to take probability into account in order to deal with intermittent models
         matErrors.submat(0, i, hh-1, i) = (errorvf(vectorYt.rows(i, i+hh-1),
                                            adamForecaster(matrixWt.rows(i,i+hh-1), matrixF,
-                                                          lags, profilesObserved.cols(i,i+hh-1), profilesRecent,
+                                                          lags, profilesObserved.cols(i+lagsModelMax,i+lagsModelMax+hh-1), profilesRecent,
                                                           E, T, S, nNonSeasonal, nSeasonal, nArima, nXreg, constant, hh), E));
     }
 
