@@ -7173,10 +7173,12 @@ plot.adam.predict <- function(x, ...){
 #' model. \code{interval="approximate"} (aka \code{interval="parametric"}) uses
 #' analytical formulae for conditional h-steps ahead variance, but is approximate
 #' for the non-additive error models. \code{interval="semiparametric"} relies on the
-#' multiple steps ahead forecast error and on the assumed distribution of the error
-#' term. \code{interval="nonparametric"} uses Taylor & Bunn (1999) approach with
-#' quantile regressions. Finally, \code{interval="confidence"} tries to generate the
-#' confidence intervals for the point forecast based on the \code{reforecast} method.
+#' multiple steps ahead forecast error (extracted via \code{rmultistep} method) and on
+#' the assumed distribution of the error term. \code{interval="nonparametric"} uses
+#' Taylor & Bunn (1999) approach with quantile regressions. \code{interval="empirical"}
+#' constructs intervals based on empirical quantiles of multistep forecast errors.
+#' Finally, \code{interval="confidence"} tries to generate the confidence intervals
+#' for the point forecast based on the \code{reforecast} method.
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
@@ -7191,13 +7193,15 @@ plot.adam.predict <- function(x, ...){
 #' @export
 forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                           interval=c("none", "prediction", "confidence", "simulated",
-                                     "approximate", "semiparametric", "nonparametric"),
+                                     "approximate", "semiparametric", "nonparametric",
+                                     "empirical"),
                           level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=10000, ...){
 
     ellipsis <- list(...);
 
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
-                                        "nonparametric", "confidence", "parametric","prediction"));
+                                        "nonparametric", "confidence", "parametric","prediction",
+                                        "empirical"));
     # If the horizon is zero, just construct fitted and potentially confidence interval thingy
     if(h<=0){
         if(all(interval!=c("none","confidence"))){
@@ -7216,8 +7220,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
 
     if(interval=="parametric"){
-        # warning("The parameter 'interval' does not accept 'parametric' anymore. We use 'approximate' value instead.",
-        #         call.=FALSE);
         interval <- "prediction";
     }
     side <- match.arg(side);
@@ -7664,7 +7666,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         #### Semiparametric and nonparametric interval ####
         # Extract multistep errors and calculate the covariance matrix
-        else if(any(interval==c("semiparametric","nonparametric"))){
+        else if(any(interval==c("semiparametric","nonparametric","empirical"))){
             if(h>1){
                 adamErrors <- as.matrix(rmultistep(object, h=h));
 
@@ -7694,7 +7696,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
             else{
                 vcovMulti <- sigma(object)^2;
-                adamErrors <- as.vector(residuals(object));
+                adamErrors <- as.matrix(residuals(object));
             }
         }
 
@@ -7825,6 +7827,22 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                     yLower[] <- (yLower-1)*yForecast;
                     yUpper[] <-(yUpper-1)*yForecast;
                 }
+            }
+        }
+        # Empirical, based on specific quantiles
+        else if(interval=="empirical"){
+            for(i in 1:h){
+                yLower[i] <- quantile(adamErrors[,i],levelLow[i],na.rm=TRUE,type=7);
+                yUpper[i] <- quantile(adamErrors[,i],levelUp[i],na.rm=TRUE,type=7);
+            }
+
+            if(Etype=="M"){
+                yLower[] <- 1+yLower;
+                yUpper[] <- 1+yUpper;
+            }
+            else if(Etype=="A" & any(object$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm"))){
+                yLower[] <- yLower*yForecast;
+                yUpper[] <- yUpper*yForecast;
             }
         }
         # Use Taylor & Bunn approach for the nonparametric ones

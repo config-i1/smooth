@@ -10,7 +10,7 @@
 \usage{
 \method{forecast}{adam}(object, h = 10, newdata = NULL,
   occurrence = NULL, interval = c("none", "prediction", "confidence",
-  "simulated", "approximate", "semiparametric", "nonparametric"),
+  "simulated", "approximate", "semiparametric", "nonparametric", "empirical"),
   level = 0.95, side = c("both", "upper", "lower"), cumulative = FALSE,
   nsim = 10000, ...)
 
