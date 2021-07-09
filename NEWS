@@ -5,6 +5,8 @@ Bugfixes:
 * adam with pure regression would not do outliers selection.
 * Fix in adam() with half-hourly data.
 * empirical interval in forecast for adam(), which relies on quantiles of multistep forecast errors.
+* Fix in auto.adam() for ETS+ARIMA: the function would enforce drift, when it would not be needed.
+* Fix in rmultistep - it would not use the original profile and would result in ridiculous forecasts.
 
 
 smooth v3.1.2 (Release data: 2021-06-14)

@@ -6674,6 +6674,9 @@ rmultistep.adam <- function(object, h=10, ...){
     profilesRecentTable <- adamProfiles$recent;
     profilesObservedTable <- adamProfiles$observed;
 
+    # Fill in the profile
+    profilesRecentTable[,1:max(lagsModelAll)] <- t(object$states[1:max(lagsModelAll),,drop=FALSE]);
+
     # Return multi-step errors matrix
     if(any(yClasses=="ts")){
         return(ts(adamErrorerWrap(t(object$states), object$measurement, object$transition,
@@ -7418,7 +7421,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # Produce point forecasts for non-multiplicative trend / seasonality
     # Do this for cases, when h<=m as well and prediction /confidence / simulated interval
     if(Ttype!="M" && (Stype!="M" | (Stype=="M" & h<=lagsModelMin)) ||
-       any(interval==c("nonparametric","semiparametric","approximate"))){
+       any(interval==c("nonparametric","semiparametric","empirical","approximate"))){
         adamForecast <- adamForecasterWrap(matWt, matF,
                                            lagsModelAll, profilesObservedTable, profilesRecentTable,
                                            Etype, Ttype, Stype,
@@ -7664,7 +7667,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
         }
-        #### Semiparametric and nonparametric interval ####
+        #### Semiparametric, nonparametric and empirical interval ####
         # Extract multistep errors and calculate the covariance matrix
         else if(any(interval==c("semiparametric","nonparametric","empirical"))){
             if(h>1){
@@ -7832,8 +7835,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # Empirical, based on specific quantiles
         else if(interval=="empirical"){
             for(i in 1:h){
-                yLower[i] <- quantile(adamErrors[,i],levelLow[i],na.rm=TRUE,type=7);
-                yUpper[i] <- quantile(adamErrors[,i],levelUp[i],na.rm=TRUE,type=7);
+                yLower[i,] <- quantile(adamErrors[,i],levelLow[i,],na.rm=TRUE,type=7);
+                yUpper[i,] <- quantile(adamErrors[,i],levelUp[i,],na.rm=TRUE,type=7);
             }
 
             if(Etype=="M"){
