@@ -2383,9 +2383,38 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # This is not well motivated at the moment, but should make likelihood comparable, taking T instead of T-h
             logLikReturn[] <- logLikReturn / (obsInSample-h) * obsInSample;
 
-            # In case of multiplicative model, we assume log- distribution
+            # In case of multiplicative model, we assume a normal or similar distribution
             if(Etype=="M"){
-                logLikReturn[] <- logLikReturn - sum(log(yInSample));
+                # Fill in the matrices
+                adamElements <- filler(B,
+                                       etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                                       componentsNumberETS, componentsNumberETSNonSeasonal,
+                                       componentsNumberETSSeasonal, componentsNumberARIMA,
+                                       lags, lagsModel, lagsModelMax,
+                                       matVt, matWt, matF, vecG,
+                                       persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+                                       persistenceSeasonalEstimate, persistenceXregEstimate,
+                                       phiEstimate,
+                                       initialType, initialEstimate,
+                                       initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                                       initialArimaEstimate, initialXregEstimate,
+                                       arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+                                       arRequired, maRequired, armaParameters,
+                                       nonZeroARI, nonZeroMA, arimaPolynomials,
+                                       xregModel, xregNumber,
+                                       xregParametersMissing, xregParametersIncluded,
+                                       xregParametersEstimated, xregParametersPersistence, constantEstimate);
+
+                # Write down the initials in the recent profile
+                profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
+
+                # Fit the model again to extract the fitted values
+                adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
+                                             lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                             Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+                                             componentsNumberARIMA, xregNumber, constantRequired,
+                                             yInSample, ot, initialType=="backcasting");
+                logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
             return(logLikReturn);
