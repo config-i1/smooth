@@ -2452,31 +2452,48 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
                 # We have enough observations for trend model
                 if(obsNonzero > (5 + nParamExo)){
-                    modelsPool <- c(modelsPool,"AAN");
-                    if(allowMultiplicative){
+                    if(any(Ttype==c("Z","X","A"))){
+                        modelsPool <- c(modelsPool,"AAN");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
                         modelsPool <- c(modelsPool,"AMN","MAN","MMN");
                     }
                 }
                 # We have enough observations for damped trend model
                 if(obsNonzero > (6 + nParamExo)){
-                    modelsPool <- c(modelsPool,"AAdN");
-                    if(allowMultiplicative){
+                    if(any(Ttype==c("Z","X","A"))){
+                        modelsPool <- c(modelsPool,"AAdN");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","Y","M"))){
                         modelsPool <- c(modelsPool,"AMdN","MAdN","MMdN");
                     }
                 }
                 # We have enough observations for seasonal model
                 if((obsNonzero > (2*lagsModelMax)) && lagsModelMax!=1){
-                    modelsPool <- c(modelsPool,"ANA");
-                    if(allowMultiplicative){
+                    if(any(Stype==c("Z","X","A"))){
+                        modelsPool <- c(modelsPool,"ANA");
+                    }
+                    if(allowMultiplicative && any(Stype==c("Z","Y","M"))){
                         modelsPool <- c(modelsPool,"ANM","MNA","MNM");
                     }
                 }
                 # We have enough observations for seasonal model with trend
                 if((obsNonzero > (6 + lagsModelMax + nParamExo)) &&
                    (obsNonzero > 2*lagsModelMax) && lagsModelMax!=1){
-                    modelsPool <- c(modelsPool,"AAA");
-                    if(allowMultiplicative){
-                        modelsPool <- c(modelsPool,"AAM","AMA","AMM","MAA","MAM","MMA","MMM");
+                    if(any(Ttype==c("Z","X","A")) && any(Stype==c("Z","X","A"))){
+                        modelsPool <- c(modelsPool,"AAA");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","X","A")) && any(Stype==c("Z","Y","A"))){
+                        modelsPool <- c(modelsPool,"MAA");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","X","A")) && any(Stype==c("Z","Y","M"))){
+                        modelsPool <- c(modelsPool,"AAM","MAM");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","Y","M")) && any(Stype==c("Z","X","A"))){
+                        modelsPool <- c(modelsPool,"AMA","MMA");
+                    }
+                    if(allowMultiplicative && any(Ttype==c("Z","Y","M")) && any(Stype==c("Z","Y","M"))){
+                        modelsPool <- c(modelsPool,"AMM","MMM");
                     }
                 }
 
