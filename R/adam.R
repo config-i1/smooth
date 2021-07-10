@@ -2656,11 +2656,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(is.infinite(res$objective) || res$objective==1e+300){
             # If the optimisation didn't work, give it another try with zero initials for smoothing parameters
             if(etsModel){
-                B[1:sum(persistenceLevelEstimate,persistenceTrendEstimate,persistenceSeasonalEstimate)] <- 0;
+                B[1:componentsNumberETS] <- 0;
             }
             if(arimaModel){
-                B[sum(persistenceLevelEstimate,persistenceTrendEstimate,persistenceSeasonalEstimate,
-                    persistenceXregEstimate*xregNumber)+c(1:sum(arOrders*arEstimate,maOrders*maEstimate))] <- 0.01;
+                B[componentsNumberETS+persistenceXregEstimate*xregNumber+
+                      c(1:sum(arOrders*arEstimate,maOrders*maEstimate))] <- 0.01;
             }
             # print(B)
             res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
@@ -3826,29 +3826,29 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     }
     #### Selection of the best model ####
     else if(modelDo=="select"){
-        adamSelected <-  selector(model, modelsPool, allowMultiplicative,
-                                  etsModel, Etype, Ttype, Stype, damped, lags,
-                                  lagsModelSeasonal, lagsModelARIMA,
-                                  obsStates, obsInSample,
-                                  yInSample, persistence, persistenceEstimate,
-                                  persistenceLevel, persistenceLevelEstimate,
-                                  persistenceTrend, persistenceTrendEstimate,
-                                  persistenceSeasonal, persistenceSeasonalEstimate,
-                                  persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
-                                  phi, phiEstimate,
-                                  initialType, initialLevel, initialTrend, initialSeasonal,
-                                  initialArima, initialEstimate,
-                                  initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                  initialArimaEstimate, initialXregEstimate, initialXregProvided,
-                                  arimaModel, arRequired, iRequired, maRequired, armaParameters,
-                                  componentsNumberARIMA, componentsNamesARIMA,
-                                  xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
-                                  xregParametersMissing, xregParametersIncluded,
-                                  xregParametersEstimated, xregParametersPersistence,
-                                  constantRequired, constantEstimate, constantValue, constantName,
-                                  ot, otLogical, occurrenceModel, pFitted, ICFunction,
-                                  bounds, loss, lossFunction, distribution,
-                                  horizon, multisteps, other, otherParameterEstimate, lambda);
+        adamSelected <- selector(model, modelsPool, allowMultiplicative,
+                                 etsModel, Etype, Ttype, Stype, damped, lags,
+                                 lagsModelSeasonal, lagsModelARIMA,
+                                 obsStates, obsInSample,
+                                 yInSample, persistence, persistenceEstimate,
+                                 persistenceLevel, persistenceLevelEstimate,
+                                 persistenceTrend, persistenceTrendEstimate,
+                                 persistenceSeasonal, persistenceSeasonalEstimate,
+                                 persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
+                                 phi, phiEstimate,
+                                 initialType, initialLevel, initialTrend, initialSeasonal,
+                                 initialArima, initialEstimate,
+                                 initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+                                 initialArimaEstimate, initialXregEstimate, initialXregProvided,
+                                 arimaModel, arRequired, iRequired, maRequired, armaParameters,
+                                 componentsNumberARIMA, componentsNamesARIMA,
+                                 xregModel, xregModelInitials, xregData, xregNumber, xregNames, regressors,
+                                 xregParametersMissing, xregParametersIncluded,
+                                 xregParametersEstimated, xregParametersPersistence,
+                                 constantRequired, constantEstimate, constantValue, constantName,
+                                 ot, otLogical, occurrenceModel, pFitted, ICFunction,
+                                 bounds, loss, lossFunction, distribution,
+                                 horizon, multisteps, other, otherParameterEstimate, lambda);
 
         icSelection <- adamSelected$icSelection;
         # Take the parameters of the best model
