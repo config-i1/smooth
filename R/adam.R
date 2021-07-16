@@ -4606,6 +4606,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             class(modelReturned$models[[i]]) <- c("adam","smooth");
         }
 
+        names(modelReturned$models) <- names(adamSelected$icWeights);
+
         # Record the original name of the model.
         model[] <- modelOriginal;
         # Prepare the name of the model
