@@ -1082,6 +1082,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             warning("Only additive models are allowed for your data. Changing the selection mechanism.",
                     call.=FALSE);
         }
+        else if(!allowMultiplicative && any(c(Etype,Ttype,Stype)=="M")){
+            warning("Your data contains non-positive values, so the ETS(",model,") might break down.",
+                    call.=FALSE);
+        }
         else if(any(model==c("PPP","FFF")) && allowMultiplicative){
             model <- "ZZZ";
         }

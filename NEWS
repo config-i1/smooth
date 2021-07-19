@@ -3,6 +3,7 @@ smooth v3.1.3 (Release data: 2021-07-19)
 
 Changes:
 * adam() now gives names to the models in combinations for a simple access to them.
+* adam() now complains if the data is negative and a non-additive model is applied.
 
 Bugfixes:
 * adam with pure regression would not do outliers selection.
