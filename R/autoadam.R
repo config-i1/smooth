@@ -653,6 +653,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
 
             #### Additional checks for ARIMA(0,d,d) models ####
+            # Increase the pool of models with ARIMA(1,1,2) and similar?
             additionalModels <- NULL;
             # Form the table with IMA orders, where q=d
             if(any(maMax!=0) && any(iMax!=0)){
@@ -729,6 +730,13 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(IC(bestModel) >= ICOriginal){
                     bestModel <- testModelETS;
                 }
+            }
+
+            # Give the correct name to the response variable
+            bestModel$formula[[2]] <- as.name(responseName);
+            colnames(bestModel$data)[colnames(bestModel$data)=="data"] <- responseName;
+            if(holdoutOriginal){
+                colnames(bestModel$holdout)[colnames(bestModel$holdout)=="data"] <- responseName;
             }
 
             return(bestModel);

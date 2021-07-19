@@ -6462,7 +6462,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
             if(changeOrigin){
                 startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
             }
-            # This way we return the continuos sample, starting from the first observation
+            # This way we return the continuous sample, starting from the first observation
             return(startingIndex+indices);
         }
     }
