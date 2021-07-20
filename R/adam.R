@@ -3596,11 +3596,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             j[] <- j+1;
             initialEstimated[j] <- initialArimaEstimate;
-            if(initialArimaEstimate && initialType=="optimal"){
-                # initialValue[[j]] <- B[substr(names(B),1,10)=="ARIMAState"];
-                initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
-            }
-            else if(initialArimaEstimate && initialType=="backcasting"){
+            if(initialArimaEstimate){
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
             }
             else{
