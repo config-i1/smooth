@@ -303,6 +303,7 @@ the model,
 \item \code{lags} - the vector of lags used in the model construction,
 \item \code{lagsAll} - the vector of the internal lags used in the model,
 \item \code{profile} - the matrix with the profile used in the construction of the model,
+\item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process,
 \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA

@@ -1,4 +1,4 @@
-smooth v3.1.3 (Release data: 2021-07-19)
+smooth v3.1.3 (Release data: 2021-07-20)
 =======
 
 Changes:
@@ -15,6 +15,7 @@ Bugfixes:
 * Fix for GPL and other multistep losses in case of multiplicative models and default distributions.
 * An issue with forecast.adam() with combination, which would not have correct number of elements.
 * adam() now prints the correct name of response variable in auto.adam() ARIMA selection.
+* Fixed issues with initials and with initial profile in adam(), so that any model can now be properly reapplied, no matter what and would result in exactly the same fit. Previously, this would break for some types of ARIMA.
 
 
 smooth v3.1.2 (Release data: 2021-06-14)

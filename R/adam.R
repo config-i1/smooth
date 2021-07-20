@@ -320,6 +320,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{lags} - the vector of lags used in the model construction,
 #' \item \code{lagsAll} - the vector of the internal lags used in the model,
 #' \item \code{profile} - the matrix with the profile used in the construction of the model,
+#' \item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 #' \item \code{call} - the call used in the evaluation,
 #' \item \code{bounds} - the type of bounds used in the process,
 #' \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
@@ -425,7 +426,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         ellipsis$B <- model$B;
         CFValue <- model$lossValue;
         logLikADAMValue <- logLik(model);
-        profilesRecentTable <- t(model$states);
+        lagsModelAll <- modelLags(model);
+        # This needs to be fixed to align properly in case of various seasonals
+        profilesRecentTable <- model$profileInitial;
         profilesRecentProvided[] <- TRUE;
         regressors <- model$regressors;
         if(is.null(formula)){
@@ -1132,7 +1135,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                     if(modelIsSeasonal){
                         for(i in 1:componentsNumberETSSeasonal){
-                            matVt[j+i,(lagsModelMax-lagsModel[j+i])+1:lagsModel[j+i]] <- initialSeasonal[[i]];
+                            # This is misaligned, but that's okay, because this goes directly to profileRecent
+                            # matVt[j+i,(lagsModelMax-lagsModel[j+i])+1:lagsModel[j+i]] <- initialSeasonal[[i]];
+                            matVt[j+i,1:lagsModel[j+i]] <- initialSeasonal[[i]];
                         }
                     }
                     j <- j+componentsNumberETSSeasonal;
@@ -1184,6 +1189,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     # Insert the provided initials
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         initialArima[1:initialArimaNumber];
+
+                    # matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
+                    #     switch(Etype,
+                    #            "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(initialArima[1:initialArimaNumber]) /
+                    #                tail(arimaPolynomials$ariPolynomial,1),
+                    #            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(initialArima[1:initialArimaNumber])) /
+                    #                        tail(arimaPolynomials$ariPolynomial,1)));
 
                     # If only AR is needed, but provided or if both are needed, but provided
                     # if(((arRequired && !arEstimate) && !maRequired) ||
@@ -3421,6 +3433,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Write down the initials in the recent profile
         profilesRecentTable[] <- matVt[,1:lagsModelMax];
+        profilesRecentInitial <- matVt[,1:lagsModelMax, drop=FALSE];
 
         # Fit the model to the data
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
@@ -3534,7 +3547,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(etsModel){
             # Write down level, trend and seasonal
             for(i in 1:length(lagsModel)){
-                initialValueETS[[i]] <- tail(matVt[i,1:lagsModelMax],lagsModel[i]);
+                # In case of level / trend, we want to get the very first value
+                if(lagsModel[i]==1){
+                    initialValueETS[[i]] <- head(matVt[i,1:lagsModelMax],1);
+                }
+                # In cases of seasonal components, they should be at the end of the pre-heat period
+                else{
+                    initialValueETS[[i]] <- tail(matVt[i,1:lagsModelMax],lagsModel[i]);
+                }
             }
             j[] <- j+1;
             # Write down level in the final list
@@ -3577,7 +3597,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             j[] <- j+1;
             initialEstimated[j] <- initialArimaEstimate;
             if(initialArimaEstimate && initialType=="optimal"){
-                initialValue[[j]] <- B[substr(names(B),1,10)=="ARIMAState"];
+                # initialValue[[j]] <- B[substr(names(B),1,10)=="ARIMAState"];
+                initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
             }
             else if(initialArimaEstimate && initialType=="backcasting"){
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
@@ -3706,7 +3727,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         return(list(model=NA, timeElapsed=NA,
                     data=cbind(NA,xregData), holdout=NULL, fitted=yFitted, residuals=errors,
-                    forecast=yForecast, states=matVt, profile=profilesRecentTable,
+                    forecast=yForecast, states=matVt,
+                    profile=profilesRecentTable, profileInitial=profilesRecentInitial,
                     persistence=persistence, phi=phi, transition=matF,
                     measurement=matWt, initial=initialValue, initialType=initialType,
                     initialEstimated=initialEstimated, orders=orders, arma=armaParametersList,

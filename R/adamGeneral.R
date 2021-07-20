@@ -823,9 +823,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                             names(persistenceTrend) <- "beta";
                         }
                         if(Stype!="N" && length(persistence)>j){
-                            j <- j+1;
-                            persistenceSeasonal <- as.vector(persistence)[j];
+                            persistenceSeasonal <- as.vector(persistence)[j+c(1:length(lagsModelSeasonal))];
                             names(persistenceSeasonal) <- paste0("gamma",c(1:length(persistenceSeasonal)));
+                            j <- j+length(lagsModelSeasonal);
                         }
                     }
                     if(xregModel && length(persistence)>j){
