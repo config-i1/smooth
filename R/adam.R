@@ -7229,6 +7229,8 @@ plot.adam.predict <- function(x, ...){
 #' the assumed distribution of the error term. \code{interval="nonparametric"} uses
 #' Taylor & Bunn (1999) approach with quantile regressions. \code{interval="empirical"}
 #' constructs intervals based on empirical quantiles of multistep forecast errors.
+#' \code{interval="complete"} will call for \code{reforecast()} function and produce
+#' interval based on the uncertainty around the parameters of the model.
 #' Finally, \code{interval="confidence"} tries to generate the confidence intervals
 #' for the point forecast based on the \code{reforecast} method.
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
@@ -7246,14 +7248,14 @@ plot.adam.predict <- function(x, ...){
 forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                           interval=c("none", "prediction", "confidence", "simulated",
                                      "approximate", "semiparametric", "nonparametric",
-                                     "empirical"),
+                                     "empirical","complete"),
                           level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=10000, ...){
 
     ellipsis <- list(...);
 
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
                                         "nonparametric", "confidence", "parametric","prediction",
-                                        "empirical"));
+                                        "empirical","complete"));
     # If the horizon is zero, just construct fitted and potentially confidence interval thingy
     if(h<=0){
         if(all(interval!=c("none","confidence"))){
@@ -7273,6 +7275,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     if(interval=="parametric"){
         interval <- "prediction";
+    }
+    else if(interval=="complete"){
+        return(reforecast(object, h=h, newdata=newdata, occurrence=occurrence,
+                          interval="prediction", level=level, side=side, cumulative=cumulative,
+                          nsim=nsim, ...));
     }
     side <- match.arg(side);
 

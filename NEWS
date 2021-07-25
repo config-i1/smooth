@@ -1,9 +1,10 @@
-smooth v3.1.3 (Release data: 2021-07-20)
+smooth v3.1.3 (Release data: 2021-07-25)
 =======
 
 Changes:
 * adam() now gives names to the models in combinations for a simple access to them.
 * adam() now complains if the data is negative and a non-additive model is applied.
+* forecast.adam() now supports "empirical" and "complete" prediction intervals. The former rely on multistep forecast errors and uses their empirical quantiles. The latter is a shortcut for the prediction interval in the reforecast() function.
 
 Bugfixes:
 * adam with pure regression would not do outliers selection.
