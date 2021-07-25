@@ -12,7 +12,7 @@
   occurrence = NULL, interval = c("none", "prediction", "confidence",
   "simulated", "approximate", "semiparametric", "nonparametric", "empirical",
   "complete"), level = 0.95, side = c("both", "upper", "lower"),
-  cumulative = FALSE, nsim = 10000, ...)
+  cumulative = FALSE, nsim = NULL, ...)
 
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95,

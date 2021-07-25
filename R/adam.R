@@ -7249,7 +7249,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                           interval=c("none", "prediction", "confidence", "simulated",
                                      "approximate", "semiparametric", "nonparametric",
                                      "empirical","complete"),
-                          level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=10000, ...){
+                          level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=NULL, ...){
 
     ellipsis <- list(...);
 
@@ -7267,6 +7267,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     else{
         if(interval=="confidence"){
+            if(is.null(nsim)){
+                nsim <- 100;
+            }
             return(reforecast(object, h=h, newdata=newdata, occurrence=occurrence,
                               interval=interval, level=level, side=side, cumulative=cumulative,
                               nsim=nsim, ...));
@@ -7277,11 +7280,19 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         interval <- "prediction";
     }
     else if(interval=="complete"){
+        if(is.null(nsim)){
+            nsim <- 100;
+        }
         return(reforecast(object, h=h, newdata=newdata, occurrence=occurrence,
                           interval="prediction", level=level, side=side, cumulative=cumulative,
                           nsim=nsim, ...));
     }
     side <- match.arg(side);
+
+    # If nsim is null, set it to 10000
+    if(is.null(nsim)){
+        nsim <- 10000;
+    }
 
     # Model type
     model <- modelType(object);
