@@ -1770,9 +1770,27 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             j[] <- j+1;
             B[j] <- matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
             names(B)[j] <- constantName;
-            # B[j]*1.01 is needed to make sure that the bounds cover the initial value
-            Bu[j] <- max(abs(yInSample),B[j]*1.01);
-            Bl[j] <- -Bu[j];
+            if(etsModel || iOrders!=0){
+                if(Etype=="A"){
+                    Bu[j] <- quantile(diff(yInSample),0.6);
+                    Bl[j] <- -Bu[j];
+                }
+                else{
+                    Bu[j] <- exp(quantile(diff(log(yInSample)),0.6));
+                    Bl[j] <- exp(quantile(diff(log(yInSample)),0.4));
+                }
+            }
+            else{
+                if(Etype=="A"){
+                    # B[j]*1.01 is needed to make sure that the bounds cover the initial value
+                    Bu[j] <- max(abs(yInSample),B[j]*1.01);
+                    Bl[j] <- -Bu[j];
+                }
+                else{
+                    Bu[j] <- 1.5;
+                    Bl[j] <- 0.1;
+                }
+            }
         }
 
         # Add lambda if it is needed

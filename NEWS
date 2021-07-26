@@ -1,4 +1,4 @@
-smooth v3.1.3 (Release data: 2021-07-25)
+smooth v3.1.3 (Release data: 2021-07-26)
 =======
 
 Changes:
@@ -17,6 +17,7 @@ Bugfixes:
 * An issue with forecast.adam() with combination, which would not have correct number of elements.
 * adam() now prints the correct name of response variable in auto.adam() ARIMA selection.
 * Fixed issues with initials and with initial profile in adam(), so that any model can now be properly reapplied, no matter what and would result in exactly the same fit. Previously, this would break for some types of ARIMA.
+* Fixed ETS(M,*,*) with drift models. They now produce a proper trend.
 
 
 smooth v3.1.2 (Release data: 2021-06-14)

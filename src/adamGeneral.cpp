@@ -44,7 +44,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
         for (int i=0; i<lagsModelMax; i=i+1) {
             matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
-                           matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
+                           matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
         }
         // }
         ////// Run forward
@@ -66,9 +66,9 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
             /* # Transition equation */
             profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
-                           matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                           matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                 adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF, matrixWt.row(i-lagsModelMax), E, T, S,
-                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG, vecErrors(i-lagsModelMax));
+                           nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant, vectorG, vecErrors(i-lagsModelMax));
 
             matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
         }
@@ -99,17 +99,17 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
                 /* # Transition equation */
                 profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
-                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                               matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                                    adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF,
                                               matrixWt.row(i-lagsModelMax), E, T, S,
-                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, vectorG,
-                                              vecErrors(i-lagsModelMax));
+                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
+                                              vectorG, vecErrors(i-lagsModelMax));
             }
 
             // Fill in the head of the series
             for (int i=lagsModelMax-1; i>=0; i=i-1) {
                 profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
-                             matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
+                             matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
                 matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
             }
@@ -179,7 +179,7 @@ arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
                     nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
         profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
-                       matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
+                       matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
     }
 
     // return List::create(Named("matVt") = matrixVtnew, Named("yForecast") = vecYfor);
@@ -247,7 +247,7 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
     arma::mat matErrors(horizon, obs, arma::fill::zeros);
 
     // Fill in the head, similar to how it's done in the fitter
-    for (int i=0; i<lagsModelMax; i=i+1) {
+    for (unsigned int i=0; i<lagsModelMax; i=i+1) {
         profilesRecent(profilesObserved.col(i)) = matrixVt.col(i);
     }
 

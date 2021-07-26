@@ -30,7 +30,7 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
         for(unsigned int j=0; j<lagsModelMax; j=j+1) {
             arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(profilesObserved.col(j));
             arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)) = adamFvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)),
-                                      arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents);
+                                      arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
         }
         // Loop for the model construction
         for(unsigned int j=lagsModelMax; j<obs+lagsModelMax; j=j+1) {
@@ -56,10 +56,10 @@ List adamRefitter(arma::mat const &matrixYt, arma::mat const &matrixOt, arma::cu
             /* # Transition equation */
             arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)) =
             adamFvalue(arrayProfilesRecent.slice(i)(profilesObserved.col(j)),
-                       arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                       arrayF.slice(i), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                            adamGvalue(arrayProfilesRecent.slice(i).elem(profilesObserved.col(j)),
                                       arrayF.slice(i), arrayWt.slice(i).row(j-lagsModelMax), E, T, S,
-                                      nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents,
+                                      nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
                                       matrixG.col(i), vecErrors(j-lagsModelMax));
 
             arrayVt.slice(i).col(j) = arrayProfilesRecent.slice(i).elem(profilesObserved.col(j));
@@ -170,11 +170,11 @@ List adamReforecaster(arma::cube const &arrayErrors, arma::cube const &arrayOt,
                 /* # Transition equation */
                 arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)) =
                         (adamFvalue(arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)),
-                                    arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                                    arrayF.slice(k), E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                                         adamGvalue(arrayProfileRecent.slice(k).elem(profilesObserved.col(j-lagsModelMax)),
                                                    arrayF.slice(k), arrayWt.slice(k).row(j-lagsModelMax),
                                                    E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
-                                                   nComponents, matrixG.col(i),
+                                                   nComponents, constant, matrixG.col(i),
                                                    arrayErrors.slice(k)(j-lagsModelMax,i)));
             }
         }

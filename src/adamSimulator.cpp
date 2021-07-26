@@ -44,11 +44,11 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
 
             /* # Transition equation */
             profilesRecent(profilesObserved.col(j-lagsModelMax)) = (adamFvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents) +
+                                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
                                                     adamGvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
                                                                matrixF, matrixWt.row(j-lagsModelMax),
                                                                E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
-                                                               nComponents, matrixG.col(i),
+                                                               nComponents, constant, matrixG.col(i),
                                                                matrixErrors(j-lagsModelMax,i)));
 
             /* Failsafe for cases when unreasonable value for state vector was produced */

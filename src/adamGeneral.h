@@ -135,7 +135,7 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             char const E, char const T, char const S,
                             unsigned int const &nETS, unsigned int const &nNonSeasonal,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
-                            unsigned int const &nComponents){
+                            unsigned int const &nComponents, bool const &constant){
     arma::vec matrixVtnew = matrixVt;
 
     switch(T){
@@ -162,6 +162,11 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
             log(matrixVt.rows(nETS,nETS+nArima-1)));
     }
 
+    // If there is a constant, fix the first state of ETS(M,*,*)
+    if(constant && nETS>0 && E=='M'){
+        matrixVtnew.row(0) = (matrixVtnew.row(0)-matrixVt.row(nComponents-1)) % matrixVt.row(nComponents-1);
+    }
+
     return matrixVtnew;
 }
 
@@ -171,7 +176,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             unsigned int const &nETS, unsigned int const &nNonSeasonal,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
                             unsigned int const &nXreg, unsigned int const &nComponents,
-                            arma::vec const &vectorG, double const error){
+                            bool const &constant, arma::vec const &vectorG, double const error){
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){
@@ -306,7 +311,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     // If there are arima components, make sure that the g is correct for multiplicative error type
     if(nArima>0 && E=='M'){
         g.rows(nETS,nETS+nArima-1) =
-            adamFvalue(matrixVt, matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents).rows(nETS, nETS+nArima-1) %
+            adamFvalue(matrixVt, matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal,
+                       nArima, nComponents, constant).rows(nETS, nETS+nArima-1) %
             (exp(vectorG.rows(nETS,nETS+nArima-1)*log(1+error)) - 1);
     }
 
