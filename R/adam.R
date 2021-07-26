@@ -1776,7 +1776,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             j[] <- j+1;
             B[j] <- matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
             names(B)[j] <- constantName;
-            if(etsModel || iOrders!=0){
+            if(etsModel || sum(iOrders)!=0){
                 if(Etype=="A"){
                     Bu[j] <- quantile(diff(yInSample),0.6);
                     Bl[j] <- -Bu[j];
