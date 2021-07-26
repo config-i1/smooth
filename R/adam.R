@@ -1566,8 +1566,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     B[1:sum(persistenceEstimateVector)] <-
                         c(0.1,0.05,rep(0.11,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                 }
-                Bl[1:sum(persistenceEstimateVector)] <- rep(-5, sum(persistenceEstimateVector));
-                Bu[1:sum(persistenceEstimateVector)] <- rep(5, sum(persistenceEstimateVector));
+                if(bounds=="usual"){
+                    Bl[1:sum(persistenceEstimateVector)] <- rep(0, sum(persistenceEstimateVector));
+                    Bu[1:sum(persistenceEstimateVector)] <- rep(1, sum(persistenceEstimateVector));
+                }
+                else{
+                    Bl[1:sum(persistenceEstimateVector)] <- rep(-5, sum(persistenceEstimateVector));
+                    Bu[1:sum(persistenceEstimateVector)] <- rep(5, sum(persistenceEstimateVector));
+                }
                 # Names for B
                 if(persistenceLevelEstimate){
                     j[] <- j+1
