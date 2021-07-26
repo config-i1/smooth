@@ -1241,13 +1241,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(constantEstimate){
                     # Add the mean of data
                     if(sum(iOrders)==0 && !etsModel){
-                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <- mean(yInSample);
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <- mean(yInSample[otLogical]);
                     }
                     # Add first differences
                     else{
                         matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <- switch(Etype,
-                                                                                                 "A"=mean(diff(yInSample)),
-                                                                                                 "M"=exp(mean(diff(log(yInSample)))));
+                                                                                                 "A"=mean(diff(yInSample[otLogical])),
+                                                                                                 "M"=exp(mean(diff(log(yInSample[otLogical])))));
                     }
                 }
                 else{
@@ -1778,18 +1778,18 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             names(B)[j] <- constantName;
             if(etsModel || sum(iOrders)!=0){
                 if(Etype=="A"){
-                    Bu[j] <- quantile(diff(yInSample),0.6);
+                    Bu[j] <- quantile(diff(yInSample[otLogical]),0.6);
                     Bl[j] <- -Bu[j];
                 }
                 else{
-                    Bu[j] <- exp(quantile(diff(log(yInSample)),0.6));
-                    Bl[j] <- exp(quantile(diff(log(yInSample)),0.4));
+                    Bu[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.6));
+                    Bl[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.4));
                 }
             }
             else{
                 if(Etype=="A"){
                     # B[j]*1.01 is needed to make sure that the bounds cover the initial value
-                    Bu[j] <- max(abs(yInSample),B[j]*1.01);
+                    Bu[j] <- max(abs(yInSample[otLogical]),B[j]*1.01);
                     Bl[j] <- -Bu[j];
                 }
                 else{
@@ -2108,28 +2108,33 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
                 # Differential entropy for the logLik of occurrence model
                 if(occurrenceModel || any(!otLogical)){
-                    CFValue <- CFValue + switch(distribution,
-                                                "dnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5),
-                                                "dlnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5)-scale^2/2,
-                                                "dlogis" = obsZero*2,
-                                                "dlaplace" =,
-                                                "dllaplace" =,
-                                                "dalaplace" = obsZero*(1 + log(2*scale)),
-                                                "ds" =,
-                                                "dls" = obsZero*(2 + 2*log(2*scale)),
-                                                "dgnorm" =,
-                                                "dlgnorm" = obsZero*(1/other-log(other/(2*scale*gamma(1/other)))),
-                                                "dt" = obsZero*((scale+1)/2 *
-                                                                    (digamma((scale+1)/2)-digamma(scale/2)) +
-                                                                    log(sqrt(scale) * beta(scale/2,0.5))),
-                                                # "dinvgauss" = obsZero*(0.5*(log(pi/2)+1+suppressWarnings(log(scale)))));
-                                                # "dinvgauss" =0);
-                                                "dinvgauss" = 0.5*(obsZero*(log(pi/2)+1+suppressWarnings(log(scale)))-
-                                                                       sum(log(adamFitted$yFitted[!otLogical]))),
-                                                "dgamma" = obsZero*(1/scale + log(gamma(1/scale)) +
-                                                                        (1-1/scale)*digamma(1/scale)) +
-                                                    sum(log(scale*adamFitted$yFitted[!otLogical]))
-                                                );
+                    CFValueEntropy <- switch(distribution,
+                                             "dnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5),
+                                             "dlnorm" = obsZero*(log(sqrt(2*pi)*scale)+0.5)-scale^2/2,
+                                             "dlogis" = obsZero*2,
+                                             "dlaplace" =,
+                                             "dllaplace" =,
+                                             "dalaplace" = obsZero*(1 + log(2*scale)),
+                                             "ds" =,
+                                             "dls" = obsZero*(2 + 2*log(2*scale)),
+                                             "dgnorm" =,
+                                             "dlgnorm" = obsZero*(1/other-log(other/(2*scale*gamma(1/other)))),
+                                             "dt" = obsZero*((scale+1)/2 *
+                                                                 (digamma((scale+1)/2)-digamma(scale/2)) +
+                                                                 log(sqrt(scale) * beta(scale/2,0.5))),
+                                             # "dinvgauss" = obsZero*(0.5*(log(pi/2)+1+suppressWarnings(log(scale)))));
+                                             # "dinvgauss" =0);
+                                             "dinvgauss" = 0.5*(obsZero*(log(pi/2)+1+suppressWarnings(log(scale)))-
+                                                                    sum(log(adamFitted$yFitted[!otLogical]))),
+                                             "dgamma" = obsZero*(1/scale + log(gamma(1/scale)) +
+                                                                     (1-1/scale)*digamma(1/scale)) +
+                                                 sum(log(scale*adamFitted$yFitted[!otLogical]))
+                    );
+                    # If the entropy is NA or negative, then something is wrong. It shouldn't be!
+                    if(is.na(CFValueEntropy) || CFValueEntropy<0){
+                        CFValueEntropy <- Inf;
+                    }
+                    CFValue <- CFValue + CFValueEntropy;
                 }
             }
             else if(loss=="MSE"){

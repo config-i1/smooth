@@ -19,6 +19,7 @@ Bugfixes:
 * Fixed issues with initials and with initial profile in adam(), so that any model can now be properly reapplied, no matter what and would result in exactly the same fit. Previously, this would break for some types of ARIMA.
 * Fixed ETS(M,*,*) with drift models. They now produce a proper trend.
 * A fix in the bounds for the optimiser in case of bounds="usual" - should converge to optimal values faster.
+* A fix for the logLik calculation of occurrence model - accept only positive entropy. This needs further investigation, but for some reason makes sense.
 
 
 smooth v3.1.2 (Release data: 2021-06-14)
