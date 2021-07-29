@@ -418,6 +418,14 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # Add one for the level
     lags <- c(1,unique(lags[lags>1]));
 
+    # Warning if the lags length is higher than the sample size
+    if(max(lags) >= obsInSample){
+        warning("The maximum lags value is ", max(lags),
+                ", while the sample size is ", obsInSample,
+                ". I cannot guarantee that I'll be able to fit the model.",
+                call.=FALSE);
+    }
+
     #### ARIMA term ####
     # This should be available for pure models only
     if(is.list(orders)){
