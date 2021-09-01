@@ -529,6 +529,11 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         nParamMax <- 0;
     }
 
+    # Make sure that y is ts
+    if(!is.ts(y)){
+        y <- ts(y);
+    }
+
     ##### Lags and components for GUM #####
     if(smoothType=="gum"){
         if(any(is.complex(c(orders,lags)))){
