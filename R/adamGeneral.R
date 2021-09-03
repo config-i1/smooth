@@ -1,7 +1,7 @@
 parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=FALSE, arma,
                               outliers=c("ignore","use","select"), level=0.99,
                               persistence, phi, initial,
-                              distribution=c("default","dnorm","dlaplace","ds","dgnorm",
+                              distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
                                              "dlnorm","dinvgauss","dgamma"),
                               loss, h, holdout,occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","usual","admissible","none"),
