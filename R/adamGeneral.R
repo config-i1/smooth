@@ -675,7 +675,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
     if(!fast){
         #### Distribution selected ####
-        distribution <- match.arg(distribution);
+        distribution <- match.arg(distribution[1], c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
+                                                  "dlnorm","dinvgauss","dgamma"));
     }
 
     if(select){

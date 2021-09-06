@@ -33,9 +33,9 @@ The main philosophy of `adam()` function is to be agnostic of the provided data.
 In order to run the experiments in this vignette, we need to load the following packages:
 
 ```{r load_libraries, message=FALSE, warning=FALSE}
-require(Mcomp)
 require(greybox)
 require(smooth)
+require(Mcomp)
 ```
 
 ## ADAM ETS
