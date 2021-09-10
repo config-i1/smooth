@@ -1236,11 +1236,11 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
         }
 
         # Check the length of the provided data. Say bad words if:
-        # 1. Seasonal model, <=2 seasons of data and no initial seasonals.
-        # 2. Seasonal model, <=1 season of data, no initial seasonals and no persistence.
+        # 1. Seasonal model, <2 seasons of data and no initial seasonals.
+        # 2. Seasonal model, <1 season of data, no initial seasonals and no persistence.
         if(is.null(modelsPool)){
-            if((modelIsSeasonal & (obsInSample <= 2*dataFreq) & is.null(initialSeason)) |
-               (modelIsSeasonal & (obsInSample <= dataFreq) & is.null(initialSeason) & is.null(persistence))){
+            if((modelIsSeasonal & (obsInSample < 2*dataFreq) & is.null(initialSeason)) |
+               (modelIsSeasonal & (obsInSample < dataFreq) & is.null(initialSeason) & is.null(persistence))){
                 if(is.null(initialSeason)){
                     warning(paste0("Sorry, but we don't have enough observations for the seasonal model!\n",
                                    "Switching to non-seasonal."),call.=FALSE);
