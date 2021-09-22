@@ -1,14 +1,14 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "14 June 2021"
+date: "22 September 2021"
 output: html_document
 ---
 ## Version
-This is ``smooth`` package, v3.1.2.
+This is ``smooth`` package, v3.1.3.
 
 ## Test environments
-* local ubuntu 20.04.2, R 4.1.0
+* local ubuntu 20.04.2, R 4.1.1
 * github actions
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
@@ -26,11 +26,9 @@ checking installed package size ... NOTE
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.1.0
-- MacOS latest macOS Catalina 10.15.7 with R 4.1.0
-- Ubuntu 20.04 with R 4.1.0
-- Ubuntu 20.04 with R 4.0.5
-- Ubuntu 20.04 with R unstable 2021-06-09 r80471
+- Windows latest release with R 4.1.1
+- MacOS latest macOS Catalina 10.15.7 with R 4.1.1
+- Ubuntu 20.04.3 with R 4.1.1
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
@@ -40,9 +38,16 @@ This is expected, because doMC is not available for Windows.
 
 ## rhub checks
 ### Windows Server 2008 R2 SP1, R-devel, 32/64 bit
-> Error: Bioconductor does not yet build and check packages for R version 4.2;
+> * checking package dependencies ... ERROR
+> Package suggested but not available: 'doMC'
 
-This has nothing to do with the package
+This is expected from Windows Server - doMC is not available for that platform.
+
+### Debian Linux, R-devel, GCC ASAN/UBSAN
+> ERROR: dependency ‘httr’ is not available for package ‘texreg’
+
+Not clear why httr is not available. It is on CRAN.
+
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
