@@ -692,8 +692,6 @@ fitted.smooth.forecast <- function(object, ...){
 #' @aliases forecast forecast.smooth
 #' @param object Time series model for which forecasts are required.
 #' @param h Forecast horizon.
-#' @param interval Type of interval to construct. See \link[smooth]{es} for
-#' details.
 #' @param level Confidence level. Defines width of prediction interval.
 #' @param side Defines, whether to provide \code{"both"} sides of prediction
 #' interval or only \code{"upper"}, or \code{"lower"}.
