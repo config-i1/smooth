@@ -5884,7 +5884,7 @@ print.adamCombined <- function(x, digits=4, ...){
 }
 
 #### Coefficients ####
-#### The functions needed for confint and refit
+#### The functions needed for confint and reapply
 
 # The function inverts the measurement matrix, setting infinite values to zero
 # This is needed for the stability check for xreg models with regressors="adapt"
@@ -7078,9 +7078,9 @@ predict.adam <- function(object, newdata=NULL, interval=c("none", "confidence", 
                                "lower"=rep("Upper 100%",nLevels),
                                "upper"=paste0("Upper bound (",level*100,"%)"));
 
-    #### Call refit if this is confidence ####
+    #### Call reapply if this is confidence ####
     if(interval=="confidence"){
-        yFittedMatrix <- refit(object, ...);
+        yFittedMatrix <- reapply(object, ...);
         for(i in 1:obsInSample){
             yUpper[i] <- quantile(yFittedMatrix$refitted[i,], levelLow[i], na.rm=TRUE);
             yLower[i] <- quantile(yFittedMatrix$refitted[i,], levelUp[i], na.rm=TRUE);
@@ -8282,9 +8282,9 @@ plot.adam.forecast <- function(x, ...){
 
 
 #### Refitter and reforecaster ####
-#' Refit the model with randomly generated initial parameters and produce forecasts
+#' Reapply the model with randomly generated initial parameters and produce forecasts
 #'
-#' \code{refit} function generates the parameters based on the values in the provided
+#' \code{reapply} function generates the parameters based on the values in the provided
 #' object and then reapplies the same model with those parameters to the data, getting
 #' the fitted paths and updated states. \code{reforecast} function uses those values
 #' in order to produce forecasts for the \code{h} steps ahead.
@@ -8317,12 +8317,16 @@ plot.adam.forecast <- function(x, ...){
 #' inventory control systems.
 #' @param ... Other parameters passed to \code{mean()} function in case of
 #' \code{reforecast} (this mainly refers to \code{trim} variable, which is set to
-#' 0.01 by default) and to \code{vcov} in case of \code{refit}.
-#' @return \code{refit()} returns object of the class "refit", which contains:
+#' 0.01 by default) and to \code{vcov} in case of \code{reapply}.
+#' @return \code{reapply()} returns object of the class "reapply", which contains:
 #' \itemize{
+#' \item \code{timeElapsed} - Time elapsed for the code execution;
+#' \item \code{y} - The actual values;
 #' \item \code{states} - The array of states of the model;
-#' \item \code{fitted} - The matrix with fitted values, where columns correspond
+#' \item \code{refitted} - The matrix with fitted values, where columns correspond
 #' to different paths;
+#' \item \code{fitted} - The vector of fitted values (conditional mean);
+#' \item \code{model} - The name of the constructed model;
 #' \item \code{transition} - The array of transition matrices;
 #' \item \code{measurement} - The array of measurement matrices;
 #' \item \code{persistence} - The matrix of persistence vectors (paths in columns);
@@ -8332,7 +8336,7 @@ plot.adam.forecast <- function(x, ...){
 #' \code{reforecast()} returns the object of the class \link[smooth]{forecast.smooth},
 #' which contains in addition to the standard list the variable \code{paths} - all
 #' simulated trajectories with h in rows, simulated future paths for each state in
-#' columns and different states (obtained from \code{refit()} function) in the
+#' columns and different states (obtained from \code{reapply()} function) in the
 #' third dimension.
 #'
 #' @seealso \link[smooth]{forecast.smooth}
@@ -8342,26 +8346,26 @@ plot.adam.forecast <- function(x, ...){
 #'
 #' # Just as example. orders and lags do not return anything for ces() and es(). But modelType() does.
 #' ourModel <- adam(x, "ANN")
-#' refittedModel <- refit(ourModel, nsim=50)
+#' refittedModel <- reapply(ourModel, nsim=50)
 #' plot(refittedModel)
 #'
 #' ourForecast <- reforecast(ourModel, nsim=50)
 #'
-#' @rdname refit
-#' @export refit
-refit <- function(object, nsim=1000, bootstrap=FALSE, ...) UseMethod("refit")
+#' @rdname reapply
+#' @export reapply
+reapply <- function(object, nsim=1000, bootstrap=FALSE, ...) UseMethod("reapply")
 
 #' @export
-refit.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
+reapply.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
     warning(paste0("The method is not implemented for the object of the class ",class(object)[1]),
             call.=FALSE);
     return(structure(list(states=object$states, fitted=fitted(object)),
-                     class="refit"));
+                     class="reapply"));
 }
 
 #' @importFrom MASS mvrnorm
 #' @export
-refit.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
+reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
 
@@ -8928,17 +8932,17 @@ refit.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
 
-    return(structure(list(y=actuals(object), states=arrVt, refitted=fittedMatrix,
+    return(structure(list(timeElapsed=Sys.time()-startTime,
+                          y=actuals(object), states=arrVt, refitted=fittedMatrix,
                           fitted=fitted(object), model=object$model,
-                          timeElapsed=Sys.time()-startTime,
                           transition=arrF, measurement=arrWt, persistence=matG,
                           profile=profilesRecentArray),
-                     class="refit"));
+                     class="reapply"));
 }
 
 #' @importFrom grDevices rgb
 #' @export
-plot.refit <- function(x, ...){
+plot.reapply <- function(x, ...){
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
     nsim <- ncol(x$refitted);
@@ -8982,14 +8986,14 @@ plot.refit <- function(x, ...){
 }
 
 #' @export
-print.refit <- function(x, ...){
+print.reapply <- function(x, ...){
     nsim <- ncol(x$refitted);
     cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
     cat("\nModel refitted:",x$model);
     cat("\nNumber of simulation paths produced:",nsim);
 }
 
-#' @rdname refit
+#' @rdname reapply
 #' @export reforecast
 reforecast <- function(object, h=10, newdata=NULL, occurrence=NULL,
                        interval=c("prediction", "confidence", "none"),
@@ -9013,7 +9017,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("prediction", "confidence", "none"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                             nsim=100, bootstrap=FALSE, ...){
-    objectRefitted <- refit(object, nsim=nsim, bootstrap=bootstrap, ...);
+    objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, ...);
     ellipsis <- list(...);
 
     # If the trim is not provided, set it to 1%
