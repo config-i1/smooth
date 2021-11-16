@@ -1245,9 +1245,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                     # Add first differences
                     else{
-                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <- switch(Etype,
-                                                                                                 "A"=mean(diff(yInSample[otLogical])),
-                                                                                                 "M"=exp(mean(diff(log(yInSample[otLogical])))));
+                        matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,] <-
+                            switch(Etype,
+                                   "A"=mean(diff(yInSample[otLogical])),
+                                   "M"=exp(mean(diff(log(yInSample[otLogical])))));
                     }
                 }
                 else{
@@ -1787,15 +1788,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
             else{
-                if(Etype=="A"){
+                # if(Etype=="A"){
                     # B[j]*1.01 is needed to make sure that the bounds cover the initial value
                     Bu[j] <- max(abs(yInSample[otLogical]),B[j]*1.01);
                     Bl[j] <- -Bu[j];
-                }
-                else{
-                    Bu[j] <- 1.5;
-                    Bl[j] <- 0.1;
-                }
+                # }
+                # else{
+                #     Bu[j] <- 1.5;
+                #     Bl[j] <- 0.1;
+                # }
+                # If this is just a constant
             }
         }
 
