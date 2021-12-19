@@ -8,26 +8,26 @@
 adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
   formula = NULL, regressors = c("use", "select", "adapt"),
-  outliers = c("ignore", "use", "select"), level = 0.99,
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), distribution = c("default", "dnorm",
   "dlaplace", "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE, persistence = NULL,
+  "TMSE", "GTMSE", "MSCE"), outliers = c("ignore", "use", "select"),
+  level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
   phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
   "none"), silent = TRUE, ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
-  formula = NULL, outliers = c("ignore", "use", "select"), level = 0.99,
-  distribution = c("dnorm", "dlaplace", "ds", "dgnorm", "dlnorm",
-  "dinvgauss", "dgamma"), h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
+  formula = NULL, regressors = c("use", "select", "adapt"),
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
-  "inverse-odds-ratio", "direct"), ic = c("AICc", "AIC", "BIC", "BICc"),
-  bounds = c("usual", "admissible", "none"), regressors = c("use",
-  "select", "adapt"), silent = TRUE, parallel = FALSE, ...)
+  "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
+  "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"), outliers = c("ignore",
+  "use", "select"), level = 0.99, h = 0, holdout = FALSE,
+  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting"),
+  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
+  "admissible", "none"), silent = TRUE, parallel = FALSE, ...)
 }
 \arguments{
 \item{data}{Vector, containing data needed to be forecasted. If a matrix (or
@@ -112,13 +112,6 @@ variables:
 \code{"adapt"} will trigger the mechanism of time varying parameters for the
 explanatory variables.}
 
-\item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
-or detect and \code{"select"} those of them that reduce \code{ic} value.}
-
-\item{level}{What confidence level to use for detection of outliers. The default is 99\%. The specific
-bounds of confidence interval depend on the distribution used in the model.}
-
 \item{occurrence}{The type of model used in probability estimation. Can be
 \code{"none"} - none,
 \code{"fixed"} - constant probability,
@@ -173,6 +166,13 @@ example:
 \code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
 
 \code{loss=lossFunction}}
+
+\item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
+\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+or detect and \code{"select"} those of them that reduce \code{ic} value.}
+
+\item{level}{What confidence level to use for detection of outliers. The default is 99\%. The specific
+bounds of confidence interval depend on the distribution used in the model.}
 
 \item{h}{The forecast horizon. Mainly needed for the multistep loss functions.}
 

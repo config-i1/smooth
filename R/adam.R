@@ -364,11 +364,11 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @export adam
 adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
                  constant=FALSE, formula=NULL, regressors=c("use","select","adapt"),
-                 outliers=c("ignore","use","select"), level=0.99,
                  occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                  distribution=c("default","dnorm","dlaplace","ds","dgnorm",
                                 "dlnorm","dinvgauss","dgamma"),
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
+                 outliers=c("ignore","use","select"), level=0.99,
                  h=0, holdout=FALSE,
                  persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),

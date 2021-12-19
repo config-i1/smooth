@@ -15,14 +15,16 @@
 #' @rdname adam
 #' @importFrom stats update.formula
 #' @export
-auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
-                      formula=NULL, outliers=c("ignore","use","select"), level=0.99,
+auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
+                      orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
+                      formula=NULL, regressors=c("use","select","adapt"),
+                      occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                       distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
+                      outliers=c("ignore","use","select"), level=0.99,
                       h=0, holdout=FALSE,
                       persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
-                      occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
                       ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                      regressors=c("use","select","adapt"), silent=TRUE, parallel=FALSE, ...){
+                      silent=TRUE, parallel=FALSE, ...){
     # Copyright (C) 2020 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
