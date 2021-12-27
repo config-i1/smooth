@@ -6253,6 +6253,7 @@ summary.adam <- function(object, level=0.95, bootstrap=FALSE, ...){
     ourReturn$nParam <- object$nParam;
     ourReturn$call <- object$call;
     ourReturn$other <- object$other;
+    ourReturn$sigma <- sigma(object);
 
     if(object$loss=="likelihood" ||
        (any(object$loss==c("MSE","MSEh","MSCE")) & (object$distribution=="dnorm")) ||
@@ -6339,6 +6340,7 @@ print.summary.adam <- function(x, ...){
         cat("\nAll coefficients were provided");
     }
 
+    cat("\nError standard deviation:", round(x$sigma,digits));
     cat("\nSample size:", x$nobs);
     cat("\nNumber of estimated parameters:", x$nparam);
     cat("\nNumber of degrees of freedom:", x$nobs-x$nparam);
