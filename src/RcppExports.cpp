@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // adamFitterWrap
 RcppExport SEXP adamFitterWrap(NumericMatrix& matVt, NumericMatrix& matWt, NumericMatrix& matF, NumericMatrix& vecG, IntegerVector& lagsModelAll, IntegerMatrix& profilesObservedTable, NumericMatrix& profilesRecentTable, char& Etype, char& Ttype, char& Stype, unsigned int& componentsNumberETS, unsigned int& nSeasonal, unsigned int& nArima, unsigned int& nXreg, bool& constant, NumericMatrix& yInSample, NumericVector& ot, bool& backcast);
 RcppExport SEXP _smooth_adamFitterWrap(SEXP matVtSEXP, SEXP matWtSEXP, SEXP matFSEXP, SEXP vecGSEXP, SEXP lagsModelAllSEXP, SEXP profilesObservedTableSEXP, SEXP profilesRecentTableSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP yInSampleSEXP, SEXP otSEXP, SEXP backcastSEXP) {

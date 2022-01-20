@@ -64,7 +64,11 @@ interval or only \code{"upper"}, or \code{"lower"}.}
 interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{nsim}{Number of iterations to do in case of \code{interval="simulated"}.}
+\item{nsim}{Number of iterations to do in cases of \code{interval="simulated"},
+\code{interval="prediction"} (for mixed and multiplicative model),
+\code{interval="confidence"} and \code{interval="complete"}.
+The default value for the prediction / simulated interval is 1000. In case of
+confidence or complete intervals, this is set to 100.}
 
 \item{...}{Other arguments accepted by either \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}

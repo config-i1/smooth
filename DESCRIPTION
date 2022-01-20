@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 3.1.5.41001
-Date: 2021-12-27
+Version: 3.1.5.41003
+Date: 2021-01-20
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -19,7 +19,7 @@ Description: Functions implementing Single Source of Error state space models fo
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2),
-    greybox (>= 0.6.7)
+    greybox (>= 1.0.0)
 Imports:
     Rcpp (>= 0.12.3),
     stats,
@@ -42,6 +42,6 @@ Suggests:
     doParallel,
     foreach
 VignetteBuilder: knitr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Encoding: UTF-8
 Roxygen: list(old_usage = TRUE)

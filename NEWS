@@ -3,6 +3,7 @@ smooth v3.1.5 (Release data: 2021-12-27)
 
 Changes:
 * summary.adam now prints the standard deviation of the error term (sigma(ourModel)).
+* An explanation of the default nsim value in forecast.adam.
 
 
 smooth v3.1.4 (Release data: 2021-12-01)

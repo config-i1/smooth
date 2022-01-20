@@ -7250,7 +7250,11 @@ plot.adam.predict <- function(x, ...){
 
 # Work in progress...
 #' @param newdata The new data needed in order to produce forecasts.
-#' @param nsim Number of iterations to do in case of \code{interval="simulated"}.
+#' @param nsim Number of iterations to do in cases of \code{interval="simulated"},
+#' \code{interval="prediction"} (for mixed and multiplicative model),
+#' \code{interval="confidence"} and \code{interval="complete"}.
+#' The default value for the prediction / simulated interval is 1000. In case of
+#' confidence or complete intervals, this is set to 100.
 #' @param interval What type of mechanism to use for interval construction.
 #' For ADAM: the
 #' recommended option is \code{interval="prediction"}, which will use analytical
