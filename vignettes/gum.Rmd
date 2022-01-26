@@ -16,39 +16,34 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
 
 `gum()` constructs Generalised Exponential Smoothing - pure additive state-space model. It is a part of [smooth package](smooth.html).
 
-In this vignette we will use data from `Mcomp` package, so it is advised to install it.
-
 Let's load the necessary packages:
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
-require(Mcomp)
 ```
-
-You may note that `Mcomp` depends on `forecast` package and if you load both `forecast` and `smooth`, then you will have a message that `forecast()` function is masked from the environment. There is nothing to be worried about - `smooth` uses this function for consistency purposes and has exactly the same original `forecast()` as in the `forecast` package. The inclusion of this function in `smooth` was done only in order not to include `forecast` in dependencies of the package.
 
 Generalised Exponential Smoothing is a next step from CES. It is a state-space model in which all the matrices and vectors are estimated. It is very demanding in sample size, but is also insanely flexible.
 
-A simple call by default constructs GUM$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with monthly data N2457, we will have GUM$(1^1,1^{12})$:
+A simple call by default constructs GUM$(1^1,1^m)$, where $m$ is frequency of the data. So for our example with `AirPassengers` data, we will have GUM$(1^1,1^{12})$:
 
 ```{r gum_N2457}
-gum(M3$N2457$x, h=18, holdout=TRUE)
+gum(AirPassengers, h=18, holdout=TRUE)
 ```
 
 But some different orders and lags can be specified. For example:
 ```{r gum_N2457_2[1]_1[12]}
-gum(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
+gum(AirPassengers, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12))
 ```
 
 Function `auto.gum()` is now implemented in `smooth`, but it works slowly as it needs to check a large number of models:
 ```{r Autogum_N2457_1[1]}
-auto.gum(M3[[2457]], interval=TRUE, silent=FALSE)
+auto.gum(AirPassengers, interval=TRUE, silent=FALSE)
 ```
 
 In addition to standard values that other functions accept, GUM accepts predefined values for transition matrix, measurement and persistence vectors. For example, something more common can be passed to the function:
 ```{r gum_N2457_predefined}
 	transition <- matrix(c(1,0,0,1,1,0,0,0,1),3,3)
 	measurement <- c(1,1,1)
-	gum(M3$N2457$x, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12), transition=transition, measurement=measurement)
+	gum(AirPassengers, h=18, holdout=TRUE, orders=c(2,1), lags=c(1,12), transition=transition, measurement=measurement)
 ```
 
 The resulting model will be equivalent to ETS(A,A,A). However due to different initialisation of optimisers and different method of number of parameters calculation, `gum()` above and `es(y, "AAA", h=h, holdout=TRUE)` will lead to different models.

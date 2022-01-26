@@ -342,7 +342,7 @@ Gamma is used for the Multiplicative error models.
 \item \link[greybox]{dlaplace} - Laplace distribution,
 \item \link[greybox]{ds} - S distribution,
 \item \link[greybox]{dgnorm} - Generalised Normal distribution,
-\item \link[stats]{dlnorm} - Log normal distribution,
+\item \link[stats]{dlnorm} - Log-Normal distribution,
 \item \link[stats]{dgamma} - Gamma distribution,
 \item \link[statmod]{dinvgauss} - Inverse Gaussian distribution,
 }

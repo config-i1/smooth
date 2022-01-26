@@ -14,42 +14,41 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-This vignette covers `ces()` and `auto.ces()` functions, which are part of [smooth package](smooth.html). In this vignette we will use data from `Mcomp` package, so it is advised to install it.
+This vignette covers `ces()` and `auto.ces()` functions, which are part of [smooth package](smooth.html).
 
 Let's load the necessary packages:
 
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
-require(Mcomp)
 ```
 
 `ces()` function allows constructing Complex Exponential Smoothing either with no seasonality, or with simple / partial / full seasonality. A simple call for `ces()` results in estimation of non-seasonal model:
 
 For the same series from M3 dataset `ces()` can be constructed using:
 ```{r ces_N2457}
-ces(M3$N2457$x, h=18, holdout=TRUE, silent=FALSE)
+ces(BJsales, h=12, holdout=TRUE, silent=FALSE)
 ```
 
 This output is very similar to ones printed out by `es()` function. The only difference is complex smoothing parameter values which are printed out instead of persistence vector in `es()`.
 
 If we want automatic model selection, then we use `auto.ces()` function:
 ```{r auto_ces_N2457}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, interval="p", silent=FALSE)
+auto.ces(BJsales, h=12, holdout=TRUE, interval="p", silent=FALSE)
 ```
 
 Note that prediction interval are too narrow and do not include 95% of values. This is because CES is pure additive model and it cannot take into account possible heteroscedasticity.
 
 If for some reason we want to optimise initial values then we call:
 ```{r auto_ces_N2457_optimal}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, initial="o", interval="sp")
+auto.ces(BJsales, h=12, holdout=TRUE, initial="o", interval="sp")
 ```
 
 Now let's introduce some artificial exogenous variables:
 ```{r es_N2457_xreg_create}
-x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
+x <- cbind(rnorm(length(BJsales),50,3),rnorm(length(BJsales),100,7))
 ```
 
 `ces()` allows using exogenous variables and different types of prediction interval in exactly the same manner as `es()`:
 ```{r auto_ces_N2457_xreg_simple}
-auto.ces(M3$N2457$x, h=18, holdout=TRUE, xreg=x, xregDo="select", interval="p")
+auto.ces(BJsales, h=12, holdout=TRUE, xreg=x, xregDo="select", interval="p")
 ```

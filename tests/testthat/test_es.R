@@ -1,60 +1,60 @@
 context("Tests for es() function");
 
 # Basic ETS selection
-testModel <- es(Mcomp::M3$N1234$x, silent=TRUE);
-test_that("Test ETS selection on N1234$x", {
-    expect_match(testModel$model, "MMN");
+testModel <- es(BJsales, silent=TRUE);
+test_that("Test ETS selection on BJsales", {
+    expect_match(testModel$model, "AMdN");
 })
 
-test_that("Test damped-trend ETS on N1234$x", {
-    expect_equal(round(es(Mcomp::M3$N1234$x,model="AAdN", silent=TRUE)$phi,2), 0.96);
+test_that("Test damped-trend ETS on BJsales", {
+    expect_equal(round(es(BJsales,model="AAdN", silent=TRUE)$phi,2), 0.87);
 })
 
 # Reuse previous ETS
-test_that("Test on N1234$x, predefined ETS", {
-    expect_equal(es(Mcomp::M3$N1234$x, model=testModel, silent=TRUE)$cf, testModel$cf);
+test_that("Test on BJsales, predefined ETS", {
+    expect_equal(es(BJsales, model=testModel, silent=TRUE)$cf, testModel$cf);
 })
 
 # Test combinations of ETS
-test_that("Test ETS(CCC) with BIC on N2568$x", {
+test_that("Test ETS(CCC) with BIC on AirPassengers", {
     skip_on_cran
-    testModel <- es(Mcomp::M3$N2568$x, "CCC", silent=TRUE, ic="BIC");
+    testModel <- es(AirPassengers, "CCC", silent=TRUE, ic="BIC");
     expect_equal(testModel$s2, mean(testModel$residuals^2));
 })
 
 # Test model selection of non-multiplicative trend ETS
-test_that("Test ETS(MXM) with AIC on N2568$x", {
+test_that("Test ETS(MXM) with AIC on AirPassengers", {
     skip_on_cran()
-    testModel <- es(Mcomp::M3$N2568$x, "MXM", silent=TRUE, ic="AIC");
+    testModel <- es(AirPassengers, "MXM", silent=TRUE, ic="AIC");
     expect_match(testModel$loss, "likelihood");
 })
 
 # Test trace cost function for ETS
-testModel <- es(Mcomp::M3$N2568$x, model="MAdM", h=18, holdout=TRUE, silent=TRUE, interval=TRUE)
-test_that("Test AIC of ETS on N2568$x", {
+testModel <- es(AirPassengers, model="MAdM", h=18, holdout=TRUE, silent=TRUE, interval=TRUE)
+test_that("Test AIC of ETS on AirPassengers", {
     expect_equal(as.numeric(round(AIC(testModel),2)), as.numeric(round(testModel$ICs[1,"AIC"],2)));
 })
 
 # Test how different passed values are accepted by ETS
-test_that("Test initials, initialSeason and persistence of ETS on N2568$x", {
+test_that("Test initials, initialSeason and persistence of ETS on AirPassengers", {
     skip_on_cran()
-    expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
-    expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", persistence=testModel$persistence, silent=TRUE)$persistence, testModel$persistence);
-    expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", initialSeason=testModel$initialSeason, silent=TRUE)$initialSeason, testModel$initialSeason);
-    expect_equal(es(Mcomp::M3$N2568$x, model="MAdM", phi=testModel$phi, silent=TRUE)$phi, testModel$phi);
+    expect_equal(es(AirPassengers, model="MAdM", initial=testModel$initial, silent=TRUE)$initial, testModel$initial);
+    expect_equal(es(AirPassengers, model="MAdM", persistence=testModel$persistence, silent=TRUE)$persistence, testModel$persistence);
+    expect_equal(es(AirPassengers, model="MAdM", initialSeason=testModel$initialSeason, silent=TRUE)$initialSeason, testModel$initialSeason);
+    expect_equal(es(AirPassengers, model="MAdM", phi=testModel$phi, silent=TRUE)$phi, testModel$phi);
 })
 
-x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)));
-y <- ts(c(Mcomp::M3$N1457$x,Mcomp::M3$N1457$xx),frequency=12);
+x <- BJsales.lead;
+y <- BJsales;
 # Test selection of exogenous with ETS
-test_that("Select exogenous variables for ETS on N1457 with selection", {
+test_that("Use exogenous variables for ETS on BJsales", {
     skip_on_cran()
-    testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
+    testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="use")
     expect_equal(ncol(testModel$xreg),3);
 })
 
 # Test combination of ETS with exogenous selection
-test_that("Select exogenous variables for ETSX combined on N1457", {
+test_that("Select exogenous variables for ETSX combined on BJsales", {
     skip_on_cran()
     testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
     expect_match(testModel$model, "ETSX");

@@ -35,16 +35,16 @@ In order to run the experiments in this vignette, we need to load the following 
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(greybox)
 require(smooth)
-require(Mcomp)
 ```
 
 ## ADAM ETS
-First and foremost, ADAM implements ETS model, although in a more flexible way than [@Hyndman2008b]: it supports different distributions for the error term, which are regulated via `distribution` parameter. By default, the additive error model relies on Normal distribution, while the multiplicative error one assumes Inverse Gaussian. If you want to reproduce the classical ETS, you would need to specify `distribution="dnorm"`. Here is an example of ADAM ETS(MMM) with Normal distribution on a N2568 data from M3 competition (if you provide an `Mcomp` object, `adam()` will automatically set the train and test sets, the forecast horizon and even the needed lags):
+First and foremost, ADAM implements ETS model, although in a more flexible way than [@Hyndman2008b]: it supports different distributions for the error term, which are regulated via `distribution` parameter. By default, the additive error model relies on Normal distribution, while the multiplicative error one assumes Inverse Gaussian. If you want to reproduce the classical ETS, you would need to specify `distribution="dnorm"`. Here is an example of ADAM ETS(MMM) with Normal distribution on `AirPassengers` data:
 
 ```{r}
-testModel <- adam(M3[[2568]], "MMM", lags=c(1,12), distribution="dnorm")
+testModel <- adam(AirPassengers, "MMM", lags=c(1,12), distribution="dnorm",
+                  h=12, holdout=TRUE)
 summary(testModel)
-plot(forecast(testModel,h=18,interval="prediction"))
+plot(forecast(testModel,h=12,interval="prediction"))
 ```
 
 You might notice that the summary contains more than what is reported by other `smooth` functions. This one also produces standard errors for the estimated parameters based on Fisher Information calculation. Note that this is computationally expensive, so if you have a model with more than 30 variables, the calculation of standard errors might take plenty of time. As for the default `print()` method, it will produce a shorter summary from the model, without the standard errors (similar to what `es()` does):
@@ -68,13 +68,14 @@ par(mfcol=c(1,1))
 plot(testModel,which=12)
 ```
 
-By default ADAM will estimate models via maximising likelihood function. But there is also a parameter `loss`, which allows selecting from a list of already implemented loss functions (again, see documentation for `adam()` for the full list) or using a function written by a user. Here is how to do the latter on the example of another M3 series:
+By default ADAM will estimate models via maximising likelihood function. But there is also a parameter `loss`, which allows selecting from a list of already implemented loss functions (again, see documentation for `adam()` for the full list) or using a function written by a user. Here is how to do the latter on the example of `BJsales`:
 
 ```{r}
 lossFunction <- function(actual, fitted, B){
   return(sum(abs(actual-fitted)^3))
 }
-testModel <- adam(M3[[1234]], "AAN", silent=FALSE, loss=lossFunction)
+testModel <- adam(BJsales, "AAN", silent=FALSE, loss=lossFunction,
+                  h=12, holdout=TRUE)
 testModel
 ```
 
@@ -82,13 +83,15 @@ Note that you need to have parameters actual, fitted and B in the function, whic
 
 `loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can. Some of distributions assume that there is an additional parameter, which can either be estimated or provided by user. These include Asymmetric Laplace (`distribution="dalaplace"`) with `alpha`, Generalised Normal and Log-Generalised normal (`distribution=c("gnorm","dlgnorm")`) with `shape` and Student's T (`distribution="dt"`) with `nu`:
 ```{r}
-testModel <- adam(M3[[1234]], "MMN", silent=FALSE, distribution="dgnorm", shape=3)
+testModel <- adam(BJsales, "MMN", silent=FALSE, distribution="dgnorm", shape=3,
+                  h=12, holdout=TRUE)
 ```
 
 The model selection in ADAM ETS relies on information criteria and works correctly only for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
 
 ```{r}
-testModel <- adam(M3[[2568]], "ZXZ", lags=c(1,12), silent=FALSE)
+testModel <- adam(AirPassengers, "ZXZ", lags=c(1,12), silent=FALSE,
+                  h=12, holdout=TRUE)
 testModel
 ```
 
@@ -97,7 +100,8 @@ Note that the function produces point forecasts if `h>0`, but it won't generate 
 Similarly to `es()`, function supports combination of models, but it saves all the tested models in the output for a potential reuse. Here how it works:
 
 ```{r}
-testModel <- adam(M3[[2568]], "CXC", lags=c(1,12))
+testModel <- adam(AirPassengers, "CXC", lags=c(1,12),
+                  h=12, holdout=TRUE)
 testForecast <- forecast(testModel,h=18,interval="semiparametric", level=c(0.9,0.95))
 testForecast
 plot(testForecast)
@@ -220,8 +224,10 @@ testModel
 
 Finally, `adam()` is faster than `es()` function, because its code is more efficient and it uses a different optimisation algorithm with more finely tuned parameters by default. Let's compare:
 ```{r}
-adamModel <- adam(M3[[2568]], "CCC")
-esModel <- es(M3[[2568]], "CCC")
+adamModel <- adam(AirPassengers, "CCC",
+                  h=12, holdout=TRUE)
+esModel <- es(AirPassengers, "CCC",
+              h=12, holdout=TRUE)
 "adam:"
 adamModel
 "es():"
@@ -233,7 +239,8 @@ esModel
 As mentioned above, ADAM does not only contain ETS, it also contains ARIMA model, which is regulated via `orders` parameter. If you want to have a pure ARIMA, you need to switch off ETS, which is done via `model="NNN"`:
 
 ```{r}
-testModel <- adam(M3[[1234]], "NNN", silent=FALSE, orders=c(0,2,2))
+testModel <- adam(BJsales, "NNN", silent=FALSE, orders=c(0,2,2),
+                  h=12, holdout=TRUE)
 testModel
 ```
 
@@ -244,34 +251,38 @@ The functionality of ADAM ARIMA is similar to the one of `msarima` function in `
 First, changing the `distribution` parameter will allow switching between additive / multiplicative models. For example, `distribution="dlnorm"` will create an ARIMA, equivalent to the one on logarithms of the data:
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
-                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dlnorm")
+testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dlnorm",
+                  h=12, holdout=TRUE)
 testModel
 ```
 
 Second, if you want the model with intercept / drift, you can do it using `constant` parameter:
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12), constant=TRUE,
-                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm")
+testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12), constant=TRUE,
+                  orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm",
+                  h=12, holdout=TRUE)
 testModel
 ```
 
 If the model contains non-zero differences, then the constant acts as a drift. Third, you can specify parameters of ARIMA via the `arma` parameter in the following manner:
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
+testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm",
-                  arma=list(ar=c(0.1,0.1), ma=c(-0.96, 0.03, -0.12, 0.03)))
+                  arma=list(ar=c(0.1,0.1), ma=c(-0.96, 0.03, -0.12, 0.03)),
+                  h=12, holdout=TRUE)
 testModel
 ```
 
 Finally, the initials for the states can also be provided, although getting the correct ones might be a challenging task (you also need to know how many of them to provide; checking `testModel$initial` might help):
 
 ```{r}
-testModel <- adam(M3[[2568]], "NNN", silent=FALSE, lags=c(1,12),
+testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,0)), distribution="dnorm",
-                  initial=list(arima=M3[[2568]]$x[1:24]))
+                  initial=list(arima=AirPassengers[1:24]),
+                  h=12, holdout=TRUE)
 testModel
 ```
 
@@ -346,30 +357,34 @@ While the original `adam()` function allows selecting ETS components and explana
 In order to do the selection of the most appropriate distribution, you need to provide a vector of those that you want to check:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "XXX", silent=FALSE,
-                       distribution=c("dnorm","dlaplace","ds"))
+testModel <- auto.adam(BJsales, "XXX", silent=FALSE,
+                       distribution=c("dnorm","dlaplace","ds"),
+                       h=12, holdout=TRUE)
 testModel
 ```
 
 This process can also be done in parallel on either the automatically selected number of cores (e.g. `parallel=TRUE`) or on the specified by user (e.g. `parallel=4`):
 
 ```{r eval=FALSE, echo=TRUE}
-testModel <- auto.adam(M3[[1234]], "ZZZ", silent=FALSE, parallel=TRUE)
+testModel <- auto.adam(BJsales, "ZZZ", silent=FALSE, parallel=TRUE,
+                       h=12, holdout=TRUE)
 ```
 
 If you want to add ARIMA or regression components, you can do it in the exactly the same way as for the `adam()` function. Here is an example of ETS+ARIMA:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE,
-                       distribution=c("dnorm","dlaplace","ds","dgnorm"))
+testModel <- auto.adam(BJsales, "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE,
+                       distribution=c("dnorm","dlaplace","ds","dgnorm"),
+                       h=12, holdout=TRUE)
 testModel
 ```
 
 However, this way the function will just use ARIMA(2,2,2) and fit it together with ETS. If you want it to select the most appropriate ARIMA orders from the provided (e.g. up to AR(2), I(1) and MA(2)), you need to add parameter `select=TRUE` to the list in `orders`:
 
 ```{r}
-testModel <- auto.adam(M3[[1234]], "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE),
-                       distribution="default", silent=FALSE)
+testModel <- auto.adam(BJsales, "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE),
+                       distribution="default", silent=FALSE,
+                       h=12, holdout=TRUE)
 testModel
 ```
 
@@ -377,8 +392,9 @@ Knowing how to work with `adam()`, you can use similar principles, when dealing 
 
 Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of thw width `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
 ```{r}
-testModel <- auto.adam(Mcomp::M3[[2568]], "PPP", silent=FALSE, outliers="use",
-                       distribution="default")
+testModel <- auto.adam(AirPassengers, "PPP", silent=FALSE, outliers="use",
+                       distribution="default",
+                       h=12, holdout=TRUE)
 testModel
 ```
 

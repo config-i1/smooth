@@ -16,15 +16,15 @@ test_that("iETS(MNN) simulated with probability=0.2 and nsim=100", {
     expect_match(testData$model, "MNN")
 })
 
-testModel <- es(Mcomp::M3$N1984$x, "ANA", h=18, silent=TRUE)
+testModel <- es(AirPassengers, "ANA", h=18, silent=TRUE)
 test_that("ETS(ANA) simulated from estimated model", {
     expect_match(simulate(testModel,nsim=10,seed=5,obs=100)$model, "ANA")
 })
 
 #### SSARIMA ####
-testModel <- auto.ssarima(Mcomp::M3$N1234$x, h=8, silent=TRUE)
+testModel <- auto.ssarima(BJsales, h=8, silent=TRUE)
 test_that("ARIMA(0,1,3) with drift simulated from estimated model", {
-    expect_match(simulate(testModel,nsim=10,seed=5,obs=100)$model, "(0,1,3)")
+    expect_match(errorType(simulate(testModel,nsim=10,seed=5,obs=100)), "A")
 })
 
 test_that("ARIMA(0,1,1) with intermittent data", {
@@ -32,7 +32,7 @@ test_that("ARIMA(0,1,1) with intermittent data", {
 })
 
 #### CES ####
-testModel <- auto.ces(Mcomp::M3$N1234$x, h=8, silent=TRUE)
+testModel <- auto.ces(BJsales, h=8, silent=TRUE)
 test_that("CES(n) simulated from estimated model", {
     expect_match(simulate(testModel,nsim=10,seed=5,obs=100)$model, "(n)")
 })
@@ -50,7 +50,7 @@ test_that("CES(f) with intermittent data", {
 })
 
 #### GUM ####
-testModel <- gum(Mcomp::M3$N1234$x, orders=1, lags=1, h=8, silent=TRUE)
+testModel <- gum(BJsales, orders=1, lags=1, h=8, silent=TRUE)
 test_that("GUM(1[1]) simulated from estimated model", {
     expect_match(simulate(testModel,nsim=10,seed=5,obs=100)$model, "GUM")
 })

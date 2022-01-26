@@ -167,17 +167,15 @@ the resulting interval may be imprecise.
 }
 \examples{
 
-library(Mcomp)
-
-ourModel <- smoothCombine(M3[[578]],interval="p")
+ourModel <- smoothCombine(BJsales,interval="p")
 plot(ourModel)
 
 # models parameter accepts either previously estimated smoothCombine
 # or a manually formed list of smooth models estimated in sample:
-smoothCombine(M3[[578]],models=ourModel)
+smoothCombine(BJsales,models=ourModel)
 
-\dontrun{models <- list(es(M3[[578]]), sma(M3[[578]]))
-smoothCombine(M3[[578]],models=models)
+\dontrun{models <- list(es(BJsales), sma(BJsales))
+smoothCombine(BJsales,models=models)
 }
 
 }

@@ -110,14 +110,13 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
 #' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 #'
-#' ces(Mcomp::M3[[740]],h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
+#' ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 #'
-#' \donttest{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
-#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="p",interval="np")
-#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="f",interval="p")}
+#' \donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
+#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
+#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
 #'
-#' \donttest{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-#' ces(Mcomp::M3[[1457]],holdout=TRUE,interval="np",xreg=x,loss="TMSE")}
+#' \donttest{ces(BJsales,holdout=TRUE,interval="np",xreg=BJsales.lead,loss="TMSE")}
 #'
 #' @export ces
 ces <- function(y, seasonality=c("none","simple","partial","full"),
