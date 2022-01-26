@@ -8,6 +8,8 @@ output: html_document
 ## Version
 This is ``smooth`` package, v3.1.5.
 
+*I removed the example with smoothCombine() to resolve one of the notes on Windows*
+
 ## Test environments
 * local ubuntu 20.04.3, R 4.1.2
 * github actions
