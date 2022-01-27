@@ -1,3 +1,10 @@
+smooth v3.1.6 (Release data: 2022-01-27)
+=======
+
+Bugfixes:
+* Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
+
+
 smooth v3.1.5 (Release data: 2022-01-26)
 =======
 

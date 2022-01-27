@@ -879,7 +879,12 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
             if(vecYfit(i-lagsModelMax) > 1e+100){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                if(i-lagsModelMax==0){
+                    vecYfit(i-lagsModelMax) = 0;
+                }
+                else{
+                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                }
             }
 
             // If this is zero (intermittent), then set error to zero
@@ -891,9 +896,14 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             }
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
-            if(!vecYfit.row(i-lagsModelMax).is_finite()){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
-            }
+            // if(!vecYfit.row(i-lagsModelMax).is_finite()){
+            //     if(i-lagsModelMax==0){
+            //         vecYfit(i-lagsModelMax) = 0;
+            //     }
+            //     else{
+            //         vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            //     }
+            // }
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
