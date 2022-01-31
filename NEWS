@@ -1,5 +1,8 @@
-smooth v3.1.6 (Release data: 2022-01-27)
+smooth v3.1.6 (Release data: 2022-01-31)
 =======
+
+Changes:
+* Renamed nu into df in distribution="dt" of adam() for consistency with alm().
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
