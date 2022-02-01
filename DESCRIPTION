@@ -19,7 +19,7 @@ Description: Functions implementing Single Source of Error state space models fo
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2),
-    greybox (>= 1.0.0)
+    greybox (>= 1.0.4)
 Imports:
     Rcpp (>= 0.12.3),
     stats,
