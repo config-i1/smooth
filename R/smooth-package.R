@@ -82,27 +82,3 @@
 #' @importFrom greybox xregExpander stepwise qs qlaplace ps plaplace ds dlaplace graphmaker measures hm
 #' @useDynLib smooth
 NULL
-
-#' Vector exponential smoothing
-#'
-#' VES and related functions. These have been moved to legion package starting from smooth v3.1.0.
-#'
-#' @param ... parameters of the model
-#'
-#' @rdname ves
-#' @export
-ves <- function(...){
-    .Defunct("ves", package = "legion", "The function ves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
-}
-
-#' @rdname ves
-#' @export
-viss <- function(...){
-    .Defunct("oves", package = "legion", "The function oves() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
-}
-
-#' @rdname ves
-#' @export
-sim.ves <- function(...){
-    .Defunct("sim.ves", package = "legion", "The function viss() is no longer available in smooth. It has been moved to the package legion: https://github.com/config-i1/legion")
-}
