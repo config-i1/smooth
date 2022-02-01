@@ -277,7 +277,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' You can read more about these parameters by running the function
 #' \link[nloptr]{nloptr.print.options}.
 #' Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
-#' Laplace, \code{shape} for the Generalised Normal and \code{df} for Student's distributions
+#' Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 #' can be provided here as well.
 #'
 #' @return Object of class "adam" is returned. It contains the list of the
@@ -422,7 +422,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # parameters for distributions
         ellipsis$alpha <- model$other$alpha;
         ellipsis$shape <- model$other$shape;
-        ellipsis$df <- model$other$df;
+        ellipsis$nu <- model$other$nu;
         ellipsis$B <- model$B;
         CFValue <- model$lossValue;
         logLikADAMValue <- logLik(model);
@@ -3398,7 +3398,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     ##### Function uses residuals in order to determine the needed xreg #####
     xregSelector <- function(errors, xregData, ic, df, distribution, occurrence, other){
-        alpha <- shape <- df <- NULL;
+        alpha <- shape <- nu <- NULL;
         if(distribution=="dalaplace"){
             alpha <- other;
         }
@@ -3406,11 +3406,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             shape <- other;
         }
         else if(distribution=="dt"){
-            df <- other;
+            nu <- other;
         }
         stepwiseModel <- suppressWarnings(stepwise(cbind(as.data.frame(errors),xregData[1:obsInSample,,drop=FALSE]),
                                                    ic=ic, df=df, distribution=distribution, occurrence=occurrence, silent=TRUE,
-                                                   alpha=alpha, shape=shape));
+                                                   alpha=alpha, shape=shape, nu=nu));
         return(list(initialXreg=coef(stepwiseModel)[-1],other=stepwiseModel$other,formula=formula(stepwiseModel)));
     }
 
@@ -3717,7 +3717,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             names(otherReturned) <- "shape";
         }
         else if(any(distribution==c("dt"))){
-            names(otherReturned) <- "df";
+            names(otherReturned) <- "nu";
         }
         # LASSO / RIDGE lambda
         if(any(loss==c("LASSO","RIDGE"))){
@@ -5313,10 +5313,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Student's distribution";
             }
-            ellipsis$x <- qt(ppoints(500), df=x$other$df);
+            ellipsis$x <- qt(ppoints(500), df=x$other$nu);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qt(p, df=x$other$df));
+            qqline(ellipsis$y, distribution=function(p) qt(p, df=x$other$nu));
         }
         else if(x$distribution=="dalaplace"){
             if(!any(names(ellipsis)=="main")){
@@ -5732,7 +5732,7 @@ print.adam <- function(x, digits=4, ...){
                       "ds" = "S",
                       "dgnorm" = paste0("Generalised Normal with shape=",round(x$other$shape, digits)),
                       "dlogis" = "Logistic",
-                      "dt" = paste0("Student t with df=",round(x$other$df, digits)),
+                      "dt" = paste0("Student t with df=",round(x$other$nu, digits)),
                       "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$other$alpha,digits)),
                       "dlnorm" = "Log-Normal",
                       "dllaplace" = "Log-Laplace",
@@ -6301,7 +6301,7 @@ print.summary.adam <- function(x, ...){
                       "ds" = "S",
                       "dgnorm" = paste0("Generalised Normal with shape=",round(x$other$shape,digits)),
                       "dlogis" = "Logistic",
-                      "dt" = paste0("Student t with df=",round(x$other$df, digits)),
+                      "dt" = paste0("Student t with df=",round(x$other$nu, digits)),
                       "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$other$alpha,digits)),
                       "dlnorm" = "Log-Normal",
                       "dllaplace" = "Log-Laplace",
@@ -6480,7 +6480,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
     }
 
     if(any(object$distribution==c("dchisq","dt"))){
-        newCall$df <- object$other$df;
+        newCall$nu <- object$other$nu;
     }
     else if(object$distribution=="dalaplace"){
         newCall$alpha <- object$other$alpha;
@@ -8223,7 +8223,7 @@ plot.adam.forecast <- function(x, ...){
                           "ds" = "S",
                           "dgnorm" = paste0("Generalised Normal with shape=",round(x$model$other$shape,digits)),
                           "dalaplace" = paste0("Asymmetric Laplace with alpha=",round(x$model$other$alpha,digits)),
-                          "dt" = paste0("Student t with df=",round(x$model$other$df, digits)),
+                          "dt" = paste0("Student t with df=",round(x$model$other$nu, digits)),
                           "dlnorm" = "Log-Normal",
                           "dllaplace" = "Log-Laplace",
                           "dls" = "Log-S",
@@ -9529,7 +9529,7 @@ pointLik.adam <- function(object, ...){
     other <- switch(distribution,
                     "dalaplace"=object$other$alpha,
                     "dgnorm"=,"dlgnorm"=object$other$shape,
-                    "dt"=object$other$df);
+                    "dt"=object$other$nu);
     Etype <- errorType(object);
 
     likValues <- vector("numeric",obsInSample);

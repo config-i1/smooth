@@ -2824,15 +2824,15 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         names(other) <- "shape";
     }
     else if(distribution=="dt"){
-        if(is.null(ellipsis$df)){
+        if(is.null(ellipsis$nu)){
             other <- 2
             otherParameterEstimate <- TRUE;
         }
         else{
-            other <- ellipsis$df;
+            other <- ellipsis$nu;
             otherParameterEstimate <- FALSE;
         }
-        names(other) <- "df";
+        names(other) <- "nu";
     }
     # Fisher Information
     if(is.null(ellipsis$FI)){
