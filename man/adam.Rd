@@ -254,7 +254,7 @@ If equal to 41, then the detailed results of the optimisation are returned.
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
-Laplace, \code{shape} for the Generalised Normal and \code{df} for Student's distributions
+Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
 
 \item{parallel}{If TRUE, the estimation of ADAM models is done in parallel (used in \code{auto.adam} only).
