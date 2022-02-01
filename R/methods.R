@@ -724,7 +724,7 @@ fitted.smooth.forecast <- function(object, ...){
 #' plot(forecast(ourModel,h=10,interval=TRUE))
 #'
 #' @rdname forecast.smooth
-#' @importFrom greybox forecast
+#' @importFrom generics forecast
 #' @export
 forecast.smooth <- function(object, h=10,
                             interval=c("parametric","semiparametric","nonparametric","none"),

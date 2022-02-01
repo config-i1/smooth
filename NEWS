@@ -1,8 +1,9 @@
-smooth v3.1.6 (Release data: 2022-01-31)
+smooth v3.1.6 (Release data: 2022-02-01)
 =======
 
 Changes:
 * Renamed nu into df in distribution="dt" of adam() for consistency with alm().
+* We now import forecast from generics package, not from greybox.
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
