@@ -728,7 +728,12 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
         if(vecYfit(i-lagsModelMax) > 1e+100){
-            vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            if(i-lagsModelMax==0){
+                vecYfit(i-lagsModelMax) = 0;
+            }
+            else{
+                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            }
         }
 
         // If this is zero (intermittent), then set error to zero
@@ -977,7 +982,12 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
             // This is for cases of ridiculously high and ridiculously low values
             if(vecYfit(i-lagsModelMax) > 1e+100){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax+1);
+                if(i-lagsModelMax==obs+lagsModelMax){
+                    vecYfit(i-lagsModelMax) = 0;
+                }
+                else{
+                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                }
             }
 
             // If this is zero (intermittent), then set error to zero
