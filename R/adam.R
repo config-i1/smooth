@@ -7452,7 +7452,12 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                "Using the last available values as future ones."),
                         call.=FALSE);
                 newnRows <- h-nrow(newdata);
-                xreg <- rbind(newdata,matrix(rep(tail(newdata,1),each=newnRows),newnRows,ncol(newdata)));
+                xreg <- newdata[c(1:nrow(newdata),rep(nrow(newdata)),each=newnRows),];
+                # xreg <- rbind(newdata,
+                #               data.frame(matrix(rep(tail(newdata,1),each=newnRows),
+                #                                 newnRows,ncol(newdata),
+                #                                 dimnames=list(NULL,colnames(newdata))))
+                #               );
             }
             else if(nrow(newdata)>h){
                 warning(paste0("The newdata has ",nrow(newdata)," observations, while only ",h," are needed. ",
@@ -9264,7 +9269,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                "Using the last available values as future ones."),
                         call.=FALSE);
                 newnRows <- h-nrow(newdata);
-                xreg <- rbind(newdata,matrix(rep(tail(newdata,1),each=newnRows),newnRows,ncol(newdata)));
+                # xreg <- rbind(as.matrix(newdata),matrix(rep(tail(newdata,1),each=newnRows),newnRows,ncol(newdata)));
+                xreg <- newdata[c(1:nrow(newdata),rep(nrow(newdata)),each=newnRows),];
             }
             else if(nrow(newdata)>h){
                 warning(paste0("The newdata has ",nrow(newdata)," observations, while only ",h," are needed. ",

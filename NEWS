@@ -1,4 +1,4 @@
-smooth v3.1.6 (Release data: 2022-02-06)
+smooth v3.1.6 (Release data: 2022-02-07)
 =======
 
 Changes:
@@ -7,6 +7,7 @@ Changes:
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
+* A fix in forecast.adam(), which would not rbind the rows correctly in cases of nrow(newdata) < h.
 
 
 smooth v3.1.5 (Release data: 2022-01-26)
