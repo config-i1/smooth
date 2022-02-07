@@ -988,7 +988,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                     vecYfit(i-lagsModelMax) = 0;
                 }
                 else{
-                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax+1);
                 }
             }
 
