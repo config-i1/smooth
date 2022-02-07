@@ -357,7 +357,7 @@ nparam.smooth <- function(object, ...){
         return(NULL);
     }
     else{
-        return(object$nParam[1,4]);
+        return(object$nParam[1,ncol(object$nParam)]);
     }
 }
 

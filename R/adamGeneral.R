@@ -196,9 +196,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     # Number of parameters to estimate / provided
-    parametersNumber <- matrix(0,2,4,
+    parametersNumber <- matrix(0,2,5,
                                dimnames=list(c("Estimated","Provided"),
-                                             c("nParamInternal","nParamXreg","nParamOccurrence","nParamAll")));
+                                             c("nParamInternal","nParamXreg","nParamOccurrence","nParamScale","nParamAll")));
 
     #### Check what is used for the model ####
     if(!is.character(model)){

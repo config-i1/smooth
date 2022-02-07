@@ -614,14 +614,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         modelReturned$orders <- list(ar=0,i=0,ma=0);
         modelReturned$arma <- NULL;
         # Number of estimated parameters
-        parametersNumber <- matrix(0,2,4,
+        parametersNumber <- matrix(0,2,5,
                                    dimnames=list(c("Estimated","Provided"),
-                                                 c("nParamInternal","nParamXreg","nParamOccurrence","nParamAll")));
+                                                 c("nParamInternal","nParamXreg","nParamOccurrence","nParamScale","nParamAll")));
         parametersNumber[1,2] <- nParam;
         if(is.occurrence(checkerReturn$occurrence)){
             parametersNumber[1,3] <- nParam;
         }
-        parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
+        parametersNumber[1,5] <- sum(parametersNumber[1,1:3]);
         modelReturned$nParam <- parametersNumber;
         modelReturned$occurrence <- checkerReturn$occurrence;
         modelReturned$formula <- formula(checkerReturn);
@@ -1821,8 +1821,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                       "dlaplace"=sum(abs(errors))/obsInSample,
                       "ds"=sum(sqrt(abs(errors))) / (obsInSample*2),
                       "dgnorm"=(other*sum(abs(errors)^other)/obsInSample)^{1/other},
-                      "dlogis"=sqrt(sum(errors^2)/obsInSample * 3 / pi^2),
-                      "dt"=sqrt(sum(errors^2)/obsInSample),
+                      # "dlogis"=sqrt(sum(errors^2)/obsInSample * 3 / pi^2),
+                      # "dt"=sqrt(sum(errors^2)/obsInSample),
                       "dalaplace"=sum(errors*(other-(errors<=0)*1))/obsInSample,
                       # This condition guarantees that E(1+e_t)=1
                       # abs is needed for cases, when we get imaginary values - a failsafe
@@ -2065,22 +2065,22 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        "dgnorm"=switch(Etype,
                                                        "A"=dgnorm(q=yInSample[otLogical],mu=adamFitted$yFitted[otLogical],
                                                                   scale=scale, shape=other, log=TRUE),
-                                                       # Suppres Warnings is needed, because the check is done for scalar alpha
+                                                       # suppressWarnings is needed, because the check is done for scalar alpha
                                                        "M"=suppressWarnings(dgnorm(q=yInSample[otLogical],
                                                                                    mu=adamFitted$yFitted[otLogical],
                                                                                    scale=scale*(adamFitted$yFitted[otLogical])^other,
                                                                                    shape=other, log=TRUE))),
-                                       "dlogis"=switch(Etype,
-                                                       "A"=dlogis(x=yInSample[otLogical],
-                                                                  location=adamFitted$yFitted[otLogical],
-                                                                  scale=scale, log=TRUE),
-                                                       "M"=dlogis(x=yInSample[otLogical],
-                                                                  location=adamFitted$yFitted[otLogical],
-                                                                  scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
-                                       "dt"=switch(Etype,
-                                                   "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
-                                                   "M"=dt(adamFitted$errors[otLogical]*adamFitted$yFitted[otLogical],
-                                                          df=abs(other), log=TRUE)),
+                                       # "dlogis"=switch(Etype,
+                                       #                 "A"=dlogis(x=yInSample[otLogical],
+                                       #                            location=adamFitted$yFitted[otLogical],
+                                       #                            scale=scale, log=TRUE),
+                                       #                 "M"=dlogis(x=yInSample[otLogical],
+                                       #                            location=adamFitted$yFitted[otLogical],
+                                       #                            scale=scale*adamFitted$yFitted[otLogical], log=TRUE)),
+                                       # "dt"=switch(Etype,
+                                       #             "A"=dt(adamFitted$errors[otLogical], df=abs(other), log=TRUE),
+                                       #             "M"=dt(adamFitted$errors[otLogical]*adamFitted$yFitted[otLogical],
+                                       #                    df=abs(other), log=TRUE)),
                                        "dalaplace"=switch(Etype,
                                                           "A"=dalaplace(q=yInSample[otLogical],
                                                                         mu=adamFitted$yFitted[otLogical],
@@ -2849,7 +2849,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          componentsNumberARIMA, xregNumber, constantRequired,
                                          yInSample, ot, initialType=="backcasting");
 
-            # Extract the errors corrrectly
+            # Extract the errors correctly
             errors <- switch(distributionNew,
                              "dlnorm"=, "dllaplace"=, "dls"=,
                              "dlgnorm"=, "dinvgauss"=, "dgamma"=switch(Etype,
@@ -3750,7 +3750,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             matVt <- zoo(t(matVt), order.by=yStatesIndex);
         }
 
-        parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+        parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
 
         return(list(model=NA, timeElapsed=NA,
                     data=cbind(NA,xregData), holdout=NULL, fitted=yFitted, residuals=errors,
@@ -3899,8 +3899,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 max(xregParametersPersistence)*persistenceXregEstimate;
             parametersNumber[1,1] <- parametersNumber[1,1] - parametersNumber[1,2]
         }
-        parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
-        parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+        parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
+        parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
     }
     #### Selection of the best model ####
     else if(modelDo=="select"){
@@ -3968,8 +3968,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(xregModel){
             parametersNumber[1,2] <- xregNumber*initialXregEstimate + xregNumber*persistenceXregEstimate;
         }
-        parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
-        parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+        parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
+        parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
     }
     #### Combination of models ####
     else if(modelDo=="combine"){
@@ -4116,8 +4116,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(xregModel){
                 parametersNumber[1,2] <- xregNumber*initialXregEstimate + xregNumber*persistenceXregEstimate;
             }
-            parametersNumber[1,4] <- sum(parametersNumber[1,1:3]);
-            parametersNumber[2,4] <- sum(parametersNumber[2,1:3]);
+            parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
+            parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
 
             adamSelected$results[[i]]$parametersNumber <- parametersNumber;
         }
@@ -4211,7 +4211,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                       other=other, otherParameterEstimate=otherParameterEstimate, lambda=lambda,
                       arPolynomialMatrix=NULL, maPolynomialMatrix=NULL);
 
-        parametersNumber[1,1] <- parametersNumber[1,4] <- 1;
+        parametersNumber[1,1] <- parametersNumber[1,5] <- 1;
         logLikADAMValue <- structure(logLikADAM(B=0,
                                                 etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
                                                 ot, otLogical, occurrenceModel, pFitted, obsInSample,
@@ -4234,7 +4234,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 bounds, loss, lossFunction, distributionNew, horizon,
                                                 multisteps, denominator, yDenominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix=NULL, maPolynomialMatrix=NULL)
-                                     ,nobs=obsInSample,df=parametersNumber[1,4],class="logLik")
+                                     ,nobs=obsInSample,df=parametersNumber[1,5],class="logLik")
 
         icSelection <- ICFunction(logLikADAMValue);
         # If Fisher Information is required, do that analytically
@@ -4734,8 +4734,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             modelReturned$residuals[yNAValues[1:obsInSample]] <- NA;
         }
         modelReturned$forecast <- ts(yForecastCombined,start=yForecastStart, frequency=yFrequency);
-        parametersNumberOverall[1,4] <- sum(parametersNumberOverall[1,1:3]);
-        parametersNumberOverall[2,4] <- sum(parametersNumberOverall[2,1:3]);
+        parametersNumberOverall[1,5] <- sum(parametersNumberOverall[1,1:4]);
+        parametersNumberOverall[2,5] <- sum(parametersNumberOverall[2,1:4]);
         modelReturned$nParam <- parametersNumberOverall;
         modelReturned$ICw <- adamSelected$icWeights;
         # These two are needed just to make basic methods work
@@ -5239,73 +5239,73 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ plot of Log-Normal distribution";
             }
-            ellipsis$x <- qlnorm(ppoints(500), meanlog=0, sdlog=x$scale);
+            ellipsis$x <- qlnorm(ppoints(500), meanlog=-extractScale(x)^2/2, sdlog=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qlnorm(p, meanlog=0, sdlog=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qlnorm(p, meanlog=-extractScale(x)^2/2, sdlog=extractScale(x)));
         }
         else if(x$distribution=="dlaplace"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Laplace distribution";
             }
-            ellipsis$x <- qlaplace(ppoints(500), mu=0, scale=x$scale);
+            ellipsis$x <- qlaplace(ppoints(500), mu=0, scale=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qlaplace(p, mu=0, scale=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qlaplace(p, mu=0, scale=extractScale(x)));
         }
         else if(x$distribution=="dllaplace"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Log-Laplace distribution";
             }
-            ellipsis$x <- exp(qlaplace(ppoints(500), mu=0, scale=x$scale));
+            ellipsis$x <- exp(qlaplace(ppoints(500), mu=0, scale=extractScale(x)));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) exp(qlaplace(p, mu=0, scale=x$scale)));
+            qqline(ellipsis$y, distribution=function(p) exp(qlaplace(p, mu=0, scale=extractScale(x))));
         }
         else if(x$distribution=="ds"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of S distribution";
             }
-            ellipsis$x <- qs(ppoints(500), mu=0, scale=x$scale);
+            ellipsis$x <- qs(ppoints(500), mu=0, scale=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qs(p, mu=0, scale=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qs(p, mu=0, scale=extractScale(x)));
         }
         else if(x$distribution=="dls"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Log-S distribution";
             }
-            ellipsis$x <- exp(qs(ppoints(500), mu=0, scale=x$scale));
+            ellipsis$x <- exp(qs(ppoints(500), mu=0, scale=extractScale(x)));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) exp(qs(p, mu=0, scale=x$scale)));
+            qqline(ellipsis$y, distribution=function(p) exp(qs(p, mu=0, scale=extractScale(x))));
         }
         else if(x$distribution=="dgnorm"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- paste0("QQ-plot of Generalised Normal distribution with shape=",round(x$other$shape,3));
             }
-            ellipsis$x <- qgnorm(ppoints(500), mu=0, scale=x$scale, shape=x$other$shape);
+            ellipsis$x <- qgnorm(ppoints(500), mu=0, scale=extractScale(x), shape=x$other$shape);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qgnorm(p, mu=0, scale=x$scale, shape=x$other$shape));
+            qqline(ellipsis$y, distribution=function(p) qgnorm(p, mu=0, scale=extractScale(x), shape=x$other$shape));
         }
         else if(x$distribution=="dlgnorm"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- paste0("QQ-plot of Log-Generalised Normal distribution with shape=",round(x$other$shape,3));
             }
-            ellipsis$x <- exp(qgnorm(ppoints(500), mu=0, scale=x$scale, shape=x$other$shape));
+            ellipsis$x <- exp(qgnorm(ppoints(500), mu=0, scale=extractScale(x), shape=x$other$shape));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) exp(qgnorm(p, mu=0, scale=x$scale, shape=x$other$shape)));
+            qqline(ellipsis$y, distribution=function(p) exp(qgnorm(p, mu=0, scale=extractScale(x), shape=x$other$shape)));
         }
         else if(x$distribution=="dlogis"){
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Logistic distribution";
             }
-            ellipsis$x <- qlogis(ppoints(500), location=0, scale=x$scale);
+            ellipsis$x <- qlogis(ppoints(500), location=0, scale=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qlogis(p, location=0, scale=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qlogis(p, location=0, scale=extractScale(x)));
         }
         else if(x$distribution=="dt"){
             # Standardise residuals
@@ -5322,10 +5322,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- paste0("QQ-plot of Asymmetric Laplace with alpha=",round(x$other$alpha,3));
             }
-            ellipsis$x <- qalaplace(ppoints(500), mu=0, scale=x$scale, alpha=x$other$alpha);
+            ellipsis$x <- qalaplace(ppoints(500), mu=0, scale=extractScale(x), alpha=x$other$alpha);
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qalaplace(p, mu=0, scale=x$scale, alpha=x$other$alpha));
+            qqline(ellipsis$y, distribution=function(p) qalaplace(p, mu=0, scale=extractScale(x), alpha=x$other$alpha));
         }
         else if(x$distribution=="dinvgauss"){
             # Transform residuals for something meaningful
@@ -5333,10 +5333,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Inverse Gaussian distribution";
             }
-            ellipsis$x <- qinvgauss(ppoints(500), mean=1, dispersion=x$scale);
+            ellipsis$x <- qinvgauss(ppoints(500), mean=1, dispersion=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qinvgauss(p, mean=1, dispersion=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qinvgauss(p, mean=1, dispersion=extractScale(x)));
         }
         else if(x$distribution=="dgamma"){
             # Transform residuals for something meaningful
@@ -5344,10 +5344,10 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             if(!any(names(ellipsis)=="main")){
                 ellipsis$main <- "QQ-plot of Gamma distribution";
             }
-            ellipsis$x <- qgamma(ppoints(500), shape=1/x$scale, scale=x$scale);
+            ellipsis$x <- qgamma(ppoints(500), shape=1/extractScale(x), scale=extractScale(x));
 
             do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qgamma(p, shape=1/x$scale, scale=x$scale));
+            qqline(ellipsis$y, distribution=function(p) qgamma(p, shape=1/extractScale(x), scale=extractScale(x)));
         }
     }
 
@@ -5701,6 +5701,9 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
 #' @export
 print.adam <- function(x, digits=4, ...){
+    if(is.scale(x)){
+        cat("Scale Model\n");
+    }
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
 
