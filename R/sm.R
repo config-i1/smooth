@@ -15,6 +15,13 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     startTime <- Sys.time();
     distribution <- object$distribution;
 
+    # If one of the following is used, warn the user
+    # if(any(distribution==c("dgamma","dinvgauss"))){
+    #     warning("Please note that the scale model for Gamma and Inverse Gaussian distributions ",
+    #             "does not produce standardised residuals",
+    #             call.=FALSE);
+    # }
+
     if(is.null(data)){
         data <- object$data;
     }
@@ -263,11 +270,21 @@ sm.adam <- function(object, model="YYY", lags=NULL,
 
     #### This needs to be fixed ####
     adamModel$residuals[] <- switch(distribution,
+                                    # N(0, 1)
                                     "dnorm"=as.vector(residuals(object))/sqrt(fitted(adamModel)),
+                                    # Laplace(0, 1)
+                                    "dlaplace"=as.vector(residuals(object))/fitted(adamModel),
+                                    # S(0, 1)
                                     "ds"=as.vector(residuals(object))/fitted(adamModel)^2,
+                                    # GN(0, 1, beta)
                                     "dgnorm"=as.vector(residuals(object))/fitted(adamModel)^{1/other},
-                                    "dlnorm"=exp(log(as.vector(residuals(object)))/fitted(adamModel))-1,
+                                    # Make this logN(-1/2, 1)
+                                    "dlnorm"=exp((log(as.vector(residuals(object)))+fitted(adamModel)^2/2-0.5)/fitted(adamModel))-1,
+                                    # This becomes Gamma(sigma^-2, 1)
                                     "dgamma"=as.vector(residuals(object))/sqrt(fitted(adamModel))-1,
+                                    # IG(sigma^2, 1)
+                                    "dinvgauss"=as.vector(residuals(object))/fitted(adamModel),
+                                    # All the others
                                     as.vector(residuals(object))/fitted(adamModel));
 
     adamModel$loss <- "likelihood";
@@ -278,11 +295,6 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     class(adamModel) <- c("sm.adam","adam","smooth","scale");
 
     return(adamModel);
-}
-
-#' @export
-residuals.sm.adam <- function(object, ...){
-    return(object$residuals)
 }
 
 #' @export
