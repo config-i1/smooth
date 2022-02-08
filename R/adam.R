@@ -6197,7 +6197,7 @@ sigma.adam <- function(object, ...){
                        "dlnorm"=,
                        "dllaplace"=,
                        "dls"=sum(log(residuals(object))^2,na.rm=TRUE),
-                       "dlgnorm"=sum(log(residuals(object)-object$scale^2/2)^2,na.rm=TRUE),
+                       "dlgnorm"=sum(log(residuals(object)-extractScale(object)^2/2)^2,na.rm=TRUE),
                        "dinvgauss"=,
                        "dgamma"=sum((residuals(object)-1)^2,na.rm=TRUE)
                        )
@@ -6799,36 +6799,36 @@ rstandard.adam <- function(model, ...){
     }
 
     if(any(model$distribution==c("dt","dnorm"))){
-        return((errors - mean(errors[residsToGo])) / sqrt(model$scale^2 * obs / df));
+        return((errors - mean(errors[residsToGo])) / sqrt(extractScale(model)^2 * obs / df));
     }
     else if(model$distribution=="ds"){
-        return((errors - mean(errors[residsToGo])) / (model$scale * obs / df)^2);
+        return((errors - mean(errors[residsToGo])) / (extractScale(model) * obs / df)^2);
     }
     else if(model$distribution=="dls"){
         errors[] <- log(errors);
-        return(exp((errors - mean(errors[residsToGo])) / (model$scale * obs / df)^2));
+        return(exp((errors - mean(errors[residsToGo])) / (extractScale(model) * obs / df)^2));
     }
     else if(model$distribution=="dgnorm"){
-        return((errors - mean(errors[residsToGo])) / (model$scale^model$other$shape * obs / df)^{1/model$other$shape});
+        return((errors - mean(errors[residsToGo])) / (extractScale(model)^model$other$shape * obs / df)^{1/model$other$shape});
     }
     else if(model$distribution=="dlgnorm"){
         errors[] <- log(errors);
-        return(exp((errors - mean(errors[residsToGo])) / (model$scale^model$other$shape * obs / df)^{1/model$other$shape}));
+        return(exp((errors - mean(errors[residsToGo])) / (extractScale(model)^model$other$shape * obs / df)^{1/model$other$shape}));
     }
     else if(any(model$distribution==c("dinvgauss","dgamma"))){
         return(errors / mean(errors[residsToGo]));
     }
     else if(model$distribution=="dlnorm"){
         # Debias the residuals
-        errors[] <- log(errors) + model$scale^2/2;
-        return(exp((errors - mean(errors[residsToGo])) / sqrt(model$scale^2 * obs / df)));
+        errors[] <- log(errors) + extractScale(model)^2/2;
+        return(exp((errors - mean(errors[residsToGo])) / sqrt(extractScale(model)^2 * obs / df)));
     }
     else if(model$distribution=="dllaplace"){
         errors[] <- log(errors);
-        return(exp((errors - mean(errors[residsToGo])) / model$scale * obs / df));
+        return(exp((errors - mean(errors[residsToGo])) / extractScale(model) * obs / df));
     }
     else{
-        return(errors / model$scale * obs / df);
+        return(errors / extractScale(model) * obs / df);
     }
 }
 
@@ -6859,7 +6859,7 @@ rstudent.adam <- function(model, ...){
         }
     }
     else if(model$distribution=="dlnorm"){
-        errors[] <- log(errors) - mean(log(errors)) - model$scale^2/2;
+        errors[] <- log(errors) - mean(log(errors)) - extractScale(model)^2/2;
         for(i in residsToGo){
             rstudentised[i] <- exp(errors[i] / sqrt(sum(errors[-i]^2,na.rm=TRUE) / df));
         }
@@ -6936,9 +6936,9 @@ outlierdummy.adam <- function(object, level=0.999, type=c("rstandard","rstudent"
                         "dls"=qs(c((1-level)/2, (1+level)/2), 0, 1),
                         # In the next one, the scale is debiased, taking n-k into account
                         "dinvgauss"=qinvgauss(c((1-level)/2, (1+level)/2), mean=1,
-                                              dispersion=object$scale * nobs(object) /
+                                              dispersion=extractScale(object) * nobs(object) /
                                                   (nobs(object)-nparam(object))),
-                        "dgamma"=qgamma(c((1-level)/2, (1+level)/2), shape=1/object$scale, scale=object$scale),
+                        "dgamma"=qgamma(c((1-level)/2, (1+level)/2), shape=1/extractScale(object), scale=extractScale(object)),
                         qnorm(c((1-level)/2, (1+level)/2), 0, 1));
     if(any(object$distribution==c("dlnorm","dllaplace","dls","dlgnorm"))){
         errors[] <- log(errors);
@@ -7680,7 +7680,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                                          sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
                                                                   (object$other$alpha^2+(1-object$other$alpha)^2)),
                                                          object$other$alpha),
-                                   "dlnorm"=rlnorm(h*nsim, -object$scale^2/2, object$scale)-1,
+                                   "dlnorm"=rlnorm(h*nsim, -extractScale(object)^2/2, extractScale(object))-1,
                                    "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=sigmaValue^2)-1,
                                    "dgamma"=rgamma(h*nsim, shape=sigmaValue^{-2}, scale=sigmaValue^2)-1,
                                    "dllaplace"=exp(rlaplace(h*nsim, 0, sigmaValue/2))-1,
@@ -9344,7 +9344,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                                     sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
                                                              (object$other$alpha^2+(1-object$other$alpha)^2)),
                                                     object$other$alpha),
-                              "dlnorm"=rlnorm(h*nsim^2, -object$scale^2/2, object$scale)-1,
+                              "dlnorm"=rlnorm(h*nsim^2, -extractScale(object)^2/2, extractScale(object))-1,
                               "dinvgauss"=rinvgauss(h*nsim^2, 1, dispersion=sigmaValue^2)-1,
                               "dgamma"=rgamma(h*nsim^2, shape=sigmaValue^{-2}, scale=sigmaValue^2)-1,
                               "dllaplace"=exp(rlaplace(h*nsim^2, 0, sigmaValue/2))-1,
@@ -9534,7 +9534,7 @@ pointLik.adam <- function(object, ...){
         otLogical <- rep(TRUE, obsInSample);
         yFitted <- fitted(object);
     }
-    scale <- object$scale;
+    scale <- extractScale(object);
     other <- switch(distribution,
                     "dalaplace"=object$other$alpha,
                     "dgnorm"=,"dlgnorm"=object$other$shape,
