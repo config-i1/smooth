@@ -1502,6 +1502,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         distribution <- "dgnorm";
                         Etype <- "M";
                     }
+                    # This is needed to see if trend was asked explicitly. If not, we add it to get rid of bias
                     trendIncluded <- any(colnames(xregData)[-1]=="trend");
                     formulaIsAbsent <- is.null(formulaToUse);
                     formulaOriginal <- formulaToUse;
@@ -1529,11 +1530,22 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     else{
                         # If formula only contains ".", then just change it
                         if(length(all.vars(formulaToUse))==2 && all.vars(formulaToUse)[2]=="."){
-                            if(trendIncluded){
-                                formulaToUse <- as.formula(paste0("log(`",responseName,"`)~."));
+                            # Take logs if the model requires that
+                            if((Etype=="M" && any(distribution==c("dnorm","dlaplace","ds","dgnorm","dlogis","dt","dalaplace")))){
+                                if(trendIncluded){
+                                    formulaToUse <- as.formula(paste0("log(`",responseName,"`)~."));
+                                }
+                                else{
+                                    formulaToUse <- as.formula(paste0("log(`",responseName,"`)~.+trend"));
+                                }
                             }
                             else{
-                                formulaToUse <- as.formula(paste0("log(`",responseName,"`)~.+trend"));
+                                if(trendIncluded){
+                                    formulaToUse <- as.formula(paste0(responseName,"~."));
+                                }
+                                else{
+                                    formulaToUse <- as.formula(paste0(responseName,"~.+trend"));
+                                }
                             }
                         }
                         else{

@@ -1,13 +1,15 @@
-smooth v3.1.6 (Release data: 2022-02-07)
+smooth v3.1.6 (Release data: 2022-02-09)
 =======
 
 Changes:
 * Renamed nu into df in distribution="dt" of adam() for consistency with alm().
 * We now import forecast from generics package, not from greybox.
+* sm() method for adam. This supports scale model via ETS / ARIMA / Regression. Work in progress.
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
 * A fix in forecast.adam(), which would not rbind the rows correctly in cases of nrow(newdata) < h.
+* A fix in ADAMX for exotic cases, where log(y) was used in alm() (for parameters initialisation), when it shouldn't have.
 
 
 smooth v3.1.5 (Release data: 2022-01-26)
