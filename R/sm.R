@@ -74,7 +74,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
 
     #### The custom loss function to estimate parameters of the model ####
     lossFunction <- function(actual,fitted,B){
-        if(logARIMASM){
+        if(logModelSM){
             fitted[] <- exp(fitted);
         }
         CFValue <- -sum(switch(distribution,
@@ -255,11 +255,11 @@ sm.adam <- function(object, model="YYY", lags=NULL,
        any(distribution==c("dnorm","dlaplace","ds","dgnorm"))){
         warning("This type of model can only be applied to the data in logarithms",
                 call.=FALSE);
-        logARIMASM <- TRUE;
+        logModelSM <- TRUE;
         newCall$data[,responseName] <- log(newCall$data[,responseName]);
     }
     else{
-        logARIMASM <- FALSE;
+        logModelSM <- FALSE;
     }
 
     newCall$h <- h;
@@ -287,7 +287,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     adamModel$nParam[,5] <- rowSums(adamModel$nParam[,1:4]);
 
     # Fix fitted and forecast if logARIMA was used
-    if(logARIMASM){
+    if(logModelSM){
         adamModel$fitted <- exp(adamModel$fitted);
         adamModel$forecast <- exp(adamModel$forecast);
         adamModel$data[,responseName] <- exp(adamModel$data[,responseName]);
