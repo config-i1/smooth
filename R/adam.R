@@ -7669,6 +7669,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         # If scale model is included, produce forecasts
         if(is.scale(object$scale)){
             sigmaValue <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
+            # !!!Transform scale into the variance here!!!
         }
         else{
             sigmaValue <- sigma(object);
