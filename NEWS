@@ -4,7 +4,8 @@ smooth v3.1.6 (Release data: 2022-02-09)
 Changes:
 * Renamed nu into df in distribution="dt" of adam() for consistency with alm().
 * We now import forecast from generics package, not from greybox.
-* sm() method for adam. This supports scale model via ETS / ARIMA / Regression. Work in progress.
+* sm() method for adam. This supports scale model via ETS / ARIMA / Regression.
+* forecast.adam() is now tuned to work with sm.adam() output.
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.

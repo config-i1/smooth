@@ -8109,6 +8109,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                    "upper"=paste0("Upper bound (",level*100,"%)"));
     }
 
+    # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
+    if(any(unlist(gregexpr("in logs",object$model))!=-1)){
+        yForecast[] <- exp(yForecast);
+        yLower[] <- exp(yLower);
+        yUpper[] <- exp(yUpper);
+    }
+
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                           level=level, interval=interval, side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
@@ -8948,6 +8955,11 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
     fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
     profilesRecentArray[] <- adamRefitted$profilesRecent;
 
+    # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
+    if(any(unlist(gregexpr("in logs",object$model))!=-1)){
+        fittedMatrix[] <- exp(fittedMatrix);
+    }
+
     return(structure(list(timeElapsed=Sys.time()-startTime,
                           y=actuals(object), states=arrVt, refitted=fittedMatrix,
                           fitted=fitted(object), model=object$model,
@@ -9470,6 +9482,13 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     else{
         yUpper[] <- yLower[] <- NA;
+    }
+
+    # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
+    if(any(unlist(gregexpr("in logs",object$model))!=-1)){
+        yForecast[] <- exp(yForecast);
+        yLower[] <- exp(yLower);
+        yUpper[] <- exp(yUpper);
     }
 
     structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
