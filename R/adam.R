@@ -7666,7 +7666,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(interval=="simulated"){
         arrVt <- array(NA, c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, h+lagsModelMax, nsim));
         arrVt[,1:lagsModelMax,] <- rep(matVt,nsim);
-        sigmaValue <- sigma(object);
+        # If scale model is included, produce forecasts
+        if(is.scale(object$scale)){
+            sigmaValue <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
+        }
+        else{
+            sigmaValue <- sigma(object);
+        }
         matErrors <- matrix(switch(object$distribution,
                                    "dnorm"=rnorm(h*nsim, 0, sigmaValue),
                                    "dlaplace"=rlaplace(h*nsim, 0, sigmaValue/2),
@@ -9336,7 +9342,13 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     constantRequired <- !is.null(object$constant);
 
     #### Simulate the data ####
-    sigmaValue <- sigma(object);
+    # If scale model is included, produce forecasts
+    if(is.scale(object$scale)){
+        sigmaValue <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
+    }
+    else{
+        sigmaValue <- sigma(object);
+    }
     # This stuff is needed in order to produce adequate values for weird models
     EtypeModified <- Etype;
     if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dgamma","dls","dllaplace"))){
