@@ -131,7 +131,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
                                # abs() is needed for rare cases, when negative values are produced for E="A" models
                                "dlnorm"=dlnorm(x=yInSampleSM[otLogical],
                                                meanlog=Re(log(as.complex(yFittedSM[otLogical])))-fitted[otLogical]^2/2,
-                                               sdlog=fitted[otLogical], log=TRUE),
+                                               sdlog=sqrt(fitted[otLogical]), log=TRUE),
                                "dinvgauss"=dinvgauss(x=yInSampleSM[otLogical], mean=abs(yFittedSM[otLogical]),
                                                      dispersion=abs(fitted[otLogical]/yFittedSM[otLogical]), log=TRUE),
                                "dgamma"=dgamma(x=yInSampleSM[otLogical], shape=1/fitted[otLogical],
@@ -182,8 +182,9 @@ sm.adam <- function(object, model="YYY", lags=NULL,
                    "dnorm"=et[otLogical]^2,
                    "dlaplace"=,
                    "dalaplace"=abs(et[otLogical]),
-                   "ds"=abs(et[otLogical])^0.5,
-                   "dgnorm"=abs(et[otLogical])^other,
+                   "ds"=0.5*abs(et[otLogical])^0.5,
+                   # "dgnorm"=(other*sum(abs(errors)^other)/obsInSample)^{1/other}
+                   "dgnorm"=(other*abs(et[otLogical])^other)^{1/other},
                    "dlnorm"=log(et[otLogical])^2,
                    "dgamma"=(et[otLogical]-1)^2,
                    "dinvgauss"=(et[otLogical]-1)^2/et[otLogical]);
@@ -201,8 +202,8 @@ sm.adam <- function(object, model="YYY", lags=NULL,
                                                              "dnorm"=etForecast^2,
                                                              # "dalaplace"=,
                                                              "dlaplace"=abs(etForecast),
-                                                             "ds"=abs(etForecast)^0.5,
-                                                             "dgnorm"=abs(etForecast)^other,
+                                                             "ds"=0.5*abs(etForecast)^0.5,
+                                                             "dgnorm"=(other*abs(etForecast)^other)^{1/other},
                                                              "dlnorm"=switch(EtypeSM,
                                                                              "A"=(log(1+etForecast/object$forecast)^2),
                                                                              "M"=(log(1+etForecast)^2)),
@@ -226,7 +227,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
            any(substr(newCall$model,2,2) %in% c("Z","F","P")) ||
            any(substr(newCall$model,nchar(newCall$model),nchar(newCall$model)) %in% c("Z","F","P"))){
             warning("This type of model selection is not supported by the sm() function.",
-                 call.=FALSE);
+                    call.=FALSE);
         }
     }
 
@@ -252,6 +253,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
 
     # If we have a model with additive distributions, do some tricks for ARIMA to fit it in logs
     if((!is.null(orders) || !is.null(formula) || any(substr(newCall$model,1,1) %in% c("A","X"))) &&
+       !any(substr(newCall$model,1,1) %in% c("M","Y")) &&
        any(distribution==c("dnorm","dlaplace","ds","dgnorm"))){
         warning("This type of model can only be applied to the data in logarithms",
                 call.=FALSE);

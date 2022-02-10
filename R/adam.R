@@ -7666,34 +7666,69 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(interval=="simulated"){
         arrVt <- array(NA, c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, h+lagsModelMax, nsim));
         arrVt[,1:lagsModelMax,] <- rep(matVt,nsim);
+        # Number of degrees of freedom to de-bias scales
+        df <- (nobs(object, all=FALSE)-nparam(object));
+        # If the sample is too small, then use biased estimator
+        if(df<=0){
+            df[] <- nobs(object, all=FALSE);
+        }
         # If scale model is included, produce forecasts
         if(is.scale(object$scale)){
-            sigmaValue <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
-            # !!!Transform scale into the variance here!!!
+            # as.vector is needed to declass the mean.
+            scaleValue <- as.vector(forecast(object$scale,h=h,newdata=newdata,interval="none")$mean);
+            # De-bias the scales and transform to the appropriate scale
+            # dnorm, dlnorm fit model on square residuals
+            # dgnorm needs to be done with ^beta to get to 1/T part
+            # The rest do not require transformations, only de-bias
+            scaleValue[] <- switch(object$distribution,
+                                   "dlnorm"=,
+                                   "dnorm"=(scaleValue*obsInSample/df)^0.5,
+                                   "dgnorm"=((scaleValue^object$other$shape)*obsInSample/df)^{1/object$other$shape},
+                                   scaleValue*obsInSample/df);
+            # Fixes for rs and rlaplace, which produce array of random variables
+            if(object$distribution=="ds"){
+                rsNew <- function(n, mu, scale){
+                    rsNew <- vector("numeric",n);
+                    h <- length(scale);
+                    chunk <- n/h;
+                    for(i in 1:h){
+                        rsNew[i+(1:chunk-1)*h] <- rs(chunk, mu, scale[i]);
+                    }
+                    return(rsNew);
+                }
+            }
+            else if(object$distribution=="dlaplace"){
+                rlaplaceNew <- function(n, mu, scale){
+                    rlaplaceNew <- vector("numeric",n);
+                    h <- length(scale);
+                    chunk <- n/h;
+                    for(i in 1:h){
+                        rlaplaceNew[i+((1:chunk-1)*h)] <- rlaplace(chunk, mu, scale[i]);
+                    }
+                    return(rlaplaceNew);
+                }
+            }
         }
         else{
-            sigmaValue <- sigma(object);
+            scaleValue <- object$scale*obsInSample/df;
+            # This is fixes for rs and rlaplace, which produce array of random variables
+            rsNew <- rs;
+            rlaplaceNew <- rlaplace;
         }
         matErrors <- matrix(switch(object$distribution,
-                                   "dnorm"=rnorm(h*nsim, 0, sigmaValue),
-                                   "dlaplace"=rlaplace(h*nsim, 0, sigmaValue/2),
-                                   "ds"=rs(h*nsim, 0, (sigmaValue^2/120)^0.25),
-                                   "dgnorm"=rgnorm(h*nsim, 0,
-                                                   sigmaValue*sqrt(gamma(1/object$other$shape)/gamma(3/object$other$shape)),
-                                                   object$other$shape),
-                                   "dlogis"=rlogis(h*nsim, 0, sigmaValue*sqrt(3)/pi),
+                                   "dnorm"=rnorm(h*nsim, 0, scaleValue),
+                                   "dlaplace"=rlaplaceNew(h*nsim, 0, scaleValue),
+                                   "ds"=rsNew(h*nsim, 0, scaleValue),
+                                   "dgnorm"=rgnorm(h*nsim, 0, scaleValue, object$other$shape),
+                                   "dlogis"=rlogis(h*nsim, 0, scaleValue),
                                    "dt"=rt(h*nsim, obsInSample-nparam(object)),
-                                   "dalaplace"=ralaplace(h*nsim, 0,
-                                                         sqrt(sigmaValue^2*object$other$alpha^2*(1-object$other$alpha)^2/
-                                                                  (object$other$alpha^2+(1-object$other$alpha)^2)),
-                                                         object$other$alpha),
-                                   "dlnorm"=rlnorm(h*nsim, -extractScale(object)^2/2, extractScale(object))-1,
-                                   "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=sigmaValue^2)-1,
-                                   "dgamma"=rgamma(h*nsim, shape=sigmaValue^{-2}, scale=sigmaValue^2)-1,
-                                   "dllaplace"=exp(rlaplace(h*nsim, 0, sigmaValue/2))-1,
-                                   "dls"=exp(rs(h*nsim, 0, (sigmaValue^2/120)^0.25))-1,
-                                   "dlgnorm"=exp(rgnorm(h*nsim, 0,
-                                                        sigmaValue*sqrt(gamma(1/object$other$shape)/gamma(3/object$other$shape))))-1
+                                   "dalaplace"=ralaplace(h*nsim, 0, scaleValue, object$other$alpha),
+                                   "dlnorm"=rlnorm(h*nsim, -scaleValue^2/2, scaleValue)-1,
+                                   "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=scaleValue)-1,
+                                   "dgamma"=rgamma(h*nsim, shape=scaleValue^{-1}, scale=scaleValue)-1,
+                                   "dllaplace"=exp(rlaplace(h*nsim, 0, scaleValue))-1,
+                                   "dls"=exp(rs(h*nsim, 0, scaleValue))-1,
+                                   "dlgnorm"=exp(rgnorm(h*nsim, 0, scaleValue, object$other$shape))-1
                                    ),
                             h,nsim);
         # Normalise errors in order not to get ridiculous things on small nsim
@@ -7752,19 +7787,38 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     else{
         #### Approximate and confidence interval ####
-        # Produce covatiance matrix and use it
-        if(any(interval==c("approximate","confidence"))){
+        # Produce covariance matrix and use it
+        if(any(interval=="approximate")){
+            # The variance of the model
             s2 <- sigma(object)^2;
+            # If scale model is included, produce forecasts
+            if(is.scale(object$scale)){
+                # Number of degrees of freedom to de-bias the variance
+                df <- (nobs(object, all=FALSE)-nparam(object));
+                # If the sample is too small, then use biased estimator
+                if(df<=0){
+                    df[] <- nobs(object, all=FALSE);
+                }
+                s2Forecast <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
+                # Transform scales into the variances
+                # dnorm, dlnorm, dgamma and dinvgauss return scales that are equal to variances
+                s2Forecast[] <- switch(object$distribution,
+                                       "dlaplace"=2*s2Forecast^2,
+                                       "ds"=120*s2Forecast^4,
+                                       "dgnorm"=s2Forecast^2*gamma(3/object$other$shape)/gamma(1/object$other$shape),
+                                       "dalaplace"=s2Forecast^2/(object$other$alpha^2*(1-object$other$alpha)^2/
+                                                                     (object$other$alpha^2+(1-object$other$alpha)^2)),
+                                       s2Forecast)*obsInSample/df;
+            }
             # IG and Lnorm can use approximations from the multiplications
             if(etsModel && any(object$distribution==c("dinvgauss","dgamma","dlnorm","dllaplace","dls","dlgnorm")) && Etype=="M"){
                 vcovMulti <- adamVarAnal(lagsModelAll, h, matWt[1,,drop=FALSE], matF, vecG, s2);
+                if(is.scale(object$scale)){
+                    # Fix the matrix with the time varying variance
+                    vcovMulti[] <- vcovMulti / s2 * (sqrt(s2Forecast) %*% t(sqrt(s2Forecast)));
+                }
                 if(any(object$distribution==c("dlnorm","dls","dllaplace","dlgnorm"))){
                     vcovMulti[] <- log(1+vcovMulti);
-                }
-
-                # The confidence interval relies on the assumption that initial level is known
-                if(interval=="confidence"){
-                    vcovMulti[] <- vcovMulti - s2;
                 }
 
                 # We don't do correct cumulatives in this case...
@@ -7774,10 +7828,9 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
             else{
                 vcovMulti <- covarAnal(lagsModelAll, h, matWt[1,,drop=FALSE], matF, vecG, s2);
-
-                # The confidence interval relies on the assumption that initial level is known
-                if(interval=="confidence"){
-                    vcovMulti[] <- vcovMulti - s2;
+                if(is.scale(object$scale)){
+                    # Fix the matrix with the time varying variance
+                    vcovMulti[] <- vcovMulti / s2 * (sqrt(s2Forecast) %*% t(sqrt(s2Forecast)));
                 }
 
                 # Do either the variance of sum, or a diagonal
@@ -7820,13 +7873,34 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 }
             }
             else{
-                vcovMulti <- sigma(object)^2;
+                # If scale model is included, produce forecasts
+                if(is.scale(object$scale)){
+                    # Number of degrees of freedom to de-bias the variance
+                    df <- (nobs(object, all=FALSE)-nparam(object));
+                    # If the sample is too small, then use biased estimator
+                    if(df<=0){
+                        df[] <- nobs(object, all=FALSE);
+                    }
+                    vcovMulti <- forecast(object$scale,h=h,newdata=newdata,interval="none")$mean;
+                    # Transform scales into the variances
+                    # dnorm, dlnorm, dgamma and dinvgauss return scales that are equal to variances
+                    vcovMulti[] <- switch(object$distribution,
+                                           "dlaplace"=2*vcovMulti^2,
+                                           "ds"=120*vcovMulti^4,
+                                           "dgnorm"=vcovMulti^2*gamma(3/object$other$shape)/gamma(1/object$other$shape),
+                                           "dalaplace"=vcovMulti^2/(object$other$alpha^2*(1-object$other$alpha)^2/
+                                                                         (object$other$alpha^2+(1-object$other$alpha)^2)),
+                                           vcovMulti)*obsInSample/df;
+                }
+                else{
+                    vcovMulti <- sigma(object)^2;
+                }
                 adamErrors <- as.matrix(residuals(object));
             }
         }
 
         # Calculate interval for approximate and semiparametric
-        if(any(interval==c("approximate","confidence","semiparametric"))){
+        if(any(interval==c("approximate","semiparametric"))){
             if(object$distribution=="dnorm"){
                 if(Etype=="A"){
                     yLower[] <- qnorm(levelLow, 0, sqrt(vcovMulti));
