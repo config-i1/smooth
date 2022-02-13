@@ -5707,7 +5707,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 #' @export
 print.adam <- function(x, digits=4, ...){
     if(is.scale(x)){
-        cat("Scale Model\n");
+        cat("**Scale Model**\n");
     }
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
@@ -5716,6 +5716,9 @@ print.adam <- function(x, digits=4, ...){
     # tail all.vars is needed in case smooth::adam() was used
     cat(paste0("\nModel estimated using ",tail(all.vars(x$call[[1]]),1),
                "() function: ",x$model));
+    if(is.scale(x$scale)){
+        cat("\nScale model estimated with sm():",x$scale$model);
+    }
 
     if(is.occurrence(x$occurrence)){
         occurrence <- switch(x$occurrence$occurrence,

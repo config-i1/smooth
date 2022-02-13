@@ -393,6 +393,7 @@ implant.adam <- function(location, scale, ...){
     }
     location$scale <- scale;
     location$logLik <- logLik(scale);
+    location$lossValue <- scale$lossValue;
     location$nParam[,4] <- scale$nParam[,4];
     location$nParam[,5] <- rowSums(location$nParam[,1:4]);
     location$call$scale <- formula(scale);
