@@ -7690,40 +7690,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                                    "dnorm"=(scaleValue*obsInSample/df)^0.5,
                                    "dgnorm"=((scaleValue^object$other$shape)*obsInSample/df)^{1/object$other$shape},
                                    scaleValue*obsInSample/df);
-            # Fixes for rs and rlaplace, which produce array of random variables
-            if(object$distribution=="ds"){
-                rsNew <- function(n, mu, scale){
-                    rsNew <- vector("numeric",n);
-                    h <- length(scale);
-                    chunk <- n/h;
-                    for(i in 1:h){
-                        rsNew[i+(1:chunk-1)*h] <- rs(chunk, mu, scale[i]);
-                    }
-                    return(rsNew);
-                }
-            }
-            else if(object$distribution=="dlaplace"){
-                rlaplaceNew <- function(n, mu, scale){
-                    rlaplaceNew <- vector("numeric",n);
-                    h <- length(scale);
-                    chunk <- n/h;
-                    for(i in 1:h){
-                        rlaplaceNew[i+((1:chunk-1)*h)] <- rlaplace(chunk, mu, scale[i]);
-                    }
-                    return(rlaplaceNew);
-                }
-            }
         }
         else{
             scaleValue <- object$scale*obsInSample/df;
-            # This is fixes for rs and rlaplace, which produce array of random variables
-            rsNew <- rs;
-            rlaplaceNew <- rlaplace;
         }
         matErrors <- matrix(switch(object$distribution,
                                    "dnorm"=rnorm(h*nsim, 0, scaleValue),
-                                   "dlaplace"=rlaplaceNew(h*nsim, 0, scaleValue),
-                                   "ds"=rsNew(h*nsim, 0, scaleValue),
+                                   "dlaplace"=rlaplace(h*nsim, 0, scaleValue),
+                                   "ds"=rs(h*nsim, 0, scaleValue),
                                    "dgnorm"=rgnorm(h*nsim, 0, scaleValue, object$other$shape),
                                    "dlogis"=rlogis(h*nsim, 0, scaleValue),
                                    "dt"=rt(h*nsim, obsInSample-nparam(object)),
