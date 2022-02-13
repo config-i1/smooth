@@ -366,7 +366,9 @@ distributions and returns the one with the most suitable one based on selected
 information criterion.
 
 \link[greybox]{sm}.adam method estimates the scale model for the already
-estimated adam.
+estimated adam. In order for ADAM to take the SM model into account, the
+latter needs to be recorded in the former, amending the likelihood and the number
+of degrees of freedom. This can be done using \link[greybox]{implant} method.
 }
 \examples{
 
