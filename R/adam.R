@@ -69,6 +69,9 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' distributions and returns the one with the most suitable one based on selected
 #' information criterion.
 #'
+#' \link[greybox]{sm}.adam method estimates the scale model for the already
+#' estimated adam.
+#'
 #' @template ssAuthor
 #' @template ssKeywords
 #'

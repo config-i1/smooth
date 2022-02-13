@@ -1,3 +1,6 @@
+#' @param object The model previously estimated using \code{adam()} function.
+#'
+#' @rdname adam
 #' @importFrom greybox sm is.scale extractScale extractSigma
 #' @export
 sm.adam <- function(object, model="YYY", lags=NULL,
@@ -380,4 +383,19 @@ extractSigma.smooth <- function(object, ...){
     else{
         return(sigma(object));
     }
+}
+
+#' @importFrom greybox implant
+implant.adam <- function(location, scale, ...){
+    if(!is.scale(scale)){
+        stop("sm is not a scale model. Cannot procede.",
+             call.=FALSE)
+    }
+    location$scale <- scale;
+    location$logLik <- logLik(scale);
+    location$nParam[,4] <- scale$nParam[,4];
+    location$nParam[,5] <- rowSums(location$nParam[,1:4]);
+    location$call$scale <- formula(scale);
+
+    return(location);
 }
