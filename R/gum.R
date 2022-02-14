@@ -150,7 +150,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' @rdname gum
 #' @export gum
 gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
-                persistence=NULL, transition=NULL, measurement=NULL,
+                persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,

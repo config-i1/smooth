@@ -7,7 +7,7 @@
 \usage{
 gum(y, orders = c(1, 1), lags = c(1, frequency(y)), type = c("additive",
   "multiplicative"), persistence = NULL, transition = NULL,
-  measurement = NULL, initial = c("optimal", "backcasting"),
+  measurement = rep(1, sum(orders)), initial = c("optimal", "backcasting"),
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
