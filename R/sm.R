@@ -18,6 +18,11 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     startTime <- Sys.time();
     distribution <- object$distribution;
 
+    if(object$loss!="likelihood"){
+        stop("sm() only works with models estimated via maximisation of likelihood. ",
+             "Yours was estimated via ", object$loss,". Cannot proceed.", call.=FALSE);
+    }
+
     # If one of the following is used, warn the user
     # if(any(distribution==c("dgamma","dinvgauss"))){
     #     warning("Please note that the scale model for Gamma and Inverse Gaussian distributions ",
