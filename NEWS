@@ -1,4 +1,4 @@
-smooth v3.1.6 (Release data: 2022-02-14)
+smooth v3.1.6 (Release data: 2022-02-21)
 =======
 
 Changes:
@@ -7,8 +7,9 @@ Changes:
 * sm() method for adam. This supports scale model via ETS / ARIMA / Regression.
 * forecast.adam() is now tuned to work with sm.adam() output.
 * forecast.adam() now works properly with object$scale if it is estimated via sm.adam() (i.e. taking the multistep scale into account).
-* implant() function to merge adam and the scale model.
+* implant() method (imported from greybox) to merge adam and the scale model.
 * The default measurement vector in gum() is now unity. This makes model identifiable.
+* Correct number of degrees of freedom in adam-sm model.
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.

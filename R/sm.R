@@ -284,12 +284,15 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     adamModel <- do.call(adam, as.list(newCall));
 
     nVariables <- nparam(adamModel);
-    attr(adamModel$logLik,"df") <- nVariables + nparam(object);
-    # Redo nParam table. Record scale parameters in the respective column
-    adamModel$nParam[,4] <- adamModel$nParam[,5];
-    # Use original nparam
-    adamModel$nParam[,1:3] <- object$nParam[,1:3];
-    adamModel$nParam[,5] <- rowSums(adamModel$nParam[,1:4]);
+    # -1 is needed to remove the scale from the number of parameters
+    attr(adamModel$logLik,"df") <- nVariables + nparam(object)-1;
+    # object$nParam[1,5] <- object$nParam[1,5]-1;
+    # object$nParam[1,1] <- object$nParam[1,1]-1;
+    # # Redo nParam table. Record scale parameters in the respective column
+    # adamModel$nParam[,4] <- adamModel$nParam[,5];
+    # # Use original nparam
+    # adamModel$nParam[,1:3] <- object$nParam[,1:3];
+    # adamModel$nParam[,5] <- rowSums(adamModel$nParam[,1:4]);
 
     # Fix fitted and forecast if logARIMA was used
     if(logModelSM){
@@ -394,7 +397,9 @@ implant.adam <- function(location, scale, ...){
     location$scale <- scale;
     location$logLik <- logLik(scale);
     location$lossValue <- scale$lossValue;
-    location$nParam[,4] <- scale$nParam[,4];
+    location$nParam[,4] <- scale$nParam[,1];
+    # -1 is needed to remove the scale from the number of parameters
+    location$nParam[1,1] <- location$nParam[1,1]-1;
     location$nParam[,5] <- rowSums(location$nParam[,1:4]);
     location$call$scale <- formula(scale);
 

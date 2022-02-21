@@ -316,7 +316,7 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
 
 #' @importFrom stats logLik
 #' @export
-logLik.smooth <- function(object,...){
+logLik.smooth <- function(object, ...){
     if(is.null(object$logLik)){
         warning("The likelihood of this model is unavailable. Hint: did you use combinations?");
         return(NULL);
@@ -326,7 +326,7 @@ logLik.smooth <- function(object,...){
     }
 }
 #' @export
-logLik.smooth.sim <- function(object,...){
+logLik.smooth.sim <- function(object, ...){
     obs <- nobs(object);
     return(structure(object$logLik,nobs=obs,df=0,class="logLik"));
 }
@@ -360,7 +360,6 @@ nparam.smooth <- function(object, ...){
         return(object$nParam[1,ncol(object$nParam)]);
     }
 }
-
 
 #' Prediction Likelihood Score
 #'
