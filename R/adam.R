@@ -5333,15 +5333,28 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             qqline(ellipsis$y, distribution=function(p) qalaplace(p, mu=0, scale=extractScale(x), alpha=x$other$alpha));
         }
         else if(x$distribution=="dinvgauss"){
-            # Transform residuals for something meaningful
-            # This is not 100% accurate, because the dispersion should change as well as mean...
-            if(!any(names(ellipsis)=="main")){
-                ellipsis$main <- "QQ-plot of Inverse Gaussian distribution";
-            }
-            ellipsis$x <- qinvgauss(ppoints(500), mean=1, dispersion=extractScale(x));
+            if(is.scale(x)){
+                # Transform residuals for something meaningful
+                # This is not 100% accurate, because the dispersion should change as well as mean...
+                if(!any(names(ellipsis)=="main")){
+                    ellipsis$main <- "QQ-plot of Chi-Squared distribution";
+                }
+                ellipsis$x <- qchisq(ppoints(500), df=1);
 
-            do.call(qqplot, ellipsis);
-            qqline(ellipsis$y, distribution=function(p) qinvgauss(p, mean=1, dispersion=extractScale(x)));
+                do.call(qqplot, ellipsis);
+                qqline(ellipsis$y, distribution=function(p) qchisq(p, df=1));
+            }
+            else{
+                # Transform residuals for something meaningful
+                # This is not 100% accurate, because the dispersion should change as well as mean...
+                if(!any(names(ellipsis)=="main")){
+                    ellipsis$main <- "QQ-plot of Inverse Gaussian distribution";
+                }
+                ellipsis$x <- qinvgauss(ppoints(500), mean=1, dispersion=extractScale(x));
+
+                do.call(qqplot, ellipsis);
+                qqline(ellipsis$y, distribution=function(p) qinvgauss(p, mean=1, dispersion=extractScale(x)));
+            }
         }
         else if(x$distribution=="dgamma"){
             # Transform residuals for something meaningful
@@ -6948,6 +6961,10 @@ outlierdummy.adam <- function(object, level=0.999, type=c("rstandard","rstudent"
                                                   (nobs(object)-nparam(object))),
                         "dgamma"=qgamma(c((1-level)/2, (1+level)/2), shape=1/extractScale(object), scale=extractScale(object)),
                         qnorm(c((1-level)/2, (1+level)/2), 0, 1));
+    # Fix for IG in case of scale - it should be chi-squared
+    if(is.scale(object) && object$distribution=="dinvgauss"){
+        statistic <- qchisq(c((1-level)/2, (1+level)/2), 1);
+    }
     if(any(object$distribution==c("dlnorm","dllaplace","dls","dlgnorm"))){
         errors[] <- log(errors);
     }

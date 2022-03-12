@@ -323,7 +323,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
                                     # This becomes Gamma(sigma^-2, 1)
                                     "dgamma"=as.vector(residuals(object))/sqrt(fitted(adamModel))-1,
                                     # IG(sigma^2, 1)
-                                    "dinvgauss"=as.vector(residuals(object))/fitted(adamModel),
+                                    "dinvgauss"=adamModel$residuals,
                                     # All the others
                                     as.vector(residuals(object))/fitted(adamModel));
 
