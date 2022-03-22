@@ -6940,6 +6940,7 @@ rstudent.adam <- function(model, ...){
 }
 
 #' @importFrom greybox outlierdummy
+#' @importFrom stats qchisq
 #' @export
 outlierdummy.adam <- function(object, level=0.999, type=c("rstandard","rstudent"), ...){
     # Function returns the matrix of dummies with outliers
