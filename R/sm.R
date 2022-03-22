@@ -395,6 +395,7 @@ extractSigma.smooth <- function(object, ...){
 }
 
 #' @importFrom greybox implant
+#' @export
 implant.adam <- function(location, scale, ...){
     if(!is.scale(scale)){
         stop("sm is not a scale model. Cannot procede.",
