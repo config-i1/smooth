@@ -2794,8 +2794,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Prepare the values to return
         B[] <- res$solution;
         CFValue <- res$objective;
-        # In case of likelihood, we typically have one more parameter to estimate - scale
-        nParamEstimated <- length(B) + (loss=="likelihood");
+        # In case of likelihood, we typically have one more parameter to estimate - scale. It is recorded separately
+        nParamEstimated <- length(B);
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
                                                 etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal, yInSample,
@@ -3904,6 +3904,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 max(xregParametersPersistence)*persistenceXregEstimate;
             parametersNumber[1,1] <- parametersNumber[1,1] - parametersNumber[1,2]
         }
+        # If we used likelihood, scale was estimated
+        if((loss=="likelihood")){
+            parametersNumber[1,4] <- 1;
+        }
         parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
         parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
     }
@@ -3972,6 +3976,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         parametersNumber[1,1] <- nParamEstimated;
         if(xregModel){
             parametersNumber[1,2] <- xregNumber*initialXregEstimate + xregNumber*persistenceXregEstimate;
+        }
+        # If we used likelihood, scale was estimated
+        if((loss=="likelihood")){
+            parametersNumber[1,4] <- 1;
         }
         parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
         parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
@@ -4120,6 +4128,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             parametersNumber[1,1] <- adamSelected$results[[i]]$nParamEstimated;
             if(xregModel){
                 parametersNumber[1,2] <- xregNumber*initialXregEstimate + xregNumber*persistenceXregEstimate;
+            }
+            # If we used likelihood, scale was estimated
+            if((loss=="likelihood")){
+                parametersNumber[1,4] <- 1;
             }
             parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
             parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);

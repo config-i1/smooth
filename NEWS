@@ -11,11 +11,13 @@ Changes:
 * The default measurement vector in gum() is now unity. This makes model identifiable.
 * Correct number of degrees of freedom in adam-sm model.
 * Fixes for sm() in case of model="NNN".
+* Always record number of estimated parameters for scale in a separate column in adam().
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
 * A fix in forecast.adam(), which would not rbind the rows correctly in cases of nrow(newdata) < h.
 * A fix in ADAMX for exotic cases, where log(y) was used in alm() (for parameters initialisation), when it shouldn't have.
+* A fix in case of rbind() of data.frame, when one of variables is ts.
 
 
 smooth v3.1.5 (Release data: 2022-01-26)

@@ -201,7 +201,16 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     data[1:obsInSample,responseName] <- et;
     # If there was a holdout, add values to the "data"
     if(holdout){
-        newCall$data <- rbind(data,object$holdout);
+        # This shit is needed because data.frame has issues with ts
+        if(!is.null(ncol(data)) && ncol(data)>1){
+            newCall$data <- as.data.frame(matrix(NA,obsAll,ncol(object$holdout),
+                                                 dimnames=list(NULL,colnames(data))));
+            newCall$data[c(1:obsInSample),] <- data;
+            newCall$data[-c(1:obsInSample),] <- object$holdout;
+        }
+        else{
+            newCall$data <- rbind(data,object$holdout);
+        }
         # Get the errors for the holdout
         etForecast <- switch(EtypeSM,
                              "A"=object$holdout[,responseName]-object$forecast,
@@ -405,8 +414,6 @@ implant.adam <- function(location, scale, ...){
     location$logLik <- logLik(scale);
     location$lossValue <- scale$lossValue;
     location$nParam[,4] <- scale$nParam[,5];
-    # -1 is needed to remove the scale from the number of parameters
-    location$nParam[1,1] <- location$nParam[1,1]-1;
     location$nParam[,5] <- rowSums(location$nParam[,1:4]);
     location$call$scale <- formula(scale);
 
