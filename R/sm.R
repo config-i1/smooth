@@ -81,7 +81,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     }
 
     #### The custom loss function to estimate parameters of the model ####
-    lossFunction <- function(actual,fitted,B){
+    lossFunction <- function(actual,fitted,B,xreg=NULL){
         if(logModelSM){
             fitted[] <- exp(fitted);
         }
@@ -263,7 +263,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     if((!is.null(orders) || !is.null(formula) || any(substr(newCall$model,1,1) %in% c("A","X"))) &&
        !any(substr(newCall$model,1,1) %in% c("M","Y")) &&
        any(distribution==c("dnorm","dlaplace","ds","dgnorm"))){
-        warning("This type of model can only be applied to the data in logarithms",
+        warning("This type of model can only be applied to the data in logarithms. Amending the data",
                 call.=FALSE);
         logModelSM <- TRUE;
         newCall$data[,responseName] <- log(newCall$data[,responseName]);
@@ -291,6 +291,7 @@ sm.adam <- function(object, model="YYY", lags=NULL,
     nVariables <- nparam(adamModel);
     # -1 is needed to remove the scale from the number of parameters
     attr(adamModel$logLik,"df") <- nVariables + nparam(object)-1;
+    adamModel$logLik <- -adamModel$lossValue
     # object$nParam[1,5] <- object$nParam[1,5]-1;
     # object$nParam[1,1] <- object$nParam[1,1]-1;
     # # Redo nParam table. Record scale parameters in the respective column

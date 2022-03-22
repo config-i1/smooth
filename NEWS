@@ -1,4 +1,4 @@
-smooth v3.1.6 (Release data: 2022-03-12)
+smooth v3.1.6 (Release data: 2022-03-22)
 =======
 
 Changes:
@@ -10,6 +10,7 @@ Changes:
 * implant() method (imported from greybox) to merge adam and the scale model.
 * The default measurement vector in gum() is now unity. This makes model identifiable.
 * Correct number of degrees of freedom in adam-sm model.
+* Fixes for sm() in case of model="NNN".
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
