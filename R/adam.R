@@ -5702,60 +5702,49 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     # Do plots
-    if(any(which==1)){
-        plot1(x, ...);
-    }
-
-    if(any(which==2)){
-        plot2(x, ...);
-    }
-
-    if(any(which==3)){
-        plot2(x, "rstudent", ...);
-    }
-
-    if(any(which==4)){
-        plot3(x, ...);
-    }
-
-    if(any(which==5)){
-        plot3(x, type="squared", ...);
-    }
-
-    if(any(which==6)){
-        plot4(x, ...);
-    }
-
-    if(any(which==7)){
-        plot5(x, ...);
-    }
-
-    if(any(which==8)){
-        plot6(x, ...);
-    }
-
-    if(any(which==9)){
-        plot6(x, "rstudent", ...);
-    }
-
-    if(any(which==10)){
-        plot7(x, type="acf", ...);
-    }
-
-    if(any(which==11)){
-        plot7(x, type="pacf", ...);
-    }
-
-    if(any(which==12)){
-        plot8(x, ...);
-    }
-
-    if(any(which==13)){
-        plot9(x, ...);
-    }
-
-    if(any(which==14)){
-        plot9(x, type="squared", ...);
+    for(i in which){
+        if(any(i==1)){
+            plot1(x, ...);
+        }
+        else if(any(i==2)){
+            plot2(x, ...);
+        }
+        else if(any(i==3)){
+            plot2(x, "rstudent", ...);
+        }
+        else if(any(i==4)){
+            plot3(x, ...);
+        }
+        else if(any(i==5)){
+            plot3(x, type="squared", ...);
+        }
+        else if(any(i==6)){
+            plot4(x, ...);
+        }
+        else if(any(i==7)){
+            plot5(x, ...);
+        }
+        else if(any(i==8)){
+            plot6(x, ...);
+        }
+        else if(any(i==9)){
+            plot6(x, "rstudent", ...);
+        }
+        else if(any(i==10)){
+            plot7(x, type="acf", ...);
+        }
+        else if(any(i==11)){
+            plot7(x, type="pacf", ...);
+        }
+        else if(any(i==12)){
+            plot8(x, ...);
+        }
+        else if(any(i==13)){
+            plot9(x, ...);
+        }
+        else if(any(i==14)){
+            plot9(x, type="squared", ...);
+        }
     }
 }
 
