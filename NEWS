@@ -12,6 +12,7 @@ Changes:
 * Correct number of degrees of freedom in adam-sm model.
 * Fixes for sm() in case of model="NNN".
 * Always record number of estimated parameters for scale in a separate column in adam().
+* plot.adam() now produces diagnostics plots for scale model if it is implanted for which=c(2:6,8,9,13,14)
 
 Bugfixes:
 * Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.

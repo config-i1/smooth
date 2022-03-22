@@ -4995,6 +4995,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         on.exit(devAskNewPage(oask));
     }
 
+    # Warn if the diagnostis will be done for scale
+    if(is.scale(x$scale) && any(which %in% c(2:6,8,9,13,14))){
+        message("Note that residuals diagnostics plots are produced for scale model");
+    }
+
     # 1. Fitted vs Actuals values
     plot1 <- function(x, ...){
         ellipsis <- list(...);
@@ -5057,6 +5062,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 2 and 3: Standardised  / studentised residuals vs Fitted
     plot2 <- function(x, type="rstandard", ...){
         ellipsis <- list(...);
+
+        # Amend to do analysis of residuals of scale model
+        if(is.scale(x$scale)){
+            x <- x$scale;
+        }
 
         ellipsis$x <- as.vector(fitted(x));
         if(type=="rstandard"){
@@ -5168,6 +5178,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     plot3 <- function(x, type="abs", ...){
         ellipsis <- list(...);
 
+        # Amend to do analysis of residuals of scale model
+        if(is.scale(x$scale)){
+            x <- x$scale;
+        }
+
         ellipsis$x <- as.vector(fitted(x));
         ellipsis$y <- as.vector(residuals(x));
         if(any(x$distribution==c("dinvgauss","dlnorm","dllaplace","dls","dlgnorm"))){
@@ -5231,6 +5246,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 6. Q-Q with the specified distribution
     plot4 <- function(x, ...){
         ellipsis <- list(...);
+
+        # Amend to do analysis of residuals of scale model
+        if(is.scale(x$scale)){
+            x <- x$scale;
+        }
 
         ellipsis$y <- as.vector(residuals(x));
         if(is.occurrence(x$occurrence)){
@@ -5412,6 +5432,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     # 8 and 9. Standardised / Studentised residuals vs time
     plot6 <- function(x, type="rstandard", ...){
+
+        # Amend to do analysis of residuals of scale model
+        if(is.scale(x$scale)){
+            x <- x$scale;
+        }
 
         ellipsis <- list(...);
         if(type=="rstandard"){
@@ -5600,6 +5625,11 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 13 and 14. Fitted vs (std. Residuals)^2 or Fitted vs |std. Residuals|
     plot9 <- function(x, type="abs", ...){
         ellipsis <- list(...);
+
+        # Amend to do analysis of residuals of scale model
+        if(is.scale(x$scale)){
+            x <- x$scale;
+        }
 
         ellipsis$x <- as.vector(fitted(x));
         ellipsis$y <- as.vector(rstandard(x));
@@ -6970,7 +7000,7 @@ outlierdummy.adam <- function(object, level=0.999, type=c("rstandard","rstudent"
                         "dls"=qs(c((1-level)/2, (1+level)/2), 0, 1),
                         # In the next one, the scale is debiased, taking n-k into account
                         "dinvgauss"=qinvgauss(c((1-level)/2, (1+level)/2), mean=1,
-                                              dispersion=extractScale(object) * nobs(object) /
+                                              dispersion=mean(extractScale(object)) * nobs(object) /
                                                   (nobs(object)-nparam(object))),
                         "dgamma"=qgamma(c((1-level)/2, (1+level)/2), shape=1/extractScale(object), scale=extractScale(object)),
                         qnorm(c((1-level)/2, (1+level)/2), 0, 1));
