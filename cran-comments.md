@@ -1,14 +1,13 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "26 January 2022"
+date: "30 March 2022"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v3.1.5.
+This is ``smooth`` package, v3.1.6.
 
-*I removed the example with smoothCombine() to resolve one of the notes on Windows*
 
 ## Test environments
 * local ubuntu 20.04.3, R 4.1.2

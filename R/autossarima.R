@@ -60,11 +60,11 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @examples
 #'
-#' x <- rnorm(118,100,3)
+#' \donttest{x <- rnorm(118,100,3)}
 #'
 #' # The best ARIMA for the data
-#' ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-#'                      h=18,holdout=TRUE,interval="np")
+#' \donttest{ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
+#'                                    h=18,holdout=TRUE,interval="np")}
 #'
 #' # The other one using optimised states
 #' \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
@@ -74,9 +74,9 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
 #'                        combine=TRUE,h=18,holdout=TRUE)}
 #'
-#' summary(ourModel)
+#' \donttest{summary(ourModel)
 #' forecast(ourModel)
-#' plot(forecast(ourModel))
+#' plot(forecast(ourModel))}
 #'
 #'
 #' @export auto.ssarima

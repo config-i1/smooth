@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 3.1.6.41016
-Date: 2022-03-22
+Version: 3.1.6
+Date: 2022-03-30
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -34,6 +34,7 @@ Imports:
     zoo
 LinkingTo: Rcpp, RcppArmadillo (>= 0.8.100.0.0)
 Suggests:
+    legion,
     numDeriv,
     testthat,
     knitr,
@@ -45,5 +46,3 @@ VignetteBuilder: knitr
 RoxygenNote: 7.1.2
 Encoding: UTF-8
 Roxygen: list(old_usage = TRUE)
-Remotes:
-    config-i1/greybox
