@@ -94,6 +94,7 @@ test_that("ADAM ETS(MAN) with LASSO on BJsales", {
 
 # ADAM with custom loss function
 test_that("ADAM ETS(AAN) with custom loss on BJsales", {
+    skip_on_cran()
     loss <- function(actual, fitted, B){
         return(sum(abs(actual-fitted)^3))
     }
@@ -116,6 +117,7 @@ test_that("ADAM iETS(MNN) with general occurrence", {
 
 # iETS(M,M,M)_A
 test_that("ADAM iETS(MMM) with direct occurrence", {
+    skip_on_cran()
     testModel <- adam(x$data, "MMM", occurrence="direct")
     expect_match(errorType(testModel), "M")
 })
@@ -169,6 +171,7 @@ test_that("ADAM ETS(CCC) with double seasonality on AirPassengers", {
 # ETSX on AirPassengers
 xreg <- data.frame(y=AirPassengers, x=factor(temporaldummy(AirPassengers,factors=TRUE)))
 test_that("ADAM ETSX(MMN) on AirPassengers", {
+    skip_on_cran()
     testModel <- adam(xreg, "MMN", h=18, holdout=TRUE)
     expect_false(ncol(testModel$data)==1)
 })
