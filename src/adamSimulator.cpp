@@ -59,7 +59,7 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
             //     matrixVt(nNonSeasonal,j) = arma::as_scalar(matrixVt(lagrows.row(nNonSeasonal)));
             // }
             // if(T=='M'){
-            //     if((matrixVt(0,j) <= 0) | (matrixVt(1,j) <= 0)){
+            //     if((matrixVt(0,j) <= 0) || (matrixVt(1,j) <= 0)){
             //         matrixVt(0,j) = arma::as_scalar(matrixVt(lagrows.row(0)));
             //         matrixVt(1,j) = arma::as_scalar(matrixVt(lagrows.row(1)));
             //     }

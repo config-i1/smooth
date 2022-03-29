@@ -174,7 +174,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
                                    matrixXt.row(i-maxlag), matrixAt.col(i-1));
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
-        if((vecYfit(i-maxlag) > 1e+100) | (vecYfit(i-maxlag) < -1e+100)){
+        if((vecYfit(i-maxlag) > 1e+100) || (vecYfit(i-maxlag) < -1e+100)){
             warning = true;
             vecYfit(i-maxlag) = vecYfit(i-maxlag-1);
         }
@@ -195,7 +195,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             warning = true;
             matrixVt(nComponents-1,i) = arma::as_scalar(matrixVt(lagrows.row(nComponents-1)));
         }
-        if(T=='M' && ((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0))){
+        if(T=='M' && ((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0))){
                 warning = true;
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
@@ -231,7 +231,7 @@ List occurenceFitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec
             warning = true;
             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
         }
-        if(T=='M' && ((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0))){
+        if(T=='M' && ((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0))){
                 warning = true;
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
@@ -530,12 +530,12 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
             warning = true;
             matrixVtB(nComponentsB-1,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(nComponentsB-1)));
         }
-        if(TA=='M' && ((matrixVtA(0,i+maxlagA) <= 0) | (matrixVtA(1,i+maxlagA) <= 0))){
+        if(TA=='M' && ((matrixVtA(0,i+maxlagA) <= 0) || (matrixVtA(1,i+maxlagA) <= 0))){
                 warning = true;
                 matrixVtA(0,i+maxlagA) = arma::as_scalar(matrixVtA(lagrowsA.row(0)));
                 matrixVtA(1,i+maxlagA) = arma::as_scalar(matrixVtA(lagrowsA.row(1)));
         }
-        if(TB=='M' && ((matrixVtB(0,i+maxlagB) <= 0) | (matrixVtB(1,i+maxlagB) <= 0))){
+        if(TB=='M' && ((matrixVtB(0,i+maxlagB) <= 0) || (matrixVtB(1,i+maxlagB) <= 0))){
                 warning = true;
                 matrixVtB(0,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(0)));
                 matrixVtB(1,i+maxlagB) = arma::as_scalar(matrixVtB(lagrowsB.row(1)));
@@ -583,7 +583,7 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
             warning = true;
             matrixVtA(matrixVtA.n_rows-1,i) = arma::as_scalar(matrixVtA(lagrowsA.row(matrixVtA.n_rows-1)));
         }
-        if(TA=='M' && ((matrixVtA(0,i) <= 0) | (matrixVtA(1,i) <= 0))){
+        if(TA=='M' && ((matrixVtA(0,i) <= 0) || (matrixVtA(1,i) <= 0))){
                 warning = true;
                 matrixVtA(0,i) = arma::as_scalar(matrixVtA(lagrowsA.row(0)));
                 matrixVtA(1,i) = arma::as_scalar(matrixVtA(lagrowsA.row(1)));
@@ -605,7 +605,7 @@ List occurenceGeneralFitter(arma::vec const &vecOt,
             warning = true;
             matrixVtB(matrixVtB.n_rows-1,i) = arma::as_scalar(matrixVtB(lagrowsB.row(matrixVtB.n_rows-1)));
         }
-        if(TB=='M' && ((matrixVtB(0,i) <= 0) | (matrixVtB(1,i) <= 0))){
+        if(TB=='M' && ((matrixVtB(0,i) <= 0) || (matrixVtB(1,i) <= 0))){
                 warning = true;
                 matrixVtB(0,i) = arma::as_scalar(matrixVtB(lagrowsB.row(0)));
                 matrixVtB(1,i) = arma::as_scalar(matrixVtB(lagrowsB.row(1)));
