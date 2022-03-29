@@ -8,6 +8,7 @@ output: html_document
 ## Version
 This is ``smooth`` package, v3.1.6.
 
+**I've removed some tests to speed up the checks on CRAN. Hopefully, this addresses the issue flagged by Uwe in the previous submission.**
 
 ## Test environments
 * local ubuntu 20.04.3, R 4.1.2
