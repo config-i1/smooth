@@ -2195,7 +2195,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    "M"=(1-lambda)* sqrt(sum(log(1+adamFitted$errors)^2)/obsInSample)) +
                                 switch(loss,
                                        "LASSO"=lambda * sum(abs(B)),
-                                       "RIDGE"=lambda * sqrt(sum((B)^2))));
+                                       "RIDGE"=lambda * sqrt(sum(B^2))));
             }
             else if(loss=="custom"){
                 CFValue <- lossFunction(actual=yInSample,fitted=adamFitted$yFitted,B=B);
