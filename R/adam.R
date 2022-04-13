@@ -2154,45 +2154,39 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 CFValue <- sum(sqrt(abs(adamFitted$errors)))/obsInSample;
             }
             else if(any(loss==c("LASSO","RIDGE"))){
-                ### All of this is needed in order to normalise level, trend, seasonal and xreg parameters
+                ### All of this is needed in order to get rid of initial level, trend, seasonal and xreg parameters
                 # Define, how many elements to skip (we don't normalise smoothing parameters)
-                if(persistenceXregEstimate){
-                    persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-                }
-                else{
-                    persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
-                }
-                j <- 1;
-                if(phiEstimate){
-                    B[persistenceToSkip+j] <- 1-B[persistenceToSkip+j];
-                    j[] <- 2;
-                }
-                if(initialType=="optimal"){
-                    # Standardise the level
-                    B[persistenceToSkip+j] <- (B[persistenceToSkip+j] - mean(yInSample[1:max(lagsModelMax,2)])) / yDenominator;
-                    # Change B values for the trend, so that it shrinks properly
-                    if(Ttype=="M"){
-                        j[] <- j+1;
-                        B[persistenceToSkip+j] <- log(B[persistenceToSkip+j]);
-                    }
-                    else if(Ttype=="A"){
-                        j[] <- j+1;
-                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] / yDenominator;
-                    }
-                    # Change B values for seasonality, so that it shrinks properly
-                    if(Stype=="M"){
-                        B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] <-
-                            log(B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)]);
-                    }
-                    else if(Stype=="A"){
-                        B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] <-
-                            B[persistenceToSkip+j+1:(sum(lagsModelSeasonal)-componentsNumberETSSeasonal)] /
-                            yDenominator;
-                    }
+                persistenceToSkip <- componentsNumberETS + persistenceXregEstimate*xregNumber +
+                                     phiEstimate + sum(arOrders) + sum(maOrders);
 
-                    # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
-                    if(xregNumber>0 && Etype=="A"){
-                        B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) / denominator;
+                # Shrink phi to 1
+                if(phiEstimate){
+                    B[componentsNumberETS + persistenceXregEstimate*xregNumber + 1] <-
+                        1-B[componentsNumberETS + persistenceXregEstimate*xregNumber + 1];
+                }
+                j <- componentsNumberETS + persistenceXregEstimate*xregNumber + phiEstimate;
+
+                # Shrink AR parameters to 1 and
+                # Shrink MA parameters to -1 to get to deterministic model
+                if(arimaModel && sum(maOrders)>0){
+                    for(i in 1:length(lags)){
+                        B[j+c(1:arOrders[i])] <- 1-B[j+c(1:arOrders[i])];
+                        B[j+arOrders[i]+c(1:maOrders[i])] <- B[j+arOrders[i]+c(1:maOrders[i])]+1;
+                        j[] <- j+arOrders[i]+maOrders[i];
+                    }
+                }
+
+                # Don't do anything with the initial states of ETS and ARIMA. Just drop them (don't shrink)
+                if(initialType=="optimal"){
+                    # If there are explanatory variables, shrink their parameters
+                    if(xregNumber>0){
+                        # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
+                        B <- switch(Etype,
+                                    "A"=c(B[1:persistenceToSkip],tail(B,xregNumber) / denominator),
+                                    "M"=c(B[1:persistenceToSkip],tail(B,xregNumber)));
+                    }
+                    else{
+                        B <- B[1:persistenceToSkip];
                     }
                 }
 

@@ -1,3 +1,10 @@
+smooth v3.1.7 (Release data: 2022-04-13)
+=======
+
+Changes:
+* Updated LASSO and RIDGE in adam(). We now don't shrink initial states, following Pritularga et al. (2022) paper. Furthermore, in the spirit of the paper, we now shrink AR elements to 1 and MA elements to -1.
+
+
 smooth v3.1.6 (Release data: 2022-03-30)
 =======
 
