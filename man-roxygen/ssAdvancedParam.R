@@ -23,7 +23,7 @@
 #' in-sample or to the whole series. If the number of observations in
 #' \code{xreg} is equal to in-sample, then values for the holdout sample are
 #' produced using \link[smooth]{es} function.
-#' @param xregDo The variable defines what to do with the provided xreg:
+#' @param regressors The variable defines what to do with the provided xreg:
 #' \code{"use"} means that all of the data should be used, while
 #' \code{"select"} means that a selection using \code{ic} should be done.
 #' \code{"combine"} will be available at some point in future...

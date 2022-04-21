@@ -11,7 +11,7 @@ auto.ces(y, models = c("none", "simple", "full"),
   interval = c("none", "parametric", "likelihood", "semiparametric",
   "nonparametric"), level = 0.95, bounds = c("admissible", "none"),
   silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, ...)
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -103,7 +103,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}

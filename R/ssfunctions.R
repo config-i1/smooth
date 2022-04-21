@@ -1377,17 +1377,17 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
 
     normalizer <- mean(abs(diff(c(yInSample))));
 
-    ##### Define xregDo #####
+    ##### Define regressors #####
     if(smoothType!="sma"){
-        if(!any(xregDo==c("use","select","u","s"))){
-            warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
-            xregDo <- "select";
+        if(!any(regressors==c("use","select","u","s"))){
+            warning("Wrong type of regressors parameter. Changing to 'select'.", call.=FALSE);
+            regressors <- "select";
         }
-        xregDo <- substr(xregDo[1],1,1);
+        regressors <- substr(regressors[1],1,1);
     }
 
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     ##### Fisher Information #####
@@ -1448,7 +1448,7 @@ ssInput <- function(smoothType=c("es","gum","ces","ssarima","smoothC"),...){
     assign("initialType",initialType,ParentEnvironment);
     assign("normalizer",normalizer,ParentEnvironment);
     assign("nParamMax",nParamMax,ParentEnvironment);
-    assign("xregDo",xregDo,ParentEnvironment);
+    assign("regressors",regressors,ParentEnvironment);
     assign("FI",FI,ParentEnvironment);
     assign("rounded",rounded,ParentEnvironment);
     assign("parametersNumber",parametersNumber,ParentEnvironment);
@@ -1841,15 +1841,15 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
         occurrenceModelProvided <- FALSE;
     }
 
-    ##### Define xregDo #####
-    if(!any(xregDo==c("use","select","u","s"))){
-        warning("Wrong type of xregDo parameter. Changing to 'select'.", call.=FALSE);
-        xregDo <- "select";
+    ##### Define regressors #####
+    if(!any(regressors==c("use","select","u","s"))){
+        warning("Wrong type of regressors parameter. Changing to 'select'.", call.=FALSE);
+        regressors <- "select";
     }
-    xregDo <- substr(xregDo[1],1,1);
+    regressors <- substr(regressors[1],1,1);
 
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     ##### Return values to previous environment #####
@@ -1876,7 +1876,7 @@ ssAutoInput <- function(smoothType=c("auto.ces","auto.gum","auto.ssarima","auto.
     assign("dataFreq",dataFreq,ParentEnvironment);
     assign("dataStart",dataStart,ParentEnvironment);
     assign("yForecastStart",yForecastStart,ParentEnvironment);
-    assign("xregDo",xregDo,ParentEnvironment);
+    assign("regressors",regressors,ParentEnvironment);
 }
 
 ##### *ssFitter function* #####
@@ -2740,7 +2740,7 @@ ssForecaster <- function(...){
 ##### *Check and initialisation of xreg* #####
 ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                    persistenceX=NULL, transitionX=NULL, initialX=NULL,
-                   obsInSample, obsAll, obsStates, lagsModelMax=1, h=1, xregDo="u", silent=FALSE,
+                   obsInSample, obsAll, obsStates, lagsModelMax=1, h=1, regressors="u", silent=FALSE,
                    allowMultiplicative=FALSE){
     # The function does general checks needed for exogenouse variables and returns the list of
     # necessary parameters
@@ -2924,9 +2924,9 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                                 call.=FALSE);
                     }
                     # Check multiple correlations. This is needed for cases with dummy variables.
-                    # In case with xregDo="select" some of the perfectly correlated things,
+                    # In case with regressors="select" some of the perfectly correlated things,
                     # will be dropped out automatically.
-                    if(nExovars>2 & (xregDo=="u")){
+                    if(nExovars>2 & (regressors=="u")){
                         corMatrix <- cor(xreg);
                         corMulti <- rep(NA,nExovars);
                         if(det(corMatrix)!=0){
@@ -2988,7 +2988,7 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                 }
                 else{
                     xregNames <- gsub(" ", "_", colnames(xreg), fixed = TRUE);
-                    if(xregDo=="s" & any(grepl('[^[:alnum:]]', xregNames))){
+                    if(regressors=="s" & any(grepl('[^[:alnum:]]', xregNames))){
                         warning(paste0("There were some special characters in names of ",
                                        "xreg variables. We had to remove them."),call.=FALSE);
                         xregNames <- gsub("[^[:alnum:]]", "", xregNames);

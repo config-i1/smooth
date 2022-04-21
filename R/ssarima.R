@@ -130,7 +130,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{y} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{xregDo="s"}, then this value will contain only selected exogenous
+#' \code{regressors="s"}, then this value will contain only selected exogenous
 #' variables.
 #' \item \code{initialX} - initial values for parameters of exogenous
 #' variables.
@@ -203,7 +203,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
-                    xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                    xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -214,11 +214,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -490,9 +487,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -522,7 +519,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
@@ -535,7 +532,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -545,7 +542,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(xregDo=="select"){
+        if(regressors=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                                nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
@@ -579,7 +576,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                        oesmodel=oesmodel,
                        bounds="u",
                        silent=silent,
-                       xreg=xreg,xregDo=xregDo,initialX=initialX,
+                       xreg=xreg,regressors=regressors,initialX=initialX,
                        updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
@@ -633,7 +630,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     list2env(ssarimaValues,environment());
 
-    if(xregDo!="u"){
+    if(regressors!="u"){
         # Prepare for fitting
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
                                 ARValue, MAValue, constantValue, B,
@@ -695,7 +692,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
-        if(xregDo=="s"){
+        if(regressors=="s"){
             nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
             parametersNumber[1,2] <- nParamExo;
         }

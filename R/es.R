@@ -147,7 +147,7 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{regressors="s"},
 #' then this value will contain only selected exogenous variables.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
@@ -231,7 +231,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                bounds=c("usual","admissible","none"),
                silent=c("all","graph","legend","output","none"),
-               xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+               xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Copyright (C) 2015 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -239,11 +239,8 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -675,7 +672,7 @@ EstimatorES <- function(...){
         B <- BValuesList$B;
     }
     else{
-        # This part is needed for the xregDo="select"
+        # This part is needed for the regressors="select"
         B <- providedC;
         # If the generated B is larger, then probably there is updateX=T
         if(length(BValuesList$B)>length(B)){
@@ -1051,7 +1048,7 @@ PoolPreparerES <- function(...){
                                      nParam=res$nParam,logLik=res$logLik,xreg=xreg,FI=res$FI,
                                      xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
-                if(xregDo!="u"){
+                if(regressors!="u"){
                     listToReturn <- XregSelector(listToReturn=listToReturn);
                 }
                 results[[i]] <- listToReturn;
@@ -1208,7 +1205,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
                              cfObjective=res$objective,B=res$B,ICs=res$ICs,icBest=NULL,
                              nParam=res$nParam,logLik=res$logLik,xreg=xreg, FI=res$FI,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
-        if(xregDo!="u"){
+        if(regressors!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
 
@@ -1268,7 +1265,7 @@ CreatorES <- function(silent=FALSE,...){
                              nParam=res$nParam,FI=res$FI,logLik=res$logLik,xreg=xreg,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
-        if(xregDo!="u"){
+        if(regressors!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
 
@@ -1394,10 +1391,10 @@ CreatorES <- function(silent=FALSE,...){
     xregdata <- ssXreg(y=y, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=basicparams$lagsModelMax, h=h, xregDo=xregDo, silent=silentText,
+                       lagsModelMax=basicparams$lagsModelMax, h=h, regressors=regressors, silent=silentText,
                        allowMultiplicative=allowMultiplicative);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxtOriginal <- matxt <- xregdata$matxt;
         matatOriginal <- matat <- xregdata$matat;
@@ -1429,7 +1426,7 @@ CreatorES <- function(silent=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
@@ -1437,7 +1434,7 @@ CreatorES <- function(silent=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -1707,7 +1704,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Initials for optimiser #####
     if(!all(c(is.null(providedC),is.null(providedCLower),is.null(providedCUpper)))){
-        if((modelDo==c("estimate")) & (xregDo==c("u"))){
+        if((modelDo==c("estimate")) & (regressors==c("u"))){
             environment(BasicMakerES) <- environment();
             BasicMakerES(ParentEnvironment=environment());
 
@@ -1762,7 +1759,7 @@ CreatorES <- function(silent=FALSE,...){
                 warning("Sorry, but there is nothing to optimise, so we have to drop parameter B.",call.=FALSE);
             }
 
-            if(xregDo==c("select")){
+            if(regressors==c("select")){
                 warning("Predefined values of B cannot be used with xreg selection.",call.=FALSE);
             }
             B <- NULL;
@@ -2019,7 +2016,7 @@ CreatorES <- function(silent=FALSE,...){
     else{
         list2env(esValues,environment());
 
-        if(!is.null(xreg) & (xregDo=="u")){
+        if(!is.null(xreg) & (regressors=="u")){
             colnames(matat) <- xregNames;
             xreg <- matxt;
         }
@@ -2046,7 +2043,7 @@ CreatorES <- function(silent=FALSE,...){
             B <- results[[i]]$B;
             nParam <- results[[i]]$nParam;
             xregNames <- results[[i]]$xregNames
-            if(xregDo!="u"){
+            if(regressors!="u"){
                 if(!is.null(xregNames)){
                     matat <- as.matrix(matatOriginal[,xregNames]);
                     matxt <- as.matrix(matxtOriginal[,xregNames]);

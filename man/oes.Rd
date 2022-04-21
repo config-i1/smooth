@@ -11,7 +11,7 @@ oes(y, model = "MNN", persistence = NULL, initial = "o",
   interval = c("none", "parametric", "likelihood", "semiparametric",
   "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
   "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
+  xreg = NULL, regressors = c("use", "select"), initialX = NULL,
   updateX = FALSE, transitionX = NULL, persistenceX = NULL, ...)
 }
 \arguments{
@@ -101,7 +101,7 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \item{xreg}{The vector or the matrix of exogenous variables, explaining some parts
 of occurrence variable (probability).}
 
-\item{xregDo}{Variable defines what to do with the provided xreg:
+\item{regressors}{Variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}

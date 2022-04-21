@@ -1,4 +1,4 @@
-utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","xregDo","modelsPool","parametersNumber"));
+utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regressors","modelsPool","parametersNumber"));
 
 #' Occurrence ETS, general model
 #'
@@ -63,10 +63,10 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","xreg
 #' of occurrence variable of the model A.
 #' @param xregB The vector or the matrix of exogenous variables, explaining some parts
 #' of occurrence variable of the model B.
-#' @param xregDoA Variable defines what to do with the provided \code{xregA}:
+#' @param regressorsA Variable defines what to do with the provided \code{xregA}:
 #' \code{"use"} means that all of the data should be used, while
 #' \code{"select"} means that a selection using \code{ic} should be done.
-#' @param xregDoB Similar to the \code{xregDoA}, but for the part B of the model.
+#' @param regressorsB Similar to the \code{regressorsA}, but for the part B of the model.
 #' @param initialXA The vector of initial parameters for exogenous variables in the model
 #' A. Ignored if \code{xregA} is NULL.
 #' @param initialXB The vector of initial parameters for exogenous variables in the model
@@ -122,7 +122,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  bounds=c("usual","admissible","none"),
                  silent=c("all","graph","legend","output","none"),
                  xregA=NULL, xregB=NULL, initialXA=NULL, initialXB=NULL,
-                 xregDoA=c("use","select"), xregDoB=c("use","select"),
+                 regressorsA=c("use","select"), regressorsB=c("use","select"),
                  updateXA=FALSE, updateXB=FALSE, transitionXA=NULL, transitionXB=NULL,
                  persistenceXA=NULL, persistenceXB=NULL,
                  ...){
@@ -141,6 +141,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     # Add all the variables in ellipsis to current environment
     # list2env(list(...),environment());
     ellipsis <- list(...);
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
 
     # If OES_G was provided as either modelA or modelB, deal with it
     if(is.oesg(modelA)){
@@ -219,11 +220,11 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     initial <- initialA;
     initialSeason <- initialSeasonA;
     xreg <- xregA;
-    xregDo <- xregDoA;
+    regressors <- regressorsA;
 
     environment(ssInput) <- environment();
     ssInput("oes",ParentEnvironment=environment());
-    xregDoA <- xregDo;
+    regressorsA <- regressors;
 
     ### Produce vectors with zeroes and ones, fixed probability and the number of ones.
     ot <- (yInSample!=0)*1;
@@ -241,7 +242,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     xregdata <- ssXreg(y=otAll, Etype="A", xreg=xregA, updateX=updateXA, ot=rep(1,obsInSample),
                        persistenceX=persistenceXA, transitionX=transitionXA, initialX=initialXA,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=1, h=h, xregDo=xregDoA, silent=silentText,
+                       lagsModelMax=1, h=h, regressors=regressorsA, silent=silentText,
                        allowMultiplicative=FALSE);
 
     ### Write down all the values in the model A
@@ -263,7 +264,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     phiA <- phi;
     phiEstimateA <- phiEstimate;
     modelDoA <- modelDo;
-    xregDoA <- xregDo;
+    regressorsA <- regressors;
     parametersNumberA <- parametersNumber;
 
     # From the ssXreg
@@ -285,17 +286,17 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     initial <- initialB;
     initialSeason <- initialSeasonB;
     xreg <- xregB;
-    xregDo <- xregDoB;
+    regressors <- regressorsB;
 
     environment(ssInput) <- environment();
     ssInput("oes",ParentEnvironment=environment());
-    xregDoB <- xregDo;
+    regressorsB <- regressors;
 
     ### Prepare exogenous variables
     xregdata <- ssXreg(y=1-otAll, Etype="A", xreg=xregB, updateX=updateXB, ot=rep(1,obsInSample),
                        persistenceX=persistenceXB, transitionX=transitionXB, initialX=initialXB,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=1, h=h, xregDo=xregDoB, silent=silentText,
+                       lagsModelMax=1, h=h, regressors=regressorsB, silent=silentText,
                        allowMultiplicative=FALSE);
 
     ### Write down all the values in the model B
@@ -317,7 +318,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
     phiB <- phi;
     phiEstimateB <- phiEstimate;
     modelDoB <- modelDo;
-    xregDoB <- xregDo;
+    regressorsB <- regressors;
     parametersNumberB <- parametersNumber;
 
     # From the ssXreg

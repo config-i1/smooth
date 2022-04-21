@@ -13,7 +13,7 @@ gum(y, orders = c(1, 1), lags = c(1, frequency(y)), type = c("additive",
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
   "semiparametric", "nonparametric"), level = 0.95,
   bounds = c("restricted", "admissible", "none"), silent = c("all",
-  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "graph", "legend", "output", "none"), xreg = NULL, regressors = c("use",
   "select"), initialX = NULL, ...)
 
 ges(...)
@@ -129,7 +129,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
@@ -183,7 +183,7 @@ into account).
 \item \code{y} - original data.
 \item \code{holdout} - holdout part of the original data.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If
-\code{xregDo="s"}, then this value will contain only selected exogenous variables.
+\code{regressors="s"}, then this value will contain only selected exogenous variables.
 \item \code{initialX} - initial values for parameters of exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes
 AIC, AICc, BIC and BICc.
@@ -249,7 +249,7 @@ gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aT
 \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
 
 # Or select the most appropriate one
-\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),regressors="s")
 
 summary(ourModel)
 forecast(ourModel)

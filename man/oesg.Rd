@@ -12,7 +12,7 @@ oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
   "none"), silent = c("all", "graph", "legend", "output", "none"),
   xregA = NULL, xregB = NULL, initialXA = NULL, initialXB = NULL,
-  xregDoA = c("use", "select"), xregDoB = c("use", "select"),
+  regressorsA = c("use", "select"), regressorsB = c("use", "select"),
   updateXA = FALSE, updateXB = FALSE, transitionXA = NULL,
   transitionXB = NULL, persistenceXA = NULL, persistenceXB = NULL, ...)
 }
@@ -108,11 +108,11 @@ A. Ignored if \code{xregA} is NULL.}
 \item{initialXB}{The vector of initial parameters for exogenous variables in the model
 B. Ignored if \code{xregB} is NULL.}
 
-\item{xregDoA}{Variable defines what to do with the provided \code{xregA}:
+\item{regressorsA}{Variable defines what to do with the provided \code{xregA}:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.}
 
-\item{xregDoB}{Similar to the \code{xregDoA}, but for the part B of the model.}
+\item{regressorsB}{Similar to the \code{regressorsA}, but for the part B of the model.}
 
 \item{updateXA}{If \code{TRUE}, transition matrix for exogenous variables is
 estimated, introducing non-linear interactions between parameters.

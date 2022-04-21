@@ -63,7 +63,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                      bounds=c("restricted","admissible","none"),
                      silent=c("all","graph","legend","output","none"),
-                     xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                     xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Function estimates several GUM models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2017 - Inf  Ivan Svetunkov
@@ -73,11 +73,8 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -165,7 +162,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             cumulative=cumulative,
                             interval=intervalType, level=level,
                             bounds=bounds,
-                            xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
+                            xreg=xreg, regressors=regressors, initialX=initialX, ...);
             ics[i] <- gumModel$ICs[ic];
             if(!silentText){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
@@ -204,7 +201,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                                 cumulative=cumulative,
                                 interval=intervalType, level=level,
                                 bounds=bounds,
-                                xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
+                                xreg=xreg, regressors=regressors, initialX=initialX, ...);
                 ics[i] <- gumModel$ICs[ic];
             }
             if(!any(which(ics==min(ics))==lagsBest)){
@@ -244,7 +241,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                             cumulative=cumulative,
                             interval=intervalType, level=level,
                             bounds=bounds,
-                            xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
+                            xreg=xreg, regressors=regressors, initialX=initialX, ...);
             ics[i] <- gumModel$ICs[ic];
         }
         ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE);
@@ -269,7 +266,7 @@ auto.gum <- function(y, orders=3, lags=frequency(y), type=c("additive","multipli
                      cumulative=cumulative,
                      interval=intervalType, level=level,
                      bounds=bounds,
-                     xreg=xreg, xregDo=xregDo, initialX=initialX, ...);
+                     xreg=xreg, regressors=regressors, initialX=initialX, ...);
 
     yFitted <- bestModel$fitted;
     yForecast <- bestModel$forecast;

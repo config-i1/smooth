@@ -57,7 +57,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' then it is estimated.
 #' @param xreg The vector or the matrix of exogenous variables, explaining some parts
 #' of occurrence variable (probability).
-#' @param xregDo Variable defines what to do with the provided xreg:
+#' @param regressors Variable defines what to do with the provided xreg:
 #' \code{"use"} means that all of the data should be used, while
 #' \code{"select"} means that a selection using \code{ic} should be done.
 #' \code{"combine"} will be available at some point in future...
@@ -131,7 +131,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("usual","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL,
+                xreg=NULL, regressors=c("use","select"), initialX=NULL,
                 updateX=FALSE, transitionX=NULL, persistenceX=NULL,
                 ...){
     # Function returns the occurrence part of the intermittent state space model
@@ -183,6 +183,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     # Add all the variables in ellipsis to current environment
     # list2env(list(...),environment());
     ellipsis <- list(...);
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
 
     # Parameters for the nloptr
     if(any(names(ellipsis)=="maxeval")){
@@ -234,7 +235,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
     xregdata <- ssXreg(y=otAll, Etype="A", xreg=xreg, updateX=updateX, ot=rep(1,obsInSample),
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=1, h=h, xregDo=xregDo, silent=silentText,
+                       lagsModelMax=1, h=h, regressors=regressors, silent=silentText,
                        allowMultiplicative=FALSE);
 
     nExovars <- xregdata$nExovars;
@@ -686,7 +687,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             return(oesg(y, modelA=model, modelB=model, persistenceA=persistence, persistenceB=persistence, phiA=phi, phiB=phi,
                         initialA=initial, initialB=initial, initialSeasonA=initialSeason, initialSeasonB=initialSeason,
                         ic=ic, h=h, holdout=holdout, interval=interval, level=level, bounds=bounds,
-                        silent=silent, xregA=xreg, xregB=xreg, xregDoA=xregDo, xregDoB=xregDo, updateXA=updateX, updateXB=updateX,
+                        silent=silent, xregA=xreg, xregB=xreg, regressorsA=regressors, regressorsB=regressors, updateXA=updateX, updateXB=updateX,
                         persistenceXA=persistenceX, persistenceXB=persistenceX, transitionXA=transitionX, transitionXB=transitionX,
                         initialXA=initialX, initialXB=initialX, ...));
         }
@@ -953,7 +954,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                                              interval=interval, level=level,
                                              bounds=bounds,
                                              silent=TRUE,
-                                             xreg=xreg, xregDo=xregDo, updateX=updateX, ...);
+                                             xreg=xreg, regressors=regressors, updateX=updateX, ...);
             }
             ICBest <- which.min(sapply(occurrenceModels, ICFunction))[1]
             occurrence <- occurrencePool[ICBest];
@@ -1091,7 +1092,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                     }
 
                     results[[i]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
-                                        bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
+                                        bounds=bounds, silent=TRUE, xreg=xreg, regressors=regressors);
 
                     modelTested <- c(modelTested,modelCurrent);
 
@@ -1212,7 +1213,7 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             modelCurrent <- modelsPool[j];
 
             results[[j]] <- oes(y, model=modelCurrent, occurrence=occurrence, h=h, holdout=holdout,
-                                bounds=bounds, silent=TRUE, xreg=xreg, xregDo=xregDo);
+                                bounds=bounds, silent=TRUE, xreg=xreg, regressors=regressors);
         }
 
         if(!silentText){

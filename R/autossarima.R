@@ -88,7 +88,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                          interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                          bounds=c("admissible","none"),
                          silent=c("all","graph","legend","output","none"),
-                         xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                         xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Function estimates several ssarima models and selects the best one using the selected information criterion.
 #
 #    Copyright (C) 2015 - Inf  Ivan Svetunkov
@@ -98,11 +98,8 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -365,7 +362,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                              h=h, holdout=holdout, cumulative=cumulative,
                              interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
-                             xreg=xreg, xregDo=xregDo, initialX=initialX, FI=FI);
+                             xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
         return(bestModel);
     }
 
@@ -398,7 +395,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                              h=h, holdout=holdout, cumulative=cumulative,
                              interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
-                             xreg=xreg, xregDo=xregDo, initialX=initialX, FI=FI);
+                             xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
         ICValue <- testModel$ICs[ic];
         if(combine){
             testForecasts[[m]] <- matrix(NA,h,3);
@@ -463,7 +460,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                              h=h, holdout=FALSE,
                                              interval=intervalType, level=level,
                                              bounds=bounds, silent=TRUE,
-                                             xreg=NULL, xregDo="use", initialX=initialX, FI=FI);
+                                             xreg=NULL, regressors="use", initialX=initialX, FI=FI);
                         ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsNonzero, nParamNew);
                         if(combine){
                             testForecasts[[m]] <- matrix(NA,h,3);
@@ -527,7 +524,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                                              h=h, holdout=FALSE,
                                                              interval=intervalType, level=level,
                                                              bounds=bounds, silent=TRUE,
-                                                             xreg=NULL, xregDo="use", initialX=initialX, FI=FI);
+                                                             xreg=NULL, regressors="use", initialX=initialX, FI=FI);
                                         ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
                                         if(combine){
                                             testForecasts[[m]] <- matrix(NA,h,3);
@@ -598,7 +595,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                                  h=h, holdout=FALSE,
                                                  interval=intervalType, level=level,
                                                  bounds=bounds, silent=TRUE,
-                                                 xreg=NULL, xregDo="use", initialX=initialX, FI=FI);
+                                                 xreg=NULL, regressors="use", initialX=initialX, FI=FI);
                             ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
                             if(combine){
                                 testForecasts[[m]] <- matrix(NA,h,3);
@@ -656,7 +653,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                  h=h, holdout=holdout, cumulative=cumulative,
                                  interval=intervalType, level=level,
                                  bounds=bounds, silent=TRUE,
-                                 xreg=xreg, xregDo=xregDo, initialX=initialX, FI=FI);
+                                 xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
             ICValue <- testModel$ICs[ic];
             if(combine){
                 testForecasts[[m]] <- matrix(NA,h,3);
@@ -722,7 +719,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                           fitted=yFitted,forecast=yForecast,cumulative=cumulative,
                           lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
                           y=y,holdout=yHoldout,
-                          xreg=xreg, xregDo=xregDo, initialX=initialX,
+                          xreg=xreg, regressors=regressors, initialX=initialX,
                           ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
 
         bestModel <- structure(bestModel,class="smooth");
@@ -734,7 +731,7 @@ auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                              h=h, holdout=holdout, cumulative=cumulative,
                              interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
-                             xreg=xreg, xregDo=xregDo, initialX=initialX, FI=FI);
+                             xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
 
         yFitted <- bestModel$fitted;
         yForecast <- bestModel$forecast;
