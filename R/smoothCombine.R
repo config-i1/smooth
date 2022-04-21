@@ -57,7 +57,7 @@
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{regressors="s"},
 #' then this value will contain only selected exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -92,7 +92,7 @@ smoothCombine <- function(y, models=NULL,
                           bins=200, intervalCombine=c("quantile","probability"),
                           bounds=c("admissible","none"),
                           silent=c("all","graph","legend","output","none"),
-                          xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                          xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Copyright (C) 2018 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -108,11 +108,8 @@ smoothCombine <- function(y, models=NULL,
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -160,25 +157,25 @@ smoothCombine <- function(y, models=NULL,
         }
         esModel <- es(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                       cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                      xreg=xreg,xregDo=xregDo, initialX=initialX);
+                      xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", CES");
         }
         cesModel <- auto.ces(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                              cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo, initialX=initialX);
+                             xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", SSARIMA");
         }
         ssarimaModel <- auto.ssarima(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                                      cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                                     xreg=xreg,xregDo=xregDo, initialX=initialX);
+                                     xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", GUM");
         }
         gumModel <- auto.gum(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                              cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo, initialX=initialX);
+                             xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", SMA");
         }

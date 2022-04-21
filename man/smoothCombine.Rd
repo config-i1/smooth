@@ -11,7 +11,7 @@ smoothCombine(y, models = NULL, initial = c("optimal", "backcasting"),
   "semiparametric", "nonparametric"), level = 0.95, bins = 200,
   intervalCombine = c("quantile", "probability"), bounds = c("admissible",
   "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL, ...)
+  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -111,6 +111,11 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
+\item{regressors}{The variable defines what to do with the provided xreg:
+\code{"use"} means that all of the data should be used, while
+\code{"select"} means that a selection using \code{ic} should be done.
+\code{"combine"} will be available at some point in future...}
+
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
 
@@ -134,7 +139,7 @@ then NA is returned.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{y} - original data.
 \item \code{holdout} - holdout part of the original data.
-\item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+\item \code{xreg} - provided vector or matrix of exogenous variables. If \code{regressors="s"},
 then this value will contain only selected exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -143,11 +148,6 @@ RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
 intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
 cumulative error) and Bias coefficient.
 }}
-
-\item{regressors}{The variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
 }
 \description{
 Function constructs ETS, SSARIMA, CES, GUM and SMA and combines their
