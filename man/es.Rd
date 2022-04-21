@@ -197,9 +197,8 @@ then NA is returned.
 \item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
 then NA is returned.
 \item \code{residuals} - residuals of the estimated model.
-\item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the
-case of trace forecasts this is the matrix used in optimisation. In non-trace estimations
-it is returned just for the information.
+\item \code{errors} - trace forecast in-sample errors, returned as a matrix. Only returned when the
+multistep losses are used and semiparametric interval is needed.
 \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
 This is an unbiased estimate of variance.
 \item \code{interval} - type of interval asked by user.

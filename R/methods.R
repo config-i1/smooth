@@ -2400,6 +2400,38 @@ outlierdummy.smooth <- function(object, level=0.999, type=c("rstandard","rstuden
                      class="outlierdummy"));
 }
 
+#' @export
+rmultistep.smooth <- function(object, h=10, ...){
+    yInSample <- actuals(object);
+    model <- modelType(object);
+    Etype <- errorType(object);
+    Ttype <- substr(model,2,2);
+    Stype <- substr(model,nchar(model),nchar(model));
+    lagsModel <- modelLags(object);
+    obsInSample <- nobs(object);
+
+    matxt <- object$xreg;
+    if(is.null(object$xreg)){
+        matxt <- matrix(1,obsInSample,1);
+    }
+    nXreg <- ncol(matxt);
+    if(is.null(object$xreg)){
+        matat <- matrix(1,obsInSample,1);
+    }
+    else{
+        matat <- matrix(object$initialX,obsInSample,nXreg,byrow=TRUE);
+    }
+    matFX <- diag(nXreg);
+    dataStart <- start(yInSample);
+    dataFreq <- frequency(yInSample);
+
+    errors.mat <- ts(errorerwrap(object$states, object$transition, object$measurement, matrix(yInSample,obsInSample,1),
+                                 h, Etype, Ttype, Stype, lagsModel,
+                                 matxt, matat, matFX, matrix(1,obsInSample,1)),
+                     start=dataStart,frequency=dataFreq);
+    colnames(errors.mat) <- paste0("Error",c(1:h));
+    return(errors.mat);
+}
 
 #### Simulate data using provided object ####
 #' @importFrom utils tail

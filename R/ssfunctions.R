@@ -1912,7 +1912,7 @@ ssFitter <- function(...){
         matat[1:nrow(fitting$matat),] <- fitting$matat;
     }
 
-    if(h>0){
+    if(interval && h>0){
         errors.mat <- ts(errorerwrap(matvt, matF, matw, yInSample,
                                      h, Etype, Ttype, Stype, lagsModel,
                                      matxt, matat, matFX, ot),

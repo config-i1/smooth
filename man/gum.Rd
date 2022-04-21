@@ -173,7 +173,8 @@ smoothing parameters live.
 \item \code{upper} - higher bound of prediction interval. When
 \code{interval="none"} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
-\item \code{errors} - matrix of 1 to h steps ahead errors.
+\item \code{errors} - matrix of 1 to h steps ahead errors. Only returned when the
+multistep losses are used and semiparametric interval is needed.
 \item \code{s2} - variance of the residuals (taking degrees of freedom
 into account).
 \item \code{interval} - type of interval asked by user.
