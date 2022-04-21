@@ -9613,13 +9613,12 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 #### Other methods ####
 
 #' @export
-multicov.adam <- function(object, type=c("analytical","empirical","simulated"), ...){
+multicov.adam <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
     type <- match.arg(type);
 
     # Model type
     Ttype <- substr(modelType(object),2,2);
 
-    h <- length(object$forecast);
     lagsModelAll <- modelLags(object);
     lagsModelMax <- max(lagsModelAll);
     lagsOriginal <- lags(object);

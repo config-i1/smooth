@@ -146,6 +146,7 @@ BICc.smooth <- function(object, ...){
 #' same model is applied to it and then the empirical 1 to h steps ahead forecast
 #' errors are produced;
 #' }
+#' @param h Forecast horizon to use in the calculations.
 #' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
 #' is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
 #' \code{obs=1000}, \code{nsim=100}. This approach increases the accuracy of
@@ -163,10 +164,10 @@ BICc.smooth <- function(object, ...){
 #'
 #' @rdname multicov
 #' @export multicov
-multicov <-  function(object, type=c("analytical","empirical","simulated"), ...) UseMethod("multicov")
+multicov <-  function(object, type=c("analytical","empirical","simulated"), h=10, ...) UseMethod("multicov")
 
 #' @export
-multicov.default <- function(object, type=c("analytical","empirical","simulated"), ...){
+multicov.default <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
     # Function extracts the conditional variances from the model
     return(sigma(object)^2);
 }
@@ -174,7 +175,7 @@ multicov.default <- function(object, type=c("analytical","empirical","simulated"
 #' @aliases multicov.smooth
 #' @rdname multicov
 #' @export
-multicov.smooth <- function(object, type=c("analytical","empirical","simulated"), ...){
+multicov.smooth <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
     # Function extracts the conditional variances from the model
 
     if(is.smoothC(object)){
@@ -201,10 +202,10 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
     # Empirical covariance matrix
     if(type=="e"){
         if(errorType(object)=="A"){
-            errors <- object$errors;
+            errors <- rmultistep(object, h=h);
         }
         else{
-            errors <- log(1 + object$errors);
+            errors <- log(1 + rmultistep(object, h=h));
         }
         if(!is.null(object$occurrence)){
             obs <- t((errors!=0)*1) %*% (errors!=0)*1;
@@ -268,9 +269,10 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
         newData <- simulate(object, nsim=nsim, obs=obs, seed=seed);
         for(i in 1:nsim){
             # Apply the model to the simulated data
-            smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
+            # smoothModel <- smoothFunction(newData$data[,i], model=object, h=h);
             # Remove first h-1 and last values.
-            errors <- smoothModel$errors;
+            # errors <- smoothModel$errors;
+            errors <- rmultistep(object, h=h)
 
             # Transform errors if needed
             if(errorType(object)=="M"){
@@ -300,7 +302,7 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
         else{
             ot <- rep(1,nobs(object));
         }
-        h <- length(object$forecast);
+        # h <- length(object$forecast);
         lagsModel <- modelLags(object);
         s2 <- sigma(object)^2;
         persistence <- matrix(object$persistence,length(object$persistence),1);
