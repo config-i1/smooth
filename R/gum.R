@@ -866,7 +866,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 ##### Print output #####
     if(!silentText){
-        if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
+        if(any(abs(eigen(matF - vecg %*% matw, only.values=TRUE)$values)>(1 + 1E-10))){
             if(bounds=="n"){
                 warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",
                         call.=FALSE);

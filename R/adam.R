@@ -1992,7 +1992,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(arEstimate && (sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))>=1 |
                                   sum(-(adamElements$arimaPolynomials$arPolynomial[-1]))<0)){
                     arPolynomialMatrix[,1] <- -adamElements$arimaPolynomials$arPolynomial[-1];
-                    eigenValues <- abs(eigen(arPolynomialMatrix, only.values=TRUE)$values);
+                    eigenValues <- abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values);
                     if(any(eigenValues>1)){
                         return(1E+100*max(eigenValues));
                     }
@@ -2008,7 +2008,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                       diag(as.vector(adamElements$vecG)) %*%
                                                       t(measurementInverter(adamElements$matWt[1:obsInSample,,drop=FALSE])) %*%
                                                       adamElements$matWt[1:obsInSample,,drop=FALSE] / obsInSample),
-                                                 only.values=TRUE)$values);
+                                                 symmetric=FALSE, only.values=TRUE)$values);
                     }
                     else{
                         # We drop the X parts from matrices
@@ -2016,7 +2016,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         eigenValues <- abs(eigen(adamElements$matF[indices,indices,drop=FALSE] -
                                                      adamElements$vecG[indices,,drop=FALSE] %*%
                                                      adamElements$matWt[obsInSample,indices,drop=FALSE],
-                                                 only.values=TRUE)$values);
+                                                 symmetric=FALSE, only.values=TRUE)$values);
                     }
                 }
                 else{
@@ -2024,7 +2024,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                                  sum(adamElements$arimaPolynomials$maPolynomial[-1])<0))){
                         eigenValues <- abs(eigen(adamElements$matF -
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
-                                                 only.values=TRUE)$values);
+                                                 symmetric=FALSE, only.values=TRUE)$values);
                         if(any(eigenValues>1+1E-50)){
                             return(1E+100*max(eigenValues));
                         }
@@ -5955,12 +5955,12 @@ eigenValues <- function(object, persistence){
                                   diag(as.vector(persistence)) %*%
                                   t(measurementInverter(object$measurement[1:nobs(object),,drop=FALSE])) %*%
                                   object$measurement[1:nobs(object),,drop=FALSE] / nobs(object)),
-                             symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+                             symmetric=FALSE, only.values=TRUE)$values)>1+1E-10));
     }
     else{
         return(any(abs(eigen(object$transition -
                                  persistence %*% object$measurement[nobs(object),,drop=FALSE],
-                             symmetric=TRUE, only.values=TRUE)$values)>1+1E-10));
+                             symmetric=FALSE, only.values=TRUE)$values)>1+1E-10));
     }
 }
 
@@ -5998,21 +5998,21 @@ arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
     # The lower bound
     arPolynomial[variableNumber] <- -5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
-    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
-        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
     }
     lowerBound <- arPolynomial[variableNumber]-0.01;
     # The upper bound
     arPolynomial[variableNumber] <- 5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
-    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+    arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
-        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=TRUE, only.values=TRUE)$values)>1);
+        arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
     }
     upperBound <- arPolynomial[variableNumber]+0.01;
     return(c(lowerBound, upperBound));

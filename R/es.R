@@ -2183,7 +2183,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Print output #####
     if(!silentText){
-        if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
+        if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw, only.values=TRUE)$values)>(1 + 1E-10))){
             warning(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"),
                     call.=FALSE);
         }

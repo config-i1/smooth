@@ -1,4 +1,4 @@
-smooth v3.1.7 (Release data: 2022-04-21)
+smooth v3.1.7 (Release data: 2022-04-22)
 =======
 
 Changes:
@@ -6,6 +6,7 @@ Changes:
 * rmultistep method for es(), ssarima(), msarima(), ces() and sma().
 * Renamed "xregDo" into "regressors" for consistency with ADAM.
 * multicov now accepts parameter h, defining the horizon for multisteps covariance matrix.
+* Fixes in adam() for cases, when eigen() did not use symmetric=FALSE, where this was appropriate. This should speed up the code a bit.
 
 Bugfixes:
 * adam() ETS+ARIMA would check ARIMA parameters, assuming that polynomial matrix is symmetric. This is now fixed.
