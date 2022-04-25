@@ -10,6 +10,7 @@ Changes:
 
 Bugfixes:
 * adam() ETS+ARIMA would check ARIMA parameters, assuming that polynomial matrix is symmetric. This is now fixed.
+* Fixed a bug in adam(), when the function would use erroneously NULL as a name of a variable.
 
 
 smooth v3.1.6 (Release data: 2022-03-30)

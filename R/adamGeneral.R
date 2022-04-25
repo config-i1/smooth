@@ -100,7 +100,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
     else{
         xregData <- NULL;
-        if(!is.null(ncol(data))){
+        if(!is.null(ncol(data)) && !is.null(colnames(data)[1])){
             responseName <- colnames(data)[1];
             y <- data[,1];
         }
