@@ -704,7 +704,7 @@ EstimatorES <- function(...){
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(B, CF, lb=lb, ub=ub,
-                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
+                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=print_level));
     B[] <- res$solution;
 
     # If the optimisation failed, then probably this is because of mixed models...
@@ -742,7 +742,7 @@ EstimatorES <- function(...){
         }
 
         res <- nloptr(B, CF, lb=lb, ub=ub,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=print_level));
         B[] <- res$solution;
     }
     # Change B if it is out of the bounds
@@ -763,7 +763,7 @@ EstimatorES <- function(...){
     }
 
     res2 <- nloptr(B, CF, lb=lb, ub=ub,
-                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval, print_level=0));
+                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval, print_level=print_level));
 
     # This condition is needed in order to make sure that we did not make the solution worse
     if((res2$objective <= res$objective) | rounded){
@@ -1693,6 +1693,12 @@ CreatorES <- function(silent=FALSE,...){
         else{
             maxeval <- 500;
         }
+    }
+    if(any(names(ellipsis)=="print_level")){
+        print_level <- ellipsis$print_level;
+    }
+    else{
+        print_level <- 0;
     }
     if(any(names(ellipsis)=="xtol_rel")){
         xtol_rel <- ellipsis$xtol_rel;
