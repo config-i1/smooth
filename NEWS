@@ -7,6 +7,7 @@ Changes:
 * Renamed "xregDo" into "regressors" for consistency with ADAM.
 * multicov now accepts parameter h, defining the horizon for multisteps covariance matrix.
 * Fixes in adam() for cases, when eigen() did not use symmetric=FALSE, where this was appropriate. This should speed up the code a bit.
+* Tuning of C++ code for ADAM. This leads to the decrease in computational time and used memory. However, the performance of models needs testing to make sure that they are still robust.
 
 Bugfixes:
 * adam() ETS+ARIMA would check ARIMA parameters, assuming that polynomial matrix is symmetric. This is now fixed.

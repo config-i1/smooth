@@ -130,29 +130,14 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
 /* # Wrapper for fitter */
 // [[Rcpp::export]]
-RcppExport SEXP adamFitterWrap(NumericMatrix &matVt, NumericMatrix &matWt, NumericMatrix &matF, NumericMatrix &vecG,
-                               IntegerVector &lagsModelAll, IntegerMatrix &profilesObservedTable, NumericMatrix &profilesRecentTable,
-                               char &Etype, char &Ttype, char &Stype,
-                               unsigned int &componentsNumberETS, unsigned int &nSeasonal,
-                               unsigned int &nArima, unsigned int &nXreg, bool &constant,
-                               NumericMatrix &yInSample, NumericVector &ot, bool &backcast){
-
-    arma::mat matrixVt(matVt.begin(), matVt.nrow(), matVt.ncol());
-    arma::mat matrixWt(matWt.begin(), matWt.nrow(), matWt.ncol(), false);
-    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol(), false);
-    arma::vec vectorG(vecG.begin(), vecG.nrow(), false);
-    arma::uvec lags = as<arma::uvec>(lagsModelAll);
-
-    // Get the observed profiles
-    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable);
-
-    // Create a numeric matrix. The states will be saved here as in a buffer
-    arma::mat profilesRecent(profilesRecentTable.begin(), profilesRecentTable.nrow(), profilesRecentTable.ncol());
+RcppExport SEXP adamFitterWrap(arma::mat &matrixVt, arma::mat &matrixWt, arma::mat &matrixF, arma::vec &vectorG,
+                               arma::uvec &lags, arma::umat &profilesObserved, arma::mat &profilesRecent,
+                               char const &Etype, char const &Ttype, char const &Stype,
+                               unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
+                               unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                               arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
-
-    arma::vec vectorYt(yInSample.begin(), yInSample.nrow(), false);
-    arma::vec vectorOt(ot.begin(), ot.size(), false);
 
     return wrap(adamFitter(matrixVt, matrixWt, matrixF, vectorG,
                            lags, profilesObserved, profilesRecent, Etype, Ttype, Stype,
@@ -188,41 +173,14 @@ arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
 
 /* # Wrapper for forecaster */
 // [[Rcpp::export]]
-RcppExport SEXP adamForecasterWrap(SEXP matWt, SEXP matF,
-                                   SEXP lagsModelAll, SEXP profilesObservedTable, SEXP profilesRecentTable,
-                                   SEXP Etype, SEXP Ttype, SEXP Stype,
-                                   SEXP componentsNumberETS, SEXP componentsNumberETSSeasonal,
-                                   SEXP componentsNumberArima, SEXP xregNumber, SEXP constantRequired,
-                                   SEXP h){
+RcppExport SEXP adamForecasterWrap(arma::mat &matrixWt, arma::mat &matrixF,
+                                   arma::uvec &lags, arma::umat &profilesObserved, arma::mat &profilesRecent,
+                                   char const &E, char const &T, char const &S,
+                                   unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
+                                   unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                                   unsigned int const &horizon){
 
-    NumericMatrix matWt_n(matWt);
-    arma::mat matrixWt(matWt_n.begin(), matWt_n.nrow(), matWt_n.ncol(), false);
-
-    NumericMatrix matF_n(matF);
-    arma::mat matrixF(matF_n.begin(), matF_n.nrow(), matF_n.ncol(), false);
-
-    IntegerVector lagsModel_n(lagsModelAll);
-    arma::uvec lags = as<arma::uvec>(lagsModel_n);
-
-    // Get the observed profiles
-    IntegerMatrix profilesObservedTable_n(profilesObservedTable);
-    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable_n);
-
-    // Create a numeric matrix. The states will be saved here as in a buffer
-    NumericMatrix profilesRecentTable_n(profilesRecentTable);
-    arma::mat profilesRecent(profilesRecentTable_n.begin(), profilesRecentTable_n.nrow(), profilesRecentTable_n.ncol());
-
-    char E = as<char>(Etype);
-    char T = as<char>(Ttype);
-    char S = as<char>(Stype);
-
-    unsigned int nSeasonal = as<int>(componentsNumberETSSeasonal);
-    unsigned int nNonSeasonal = as<int>(componentsNumberETS) - nSeasonal;
-    unsigned int nArima = as<int>(componentsNumberArima);
-    unsigned int nXreg = as<int>(xregNumber);
-    bool constant = as<bool>(constantRequired);
-
-    unsigned int horizon = as<int>(h);
+    unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamForecaster(matrixWt, matrixF,
                                lags, profilesObserved, profilesRecent,
@@ -278,27 +236,14 @@ arma::mat adamErrorer(arma::mat const &matrixVt, arma::mat const &matrixWt, arma
 
 /* # Wrapper for error function */
 // [[Rcpp::export]]
-RcppExport SEXP adamErrorerWrap(NumericMatrix matVt, NumericMatrix matWt, NumericMatrix matF,
-                                IntegerVector lagsModelAll, IntegerMatrix profilesObservedTable, NumericMatrix profilesRecentTable,
+RcppExport SEXP adamErrorerWrap(arma::mat matrixVt, arma::mat matrixWt, arma::mat matrixF,
+                                arma::uvec lags, arma::umat profilesObserved, arma::mat profilesRecent,
                                 char Etype, char Ttype, char Stype,
                                 unsigned int &componentsNumberETS, unsigned int &nSeasonal,
                                 unsigned int nArima, unsigned int nXreg, bool constant,
-                                unsigned int horizon, NumericMatrix yInSample, NumericVector ot){
+                                unsigned int horizon, arma::vec vectorYt, arma::vec vectorOt){
 
-    arma::mat matrixVt(matVt.begin(), matVt.nrow(), matVt.ncol(), false);
-    arma::mat matrixWt(matWt.begin(), matWt.nrow(), matWt.ncol(), false);
-    arma::mat matrixF(matF.begin(), matF.nrow(), matF.ncol(), false);
-    arma::uvec lags = as<arma::uvec>(lagsModelAll);
-
-    // Get the observed profiles
-    arma::umat profilesObserved = as<arma::umat>(profilesObservedTable);
-
-    // Create a numeric matrix. The states will be saved here as in a buffer
-    arma::mat profilesRecent(profilesRecentTable.begin(), profilesRecentTable.nrow(), profilesRecentTable.ncol());
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
-
-    arma::vec vectorYt(yInSample.begin(), yInSample.nrow(), false);
-    arma::vec vectorOt(ot.begin(), ot.size(), false);
 
     return wrap(adamErrorer(matrixVt, matrixWt, matrixF,
                             lags, profilesObserved, profilesRecent,
