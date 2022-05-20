@@ -29,6 +29,6 @@ test_that("Select exogenous variables for CESX on BJsales with selection", {
     skip_on_cran()
     x <- BJsales.lead;
     y <- BJsales;
-    testModel <- ces(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
+    testModel <- ces(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, regressors="select")
     expect_equal(suppressWarnings(ncol(testModel$xreg)),1);
 })

@@ -33,7 +33,7 @@ test_that("Select exogenous variables for GUMX on BJsales", {
     skip_on_cran()
     x <- BJsales.lead
     y <- BJsales
-    testModel <- gum(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="select")
+    testModel <- gum(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, regressors="select")
     expect_match(errorType(testModel),"A")
 })
 

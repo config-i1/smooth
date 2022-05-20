@@ -49,13 +49,13 @@ y <- BJsales;
 # Test selection of exogenous with ETS
 test_that("Use exogenous variables for ETS on BJsales", {
     skip_on_cran()
-    testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, xregDo="use")
+    testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, regressors="use")
     expect_equal(ncol(testModel$xreg),3);
 })
 
 # Test combination of ETS with exogenous selection
 test_that("Select exogenous variables for ETSX combined on BJsales", {
     skip_on_cran()
-    testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, xregDo="select")
+    testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, regressors="select")
     expect_match(testModel$model, "ETSX");
 })

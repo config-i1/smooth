@@ -30,6 +30,6 @@ test_that("Select exogenous variables for auto SSARIMAX on BJsales with selectio
     skip_on_cran()
     x <- BJsales.lead
     y <- BJsales
-    testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=xregExpander(x), xregDo="select", silent=TRUE)
+    testModel <- auto.ssarima(y, orders=list(ar=3,i=2,ma=3), lags=1, h=18, holdout=TRUE, xreg=xregExpander(x), regressors="select", silent=TRUE)
     expect_equal(ncol(testModel$xreg),1)
 })
