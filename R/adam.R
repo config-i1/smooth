@@ -2818,6 +2818,30 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         xregIndex <- 1;
         #### If we do variables selection, do it here, then reestimate the model. ####
         if(regressors=="select"){
+            # This is a failsafe for weird cases, when something went wrong with
+            if(any(is.nan(adamCreated$matVt[,1:lagsModelMax]))){
+                adamCreated[] <- creator(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+                                         lags, lagsModel, lagsModelARIMA, lagsModelAll, lagsModelMax,
+                                         profilesRecentTable, profilesRecentProvided,
+                                         obsStates, obsInSample, obsAll, componentsNumberETS, componentsNumberETSSeasonal,
+                                         componentsNamesETS, otLogical, yInSample,
+                                         persistence, persistenceEstimate,
+                                         persistenceLevel, persistenceLevelEstimate, persistenceTrend, persistenceTrendEstimate,
+                                         persistenceSeasonal, persistenceSeasonalEstimate,
+                                         persistenceXreg, persistenceXregEstimate, persistenceXregProvided,
+                                         phi,
+                                         initialType, initialEstimate,
+                                         initialLevel, initialLevelEstimate, initialTrend, initialTrendEstimate,
+                                         initialSeasonal, initialSeasonalEstimate,
+                                         initialArima, initialArimaEstimate, initialArimaNumber,
+                                         initialXregEstimate, initialXregProvided,
+                                         arimaModel, arRequired, iRequired, maRequired, armaParameters,
+                                         arOrders, iOrders, maOrders,
+                                         componentsNumberARIMA, componentsNamesARIMA,
+                                         xregModel, xregModelInitials, xregData, xregNumber, xregNames,
+                                         xregParametersPersistence,
+                                         constantRequired, constantEstimate, constantValue, constantName);
+            }
             # Fill in the matrices
             adamCreated[] <- filler(B,
                                     etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
