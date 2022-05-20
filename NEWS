@@ -1,4 +1,4 @@
-smooth v3.1.7 (Release data: 2022-04-25)
+smooth v3.1.7 (Release data: 2022-05-20)
 =======
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 Bugfixes:
 * adam() ETS+ARIMA would check ARIMA parameters, assuming that polynomial matrix is symmetric. This is now fixed.
 * Fixed a bug in adam(), when the function would use erroneously NULL as a name of a variable.
+* interval="prediction" would not produce analytical intervals in case of pure additive models. This is now fixed.
 
 
 smooth v3.1.6 (Release data: 2022-03-30)

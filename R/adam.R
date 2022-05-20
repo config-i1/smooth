@@ -7574,7 +7574,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # If this is "prediction", do simulations for multiplicative components
     if(interval=="prediction"){
         # Simulate stuff for the ETS only
-        if(etsModel || xregNumber>0){
+        if((etsModel || xregNumber>0) &&
+           (Ttype=="M" || (Stype=="M" & h>lagsModelMin))){
             interval <- "simulated";
         }
         else{
