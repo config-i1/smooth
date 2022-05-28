@@ -147,10 +147,12 @@ BICc.smooth <- function(object, ...){
 #' errors are produced;
 #' }
 #' @param h Forecast horizon to use in the calculations.
+#' @param nsim Number of iterations to produce in the simulation. Only needed if
+#' \code{type="simulated"}
 #' @param ... Other parameters passed to simulate function (if \code{type="simulated"}
-#' is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
-#' \code{obs=1000}, \code{nsim=100}. This approach increases the accuracy of
-#' covariance matrix on small samples and intermittent data;
+#' is used). These are \code{obs} and \code{seed}. By default \code{obs=1000}.
+#' This approach increases the accuracy of covariance matrix on small samples
+#' and intermittent data;
 #' @return Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
 #'
 #' @seealso \link[smooth]{orders}
@@ -164,10 +166,12 @@ BICc.smooth <- function(object, ...){
 #'
 #' @rdname multicov
 #' @export multicov
-multicov <-  function(object, type=c("analytical","empirical","simulated"), h=10, ...) UseMethod("multicov")
+multicov <-  function(object, type=c("analytical","empirical","simulated"), h=10, nsim=1000,
+                      ...) UseMethod("multicov")
 
 #' @export
-multicov.default <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
+multicov.default <- function(object, type=c("analytical","empirical","simulated"), h=10, nsim=1000,
+                             ...){
     # Function extracts the conditional variances from the model
     return(sigma(object)^2);
 }
@@ -175,7 +179,8 @@ multicov.default <- function(object, type=c("analytical","empirical","simulated"
 #' @aliases multicov.smooth
 #' @rdname multicov
 #' @export
-multicov.smooth <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
+multicov.smooth <- function(object, type=c("analytical","empirical","simulated"), h=10, nsim=1000,
+                            ...){
     # Function extracts the conditional variances from the model
 
     if(is.smoothC(object)){
@@ -230,12 +235,6 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
         else{
             obs <- length(actuals(object));
         }
-        if(any(names(ellipsis)=="nsim")){
-            nsim <- ellipsis$nsim;
-        }
-        else{
-            nsim <- 1000;
-        }
         if(any(names(ellipsis)=="seed")){
             seed <- ellipsis$seed;
         }
@@ -244,25 +243,25 @@ multicov.smooth <- function(object, type=c("analytical","empirical","simulated")
         }
 
         h <- length(object$forecast);
-        if(smoothType=="ETS"){
-            smoothFunction <- es;
-        }
-        # GUM models
-        else if(smoothType=="GUM"){
-            smoothFunction <- gum;
-        }
-        # SSARIMA models
-        else if(smoothType=="ARIMA"){
-            smoothFunction <- ssarima;
-        }
-        # CES models
-        else if(smoothType=="CES"){
-            smoothFunction <- ces;
-        }
-        # SMA models
-        else if(smoothType=="SMA"){
-            smoothFunction <- sma;
-        }
+        # if(smoothType=="ETS"){
+        #     smoothFunction <- es;
+        # }
+        # # GUM models
+        # else if(smoothType=="GUM"){
+        #     smoothFunction <- gum;
+        # }
+        # # SSARIMA models
+        # else if(smoothType=="ARIMA"){
+        #     smoothFunction <- ssarima;
+        # }
+        # # CES models
+        # else if(smoothType=="CES"){
+        #     smoothFunction <- ces;
+        # }
+        # # SMA models
+        # else if(smoothType=="SMA"){
+        #     smoothFunction <- sma;
+        # }
 
         covarArray <- array(NA,c(h,h,nsim));
 
@@ -397,7 +396,7 @@ nparam.smooth <- function(object, ...){
 #'
 #' # Generate data, apply es() with the holdout parameter and calculate PLS
 #' x <- rnorm(100,0,1)
-#' ourModel <- es(x, h=10, holdout=TRUE, interval=TRUE)
+#' ourModel <- es(x, h=10, holdout=TRUE)
 #' pls(ourModel, type="a")
 #' pls(ourModel, type="e")
 #' pls(ourModel, type="s", obs=100, nsim=100)
@@ -2485,12 +2484,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         }
     }
     else{
-        if(errorType(object)=="A"){
-            randomizer <- "rnorm";
-        }
-        else{
-            randomizer <- "rlnorm";
-        }
+        randomizer <- "rnorm";
         if(!is.null(ellipsis$mean)){
             args$mean <- ellipsis$mean;
         }
@@ -2511,7 +2505,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     args$nsim <- nsim;
     args$initial <- object$initial;
     # If this is an occurrence model, use the fitted values for the probabilities
-    if(is.list(object$occurrence)){
+    if(is.occurrence(object$occurrence)){
         args$probability <- fitted(object$occurrence);
     }
     else{
@@ -2524,7 +2518,14 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
             args$model <- model;
             args$phi <- object$phi;
             args$persistence <- object$persistence;
-            args$initialSeason <- object$initialSeason;
+            if(is.list(args$initial)){
+                args$initialSeason <- object$initial$seasonal;
+                args$initial <- unlist(args$initial[c("level","trend")]);
+            }
+
+            if(errorType(object)=="M" && args$mean==0){
+                args$mean <- 1;
+            }
 
             simulatedData <- do.call("sim.es",args);
         }
