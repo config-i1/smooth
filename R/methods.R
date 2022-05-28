@@ -741,7 +741,7 @@ forecast.smooth <- function(object, h=10,
     }
     # Do calculations
     if(smoothType=="ETS"){
-        newModel <- es(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- es_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="CES"){
         newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
