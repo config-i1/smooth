@@ -2940,7 +2940,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(any(modelDo==c("select","combine")) &&
        ((any(loss==c("MSE","MSEh","MSCE","GPL")) && all(distribution!=c("default","dnorm"))) ||
         (any(loss==c("MAE","MAEh","MACE")) && all(distribution!=c("default","dlaplace"))) ||
-        (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))))){
+        (any(loss==c("HAM","HAMh","CHAM")) && all(distribution!=c("default","ds"))) ||
+        (any(loss==c("TMSE","GTMSE","TMAE","GTMAE","THAM","GTHAM"))))){
         warning("The model selection only works in case of loss='likelihood'. I hope you know what you are doing.",
                 call.=FALSE);
     }
