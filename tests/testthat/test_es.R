@@ -7,7 +7,7 @@ test_that("Test ETS selection on BJsales", {
 })
 
 test_that("Test damped-trend ETS on BJsales", {
-    expect_equal(round(es(BJsales,model="AAdN", silent=TRUE)$phi,2), 0.87);
+    expect_equal(round(es(BJsales,model="AAdN", silent=TRUE)$phi,2), 0.86);
 })
 
 # Reuse previous ETS
@@ -19,7 +19,7 @@ test_that("Test on BJsales, predefined ETS", {
 test_that("Test ETS(CCC) with BIC on AirPassengers", {
     skip_on_cran
     testModel <- es(AirPassengers, "CCC", silent=TRUE, ic="BIC");
-    expect_equal(testModel$s2, mean(testModel$residuals^2));
+    expect_equal(testModel$scale^2, mean(residuals(testModel)^2));
 })
 
 # Test model selection of non-multiplicative trend ETS
@@ -30,9 +30,9 @@ test_that("Test ETS(MXM) with AIC on AirPassengers", {
 })
 
 # Test trace cost function for ETS
-testModel <- es(AirPassengers, model="MAdM", h=18, holdout=TRUE, silent=TRUE, interval=TRUE)
+testModel <- es(AirPassengers, model="MAdM", h=18, holdout=TRUE, silent=TRUE)
 test_that("Test AIC of ETS on AirPassengers", {
-    expect_equal(as.numeric(round(AIC(testModel),2)), as.numeric(round(testModel$ICs[1,"AIC"],2)));
+    expect_equal(as.numeric(round(AICc(testModel),2)), as.numeric(round(testModel$ICs,2)));
 })
 
 # Test how different passed values are accepted by ETS
@@ -50,12 +50,12 @@ y <- BJsales;
 test_that("Use exogenous variables for ETS on BJsales", {
     skip_on_cran()
     testModel <- es(y, h=18, holdout=TRUE, xreg=xregExpander(x), silent=TRUE, regressors="use")
-    expect_equal(ncol(testModel$xreg),3);
+    expect_equal(length(testModel$initial$xreg),3);
 })
 
 # Test combination of ETS with exogenous selection
 test_that("Select exogenous variables for ETSX combined on BJsales", {
     skip_on_cran()
     testModel <- es(y, "CCC", h=18, holdout=TRUE, xreg=x, silent=TRUE, regressors="select")
-    expect_match(testModel$model, "ETSX");
+    expect_match(modelType(testModel), "CCN");
 })
