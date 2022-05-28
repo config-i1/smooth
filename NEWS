@@ -7,6 +7,7 @@ Changes:
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
+* Another fix of the number of estimated parameters in adam() - the internal method would differ from the external one.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)

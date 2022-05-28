@@ -2788,7 +2788,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Prepare the values to return
         B[] <- res$solution;
         CFValue <- res$objective;
-        # In case of likelihood, we typically have one more parameter to estimate - scale. It is recorded separately
         nParamEstimated <- length(B);
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
@@ -2814,7 +2813,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 bounds, loss, lossFunction, distributionNew, horizon, multisteps,
                                                 denominator, yDenominator, other, otherParameterEstimate, lambda,
                                                 arPolynomialMatrix, maPolynomialMatrix),
-                                     nobs=obsInSample,df=nParamEstimated,class="logLik");
+        # In case of likelihood, we typically have one more parameter to estimate - scale.
+                                     nobs=obsInSample,df=nParamEstimated+(loss=="likelihood"),class="logLik");
         xregIndex <- 1;
         #### If we do variables selection, do it here, then reestimate the model. ####
         if(regressors=="select"){
@@ -3106,7 +3106,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                          xregParametersMissing, xregParametersIncluded,
                          xregParametersEstimated, xregParametersPersistence,
                          constantRequired, constantEstimate, constantValue, constantName,
-                         ot, otLogical, occurrenceModel, pFitted, ICFunction,
+                         ot, otLogical, occurrenceModel, pFitted, icFunction,
                          bounds, loss, lossFunction, distribution,
                          horizon, multisteps, other, otherParameterEstimate, lambda){
 
@@ -3249,7 +3249,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                           ot, otLogical, occurrenceModel, pFitted,
                                           bounds, loss, lossFunction, distribution,
                                           horizon, multisteps, other, otherParameterEstimate, lambda);
-                results[[i]]$IC <- ICFunction(results[[i]]$logLikADAMValue);
+                results[[i]]$IC <- icFunction(results[[i]]$logLikADAMValue);
                 results[[i]]$Etype <- Etype;
                 results[[i]]$Ttype <- Ttype;
                 results[[i]]$Stype <- Stype;
@@ -3389,7 +3389,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                       ot, otLogical, occurrenceModel, pFitted,
                                       bounds, loss, lossFunction, distribution,
                                       horizon, multisteps, other, otherParameterEstimate, lambda);
-            results[[j]]$IC <- ICFunction(results[[j]]$logLikADAMValue);
+            results[[j]]$IC <- icFunction(results[[j]]$logLikADAMValue);
             results[[j]]$Etype <- Etype;
             results[[j]]$Ttype <- Ttype;
             results[[j]]$Stype <- Stype;
@@ -3912,7 +3912,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                constantRequired, constantEstimate, constantValue, constantName);
         list2env(adamCreated, environment());
 
-        icSelection <- ICFunction(adamEstimated$logLikADAMValue);
+        icSelection <- icFunction(adamEstimated$logLikADAMValue);
 
         ####!!! If the occurrence is auto, then compare this with the model with no occurrence !!!####
 
@@ -3951,7 +3951,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                  xregParametersMissing, xregParametersIncluded,
                                  xregParametersEstimated, xregParametersPersistence,
                                  constantRequired, constantEstimate, constantValue, constantName,
-                                 ot, otLogical, occurrenceModel, pFitted, ICFunction,
+                                 ot, otLogical, occurrenceModel, pFitted, icFunction,
                                  bounds, loss, lossFunction, distribution,
                                  horizon, multisteps, other, otherParameterEstimate, lambda);
 
@@ -4076,7 +4076,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                   xregParametersMissing, xregParametersIncluded,
                                   xregParametersEstimated, xregParametersPersistence,
                                   constantRequired, constantEstimate, constantValue, constantName,
-                                  ot, otLogical, occurrenceModel, pFitted, ICFunction,
+                                  ot, otLogical, occurrenceModel, pFitted, icFunction,
                                   bounds, loss, lossFunction, distribution,
                                   horizon, multisteps, other, otherParameterEstimate, lambda);
 
@@ -4272,7 +4272,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                 arPolynomialMatrix=NULL, maPolynomialMatrix=NULL)
                                      ,nobs=obsInSample,df=parametersNumber[1,5],class="logLik")
 
-        icSelection <- ICFunction(logLikADAMValue);
+        icSelection <- icFunction(logLikADAMValue);
         # If Fisher Information is required, do that analytically
         if(FI){
             # If B is not provided, then use the standard thing
@@ -9946,4 +9946,5 @@ orders.adam <- function(object, ...){
 
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
+# pls.adam
 # simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){}
