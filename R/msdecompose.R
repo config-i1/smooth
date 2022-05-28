@@ -195,9 +195,10 @@ forecast.msdecompose <- function(object, h=10,
             yDeseasonalised <- yDeseasonalised / rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
         }
     }
-    yesModel <- suppressWarnings(es(yDeseasonalised,model=model,h=h,interval=interval,level=level,initial="b",...));
+    yesModel <- suppressWarnings(adam(yDeseasonalised,model=model,h=h,initial="b",...));
+    yesModel <- forecast(yesModel,h=h,interval=interval,level=level);
 
-    yValues <- ts(c(yDeseasonalised,yesModel$forecast),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
+    yValues <- ts(c(yDeseasonalised,yesModel$mean),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
     if(interval!="none"){
         lower <- ts(c(yDeseasonalised,yesModel$lower),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
         upper <- ts(c(yDeseasonalised,yesModel$upper),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
