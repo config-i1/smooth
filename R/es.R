@@ -214,17 +214,18 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' # Model selection using a specified pool of models
 #' ourModel <- es(AirPassengers,model=c("ANN","AAM","AMdA"),h=18)
 #'
-#' # Redo previous model and produce prediction interval
-#' es(AirPassengers,model=ourModel,h=18,interval="p")
+#' # Produce forecast and prediction interval
+#' forecast(ourModel, h=18, interval="parametric")
 #'
 #' # Semiparametric interval example
-#' \donttest{es(AirPassengers,h=18,holdout=TRUE,interval="sp")}
+#' \donttest{forecast(ourModel, h=18, interval="semiparametric")}
 #'
 #' # This will be the same model as in previous line but estimated on new portion of data
 #' \donttest{es(BJsales,model=ourModel,h=18,holdout=FALSE)}
 #'
-#' @export es
-es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
+#' @rdname es
+#' @export
+es_old <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,

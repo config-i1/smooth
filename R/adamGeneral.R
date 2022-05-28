@@ -2373,7 +2373,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
     #### Information Criteria ####
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
-    ICFunction <- switch(ic,
+    icFunction <- switch(ic,
                          "AIC"=AIC,
                          "AICc"=AICc,
                          "BIC"=BIC,
@@ -3072,7 +3072,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("lossFunction",lossFunction,ParentEnvironment);
     assign("multisteps",multisteps,ParentEnvironment);
     assign("ic",ic,ParentEnvironment);
-    assign("ICFunction",ICFunction,ParentEnvironment);
+    assign("icFunction",icFunction,ParentEnvironment);
     assign("bounds",bounds,ParentEnvironment);
 
     ### ARIMA components

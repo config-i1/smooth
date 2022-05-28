@@ -14,7 +14,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
                          "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
-                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval",
+                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
@@ -9729,7 +9729,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         # If scale model is included, produce forecasts
         if(is.scale(object$scale)){
             # as.vector is needed to declass the mean.
-            scaleValue <- as.vector(forecast(object$scale,h=h,newdata=newdata,interval="none")$mean);
+            scaleValue <- as.vector(forecast(object$scale,h=h,interval="none")$mean);
             # De-bias the scales and transform to the appropriate scale
             # dnorm, dlnorm fit model on square residuals
             # dgnorm needs to be done with ^beta to get to 1/T part
