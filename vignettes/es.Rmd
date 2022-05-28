@@ -14,9 +14,9 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-`es()` is a part of [smooth package](smooth.html). It allows constructing Exponential Smoothing (also known as ETS), selecting the most appropriate one among 30 possible ones, including exogenous variables and many more.
+`es()` is a part of [smooth package](smooth.html) and is a wrapper for the [ADAM](adam.html) function with `distribution="dnorm"`. It implements Exponential Smoothing in the ETS form, selecting the most appropriate model among 30 possible ones.
 
-We will use some of the functions of the `greybox` package.
+We will use some of the functions of the `greybox` package in this vignette for demonstrational purposes.
 
 Let's load the necessary packages:
 ```{r load_libraries, message=FALSE, warning=FALSE}
@@ -24,10 +24,11 @@ require(smooth)
 require(greybox)
 ```
 
-The simplest call of this function is:
+The simplest call for the `es()` function is:
 
 ```{r es_N2457}
-es(BJsales, h=12, holdout=TRUE, silent=FALSE)
+ourModel <- es(BJsales, h=12, holdout=TRUE, silent=FALSE)
+ourModel
 ```
 
 In this case function uses branch and bound algorithm to form a pool of models to check and after that constructs a model with the lowest information criterion. As we can see, it also produces an output with brief information about the model, which contains:
@@ -37,28 +38,20 @@ In this case function uses branch and bound algorithm to form a pool of models t
 3. Values of persistence vector (smoothing parameters);
 4. What type of initialisation was used;
 5. How many parameters were estimated (standard deviation is included);
-6. Standard deviation of residuals. The model has multiplicative error term, so as a result the standard deviation is small.
-7. Cost function type and the value of that cost function;
-8. Information criteria for this model;
-9. Forecast errors (because we have set `holdout=TRUE`).
+6. Cost function type and the value of that cost function;
+7. Information criteria for this model;
+8. Forecast errors (because we have set `holdout=TRUE`).
 
 The function has also produced a graph with actual values, fitted values and point forecasts.
 
-If we need prediction interval, then we run:
+If we need prediction interval, then we can use the `forecast()` method:
 ```{r es_N2457_with_interval}
-es(BJsales, h=12, holdout=TRUE, interval=TRUE, silent=FALSE)
+plot(forecast(ourModel, h=12, interval="prediction"))
 ```
 
-Due to multiplicative nature of error term in the model, the interval are asymmetric. This is the expected behaviour. The other thing to note is that the output now also provides the theoretical width of prediction interval and its actual coverage.
-
-If we save the model (and let's say we want it to work silently):
-```{r es_N2457_save_model}
-ourModel <- es(BJsales, h=12, holdout=TRUE, silent="all")
-```
-
-we can then reuse it for different purposes:
+The same model can be reused for different purposes, for example to produce forecasts based on newly available data:
 ```{r es_N2457_reuse_model}
-es(BJsales, model=ourModel, h=12, holdout=FALSE, interval="np", level=0.93)
+es(BJsales, model=ourModel, h=12, holdout=FALSE)
 ```
 
 We can also extract the type of model in order to reuse it later:
@@ -66,69 +59,79 @@ We can also extract the type of model in order to reuse it later:
 modelType(ourModel)
 ```
 
-This handy function, by the way, also works with ets() from forecast package.
+This handy function also works with `ets()` from forecast package.
 
 If we need actual values from the model, we can use `actuals()` method from `greybox` package:
 ```{r es_N2457_actuals}
 actuals(ourModel)
 ```
 
-We can then use persistence or initials only from the model to construct the other one:
+We can also use persistence or initials only from the model to construct the other one:
 ```{r es_N2457_reuse_model_parts}
-es(BJsales, model=modelType(ourModel), h=12, holdout=FALSE, initial=ourModel$initial, silent="graph")
-es(BJsales, model=modelType(ourModel), h=12, holdout=FALSE, persistence=ourModel$persistence, silent="graph")
+# Provided initials
+es(BJsales, model=modelType(ourModel),
+   h=12, holdout=FALSE,
+   initial=ourModel$initial)
+# Provided persistence
+es(BJsales, model=modelType(ourModel),
+   h=12, holdout=FALSE,
+   persistence=ourModel$persistence)
 ```
 or provide some arbitrary values:
 ```{r es_N2457_set_initial}
-es(BJsales, model=modelType(ourModel), h=12, holdout=FALSE, initial=1500, silent="graph")
+es(BJsales, model=modelType(ourModel),
+   h=12, holdout=FALSE,
+   initial=200)
 ```
 
-Using some other parameters may lead to completely different model and forecasts:
+Using some other parameters may lead to completely different model and forecasts (see discussion of the additional parameters in the [online textbook about ADAM](https://openforecast.org/adam/)):
 ```{r es_N2457_aMSTFE}
-es(BJsales, h=12, holdout=TRUE, loss="aTMSE", bounds="a", ic="BIC", interval=TRUE)
+es(BJsales, h=12, holdout=TRUE, loss="MSEh", bounds="a", ic="BIC")
 ```
 
-You can play around with all the available parameters to see what's their effect on final model.
+You can play around with all the available parameters to see what's their effect on the final model.
 
 In order to combine forecasts we need to use "C" letter:
 ```{r es_N2457_combine}
-es(BJsales, model="CCN", h=12, holdout=TRUE, silent="graph")
+es(BJsales, model="CCN", h=12, holdout=TRUE)
 ```
 
 Model selection from a specified pool and forecasts combination are called using respectively:
 ```{r es_N2457_pool}
-es(BJsales, model=c("ANN","AAN","AAdN","ANA","AAA","AAdA"), h=12, holdout=TRUE, silent="graph")
-es(BJsales, model=c("CCC","ANN","AAN","AAdN","ANA","AAA","AAdA"), h=12, holdout=TRUE, silent="graph")
+# Select the best model in the pool
+es(BJsales, model=c("ANN","AAN","AAdN","MNN","MAN","MAdN"),
+   h=12, holdout=TRUE)
+# Combine the pool of models
+es(BJsales, model=c("CCC","ANN","AAN","AAdN","MNN","MAN","MAdN"),
+   h=12, holdout=TRUE)
 ```
 
-Now let's introduce some artificial exogenous variables:
+Now we introduce explanatory variable in ETS:
 ```{r es_N2457_xreg_create}
-x <- cbind(rnorm(length(BJsales),50,3),rnorm(length(BJsales),100,7))
+x <- BJsales.lead
 ```
 
-and fit a model with all the exogenous first:
+and fit an ETSX model with the exogenous variable first:
 ```{r es_N2457_xreg}
-es(BJsales, model="ZZZ", h=12, holdout=TRUE, xreg=x)
-```
-
-or construct a model with selected exogenous (based on IC):
-```{r es_N2457_xreg_select}
-es(BJsales, model="ZZZ", h=12, holdout=TRUE, xreg=x, xregDo="select")
+es(BJsales, model="ZZZ", h=12, holdout=TRUE,
+   xreg=x)
 ```
 
 If we want to check if lagged x can be used for forecasting purposes, we can use `xregExpander()` function from `greybox` package:
 ```{r es_N2457_xreg_expanded_select}
-es(BJsales, model="ZZZ", h=12, holdout=TRUE, xreg=xregExpander(x), xregDo="select")
+es(BJsales, model="ZZZ", h=12, holdout=TRUE,
+   xreg=xregExpander(x), regressors="use")
 ```
 
-If we are confused about the type of estimated model, the function `formula()` will help us:
-```{r es_N2457_xreg_formula}
-formula(ourModel)
+We can also construct a model with selected exogenous (based on IC):
+```{r es_N2457_xreg_select}
+es(BJsales, model="ZZZ", h=12, holdout=TRUE,
+   xreg=xregExpander(x), regressors="select")
 ```
 
 Finally, if you work with M or M3 data, and need to test a function on a specific time series, you can use the following simplified call:
 ```{r es_N2457_M3, eval=FALSE}
-es(M3$N2457, interval=TRUE, silent=FALSE)
+es(Mcomp::M3$N2457, silent=FALSE)
 ```
 
 This command has taken the data, split it into in-sample and holdout and produced the forecast of appropriate length to the holdout.
