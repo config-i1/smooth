@@ -3920,7 +3920,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(xregModel){
             parametersNumber[1,2] <- sum(xregParametersEstimated)*initialXregEstimate +
                 max(xregParametersPersistence)*persistenceXregEstimate;
-            parametersNumber[1,1] <- parametersNumber[1,1] - parametersNumber[1,2]
+            parametersNumber[1,1] <- parametersNumber[1,1] - parametersNumber[1,2];
         }
         # If we used likelihood, scale was estimated
         if((loss=="likelihood")){
@@ -3994,6 +3994,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         parametersNumber[1,1] <- nParamEstimated;
         if(xregModel){
             parametersNumber[1,2] <- xregNumber*initialXregEstimate + xregNumber*persistenceXregEstimate;
+            parametersNumber[1,1] <- parametersNumber[1,1] - parametersNumber[1,2];
         }
         # If we used likelihood, scale was estimated
         if((loss=="likelihood")){
@@ -9638,7 +9639,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 #### Other methods ####
 
 #' @export
-multicov.adam <- function(object, type=c("analytical","empirical","simulated"), h=10, ...){
+multicov.adam <- function(object, type=c("analytical","empirical","simulated"), h=10, nsim=1000,
+                          ...){
     type <- match.arg(type);
 
     # Model type
@@ -9672,6 +9674,131 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
         adamErrors <- rmultistep(object, h=h);
         covarMat <- t(adamErrors) %*% adamErrors / (nobs(object) - h);
     }
+    else if(type=="simulated"){
+        # This code is based on the forecast.adam() with simulations
+        obsInSample <- nobs(object, all=FALSE);
+        Etype <- errorType(object);
+        Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
+
+            # Get the observed profiles
+        profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax,
+                                                    obsInSample+h)$observed[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
+        profilesRecentTable <- object$profile;
+
+        lagsModelMin <- lagsModelAll[lagsModelAll!=1];
+        if(length(lagsModelMin)==0){
+            lagsModelMin <- Inf;
+        }
+        else{
+            lagsModelMin <- min(lagsModelMin);
+        }
+
+        # See if constant is required
+        constantRequired <- !is.null(object$constant);
+
+        matVt <- t(tail(object$states,lagsModelMax));
+
+        # If this is a mixture model, produce forecasts for the occurrence
+        if(is.occurrence(object$occurrence)){
+            if(object$occurrence$occurrence=="provided"){
+                pForecast <- rep(1,h);
+            }
+            else{
+                pForecast <- forecast(object$occurrence,h=h,interval="none")$mean;
+            }
+        }
+        else{
+            # If this was provided occurrence, then use provided values
+            if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
+               (object$occurrence$occurrence=="provided")){
+                pForecast <- object$occurrence$forecast;
+            }
+            else{
+                pForecast <- rep(1, h);
+            }
+        }
+
+        arrVt <- array(NA, c(componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, h+lagsModelMax, nsim));
+        arrVt[,1:lagsModelMax,] <- rep(matVt,nsim);
+        # Number of degrees of freedom to de-bias scales
+        df <- obsInSample-nparam(object);
+        # If the sample is too small, then use biased estimator
+        if(df<=0){
+            df[] <- obsInSample;
+        }
+        # If scale model is included, produce forecasts
+        if(is.scale(object$scale)){
+            # as.vector is needed to declass the mean.
+            scaleValue <- as.vector(forecast(object$scale,h=h,newdata=newdata,interval="none")$mean);
+            # De-bias the scales and transform to the appropriate scale
+            # dnorm, dlnorm fit model on square residuals
+            # dgnorm needs to be done with ^beta to get to 1/T part
+            # The rest do not require transformations, only de-bias
+            scaleValue[] <- switch(object$distribution,
+                                   "dlnorm"=,
+                                   "dnorm"=(scaleValue*obsInSample/df)^0.5,
+                                   "dgnorm"=((scaleValue^object$other$shape)*obsInSample/df)^{1/object$other$shape},
+                                   scaleValue*obsInSample/df);
+        }
+        else{
+            scaleValue <- object$scale*obsInSample/df;
+        }
+        matErrors <- matrix(switch(object$distribution,
+                                   "dnorm"=rnorm(h*nsim, 0, scaleValue),
+                                   "dlaplace"=rlaplace(h*nsim, 0, scaleValue),
+                                   "ds"=rs(h*nsim, 0, scaleValue),
+                                   "dgnorm"=rgnorm(h*nsim, 0, scaleValue, object$other$shape),
+                                   "dlogis"=rlogis(h*nsim, 0, scaleValue),
+                                   "dt"=rt(h*nsim, obsInSample-nparam(object)),
+                                   "dalaplace"=ralaplace(h*nsim, 0, scaleValue, object$other$alpha),
+                                   "dlnorm"=rlnorm(h*nsim, -scaleValue^2/2, scaleValue)-1,
+                                   "dinvgauss"=rinvgauss(h*nsim, 1, dispersion=scaleValue)-1,
+                                   "dgamma"=rgamma(h*nsim, shape=scaleValue^{-1}, scale=scaleValue)-1,
+                                   "dllaplace"=exp(rlaplace(h*nsim, 0, scaleValue))-1,
+                                   "dls"=exp(rs(h*nsim, 0, scaleValue))-1,
+                                   "dlgnorm"=exp(rgnorm(h*nsim, 0, scaleValue, object$other$shape))-1
+        ),
+        h,nsim);
+        # Normalise errors in order not to get ridiculous things on small nsim
+        if(nsim<=500){
+            if(Etype=="A"){
+                matErrors[] <- matErrors - array(apply(matErrors,1,mean),c(h,nsim));
+            }
+            else{
+                matErrors[] <- (1+matErrors) / array(apply(1+matErrors,1,mean),c(h,nsim))-1;
+            }
+        }
+        # This stuff is needed in order to produce adequate values for weird models
+        EtypeModified <- Etype;
+        if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dgamma","dls","dllaplace"))){
+            EtypeModified[] <- "M";
+        }
+
+        # States, Errors, Ot, Transition, Measurement, Persistence
+        ySimulated <- adamSimulatorWrap(arrVt, matErrors,
+                                        matrix(rbinom(h*nsim, 1, pForecast), h, nsim),
+                                        array(matF,c(dim(matF),nsim)), matWt,
+                                        matrix(vecG, componentsNumberETS+componentsNumberARIMA+xregNumber+constantRequired, nsim),
+                                        EtypeModified, Ttype, Stype,
+                                        lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                        componentsNumberETSSeasonal, componentsNumberETS,
+                                        componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+
+        yForecast <- vector("numeric", h);
+        for(i in 1:h){
+            if(Ttype=="M" || (Stype=="M" & h>lagsModelMin)){
+                # Trim 1% of values just to resolve some issues with outliers
+                yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE,trim=0.01);
+            }
+            else{
+                yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE);
+            }
+            ySimulated[i,] <- ySimulated[i,]-yForecast[i];
+        }
+
+        covarMat <- (ySimulated %*% t(ySimulated))/nsim;
+    }
+    rownames(covarMat) <- colnames(covarMat) <- paste0("h",c(1:h));
 
     return(covarMat);
 }
