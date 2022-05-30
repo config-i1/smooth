@@ -1,91 +1,36 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","ar.orders","i.orders","ma.orders"));
 
-#' Automatic Multiple Seasonal ARIMA
-#'
-#' Function selects the best State Space ARIMA based on information criteria,
-#' using fancy branch and bound mechanism. The resulting model can be not
-#' optimal in IC meaning, but it is usually reasonable. This mechanism is
-#' described in Svetunkov & Boylan (2019).
-#'
-#' The function constructs bunch of ARIMAs in Single Source of Error
-#' state space form (see \link[smooth]{msarima} documentation) and selects the
-#' best one based on information criterion. It works faster than
-#' \link[smooth]{auto.ssarima} on large datasets and high frequency data.
-#'
-#' Due to the flexibility of the model, multiple seasonalities can be used. For
-#' example, something crazy like this can be constructed:
-#' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take some time...
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("ssarima","smooth")}
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssGeneralRef
-#' @template ssIntermittentRef
-#' @template ssARIMARef
-#'
-#' @param orders List of maximum orders to check, containing vector variables
-#' \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the
-#' list, then it is assumed to be equal to zero. At least one variable should
-#' have the same length as \code{lags}.
-#' @param lags Defines lags for the corresponding orders (see examples). The
-#' length of \code{lags} must correspond to the length of \code{orders}. There
-#' is no restrictions on the length of \code{lags} vector.
+#' @aliases auto.msarima
 #' @param combine If \code{TRUE}, then resulting ARIMA is combined using AIC
 #' weights.
 #' @param fast If \code{TRUE}, then some of the orders of ARIMA are
 #' skipped. This is not advised for models with \code{lags} greater than 12.
-#' @param constant If \code{NULL}, then the function will check if constant is
-#' needed. if \code{TRUE}, then constant is forced in the model. Otherwise
-#' constant is not used.
-#' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
-#' make the function also produce Fisher Information matrix, which then can be
-#' used to calculated variances of parameters of the model.  Maximum orders to
-#' check can also be specified separately, however \code{orders} variable must
-#' be set to \code{NULL}: \code{ar.orders} - Maximum order of AR term. Can be
-#' vector, defining max orders of AR, SAR etc.  \code{i.orders} - Maximum order
-#' of I. Can be vector, defining max orders of I, SI etc.  \code{ma.orders} -
-#' Maximum order of MA term. Can be vector, defining max orders of MA, SMA etc.
-#' @return Object of class "smooth" is returned. See \link[smooth]{msarima} for
-#' details.
-#' @seealso \code{\link[smooth]{es}, \link[smooth]{ces},
-#' \link[smooth]{sim.es}, \link[smooth]{gum}, \link[smooth]{msarima}}
 #'
 #' @examples
 #'
-#' x <- rnorm(118,100,3)
-#'
 #' # The best ARIMA for the data
 #' ourModel <- auto.msarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-#'                      h=18,holdout=TRUE,interval="np")
+#'                      h=18,holdout=TRUE)
 #'
 #' # The other one using optimised states
 #' \donttest{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-#'                        initial="o",h=18,holdout=TRUE)}
+#'                        h=18,holdout=TRUE)}
 #'
 #' # And now combined ARIMA
 #' \donttest{auto.msarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
 #'                        combine=TRUE,h=18,holdout=TRUE)}
 #'
-#' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))
+#' plot(forecast(ourModel, h=18, interval="simulated"))
 #'
-#'
-#' @export auto.msarima
+#' @rdname msarima
+#' @export
 auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
                          combine=FALSE, fast=TRUE, constant=NULL,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
                          loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                         h=10, holdout=FALSE, cumulative=FALSE,
-                         interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                         h=10, holdout=FALSE,
+                         # cumulative=FALSE,
+                         # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                          bounds=c("admissible","none"),
                          silent=c("all","graph","legend","output","none"),
                          xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
@@ -154,6 +99,9 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
             maMax <- 0;
         }
     }
+
+    interval <- "none";
+    cumulative <- FALSE;
 
 ##### Set environment for ssInput and make all the checks #####
     environment(ssAutoInput) <- environment();
@@ -359,8 +307,8 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
         cat("\b\b\b\bDone!\n");
         bestModel <- msarima(y, orders=list(ar=arBest,i=(iBest),ma=(maBest)), lags=(lags),
                              constant=constantValue, initial=initialType, loss=loss,
-                             h=h, holdout=holdout, cumulative=cumulative,
-                             interval=intervalType, level=level,
+                             h=h, holdout=holdout, #cumulative=cumulative,
+                             # interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
         return(bestModel);
@@ -393,16 +341,16 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
         }
         testModel <- msarima(y, orders=list(ar=0,i=iOrders[d,],ma=0), lags=lags,
                              constant=constantValue, initial=initialType, loss=loss,
-                             h=h, holdout=holdout, cumulative=cumulative,
-                             interval=intervalType, level=level,
+                             h=h, holdout=holdout, #cumulative=cumulative,
+                             # interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
-        ICValue <- testModel$ICs[ic];
+        ICValue <- testModel$ICs;
         if(combine){
             testForecasts[[m]] <- matrix(NA,h,3);
             testForecasts[[m]][,1] <- testModel$forecast;
-            testForecasts[[m]][,2] <- testModel$lower;
-            testForecasts[[m]][,3] <- testModel$upper;
+            # testForecasts[[m]][,2] <- testModel$lower;
+            # testForecasts[[m]][,3] <- testModel$upper;
             testFitted[[m]] <- testModel$fitted;
             testICs[[m]] <- ICValue;
             testLevels[[m]] <- 1;
@@ -457,18 +405,18 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                         testModel <- msarima(dataI, orders=list(ar=0,i=0,ma=maTest), lags=lags,
                                              constant=FALSE, initial=initialType, loss=loss,
                                              h=h, holdout=FALSE,
-                                             interval=intervalType, level=level,
+                                             # interval=intervalType, level=level,
                                              bounds=bounds, silent=TRUE,
                                              xreg=NULL, regressors="use", initialX=initialX, FI=FI);
                         # Exclude the variance from the number of parameters
                         nParamMA <- nparam(testModel)-1;
                         nParamNew <- nParamOriginal + nParamMA;
-                        ICValue <- icCorrector(testModel$ICs[ic], nParamMA, obsNonzero, nParamNew);
+                        ICValue <- icCorrector(testModel$ICs, nParamMA, obsNonzero, nParamNew);
                         if(combine){
                             testForecasts[[m]] <- matrix(NA,h,3);
                             testForecasts[[m]][,1] <- testModel$forecast;
-                            testForecasts[[m]][,2] <- testModel$lower;
-                            testForecasts[[m]][,3] <- testModel$upper;
+                            # testForecasts[[m]][,2] <- testModel$lower;
+                            # testForecasts[[m]][,3] <- testModel$upper;
                             testFitted[[m]] <- testModel$fitted;
                             testICs[[m]] <- ICValue;
                             testLevels[[m]] <- 2;
@@ -522,18 +470,18 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                                         testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
                                                              constant=FALSE, initial=initialType, loss=loss,
                                                              h=h, holdout=FALSE,
-                                                             interval=intervalType, level=level,
+                                                             # interval=intervalType, level=level,
                                                              bounds=bounds, silent=TRUE,
                                                              xreg=NULL, regressors="use", initialX=initialX, FI=FI);
                                         # Exclude the variance from the number of parameters
                                         nParamAR <- nparam(testModel)-1;
                                         nParamNew <- nParamOriginal + nParamMA + nParamAR;
-                                        ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
+                                        ICValue <- icCorrector(testModel$ICs, nParamAR, obsNonzero, nParamNew);
                                         if(combine){
                                             testForecasts[[m]] <- matrix(NA,h,3);
                                             testForecasts[[m]][,1] <- testModel$forecast;
-                                            testForecasts[[m]][,2] <- testModel$lower;
-                                            testForecasts[[m]][,3] <- testModel$upper;
+                                            # testForecasts[[m]][,2] <- testModel$lower;
+                                            # testForecasts[[m]][,3] <- testModel$upper;
                                             testFitted[[m]] <- testModel$fitted;
                                             testICs[[m]] <- ICValue;
                                             testLevels[[m]] <- 3;
@@ -596,15 +544,15 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
                             testModel <- msarima(dataMA, orders=list(ar=arTest,i=0,ma=0), lags=lags,
                                                  constant=FALSE, initial=initialType, loss=loss,
                                                  h=h, holdout=FALSE,
-                                                 interval=intervalType, level=level,
+                                                 # interval=intervalType, level=level,
                                                  bounds=bounds, silent=TRUE,
                                                  xreg=NULL, regressors="use", initialX=initialX, FI=FI);
-                            ICValue <- icCorrector(testModel$ICs[ic], nParamAR, obsNonzero, nParamNew);
+                            ICValue <- icCorrector(testModel$ICs, nParamAR, obsNonzero, nParamNew);
                             if(combine){
                                 testForecasts[[m]] <- matrix(NA,h,3);
                                 testForecasts[[m]][,1] <- testModel$forecast;
-                                testForecasts[[m]][,2] <- testModel$lower;
-                                testForecasts[[m]][,3] <- testModel$upper;
+                                # testForecasts[[m]][,2] <- testModel$lower;
+                                # testForecasts[[m]][,3] <- testModel$upper;
                                 testFitted[[m]] <- testModel$fitted;
                                 testICs[[m]] <- ICValue;
                                 testLevels[[m]] <- 3;
@@ -653,16 +601,16 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
         if(any(c(arBest,iBest,maBest)!=0)){
             testModel <- msarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
                                  constant=FALSE, initial=initialType, loss=loss,
-                                 h=h, holdout=holdout, cumulative=cumulative,
-                                 interval=intervalType, level=level,
+                                 h=h, holdout=holdout, #cumulative=cumulative,
+                                 # interval=intervalType, level=level,
                                  bounds=bounds, silent=TRUE,
                                  xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
-            ICValue <- testModel$ICs[ic];
+            ICValue <- testModel$ICs;
             if(combine){
                 testForecasts[[m]] <- matrix(NA,h,3);
                 testForecasts[[m]][,1] <- testModel$forecast;
-                testForecasts[[m]][,2] <- testModel$lower;
-                testForecasts[[m]][,3] <- testModel$upper;
+                # testForecasts[[m]][,2] <- testModel$lower;
+                # testForecasts[[m]][,3] <- testModel$upper;
                 testFitted[[m]] <- testModel$fitted;
                 testICs[[m]] <- ICValue;
                 testLevels[[m]] <- 1;
@@ -725,8 +673,9 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
 
         bestModel <- list(model=modelname,timeElapsed=Sys.time()-startTime,
                           initialType=initialType,
-                          fitted=yFitted,forecast=yForecast,cumulative=cumulative,
-                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,interval=intervalType,level=level,
+                          fitted=yFitted,forecast=yForecast, #cumulative=cumulative,
+                          lower=yLower,upper=yUpper,residuals=errors,s2=s2,
+                          #interval=intervalType,level=level,
                           y=y,holdout=yHoldout,
                           xreg=xreg, regressors=regressors, initialX=initialX,
                           ICs=ICs,ICw=icWeights,lossValue=NULL,loss=loss,accuracy=errormeasures);
@@ -737,8 +686,8 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
         #### Reestimate the best model in order to get rid of bias ####
         bestModel <- msarima(y, orders=list(ar=(arBest),i=(iBest),ma=(maBest)), lags=(lags),
                              constant=constantValue, initial=initialType, loss=loss,
-                             h=h, holdout=holdout, cumulative=cumulative,
-                             interval=intervalType, level=level,
+                             h=h, holdout=holdout, #cumulative=cumulative,
+                             # interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
                              xreg=xreg, regressors=regressors, initialX=initialX, FI=FI);
 
@@ -760,22 +709,22 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
         yForecastNew <- yForecast;
         yUpperNew <- yUpper;
         yLowerNew <- yLower;
-        if(cumulative){
-            yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
-            if(interval){
-                yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
-                yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
-            }
-        }
+        # if(cumulative){
+        #     yForecastNew <- ts(rep(yForecast/h,h),start=yForecastStart,frequency=dataFreq)
+        #     if(interval){
+        #         yUpperNew <- ts(rep(yUpper/h,h),start=yForecastStart,frequency=dataFreq)
+        #         yLowerNew <- ts(rep(yLower/h,h),start=yForecastStart,frequency=dataFreq)
+        #     }
+        # }
 
-        if(interval){
-            graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
-                       level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
-        }
-        else{
+        # if(interval){
+        #     graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted, lower=yLowerNew,upper=yUpperNew,
+        #                level=level,legend=!silentLegend,main=modelname,cumulative=cumulative);
+        # }
+        # else{
             graphmaker(actuals=y,forecast=yForecastNew,fitted=yFitted,
-                       legend=!silentLegend,main=modelname,cumulative=cumulative);
-        }
+                       legend=!silentLegend,main=modelname,cumulative=FALSE);
+        # }
     }
 
     return(bestModel);

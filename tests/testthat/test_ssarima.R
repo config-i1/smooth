@@ -14,7 +14,8 @@ test_that("Reuse previous SSARIMA on BJsales", {
 # Test some crazy order of SSARIMA
 test_that("Test if crazy order SSARIMA was estimated on AirPassengers", {
     skip_on_cran()
-    testModel <- ssarima(AirPassengers, orders=NULL, ar.orders=c(1,1,0), i.orders=c(1,0,1), ma.orders=c(0,1,1), lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, interval=TRUE)
+    testModel <- ssarima(AirPassengers, orders=list(ar=c(1,1,0), i=c(1,0,1),ma=c(0,1,1)),
+                         lags=c(1,6,12), h=18, holdout=TRUE, initial="o", silent=TRUE, interval=TRUE)
     expect_equal(testModel$model, "SARIMA(1,1,0)[1](1,0,1)[6](0,1,1)[12]")
 })
 

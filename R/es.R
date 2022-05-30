@@ -9,7 +9,7 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' Exponential Smoothing in SSOE state space model
 #'
 #' Function constructs ETS model and returns forecast, fitted values, errors
-#' and matrix of states.
+#' and matrix of states. It is a wrapper of \link[smooth]{adam} function.
 #'
 #' Function estimates ETS in a form of the Single Source of Error state space
 #' model of the following type:
@@ -108,7 +108,7 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
 #' optimiser. The default values used in es() are \code{maxeval=500} and
 #' \code{xtol_rel=1e-8}. You can read more about these parameters in the
 #' documentation of \link[nloptr]{nloptr} function.
-#' @return Object of class "smooth" is returned. It contains the list of the
+#' @return Object of class "adam" is returned. It contains the list of the
 #' following values for classical ETS models:
 #'
 #' \itemize{

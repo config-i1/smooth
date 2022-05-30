@@ -13,7 +13,6 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #'
 #' @template ssIntermittentRef
 #' @template ssInitialParam
-#' @template ssIntervals
 #' @template ssPersistenceParam
 #' @template ssAuthor
 #' @template ssKeywords
@@ -128,7 +127,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NULL, phi=NULL,
                 occurrence=c("fixed","general","odds-ratio","inverse-odds-ratio","direct","auto","none"),
                 ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("usual","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, regressors=c("use","select"), initialX=NULL,
@@ -138,6 +137,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    interval <- "none";
+    level <- 0.95;
 
     # Options for the fitter and forecaster:
     # O: M / A odds-ratio - "odds-ratio"

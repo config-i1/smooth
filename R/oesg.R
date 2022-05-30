@@ -20,7 +20,6 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regr
 #' where a_t and b_t are the parameters of the Beta distribution and are modelled
 #' using separate ETS models.
 #'
-#' @template ssIntervals
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -118,7 +117,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  phiA=NULL, phiB=NULL,
                  initialA="o", initialB="o", initialSeasonA=NULL, initialSeasonB=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), h=10, holdout=FALSE,
-                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                 # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                  bounds=c("usual","admissible","none"),
                  silent=c("all","graph","legend","output","none"),
                  xregA=NULL, xregB=NULL, initialXA=NULL, initialXB=NULL,
@@ -130,6 +129,9 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    interval <- "none";
+    level <- 0.95;
 
     ##### Preparations #####
     occurrence <- "g";

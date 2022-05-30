@@ -1,9 +1,11 @@
-smooth v3.2.0 (Release data: 2022-05-28)
+smooth v3.2.0 (Release data: 2022-05-30)
 =======
 
 Changes:
 * es() is now based on adam() code. The old es() function will be available until v4.0.0 as es_old().
 * type="simulated" in multicov.adam().
+* msarima() is now based on adam() code as well. The old version is unavailable. auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
+* Switched off interval and level parameters in oes() and oesg().
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
