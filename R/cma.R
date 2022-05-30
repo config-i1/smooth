@@ -138,20 +138,20 @@ cma <- function(y, order=NULL, silent=TRUE, ...){
     }
 
     if(orderSelect){
-        order <- orders(sma(yInSample));
+        order <- orders(sma(yInSample))[1];
     }
 
-    if((order %% 2)!=0 | (order==obsInSample)){
-        smaModel <- sma(yInSample, order=order, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+    if((order %% 2)!=0 || (order==obsInSample)){
+        smaModel <- sma(yInSample, order=order, h=order, holdout=FALSE, silent=TRUE);
         yFitted <- c(smaModel$fitted[-c(1:((order+1)/2))],smaModel$forecast);
         logLik <- smaModel$logLik;
         errors <- residuals(smaModel);
     }
     else{
         ssarimaModel <- msarima(yInSample, orders=c(order+1,0,0), AR=c(0.5,rep(1,order-1),0.5)/order,
-                         h=order, holdout=FALSE, silent=TRUE);
+                                h=order, holdout=FALSE, silent=TRUE, initial="backcasting");
         yFitted <- c(ssarimaModel$fitted[-c(1:(order/2))],ssarimaModel$forecast);
-        smaModel <- sma(yInSample, order=1, h=order, holdout=FALSE, cumulative=FALSE, silent=TRUE);
+        smaModel <- sma(yInSample, order=1, h=order, holdout=FALSE, silent=TRUE);
         logLik <- ssarimaModel$logLik;
         errors <- residuals(ssarimaModel);
     }

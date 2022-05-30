@@ -2566,7 +2566,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         simulatedData <- do.call("sim.gum",args);
     }
     else if(smoothType=="SMA"){
-        args$order <- orders(object);
+        args$order <- orders(object)[1];
 
         simulatedData <- do.call("sim.sma",args);
     }
