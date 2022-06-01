@@ -3564,7 +3564,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
             # Amend forecasts, multiplying by probability
             if(occurrenceModel && !occurrenceModelProvided){
-                yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h, interval="none"))$mean);
+                yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h))$mean);
             }
             else if(occurrenceModel && occurrenceModelProvided){
                 yForecast[] <- yForecast * pForecast;
@@ -7652,7 +7652,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 pForecast <- rep(1,h);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata,interval="none")$mean;
+                pForecast <- forecast(object$occurrence, h=h, newdata=newdata)$mean;
             }
         }
         else{
@@ -9283,7 +9283,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                 pForecast <- rep(1,h);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,newdata=newdata,interval="none")$mean;
+                pForecast <- forecast(object$occurrence,h=h,newdata=newdata)$mean;
             }
         }
         else{
@@ -9704,7 +9704,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                 pForecast <- rep(1,h);
             }
             else{
-                pForecast <- forecast(object$occurrence,h=h,interval="none")$mean;
+                pForecast <- forecast(object$occurrence,h=h)$mean;
             }
         }
         else{

@@ -790,39 +790,41 @@ forecast.smooth <- function(object, h=10,
 #' @rdname forecast.smooth
 #' @export
 forecast.oes <- function(object, h=10,
-                         interval=c("parametric","semiparametric","nonparametric","none"),
-                         level=0.95, side=c("both","upper","lower"), ...){
-    side <- match.arg(side);
+                         # interval=c("parametric","semiparametric","nonparametric","none"),
+                         # level=0.95, side=c("both","upper","lower"),
+                         ...){
+    # side <- match.arg(side);
     # This correction is needed in order to reduce the level and then just use one bound
-    if(any(side==c("upper","lower"))){
-        levelNew <- level*2-1;
-    }
-    else{
-        levelNew <- level;
-    }
+    # if(any(side==c("upper","lower"))){
+    #     levelNew <- level*2-1;
+    # }
+    # else{
+    #     levelNew <- level;
+    # }
 
     if(is.oesg(object)){
         newModel <- oesg(actuals(object),modelA=object$modelA,modelB=object$modelB,
-                         h=h,interval=interval,level=levelNew,silent="all",...);
+                         h=h,silent="all",...);
     }
     else{
-        newModel <- oes(actuals(object),model=object,
-                        h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- oes(actuals(object),model=object,h=h,silent="all",...);
     }
 
     # Remove the redundant values, if they were produced
-    if(side=="upper"){
-        newModel$lower[] <- NA;
-        newModel$level <- level;
-    }
-    else if(side=="lower"){
-        newModel$upper[] <- NA;
-        newModel$level <- level;
-    }
+    # if(side=="upper"){
+    #     newModel$lower[] <- NA;
+    #     newModel$level <- level;
+    # }
+    # else if(side=="lower"){
+    #     newModel$upper[] <- NA;
+    #     newModel$level <- level;
+    # }
 
-    output <- list(model=object,method=object$model,
-                   forecast=newModel$forecast,lower=newModel$lower,upper=newModel$upper,level=levelNew,
-                   interval=interval,mean=newModel$forecast,side=side);
+    output <- list(model=object, method=object$model, mean=newModel$forecast,
+                   forecast=newModel$forecast, interval="none"
+                   # lower=newModel$lower,upper=newModel$upper,level=levelNew,
+                   # interval=interval,side=side
+                   );
 
     return(structure(output,class=c("smooth.forecast","forecast")));
 }

@@ -18,9 +18,7 @@
   "semiparametric", "nonparametric", "none"), level = 0.95,
   side = c("both", "upper", "lower"), ...)
 
-\method{forecast}{oes}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95,
-  side = c("both", "upper", "lower"), ...)
+\method{forecast}{oes}(object, h = 10, ...)
 
 \method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, model = NULL,
