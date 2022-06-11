@@ -130,7 +130,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
 /* # Wrapper for fitter */
 // [[Rcpp::export]]
-RcppExport SEXP adamFitterWrap(arma::mat &matrixVt, arma::mat &matrixWt, arma::mat &matrixF, arma::vec &vectorG,
+RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat &matrixWt, arma::mat &matrixF, arma::vec &vectorG,
                                arma::uvec &lags, arma::umat &profilesObserved, arma::mat &profilesRecent,
                                char const &Etype, char const &Ttype, char const &Stype,
                                unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,

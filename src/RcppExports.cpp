@@ -12,12 +12,12 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // adamFitterWrap
-RcppExport SEXP adamFitterWrap(arma::mat& matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& profilesObserved, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast);
+RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& profilesObserved, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast);
 RcppExport SEXP _smooth_adamFitterWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP vectorGSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP, SEXP backcastSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::mat& >::type matrixVt(matrixVtSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type matrixVt(matrixVtSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type matrixWt(matrixWtSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type matrixF(matrixFSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type vectorG(vectorGSEXP);
