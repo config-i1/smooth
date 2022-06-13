@@ -120,9 +120,6 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         model <- y;
         y <- y$y;
     }
-    else{
-        model <- ellipsis$model;
-    }
 
     # If a previous model provided as a model, write down the variables
     if(!is.null(model)){
