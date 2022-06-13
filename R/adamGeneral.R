@@ -416,7 +416,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
 
     # Form the lags based on the provided stuff. Get rid of ones and leave unique seasonals
     # Add one for the level
-    lags <- c(1,unique(lags[lags>1]));
+    if(etsModel){
+        lags <- c(1,unique(lags[lags>1]));
+    }
 
     # Warning if the lags length is higher than the sample size
     if(max(lags) >= obsInSample){
@@ -586,11 +588,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     lagsModel <- matrix(lags,ncol=1);
 
     # If we have a trend add one more lag
-    if(modelIsTrendy){
+    if(etsModel && modelIsTrendy){
         lagsModel <- rbind(1,lagsModel);
     }
     # If we don't have seasonality, remove seasonal lag
-    if(!modelIsSeasonal && any(lagsModel>1)){
+    if(etsModel && !modelIsSeasonal && any(lagsModel>1)){
         lagsModel <- lagsModel[lagsModel==1,,drop=FALSE];
     }
 
