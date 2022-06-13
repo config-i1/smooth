@@ -106,6 +106,8 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     startTime <- Sys.time();
     cl <- match.call();
 
+    ellipsis <- list(...);
+
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
@@ -119,6 +121,9 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     else if(is.smooth(y)){
         model <- y;
         y <- y$y;
+    }
+    else{
+        model <- ellipsis$model;
     }
 
     # If a previous model provided as a model, write down the variables
