@@ -254,23 +254,31 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(is.numeric(constant) && constant==0){
                 constant <- FALSE;
             }
+            orders <- orders(model);
+            lags <- lags(model);
             model <- model$model;
             arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
                                    ,collapse=";");
             comas <- unlist(gregexpr("\\,",arimaOrders));
             semicolons <- unlist(gregexpr("\\;",arimaOrders));
-            ar.orders <- as.numeric(substring(arimaOrders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
-            i.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
-            ma.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
-            if(any(unlist(gregexpr("\\[",model))!=-1)){
-                lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
-            }
-            else{
-                lags <- 1;
-            }
         }
         else{
             stop("The provided model is a combination of ARIMAs. We cannot fit that.",call.=FALSE);
+        }
+    }
+
+    # Fix lags and orders if lags=1 was dropped
+    if(length(lags)==1 && lags>1){
+        lags <- c(1,lags);
+        if(is.list(orders)){
+            if(all(sapply(orders,length)==1)){
+                for(i in 1:length(orders)){
+                    orders[[i]] <- c(0,orders[[i]]);
+                }
+            }
+        }
+        else{
+            orders <- list(ar=c(0,orders[1]),i=c(0,orders[2]),ma=c(0,orders[3]));
         }
     }
 
