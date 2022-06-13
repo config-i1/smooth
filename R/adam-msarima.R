@@ -251,6 +251,9 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             AR <- model$AR;
             MA <- model$MA;
             constant <- model$constant;
+            if(is.numeric(constant) && constant==0){
+                constant <- FALSE;
+            }
             model <- model$model;
             arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
                                    ,collapse=";");

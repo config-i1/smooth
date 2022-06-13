@@ -109,7 +109,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     ellipsis <- list(...);
 
 # Add all the variables in ellipsis to current environment
-    list2env(list(...),environment());
+    list2env(ellipsis,environment());
 
     # Check if the simulated thing is provided
     if(is.smooth.sim(y)){
