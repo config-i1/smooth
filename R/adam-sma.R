@@ -249,7 +249,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         }
         order <- which.min(ICs)[1];
     }
-    smaModel <- adam(y, model="NNN", orders=c(order,0,0),
+    smaModel <- adam(y, model="NNN", orders=c(order,0,0), lags=1,
                      h=h, holdout=holdout, ic=ic, silent=TRUE,
                      arma=rep(1/order,order), initial="backcasting",
                      loss="MSE", bounds="none");
