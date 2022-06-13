@@ -197,6 +197,80 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     cl <- match.call();
     ellipsis <- list(...);
 
+    # Check if the simulated thing is provided
+    if(is.smooth.sim(y)){
+        if(smoothType(y)=="ARIMA"){
+            model <- y;
+            y <- y$data;
+        }
+    }
+    else if(is.smooth(y)){
+        model <- y;
+        y <- y$y;
+    }
+    else{
+        model <- ellipsis$model;
+    }
+
+    # If a previous model provided as a model, write down the variables
+    if(!is.null(model)){
+        if(is.null(model$model)){
+            stop("The provided model is not ARIMA.",call.=FALSE);
+        }
+        else if(smoothType(model)!="ARIMA"){
+            stop("The provided model is not ARIMA.",call.=FALSE);
+        }
+
+# If this is a normal ARIMA, do things
+        if(any(unlist(gregexpr("combine",model$model))==-1)){
+            if(!is.null(model$occurrence)){
+                occurrence <- model$occurrence;
+            }
+            if(!is.null(model$initial)){
+                initial <- model$initial;
+            }
+            if(is.null(xreg)){
+                xreg <- model$xreg;
+            }
+            else{
+                if(is.null(model$xreg)){
+                    xreg <- NULL;
+                }
+                else{
+                    if(ncol(xreg)!=ncol(model$xreg)){
+                        xreg <- xreg[,colnames(model$xreg)];
+                    }
+                }
+            }
+            initialX <- model$initialX;
+            persistenceX <- model$persistenceX;
+            transitionX <- model$transitionX;
+            if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
+                updateX <- TRUE;
+            }
+            AR <- model$AR;
+            MA <- model$MA;
+            constant <- model$constant;
+            model <- model$model;
+            arimaOrders <- paste0(c("",substring(model,unlist(gregexpr("\\(",model))+1,unlist(gregexpr("\\)",model))-1),"")
+                                   ,collapse=";");
+            comas <- unlist(gregexpr("\\,",arimaOrders));
+            semicolons <- unlist(gregexpr("\\;",arimaOrders));
+            ar.orders <- as.numeric(substring(arimaOrders,semicolons[-length(semicolons)]+1,comas[2*(1:(length(comas)/2))-1]-1));
+            i.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))-1]+1,comas[2*(1:(length(comas)/2))-1]+1));
+            ma.orders <- as.numeric(substring(arimaOrders,comas[2*(1:(length(comas)/2))]+1,semicolons[-1]-1));
+            if(any(unlist(gregexpr("\\[",model))!=-1)){
+                lags <- as.numeric(substring(model,unlist(gregexpr("\\[",model))+1,unlist(gregexpr("\\]",model))-1));
+            }
+            else{
+                lags <- 1;
+            }
+        }
+        else{
+            stop("The provided model is a combination of ARIMAs. We cannot fit that.",call.=FALSE);
+        }
+    }
+
     if(!is.null(xreg) && is.numeric(y)){
         data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
         data <- as.matrix(data)

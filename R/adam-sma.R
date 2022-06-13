@@ -109,8 +109,23 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 # Add all the variables in ellipsis to current environment
     list2env(list(...),environment());
 
+    # Check if the simulated thing is provided
+    if(is.smooth.sim(y)){
+        if(smoothType(y)=="SMA"){
+            model <- y;
+            y <- y$data;
+        }
+    }
+    else if(is.smooth(y)){
+        model <- y;
+        y <- y$y;
+    }
+    else{
+        model <- ellipsis$model;
+    }
+
     # If a previous model provided as a model, write down the variables
-    if(exists("model",inherits=FALSE)){
+    if(!is.null(model)){
         if(is.null(model$model)){
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
