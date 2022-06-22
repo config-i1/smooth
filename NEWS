@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-06-11)
+smooth v3.2.0 (Release data: 2022-06-22)
 =======
 
 Changes:
@@ -12,6 +12,7 @@ Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
 * Another fix of the number of estimated parameters in adam() - the internal method would differ from the external one.
 * Fix in C++ code for the matrix of states, which gets contaminated with interim values.
+* Failsafe mechanism for initial level, trend, seasonal in mixed models, so that they do not become negative, when they should not.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)

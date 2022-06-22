@@ -2599,6 +2599,20 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(any(is.nan(B))){
                 B[is.nan(B)] <- BValues$B[is.nan(B)];
             }
+            # Fix for mixed ETS models producing negative values
+            if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
+               Ttype=="M" & any(c(Etype,Stype)=="A") ||
+               Stype=="M" & any(c(Etype,Ttype)=="A")){
+                if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
+                    B["level"] <- yInSample[1];
+                }
+                if(Ttype=="M" && B["trend"]<=0){
+                    B["trend"] <- 1;
+                }
+                if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
+                    B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
+                }
+            }
         }
 
         # Create the vector of initials for the optimisation
