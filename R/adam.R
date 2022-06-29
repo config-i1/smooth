@@ -1045,7 +1045,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                         matVt[j,1:lagsModelMax] <- yInSample[2]/yInSample[1];
                                     }
                                     # This is a failsafe for multiplicative trend models, so that the thing does not explode
-                                    if(Ttype=="M" && matVt[j,1:lagsModelMax]>1.1){
+                                    if(Ttype=="M" && any(matVt[j,1:lagsModelMax]>1.1)){
                                         matVt[j,1:lagsModelMax] <- 1;
                                     }
                                 }
