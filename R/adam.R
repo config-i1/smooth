@@ -3517,7 +3517,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Make sure that there are no negative values in multiplicative components
         # This might appear in case of bounds="a"
-        if(Ttype=="M" && any(matVt[2,]<=0)){
+        if(Ttype=="M" && (any(is.na(matVt[2,])) || any(matVt[2,]<=0))){
             i <- which(any(matVt[2,]<=0));
             matVt[2,i] <- 1e-6;
             profilesRecentTable[2,i] <- 1e-6;
