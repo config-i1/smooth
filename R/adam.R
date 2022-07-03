@@ -1081,7 +1081,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             else{
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/matVt[1,1];
+                                        # abs() is needed for mixed ETS+ARIMA
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yInSample[1:lagsModel[i+j-1]]/abs(matVt[1,1]);
                                         # Renormalise the initial seasons
                                         matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] /
                                             exp(mean(log(matVt[i+j-1,1:lagsModel[i+j-1]])));
@@ -2658,6 +2659,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # print(Etype)
         # print(Ttype)
         # print(Stype)
+        # print(arOrders)
         # stop()
 
         print_level_hidden <- print_level;
