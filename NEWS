@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-06-22)
+smooth v3.2.0 (Release data: 2022-07-07)
 =======
 
 Changes:
@@ -14,6 +14,7 @@ Bugfixes:
 * Fix in C++ code for the matrix of states, which gets contaminated with interim values.
 * Failsafe mechanism in adam() for initial level, trend, seasonal in mixed models, so that they do not become negative, when they should not.
 * A fix for another ETS+ARIMA combination in adam() which resulted in NaNs.
+* A fix for simulated data from mixed ETS models in adam(). These should not produce NaNs anymore.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)

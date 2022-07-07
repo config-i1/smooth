@@ -53,7 +53,15 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
             switch(T){
             case 'N':
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,nETS-1) * log(vecVt.rows(0,nETS-1)));
+                switch(E){
+                    case 'A':
+                        // Use complex numbers to avoid issues with negative states
+                        vecYfit = arma::real(exp(rowvecW.cols(0,nETS-1) *
+                                             log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,nETS-1)))));
+                    break;
+                    case 'M':
+                        vecYfit = exp(rowvecW.cols(0,nETS-1) * log(vecVt.rows(0,nETS-1)));
+                }
                 break;
             case 'A':
                 vecYfit = rowvecW.cols(0,1) * vecVt.rows(0,1) * exp(rowvecW.cols(2,2+nSeasonal-1) * log(vecVt.rows(2,2+nSeasonal-1)));
@@ -145,12 +153,10 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
         break;
     case 'M':
         if(nETS>0){
-            matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
-            // This is not needed, because of the line 125
-            // if(nSeasonal>0){
-            //     // This is needed in order not to face log(-x)
-            //     matrixVtnew.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
-            // }
+            // Use complex numbers to avoid issues in mixed models
+            matrixVtnew.rows(0,1) = arma::real(exp(matrixF.submat(0,0,1,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1)))));
+            // matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
         }
         break;
     }

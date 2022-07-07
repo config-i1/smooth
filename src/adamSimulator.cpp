@@ -34,22 +34,26 @@ List adamSimulator(arma::cube &arrayVt, arma::mat const &matrixErrors, arma::mat
         profilesRecent = profilesRecentOriginal;
         for(int j=lagsModelMax; j<obsAll; j=j+1) {
             /* # Measurement equation and the error term */
-            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) * (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                              matrixWt.row(j-lagsModelMax), E, T, S,
-                                              nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) +
-                                                  adamRvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                                             matrixWt.row(j-lagsModelMax), E, T, S,
-                                                             nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
-                                                                 matrixErrors(j-lagsModelMax,i));
+            matY(j-lagsModelMax,i) = matrixOt(j-lagsModelMax,i) *
+                                             (adamWvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                         matrixWt.row(j-lagsModelMax), E, T, S,
+                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                         nComponents, constant) +
+                                              adamRvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                         matrixWt.row(j-lagsModelMax), E, T, S,
+                                                         nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant) *
+                                              matrixErrors(j-lagsModelMax,i));
 
             /* # Transition equation */
-            profilesRecent(profilesObserved.col(j-lagsModelMax)) = (adamFvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                                    adamGvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
-                                                               matrixF, matrixWt.row(j-lagsModelMax),
-                                                               E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
-                                                               nComponents, constant, matrixG.col(i),
-                                                               matrixErrors(j-lagsModelMax,i)));
+            profilesRecent(profilesObserved.col(j-lagsModelMax)) =
+                                                (adamFvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                            matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima,
+                                                            nComponents, constant) +
+                                                 adamGvalue(profilesRecent(profilesObserved.col(j-lagsModelMax)),
+                                                            matrixF, matrixWt.row(j-lagsModelMax),
+                                                            E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nXreg,
+                                                            nComponents, constant, matrixG.col(i),
+                                                            matrixErrors(j-lagsModelMax,i)));
 
             /* Failsafe for cases when unreasonable value for state vector was produced */
             // if(!matrixVt.col(j).is_finite()){
