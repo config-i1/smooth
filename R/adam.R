@@ -1792,6 +1792,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     Bu[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.6));
                     Bl[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.4));
                 }
+
+                # Failsafe for weird cases, when upper bound is the same or lower than the lower one
+                if(Bu[j]<=Bl[j]){
+                    Bu[j] <- Inf;
+                    Bl[j] <- switch(Etype,"A"=-Inf,"M"=0);
+                }
             }
             else{
                 # if(Etype=="A"){
