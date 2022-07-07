@@ -32,7 +32,9 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                 vecYfit = rowvecW.cols(0,1) * vecVt.rows(0,1);
                 break;
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1)));
+                // vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1)));
+                vecYfit = arma::real(exp(rowvecW.cols(0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,1)))));
                 break;
             }
             break;
@@ -44,7 +46,10 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                 vecYfit = rowvecW.cols(0,nETS-1) * vecVt.rows(0,nETS-1);
                 break;
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
+                // vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
+                vecYfit = arma::real(exp(rowvecW.cols(0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,1))))) +
+                          rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
                 break;
             }
             break;
