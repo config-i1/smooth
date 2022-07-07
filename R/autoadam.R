@@ -511,7 +511,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
             }
             # Duplicate the orders
             iOrders[1:iCombinations+iCombinations,] <- iOrders[1:iCombinations,]
-
             # Add constant / no constant
             iOrders[,ordersLength+1] <- rep(c(0,1),each=iCombinations);
 
@@ -686,6 +685,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                           occurrence=occurrence, ic=ic, bounds=bounds,
                                           regressors=regressors, silent=TRUE, ...),
                                      silent=TRUE);
+
                     if(!inherits(testModel,"try-error")){
                         imaOrdersICs[d] <- IC(testModel);
                         if(!is.null(testModel$B)){
@@ -695,7 +695,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                     else{
                         imaOrdersICs[d] <- Inf;
                     }
+                    if(silentDebug){
+                        cat("\nAdditional Model:", additionalModels[d,1:ordersLength], "IC:", imaOrdersICs[d]);
+                    }
                 }
+
                 d <- which.min(imaOrdersICs);
                 imaBest <- additionalModels[d,1:ordersLength];
                 if(imaOrdersICs[d]<bestIC){
@@ -713,10 +717,6 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 }
             }
 
-            if(!silent){
-                cat("\nThe best ARIMA is selected. ");
-            }
-
             # If this was something on residuals, reestimate the full model
             if(is.adam(testModelETS)){
                 bestModel <- adam(data=data, model=model, lags=lags,
@@ -732,6 +732,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 if(IC(bestModel) >= ICOriginal){
                     bestModel <- testModelETS;
                 }
+            }
+
+            if(!silent){
+                cat("\nThe best ARIMA is selected. ");
             }
 
             # Give the correct name to the response variable
