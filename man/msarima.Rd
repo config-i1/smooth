@@ -6,11 +6,12 @@
 \title{Multiple Seasonal ARIMA}
 \usage{
 msarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
-  constant = FALSE, AR = NULL, MA = NULL, initial = c("backcasting",
-  "optimal"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
-  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
-  holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE,
-  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
+  constant = FALSE, AR = NULL, MA = NULL, model = NULL,
+  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
+  "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
+  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible",
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
+  initialX = NULL, ...)
 
 auto.msarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   lags = c(1, frequency(y)), combine = FALSE, fast = TRUE,
@@ -42,7 +43,7 @@ The length of \code{lags} must correspond to the length of either \code{ar},
 the length of \code{lags} vector. It is recommended to order \code{lags}
 ascending.
 The orders are set by a user. If you want the automatic order selection,
-then use \link[smooth]{auto.ssarima} function instead.}
+then use \link[smooth]{auto.msarima} function instead.}
 
 \item{constant}{If \code{TRUE}, constant term is included in the model. Can
 also be a number (constant value). For \code{auto.msarima}, if \code{NULL},
@@ -50,13 +51,15 @@ then the function will check if constant is needed.}
 
 \item{AR}{Vector or matrix of AR parameters. The order of parameters should
 be lag-wise. This means that first all the AR parameters of the firs lag
-should be passed, then for the second etc. AR of another ssarima can be
+should be passed, then for the second etc. AR of another msarima can be
 passed here.}
 
 \item{MA}{Vector or matrix of MA parameters. The order of parameters should
 be lag-wise. This means that first all the MA parameters of the firs lag
-should be passed, then for the second etc. MA of another ssarima can be
+should be passed, then for the second etc. MA of another msarima can be
 passed here.}
+
+\item{model}{Previously estimated MSARIMA model.}
 
 \item{initial}{Can be either character or a vector of initial states. If it
 is character, then it can be \code{"optimal"}, meaning that the initial
@@ -136,7 +139,7 @@ following values:
 \itemize{
 \item \code{model} - the name of the estimated model.
 \item \code{timeElapsed} - time elapsed for the construction of the model.
-\item \code{states} - the matrix of the fuzzy components of ssarima, where
+\item \code{states} - the matrix of the fuzzy components of msarima, where
 \code{rows} correspond to time and \code{cols} to states.
 \item \code{transition} - matrix F.
 \item \code{persistence} - the persistence vector. This is the place, where

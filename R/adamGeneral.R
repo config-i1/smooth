@@ -3,7 +3,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                               persistence, phi, initial,
                               distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
                                              "dlnorm","dinvgauss","dgamma"),
-                              loss, h, holdout,occurrence,
+                              loss, h, holdout, occurrence,
                               ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","usual","admissible","none"),
                               regressors, yName,
                               silent, modelDo, ParentEnvironment,

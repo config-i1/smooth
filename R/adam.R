@@ -406,7 +406,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         #     }
         # }
         # else{
-        persistence <- model$persistence;
         initial <- model$initial;
         initialEstimated <- model$initialEstimated;
         distribution <- model$distribution;
