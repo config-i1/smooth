@@ -12,7 +12,7 @@
   occurrence = NULL, interval = c("none", "prediction", "confidence",
   "simulated", "approximate", "semiparametric", "nonparametric", "empirical",
   "complete"), level = 0.95, side = c("both", "upper", "lower"),
-  cumulative = FALSE, nsim = NULL, ...)
+  cumulative = FALSE, nsim = NULL, scenarios = FALSE, ...)
 
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95,
@@ -68,6 +68,10 @@ inventory control systems.}
 The default value for the prediction / simulated interval is 1000. In case of
 confidence or complete intervals, this is set to 100.}
 
+\item{scenarios}{Binary, defining whether to return scenarios produced via
+simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
+the object will contain \code{scenarios} variable.}
+
 \item{...}{Other arguments accepted by either \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}
 
@@ -88,6 +92,9 @@ Returns object of class "smooth.forecast", which contains:
 \item \code{upper} - upper bound of prediction interval.
 \item \code{level} - confidence level.
 \item \code{interval} - binary variable (whether interval were produced or not).
+\item \code{scenarios} - in case of \code{forecast.adam()} and
+\code{interval="simulated"} returns matrix with scenarios (future paths) used in
+simulations.
 }
 }
 \description{

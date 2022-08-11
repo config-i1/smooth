@@ -7378,6 +7378,9 @@ plot.adam.predict <- function(x, ...){
 #' inventory control systems.
 #' @param occurrence The vector containing the future occurrence variable
 #' (values in [0,1]), if it is known.
+#' @param scenarios Binary, defining whether to return scenarios produced via
+#' simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
+#' the object will contain \code{scenarios} variable.
 #' @rdname forecast.smooth
 #' @importFrom stats rnorm rlogis rt rlnorm rgamma
 #' @importFrom stats qnorm qlogis qt qlnorm qgamma
@@ -7389,7 +7392,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                           interval=c("none", "prediction", "confidence", "simulated",
                                      "approximate", "semiparametric", "nonparametric",
                                      "empirical","complete"),
-                          level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=NULL, ...){
+                          level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=NULL,
+                          scenarios=FALSE, ...){
 
     ellipsis <- list(...);
 
@@ -8269,8 +8273,17 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         yUpper[] <- exp(yUpper);
     }
 
+    if(!scenarios){
+        ySimulated <- scenarios;
+    }
+    else{
+        colnames(ySimulated) <- paste0("nsim",1:nsim);
+        rownames(ySimulated) <- paste0("h",1:h);
+    }
+
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
-                          level=level, interval=interval, side=side, cumulative=cumulative, h=h),
+                          level=level, interval=interval, side=side, cumulative=cumulative, h=h,
+                          scenarios=ySimulated),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
 
@@ -9964,8 +9977,10 @@ orders.adam <- function(object, ...){
     return(object$orders);
 }
 
+# @export
+# simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
+# }
 
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
 # pls.adam
-# simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){}

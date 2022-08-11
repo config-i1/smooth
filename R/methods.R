@@ -708,6 +708,9 @@ fitted.smooth.forecast <- function(object, ...){
 #' \item \code{upper} - upper bound of prediction interval.
 #' \item \code{level} - confidence level.
 #' \item \code{interval} - binary variable (whether interval were produced or not).
+#' \item \code{scenarios} - in case of \code{forecast.adam()} and
+#' \code{interval="simulated"} returns matrix with scenarios (future paths) used in
+#' simulations.
 #' }
 #' @template ssAuthor
 #' @seealso \code{\link[greybox]{forecast}}

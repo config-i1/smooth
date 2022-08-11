@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-07-17)
+smooth v3.2.0 (Release data: 2022-08-11)
 =======
 
 Changes:
@@ -8,6 +8,7 @@ Changes:
 * Switched off interval and level parameters in oes() and oesg().
 * sma() now uses the adam() C++ code instead of the old one.
 * msarima() now has a document "model" parameter. Previously, it was hidden in ellipses.
+* forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
