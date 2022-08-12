@@ -8277,8 +8277,15 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         ySimulated <- scenarios;
     }
     else{
-        colnames(ySimulated) <- paste0("nsim",1:nsim);
-        rownames(ySimulated) <- paste0("h",1:h);
+        if(interval=="simulated"){
+            colnames(ySimulated) <- paste0("nsim",1:nsim);
+            rownames(ySimulated) <- paste0("h",1:h);
+        }
+        else{
+            warning("Scenarios are only available when interval=\"simulated\".",
+                    call.=FALSE);
+            ySimulated <- FALSE;
+        }
     }
 
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
