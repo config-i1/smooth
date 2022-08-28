@@ -9985,8 +9985,260 @@ orders.adam <- function(object, ...){
 }
 
 # @export
-# simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
-# }
+simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
+    # Start measuring the time of calculations
+    startTime <- Sys.time();
+
+    # All the variables needed in the function
+    yInSample <- actuals(object);
+    yClasses <- class(yInSample);
+    parametersNumber <- length(parametersNames);
+    obsInSample <- nobs(object);
+    Etype <- errorType(object);
+    Ttype <- substr(modelType(object),2,2);
+    Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
+    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
+    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    lags <- object$lags;
+    lagsSeasonal <- lags[lags!=1];
+    lagsModelAll <- object$lagsAll;
+    lagsModelMax <- max(lagsModelAll);
+    persistence <- as.matrix(object$persistence);
+    # If there is xreg, but no deltas, increase persistence by including zeroes
+    # This can be considered as a failsafe mechanism
+    if(ncol(object$data)>1 && !any(substr(names(object$persistence),1,5)=="delta")){
+        persistence <- rbind(persistence,matrix(rep(0,sum(object$nParam[,2])),ncol=1));
+    }
+
+    # See if constant is required
+    constantRequired <- !is.null(object$constant);
+
+    # Expand persistence to include zero for the constant
+    # if(constantRequired){
+    #
+    # }
+
+    if(!is.null(object$initial$seasonal)){
+        if(is.list(object$initial$seasonal)){
+            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+        }
+        else{
+            componentsNumberETSSeasonal <- 1;
+        }
+    }
+    else{
+        componentsNumberETSSeasonal <- 0;
+    }
+    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
+
+    # Prepare variables for xreg
+    if(!is.null(object$initial$xreg)){
+        xregModel <- TRUE;
+
+        #### Create xreg vectors ####
+        xreg <- object$data;
+        formula <- formula(object)
+        responseName <- all.vars(formula)[1];
+        # Robustify the names of variables
+        colnames(xreg) <- make.names(colnames(xreg),unique=TRUE);
+        # The names of the original variables
+        xregNamesOriginal <- all.vars(formula)[-1];
+        # Levels for the factors
+        xregFactorsLevels <- lapply(xreg,levels);
+        xregFactorsLevels[[responseName]] <- NULL;
+        # Expand the variables. We cannot use alm, because it is based on obsInSample
+        xregData <- model.frame(formula,data=as.data.frame(xreg));
+        # Binary, flagging factors in the data
+        xregFactors <- (attr(terms(xregData),"dataClasses")=="factor")[-1];
+        # Get the names from the standard model.matrix
+        xregNames <- colnames(model.matrix(xregData,data=xregData));
+        interceptIsPresent <- FALSE;
+        if(any(xregNames=="(Intercept)")){
+            interceptIsPresent[] <- TRUE;
+            xregNames <- xregNames[xregNames!="(Intercept)"];
+        }
+        # Expanded stuff with all levels for factors
+        if(any(xregFactors)){
+            xregModelMatrix <- model.matrix(xregData,xregData,
+                                            contrasts.arg=lapply(xregData[attr(terms(xregData),"dataClasses")=="factor"],
+                                                                 contrasts, contrasts=FALSE));
+            xregNamesModified <- colnames(xregModelMatrix)[-1];
+        }
+        else{
+            xregModelMatrix <- model.matrix(xregData,data=xregData);
+            xregNamesModified <- xregNames;
+        }
+        xregData <- as.matrix(xregModelMatrix);
+        # Remove intercept
+        if(interceptIsPresent){
+            xregData <- xregData[,-1,drop=FALSE];
+        }
+        xregNumber <- ncol(xregData);
+
+        # The indices of the original parameters
+        xregParametersMissing <- setNames(vector("numeric",xregNumber),xregNamesModified);
+        # # The indices of the original parameters
+        xregParametersIncluded <- setNames(vector("numeric",xregNumber),xregNamesModified);
+        # The vector, marking the same values of smoothing parameters
+        if(interceptIsPresent){
+            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign")[-1],xregNamesModified);
+        }
+        else{
+            xregParametersPersistence <- setNames(attr(xregModelMatrix,"assign"),xregNamesModified);
+        }
+
+        # If there are factors not in the alm data, create additional initials
+        if(any(!(xregNamesModified %in% xregNames))){
+            xregAbsent <- !(xregNamesModified %in% xregNames);
+            # Go through new names and find, where they came from. Then get the missing parameters
+            for(i in which(xregAbsent)){
+                # Find the name of the original variable
+                # Use only the last value... hoping that the names like x and x1 are not used.
+                xregNameFound <- tail(names(sapply(xregNamesOriginal,grepl,xregNamesModified[i])),1);
+                # Get the indices of all k-1 levels
+                xregParametersIncluded[xregNames[xregNames %in% paste0(xregNameFound,
+                                                                       xregFactorsLevels[[xregNameFound]])]] <- i;
+                # Get the index of the absent one
+                xregParametersMissing[i] <- i;
+            }
+            # Write down the new parameters
+            xregNames <- xregNamesModified;
+        }
+        # The vector of parameters that should be estimated (numeric + original levels of factors)
+        xregParametersEstimated <- xregParametersIncluded
+        xregParametersEstimated[xregParametersEstimated!=0] <- 1;
+        xregParametersEstimated[xregParametersMissing==0 & xregParametersIncluded==0] <- 1;
+    }
+    else{
+        xregModel <- FALSE;
+        xregNumber <- 0;
+        xregParametersMissing <- 0;
+        xregParametersIncluded <- 0;
+        xregParametersEstimated <- 0;
+        xregParametersPersistence <- 0;
+    }
+    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$observed;
+
+    #### Prepare the necessary matrices ####
+    # States are defined similar to how it is done in adam.
+    arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states),nsim),
+                   dimnames=list(colnames(object$states),NULL,paste0("nsim",c(1:nsim))));
+    # Set the proper time stamps for the fitted
+    if(any(yClasses=="zoo")){
+        fittedMatrix <- zoo(array(NA,c(obsInSample,nsim),
+                                  dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                            order.by=time(yInSample));
+    }
+    else{
+        fittedMatrix <- ts(array(NA,c(obsInSample,nsim),
+                                 dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                           start=start(yInSample), frequency=frequency(yInSample));
+    }
+
+    # Transition and measurement
+    arrF <- array(object$transition,c(dim(object$transition),nsim));
+    matWt <- object$measurement;
+
+    # Persistence matrix
+    matG <- array(persistence, c(length(persistence), nsim),
+                  dimnames=list(names(persistence), paste0("nsim",c(1:nsim))));
+
+    if(is.null(object$occurrence)){
+        pt <- rep(1, obsInSample);
+    }
+    else{
+        pt <- fitted(object$occurrence);
+    }
+
+    yt <- matrix(actuals(object));
+
+    # Number of degrees of freedom to de-bias scales
+    df <- obsInSample-nparam(object);
+    # If the sample is too small, then use biased estimator
+    if(df<=0){
+        df[] <- obsInSample;
+    }
+
+    # If scale model is included, produce forecasts
+    if(is.scale(object$scale)){
+        # as.vector is needed to declass the mean.
+        scaleValue <- as.vector(fitted(object$scale));
+        # De-bias the scales and transform to the appropriate scale
+        # dnorm, dlnorm fit model on square residuals
+        # dgnorm needs to be done with ^beta to get to 1/T part
+        # The rest do not require transformations, only de-bias
+        scaleValue[] <- switch(object$distribution,
+                               "dlnorm"=,
+                               "dnorm"=(scaleValue*obsInSample/df)^0.5,
+                               "dgnorm"=((scaleValue^object$other$shape)*obsInSample/df)^{1/object$other$shape},
+                               scaleValue*obsInSample/df);
+    }
+    else{
+        scaleValue <- object$scale*obsInSample/df;
+    }
+    matErrors <- matrix(switch(object$distribution,
+                               "dnorm"=rnorm(obsInSample*nsim, 0, scaleValue),
+                               "dlaplace"=rlaplace(obsInSample*nsim, 0, scaleValue),
+                               "ds"=rs(obsInSample*nsim, 0, scaleValue),
+                               "dgnorm"=rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape),
+                               "dlogis"=rlogis(obsInSample*nsim, 0, scaleValue),
+                               "dt"=rt(obsInSample*nsim, obsInSample-nparam(object)),
+                               "dalaplace"=ralaplace(obsInSample*nsim, 0, scaleValue, object$other$alpha),
+                               "dlnorm"=rlnorm(obsInSample*nsim, -scaleValue^2/2, scaleValue)-1,
+                               "dinvgauss"=rinvgauss(obsInSample*nsim, 1, dispersion=scaleValue)-1,
+                               "dgamma"=rgamma(obsInSample*nsim, shape=scaleValue^{-1}, scale=scaleValue)-1,
+                               "dllaplace"=exp(rlaplace(obsInSample*nsim, 0, scaleValue))-1,
+                               "dls"=exp(rs(obsInSample*nsim, 0, scaleValue))-1,
+                               "dlgnorm"=exp(rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape))-1
+    ), obsInSample, nsim);
+    # Normalise errors in order not to get ridiculous things on small nsim
+    if(nsim<=500){
+        if(Etype=="A"){
+            matErrors[] <- matErrors - array(apply(matErrors,1,mean),c(obsInSample,nsim));
+        }
+        else{
+            matErrors[] <- (1+matErrors) / array(apply(1+matErrors,1,mean),c(obsInSample,nsim))-1;
+        }
+    }
+    # This stuff is needed in order to produce adequate values for weird models
+    EtypeModified <- Etype;
+    if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dgamma","dls","dllaplace"))){
+        EtypeModified[] <- "M";
+    }
+
+
+
+    # Refit the model with the new parameter
+    ySimulated <- adamSimulatorWrap(arrVt, matErrors,
+                                    matrix(rbinom(obsInSample*nsim, 1, pt), h, nsim),
+                                    array(matF,c(dim(matF),nsim)), matWt, matG,
+                                    EtypeModified, Ttype, Stype,
+                                    lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                    componentsNumberETSSeasonal, componentsNumberETS,
+                                    componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+
+    adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
+                                     Etype, Ttype, Stype,
+                                     lagsModelAll, profilesObservedTable, profilesRecentArray,
+                                     componentsNumberETSSeasonal, componentsNumberETS,
+                                     componentsNumberARIMA, xregNumber, constantRequired);
+    arrVt[] <- adamRefitted$states;
+    fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
+    profilesRecentArray[] <- adamRefitted$profilesRecent;
+
+    # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
+    if(any(unlist(gregexpr("in logs",object$model))!=-1)){
+        fittedMatrix[] <- exp(fittedMatrix);
+    }
+
+    return(structure(list(timeElapsed=Sys.time()-startTime,
+                          y=actuals(object), states=arrVt, refitted=fittedMatrix,
+                          fitted=fitted(object), model=object$model,
+                          transition=arrF, measurement=arrWt, persistence=matG,
+                          profile=profilesRecentArray),
+                     class="reapply"));
+}
 
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
