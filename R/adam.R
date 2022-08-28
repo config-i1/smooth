@@ -9984,21 +9984,34 @@ orders.adam <- function(object, ...){
     return(object$orders);
 }
 
-# @export
-simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
+#' @param obs Number of observations to produce in the simulated data.
+#' @param nsim Number of series to generate from the model.
+#' @param seed Random seed used in simulation of data.
+#' @examples
+#' # Fit ADAM to the data
+#' ourModel <- adam(rnorm(100,100,10), model="AAdN")
+#' # Simulate the data
+#' x <- simulate(ourModel)
+#'
+#' @rdname adam
+#' @export
+simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
+
+    ellipsis <- list(...);
+
+    if(!is.null(seed)){
+        set.seed(seed);
+    }
 
     # All the variables needed in the function
     yInSample <- actuals(object);
     yClasses <- class(yInSample);
-    parametersNumber <- length(parametersNames);
-    obsInSample <- nobs(object);
+    obsInSample <- obs;
     Etype <- errorType(object);
     Ttype <- substr(modelType(object),2,2);
     Stype <- substr(modelType(object),nchar(modelType(object)),nchar(modelType(object)));
-    etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
-    arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     lags <- object$lags;
     lagsSeasonal <- lags[lags!=1];
     lagsModelAll <- object$lagsAll;
@@ -10118,27 +10131,22 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
         xregParametersEstimated <- 0;
         xregParametersPersistence <- 0;
     }
-    profilesObservedTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample)$observed;
+    profiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
+    profilesObservedTable <- profiles$observed;
+    profilesRecentTable <- profiles$recent;
 
     #### Prepare the necessary matrices ####
     # States are defined similar to how it is done in adam.
-    arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states),nsim),
+    arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states)+obsInSample-nobs(object),nsim),
                    dimnames=list(colnames(object$states),NULL,paste0("nsim",c(1:nsim))));
-    # Set the proper time stamps for the fitted
-    if(any(yClasses=="zoo")){
-        fittedMatrix <- zoo(array(NA,c(obsInSample,nsim),
-                                  dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
-                            order.by=time(yInSample));
-    }
-    else{
-        fittedMatrix <- ts(array(NA,c(obsInSample,nsim),
-                                 dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
-                           start=start(yInSample), frequency=frequency(yInSample));
-    }
-
     # Transition and measurement
     arrF <- array(object$transition,c(dim(object$transition),nsim));
     matWt <- object$measurement;
+    if(nrow(matWt)<obsInSample){
+        matWt <- rbind(matWt,
+                       matrix(rep(tail(matWt,1),each=obsInSample-nrow(matWt)),
+                              obsInSample-nrow(matWt), ncol(matWt)));
+    }
 
     # Persistence matrix
     matG <- array(persistence, c(length(persistence), nsim),
@@ -10150,8 +10158,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
     else{
         pt <- fitted(object$occurrence);
     }
-
-    yt <- matrix(actuals(object));
 
     # Number of degrees of freedom to de-bias scales
     df <- obsInSample-nparam(object);
@@ -10192,52 +10198,50 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
                                "dls"=exp(rs(obsInSample*nsim, 0, scaleValue))-1,
                                "dlgnorm"=exp(rgnorm(obsInSample*nsim, 0, scaleValue, object$other$shape))-1
     ), obsInSample, nsim);
-    # Normalise errors in order not to get ridiculous things on small nsim
-    if(nsim<=500){
-        if(Etype=="A"){
-            matErrors[] <- matErrors - array(apply(matErrors,1,mean),c(obsInSample,nsim));
-        }
-        else{
-            matErrors[] <- (1+matErrors) / array(apply(1+matErrors,1,mean),c(obsInSample,nsim))-1;
-        }
-    }
+
     # This stuff is needed in order to produce adequate values for weird models
     EtypeModified <- Etype;
     if(Etype=="A" && any(object$distribution==c("dlnorm","dinvgauss","dgamma","dls","dllaplace"))){
         EtypeModified[] <- "M";
     }
 
-
-
     # Refit the model with the new parameter
     ySimulated <- adamSimulatorWrap(arrVt, matErrors,
-                                    matrix(rbinom(obsInSample*nsim, 1, pt), h, nsim),
-                                    array(matF,c(dim(matF),nsim)), matWt, matG,
+                                    matrix(rbinom(obsInSample*nsim, 1, pt), obsInSample, nsim),
+                                    arrF, matWt, matG,
                                     EtypeModified, Ttype, Stype,
                                     lagsModelAll, profilesObservedTable, profilesRecentTable,
                                     componentsNumberETSSeasonal, componentsNumberETS,
-                                    componentsNumberARIMA, xregNumber, constantRequired)$matrixYt;
+                                    componentsNumberARIMA, xregNumber, constantRequired);
 
-    adamRefitted <- adamRefitterWrap(yt, ot, arrVt, arrF, arrWt, matG,
-                                     Etype, Ttype, Stype,
-                                     lagsModelAll, profilesObservedTable, profilesRecentArray,
-                                     componentsNumberETSSeasonal, componentsNumberETS,
-                                     componentsNumberARIMA, xregNumber, constantRequired);
-    arrVt[] <- adamRefitted$states;
-    fittedMatrix[] <- adamRefitted$fitted * as.vector(pt);
-    profilesRecentArray[] <- adamRefitted$profilesRecent;
-
-    # If this was a model in logarithms (e.g. ARIMA for sm), then take exponent
-    if(any(unlist(gregexpr("in logs",object$model))!=-1)){
-        fittedMatrix[] <- exp(fittedMatrix);
+    # Set the proper time stamps for the fitted
+    if(any(yClasses=="zoo")){
+        # Get indices for the cases, when obsInSample was provided by user
+        yIndex <- time(yInSample)
+        yIndexDiff <- diff(head(yIndex,2));
+        yTime <- yIndex[1]+yIndexDiff*c(1:(obsInSample-1));
+        matrixYt <- zoo(array(ySimulated$matrixYt,c(obsInSample,nsim),
+                              dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                        order.by=yTime);
+    }
+    else{
+        matrixYt <- ts(array(ySimulated$matrixYt,c(obsInSample,nsim),
+                             dimnames=list(NULL,paste0("nsim",c(1:nsim)))),
+                       start=start(yInSample), frequency=frequency(yInSample));
     }
 
-    return(structure(list(timeElapsed=Sys.time()-startTime,
-                          y=actuals(object), states=arrVt, refitted=fittedMatrix,
-                          fitted=fitted(object), model=object$model,
-                          transition=arrF, measurement=arrWt, persistence=matG,
-                          profile=profilesRecentArray),
-                     class="reapply"));
+    return(structure(list(timeElapsed=Sys.time()-startTime, model=object$model, distribution=object$distribution,
+                          data=matrixYt, states=ySimulated$arrayVt, persistence=object$persistence,
+                          measurement=matWt, transition=object$transition, initial=object$initial,
+                          probability=pt, occurrence=object$occurrence,
+                          residuals=matErrors, other=ellipsis),
+                     class=c("adam.sim","smooth.sim")));
+}
+
+#' @export
+print.adam.sim <- function(x, ...){
+    cat(paste0("Data generated from: ",x$model," estimated via adam()\n"));
+    cat(paste0("Number of generated series: ",ncol(x$data),"\n"));
 }
 
 ##### Other methods to implement #####

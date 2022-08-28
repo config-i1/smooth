@@ -29,7 +29,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     # Extract index from the object in order to use it later
-    ### tsibble has its own index function, so shit happens becaus of it...
+    ### tsibble has its own index function, so shit happens because of it...
     if(inherits(data,"tbl_ts")){
         yIndex <- data[[1]];
         if(any(duplicated(yIndex))){

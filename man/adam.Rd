@@ -2,6 +2,7 @@
 % Please edit documentation in R/adam.R, R/autoadam.R, R/sm.R
 \name{adam}
 \alias{adam}
+\alias{simulate.adam}
 \alias{auto.adam}
 \alias{sm.adam}
 \title{ADAM is Augmented Dynamic Adaptive Model}
@@ -18,6 +19,9 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
   "none"), silent = TRUE, ...)
+
+\method{simulate}{adam}(object, nsim = 1, seed = NULL,
+  obs = nobs(object), ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
@@ -265,12 +269,18 @@ Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asy
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
 
+\item{object}{The model previously estimated using \code{adam()} function.}
+
+\item{nsim}{Number of series to generate from the model.}
+
+\item{seed}{Random seed used in simulation of data.}
+
+\item{obs}{Number of observations to produce in the simulated data.}
+
 \item{parallel}{If TRUE, the estimation of ADAM models is done in parallel (used in \code{auto.adam} only).
 If the number is provided (e.g. \code{parallel=41}), then the specified number of cores is set up.
 WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
 or \code{doParallel} are needed in order to run the function in parallel.}
-
-\item{object}{The model previously estimated using \code{adam()} function.}
 }
 \value{
 Object of class "adam" is returned. It contains the list of the
@@ -390,6 +400,11 @@ plot(ourModel, c(1:11))}
 # ADAM ARIMA
 \donttest{ourModel <- adam(rnorm(100,100,10), model="NNN",
                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
+
+# Fit ADAM to the data
+ourModel <- adam(rnorm(100,100,10), model="AAdN")
+# Simulate the data
+x <- simulate(ourModel)
 
 \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
