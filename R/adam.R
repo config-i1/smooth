@@ -7665,6 +7665,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         adamForecast[is.nan(adamForecast)] <- 0;
     }
 
+    occurrenceModel <- FALSE;
     # If the occurrence values are provided for the holdout
     if(!is.null(occurrence) && is.logical(occurrence)){
         pForecast <- occurrence*1;
@@ -7675,7 +7676,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     else{
         # If this is a mixture model, produce forecasts for the occurrence
         if(is.occurrence(object$occurrence)){
-            occurrenceModel <- TRUE;
+            occurrenceModel[] <- TRUE;
             if(object$occurrence$occurrence=="provided"){
                 pForecast <- rep(1,h);
             }
@@ -7684,7 +7685,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             }
         }
         else{
-            occurrenceModel <- FALSE;
+            occurrenceModel[] <- FALSE;
             # If this was provided occurrence, then use provided values
             if(!is.null(object$occurrence) && !is.null(object$occurrence$occurrence) &&
                (object$occurrence$occurrence=="provided") && !is.na(object$occurrence$forecast)){
@@ -7709,6 +7710,10 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     if(cumulative){
         # hFinal is the number of elements we will have in the final forecast
         hFinal <- 1;
+        # In case of occurrence model use simulations - the cumulative probability is a bitch
+        if(occurrenceModel){
+            interval[] <- "simulated";
+        }
     }
     else{
         hFinal <- h;
