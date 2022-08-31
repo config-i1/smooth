@@ -93,19 +93,18 @@ Returns object of class "smooth.forecast", which contains:
 \item \code{level} - confidence level.
 \item \code{interval} - binary variable (whether interval were produced or not).
 \item \code{scenarios} - in case of \code{forecast.adam()} and
-\code{interval="simulated"} returns matrix with scenarios (future paths) used in
-simulations.
+\code{interval="simulated"} returns matrix with scenarios (future paths) that were
+used in simulations.
 }
 }
 \description{
-This function is created in order for the package to be compatible with Rob
-Hyndman's "forecast" package
+Function produces conditional expectation (point forecasts) and prediction
+intervals for the estimated model.
 }
 \details{
-This is not a compulsory function. You can simply use \link[smooth]{es},
-\link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima} without
-\code{forecast.smooth}. But if you are really used to \code{forecast}
-function, then go ahead!
+By default the function will generate conditional expectations from the
+estimated model and will also produce a variety of prediction intervals
+based on user preferences.
 }
 \examples{
 
@@ -122,7 +121,7 @@ Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag.
 }
 \seealso{
-\code{\link[greybox]{forecast}}
+\code{\link[generics]{forecast}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}
