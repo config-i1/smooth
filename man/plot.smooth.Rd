@@ -36,7 +36,9 @@
 \item PACF of the residuals;
 \item Plot of states of the model;
 \item Absolute standardised residuals vs Fitted;
-\item Squared standardised residuals vs Fitted.
+\item Squared standardised residuals vs Fitted;
+\item ACF of the squared residuals;
+\item PACF of the squared residuals.
 }}
 
 \item{level}{Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7), (8),

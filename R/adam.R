@@ -5031,8 +5031,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     # Define, whether to wait for the hit of "Enter"
     if(ask){
-        oask <- devAskNewPage(TRUE);
-        on.exit(devAskNewPage(oask));
+        devAskNewPage(TRUE);
+        on.exit(devAskNewPage(FALSE));
     }
 
     # Warn if the diagnostis will be done for scale
@@ -5571,15 +5571,25 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     # 10 and 11. ACF and PACF
-    plot7 <- function(x, type="acf", ...){
+    plot7 <- function(x, type="acf", squared=FALSE, ...){
         ellipsis <- list(...);
 
         if(!any(names(ellipsis)=="main")){
             if(type=="acf"){
-                ellipsis$main <- "Autocorrelation Function of Residuals";
+                if(squared){
+                    ellipsis$main <- "Autocorrelation Function of Squared Residuals";
+                }
+                else{
+                    ellipsis$main <- "Autocorrelation Function of Residuals";
+                }
             }
             else{
-                ellipsis$main <- "Partial Autocorrelation Function of Residuals";
+                if(squared){
+                    ellipsis$main <- "Partial Autocorrelation Function of Squared Residuals";
+                }
+                else{
+                    ellipsis$main <- "Partial Autocorrelation Function of Residuals";
+                }
             }
         }
 
@@ -5599,11 +5609,21 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$ylim <- c(-1,1);
         }
 
-        if(type=="acf"){
-            theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+        if(squared){
+            if(type=="acf"){
+                theValues <- acf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass)
+            }
+            else{
+                theValues <- pacf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass);
+            }
         }
         else{
-            theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+            if(type=="acf"){
+                theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass)
+            }
+            else{
+                theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+            }
         }
         ellipsis$x <- theValues$acf[-1];
         statistic <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
@@ -5784,6 +5804,12 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
         else if(any(i==14)){
             plot9(x, type="squared", ...);
+        }
+        else if(any(i==15)){
+            plot7(x, type="acf", squared=TRUE, ...);
+        }
+        else if(any(i==16)){
+            plot7(x, type="pacf", squared=TRUE, ...);
         }
     }
 }
