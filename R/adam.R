@@ -2031,10 +2031,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         eigenValues <- abs(eigen(adamElements$matF -
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
                                                  symmetric=FALSE, only.values=TRUE)$values);
-                        if(any(eigenValues>1+1E-50)){
-                            return(1E+100*max(eigenValues));
-                        }
                     }
+                }
+                if(any(eigenValues>1+1E-50)){
+                    return(1E+100*max(eigenValues));
                 }
             }
         }
@@ -7468,6 +7468,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     model <- modelType(object);
     Etype <- errorType(object);
     Ttype <- substr(model,2,2);
+    damped <- substr(model,3,3)=="d";
     Stype <- substr(model,nchar(model),nchar(model));
 
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
@@ -7689,6 +7690,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     # If there are NaN values
     if(any(is.nan(adamForecast))){
         adamForecast[is.nan(adamForecast)] <- 0;
+    }
+
+    # Make a warning about the potential explosive trend
+    if(Ttype=="M" && !damped && profilesRecentTable[2,1]>1 && h>10){
+        warning("Your model has a potentially explosive multiplicative trend.",
+                "I cannot do anything about it, so please just be careful.",
+                call.=FALSE);
     }
 
     occurrenceModel <- FALSE;
