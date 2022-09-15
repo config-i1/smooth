@@ -2835,7 +2835,9 @@ ssXreg <- function(y, Etype="A", xreg=NULL, updateX=FALSE, ot=NULL,
                     colnames(matxt) <- colnames(matat) <- colnames(matatMultiplicative) <- xregNames
                 }
             }
-            xreg <- as.matrix(xreg);
+            if(!is.null(xreg)){
+                xreg <- as.matrix(xreg);
+            }
         }
         ##### The case with matrices and data frames
         else if(is.matrix(xreg) | is.data.frame(xreg)){
