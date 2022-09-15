@@ -17,126 +17,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal"));
 
-#' Complex Exponential Smoothing
-#'
-#' Function estimates CES in state space form with information potential equal
-#' to errors and returns several variables.
-#'
-#' The function estimates Complex Exponential Smoothing in the state space 2
-#' described in Svetunkov, Kourentzes (2017) with the information potential
-#' equal to the approximation error.  The estimation of initial states of xt is
-#' done using backcast.
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("ces","smooth")}
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssXregParam
-#' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssCESRef
-#'
-#' @param seasonality The type of seasonality used in CES. Can be: \code{none}
-#' - No seasonality; \code{simple} - Simple seasonality, using lagged CES
-#' (based on \code{t-m} observation, where \code{m} is the seasonality lag);
-#' \code{partial} - Partial seasonality with real seasonal components
-#' (equivalent to additive seasonality); \code{full} - Full seasonality with
-#' complex seasonal components (can do both multiplicative and additive
-#' seasonality, depending on the data). First letter can be used instead of
-#' full words.  Any seasonal CES can only be constructed for time series
-#' vectors.
-#' @param lags Vector of seasonal lags.
-#' @param a First complex smoothing parameter. Should be a complex number.
-#'
-#' NOTE! CES is very sensitive to a and b values so it is advised either to
-#' leave them alone, or to use values from previously estimated model.
-#' @param b Second complex smoothing parameter. Can be real if
-#' \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
-#' complex number.
-#' @param ...  Other non-documented parameters.  For example parameter
-#' \code{model} can accept a previously estimated CES model and use all its
-#' parameters.  \code{FI=TRUE} will make the function produce Fisher
-#' Information matrix, which then can be used to calculated variances of
-#' parameters of the model.
-#' @return Object of class "smooth" is returned. It contains the list of the
-#' following values: \itemize{
-#' \item \code{model} - type of constructed model.
-#' \item \code{timeElapsed} - time elapsed for the construction of the model.
-#' \item \code{states} - the matrix of the components of CES. The included
-#' minimum is "level" and "potential". In the case of seasonal model the
-#' seasonal component is also included. In the case of exogenous variables the
-#' estimated coefficients for the exogenous variables are also included.
-#' \item \code{a} - complex smoothing parameter in the form a0 + ia1
-#' \item \code{b} - smoothing parameter for the seasonal component. Can either
-#' be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
-#' in a form b0 + ib1.
-#' \item \code{persistence} - persistence vector. This is the place, where
-#' smoothing parameters live.
-#' \item \code{transition} - transition matrix of the model.
-#' \item \code{measurement} - measurement vector of the model.
-#' \item \code{initialType} - Type of the initial values used.
-#' \item \code{initial} - the initial values of the state vector (non-seasonal).
-#' \item \code{nParam} - table with the number of estimated / provided parameters.
-#' If a previous model was reused, then its initials are reused and the number of
-#' provided parameters will take this into account.
-#' \item \code{fitted} - the fitted values of CES.
-#' \item \code{forecast} - the point forecast of CES.
-#' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{upper} - the upper bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors. Only returned when the
-#' multistep losses are used and semiparametric interval is needed.
-#' \item \code{s2} - variance of the residuals (taking degrees of
-#' freedom into account).
-#' \item \code{interval} - type of interval asked by user.
-#' \item \code{level} - confidence level for interval.
-#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{y} - The data provided in the call of the function.
-#' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{regressors="s"}, then this value will contain only selected exogenous
-#' variables.
-#' exogenous variables were estimated as well.
-#' \item \code{initialX} - initial values for parameters of exogenous variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{lossValue} - Cost function value.
-#' \item \code{loss} - Type of loss function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
-#' or when \code{FI} is not provided at all.
-#' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
-#' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
-#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
-#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
-#' \item \code{B} - the vector of all the estimated parameters.
-#' }
-#' @seealso \code{\link[smooth]{es}, \link[stats]{ts}, \link[smooth]{auto.ces}}
-#'
-#' @examples
-#'
-#' y <- rnorm(100,10,3)
-#' ces(y,h=20,holdout=TRUE)
-#' ces(y,h=20,holdout=FALSE)
-#'
-#' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-#' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
-#'
-#' ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
-#'
-#' \donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
-#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
-#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
-#'
-#' @rdname ces
 # @export
 ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
                     initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
@@ -489,10 +369,6 @@ ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(f
     #               updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     # }
 
-
-
-
-
 ##### Estimate ces or just use the provided values #####
     # Initialisation before the optimiser
     if(any(initialType=="optimal",a$estimate,b$estimate)){
@@ -531,33 +407,21 @@ ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(f
             }
         }
 
-
-
-
-        res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
-        B <- res$solution;
-
-        #In cases of xreg the optimiser sometimes fails to find reasonable parameters
-        if(!is.null(xreg)){
-            res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=5000));
-        }
-        else{
-            res2 <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=1e-8, "maxeval"=1000));
-        }
-            # This condition is needed in order to make sure that we did not make the solution worse
-        if(res2$objective <= res$objective){
-            res <- res2;
-        }
+        res <- suppressWarnings(nloptr(B, CF,
+                                       opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
+                                                 ftol_rel=ftol_rel, ftol_abs=ftol_abs,
+                                                 maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
+                                       matVt=matVt, matF=matF, vecG=vecG, a=a, b=b));
 
         B <- res$solution;
         cfObjective <- res$objective;
 
         # Parameters estimated + variance
-        nParam <- length(B) + 1;
+        nParam <- length(B) + (loss=="likelihood")*1;
     }
     else{
-        B <- c(a$value,b$value,initialValue,initialX,transitionX,persistenceX);
-        cfObjective <- CF(B);
+        B <- c(a$value,b$value,initialValue);
+        cfObjective <- CF(B, matVt, matF, vecG, a, b);
 
         # Only variance is estimated
         nParam <- 1;
@@ -569,7 +433,7 @@ ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(f
     logLik <- ICValues$llikelihood;
 
     icBest <- ICs[ic];
-#
+
 #     return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
 # }
 
