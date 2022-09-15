@@ -1,6 +1,21 @@
-utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","yForecastStart",
-                         # The following four should be deleted when the function is ready
-                         "arma","persistence","phi","profilesRecentProvided"));
+utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arRequired","arimaModel",
+                         "arimaPolynomials","armaParameters","componentsNamesARIMA","componentsNamesETS",
+                         "componentsNumberARIMA","componentsNumberETS","componentsNumberETSNonSeasonal",
+                         "componentsNumberETSSeasonal","digits","etsModel","ftol_abs","ftol_rel",
+                         "horizon","iOrders","iRequired","initialArima","initialArimaEstimate",
+                         "initialArimaNumber","initialLevel","initialLevelEstimate","initialSeasonal",
+                         "initialSeasonalEstimate","initialTrend","initialTrendEstimate","lagsModelARIMA",
+                         "lagsModelAll","lagsModelSeasonal","profilesObservedTable","profilesRecentTable",
+                         "other","otherParameterEstimate","lambda","lossFunction",
+                         "maEstimate","maOrders","maRequired","matVt","matWt","maxtime","modelIsTrendy",
+                         "nParamEstimated","persistenceLevel","persistenceLevelEstimate",
+                         "persistenceSeasonal","persistenceSeasonalEstimate","persistenceTrend",
+                         "persistenceTrendEstimate","vecG","xtol_abs","xtol_rel","stepSize","yClasses",
+                         "yForecastIndex","yInSampleIndex","yIndexAll","yNAValues","yStart","responseName",
+                         "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
+                         "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
+                         "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
+                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal"));
 
 #' Complex Exponential Smoothing
 #'
@@ -195,7 +210,7 @@ ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(f
     }
 
     ##### Set environment for ssInput and make all the checks #####
-    checkerReturn <- parametersChecker(data=y, model, lags, formula=NULL, orders=NULL, constant=FALSE, arma=NULL,
+    checkerReturn <- parametersChecker(data=y, model, lags, formulaToUse=NULL, orders=NULL, constant=FALSE, arma=NULL,
                                        outliers="ignore", level=0.99,
                                        persistence=NULL, phi=NULL, initial,
                                        distribution="dnorm", loss, h, holdout, occurrence="none", ic, bounds=bounds[1],
@@ -429,115 +444,58 @@ ces_new <- function(y, seasonality=c("none","simple","partial","full"), lags=c(f
     yForecast <- rep(NA, h);
     errors <- rep(NA, obsInSample);
 
+    # Values for xreg. No longer supported in ces()
+    parametersNumber[1,2] <- 0;
+    parametersNumber[2,2] <- 0;
+
+    # Values for occurrence. No longer supported in ces()
+    parametersNumber[1,3] <- 0;
+    parametersNumber[2,3] <- 0;
+
+    ##### Check number of observations vs number of max parameters #####
+    # if(obsNonzero <= nParamMax){
+    #     if(regressors=="select"){
+    #         if(obsNonzero <= (nParamMax - nParamExo)){
+    #             warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+    #                         nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
+    #             tinySample <- TRUE;
+    #         }
+    #         else{
+    #             warning(paste0("The potential number of exogenous variables is higher than the number of observations. ",
+    #                            "This may cause problems in the estimation."),call.=FALSE);
+    #         }
+    #     }
+    #     else{
+    #         warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
+    #                        nParamMax," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
+    #         tinySample <- TRUE;
+    #     }
+    # }
+    # else{
+    #     tinySample <- FALSE;
+    # }
+
+    # If this is tiny sample, use SES instead
+    # if(tinySample){
+    #     warning("Not enough observations to fit CES. Switching to ETS(A,N,N).",call.=FALSE);
+    #     return(es(y,"ANN",initial=initial,loss=loss,
+    #               h=h,holdout=holdout,cumulative=cumulative,
+    #               interval=interval,level=level,
+    #               occurrence=occurrence,
+    #               oesmodel=oesmodel,
+    #               bounds="u",
+    #               silent=silent,
+    #               xreg=xreg,regressors=regressors,initialX=initialX,
+    #               updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
+    # }
 
 
-##### Prepare exogenous variables #####
-    xregdata <- ssXreg(y=y, xreg=xreg, updateX=FALSE, ot=ot,
-                       persistenceX=NULL, transitionX=NULL, initialX=initialX,
-                       obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
-
-    if(regressors=="u"){
-        xregNumber <- xregdata$xregNumber;
-        matxt <- xregdata$matxt;
-        matat <- xregdata$matat;
-        xregEstimate <- xregdata$xregEstimate;
-        matFX <- xregdata$matFX;
-        vecGX <- xregdata$vecGX;
-        xregNames <- colnames(matxt);
-    }
-    else{
-        xregNumber <- 1;
-        xregNumberOriginal <- xregdata$xregNumber;
-        matxtOriginal <- xregdata$matxt;
-        matatOriginal <- xregdata$matat;
-        xregEstimateOriginal <- xregdata$xregEstimate;
-        matFXOriginal <- xregdata$matFX;
-        vecGXOriginal <- xregdata$vecGX;
-
-        matxt <- matrix(1,nrow(matxtOriginal),1);
-        matat <- matrix(0,nrow(matatOriginal),1);
-        xregEstimate <- FALSE;
-        matFX <- matrix(1,1,1);
-        vecGX <- matrix(0,1,1);
-        xregNames <- NULL;
-    }
-    xreg <- xregdata$xreg;
-    FXEstimate <- xregdata$FXEstimate;
-    gXEstimate <- xregdata$gXEstimate;
-    initialXEstimate <- xregdata$initialXEstimate;
-    if(is.null(xreg)){
-        regressors <- "u";
-    }
-
-    # These three are needed in order to use ssgeneralfun.cpp functions
-    Etype <- "A";
-    Ttype <- "N";
-    Stype <- "N";
-
-    # Check number of parameters vs data
-    nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecGX) + initialXEstimate*ncol(matat);
-    nParamOccurrence <- all(occurrence!=c("n","p"))*1;
-    nParamMax <- nParamMax + nParamExo + nParamOccurrence;
-
-    if(regressors=="u"){
-        parametersNumber[1,2] <- nParamExo;
-        # If transition is provided and not identity, and other things are provided, write them as "provided"
-        parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
-                                      nrow(vecGX)*(!is.null(persistenceX)) +
-                                      ncol(matat)*(!is.null(initialX)));
-    }
-
-##### Check number of observations vs number of max parameters #####
-    if(obsNonzero <= nParamMax){
-        if(regressors=="select"){
-            if(obsNonzero <= (nParamMax - nParamExo)){
-                warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                            nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
-                tinySample <- TRUE;
-            }
-            else{
-                warning(paste0("The potential number of exogenous variables is higher than the number of observations. ",
-                               "This may cause problems in the estimation."),call.=FALSE);
-            }
-        }
-        else{
-            warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
-                           nParamMax," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
-            tinySample <- TRUE;
-        }
-    }
-    else{
-        tinySample <- FALSE;
-    }
-
-# If this is tiny sample, use SES instead
-    if(tinySample){
-        warning("Not enough observations to fit CES. Switching to ETS(A,N,N).",call.=FALSE);
-        return(es(y,"ANN",initial=initial,loss=loss,
-                  h=h,holdout=holdout,cumulative=cumulative,
-                  interval=interval,level=level,
-                  occurrence=occurrence,
-                  oesmodel=oesmodel,
-                  bounds="u",
-                  silent=silent,
-                  xreg=xreg,regressors=regressors,initialX=initialX,
-                  updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
-    }
-
-##### Start doing things #####
-    environment(ssForecaster) <- environment();
-    environment(ssFitter) <- environment();
 
 
 
 ##### Estimate ces or just use the provided values #####
-CreatorCES <- function(initialType, a, b, initialXEstimate){
-    # environment(likelihoodFunction) <- environment();
-    # environment(ICFunction) <- environment();
-
     # Initialisation before the optimiser
-    if(any(initialType=="o",a$estimate,b$estimate,initialXEstimate)){
+    if(any(initialType=="optimal",a$estimate,b$estimate)){
         B <- NULL;
         # If we don't need to estimate a
         if(a$estimate){
@@ -547,7 +505,7 @@ CreatorCES <- function(initialType, a, b, initialXEstimate){
         # Index for states
         j <- 0
         if(any(seasonality==c("n","s"))){
-            if(initialType=="o"){
+            if(initialType=="optimal"){
                 B <- c(B,c(matVt[1:2,1:lagsModelMax]));
                 j <- 2;
             }
@@ -556,7 +514,7 @@ CreatorCES <- function(initialType, a, b, initialXEstimate){
             if(b$estimate){
                 B <- c(B,0.1);
             }
-            if(initialType=="o"){
+            if(initialType=="optimal"){
                 B <- c(B,c(matVt[1:2,1]));
                 B <- c(B,c(matVt[3,1:lagsModelMax]));
                 j <- 3;
@@ -566,18 +524,15 @@ CreatorCES <- function(initialType, a, b, initialXEstimate){
             if(b$estimate){
                 B <- c(B,1.3,1);
             }
-            if(initialType=="o"){
+            if(initialType=="optimal"){
                 B <- c(B,c(matVt[1:2,1]));
                 B <- c(B,c(matVt[3:4,1:lagsModelMax]));
                 j <- 4;
             }
         }
 
-        if(xregEstimate){
-            if(initialXEstimate){
-                B <- c(B,matVt[j+c(1:xregNumber),1]);
-            }
-        }
+
+
 
         res <- nloptr(B, CF, opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=1e-8, "maxeval"=1000));
         B <- res$solution;
@@ -614,9 +569,9 @@ CreatorCES <- function(initialType, a, b, initialXEstimate){
     logLik <- ICValues$llikelihood;
 
     icBest <- ICs[ic];
-
-    return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
-}
+#
+#     return(list(cfObjective=cfObjective,B=B,ICs=ICs,icBest=icBest,nParam=nParam,logLik=logLik));
+# }
 
     list2env(cesValues,environment());
 
@@ -771,12 +726,7 @@ CreatorCES <- function(initialType, a, b, initialXEstimate){
         }
     }
 
-    if(!is.null(xreg)){
-        modelname <- "CESX";
-    }
-    else{
-        modelname <- "CES";
-    }
+    modelname <- "CES";
     modelname <- paste0(modelname,"(",seasonality,")");
 
     if(all(occurrence!=c("n","none"))){

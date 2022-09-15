@@ -58,6 +58,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If this is something like a matrix
     if(!is.null(ncol(data)) && ncol(data)>1){
         xregData <- data;
+        # Get rid of the bloody tibble class. Gives me headaches!
+        if(inherits(data,"tbl_df") || inherits(data,"tbl")){
+            data <- as.data.frame(data);
+        }
+
         if(!is.null(formulaToUse)){
             responseName <- all.vars(formulaToUse)[1];
             y <- data[,responseName];
@@ -70,7 +75,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # With tsibble we cannot extract explanatory variables easily...
                 y <- data$value;
             }
-            else if(inherits(data,"data.table") || inherits(data,"tbl") || inherits(data,"data.frame")){
+            else if(inherits(data,"data.table") || inherits(data,"data.frame")){
                 y <- data[[1]];
             }
             else if(inherits(data,"zoo")){
@@ -88,7 +93,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         # If we cannot extract time, do something
         if(inherits(yIndex,"try-error")){
             if(!is.null(dim(data))){
-                yIndex <- as.POSIXct(rownames(data));
+                yIndex <- try(as.POSIXct(rownames(data)),silent=TRUE);
+                if(inherits(yIndex,"try-error")){
+                    yIndex <- c(1:nrow(data));
+                }
             }
             else{
                 yIndex <- c(1:length(y));

@@ -2032,6 +2032,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                      adamElements$vecG %*% adamElements$matWt[obsInSample,,drop=FALSE],
                                                  symmetric=FALSE, only.values=TRUE)$values);
                     }
+                    else{
+                        eigenValues <- 0;
+                    }
                 }
                 if(any(eigenValues>1+1E-50)){
                     return(1E+100*max(eigenValues));
@@ -5445,25 +5448,40 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     plot5 <- function(x, ...){
         ellipsis <- list(...);
 
+        ellipsis$fitted <- fitted(x);
         ellipsis$actuals <- actuals(x);
         if(!is.null(x$holdout)){
             responseName <- all.vars(formula(x))[1];
             yHoldout <- x$holdout[,responseName]
-            if(is.zoo(ellipsis$actuals)){
+            if(inherits(yHoldout,"tbl_df") || inherits(yHoldout,"tbl")){
+                yHoldout <- yHoldout[[1]];
+            }
+            if(is.zoo(ellipsis$fitted)){
                 ellipsis$actuals <- zoo(c(as.vector(ellipsis$actuals),as.vector(yHoldout)),
-                                        order.by=c(time(ellipsis$actuals),time(yHoldout)));
+                                        order.by=c(time(ellipsis$fitted),time(yHoldout)));
             }
             else{
-                ellipsis$actuals <- ts(c(ellipsis$actuals,yHoldout),
-                                       start=start(ellipsis$actuals),
-                                       frequency=frequency(ellipsis$actuals));
+                ellipsis$actuals <- ts(c(as.vector(ellipsis$actuals),as.vector(yHoldout)),
+                                       start=start(ellipsis$fitted),
+                                       frequency=frequency(ellipsis$fitted));
+            }
+        }
+        # Reclass the actuals just in case
+        else{
+            if(is.zoo(ellipsis$fitted)){
+                ellipsis$actuals <- zoo(as.vector(ellipsis$actuals),
+                                        order.by=time(ellipsis$fitted));
+            }
+            else{
+                ellipsis$actuals <- ts(ellipsis$actuals,
+                                       start=start(ellipsis$fitted),
+                                       frequency=frequency(ellipsis$fitted));
             }
         }
         if(is.null(ellipsis$main)){
             ellipsis$main <- x$model;
         }
         ellipsis$forecast <- x$forecast;
-        ellipsis$fitted <- fitted(x);
         ellipsis$legend <- FALSE;
         ellipsis$parReset <- FALSE;
 
@@ -6760,11 +6778,15 @@ vcov.adam <- function(object, bootstrap=FALSE, ...){
 actuals.adam <- function(object, all=TRUE, ...){
     responseName <- all.vars(formula(object))[1];
     if(all){
-        return(object$data[,responseName]);
+        response <- object$data[,responseName];
     }
     else{
-        return(object$data[object$data[,responseName]!=0,responseName]);
+        response <- object$data[object$data[,responseName]!=0,responseName];
     }
+    if(inherits(response,"tbl")){
+        response <- response[[1]];
+    }
+    return(response);
 }
 
 #' @export
@@ -7694,7 +7716,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     # Make a warning about the potential explosive trend
     if(Ttype=="M" && !damped && profilesRecentTable[2,1]>1 && h>10){
-        warning("Your model has a potentially explosive multiplicative trend.",
+        warning("Your model has a potentially explosive multiplicative trend. ",
                 "I cannot do anything about it, so please just be careful.",
                 call.=FALSE);
     }

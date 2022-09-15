@@ -21,6 +21,7 @@ Bugfixes:
 * A fix for another ETS+ARIMA combination in adam() which resulted in NaNs.
 * A fix for simulated data from mixed ETS models in adam(). These should not produce NaNs anymore.
 * A fix in forecast.adam() for cases of occurrence model and cumulative forecasts.
+* A fix for tibble and tsibble objects in adam().
 
 
 smooth v3.1.7 (Release data: 2022-05-20)
