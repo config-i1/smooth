@@ -55,6 +55,7 @@
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssInitialParam
 #' @template ssAuthor
 #' @template ssKeywords

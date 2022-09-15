@@ -9,11 +9,8 @@ ces_new(y, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), initial = c("backcasting", "optimal"),
   a = NULL, b = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
   loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 10, holdout = FALSE, cumulative = FALSE,
-  interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("admissible", "none"),
-  silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  regressors = c("use", "select"), initialX = NULL, ...)
+  "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible", "none"),
+  silent = c("all", "graph", "legend", "output", "none"), ...)
 
 ces(y, seasonality = c("none", "simple", "partial", "full"),
   initial = c("backcasting", "optimal"), a = NULL, b = NULL,
@@ -78,6 +75,26 @@ are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE}, \code{TMAE},
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
+\item{bounds}{What type of bounds to use in the model estimation. The first
+letter can be used instead of the whole word.}
+
+\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
+printed out and drawn. \code{silent="all"} means that nothing is produced or
+drawn (except for warnings). In case of \code{silent="graph"}, no graph is
+produced. If \code{silent="legend"}, then legend of the graph is skipped.
+And finally \code{silent="output"} means that nothing is printed out in the
+console, but the graph is produced. \code{silent} also accepts \code{TRUE}
+and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
+\code{silent="all"}, while \code{silent=FALSE} is equivalent to
+\code{silent="none"}. The parameter also accepts first letter of words ("n",
+"a", "g", "l", "o").}
+
+\item{...}{Other non-documented parameters.  For example parameter
+\code{model} can accept a previously estimated CES model and use all its
+parameters.  \code{FI=TRUE} will make the function produce Fisher
+Information matrix, which then can be used to calculated variances of
+parameters of the model.}
+
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
 interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
@@ -110,20 +127,6 @@ quantile-wise (Lichtendahl et al., 2013).}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
-\item{bounds}{What type of bounds to use in the model estimation. The first
-letter can be used instead of the whole word.}
-
-\item{silent}{If \code{silent="none"}, then nothing is silent, everything is
-printed out and drawn. \code{silent="all"} means that nothing is produced or
-drawn (except for warnings). In case of \code{silent="graph"}, no graph is
-produced. If \code{silent="legend"}, then legend of the graph is skipped.
-And finally \code{silent="output"} means that nothing is printed out in the
-console, but the graph is produced. \code{silent} also accepts \code{TRUE}
-and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
-\code{silent="all"}, while \code{silent=FALSE} is equivalent to
-\code{silent="none"}. The parameter also accepts first letter of words ("n",
-"a", "g", "l", "o").}
-
 \item{xreg}{The vector (either numeric or time series) or the matrix (or
 data.frame) of exogenous variables that should be included in the model. If
 matrix included than columns should contain variables and rows - observations.
@@ -139,12 +142,6 @@ produced using \link[smooth]{es} function.}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
-
-\item{...}{Other non-documented parameters.  For example parameter
-\code{model} can accept a previously estimated CES model and use all its
-parameters.  \code{FI=TRUE} will make the function produce Fisher
-Information matrix, which then can be used to calculated variances of
-parameters of the model.}
 }
 \value{
 Object of class "smooth" is returned. It contains the list of the
@@ -232,8 +229,6 @@ ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 \donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
 ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
 ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
-
-\donttest{ces(BJsales,holdout=TRUE,interval="np",xreg=BJsales.lead,loss="TMSE")}
 
 }
 \references{

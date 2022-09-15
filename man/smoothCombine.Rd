@@ -103,22 +103,6 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \code{silent="none"}. The parameter also accepts first letter of words ("n",
 "a", "g", "l", "o").}
 
-\item{xreg}{The vector (either numeric or time series) or the matrix (or
-data.frame) of exogenous variables that should be included in the model. If
-matrix included than columns should contain variables and rows - observations.
-Note that \code{xreg} should have number of observations equal either to
-in-sample or to the whole series. If the number of observations in
-\code{xreg} is equal to in-sample, then values for the holdout sample are
-produced using \link[smooth]{es} function.}
-
-\item{regressors}{The variable defines what to do with the provided xreg:
-\code{"use"} means that all of the data should be used, while
-\code{"select"} means that a selection using \code{ic} should be done.
-\code{"combine"} will be available at some point in future...}
-
-\item{initialX}{The vector of initial parameters for exogenous variables.
-Ignored if \code{xreg} is NULL.}
-
 \item{...}{This currently determines nothing.
 
 \itemize{

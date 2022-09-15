@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-09-13)
+smooth v3.2.0 (Release data: 2022-09-15)
 =======
 
 Changes:
@@ -11,6 +11,7 @@ Changes:
 * forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
 * simulate() method for ADAM class.
 * ACF/PACF of squared residuals in plot.adam() and plot.smooth().
+* Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".

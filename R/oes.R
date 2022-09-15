@@ -14,6 +14,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' @template ssIntermittentRef
 #' @template ssInitialParam
 #' @template ssPersistenceParam
+#' @template ssXregParam
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -54,25 +55,6 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax"));
 #' "a", "g", "l", "o").
 #' @param initialSeason The vector of the initial seasonal components. If \code{NULL},
 #' then it is estimated.
-#' @param xreg The vector or the matrix of exogenous variables, explaining some parts
-#' of occurrence variable (probability).
-#' @param regressors Variable defines what to do with the provided xreg:
-#' \code{"use"} means that all of the data should be used, while
-#' \code{"select"} means that a selection using \code{ic} should be done.
-#' \code{"combine"} will be available at some point in future...
-#' @param initialX The vector of initial parameters for exogenous variables.
-#' Ignored if \code{xreg} is NULL.
-#' @param updateX If \code{TRUE}, transition matrix for exogenous variables is
-#' estimated, introducing non-linear interactions between parameters.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param persistenceX The persistence vector \eqn{g_X}, containing smoothing
-#' parameters for exogenous variables. If \code{NULL}, then estimated.
-#' Prerequisite - non-NULL \code{xreg}.
-#' @param transitionX The transition matrix \eqn{F_x} for exogenous variables. Can
-#' be provided as a vector. Matrix will be formed using the default
-#' \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-#' state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-#' \code{xreg}.
 #' @param ... The parameters passed to the optimiser, such as \code{maxeval},
 #' \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
 #' these is printed out by \code{nloptr.print.options()} function from the \code{nloptr}
@@ -131,15 +113,18 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                 bounds=c("usual","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
                 xreg=NULL, regressors=c("use","select"), initialX=NULL,
-                updateX=FALSE, transitionX=NULL, persistenceX=NULL,
                 ...){
     # Function returns the occurrence part of the intermittent state space model
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    # Set the defaults for the parameters that are no longer supported
     interval <- "none";
     level <- 0.95;
+    updateX <- FALSE;
+    transitionX <- NULL;
+    persistenceX <- NULL;
 
     # Options for the fitter and forecaster:
     # O: M / A odds-ratio - "odds-ratio"

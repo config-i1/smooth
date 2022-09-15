@@ -36,6 +36,7 @@
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssPersistenceParam
 #' @template ssAuthor

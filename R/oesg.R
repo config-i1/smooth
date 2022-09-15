@@ -70,25 +70,6 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regr
 #' A. Ignored if \code{xregA} is NULL.
 #' @param initialXB The vector of initial parameters for exogenous variables in the model
 #' B. Ignored if \code{xregB} is NULL.
-#' @param updateXA If \code{TRUE}, transition matrix for exogenous variables is
-#' estimated, introducing non-linear interactions between parameters.
-#' Prerequisite - non-NULL \code{xregA}.
-#' @param updateXB If \code{TRUE}, transition matrix for exogenous variables is
-#' estimated, introducing non-linear interactions between parameters.
-#' Prerequisite - non-NULL \code{xregB}.
-#' @param persistenceXA The persistence vector \eqn{g_X}, containing smoothing
-#' parameters for the exogenous variables of the model A. If \code{NULL}, then estimated.
-#' Prerequisite - non-NULL \code{xregA}.
-#' @param persistenceXB The persistence vector \eqn{g_X}, containing smoothing
-#' parameters for the exogenous variables of the model B. If \code{NULL}, then estimated.
-#' Prerequisite - non-NULL \code{xregB}.
-#' @param transitionXA The transition matrix \eqn{F_x} for exogenous variables of the model A.
-#' Can be provided as a vector. Matrix will be formed using the default
-#' \code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-#' state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-#' \code{xregA}.
-#' @param transitionXB The transition matrix \eqn{F_x} for exogenous variables of the model B.
-#' Similar to the \code{transitionXA}.
 #' @param ... The parameters passed to the optimiser, such as \code{maxeval},
 #' \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
 #' these is printed out by \code{nloptr.print.options()} function from the \code{nloptr}
@@ -122,16 +103,21 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  silent=c("all","graph","legend","output","none"),
                  xregA=NULL, xregB=NULL, initialXA=NULL, initialXB=NULL,
                  regressorsA=c("use","select"), regressorsB=c("use","select"),
-                 updateXA=FALSE, updateXB=FALSE, transitionXA=NULL, transitionXB=NULL,
-                 persistenceXA=NULL, persistenceXB=NULL,
                  ...){
     # Function returns the occurrence part of the intermittent state space model, type G
 
 # Start measuring the time of calculations
     startTime <- Sys.time();
 
+    # Set the defaults for the parameters that are no longer supported
     interval <- "none";
     level <- 0.95;
+    updateXA <- FALSE;
+    updateXB <- FALSE;
+    transitionXA <- NULL;
+    transitionXB <- NULL;
+    persistenceXA <- NULL;
+    persistenceXB <- NULL;
 
     ##### Preparations #####
     occurrence <- "g";
