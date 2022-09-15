@@ -262,5 +262,9 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         names(smaModel$ICs) <- c(1:length(ICs));
     }
 
+    if(!silent){
+        plot(smaModel, 7);
+    }
+
     return(smaModel);
 }
