@@ -2175,12 +2175,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
                 j <- componentsNumberETS + persistenceXregEstimate*xregNumber + phiEstimate;
 
+                # No good understanding how to shrink ARMA. Do these just because:
                 # Shrink AR parameters to 1 and
-                # Shrink MA parameters to -1 to get to deterministic model
-                if(arimaModel && sum(maOrders)>0){
+                # Shrink MA parameters to 0
+                if(arimaModel && (sum(maOrders)>0 || sum(arOrders)>0)){
                     for(i in 1:length(lags)){
                         B[j+c(1:arOrders[i])] <- 1-B[j+c(1:arOrders[i])];
-                        B[j+arOrders[i]+c(1:maOrders[i])] <- B[j+arOrders[i]+c(1:maOrders[i])]+1;
+                        B[j+arOrders[i]+c(1:maOrders[i])] <- B[j+arOrders[i]+c(1:maOrders[i])];
                         j[] <- j+arOrders[i]+maOrders[i];
                     }
                 }
@@ -2812,6 +2813,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Prepare the values to return
         B[] <- res$solution;
         CFValue <- res$objective;
+        # A fix for the special case of LASSO/RIDGE with lambda==1
+        if(any(loss==c("LASSO","RIDGE")) && lambdaOriginal==1){
+            CFValue[] <- 0;
+        }
         nParamEstimated <- length(B);
         # Return a proper logLik class
         logLikADAMValue <- structure(logLikADAM(B,
@@ -3880,6 +3885,46 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
     ##### Estimate the specified model #####
     if(modelDo=="estimate"){
+        # If this is LASSO/RIDGE with lambda=1, use MSE to estimate initials only
+        lambdaOriginal <- lambda;
+        if(any(loss==c("LASSO","RIDGE")) && lambda==1){
+            if(etsModel){
+                # Pre-set ETS parameters
+                persistenceEstimate[] <- FALSE;
+                persistenceLevelEstimate[] <- persistenceTrendEstimate[] <-
+                    persistenceSeasonalEstimate[] <- FALSE;
+                persistenceLevel <- persistenceTrend <- persistenceSeasonal <- 0;
+                # Phi
+                phiEstimate[] <- FALSE;
+                phi <- 1;
+            }
+            if(xregModel){
+                # ETSX parameters
+                persistenceXregEstimate[] <- FALSE;
+                persistenceXreg <- 0;
+            }
+            if(arimaModel){
+                # Pre-set ARMA parameters
+                arEstimate[] <- FALSE;
+                maEstimate[] <- FALSE;
+                armaParameters <- vector("numeric",sum(arOrders)+sum(maOrders));
+                j <- 0;
+                for(i in 1:length(lags)){
+                    if(arOrders[i]>0){
+                        armaParameters[j+1:arOrders[i]] <- 1;
+                        names(armaParameters)[j+c(1:arOrders[i])] <- paste0("phi",1:arOrders[i],"[",lags[i],"]");
+                        j <- j + arOrders[i];
+                    }
+                    if(maOrders[i]>0){
+                        armaParameters[j+1:maOrders[i]] <- 0;
+                        names(armaParameters)[j+c(1:maOrders[i])] <- paste0("theta",1:maOrders[i],"[",lags[i],"]");
+                        j <- j + maOrders[i];
+                    }
+                }
+            }
+            lambda=0;
+        }
+
         # Estimate the parameters of the demand sizes model
         adamEstimated <- estimator(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal, lagsModelARIMA,
                                    obsStates, obsInSample,
@@ -3903,6 +3948,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                    bounds, loss, lossFunction, distribution,
                                    horizon, multisteps, other, otherParameterEstimate, lambda);
         list2env(adamEstimated, environment());
+
+        # A fix for the special case of lambda==1
+        lambda <- lambdaOriginal;
 
         #### This part is needed in order for the filler to do its job later on
         # Create the basic variables based on the estimated model

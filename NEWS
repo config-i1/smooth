@@ -23,6 +23,7 @@ Bugfixes:
 * A fix in forecast.adam() for cases of occurrence model and cumulative forecasts.
 * A fix for tibble and tsibble objects in adam().
 * es_old() and other old functions would break if after some checks all the explanatory variables would be dropped (thanks to Ritika Arora for spotting this). This is now fixed.
+* Fix in adam() in case of loss=c("LASSO","RIDGE") and lambda=1. This now corresponds to the deterministic ETS(X) model. ARIMA is still a mistery here.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)
