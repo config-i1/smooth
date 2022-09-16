@@ -1,5 +1,6 @@
 utils::globalVariables(c("yForecastStart"));
 
+#' @template ssIntervals
 #' @rdname sma
 #' @export
 sma_old <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),

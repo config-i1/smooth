@@ -2,6 +2,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
                          "yForecastStart","nonZeroARI","nonZeroMA"));
 
+#' @template ssIntervals
 #' @rdname msarima
 #' @export
 msarima_old <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
