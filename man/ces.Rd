@@ -132,8 +132,6 @@ Ignored if \code{xreg} is NULL.}
 parameters.  \code{FI=TRUE} will make the function produce Fisher
 Information matrix, which then can be used to calculated variances of
 parameters of the model.}
-
-\item{lags}{Vector of seasonal lags.}
 }
 \value{
 Object of class "smooth" is returned. It contains the list of the

@@ -32,7 +32,6 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' seasonality, depending on the data). First letter can be used instead of
 #' full words.  Any seasonal CES can only be constructed for time series
 #' vectors.
-#' @param lags Vector of seasonal lags.
 #' @param a First complex smoothing parameter. Should be a complex number.
 #'
 #' NOTE! CES is very sensitive to a and b values so it is advised either to
