@@ -1600,7 +1600,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     # If there are spaces in names, give a warning
                     if(any(grepl("[^A-Za-z0-9,;._-]", all.vars(formulaToUse))) ||
                        # If the names only contain numbers
-                       any(grepl("^[-]{0,1}[0-9]{0,}.{0,1}[0-9]{1,}$", all.vars(formulaToUse)))){
+                       any(suppressWarnings(!is.na(as.numeric(all.vars(formulaToUse)))))){
                         warning("The names of your variables contain special characters ",
                                 "(such as numbers, spaces, comas, brackets etc). adam() might not work properly. ",
                                 "It is recommended to use `make.names()` function to fix the names of variables.",
