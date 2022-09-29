@@ -1592,17 +1592,40 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
                     return(almModel);
                 }
-                # Extract names and form a proper matrix for the regression
+
+                # Extract names of variables, fix the formula
                 if(!is.null(formulaToUse)){
                     formulaToUse <- as.formula(formulaToUse);
                     responseName <- all.vars(formulaToUse)[1];
+                    # If there are spaces in names, give a warning
+                    if(any(grepl("[^A-Za-z0-9,;._-]", all.vars(formulaToUse))) ||
+                       # If the names only contain numbers
+                       any(grepl("^[-]{0,1}[0-9]{0,}.{0,1}[0-9]{1,}$", all.vars(formulaToUse)))){
+                        warning("The names of your variables contain special characters ",
+                                "(such as numbers, spaces, comas, brackets etc). adam() might not work properly. ",
+                                "It is recommended to use `make.names()` function to fix the names of variables.",
+                                call.=FALSE);
+                        formulaToUse <- as.formula(paste0(gsub(paste0("`",all.vars(formulaToUse)[1],"`"),
+                                                          make.names(all.vars(formulaToUse)[1]),
+                                                          all.vars(formulaToUse)[1]),"~",
+                                                     paste0(mapply(gsub, paste0("`",all.vars(formulaToUse)[-1],"`"),
+                                                                   make.names(all.vars(formulaToUse)[-1]),
+                                                                   labels(terms(formulaToUse))),
+                                                            collapse="+")));
+                    }
                     formulaProvided <- TRUE;
                 }
                 else{
-                    formulaToUse <- reformulate(setdiff(colnames(xregData), responseName), response=responseName);
+                    formulaToUse <- reformulate(make.names(colnames(xregData)[-1]), response=responseName);
+                    # Quotes are needed here for the insecure names of variables, such as "1", "2", "3" etc
+                    # formulaToUse <- reformulate(setdiff(paste0("`",colnames(xregData),"`"),
+                    #                                     paste0("`",responseName,"`")),
+                    #                             response=responseName);
                     formulaProvided <- FALSE;
                 }
 
+                # Robustify the names of variables
+                colnames(xregData) <- make.names(colnames(xregData));
                 # This allows to save the original data
                 xreg <- xregData;
                 obsXreg <- nrow(xregData);

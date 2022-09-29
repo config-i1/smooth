@@ -3460,7 +3460,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else if(distribution=="dt"){
             nu <- other;
         }
-        stepwiseModel <- suppressWarnings(stepwise(cbind(as.data.frame(errors),xregData[1:obsInSample,,drop=FALSE]),
+        stepwiseModel <- suppressWarnings(stepwise(data.frame(errorsIvan41=errors,xregData[1:obsInSample,,drop=FALSE]),
                                                    ic=ic, df=df, distribution=distribution, occurrence=occurrence, silent=TRUE,
                                                    alpha=alpha, shape=shape, nu=nu));
         return(list(initialXreg=coef(stepwiseModel)[-1],other=stepwiseModel$other,formula=formula(stepwiseModel)));
@@ -7683,6 +7683,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             testFormula <- formula(object);
             # Remove response variable
             testFormula[[2]] <- NULL;
+            colnames(xreg) <- make.names(colnames(xreg));
             # Expand the variables. We cannot use alm, because it is based on obsInSample
             xregData <- model.frame(testFormula,data=xreg);
             # Binary, flagging factors in the data
@@ -7702,6 +7703,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             rm(xregData,xregModelMatrix);
         }
         else{
+            colnames(xreg) <- make.names(colnames(xreg));
             newdata <- xreg[,xregNames,drop=FALSE];
         }
         rm(xreg);
