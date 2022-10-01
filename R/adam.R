@@ -4903,7 +4903,7 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
     # Check lags variable for 24 / 24*7 / 24*365 / 48 / 48*7 / 48*365 / 365 / 52
     # If they are there, find the DST / Leap moments
     # Then amend respective observed values of profile, shifting them around
-    if(any(yClasses=="zoo") && !is.null(yIndex)){
+    if(any(yClasses=="zoo") && !is.null(yIndex) && !is.numeric(yIndex)){
         # If this is weekly data, duplicate 52, when 53 is used
         if(any(lags==52) && any(strftime(yIndex,format="%W")=="53")){
             shiftRows <- lagsModelAll==52;
@@ -4936,7 +4936,7 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
             # Get the start and the end of DST
             dstValues <- detectdst(yIndex);
             # If there are DST issues, do something
-            doShifts <- (nrow(dstValues$start)!=0) | (nrow(dstValues$end)!=0)
+            doShifts <- !is.null(dstValues) && ((nrow(dstValues$start)!=0) | (nrow(dstValues$end)!=0))
             if(doShifts){
                 # If the start date is not positioned before the end, introduce the artificial one
                 if(nrow(dstValues$start)==0 ||

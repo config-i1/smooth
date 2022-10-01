@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-09-29)
+smooth v3.2.0 (Release data: 2022-10-01)
 =======
 
 Changes:
@@ -25,6 +25,7 @@ Bugfixes:
 * es_old() and other old functions would break if after some checks all the explanatory variables would be dropped (thanks to Ritika Arora for spotting this). This is now fixed.
 * Fix in adam() in case of loss=c("LASSO","RIDGE") and lambda=1. This now corresponds to the deterministic ETS(X) model. ARIMA is still a mistery here.
 * adam() would not work if names of explanatory variables would consist of numbers only.
+* adam() would fail if lags=24 and zoo object with no timestamps was used.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)
