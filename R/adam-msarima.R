@@ -315,7 +315,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     else{
         initialValue$xreg <- NULL;
     }
-    if(is.null(initialValue)){
+    if(all(sapply(initialValue, is.null))){
         initialValue <- initial;
     }
 
