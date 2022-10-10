@@ -387,9 +387,10 @@ of degrees of freedom. This can be done using \link[greybox]{implant} method.
 
 # Model selection using a specified pool of models
 ourModel <- adam(rnorm(100,100,10), model=c("ANN","ANA","AAA"), lags=c(5,10))
+\donttest{adamSummary <- summary(ourModel)
+xtable(adamSummary)}
 
-\donttest{summary(ourModel)
-forecast(ourModel)
+\donttest{forecast(ourModel)
 par(mfcol=c(3,4))
 plot(ourModel, c(1:11))}
 

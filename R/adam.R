@@ -341,9 +341,10 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #'
 #' # Model selection using a specified pool of models
 #' ourModel <- adam(rnorm(100,100,10), model=c("ANN","ANA","AAA"), lags=c(5,10))
+#' \donttest{adamSummary <- summary(ourModel)
+#' xtable(adamSummary)}
 #'
-#' \donttest{summary(ourModel)
-#' forecast(ourModel)
+#' \donttest{forecast(ourModel)
 #' par(mfcol=c(3,4))
 #' plot(ourModel, c(1:11))}
 #'
@@ -6545,6 +6546,29 @@ print.summary.adam <- function(x, ...){
     else{
         cat("\nInformation criteria are unavailable for the chosen loss & distribution.\n");
     }
+}
+
+#' @export
+xtable::xtable
+
+#' @importFrom xtable xtable
+#' @export
+xtable.adam <- function(x, caption = NULL, label = NULL, align = NULL, digits = NULL,
+                           display = NULL, auto = FALSE, ...){
+    adamSummary <- summary(x);
+    return(do.call("xtable", list(x=adamSummary,
+                                  caption=caption, label=label, align=align, digits=digits,
+                                  display=display, auto=auto, ...)));
+}
+
+#' @export
+xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, digits = NULL,
+                           display = NULL, auto = FALSE, ...){
+    # Substitute class with lm
+    class(x) <- "summary.lm";
+    return(do.call("xtable", list(x=x,
+                                  caption=caption, label=label, align=align, digits=digits,
+                                  display=display, auto=auto, ...)));
 }
 
 

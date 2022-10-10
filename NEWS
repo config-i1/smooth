@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-10-01)
+smooth v3.2.0 (Release data: 2022-10-10)
 =======
 
 Changes:
@@ -12,6 +12,7 @@ Changes:
 * simulate() method for ADAM class.
 * ACF/PACF of squared residuals in plot.adam() and plot.smooth().
 * Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
+* xtable method for adam class to produce tables from outputs for LaTeX.
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
