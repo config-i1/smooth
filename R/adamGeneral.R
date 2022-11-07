@@ -1108,11 +1108,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
     }
 
-    # Fix the occurrenceModel for "provided"
-    if(occurrence=="provided"){
-        occurrenceModel <- FALSE;
-    }
-
     #### Initial values ####
     # Vectors for initials of different components
     initialLevel <- NULL;
@@ -2337,6 +2332,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         xregParametersIncluded <- 0;
         xregParametersEstimated <- 0;
         xregParametersPersistence <- 0;
+    }
+
+    # Fix the occurrenceModel for "provided"
+    if(occurrence=="provided"){
+        occurrenceModel <- FALSE;
     }
 
     # Redefine persitenceEstimate value
