@@ -1669,6 +1669,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         else{
                             FI <- ellipsis$FI;
                         }
+                        if(is.null(oesModel)){
+                            oesModel <- "none";
+                        }
                         almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
                                                         distribution=distribution, loss=loss,
                                                         subset=which(subset),
