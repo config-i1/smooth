@@ -1669,9 +1669,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         else{
                             FI <- ellipsis$FI;
                         }
-                        if(is.null(oesModel)){
-                            oesModel <- "none";
-                        }
                         almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
                                                         distribution=distribution, loss=loss,
                                                         subset=which(subset),
@@ -2403,7 +2400,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         parametersNumber[2,3] <- nparam(oesModel);
         pForecast <- c(forecast(oesModel, h=h, interval="none")$mean);
     }
-
 
     #### Information Criteria ####
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
