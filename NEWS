@@ -13,6 +13,7 @@ Changes:
 * ACF/PACF of squared residuals in plot.adam() and plot.smooth().
 * Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
 * xtable method for adam class to produce tables from outputs for LaTeX.
+* sma() now has a fast search of order.
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".

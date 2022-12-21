@@ -26,6 +26,9 @@
 #'
 #' @param order Order of simple moving average. If \code{NULL}, then it is
 #' selected automatically using information criteria.
+#' @param fast if \code{TRUE}, then the modified Ternary search is used to
+#' find the optimal order of the model. This does not guarantee the optimal
+#' solution, but gives a reasonable one (local minimum).
 #' @param ...  Other non-documented parameters.  For example parameter
 #' \code{model} can accept a previously estimated SMA model and use its
 #' parameters.
@@ -96,7 +99,7 @@
 #' @rdname sma
 #' @export
 sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
-                h=10, holdout=FALSE, silent=TRUE,
+                h=10, holdout=FALSE, silent=TRUE, fast=TRUE,
                 ...){
 # Function constructs simple moving average in state space model
 
@@ -151,6 +154,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     obsAll <- length(y) + (1 - holdout)*h;
     obsInSample <- length(y) - holdout*h;
     yInSample <- y[1:obsInSample];
+    yFrequency <- frequency(y);
 
     if(!is.null(order)){
         if(obsInSample < order){
@@ -238,14 +242,65 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     if(orderSelect){
         maxOrder <- min(200,obsInSample);
         ICs <- rep(NA,maxOrder);
-        for(i in 1:maxOrder){
-            order <- i;
+        if(fast){
+            # The lowest bound
+            iNew <- i <- 1;
             ICs[i] <- CreatorSMA(i);
-            # ICs[i] <- adam(y, model="NNN", orders=c(i,0,0),
-            #                h=h, holdout=holdout, ic=ic, silent=TRUE,
-            #                arma=rep(1/i,i), initial="backcasting",
-            #                loss="MSE", bounds="none",
-            #                distribution="dnorm")$ICs;
+            # The highest bound
+            kNew <- k <- maxOrder
+            ICs[k] <- CreatorSMA(k);
+            # The middle point
+            j <- floor((k+i)/2);
+            # If the new IC is the same as one of the old ones, stop
+            optimalICNotFound <- TRUE;
+
+            # Track number of iterations
+            m <- 1;
+            while(optimalICNotFound){
+                # Escape the loop if it takes too much time
+                m[] <- m+1
+                if(m>maxOrder){
+                    break;
+                }
+                ICs[j] <- CreatorSMA(j);
+                if(!silent){
+                    cat(paste0("Order ", i, " - ", round(ICs[i],4), "; "));
+                    cat(paste0("Order ", j, " - ", round(ICs[j],4), "; "));
+                    cat(paste0("Order " , k, " - ", round(ICs[k],4), "\n"));
+                }
+
+                # Move the bounds
+                iNew[] <- which(min(c(ICs[i],ICs[j],ICs[k]))==ICs);
+                kNew[] <- which(sort(c(ICs[i],ICs[j],ICs[k]))[2]==ICs);
+
+                # If both bounds haven't changed, move the higher one to the middle
+                if(i==iNew && k==kNew || k==iNew && i==kNew){
+                    kNew[] <- j;
+                }
+
+                i[] <- min(iNew, kNew);
+                k[] <- max(iNew, kNew);
+                j[] <- floor((k+i)/2);
+
+                # If the new IC is the same as one of the old ones, stop
+                optimalICNotFound[] <- j!=i && j!=k && j!=0;
+            }
+            # Check a specifif order equal to frequency of the data
+            if(is.na(ICs[yFrequency])){
+                ICs[yFrequency] <- CreatorSMA(yFrequency);
+                if(!silent){
+                    cat(paste0("Order " , yFrequency, " - ", round(ICs[yFrequency],4), "\n"));
+                }
+            }
+        }
+        else{
+            for(i in 1:maxOrder){
+                order <- i;
+                ICs[i] <- CreatorSMA(i);
+                if(!silent){
+                    cat(paste0("Order " , i, " - ", round(ICs[i],4), "\n"));
+                }
+            }
         }
         order <- which.min(ICs)[1];
     }

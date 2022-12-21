@@ -6,7 +6,7 @@
 \title{Simple Moving Average}
 \usage{
 sma(y, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
-  holdout = FALSE, silent = TRUE, ...)
+  holdout = FALSE, silent = TRUE, fast = TRUE, ...)
 
 sma_old(y, order = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), h = 10,
   holdout = FALSE, cumulative = FALSE, interval = c("none", "parametric",
@@ -36,6 +36,10 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \code{silent="all"}, while \code{silent=FALSE} is equivalent to
 \code{silent="none"}. The parameter also accepts first letter of words ("n",
 "a", "g", "l", "o").}
+
+\item{fast}{if \code{TRUE}, then the modified Ternary search is used to
+find the optimal order of the model. This does not guarantee the optimal
+solution, but gives a reasonable one (local minimum).}
 
 \item{...}{Other non-documented parameters.  For example parameter
 \code{model} can accept a previously estimated SMA model and use its
