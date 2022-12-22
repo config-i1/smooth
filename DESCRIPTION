@@ -2,7 +2,7 @@ Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
 Version: 3.2.0.41022
-Date: 2022-12-21
+Date: 2022-12-22
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
@@ -19,7 +19,7 @@ Description: Functions implementing Single Source of Error state space models fo
 License: GPL (>=2)
 Depends:
     R (>= 3.0.2),
-    greybox (>= 1.0.5)
+    greybox (>= 1.0.7)
 Imports:
     Rcpp (>= 0.12.3),
     stats,
