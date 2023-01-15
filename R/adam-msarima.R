@@ -247,10 +247,13 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             if(any(c(persistenceX)!=0) | any((transitionX!=0)&(transitionX!=1))){
                 updateX <- TRUE;
             }
-            AR <- model$AR;
-            MA <- model$MA;
-            constant <- model$constant;
-            if(is.numeric(constant) && constant==0){
+            if(!is.null(model$AR)){
+                AR <- model$AR;
+            }
+            if(!is.null(model$MA)){
+                MA <- model$MA;
+            }
+            if(is.null(model$constant) || (is.numeric(model$constant) && model$constant==0)){
                 constant <- FALSE;
             }
             orders <- orders(model);
