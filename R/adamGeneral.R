@@ -2775,7 +2775,12 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         maxtime <- ellipsis$maxtime;
     }
     if(is.null(ellipsis$xtol_rel)){
-        xtol_rel <- 1E-6;
+        if(arimaModel){
+            xtol_rel <- 1E-10;
+        }
+        else{
+            xtol_rel <- 1E-6;
+        }
     }
     else{
         xtol_rel <- ellipsis$xtol_rel;

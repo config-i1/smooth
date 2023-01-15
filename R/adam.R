@@ -1154,39 +1154,39 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(arimaModel){
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
-                        switch(Etype, "A"=0, "M"=1);
-                        # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
+                        # switch(Etype, "A"=0, "M"=1);
+                        rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
 
                     # Failsafe mechanism in case the sample is too small
                     # matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
 
                     # If this is just ARIMA with optimisation, refine the initials
-                    # if(!etsModel && initialType!="backcasting"){
-                    #     arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
-                    #                                        arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
-                    #     if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    #         matVt[componentsNumberETS+nonZeroARI[,2],
-                    #               1:initialArimaNumber] <-
-                    #             switch(Etype,
-                    #                    "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                    #                        tail(arimaPolynomials$ariPolynomial,1),
-                    #                    "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                    #                                tail(arimaPolynomials$ariPolynomial,1)));
-                    #     }
-                    #     else{
-                    #         matVt[componentsNumberETS+nonZeroMA[,2],
-                    #               1:initialArimaNumber] <-
-                    #             switch(Etype,
-                    #                    "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                    #                        tail(arimaPolynomials$maPolynomial,1),
-                    #                    "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                    #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                    #                                tail(arimaPolynomials$maPolynomial,1)));
-                    #     }
-                    # }
+                    if(!etsModel && initialType!="backcasting"){
+                        arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
+                                                           arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+                        if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                            matVt[componentsNumberETS+nonZeroARI[,2],
+                                  1:initialArimaNumber] <-
+                                switch(Etype,
+                                       "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           tail(arimaPolynomials$ariPolynomial,1),
+                                       "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                                                   tail(arimaPolynomials$ariPolynomial,1)));
+                        }
+                        else{
+                            matVt[componentsNumberETS+nonZeroMA[,2],
+                                  1:initialArimaNumber] <-
+                                switch(Etype,
+                                       "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                           t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                                           tail(arimaPolynomials$maPolynomial,1),
+                                       "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+                                                   t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                                                   tail(arimaPolynomials$maPolynomial,1)));
+                        }
+                    }
                 }
                 else{
                     # Fill in the matrix with 0 / 1, just in case if the state will not be updated anymore
@@ -2556,75 +2556,75 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
-        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            adamCreated[] <- filler(BValues$B,
-                                    etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                    componentsNumberETS, componentsNumberETSNonSeasonal,
-                                    componentsNumberETSSeasonal, componentsNumberARIMA,
-                                    lags, lagsModel, lagsModelMax,
-                                    adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                    persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                    persistenceSeasonalEstimate, persistenceXregEstimate,
-                                    phiEstimate,
-                                    initialType, initialEstimate,
-                                    initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                    initialArimaEstimate, initialXregEstimate,
-                                    arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-                                    arRequired, maRequired, armaParameters,
-                                    nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-                                    xregModel, xregNumber,
-                                    xregParametersMissing, xregParametersIncluded,
-                                    xregParametersEstimated, xregParametersPersistence, constantEstimate);
-
-            # Write down the initials in the recent profile
-            profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
-
-            # Do initial fit to get the state values from the backcasting
-            adamFitted <- adamFitterWrap(adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                         lagsModelAll, profilesObservedTable, profilesRecentTable,
-                                         Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                         componentsNumberARIMA, xregNumber, constantRequired,
-                                         yInSample, ot, TRUE);
-
-            adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
-            # Produce new initials
-            BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                      componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
-                                      lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
-                                      adamCreated$matVt,
-                                      persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                      persistenceSeasonalEstimate, persistenceXregEstimate,
-                                      phiEstimate, initialType, initialEstimate,
-                                      initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                      initialArimaEstimate, initialXregEstimate,
-                                      arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
-                                      componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-                                      xregModel, xregNumber,
-                                      xregParametersEstimated, xregParametersPersistence,
-                                      constantEstimate, constantName, otherParameterEstimate);
-            B <- BValuesNew$B;
-            # Failsafe, just in case if the initial values contain NA / NaN
-            if(any(is.na(B))){
-                B[is.na(B)] <- BValues$B[is.na(B)];
-            }
-            if(any(is.nan(B))){
-                B[is.nan(B)] <- BValues$B[is.nan(B)];
-            }
-            # Fix for mixed ETS models producing negative values
-            if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
-               Ttype=="M" & any(c(Etype,Stype)=="A") ||
-               Stype=="M" & any(c(Etype,Ttype)=="A")){
-                if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
-                    B["level"] <- yInSample[1];
-                }
-                if(Ttype=="M" && B["trend"]<=0){
-                    B["trend"] <- 1;
-                }
-                if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
-                    B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
-                }
-            }
-        }
+        # if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
+        #     adamCreated[] <- filler(BValues$B,
+        #                             etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+        #                             componentsNumberETS, componentsNumberETSNonSeasonal,
+        #                             componentsNumberETSSeasonal, componentsNumberARIMA,
+        #                             lags, lagsModel, lagsModelMax,
+        #                             adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+        #                             persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+        #                             persistenceSeasonalEstimate, persistenceXregEstimate,
+        #                             phiEstimate,
+        #                             initialType, initialEstimate,
+        #                             initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+        #                             initialArimaEstimate, initialXregEstimate,
+        #                             arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+        #                             arRequired, maRequired, armaParameters,
+        #                             nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+        #                             xregModel, xregNumber,
+        #                             xregParametersMissing, xregParametersIncluded,
+        #                             xregParametersEstimated, xregParametersPersistence, constantEstimate);
+        #
+        #     # Write down the initials in the recent profile
+        #     profilesRecentTable[] <- adamCreated$matVt[,1:lagsModelMax];
+        #
+        #     # Do initial fit to get the state values from the backcasting
+        #     adamFitted <- adamFitterWrap(adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+        #                                  lagsModelAll, profilesObservedTable, profilesRecentTable,
+        #                                  Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+        #                                  componentsNumberARIMA, xregNumber, constantRequired,
+        #                                  yInSample, ot, TRUE);
+        #
+        #     adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
+        #     # Produce new initials
+        #     BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+        #                               componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
+        #                               lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
+        #                               adamCreated$matVt,
+        #                               persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+        #                               persistenceSeasonalEstimate, persistenceXregEstimate,
+        #                               phiEstimate, initialType, initialEstimate,
+        #                               initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+        #                               initialArimaEstimate, initialXregEstimate,
+        #                               arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
+        #                               componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
+        #                               xregModel, xregNumber,
+        #                               xregParametersEstimated, xregParametersPersistence,
+        #                               constantEstimate, constantName, otherParameterEstimate);
+        #     B <- BValuesNew$B;
+        #     # Failsafe, just in case if the initial values contain NA / NaN
+        #     if(any(is.na(B))){
+        #         B[is.na(B)] <- BValues$B[is.na(B)];
+        #     }
+        #     if(any(is.nan(B))){
+        #         B[is.nan(B)] <- BValues$B[is.nan(B)];
+        #     }
+        #     # Fix for mixed ETS models producing negative values
+        #     if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
+        #        Ttype=="M" & any(c(Etype,Stype)=="A") ||
+        #        Stype=="M" & any(c(Etype,Ttype)=="A")){
+        #         if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
+        #             B["level"] <- yInSample[1];
+        #         }
+        #         if(Ttype=="M" && B["trend"]<=0){
+        #             B["trend"] <- 1;
+        #         }
+        #         if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
+        #             B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
+        #         }
+        #     }
+        # }
 
         # Create the vector of initials for the optimisation
         if(is.null(B)){
@@ -2685,9 +2685,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # if(arimaModel && !etsModel){
             #     maxevalUsed <- length(B) * 80;
             # }
-            # # If it is xregModel, do at least 500 iterations
+            # # If it is xregModel, do at least 1000 iterations
             # else
-            if(xregModel){
+            if(xregModel || (arimaModel && !etsModel)){
                 maxevalUsed[] <- length(B) * 100;
                 maxevalUsed[] <- max(1000,maxevalUsed);
             }
@@ -4275,6 +4275,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                xregParametersPersistence,
                                constantRequired, constantEstimate, constantValue, constantName);
         list2env(adamCreated, environment());
+
+        # Write down the initials in the recent profile
+        profilesRecentTable[] <- matVt[,1:lagsModelMax];
 
         # Prepare the denominator needed for the shrinkage of explanatory variables in LASSO / RIDGE
         if(xregNumber>0 && any(loss==c("LASSO","RIDGE"))){
