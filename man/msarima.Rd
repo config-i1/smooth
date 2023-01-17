@@ -8,8 +8,8 @@
 \usage{
 msarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, model = NULL,
-  initial = c("backcasting", "optimal"), ic = c("AICc", "AIC", "BIC",
-  "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
+  initial = c("optimal", "backcasting", "complete"), ic = c("AICc", "AIC",
+  "BIC", "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
   "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible",
   "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
   initialX = NULL, ...)
@@ -72,10 +72,15 @@ passed here.}
 
 \item{model}{Previously estimated MSARIMA model.}
 
-\item{initial}{Can be either character or a vector of initial states. If it
-is character, then it can be \code{"optimal"}, meaning that the initial
-states are optimised, or \code{"backcasting"}, meaning that the initials are
-produced using backcasting procedure.}
+\item{initial}{Can be either character or a vector of initial states.
+If it is character, then it can be \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"backcasting"}, meaning that the initials of
+dynamic part of the model are produced using backcasting procedure (advised
+for data with high frequency). In the latter case, the parameters of the
+explanatory variables are optimised. This is recommended for ARIMAX
+model. Alternatively, you can set \code{initial="complete"} backcasting,
+which means that all states (including explanatory variables) are initialised
+via backcasting.}
 
 \item{ic}{The information criterion used in the model selection procedure.}
 

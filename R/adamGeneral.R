@@ -1116,7 +1116,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialArima <- NULL;
     initialXreg <- NULL;
     # InitialEstimate vectors, defining what needs to be estimated
-    # NOTE: that initial==c("optimal","backcasting") meanst initialEstimate==TRUE!
+    # NOTE: that initial==c("optimal","complete") means initialEstimate==TRUE!
     initialEstimate <- initialLevelEstimate <- initialTrendEstimate <-
         initialArimaEstimate <- initialXregEstimate <- TRUE;
     # initials of seasonal is a vector, not a scalar, because we can have several lags
@@ -1126,7 +1126,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialType <- "optimal"
     # initial type can be: "o" - optimal, "b" - backcasting, "p" - provided.
     if(any(is.character(initial))){
-        initialType[] <- match.arg(initial, c("optimal","backcasting"));
+        initialType[] <- match.arg(initial, c("optimal","backcasting","complete"));
     }
     else if(is.null(initial)){
         if(!silent){
@@ -1460,7 +1460,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
-            if(!is.null(initialXreg) && (initialType=="optimal")){
+            if(!is.null(initialXreg) && any(initialType==c("optimal","backcasting"))){
                 warning("Variables selection does not work with the provided initials for explantory variables. I will drop them.",
                         call.=FALSE);
                 initialXreg <- NULL;
@@ -2426,7 +2426,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                       arimaModel*((initialType=="optimal")*initialArimaNumber +
                                       arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                       # Xreg initials and smoothing parameters
-                      xregModel*(xregNumber*(initialXregEstimate+persistenceXregEstimate)));
+                      xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is smaller than the number of parameters
     if(obsNonzero <= nParamMax){
@@ -2448,7 +2448,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
                             ", while the number of observations is ",obsNonzero,
                             ". Switching initial to 'backcasting' to save some degrees of freedom."), call.=FALSE);
-                initialType <- "backcasting";
+                initialType <- "complete";
             }
             else{
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
@@ -2486,7 +2486,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         arimaModel*((initialType=="optimal")*initialArimaNumber +
                                         arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                         # Xreg initials and smoothing parameters
-                        xregModel*(xregNumber*(initialXregEstimate+persistenceXregEstimate)));
+                        xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is still smaller than the number of parameters (even after removing ARIMA)
     if(etsModel){
@@ -2951,11 +2951,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # See if the estimation of the model is not needed (do we estimate anything?)
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, phiEstimate,
-                           (initialType!="backcasting") & c(initialLevelEstimate,
+                           (initialType!="complete") & c(initialLevelEstimate,
                                                             initialTrendEstimate,
                                                             initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="backcasting") & initialArimaEstimate),
-              xregModel & c(persistenceXregEstimate, (initialType!="backcasting") & initialXregEstimate),
+              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialArimaEstimate),
+              xregModel & c(persistenceXregEstimate, (initialType!="complete") & initialXregEstimate),
               constantEstimate,
               otherParameterEstimate))){
         modelDo <- "use";

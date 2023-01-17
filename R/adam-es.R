@@ -79,10 +79,16 @@
 #' algorithm and may skip some models that could have slightly smaller
 #' information criteria.
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
-#' @param initial Can be either character or a vector of initial states. If it
-#' is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (advised for data with high frequency).
+#' @param initial Can be either character or a vector of initial states.
+#' If it is character, then it can be \code{"optimal"}, meaning that all initial
+#' states are optimised, or \code{"backcasting"}, meaning that the initials of
+#' dynamic part of the model are produced using backcasting procedure (advised
+#' for data with high frequency). In the latter case, the parameters of the
+#' explanatory variables are optimised. This is recommended for ETSX
+#' model. Alternatively, you can set \code{initial="complete"} backcasting,
+#' which means that all states (including explanatory variables) are initialised
+#' via backcasting. You can also provide a vector with values for level and trend
+#' components.
 #' If character, then \code{initialSeason} will be estimated in the way defined
 #' by \code{initial}.
 #' @param initialSeason Vector of initial values for seasonal components. If
@@ -220,7 +226,7 @@
 #' @rdname es
 #' @export
 es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
-               initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
+               initial=c("optimal","backcasting","complete"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE,
                # cumulative=FALSE,

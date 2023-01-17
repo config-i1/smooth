@@ -1,4 +1,4 @@
-smooth v3.2.0 (Release data: 2022-12-22)
+smooth v3.2.0 (Release data: 2023-01-17)
 =======
 
 Changes:
@@ -14,6 +14,7 @@ Changes:
 * Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
 * xtable method for adam class to produce tables from outputs for LaTeX.
 * sma() now has a fast search of order.
+* New initialisation approach in adam(), es() and msarima() in place of initial="backcasting". This does backcasting for dynamic part of the model and optimisation for the parameters of the explanatory variables. Useful for ETSX and ARIMAX. The old one is now called "complete".
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".

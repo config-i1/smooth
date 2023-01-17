@@ -202,16 +202,22 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
 #' Only applicable for damped-trend models.
 #' @param initial Can be either character or a list, or a vector of initial states.
-#' If it is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (advised for data with high frequency). In
-#' case of the list, it is recommended to use the named one and to provide those
-#' initial components that are available. For example:
+#' If it is character, then it can be \code{"optimal"}, meaning that all initial
+#' states are optimised, or \code{"backcasting"}, meaning that the initials of
+#' dynamic part of the model are produced using backcasting procedure (advised
+#' for data with high frequency). In the latter case, the parameters of the
+#' explanatory variables are optimised. This is recommended for ETSX and ARIMAX
+#' models. Alternatively, you can set \code{initial="complete"} backcasting,
+#' which means that all states (including explanatory variables) are initialised
+#' via backcasting.
+#'
+#' If a use provides a list of values, it is recommended to use the named one and
+#' to provide the initial components that are available. For example:
 #' \code{initial=list(level=1000,trend=10,seasonal=list(c(1,2),c(1,2,3,4)),
 #' arima=1,xreg=100)}. If some of the components are needed by the model, but are
 #' not provided in the list, they will be estimated. If the vector is provided,
-#' then it is expected that the components will be provided one after another
-#' without any gaps.
+#' then it is expected that the components will be provided inthe same order as above,
+#' one after another without any gaps.
 #' @param arma Either the named list or a vector with AR / MA parameters ordered lag-wise.
 #' The number of elements should correspond to the specified orders e.g.
 #' \code{orders=list(ar=c(1,1),ma=c(1,1)), lags=c(1,4), arma=list(ar=c(0.9,0.8),ma=c(-0.3,0.3))}
@@ -308,7 +314,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' and xreg components,
 #' \item \code{initialEstimated} - the named vector, defining which of the initials were estimated in
 #' the model,
-#' \item \code{initialType} - the type of initialisation used ("optimal" / "backcasting" / "provided"),
+#' \item \code{initialType} - the type of initialisation used ("optimal" / "complete" / "provided"),
 #' \item \code{orders} - the orders of ARIMA used in the estimation,
 #' \item \code{constant} - the value of the constant (if it was included),
 #' \item \code{arma} - the list of AR / MA parameters used in the model,
@@ -376,7 +382,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                  loss=c("likelihood","MSE","MAE","HAM","LASSO","RIDGE","MSEh","TMSE","GTMSE","MSCE"),
                  outliers=c("ignore","use","select"), level=0.99,
                  h=0, holdout=FALSE,
-                 persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
+                 persistence=NULL, phi=NULL, initial=c("optimal","backcasting","complete"), arma=NULL,
                  ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                  silent=TRUE, ...){
     # Copyright (C) 2019 - Inf  Ivan Svetunkov
@@ -413,7 +419,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         loss <- model$loss;
         persistence <- model$persistence;
         phi <- model$phi;
-        if(model$initialType!="backcasting"){
+        if(model$initialType!="complete"){
             initial <- model$initial;
         }
         else{
@@ -1161,7 +1167,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     # matVt[is.na(matVt)] <- switch(Etype, "A"=0, "M"=1);
 
                     # If this is just ARIMA with optimisation, refine the initials
-                    # if(!etsModel && initialType!="backcasting"){
+                    # if(!etsModel && initialType!="complete"){
                     #     arimaPolynomials <- polynomialiser(rep(0.1,sum(c(arOrders,maOrders))), arOrders, iOrders, maOrders,
                     #                                        arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
                     #     if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
@@ -1389,7 +1395,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Initials of ETS if something needs to be estimated
-        if(etsModel && (initialType!="backcasting") && initialEstimate){
+        if(etsModel && all(initialType!=c("complete","backcasting")) && initialEstimate){
             i <- 1;
             if(initialLevelEstimate){
                 j[] <- j+1;
@@ -1418,7 +1424,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Initials of ARIMA
         if(arimaModel){
-            if((initialType!="backcasting") && initialArimaEstimate){
+            if(all(initialType!=c("complete","backcasting")) && initialArimaEstimate){
                 matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
                 # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
                     # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
@@ -1467,7 +1473,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Initials of the xreg
-        if(xregModel && (initialType!="backcasting") && initialEstimate && initialXregEstimate){
+        if(xregModel && (initialType!="complete") && initialEstimate && initialXregEstimate){
             xregNumberToEstimate <- sum(xregParametersEstimated);
             matVt[componentsNumberETS+componentsNumberARIMA+which(xregParametersEstimated==1),
                   1:lagsModelMax] <- B[j+1:xregNumberToEstimate];
@@ -1523,14 +1529,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     # AR and MA values
                                     arimaModel*(arEstimate*sum(arOrders)+maEstimate*sum(maOrders)) +
                                     # initials of ETS
-                                    etsModel*(initialType!="backcasting")*
+                                    etsModel*all(initialType!=c("complete","backcasting"))*
                                     (initialLevelEstimate +
                                          (modelIsTrendy*initialTrendEstimate) +
                                          (modelIsSeasonal*sum(initialSeasonalEstimate*(lagsModelSeasonal-1)))) +
                                     # initials of ARIMA
-                                    (initialType!="backcasting")*arimaModel*initialArimaNumber*initialArimaEstimate +
+                                    all(initialType!=c("complete","backcasting"))*arimaModel*initialArimaNumber*initialArimaEstimate +
                                     # initials of xreg
-                                    (initialType!="backcasting")*xregModel*initialXregEstimate*sum(xregParametersEstimated) +
+                                    (initialType!="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated) +
                                     constantEstimate + otherParameterEstimate);
 
         j <- 0;
@@ -1540,7 +1546,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(any(c(Etype,Ttype,Stype)=="M")){
                     # A special type of model which is not safe: AAM, MAA, MAM
                     if((Etype=="A" && Ttype=="A" && Stype=="M") || (Etype=="A" && Ttype=="M" && Stype=="A") ||
-                       ((initialType=="backcasting") &&
+                       (any(initialType==c("complete","backcasting")) &&
                         ((Etype=="M" && Ttype=="A" && Stype=="A") || (Etype=="M" && Ttype=="A" && Stype=="M")))){
                         B[1:sum(persistenceEstimateVector)] <-
                             c(0.01,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
@@ -1551,7 +1557,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             c(0,0,rep(0,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else if(Etype=="M" && Ttype=="A"){
-                        if(initialType=="backcasting"){
+                        if(any(initialType==c("complete","backcasting"))){
                             B[1:sum(persistenceEstimateVector)] <-
                                 c(0.1,0,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
@@ -1680,7 +1686,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Initials
-        if(etsModel && initialType!="backcasting" && initialEstimate){
+        if(etsModel && all(initialType!=c("complete","backcasting")) && initialEstimate){
             if(initialLevelEstimate){
                 j[] <- j+1;
                 B[j] <- matVt[1,1];
@@ -1747,7 +1753,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # ARIMA initials
-        if(initialType!="backcasting" && arimaModel && initialArimaEstimate){
+        if(all(initialType!=c("complete","backcasting")) && arimaModel && initialArimaEstimate){
             B[j+1:initialArimaNumber] <- head(matVt[componentsNumberETS+componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
             names(B)[j+1:initialArimaNumber] <- paste0("ARIMAState",1:initialArimaNumber);
             if(Etype=="A"){
@@ -1762,7 +1768,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Initials of the xreg
-        if(initialType!="backcasting" && initialXregEstimate){
+        if(initialType!="complete" && initialXregEstimate){
             xregNumberToEstimate <- sum(xregParametersEstimated);
             B[j+1:xregNumberToEstimate] <- matVt[componentsNumberETS+componentsNumberARIMA+
                                                      which(xregParametersEstimated==1),1];
@@ -2051,7 +2057,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      lagsModelAll, profilesObservedTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     yInSample, ot, initialType=="backcasting");
+                                     yInSample, ot, any(initialType==c("complete","backcasting")));
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2188,7 +2194,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
 
                 # Don't do anything with the initial states of ETS and ARIMA. Just drop them (don't shrink)
-                if(initialType=="optimal"){
+                if(any(initialType==c("optimal","backcasting"))){
                     # If there are explanatory variables, shrink their parameters
                     if(xregNumber>0){
                         # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
@@ -2273,44 +2279,47 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
 
         # If this is just for the calculation of hessian, return to the original values of parameters
-        if(hessianCalculation && initialType=="optimal"){
-            # Define, how many elements to skip (we don't normalise smoothing parameters)
-            if(persistenceXregEstimate){
-                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-            }
-            else{
-                persistenceToSkip <- componentsNumberETS+componentsNumberARIMA;
-            }
-            j <- 1;
-            if(phiEstimate){
-                j[] <- 2;
-            }
-            # Level
-            B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-            # Trend
-            if(Ttype!="N"){
-                j[] <- j+1;
-                if(Ttype=="A"){
-                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-                }
-            }
-            # Seasonality
-            if(Stype=="A"){
-                if(componentsNumberETSSeasonal>1){
-                    for(k in 1:componentsNumberETSSeasonal){
-                        if(initialSeasonalEstimateFI[k]){
-                            # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                            B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-                                B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
-                                sd(yInSample);
-                            j[] <- j+(lagsModelSeasonal[k]-1);
-                        }
-                    }
+        if(hessianCalculation && any(initialType==c("optimal","backcasting"))){
+            persistenceToSkip <- 0;
+            if(initialType=="optimal"){
+                # Define, how many elements to skip (we don't normalise smoothing parameters)
+                if(persistenceXregEstimate){
+                    persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA+xregNumber;
                 }
                 else{
-                    # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                    B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
+                    persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA;
+                }
+                j <- 1;
+                if(phiEstimate){
+                    j[] <- 2;
+                }
+                # Level
+                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
+                # Trend
+                if(Ttype!="N"){
+                    j[] <- j+1;
+                    if(Ttype=="A"){
+                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
+                    }
+                }
+                # Seasonality
+                if(Stype=="A"){
+                    if(componentsNumberETSSeasonal>1){
+                        for(k in 1:componentsNumberETSSeasonal){
+                            if(initialSeasonalEstimateFI[k]){
+                                # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                                B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+                                    B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
+                                    sd(yInSample);
+                                j[] <- j+(lagsModelSeasonal[k]-1);
+                            }
+                        }
+                    }
+                    else{
+                        # -1 is needed in order to remove the redundant seasonal element (normalisation)
+                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+                            B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
+                    }
                 }
             }
 
@@ -2466,7 +2475,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              lagsModelAll, profilesObservedTable, profilesRecentTable,
                                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                              componentsNumberARIMA, xregNumber, constantRequired,
-                                             yInSample, ot, initialType=="backcasting");
+                                             yInSample, ot, any(initialType==c("complete","backcasting")));
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
@@ -2900,7 +2909,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          lagsModelAll, profilesObservedTable, profilesRecentTable,
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
-                                         yInSample, ot, initialType=="backcasting");
+                                         yInSample, ot, any(initialType==c("complete","backcasting")));
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3524,7 +3533,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      lagsModelAll, profilesObservedTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     yInSample, ot, initialType=="backcasting");
+                                     yInSample, ot, any(initialType==c("complete","backcasting")));
 
         matVt[] <- adamFitted$matVt;
 
@@ -4370,7 +4379,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # Reset persistence, just to make sure that there are no duplicates
             vecG[] <- 0;
 
-            initialTypeFI <- switch(initialType,"backcasting"="provided",initialType);
+            initialTypeFI <- switch(initialType,
+                                    "complete"=,
+                                    "backcasting"="provided",
+                                    initialType);
             initialEstimateFI <- FALSE;
             # Define parameters just for FI calculation
             if(initialTypeFI=="provided"){
@@ -4411,7 +4423,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                            initialArimaEstimateFI, initialXregEstimateFI));
             }
 
-            # If smoothing parmaeters were estimated, then alpha should be in the list
+            # If smoothing parameters were estimated, then alpha should be in the list
             persistenceLevelEstimateFI <- any(names(B)=="alpha");
             persistenceTrendEstimateFI <- any(names(B)=="beta");
             if(any(substr(names(B),1,5)=="gamma")){
@@ -6706,7 +6718,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # If this is backcasting, do sampling with moving origin
     changeOrigin <- FALSE;
-    if(object$initialType=="backcasting"){
+    if(object$initialType=="complete"){
         changeOrigin[] <- TRUE;
     }
 
