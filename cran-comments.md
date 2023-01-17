@@ -1,7 +1,7 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "25 December 2022"
+date: "18 January 2023"
 output: html_document
 ---
 
@@ -57,21 +57,6 @@ This is expected from Windows Server - doMC is not available for that platform.
 >    Message: 403
 
 All the resources are available online, not clear why the server cannot find them.
-
-### Fedora Linux, R-devel, clang, gfortran
->Error running filter /usr/bin/pandoc-citeproc:
->Filter returned error status 1
->Error: processing vignette 'ssarima.Rmd' failed with diagnostics:
->pandoc document conversion failed with error 83
->--- failed re-building ‘ssarima.Rmd’
->
->SUMMARY: processing the following files failed:
->  ‘adam.Rmd’ ‘oes.Rmd’ ‘ssarima.Rmd’
->
->Error: Vignette re-building failed.
-
-Looks like an issue with pandoc on the Fedora Linux server. All the vignettes are compiled on other platforms.
-
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
