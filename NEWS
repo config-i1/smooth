@@ -2,19 +2,19 @@ smooth v3.2.0 (Release data: 2023-01-18)
 =======
 
 Changes:
-* es() is now based on adam() code. The old es() function will be available until v4.0.0 as es_old().
-* type="simulated" in multicov.adam().
-* msarima() is now based on adam() code as well. The old version is unavailable. auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
-* Switched off interval and level parameters in oes() and oesg().
+* es() is now a wrapper of adam(). The old es() function will be available until v4.0.0 as es_old().
+* msarima() is now a wrapper of adam() as well. The old version is msarima_old(). auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
 * sma() now uses the adam() C++ code instead of the old one.
-* msarima() now has a document "model" parameter. Previously, it was hidden in ellipses.
-* forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
+* New initialisation approach in adam(), es() and msarima() in place of initial="backcasting". This does backcasting for dynamic part of the model and optimisation for the parameters of the explanatory variables. Useful for ETSX and ARIMAX. The old one is now called "complete".
 * simulate() method for ADAM class.
+* msarima() now has a document "model" parameter. Previously, it was hidden in ellipses.
+* type="simulated" in multicov.adam().
+* Switched off interval and level parameters in oes() and oesg().
+* forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
 * ACF/PACF of squared residuals in plot.adam() and plot.smooth().
 * Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
 * xtable method for adam class to produce tables from outputs for LaTeX.
 * sma() now has a fast search of order.
-* New initialisation approach in adam(), es() and msarima() in place of initial="backcasting". This does backcasting for dynamic part of the model and optimisation for the parameters of the explanatory variables. Useful for ETSX and ARIMAX. The old one is now called "complete".
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
