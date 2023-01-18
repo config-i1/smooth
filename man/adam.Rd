@@ -30,9 +30,10 @@ auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
   "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"), outliers = c("ignore",
   "use", "select"), level = 0.99, h = 0, holdout = FALSE,
-  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting"),
-  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
-  "admissible", "none"), silent = TRUE, parallel = FALSE, ...)
+  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting",
+  "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  bounds = c("usual", "admissible", "none"), silent = TRUE,
+  parallel = FALSE, ...)
 
 \method{sm}{adam}(object, model = "YYY", lags = NULL, orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,

@@ -1,3 +1,10 @@
+smooth v3.2.1 (Release data: 2023-01-18)
+=======
+
+Bugfixes:
+* Correct default for initial in auto.adam().
+
+
 smooth v3.2.0 (Release data: 2023-01-18)
 =======
 
