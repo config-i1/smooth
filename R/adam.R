@@ -5690,7 +5690,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
         if(squared){
             if(type=="acf"){
-                theValues <- acf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass)
+                theValues <- acf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass);
             }
             else{
                 theValues <- pacf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass);
@@ -5698,13 +5698,15 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
         else{
             if(type=="acf"){
-                theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass)
+                theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
             }
             else{
                 theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
             }
         }
-        ellipsis$x <- theValues$acf[-1];
+        ellipsis$x <- switch(type,
+                             "acf"=theValues$acf[-1],
+                             "pacf"=theValues$acf);
         statistic <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
 
         ellipsis$type <- "h"
