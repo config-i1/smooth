@@ -5,6 +5,7 @@ Bugfixes:
 * Correct default for initial in auto.adam().
 * PACF in plot.smooth() dropped the first lag because of a typo.
 * adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
+* sma() with order selection would not work on data with number of observations lower than the frequency.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)

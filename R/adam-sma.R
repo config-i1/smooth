@@ -285,8 +285,8 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 # If the new IC is the same as one of the old ones, stop
                 optimalICNotFound[] <- j!=i && j!=k && j!=0;
             }
-            # Check a specifif order equal to frequency of the data
-            if(is.na(ICs[yFrequency])){
+            # Check a specific order equal to frequency of the data
+            if(is.na(ICs[yFrequency]) && obsInSample>=yFrequency){
                 ICs[yFrequency] <- CreatorSMA(yFrequency);
                 if(!silent){
                     cat(paste0("Order " , yFrequency, " - ", round(ICs[yFrequency],4), "\n"));
