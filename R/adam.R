@@ -8491,7 +8491,7 @@ forecast.adamCombined <- function(object, h=10, newdata=NULL,
     }
 
     # The list contains 8 elements
-    adamForecasts <- vector("list",9);
+    adamForecasts <- vector("list",10);
     names(adamForecasts)[c(1:3)] <- c("mean","lower","upper");
     for(i in 1:length(object$models)){
         # Lists might differ, so it
