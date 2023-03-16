@@ -10291,6 +10291,10 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     # States are defined similar to how it is done in adam.
     arrVt <- array(t(object$states),c(ncol(object$states),nrow(object$states)+obsInSample-nobs(object),nsim),
                    dimnames=list(colnames(object$states),NULL,paste0("nsim",c(1:nsim))));
+
+    # Set profile, which is used in the data generation
+    profilesRecentTable <- t(object$states[1:lagsModelMax,]);
+
     # Transition and measurement
     arrF <- array(object$transition,c(dim(object$transition),nsim));
     matWt <- object$measurement;

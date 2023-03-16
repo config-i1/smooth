@@ -1,4 +1,4 @@
-smooth v3.2.1 (Release data: 2023-02-26)
+smooth v3.2.1 (Release data: 2023-03-16)
 =======
 
 Bugfixes:
@@ -6,6 +6,7 @@ Bugfixes:
 * PACF in plot.smooth() dropped the first lag because of a typo.
 * adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
 * sma() with order selection would not work on data with number of observations lower than the frequency.
+* Fix in simulate.adam(), which would ignore the states of the model.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)
