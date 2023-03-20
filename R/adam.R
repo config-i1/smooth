@@ -4773,6 +4773,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             modelReturned$models[[i]]$call <- cl;
 
+            # Amend the call so that each sub-model can be used separately
+            modelReturned$models[[i]]$call$model <- model;
+
+            modelReturned$models[[i]]$bounds <- bounds;
+
             class(modelReturned$models[[i]]) <- c("adam","smooth");
         }
 
@@ -8448,11 +8453,14 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
 #' @export
 forecast.adamCombined <- function(object, h=10, newdata=NULL,
-                                  interval=c("none", "simulated", "approximate", "semiparametric", "nonparametric"),
-                                  level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=5000, ...){
+                                  interval=c("none", "prediction", "confidence", "simulated",
+                                             "approximate", "semiparametric", "nonparametric",
+                                             "empirical","complete"),
+                                  level=0.95, side=c("both","upper","lower"), cumulative=FALSE, nsim=NULL, ...){
 
     interval <- match.arg(interval[1],c("none", "simulated", "approximate", "semiparametric",
-                                        "nonparametric", "confidence", "parametric","prediction"));
+                                        "nonparametric", "confidence", "parametric","prediction",
+                                        "empirical","complete"));
     side <- match.arg(side);
 
     yClasses <- class(actuals(object));
@@ -8490,11 +8498,17 @@ forecast.adamCombined <- function(object, h=10, newdata=NULL,
         yUpper <- yLower <- zoo(matrix(0,hFinal,nLevels), order.by=yForecastIndex);
     }
 
-    # The list contains 8 elements
-    adamForecasts <- vector("list",10);
+    # Remove ICw, which are lower than 0.001
+    object$ICw[object$ICw<1e-2] <- 0;
+    object$ICw[] <- object$ICw / sum(object$ICw);
+
+    # The list contains 10 elements
+    adamForecasts <- vector("list", 10);
     names(adamForecasts)[c(1:3)] <- c("mean","lower","upper");
     for(i in 1:length(object$models)){
-        # Lists might differ, so it
+        if(object$ICw[i]==0){
+            next;
+        }
         adamForecasts[] <- forecast.adam(object$models[[i]], h=h, newdata=newdata,
                                          interval=interval,
                                          level=level, side=side, cumulative=cumulative, nsim=nsim, ...);
@@ -8517,11 +8531,11 @@ forecast.adamCombined <- function(object, h=10, newdata=NULL,
         yUpper[] <- Inf;
     }
 
-    # Get rid of specific models
+    # Get rid of specific models to save RAM
     object$models <- NULL;
 
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
-                          level=level, interval=interval, side=side, cumulative=cumulative),
+                          level=level, interval=interval, side=side, cumulative=cumulative, h=h),
                      class=c("adam.forecast","smooth.forecast","forecast")));
 }
 
@@ -9293,12 +9307,49 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
                      class="reapply"));
 }
 
+#' @export
+reapply.adamCombined <- function(object, nsim=1000, bootstrap=FALSE, ...){
+    startTime <- Sys.time();
+
+    # Remove ICw, which are lower than 0.001
+    object$ICw[object$ICw<1e-2] <- 0;
+    object$ICw[] <- object$ICw / sum(object$ICw);
+
+    # The list contains 10 elements
+    adamReapplied <- vector("list", 10);
+
+    # List of refitted matrices
+    yRefitted <- vector("list", length(object$models));
+    names(yRefitted) <- names(object$models);
+
+    names(adamReapplied)[c(1,2,4,5,6)] <- c("timeElapsed","y","refitted","fitted","model");
+    for(i in 1:length(object$models)){
+        if(object$ICw[i]==0){
+            next;
+        }
+        adamReapplied[] <- reapply(object$models[[i]], nsim=1000, bootstrap=FALSE, ...);
+        yRefitted[[i]] <- adamReapplied$refitted;
+    }
+
+    # Get rid of specific models to save RAM
+    object$models <- NULL;
+
+    # Keep only the used weights
+    object$ICw <- object$ICw[object$ICw!=0];
+
+    return(structure(list(timeElapsed=Sys.time()-startTime,
+                          y=actuals(object), refitted=yRefitted,
+                          fitted=fitted(object), model=object$model,
+                          ICw=object$ICw),
+                     class=c("reapplyCombined","reapply")));
+}
+
+
 #' @importFrom grDevices rgb
 #' @export
 plot.reapply <- function(x, ...){
     ellipsis <- list(...);
     ellipsis$x <- actuals(x);
-    nsim <- ncol(x$refitted);
 
     if(any(class(ellipsis$x)=="zoo")){
         yQuantiles <- zoo(matrix(0,length(ellipsis$x),11),order.by=time(ellipsis$x));
@@ -9339,8 +9390,61 @@ plot.reapply <- function(x, ...){
 }
 
 #' @export
+plot.reapplyCombined <- function(x, ...){
+    ellipsis <- list(...);
+    ellipsis$x <- actuals(x);
+
+    if(any(class(ellipsis$x)=="zoo")){
+        yQuantiles <- zoo(matrix(0,length(ellipsis$x),11),order.by=time(ellipsis$x));
+    }
+    else{
+        yQuantiles <- ts(matrix(0,length(ellipsis$x),11),start=start(ellipsis$x),frequency=frequency(ellipsis$x));
+    }
+    quantileseq <- seq(0,1,length.out=11);
+    for(j in 1:length(x$refitted)){
+        yQuantiles[,1] <- yQuantiles[,1] + apply(x$refitted[[j]],1,quantile,0.975,na.rm=TRUE)* x$ICw[j];
+        yQuantiles[,11] <- yQuantiles[,11] + apply(x$refitted[[j]],1,quantile,0.025,na.rm=TRUE)* x$ICw[j];
+        for(i in 2:10){
+            yQuantiles[,i] <- yQuantiles[,i] + apply(x$refitted[[j]],1,quantile,quantileseq[i],na.rm=TRUE)* x$ICw[j];
+        }
+    }
+
+    if(is.null(ellipsis$ylim)){
+        ellipsis$ylim <- range(c(as.vector(ellipsis$x),as.vector(fitted(x))),na.rm=TRUE);
+    }
+    if(is.null(ellipsis$main)){
+        ellipsis$main <- paste0("Refitted values of ",x$model);
+    }
+    if(is.null(ellipsis$ylab)){
+        ellipsis$ylab <- "";
+    }
+
+    do.call(plot, ellipsis);
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,1]),rev(as.vector(yQuantiles[,11]))),
+            col=rgb(0.8,0.8,0.8,0.4), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,2]),rev(as.vector(yQuantiles[,10]))),
+            col=rgb(0.8,0.8,0.8,0.5), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,3]),rev(as.vector(yQuantiles[,9]))),
+            col=rgb(0.8,0.8,0.8,0.6), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,4]),rev(as.vector(yQuantiles[,8]))),
+            col=rgb(0.8,0.8,0.8,0.7), border="grey")
+    polygon(c(time(yQuantiles),rev(time(yQuantiles))), c(as.vector(yQuantiles[,5]),as.vector(rev(yQuantiles[,7]))),
+            col=rgb(0.8,0.8,0.8,0.8), border="grey")
+    lines(ellipsis$x,col="black",lwd=1);
+    lines(fitted(x),col="purple",lwd=2,lty=2);
+}
+
+#' @export
 print.reapply <- function(x, ...){
     nsim <- ncol(x$refitted);
+    cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
+    cat("\nModel refitted:",x$model);
+    cat("\nNumber of simulation paths produced:",nsim);
+}
+
+#' @export
+print.reapplyCombined <- function(x, ...){
+    nsim <- ncol(x$refitted[[1]]);
     cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
     cat("\nModel refitted:",x$model);
     cat("\nNumber of simulation paths produced:",nsim);
@@ -9824,7 +9928,7 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                    level=level, interval=interval, side=side, cumulative=cumulative,
-                   paths=arrayYSimulated),
+                   h=h, paths=arrayYSimulated),
               class=c("adam.forecast","smooth.forecast","forecast"));
 }
 

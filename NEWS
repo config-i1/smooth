@@ -1,5 +1,10 @@
-smooth v3.2.1 (Release data: 2023-03-16)
+smooth v3.2.1 (Release data: 2023-03-20)
 =======
+
+Changes:
+* Combined ADAM now skips the models with weights less than 0.001, when producing forecasts.
+* forecast() for combined ADAM now also supports interval="complete".
+* reapply() method for combined ADAM.
 
 Bugfixes:
 * Correct default for initial in auto.adam().
