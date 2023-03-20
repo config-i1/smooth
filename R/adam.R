@@ -9315,26 +9315,22 @@ reapply.adamCombined <- function(object, nsim=1000, bootstrap=FALSE, ...){
     object$ICw[object$ICw<1e-2] <- 0;
     object$ICw[] <- object$ICw / sum(object$ICw);
 
-    # The list contains 10 elements
-    adamReapplied <- vector("list", 10);
-
     # List of refitted matrices
     yRefitted <- vector("list", length(object$models));
     names(yRefitted) <- names(object$models);
 
-    names(adamReapplied)[c(1,2,4,5,6)] <- c("timeElapsed","y","refitted","fitted","model");
     for(i in 1:length(object$models)){
         if(object$ICw[i]==0){
             next;
         }
-        adamReapplied[] <- reapply(object$models[[i]], nsim=1000, bootstrap=FALSE, ...);
-        yRefitted[[i]] <- adamReapplied$refitted;
+        yRefitted[[i]] <- reapply(object$models[[i]], nsim=1000, bootstrap=FALSE, ...)$refitted;
     }
 
     # Get rid of specific models to save RAM
     object$models <- NULL;
 
     # Keep only the used weights
+    yRefitted <- yRefitted[object$ICw!=0];
     object$ICw <- object$ICw[object$ICw!=0];
 
     return(structure(list(timeElapsed=Sys.time()-startTime,
