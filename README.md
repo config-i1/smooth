@@ -4,6 +4,8 @@
 [![R-CMD-check](https://github.com/config-i1/smooth/actions/workflows/test.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/test.yml)
 [![ko-fi](https://ivan.svetunkov.ru/ko-fi.png)](https://ko-fi.com/G2G51C4C4)
 
+# ATTENTION: THIS IS AN EXPERIMENTAL BRANCH AIMING TO ADD A PYTHON API FOR SMOOTH!
+
 The package _smooth_ contains several smoothing (exponential and not) functions that are used in forecasting.
 
 Here is the list of the included functions:
