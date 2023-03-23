@@ -2247,7 +2247,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
 
                 almModel <- do.call("stepwise", list(data=xregData, formula=formulaToUse, subset=subset,
-                                                     distribution=distribution, occurrence=oesModel, silent=FALSE));
+                                                     distribution=distribution, occurrence=oesModel));
                 almModel$call$data <- as.name(yName);
                 return(almModel);
             }
