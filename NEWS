@@ -1,4 +1,4 @@
-smooth v3.2.1 (Release data: 2023-03-20)
+smooth v3.2.1 (Release data: 2023-03-23)
 =======
 
 Changes:
@@ -12,6 +12,7 @@ Bugfixes:
 * adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
 * sma() with order selection would not work on data with number of observations lower than the frequency.
 * Fix in simulate.adam(), which would ignore the states of the model.
+* sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)
