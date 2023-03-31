@@ -1290,7 +1290,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                  double const &errorSD){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
-    arma::set_cerr_stream(nullstream);
+    // arma::arma_cerr_stream<char>(&nullstream);
 
     int CFSwitch = CFtypeswitch(CFtype);
 

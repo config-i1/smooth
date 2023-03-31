@@ -1,14 +1,37 @@
-smooth v3.2.0 (Release data: 2022-08-11)
+smooth v3.2.1 (Release data: 2023-03-23)
 =======
 
 Changes:
-* es() is now based on adam() code. The old es() function will be available until v4.0.0 as es_old().
-* type="simulated" in multicov.adam().
-* msarima() is now based on adam() code as well. The old version is unavailable. auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
-* Switched off interval and level parameters in oes() and oesg().
+* Combined ADAM now skips the models with weights less than 0.001, when producing forecasts.
+* forecast() for combined ADAM now also supports interval="complete".
+* reapply() method for combined ADAM.
+
+Bugfixes:
+* Correct default for initial in auto.adam().
+* PACF in plot.smooth() dropped the first lag because of a typo.
+* adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
+* sma() with order selection would not work on data with number of observations lower than the frequency.
+* Fix in simulate.adam(), which would ignore the states of the model.
+* sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
+
+
+smooth v3.2.0 (Release data: 2023-01-18)
+=======
+
+Changes:
+* es() is now a wrapper of adam(). The old es() function will be available until v4.0.0 as es_old().
+* msarima() is now a wrapper of adam() as well. The old version is msarima_old(). auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
 * sma() now uses the adam() C++ code instead of the old one.
+* New initialisation approach in adam(), es() and msarima() in place of initial="backcasting". This does backcasting for dynamic part of the model and optimisation for the parameters of the explanatory variables. Useful for ETSX and ARIMAX. The old one is now called "complete".
+* simulate() method for ADAM class.
 * msarima() now has a document "model" parameter. Previously, it was hidden in ellipses.
+* type="simulated" in multicov.adam().
+* Switched off interval and level parameters in oes() and oesg().
 * forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
+* ACF/PACF of squared residuals in plot.adam() and plot.smooth().
+* Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
+* xtable method for adam class to produce tables from outputs for LaTeX.
+* sma() now has a fast search of order.
 
 Bugfixes:
 * adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
@@ -17,6 +40,13 @@ Bugfixes:
 * Failsafe mechanism in adam() for initial level, trend, seasonal in mixed models, so that they do not become negative, when they should not.
 * A fix for another ETS+ARIMA combination in adam() which resulted in NaNs.
 * A fix for simulated data from mixed ETS models in adam(). These should not produce NaNs anymore.
+* A fix in forecast.adam() for cases of occurrence model and cumulative forecasts.
+* A fix for tibble and tsibble objects in adam().
+* es_old() and other old functions would break if after some checks all the explanatory variables would be dropped (thanks to Ritika Arora for spotting this). This is now fixed.
+* Fix in adam() in case of loss=c("LASSO","RIDGE") and lambda=1. This now corresponds to the deterministic ETS(X) model. ARIMA is still a mistery here.
+* adam() would not work if names of explanatory variables would consist of numbers only.
+* adam() would fail if lags=24 and zoo object with no timestamps was used.
+* A fix in adam() for provided occurrence and multiplicative models with positive distributions.
 
 
 smooth v3.1.7 (Release data: 2022-05-20)

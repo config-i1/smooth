@@ -2,6 +2,7 @@
 % Please edit documentation in R/adam.R, R/autoadam.R, R/sm.R
 \name{adam}
 \alias{adam}
+\alias{simulate.adam}
 \alias{auto.adam}
 \alias{sm.adam}
 \title{ADAM is Augmented Dynamic Adaptive Model}
@@ -15,9 +16,12 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   loss = c("likelihood", "MSE", "MAE", "HAM", "LASSO", "RIDGE", "MSEh",
   "TMSE", "GTMSE", "MSCE"), outliers = c("ignore", "use", "select"),
   level = 0.99, h = 0, holdout = FALSE, persistence = NULL,
-  phi = NULL, initial = c("optimal", "backcasting"), arma = NULL,
-  ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual", "admissible",
-  "none"), silent = TRUE, ...)
+  phi = NULL, initial = c("optimal", "backcasting", "complete"),
+  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
+  "admissible", "none"), silent = TRUE, ...)
+
+\method{simulate}{adam}(object, nsim = 1, seed = NULL,
+  obs = nobs(object), ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
@@ -26,9 +30,10 @@ auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
   "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
   "ds", "dgnorm", "dlnorm", "dinvgauss", "dgamma"), outliers = c("ignore",
   "use", "select"), level = 0.99, h = 0, holdout = FALSE,
-  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting"),
-  arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"), bounds = c("usual",
-  "admissible", "none"), silent = TRUE, parallel = FALSE, ...)
+  persistence = NULL, phi = NULL, initial = c("optimal", "backcasting",
+  "complete"), arma = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  bounds = c("usual", "admissible", "none"), silent = TRUE,
+  parallel = FALSE, ...)
 
 \method{sm}{adam}(object, model = "YYY", lags = NULL, orders = list(ar =
   c(0), i = c(0), ma = c(0), select = FALSE), constant = FALSE,
@@ -198,16 +203,22 @@ model, it will be estimated.}
 Only applicable for damped-trend models.}
 
 \item{initial}{Can be either character or a list, or a vector of initial states.
-If it is character, then it can be \code{"optimal"}, meaning that the initial
-states are optimised, or \code{"backcasting"}, meaning that the initials are
-produced using backcasting procedure (advised for data with high frequency). In
-case of the list, it is recommended to use the named one and to provide those
-initial components that are available. For example:
+If it is character, then it can be \code{"optimal"}, meaning that all initial
+states are optimised, or \code{"backcasting"}, meaning that the initials of
+dynamic part of the model are produced using backcasting procedure (advised
+for data with high frequency). In the latter case, the parameters of the
+explanatory variables are optimised. This is recommended for ETSX and ARIMAX
+models. Alternatively, you can set \code{initial="complete"} backcasting,
+which means that all states (including explanatory variables) are initialised
+via backcasting.
+
+If a use provides a list of values, it is recommended to use the named one and
+to provide the initial components that are available. For example:
 \code{initial=list(level=1000,trend=10,seasonal=list(c(1,2),c(1,2,3,4)),
 arima=1,xreg=100)}. If some of the components are needed by the model, but are
 not provided in the list, they will be estimated. If the vector is provided,
-then it is expected that the components will be provided one after another
-without any gaps.}
+then it is expected that the components will be provided inthe same order as above,
+one after another without any gaps.}
 
 \item{arma}{Either the named list or a vector with AR / MA parameters ordered lag-wise.
 The number of elements should correspond to the specified orders e.g.
@@ -265,12 +276,18 @@ Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asy
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
 
+\item{object}{The model previously estimated using \code{adam()} function.}
+
+\item{nsim}{Number of series to generate from the model.}
+
+\item{seed}{Random seed used in simulation of data.}
+
+\item{obs}{Number of observations to produce in the simulated data.}
+
 \item{parallel}{If TRUE, the estimation of ADAM models is done in parallel (used in \code{auto.adam} only).
 If the number is provided (e.g. \code{parallel=41}), then the specified number of cores is set up.
 WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
 or \code{doParallel} are needed in order to run the function in parallel.}
-
-\item{object}{The model previously estimated using \code{adam()} function.}
 }
 \value{
 Object of class "adam" is returned. It contains the list of the
@@ -296,7 +313,7 @@ in columns,
 and xreg components,
 \item \code{initialEstimated} - the named vector, defining which of the initials were estimated in
 the model,
-\item \code{initialType} - the type of initialisation used ("optimal" / "backcasting" / "provided"),
+\item \code{initialType} - the type of initialisation used ("optimal" / "complete" / "provided"),
 \item \code{orders} - the orders of ARIMA used in the estimation,
 \item \code{constant} - the value of the constant (if it was included),
 \item \code{arma} - the list of AR / MA parameters used in the model,
@@ -377,9 +394,10 @@ of degrees of freedom. This can be done using \link[greybox]{implant} method.
 
 # Model selection using a specified pool of models
 ourModel <- adam(rnorm(100,100,10), model=c("ANN","ANA","AAA"), lags=c(5,10))
+\donttest{adamSummary <- summary(ourModel)
+xtable(adamSummary)}
 
-\donttest{summary(ourModel)
-forecast(ourModel)
+\donttest{forecast(ourModel)
 par(mfcol=c(3,4))
 plot(ourModel, c(1:11))}
 
@@ -390,6 +408,11 @@ plot(ourModel, c(1:11))}
 # ADAM ARIMA
 \donttest{ourModel <- adam(rnorm(100,100,10), model="NNN",
                           lags=c(1,4), orders=list(ar=c(1,0),i=c(1,0),ma=c(1,1)))}
+
+# Fit ADAM to the data
+ourModel <- adam(rnorm(100,100,10), model="AAdN")
+# Simulate the data
+x <- simulate(ourModel)
 
 \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}

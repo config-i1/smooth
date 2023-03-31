@@ -1,19 +1,16 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "30 March 2022"
+date: "18 January 2023"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v3.1.6.
+This is ``smooth`` package, v3.2.0.
 
-**I've removed some tests to speed up the checks on CRAN. Hopefully, this addresses the issue flagged by Uwe in the previous submission.**
-
-**I've also fixed the C++ warnings mentioned in CRAN Package Check Results.**
 
 ## Test environments
-* local ubuntu 20.04.3, R 4.1.2
+* local Ubuntu 22.04.1, R 4.2.2
 * github actions
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
@@ -31,9 +28,9 @@ checking installed package size ... NOTE
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.1.2
-- MacOS latest macOS Catalina 10.15.7 with R 4.1.2
-- Ubuntu 20.04.3 with R 4.1.2
+- Windows latest release with R 4.2.2
+- MacOS latest macOS Big Sur 10.16 with R 4.2.2
+- Ubuntu 20.04.5 with R 4.2.2
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
@@ -48,11 +45,18 @@ This is expected, because doMC is not available for Windows.
 
 This is expected from Windows Server - doMC is not available for that platform.
 
-### Debian Linux, R-devel, GCC ASAN/UBSAN
-> ERROR: compilation failed for package ‘Rcpp’
+### Ubuntu Linux 20.04.1 LTS, R-release, GCC
+>Found the following (possibly) invalid DOIs:
+>  DOI: 10.13140/RG.2.2.24986.29123
+>    From: DESCRIPTION
+>    Status: Forbidden
+>    Message: 403
+>  DOI: 10.13140/RG.2.2.35897.06242
+>    From: DESCRIPTION
+>    Status: Forbidden
+>    Message: 403
 
-Not clear why the compilation failed
-
+All the resources are available online, not clear why the server cannot find them.
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.

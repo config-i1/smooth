@@ -345,11 +345,18 @@ Note that the default number of iterations might not be sufficient in order to g
 Finally, you can produce a mixture of ETS, ARIMA and regression, by using the respective parameters, like this:
 
 ```{r}
-testModel <- adam(BJData, "AAN", h=18, silent=FALSE, holdout=TRUE, orders=c(1,0,1))
+testModel <- adam(BJData, "AAN", h=18, silent=FALSE, holdout=TRUE, orders=c(1,0,0))
 summary(testModel)
 ```
 
 This might be handy, when you explore a high frequency data, want to add calendar events, apply ETS and add AR/MA errors to it.
+
+Finally, if you estimate ETSX or ARIMAX model and want to speed things up, it is recommended to use `initial="backcasting"`, which will then initialise dynamic part of the model via backcasting and use optimisation for the parameters of the explanatory variables:
+
+```{r}
+testModel <- adam(BJData, "AAN", h=18, silent=TRUE, holdout=TRUE, initial="backcasting")
+summary(testModel)
+```
 
 # Auto ADAM
 While the original `adam()` function allows selecting ETS components and explanatory variables, it does not allow selecting the most suitable distribution and / or ARIMA components. This is what `auto.adam()` function is for.

@@ -1,5 +1,8 @@
 utils::globalVariables(c("yForecastStart"));
 
+#' @template ssIntervals
+#' @rdname sma
+#' @export
 sma_old <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,

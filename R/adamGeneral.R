@@ -29,7 +29,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     }
 
     # Extract index from the object in order to use it later
-    ### tsibble has its own index function, so shit happens becaus of it...
+    ### tsibble has its own index function, so shit happens because of it...
     if(inherits(data,"tbl_ts")){
         yIndex <- data[[1]];
         if(any(duplicated(yIndex))){
@@ -58,6 +58,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If this is something like a matrix
     if(!is.null(ncol(data)) && ncol(data)>1){
         xregData <- data;
+        # Get rid of the bloody tibble class. Gives me headaches!
+        if(inherits(data,"tbl_df") || inherits(data,"tbl")){
+            data <- as.data.frame(data);
+        }
+
         if(!is.null(formulaToUse)){
             responseName <- all.vars(formulaToUse)[1];
             y <- data[,responseName];
@@ -70,7 +75,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 # With tsibble we cannot extract explanatory variables easily...
                 y <- data$value;
             }
-            else if(inherits(data,"data.table") || inherits(data,"tbl") || inherits(data,"data.frame")){
+            else if(inherits(data,"data.table") || inherits(data,"data.frame")){
                 y <- data[[1]];
             }
             else if(inherits(data,"zoo")){
@@ -88,7 +93,10 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         # If we cannot extract time, do something
         if(inherits(yIndex,"try-error")){
             if(!is.null(dim(data))){
-                yIndex <- as.POSIXct(rownames(data));
+                yIndex <- try(as.POSIXct(rownames(data)),silent=TRUE);
+                if(inherits(yIndex,"try-error")){
+                    yIndex <- c(1:nrow(data));
+                }
             }
             else{
                 yIndex <- c(1:length(y));
@@ -1100,11 +1108,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
     }
 
-    # Fix the occurrenceModel for "provided"
-    if(occurrence=="provided"){
-        occurrenceModel <- FALSE;
-    }
-
     #### Initial values ####
     # Vectors for initials of different components
     initialLevel <- NULL;
@@ -1113,7 +1116,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialArima <- NULL;
     initialXreg <- NULL;
     # InitialEstimate vectors, defining what needs to be estimated
-    # NOTE: that initial==c("optimal","backcasting") meanst initialEstimate==TRUE!
+    # NOTE: that initial==c("optimal","complete") means initialEstimate==TRUE!
     initialEstimate <- initialLevelEstimate <- initialTrendEstimate <-
         initialArimaEstimate <- initialXregEstimate <- TRUE;
     # initials of seasonal is a vector, not a scalar, because we can have several lags
@@ -1123,7 +1126,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     initialType <- "optimal"
     # initial type can be: "o" - optimal, "b" - backcasting, "p" - provided.
     if(any(is.character(initial))){
-        initialType[] <- match.arg(initial, c("optimal","backcasting"));
+        initialType[] <- match.arg(initial, c("optimal","backcasting","complete"));
     }
     else if(is.null(initial)){
         if(!silent){
@@ -1457,7 +1460,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         if(regressors=="select"){
             # If this has not happened by chance, then switch to optimisation
-            if(!is.null(initialXreg) && (initialType=="optimal")){
+            if(!is.null(initialXreg) && any(initialType==c("optimal","backcasting"))){
                 warning("Variables selection does not work with the provided initials for explantory variables. I will drop them.",
                         call.=FALSE);
                 initialXreg <- NULL;
@@ -1584,17 +1587,40 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
                     return(almModel);
                 }
-                # Extract names and form a proper matrix for the regression
+
+                # Extract names of variables, fix the formula
                 if(!is.null(formulaToUse)){
                     formulaToUse <- as.formula(formulaToUse);
                     responseName <- all.vars(formulaToUse)[1];
+                    # If there are spaces in names, give a warning
+                    if(any(grepl("[^A-Za-z0-9,;._-]", all.vars(formulaToUse))) ||
+                       # If the names only contain numbers
+                       any(suppressWarnings(!is.na(as.numeric(all.vars(formulaToUse)))))){
+                        warning("The names of your variables contain special characters ",
+                                "(such as numbers, spaces, comas, brackets etc). adam() might not work properly. ",
+                                "It is recommended to use `make.names()` function to fix the names of variables.",
+                                call.=FALSE);
+                        formulaToUse <- as.formula(paste0(gsub(paste0("`",all.vars(formulaToUse)[1],"`"),
+                                                          make.names(all.vars(formulaToUse)[1]),
+                                                          all.vars(formulaToUse)[1]),"~",
+                                                     paste0(mapply(gsub, paste0("`",all.vars(formulaToUse)[-1],"`"),
+                                                                   make.names(all.vars(formulaToUse)[-1]),
+                                                                   labels(terms(formulaToUse))),
+                                                            collapse="+")));
+                    }
                     formulaProvided <- TRUE;
                 }
                 else{
-                    formulaToUse <- reformulate(setdiff(colnames(xregData), responseName), response=responseName);
+                    formulaToUse <- reformulate(make.names(colnames(xregData)[-1]), response=responseName);
+                    # Quotes are needed here for the insecure names of variables, such as "1", "2", "3" etc
+                    # formulaToUse <- reformulate(setdiff(paste0("`",colnames(xregData),"`"),
+                    #                                     paste0("`",responseName,"`")),
+                    #                             response=responseName);
                     formulaProvided <- FALSE;
                 }
 
+                # Robustify the names of variables
+                colnames(xregData) <- make.names(colnames(xregData));
                 # This allows to save the original data
                 xreg <- xregData;
                 obsXreg <- nrow(xregData);
@@ -1608,7 +1634,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
 
                 #### Pure regression ####
-                #### If this is just a regression, use stepwise / ALM
+                #### If this is just a regression ALM
                 if((!etsModel && !arimaModel) && regressors!="adapt"){
                     # Return the estimated model based on the provided xreg
                     if(is.null(formulaToUse)){
@@ -1635,34 +1661,19 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
 
                     # Either use or select the model via greybox functions
-                    if(regressors=="use"){
-                        # Fisher Information
-                        if(is.null(ellipsis$FI)){
-                            FI <- FALSE;
-                        }
-                        else{
-                            FI <- ellipsis$FI;
-                        }
-                        almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
-                                                        distribution=distribution, loss=loss,
-                                                        subset=which(subset),
-                                                        occurrence=oesModel,FI=FI));
-                        almModel$call$data <- as.name(yName);
-                        return(almModel);
+                    # Fisher Information
+                    if(is.null(ellipsis$FI)){
+                        FI <- FALSE;
                     }
-                    else if(regressors=="select"){
-                        warning("The specified model is just a stepwise regression. ",
-                                "It is advised to use stepwise() function from greybox instead.",
-                                call.=FALSE);
-                        if(lossOriginal!="likelihood"){
-                            warning("Stepwise only works with loss='likelihood'. Switching to it.",
-                                    call.=FALSE);
-                            loss <- "likelihood"
-                        }
-                        almModel <- stepwise(xregData, distribution=distribution, subset=which(subset), occurrence=oesModel);
-                        almModel$call$data <- as.name(yName);
-                        return(almModel);
+                    else{
+                        FI <- ellipsis$FI;
                     }
+                    almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
+                                                    distribution=distribution, loss=loss,
+                                                    subset=which(subset),
+                                                    occurrence=oesModel,FI=FI));
+                    almModel$call$data <- as.name(yName);
+                    return(almModel);
                 }
 
                 #### ETSX / ARIMAX ####
@@ -2211,6 +2222,36 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             }
         }
         else{
+            #### Pure regression ####
+            #### If this is just a regression, use stepwise
+            if((!etsModel && !arimaModel) && regressors!="adapt"){
+                # Return the estimated model based on the provided xreg
+                if(is.null(formulaToUse)){
+                    formulaToUse <- reformulate(setdiff(colnames(xregData), responseName), response=responseName);
+                    # formulaToUse <- as.formula(paste0("`",responseName,"`~."));
+                    formulaProvided <- FALSE;
+                }
+                else{
+                    formulaProvided <- TRUE;
+                }
+                if(distribution=="default"){
+                    distribution[] <- "dnorm";
+                }
+
+                # Form subset in order to use in-sample only
+                subset <- rep(FALSE, obsAll);
+                subset[1:obsInSample] <- TRUE;
+                # Exclude zeroes if this is an occurrence model
+                if(occurrenceModel){
+                    subset[1:obsInSample][!otLogical] <- FALSE;
+                }
+
+                almModel <- do.call("stepwise", list(data=xregData, formula=formulaToUse, subset=subset,
+                                                     distribution=distribution, occurrence=oesModel));
+                almModel$call$data <- as.name(yName);
+                return(almModel);
+            }
+
             # Include only variables from the formula
             if(is.null(formulaToUse)){
                 formulaToUse <- as.formula(paste0("`",responseName,"`~."));
@@ -2308,6 +2349,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         xregParametersPersistence <- 0;
     }
 
+    # Fix the occurrenceModel for "provided"
+    if(occurrence=="provided"){
+        occurrenceModel <- FALSE;
+    }
+
     # Redefine persitenceEstimate value
     persistenceEstimate[] <- any(c(persistenceLevelEstimate,persistenceTrendEstimate,
                                    persistenceSeasonalEstimate,persistenceXregEstimate));
@@ -2370,7 +2416,6 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         pForecast <- c(forecast(oesModel, h=h, interval="none")$mean);
     }
 
-
     #### Information Criteria ####
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
     icFunction <- switch(ic,
@@ -2396,7 +2441,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                       arimaModel*((initialType=="optimal")*initialArimaNumber +
                                       arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                       # Xreg initials and smoothing parameters
-                      xregModel*(xregNumber*(initialXregEstimate+persistenceXregEstimate)));
+                      xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is smaller than the number of parameters
     if(obsNonzero <= nParamMax){
@@ -2418,7 +2463,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
                             ", while the number of observations is ",obsNonzero,
                             ". Switching initial to 'backcasting' to save some degrees of freedom."), call.=FALSE);
-                initialType <- "backcasting";
+                initialType <- "complete";
             }
             else{
                 warning(paste0("The number of parameter to estimate is ",nParamMax,
@@ -2456,7 +2501,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                         arimaModel*((initialType=="optimal")*initialArimaNumber +
                                         arRequired*arEstimate*sum(arOrders) + maRequired*maEstimate*sum(maOrders)) +
                         # Xreg initials and smoothing parameters
-                        xregModel*(xregNumber*(initialXregEstimate+persistenceXregEstimate)));
+                        xregModel*(xregNumber*(any(initialType==c("optimal","backcasting"))*initialXregEstimate+persistenceXregEstimate)));
 
     # If the sample is still smaller than the number of parameters (even after removing ARIMA)
     if(etsModel){
@@ -2921,11 +2966,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # See if the estimation of the model is not needed (do we estimate anything?)
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, phiEstimate,
-                           (initialType!="backcasting") & c(initialLevelEstimate,
+                           (initialType!="complete") & c(initialLevelEstimate,
                                                             initialTrendEstimate,
                                                             initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="backcasting") & initialArimaEstimate),
-              xregModel & c(persistenceXregEstimate, (initialType!="backcasting") & initialXregEstimate),
+              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialArimaEstimate),
+              xregModel & c(persistenceXregEstimate, (initialType!="complete") & initialXregEstimate),
               constantEstimate,
               otherParameterEstimate))){
         modelDo <- "use";

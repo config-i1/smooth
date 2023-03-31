@@ -681,13 +681,12 @@ fitted.smooth.forecast <- function(object, ...){
 
 #' Forecasting time series using smooth functions
 #'
-#' This function is created in order for the package to be compatible with Rob
-#' Hyndman's "forecast" package
+#' Function produces conditional expectation (point forecasts) and prediction
+#' intervals for the estimated model.
 #'
-#' This is not a compulsory function. You can simply use \link[smooth]{es},
-#' \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima} without
-#' \code{forecast.smooth}. But if you are really used to \code{forecast}
-#' function, then go ahead!
+#' By default the function will generate conditional expectations from the
+#' estimated model and will also produce a variety of prediction intervals
+#' based on user preferences.
 #'
 #' @aliases forecast forecast.smooth
 #' @param object Time series model for which forecasts are required.
@@ -709,11 +708,11 @@ fitted.smooth.forecast <- function(object, ...){
 #' \item \code{level} - confidence level.
 #' \item \code{interval} - binary variable (whether interval were produced or not).
 #' \item \code{scenarios} - in case of \code{forecast.adam()} and
-#' \code{interval="simulated"} returns matrix with scenarios (future paths) used in
-#' simulations.
+#' \code{interval="simulated"} returns matrix with scenarios (future paths) that were
+#' used in simulations.
 #' }
 #' @template ssAuthor
-#' @seealso \code{\link[greybox]{forecast}}
+#' @seealso \code{\link[generics]{forecast}}
 #' @references Hyndman, R.J., Koehler, A.B., Ord, J.K., and Snyder, R.D. (2008)
 #' Forecasting with exponential smoothing: the state space approach,
 #' Springer-Verlag.
@@ -1266,7 +1265,9 @@ orders.Arima <- function(object, ...){
 #' \item PACF of the residuals;
 #' \item Plot of states of the model;
 #' \item Absolute standardised residuals vs Fitted;
-#' \item Squared standardised residuals vs Fitted.
+#' \item Squared standardised residuals vs Fitted;
+#' \item ACF of the squared residuals;
+#' \item PACF of the squared residuals.
 #' }
 #' @param level Confidence level. Defines width of confidence interval. Used in plots (2), (3), (7), (8),
 #' (9), (10) and (11).
@@ -1654,15 +1655,25 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     }
 
     # 10 and 11. ACF and PACF
-    plot7 <- function(x, type="acf", ...){
+    plot7 <- function(x, type="acf", squared=FALSE, ...){
         ellipsis <- list(...);
 
         if(!any(names(ellipsis)=="main")){
             if(type=="acf"){
-                ellipsis$main <- "Autocorrelation Function of Residuals";
+                if(squared){
+                    ellipsis$main <- "Autocorrelation Function of Squared Residuals";
+                }
+                else{
+                    ellipsis$main <- "Autocorrelation Function of Residuals";
+                }
             }
             else{
-                ellipsis$main <- "Partial Autocorrelation Function of Residuals";
+                if(squared){
+                    ellipsis$main <- "Partial Autocorrelation Function of Squared Residuals";
+                }
+                else{
+                    ellipsis$main <- "Partial Autocorrelation Function of Residuals";
+                }
             }
         }
 
@@ -1682,13 +1693,25 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             ellipsis$ylim <- c(-1,1);
         }
 
-        if(type=="acf"){
-            theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+        if(squared){
+            if(type=="acf"){
+                theValues <- acf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass)
+            }
+            else{
+                theValues <- pacf(as.vector(residuals(x)^2), plot=FALSE, na.action=na.pass);
+            }
         }
         else{
-            theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+            if(type=="acf"){
+                theValues <- acf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass)
+            }
+            else{
+                theValues <- pacf(as.vector(residuals(x)), plot=FALSE, na.action=na.pass);
+            }
         }
-        ellipsis$x <- theValues$acf[-1];
+        ellipsis$x <- switch(type,
+                             "acf"=theValues$acf[-1],
+                             "pacf"=theValues$acf);
         statistic <- qnorm(c((1-level)/2, (1+level)/2),0,sqrt(1/nobs(x)));
 
         ellipsis$type <- "h"
@@ -1911,6 +1934,12 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         }
         else if(any(i==14)){
             plot9(x, type="squared", ...);
+        }
+        else if(any(i==15)){
+            plot7(x, type="acf", squared=TRUE, ...);
+        }
+        else if(any(i==16)){
+            plot7(x, type="pacf", squared=TRUE, ...);
         }
     }
 }

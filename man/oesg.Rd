@@ -11,9 +11,7 @@ oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
   "legend", "output", "none"), xregA = NULL, xregB = NULL,
   initialXA = NULL, initialXB = NULL, regressorsA = c("use", "select"),
-  regressorsB = c("use", "select"), updateXA = FALSE, updateXB = FALSE,
-  transitionXA = NULL, transitionXB = NULL, persistenceXA = NULL,
-  persistenceXB = NULL, ...)
+  regressorsB = c("use", "select"), ...)
 }
 \arguments{
 \item{y}{Either numeric vector or time series vector.}
@@ -84,31 +82,6 @@ B. Ignored if \code{xregB} is NULL.}
 \code{"select"} means that a selection using \code{ic} should be done.}
 
 \item{regressorsB}{Similar to the \code{regressorsA}, but for the part B of the model.}
-
-\item{updateXA}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xregA}.}
-
-\item{updateXB}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xregB}.}
-
-\item{transitionXA}{The transition matrix \eqn{F_x} for exogenous variables of the model A.
-Can be provided as a vector. Matrix will be formed using the default
-\code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-\code{xregA}.}
-
-\item{transitionXB}{The transition matrix \eqn{F_x} for exogenous variables of the model B.
-Similar to the \code{transitionXA}.}
-
-\item{persistenceXA}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for the exogenous variables of the model A. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xregA}.}
-
-\item{persistenceXB}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for the exogenous variables of the model B. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xregB}.}
 
 \item{...}{The parameters passed to the optimiser, such as \code{maxeval},
 \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
