@@ -2257,7 +2257,20 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 formulaToUse <- as.formula(paste0("`",responseName,"`~."));
             }
             else{
-                xregData <- xregData[,all.vars(formulaToUse)[-1],drop=FALSE];
+                # Do model.frame manipulations
+                # We do it this way to avoid factors expansion into dummies at this stage
+                mf <- as.call(list(quote(stats::model.frame), formula=formulaToUse,
+                                   data=xregData, drop.unused.levels=FALSE));
+
+                if(!is.data.frame(xregData)){
+                    mf$data <- as.data.frame(xregData);
+                }
+                # Evaluate data frame to do transformations of variables
+                xregData <- eval(mf, parent.frame());
+
+                # Remove variables that have "-x" in the formula
+                dataTerms <- terms(xregData);
+                xregData <- xregData[,colnames(attr(dataTerms,"factors"))];
             }
             xregNumber <- ncol(xregData);
             xregNames <- colnames(xregData);
