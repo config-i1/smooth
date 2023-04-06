@@ -3,7 +3,7 @@
 #' WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
 #' or \code{doParallel} are needed in order to run the function in parallel.
 #' @param outliers Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-#' \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+#' \code{"use"} - detect outliers based on specified \code{level} and include dummies for them in the model,
 #' or detect and \code{"select"} those of them that reduce \code{ic} value.
 #' @param level What confidence level to use for detection of outliers. The default is 99\%. The specific
 #' bounds of confidence interval depend on the distribution used in the model.

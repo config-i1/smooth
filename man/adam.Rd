@@ -181,7 +181,7 @@ example:
 \code{loss=lossFunction}}
 
 \item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+\code{"use"} - detect outliers based on specified \code{level} and include dummies for them in the model,
 or detect and \code{"select"} those of them that reduce \code{ic} value.}
 
 \item{level}{What confidence level to use for detection of outliers. The default is 99\%. The specific
