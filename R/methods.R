@@ -74,10 +74,6 @@ modelName <- function(object, ...) UseMethod("modelName")
 #' @export modelType
 modelType <- function(object, ...) UseMethod("modelType")
 
-modelLags <- function(object, ...) UseMethod("modelLags")
-
-smoothType <- function(object, ...) UseMethod("smoothType")
-
 ##### Likelihood function and stuff #####
 
 #' @importFrom greybox AICc
@@ -987,10 +983,13 @@ errorType.smooth <- function(object, ...){
 errorType.smooth.sim <- errorType.smooth;
 
 ##### Function returns the modelLags from the model - internal function #####
-modelLags.default <- function(object, ...){
+modelLags <- function(object, ...){
     modelLags <- NA;
     if(is.msarima(object)){
         modelLags <- object$modelLags;
+    }
+    else if(is.adam(object)){
+        modelLags <- object$lagsAll;
     }
     else{
         smoothType <- smoothType(object);
@@ -2613,11 +2612,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
 }
 
 #### Type of smooth model. Internal function ####
-smoothType.default <- function(object, ...){
-    return(NA);
-}
-
-smoothType.smooth <- function(object, ...){
+smoothType <- function(object, ...){
     if(!is.list(object$model)){
         if(gregexpr("ETS",object$model)!=-1){
             smoothType <- "ETS";
@@ -2650,8 +2645,6 @@ smoothType.smooth <- function(object, ...){
 
     return(smoothType);
 }
-
-smoothType.smooth.sim <- smoothType.smooth;
 
 #### Summary of objects ####
 #' @export

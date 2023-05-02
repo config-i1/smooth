@@ -10225,12 +10225,6 @@ errorType.adam <- function(object, ...){
     }
 }
 
-# This is an internal function, no need to export it
-# modelLags <- function(object, ...) UseMethod("modelLags")
-modelLags.adam <- function(object, ...){
-    return(object$lagsAll);
-}
-
 #' @export
 orders.adam <- function(object, ...){
     return(object$orders);
