@@ -192,7 +192,7 @@ smoothCombine <- function(y, models=NULL,
 
     yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
     yHoldout <- yForecastTest$model$holdout;
-    yInSample <- yForecastTest$model$y;
+    yInSample <- actuals(yForecastTest$model);
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
