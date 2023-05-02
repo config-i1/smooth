@@ -1,4 +1,4 @@
-smooth v3.2.1 (Release data: 2023-04-02)
+smooth v3.2.1 (Release data: 2023-05-02)
 =======
 
 Changes:
@@ -13,7 +13,8 @@ Bugfixes:
 * sma() with order selection would not work on data with number of observations lower than the frequency.
 * Fix in simulate.adam(), which would ignore the states of the model.
 * sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
-* formula is now properly used in adam() in regressors="select"
+* formula is now properly used in adam() in regressors="select".
+* smoothCombine() wouldn't work because of the wrong interval type.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)

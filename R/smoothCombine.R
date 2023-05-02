@@ -115,6 +115,7 @@ smoothCombine <- function(y, models=NULL,
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
+    intervalOriginal <- interval;
 
 # Add all the variables in ellipsis to current environment
     thisEnvironment <- environment();
@@ -203,7 +204,7 @@ smoothCombine <- function(y, models=NULL,
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
+    modelsForecasts <- lapply(models,forecast,h=h,interval=intervalOriginal,
                               level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
 
