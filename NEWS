@@ -1,4 +1,4 @@
-smooth v3.2.1 (Release data: 2023-05-02)
+smooth v3.2.1 (Release data: 2023-05-11)
 =======
 
 Changes:
@@ -15,6 +15,7 @@ Bugfixes:
 * sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
 * formula is now properly used in adam() in regressors="select".
 * smoothCombine() wouldn't work because of the wrong interval type.
+* coefbootstrap() now has a slightly larger smallest sample to consider (1 more observation). This should make it more robust.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)

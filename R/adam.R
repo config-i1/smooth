@@ -6647,7 +6647,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # Coefficients of the model
     coefficientsOriginal <- coef(object);
-    nVariables <- length(coefficientsOriginal);
+    nVariables <- nparam(object);
     variablesNames <- names(coefficientsOriginal);
     # interceptIsNeeded <- any(variablesNames=="(Intercept)");
     # variablesNamesMade <- make.names(variablesNames);
@@ -6699,7 +6699,8 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
     lags <- lags(object);
     # This is needed for cases, when lags changed in the function
     newCall$lags <- lags;
-    obsMinimum <- max(c(lags*2,nVariables))+1;
+    # Number of variables + 2 (for security) or 2 seasonal cycles + 2
+    obsMinimum <- max(c(lags*2,nVariables))+2;
 
     # If this is ARIMA, and the size wasn't specified, make it changable
     if(substr(object$model,1,10)=="Regression"){
