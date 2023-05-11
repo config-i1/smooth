@@ -2125,8 +2125,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                        # abs() is needed for rare cases, when negative values are produced for E="A" models
                                        "dinvgauss"=dinvgauss(x=yInSample[otLogical], mean=abs(adamFitted$yFitted[otLogical]),
                                                              dispersion=abs(scale/adamFitted$yFitted[otLogical]), log=TRUE),
+                                       # abs() is a failsafe mechanism for weird cases of negative values in mixed models
                                        "dgamma"=dgamma(x=yInSample[otLogical], shape=1/scale,
-                                                       scale=scale*adamFitted$yFitted[otLogical], log=TRUE)
+                                                       scale=scale*abs(adamFitted$yFitted[otLogical]), log=TRUE)
                                        ));
 
                 # Differential entropy for the logLik of occurrence model
@@ -2279,58 +2280,58 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                            arPolynomialMatrix, maPolynomialMatrix, hessianCalculation=FALSE){
 
         # If this is just for the calculation of hessian, return to the original values of parameters
-        if(hessianCalculation && any(initialType==c("optimal","backcasting"))){
-            persistenceToSkip <- 0;
-            if(initialType=="optimal"){
-                # Define, how many elements to skip (we don't normalise smoothing parameters)
-                if(persistenceXregEstimate){
-                    persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA+xregNumber;
-                }
-                else{
-                    persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA;
-                }
-                j <- 1;
-                if(phiEstimate){
-                    j[] <- 2;
-                }
-                # Level
-                B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-                # Trend
-                if(Ttype!="N"){
-                    j[] <- j+1;
-                    if(Ttype=="A"){
-                        B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
-                    }
-                }
-                # Seasonality
-                if(Stype=="A"){
-                    if(componentsNumberETSSeasonal>1){
-                        for(k in 1:componentsNumberETSSeasonal){
-                            if(initialSeasonalEstimateFI[k]){
-                                # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                                B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
-                                    B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
-                                    sd(yInSample);
-                                j[] <- j+(lagsModelSeasonal[k]-1);
-                            }
-                        }
-                    }
-                    else{
-                        # -1 is needed in order to remove the redundant seasonal element (normalisation)
-                        B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
-                            B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
-                    }
-                }
-            }
-
-            # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
-            if(xregNumber>0 && Etype=="A"){
-                denominator <- tail(colMeans(abs(matWt)),xregNumber);
-                # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
-                denominator[abs(denominator)<1] <- 1;
-                B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) * denominator;
-            }
-        }
+        # if(hessianCalculation && any(initialType==c("optimal","backcasting"))){
+        #     persistenceToSkip <- 0;
+        #     if(initialType=="optimal"){
+        #         # Define, how many elements to skip (we don't normalise smoothing parameters)
+        #         if(persistenceXregEstimate){
+        #             persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA+xregNumber;
+        #         }
+        #         else{
+        #             persistenceToSkip[] <- componentsNumberETS+componentsNumberARIMA;
+        #         }
+        #         j <- 1;
+        #         if(phiEstimate){
+        #             j[] <- 2;
+        #         }
+        #         # Level
+        #         B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
+        #         # Trend
+        #         if(Ttype!="N"){
+        #             j[] <- j+1;
+        #             if(Ttype=="A"){
+        #                 B[persistenceToSkip+j] <- B[persistenceToSkip+j] * sd(yInSample);
+        #             }
+        #         }
+        #         # Seasonality
+        #         if(Stype=="A"){
+        #             if(componentsNumberETSSeasonal>1){
+        #                 for(k in 1:componentsNumberETSSeasonal){
+        #                     if(initialSeasonalEstimateFI[k]){
+        #                         # -1 is needed in order to remove the redundant seasonal element (normalisation)
+        #                         B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] <-
+        #                             B[persistenceToSkip+j+2:lagsModel[componentsNumberETSNonSeasonal+k]-1] *
+        #                             sd(yInSample);
+        #                         j[] <- j+(lagsModelSeasonal[k]-1);
+        #                     }
+        #                 }
+        #             }
+        #             else{
+        #                 # -1 is needed in order to remove the redundant seasonal element (normalisation)
+        #                 B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] <-
+        #                     B[persistenceToSkip+j+2:(lagsModel[componentsNumberETS])-1] * sd(yInSample);
+        #             }
+        #         }
+        #     }
+        #
+        #     # Normalise parameters of xreg if they are additive. Otherwise leave - they will be small and close to zero
+        #     if(xregNumber>0 && Etype=="A"){
+        #         denominator <- tail(colMeans(abs(matWt)),xregNumber);
+        #         # If it is lower than 1, then we are probably dealing with (0, 1). No need to normalise
+        #         denominator[abs(denominator)<1] <- 1;
+        #         B[persistenceToSkip+sum(lagsModel)+c(1:xregNumber)] <- tail(B,xregNumber) * denominator;
+        #     }
+        # }
 
         if(!multisteps){
             if(any(loss==c("LASSO","RIDGE"))){
@@ -2370,6 +2371,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     bounds="none", lossNew, lossFunction, distributionNew, horizon, multisteps,
                                     denominator, yDenominator, other, otherParameterEstimate, lambda,
                                     arPolynomialMatrix, maPolynomialMatrix);
+
+                # print(B);
+                # print(logLikReturn)
 
                 # If this is an occurrence model, add the probabilities
                 if(occurrenceModel){

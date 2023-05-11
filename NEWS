@@ -16,6 +16,7 @@ Bugfixes:
 * formula is now properly used in adam() in regressors="select".
 * smoothCombine() wouldn't work because of the wrong interval type.
 * coefbootstrap() now has a slightly larger smallest sample to consider (1 more observation). This should make it more robust.
+* Fix in adam() with Gamma distribution and mixed models.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)
