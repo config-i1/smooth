@@ -6647,7 +6647,7 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 
     # Coefficients of the model
     coefficientsOriginal <- coef(object);
-    nVariables <- nparam(object);
+    nVariables <- length(coefficientsOriginal);
     variablesNames <- names(coefficientsOriginal);
     # interceptIsNeeded <- any(variablesNames=="(Intercept)");
     # variablesNamesMade <- make.names(variablesNames);
