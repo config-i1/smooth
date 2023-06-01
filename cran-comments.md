@@ -9,6 +9,10 @@ output: html_document
 This is ``smooth`` package, v3.2.1.
 
 
+## Resubmission comments
+**We now don't require the specific C++ version**
+
+
 ## Test environments
 * local Ubuntu 22.04.2, R 4.3.0
 * github actions
