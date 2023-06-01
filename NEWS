@@ -1,4 +1,4 @@
-smooth v3.2.1 (Release data: 2023-05-11)
+smooth v3.2.1 (Release data: 2023-06-01)
 =======
 
 Changes:
@@ -17,6 +17,7 @@ Bugfixes:
 * smoothCombine() wouldn't work because of the wrong interval type.
 * coefbootstrap() now has a slightly larger smallest sample to consider (1 more observation). This should make it more robust.
 * Fix in adam() with Gamma distribution and mixed models.
+* Fixed a bug with ARIMA(0,d,0) with drift and an initial B becoming outside of bounds.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)

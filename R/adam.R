@@ -1804,11 +1804,19 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     Bu[j] <- Inf;
                     Bl[j] <- switch(Etype,"A"=-Inf,"M"=0);
                 }
+
+                # Failsafe for cases, when the B is outside of bounds
+                if(B[j]<=Bl[j]){
+                    Bl[j] <- switch(Etype,"A"=-Inf,"M"=0);
+                }
+                if(B[j]>=Bu[j]){
+                    Bu[j] <- Inf;
+                }
             }
             else{
                 # if(Etype=="A"){
                     # B[j]*1.01 is needed to make sure that the bounds cover the initial value
-                    Bu[j] <- max(abs(yInSample[otLogical]),B[j]*1.01);
+                    Bu[j] <- max(abs(yInSample[otLogical]),abs(B[j])*1.01);
                     Bl[j] <- -Bu[j];
                 # }
                 # else{
@@ -2679,6 +2687,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             distributionNew <- distribution;
         }
         # print(B)
+        # print(BValues)
         # print(Etype)
         # print(Ttype)
         # print(Stype)
