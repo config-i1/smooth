@@ -1,8 +1,11 @@
-smooth v3.2.2 (Release data: 2023-06-05)
+smooth v3.2.2 (Release data: 2023-06-13)
 =======
 
 Changes:
 * Expanded infor on simulate functions in the package description.
+
+Bugfixes:
+* forecast.adam() would not work correctly if the newdata had missing values.
 
 
 smooth v3.2.1 (Release data: 2023-06-01)

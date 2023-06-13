@@ -7723,6 +7723,11 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
             else{
                 xreg <- newdata;
             }
+
+            if(any(is.na(xreg))){
+                warning("The newdata has NAs. This might cause some issues.",
+                        call.=FALSE);
+            }
         }
 
         # If the user asked for trend, but it's not in the data, add it
@@ -7765,7 +7770,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         rm(xreg);
 
-        matWt[,componentsNumberETS+componentsNumberARIMA+c(1:xregNumber)] <- newdata;
+        # From 1 to nrow to address potential missing values
+        matWt[1:nrow(newdata),componentsNumberETS+componentsNumberARIMA+c(1:xregNumber)] <- newdata;
     }
     else{
         xregNumber <- 0;
