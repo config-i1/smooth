@@ -6801,8 +6801,16 @@ coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
 }
 
 #' @export
-vcov.adam <- function(object, bootstrap=FALSE, ...){
+vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
     ellipsis <- list(...);
+
+    # Heuristics is to set variance equal to sqrt(heuristics)% of values
+    if(!is.null(heuristics)){
+        if(is.numeric(heuristics)){
+            return(diag(abs(coef(object))*heuristics));
+        }
+    }
+
     if(bootstrap){
         return(coefbootstrap(object, ...)$vcov);
     }
@@ -8750,12 +8758,12 @@ reapply.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
 reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
+    parametersNames <- names(coef(object));
 
     vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, ...));
-    parametersNames <- colnames(vcovAdam);
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
-    if(vcovEigen<=0){
+    if(vcovEigen<0){
         if(vcovEigen>-1){
             warning(paste0("The covariance matrix of parameters is not positive semi-definite. ",
                            "I will try fixing this, but it might make sense re-estimating adam(), tuning the optimiser."),
