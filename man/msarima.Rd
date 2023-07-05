@@ -10,17 +10,16 @@ msarima(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
   constant = FALSE, AR = NULL, MA = NULL, model = NULL,
   initial = c("optimal", "backcasting", "complete"), ic = c("AICc", "AIC",
   "BIC", "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE",
-  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("admissible",
-  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
-  initialX = NULL, ...)
+  "GTMSE", "MSCE"), h = 10, holdout = FALSE, bounds = c("usual",
+  "admissible", "none"), silent = TRUE, xreg = NULL,
+  regressors = c("use", "select", "adapt"), initialX = NULL, ...)
 
 auto.msarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
-  lags = c(1, frequency(y)), combine = FALSE, fast = TRUE,
-  constant = NULL, initial = c("backcasting", "optimal"), ic = c("AICc",
-  "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
-  "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, regressors = c("use", "select"),
+  lags = c(1, frequency(y)), initial = c("optimal", "backcasting",
+  "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
+  "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10,
+  holdout = FALSE, bounds = c("usual", "admissible", "none"),
+  silent = TRUE, xreg = NULL, regressors = c("use", "select", "adapt"),
   initialX = NULL, ...)
 
 msarima_old(y, orders = list(ar = c(0), i = c(1), ma = c(1)), lags = c(1),
@@ -141,12 +140,6 @@ details.
 
 \code{FI=TRUE} will make the function produce Fisher Information matrix,
 which then can be used to calculated variances of parameters of the model.}
-
-\item{combine}{If \code{TRUE}, then resulting ARIMA is combined using AIC
-weights.}
-
-\item{fast}{If \code{TRUE}, then some of the orders of ARIMA are
-skipped. This is not advised for models with \code{lags} greater than 12.}
 
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
 interval are produced instead of the normal ones. This is useful for
