@@ -1652,12 +1652,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         if(maRequired && maEstimate){
                             # If the sample is smaller than lags, it will be substituted by default values
                             acfValues[1:min(maOrders %*% lags, length(yDifferenced)-1)] <-
-                                acf(yDifferenced,lag.max=maOrders %*% lags,plot=FALSE)$acf[-1];
+                                acf(yDifferenced,lag.max=max(1,maOrders %*% lags),plot=FALSE)$acf[-1];
                         }
                         if(arRequired && arEstimate){
                             # If the sample is smaller than lags, it will be substituted by default values
                             pacfValues[1:min(arOrders %*% lags, length(yDifferenced)-1)] <-
-                                pacf(yDifferenced,lag.max=arOrders %*% lags,plot=FALSE)$acf;
+                                pacf(yDifferenced,lag.max=max(1,arOrders %*% lags),plot=FALSE)$acf;
                         }
                     }
                 }
