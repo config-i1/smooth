@@ -24,7 +24,7 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   obs = nobs(object), ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
-  orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
+  orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3), select = TRUE),
   formula = NULL, regressors = c("use", "select", "adapt"),
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
