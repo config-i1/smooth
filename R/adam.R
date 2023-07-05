@@ -1648,7 +1648,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         }
                     }
                     # Do ACF/PACF initialisation only for non-seasonal models
-                    if(length(lagsModelSeasonal)==0){
+                    if(all(lags<=1)){
                         if(maRequired && maEstimate){
                             # If the sample is smaller than lags, it will be substituted by default values
                             acfValues[1:min(maOrders %*% lags, length(yDifferenced)-1)] <-
