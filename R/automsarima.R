@@ -49,8 +49,8 @@ auto.msarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,
     # Fix orders
     orders$select <- TRUE;
 
-    return(adam(data, model="NNN", orders=orders, lags=lags, initial=initial,
-                loss=loss, h=h, holdout=holdout, bounds=bounds,
+    return(adam(data, model="NNN", orders=orders, lags=lags, distribution="dnorm",
+                initial=initial, loss=loss, h=h, holdout=holdout, bounds=bounds,
                 silent=silent, regressors=regressors, ...))
 
 # Function estimates several msarima models and selects the best one using the selected information criterion.
