@@ -20,8 +20,8 @@ reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
 \item{bootstrap}{The logical, which determines, whether to use bootstrap for the
 covariance matrix of parameters or not.}
 
-\item{...}{Other parameters passed to \code{mean()} function in case of
-\code{reforecast} (this mainly refers to \code{trim} variable, which is set to
+\item{...}{Other parameters passed to \code{reapply()} and \code{mean()} functions in case of
+\code{reforecast} (\code{trim} parameter in \code{mean()} is set to
 0.01 by default) and to \code{vcov} in case of \code{reapply}.}
 
 \item{h}{Forecast horizon.}
@@ -44,6 +44,9 @@ interval or only \code{"upper"}, or \code{"lower"}.}
 \item{cumulative}{If \code{TRUE}, then the cumulative forecast and prediction
 interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
+
+\item{heuristics}{The value for proportion to use for heuristic estimation of the
+standard deviation of parameters. If \code{NULL}, it is not used.}
 }
 \value{
 \code{reapply()} returns object of the class "reapply", which contains:

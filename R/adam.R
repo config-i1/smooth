@@ -8693,6 +8693,8 @@ plot.adam.forecast <- function(x, ...){
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param bootstrap The logical, which determines, whether to use bootstrap for the
 #' covariance matrix of parameters or not.
+#' @param heuristics The value for proportion to use for heuristic estimation of the
+#' standard deviation of parameters. If \code{NULL}, it is not used.
 #' @param occurrence The vector containing the future occurrence variable
 #' (values in [0,1]), if it is known.
 #' @param interval What type of mechanism to use for interval construction. The options
@@ -8705,8 +8707,8 @@ plot.adam.forecast <- function(x, ...){
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.
-#' @param ... Other parameters passed to \code{mean()} function in case of
-#' \code{reforecast} (this mainly refers to \code{trim} variable, which is set to
+#' @param ... Other parameters passed to \code{reapply()} and \code{mean()} functions in case of
+#' \code{reforecast} (\code{trim} parameter in \code{mean()} is set to
 #' 0.01 by default) and to \code{vcov} in case of \code{reapply}.
 #' @return \code{reapply()} returns object of the class "reapply", which contains:
 #' \itemize{
@@ -8755,12 +8757,12 @@ reapply.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
 
 #' @importFrom MASS mvrnorm
 #' @export
-reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, ...){
+reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ...){
     # Start measuring the time of calculations
     startTime <- Sys.time();
     parametersNames <- names(coef(object));
 
-    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, ...));
+    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, ...));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
     if(vcovEigen<0){
@@ -9497,7 +9499,7 @@ reforecast.default <- function(object, h=10, newdata=NULL, occurrence=NULL,
 reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("prediction", "confidence", "none"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
-                            nsim=100, bootstrap=FALSE, ...){
+                            nsim=100, bootstrap=FALSE, heuristics=NULL, ...){
     objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, ...);
     ellipsis <- list(...);
 
