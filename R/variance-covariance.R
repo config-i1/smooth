@@ -111,16 +111,21 @@ adamVarAnal <- function(lagsModel, h, measurement, transition, persistence, s2){
     # The vector of variances
     varMat <- rep(0, h);
 
-    # Start the loop for varMat
-    for(i in 2:h){
-        IQ[] <- 0;
-        # Form the correct interrim Q that will be used for variances
-        for(k in 1:sum(steps<i)){
-            matrixPersistenceQ[] <- arrayPersistenceQ[,,k];
-            IQ[] <- IQ[] + sum(diag((matrixPowerWrap(Ik + matrixPowerWrap(matrixPersistenceQ,2)*s2,
-                                                     ceiling(i/lagsUnique[k])-1) - Ik)));
+    if(h>1){
+        # Start the loop for varMat
+        for(i in 2:h){
+            IQ[] <- 0;
+            # Form the correct interrim Q that will be used for variances
+            for(k in 1:sum(steps<i)){
+                if(k==0){
+                    next;
+                }
+                matrixPersistenceQ[] <- arrayPersistenceQ[,,k];
+                IQ[] <- IQ[] + sum(diag((matrixPowerWrap(Ik + matrixPowerWrap(matrixPersistenceQ,2)*s2,
+                                                         ceiling(i/lagsUnique[k])-1) - Ik)));
+            }
+            varMat[i] <- log(IQ);
         }
-        varMat[i] <- log(IQ);
     }
     varMat[] <- exp(varMat)*(1+s2);
     varMat[1] <- varMat[1] - 1;
