@@ -8750,10 +8750,10 @@ plot.adam.forecast <- function(x, ...){
 #'
 #' @rdname reapply
 #' @export reapply
-reapply <- function(object, nsim=1000, bootstrap=FALSE, ...) UseMethod("reapply")
+reapply <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ...) UseMethod("reapply")
 
 #' @export
-reapply.default <- function(object, nsim=1000, bootstrap=FALSE, ...){
+reapply.default <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ...){
     warning(paste0("The method is not implemented for the object of the class ",class(object)[1]),
             call.=FALSE);
     return(structure(list(states=object$states, fitted=fitted(object)),
