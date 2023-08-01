@@ -2842,7 +2842,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         B[] <- res$solution;
         CFValue <- res$objective;
         # A fix for the special case of LASSO/RIDGE with lambda==1
-        if(any(loss==c("LASSO","RIDGE")) && lambdaOriginal==1){
+        if(any(loss==c("LASSO","RIDGE")) && lambda==1){
             CFValue[] <- 0;
         }
         nParamEstimated <- length(B);
@@ -3950,7 +3950,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
             }
-            lambda=0;
+            lambda <- 0;
         }
 
         # Estimate the parameters of the demand sizes model
