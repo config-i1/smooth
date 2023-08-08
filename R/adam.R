@@ -4307,9 +4307,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(xregNumber>0 && any(loss==c("LASSO","RIDGE"))){
             denominator <- apply(matWt, 2, sd);
             denominator[is.infinite(denominator)] <- 1;
+            yDenominator <- max(sd(diff(yInSample)),1);
         }
         else{
             denominator <- NULL;
+            yDenominator <- NULL;
         }
 
         CFValue <- CF(B=0, etsModel=etsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, modelIsTrendy=modelIsTrendy,
@@ -9505,7 +9507,8 @@ reforecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
                             interval=c("prediction", "confidence", "none"),
                             level=0.95, side=c("both","upper","lower"), cumulative=FALSE,
                             nsim=100, bootstrap=FALSE, heuristics=NULL, ...){
-    objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, ...);
+
+    objectRefitted <- reapply(object, nsim=nsim, bootstrap=bootstrap, heuristics=heuristics, ...);
     ellipsis <- list(...);
 
     # If the trim is not provided, set it to 1%
