@@ -182,9 +182,18 @@ randArima <- function(y, lags=c(1,frequency(y)),
         cat(" Done!\n")
     }
 
-    # Tables for point, lower and upper values
-    point <- lower <- upper <-
+    nLevels <- length(level)
+
+    # Tables for point values
+    point <-
         matrix(NA, h, nsim, dimnames=list(paste0("h",c(1:h)), NULL));
+
+    # Arrays for lower and upper values
+    lower <- upper <-
+        array(NA, c(h, nLevels, nsim),
+              dimnames=list(paste0("h",c(1:h)),
+                            paste0(sort(level)*100,"%-level"),
+                            NULL));
 
     # Table for fitted values
     fitted <-
@@ -197,12 +206,17 @@ randArima <- function(y, lags=c(1,frequency(y)),
     # Vector of ICs
     ICs <- vector("numeric", nsim);
 
+    if(length(levels)>1){
+        dimnames(lower)[[2]] <- colnames(randomForecasts[[1]][[3]]);
+        dimnames(upper)[[2]] <- colnames(randomForecasts[[1]][[4]]);
+    }
+
     # Record values
     for(i in 1:nsim){
         fitted[,i] <- randomForecasts[[i]][[1]]
         point[,i] <- randomForecasts[[i]][[2]];
-        lower[,i] <- randomForecasts[[i]][[3]];
-        upper[,i] <- randomForecasts[[i]][[4]];
+        lower[,,i] <- randomForecasts[[i]][[3]];
+        upper[,,i] <- randomForecasts[[i]][[4]];
         ordersUsed[i,] <- randomForecasts[[i]][[5]];
         ICs[i] <- randomForecasts[[i]][[6]];
     }
@@ -218,8 +232,8 @@ randArima <- function(y, lags=c(1,frequency(y)),
            identical(aggregate,quantile))){
         testForecast$model$fitted[] <- apply(fitted,1,aggregate);
         testForecast$mean[] <- apply(point,1,aggregate);
-        testForecast$lower[] <- apply(lower,1,aggregate);
-        testForecast$upper[] <- apply(upper,1,aggregate);
+        testForecast$lower[] <- apply(lower,c(1,2),aggregate);
+        testForecast$upper[] <- apply(upper,c(1,2),aggregate);
     }
     else{
         for(i in 1:obsInSample){
@@ -227,8 +241,10 @@ randArima <- function(y, lags=c(1,frequency(y)),
         }
         for(i in 1:h){
             testForecast$mean[i] <- aggregate(x=point[i,], w=ICw, ...);
-            testForecast$lower[i] <- aggregate(x=lower[i,], w=ICw, ...);
-            testForecast$upper[i] <- aggregate(x=upper[i,], w=ICw, ...);
+            for(j in 1:nLevels){
+                testForecast$lower[i,j] <- aggregate(x=lower[i,j,], w=ICw, ...);
+                testForecast$upper[i,j] <- aggregate(x=upper[i,j,], w=ICw, ...);
+            }
         }
     }
 
