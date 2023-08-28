@@ -2656,3 +2656,72 @@ summary.smooth <- function(object, ...){
 summary.smooth.forecast <- function(object, ...){
     print(object);
 }
+
+
+#### Accuracy measures ####
+
+#' @importFrom generics accuracy
+#' @export
+generics::accuracy
+
+#' Error measures for an estimated model
+#'
+#' Function produces error measures for the provided object and the holdout values of the
+#' response variable. Note that instead of parameters \code{x}, \code{test}, the function
+#' accepts the vector of values in \code{holdout}. Also, the parameters \code{d} and \code{D}
+#' are not supported - MASE is always calculated via division by first differences.
+#'
+#' The function is a wrapper for the \link[greybox]{measures} function and is implemented
+#' for convenience.
+#'
+#' @template ssAuthor
+#'
+#' @param object The estimated model or a forecast from the estimated model generated via
+#' either \code{predict()} or \code{forecast()} functions.
+#' @param holdout The vector of values of the response variable in the holdout (test) set.
+#' If not provided, then the function will return the in-sample error measures. If the
+#' \code{holdout=TRUE} parameter was used in the estimation of a model, the holdout values
+#' will be extracted automatically.
+#' @param ... Other variables passed to the \code{forecast()} function (e.g. \code{newdata}).
+#' @examples
+#'
+#' xreg <- cbind(rlaplace(100,10,3),rnorm(100,50,5))
+#' xreg <- cbind(100+0.5*xreg[,1]-0.75*xreg[,2]+rlaplace(100,0,3),xreg,rnorm(100,300,10))
+#' colnames(xreg) <- c("y","x1","x2","Noise")
+#'
+#' ourModel <- alm(y~x1+x2+trend, xreg, subset=c(1:80), distribution="dlaplace")
+#' predict(ourModel,xreg[-c(1:80),]) |>
+#'    accuracy(xreg[-c(1:80),"y"])
+#' @rdname accuracy
+#' @export
+accuracy.smooth <- function(object, holdout=NULL, ...){
+    if(is.null(object$holdout)){
+        if(is.null(holdout)){
+            return(measures(actuals(object), fitted(object), actuals(object)));
+        }
+        else{
+            h <- length(holdout);
+            return(measures(holdout, forecast(object, h=h, ...)$mean, actuals(object)));
+        }
+    }
+    else{
+        return(object$accuracy);
+    }
+}
+
+#' @rdname accuracy
+#' @export
+accuracy.smooth.forecast <- function(object, holdout=NULL, ...){
+    if(is.null(holdout)){
+        if(is.null(object$model$holdout)){
+            return(measures(actuals(object), fitted(object), actuals(object)));
+        }
+        else{
+            return(object$model$accuracy);
+        }
+    }
+    else{
+        h <- length(holdout);
+        return(measures(holdout, object$mean, actuals(object)));
+    }
+}

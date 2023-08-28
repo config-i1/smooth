@@ -7516,7 +7516,6 @@ plot.adam.predict <- function(x, ...){
     }
 }
 
-# Work in progress...
 #' @param newdata The new data needed in order to produce forecasts.
 #' @param nsim Number of iterations to do in cases of \code{interval="simulated"},
 #' \code{interval="prediction"} (for mixed and multiplicative model),
@@ -7524,8 +7523,7 @@ plot.adam.predict <- function(x, ...){
 #' The default value for the prediction / simulated interval is 1000. In case of
 #' confidence or complete intervals, this is set to 100.
 #' @param interval What type of mechanism to use for interval construction.
-#' For ADAM: the
-#' recommended option is \code{interval="prediction"}, which will use analytical
+#' the recommended option is \code{interval="prediction"}, which will use analytical
 #' solutions for pure additive models and simulations for the others.
 #' \code{interval="simulated"} is the slowest method, but is robust to the type of
 #' model. \code{interval="approximate"} (aka \code{interval="parametric"}) uses
@@ -7539,8 +7537,6 @@ plot.adam.predict <- function(x, ...){
 #' interval based on the uncertainty around the parameters of the model.
 #' Finally, \code{interval="confidence"} tries to generate the confidence intervals
 #' for the point forecast based on the \code{reforecast} method.
-#'
-#' For es, ssarima etc, see the description in \link[smooth]{es}.
 #' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
 #' interval are produced instead of the normal ones. This is useful for
 #' inventory control systems.

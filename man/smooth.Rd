@@ -3,6 +3,7 @@
 \docType{package}
 \name{smooth}
 \alias{smooth}
+\alias{smooth-package}
 \title{Smooth package}
 \description{
 Package contains functions implementing Single Source of Error state space models for

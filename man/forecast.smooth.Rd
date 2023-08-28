@@ -35,8 +35,7 @@
 (values in [0,1]), if it is known.}
 
 \item{interval}{What type of mechanism to use for interval construction.
-For ADAM: the
-recommended option is \code{interval="prediction"}, which will use analytical
+the recommended option is \code{interval="prediction"}, which will use analytical
 solutions for pure additive models and simulations for the others.
 \code{interval="simulated"} is the slowest method, but is robust to the type of
 model. \code{interval="approximate"} (aka \code{interval="parametric"}) uses
@@ -49,9 +48,7 @@ constructs intervals based on empirical quantiles of multistep forecast errors.
 \code{interval="complete"} will call for \code{reforecast()} function and produce
 interval based on the uncertainty around the parameters of the model.
 Finally, \code{interval="confidence"} tries to generate the confidence intervals
-for the point forecast based on the \code{reforecast} method.
-
-For es, ssarima etc, see the description in \link[smooth]{es}.}
+for the point forecast based on the \code{reforecast} method.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
