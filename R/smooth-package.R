@@ -51,6 +51,7 @@
 #'
 #' @name smooth
 #' @docType package
+#' @aliases smooth-package
 #' @author Ivan Svetunkov
 #'
 #' Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
