@@ -502,6 +502,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
 
             ##### Loop for differences #####
             # Prepare table with differences
+            # expand.grid() can be used instead...
             if(any(iMax!=0)){
                 iOrders[,1] <- rep(c(0:iMax[1]),times=prod(iMax[-1]+1));
                 if(ordersLength>1){
