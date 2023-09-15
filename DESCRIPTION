@@ -1,7 +1,7 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 3.2.2
+Version: 4.0.0
 Date: 2023-09-15
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.ru", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
@@ -16,7 +16,7 @@ Description: Functions implementing Single Source of Error state space models fo
              Simple Moving Average (Svetunkov & Petropoulos, 2018 <doi: 10.1080/00207543.2017.1380326>)
              and several simulation functions. It also allows dealing with intermittent demand based on the
              iETS framework (Svetunkov & Boylan, 2019, <doi: 10.13140/RG.2.2.35897.06242>).
-License: GPL (>=2)
+License: LGPL-2.1
 Depends:
     R (>= 3.0.2),
     greybox (>= 1.0.8)
