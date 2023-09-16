@@ -1,20 +1,16 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "01 June 2023"
+date: "16 September 2023"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v3.2.1.
-
-
-## Resubmission comments
-**We now don't require the specific C++ version**
+This is ``smooth`` package, v4.0.0.
 
 
 ## Test environments
-* local Ubuntu 22.04.2, R 4.3.0
+* local Ubuntu 22.04.3, R 4.3.1
 * github actions
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
@@ -22,19 +18,19 @@ This is ``smooth`` package, v3.2.1.
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-    installed size is 27.0Mb
+    installed size is 20.5Mb
     sub-directories of 1Mb or more:
-      R      1.2Mb
-      doc    3.4Mb
-      libs  21.9Mb
+      R      1.3Mb
+      doc    3.3Mb
+      libs  15.4Mb
 0 errors | 0 warnings | 1 note
 
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.3.0
-- MacOS latest macOS Big Sur 10.16 with R 4.2.2
-- Ubuntu 20.04.6 with R 4.3.0
+- Windows latest release with R 4.3.1
+- MacOS latest macOS Monterey 12.6.8 with R 4.3.1
+- Ubuntu 20.04.6 with R 4.3.1
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
