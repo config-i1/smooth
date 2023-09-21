@@ -545,6 +545,11 @@ CreatorGUM <- function(silentText=FALSE,...){
 # If this is tiny sample, use SES instead
     if(tinySample){
         warning("Not enough observations to fit GUM Switching to ETS(A,N,N).",call.=FALSE);
+        if(!is.logical(silent)){
+            silent <- switch(silent[1],
+                             "none"=FALSE,
+                             TRUE);
+        }
         return(es(y,"ANN",initial=initial,loss=loss,
                   h=h,holdout=holdout,cumulative=cumulative,
                   interval=interval,level=level,

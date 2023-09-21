@@ -24,6 +24,7 @@
 #' \item \link[smooth]{sim.ssarima} - simulate time series using SARIMA as a model.
 #' \item \link[smooth]{sim.gum} - simulate time series using GUM as a model.
 #' \item \link[smooth]{sim.sma} - simulate time series using SMA.
+#' \item \link[smooth]{sim.oes} - simulate time series based on occurrence part of ETS model.
 #' \item \link[smooth]{oes} - occurrence part of the intermittent state space model.
 #' }
 #' There are also several methods implemented in the package for the classes
@@ -41,13 +42,16 @@
 #' \item residuals - extracts residuals of provided model.
 #' \item plot - plots either states of the model or produced forecast (depending on what object
 #' is passed).
-#' \item simulate - uses sim functions in order to simulate data using the provided object.
+#' \item simulate - uses sim functions (\link[smooth]{sim.es}, \link[smooth]{sim.ces},
+#' \link[smooth]{sim.ssarima}, \link[smooth]{sim.gum}, \link[smooth]{sim.sma} and
+#' \link[smooth]{sim.oes}) in order to simulate data using the provided object.
 #' \item summary - provides summary of the object.
 #' \item AICc, BICc - return, guess what...
 #' }
 #'
 #' @name smooth
 #' @docType package
+#' @aliases smooth-package
 #' @author Ivan Svetunkov
 #'
 #' Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>

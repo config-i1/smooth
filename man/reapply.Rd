@@ -5,7 +5,7 @@
 \alias{reforecast}
 \title{Reapply the model with randomly generated initial parameters and produce forecasts}
 \usage{
-reapply(object, nsim = 1000, bootstrap = FALSE, ...)
+reapply(object, nsim = 1000, bootstrap = FALSE, heuristics = NULL, ...)
 
 reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
   interval = c("prediction", "confidence", "none"), level = 0.95,
@@ -20,8 +20,11 @@ reforecast(object, h = 10, newdata = NULL, occurrence = NULL,
 \item{bootstrap}{The logical, which determines, whether to use bootstrap for the
 covariance matrix of parameters or not.}
 
-\item{...}{Other parameters passed to \code{mean()} function in case of
-\code{reforecast} (this mainly refers to \code{trim} variable, which is set to
+\item{heuristics}{The value for proportion to use for heuristic estimation of the
+standard deviation of parameters. If \code{NULL}, it is not used.}
+
+\item{...}{Other parameters passed to \code{reapply()} and \code{mean()} functions in case of
+\code{reforecast} (\code{trim} parameter in \code{mean()} is set to
 0.01 by default) and to \code{vcov} in case of \code{reapply}.}
 
 \item{h}{Forecast horizon.}

@@ -169,7 +169,7 @@ fitted.msdecompose <- function(object, ...){
 #' @param model The type of ETS model to fit on the decomposed trend. Only applicable to
 #' "msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then
 #' it will be selected automatically based on the type of the used decomposition (either
-#' among pure additive or among pure additive ETS models).
+#' among pure additive or among pure multiplicative ETS models).
 #' @rdname forecast.smooth
 #' @export
 forecast.msdecompose <- function(object, h=10,

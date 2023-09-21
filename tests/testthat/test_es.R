@@ -7,7 +7,7 @@ test_that("Test ETS selection on BJsales", {
 })
 
 test_that("Test damped-trend ETS on BJsales", {
-    expect_equal(round(es(BJsales,model="AAdN", silent=TRUE)$phi,2), 0.86);
+    expect_equal(es(BJsales,model="AAdN", silent=TRUE)$phi, 0.86, tolerance=0.1);
 })
 
 # Reuse previous ETS

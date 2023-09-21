@@ -1,8 +1,46 @@
-smooth v3.2.1 (Release data: 2023-01-18)
+smooth v4.0.0 (Release data: 2023-09-15)
 =======
+
+Changes:
+* Starting from v4.0.0, the smooth package for R will be released under the LGPLv2.1 license. The source of the older version of the software under the GPL(>=2) is available here: https://github.com/config-i1/smooth/releases/tag/v3.2.2
+
+
+smooth v3.2.2 (Release data: 2023-09-15)
+=======
+
+Changes:
+* Expanded info on simulate functions in the package description.
+* vcov() now can also return heuristic covariance matrix for adam via the heuristics=0.0025 or something like that. This is an experimental feature, which is why it is not explained in the documentation.
+* auto.msarima() is now a wrapper of adam() with orders=list(..., select=TRUE).
+* accuracy() is now implemented for smooth classes.
+
+Bugfixes:
+* forecast.adam() would not work correctly if the newdata had missing values.
+* Finally found and fixed an annoying bug that caused ARIMA to fail in some cases.
+* Fix in forecast.adam() for cases of h=1 and analytical variance.
+* A fix for adam() with LASSO/RIDGE, where "lambdaOriginal was not found".
+
+
+smooth v3.2.1 (Release data: 2023-06-01)
+=======
+
+Changes:
+* Combined ADAM now skips the models with weights less than 0.001, when producing forecasts.
+* forecast() for combined ADAM now also supports interval="complete".
+* reapply() method for combined ADAM.
 
 Bugfixes:
 * Correct default for initial in auto.adam().
+* PACF in plot.smooth() dropped the first lag because of a typo.
+* adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
+* sma() with order selection would not work on data with number of observations lower than the frequency.
+* Fix in simulate.adam(), which would ignore the states of the model.
+* sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
+* formula is now properly used in adam() in regressors="select".
+* smoothCombine() wouldn't work because of the wrong interval type.
+* coefbootstrap() now has a slightly larger smallest sample to consider (1 more observation). This should make it more robust.
+* Fix in adam() with Gamma distribution and mixed models.
+* Fixed a bug with ARIMA(0,d,0) with drift and an initial B becoming outside of bounds.
 
 
 smooth v3.2.0 (Release data: 2023-01-18)

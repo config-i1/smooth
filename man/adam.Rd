@@ -24,7 +24,7 @@ adam(data, model = "ZXZ", lags = c(frequency(data)), orders = list(ar =
   obs = nobs(object), ...)
 
 auto.adam(data, model = "ZXZ", lags = c(frequency(data)),
-  orders = list(ar = c(0), i = c(0), ma = c(0), select = FALSE),
+  orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3), select = TRUE),
   formula = NULL, regressors = c("use", "select", "adapt"),
   occurrence = c("none", "auto", "fixed", "general", "odds-ratio",
   "inverse-odds-ratio", "direct"), distribution = c("dnorm", "dlaplace",
@@ -181,7 +181,7 @@ example:
 \code{loss=lossFunction}}
 
 \item{outliers}{Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-\code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+\code{"use"} - detect outliers based on specified \code{level} and include dummies for them in the model,
 or detect and \code{"select"} those of them that reduce \code{ic} value.}
 
 \item{level}{What confidence level to use for detection of outliers. The default is 99\%. The specific
@@ -414,6 +414,7 @@ ourModel <- adam(rnorm(100,100,10), model="AAdN")
 # Simulate the data
 x <- simulate(ourModel)
 
+# Automatic selection of appropriate distribution and orders of ADAM ETS+ARIMA
 \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 
