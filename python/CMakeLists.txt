@@ -18,7 +18,7 @@ include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 # code to add the pybind11 cpp module, look at demo project 
 # (https://github.com/ltsaprounis/python-cpp-experiments/tree/main) for details.
-pybind11_add_module(_my_linalg ../src/my_linalg.cpp)
+pybind11_add_module(_my_linalg ../src/python_examples/my_linalg.cpp)
 
 # add CARMA as a subdirectory
 add_subdirectory(../src/libs/carma build)
