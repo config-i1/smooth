@@ -503,6 +503,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
             ##### Loop for differences #####
             # Prepare table with differences
             # expand.grid() can be used instead...
+            # iOrders <- as.matrix(cbind(expand.grid(lapply(iMax, seq, 0)), constant=1));
+            # Remove the row with all zeroes,  duplicate orders for the constant
+            # iOrders <- rbind(iOrders[-nrow(iOrders),],iOrders);
+            # First rows should not have constant
+            # iOrders[1:(floor(nrow(iOrders)/2)),ncol(iOrders)] <- 0;
             if(any(iMax!=0)){
                 iOrders[,1] <- rep(c(0:iMax[1]),times=prod(iMax[-1]+1));
                 if(ordersLength>1){
