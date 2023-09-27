@@ -10121,6 +10121,10 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                 yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE);
             }
             ySimulated[i,] <- ySimulated[i,]-yForecast[i];
+            # If it is the multiplicative error, return epsilon_t
+            if(Etype=="M"){
+                ySimulated[i,] <- ySimulated[i,]/yForecast[i];
+            }
         }
 
         covarMat <- (ySimulated %*% t(ySimulated))/nsim;
