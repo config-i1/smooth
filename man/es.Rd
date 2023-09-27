@@ -5,12 +5,13 @@
 \alias{es_old}
 \title{Exponential Smoothing in SSOE state space model}
 \usage{
-es(y, model = "ZZZ", persistence = NULL, phi = NULL,
-  initial = c("optimal", "backcasting", "complete"), initialSeason = NULL,
-  ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
-  "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
-  bounds = c("usual", "admissible", "none"), silent = TRUE, xreg = NULL,
-  regressors = c("use", "select"), initialX = NULL, ...)
+es(y, model = "ZZZ", lags = c(frequency(y)), persistence = NULL,
+  phi = NULL, initial = c("optimal", "backcasting", "complete"),
+  initialSeason = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
+  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
+  "MSCE"), h = 10, holdout = FALSE, bounds = c("usual", "admissible",
+  "none"), silent = TRUE, xreg = NULL, regressors = c("use", "select"),
+  initialX = NULL, ...)
 
 es_old(y, model = "ZZZ", persistence = NULL, phi = NULL,
   initial = c("optimal", "backcasting"), initialSeason = NULL,
@@ -56,6 +57,11 @@ package) model and use all its parameters.
 Keep in mind that model selection with "Z" components uses Branch and Bound
 algorithm and may skip some models that could have slightly smaller
 information criteria.}
+
+\item{lags}{Defines lags for the corresponding components. All components
+count, starting from level, so ETS(M,M,M) model for monthly data will have
+\code{lags=c(1,1,12)}. However, the function will also accept \code{lags=c(12)},
+assuming that the lags 1 were dropped.}
 
 \item{persistence}{Persistence vector \eqn{g}, containing smoothing
 parameters. If \code{NULL}, then estimated.}

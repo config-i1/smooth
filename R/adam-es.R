@@ -78,6 +78,10 @@
 #' Keep in mind that model selection with "Z" components uses Branch and Bound
 #' algorithm and may skip some models that could have slightly smaller
 #' information criteria.
+#' @param lags Defines lags for the corresponding components. All components
+#' count, starting from level, so ETS(M,M,M) model for monthly data will have
+#' \code{lags=c(1,1,12)}. However, the function will also accept \code{lags=c(12)},
+#' assuming that the lags 1 were dropped.
 #' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
 #' @param initial Can be either character or a vector of initial states.
 #' If it is character, then it can be \code{"optimal"}, meaning that all initial
@@ -225,7 +229,7 @@
 #'
 #' @rdname es
 #' @export
-es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
+es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting","complete"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE,
@@ -354,7 +358,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
         data <- ts(data, start=start(y), frequency=frequency(y));
         colnames(data)[1] <- "y";
         # Give name to the explanatory variables if they do not have them
-        if(is.null(names(xreg))){
+        if(is.null(colnames(xreg))){
             if(!is.null(ncol(xreg))){
                 colnames(data)[-1] <- paste0("x",c(1:ncol(xreg)));
             }
@@ -397,7 +401,7 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                 "Please use forecast() method to produce cumulative values.")
     }
 
-    ourModel <- adam(data=data, model=model, persistence=persistence, phi=phi,
+    ourModel <- adam(data=data, model=model, lags=lags, persistence=persistence, phi=phi,
                      loss=loss, h=h, holdout=holdout, initial=initialValue,
                      ic=ic, bounds=bounds, distribution="dnorm",
                      silent=silent, regressors=regressors[1], ...);

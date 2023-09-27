@@ -1,0 +1,30 @@
+[build-system]
+requires = ["scikit-build-core>=0.3.3", "pybind11", "numpy>=1.14"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "smooth"
+version = "0.0.1"
+description = "Python vesrion of the smooth forecasting library"
+readme = "README.md"
+requires-python = ">=3.8,<3.11"
+dependencies = ["pybind11[global]>=2.6.0", "numpy>=1.14"]
+
+# [tool.setuptools.packages]
+# find = {}
+
+[project.optional-dependencies]
+dev = ["flake8", "black", "pytest", "pydocstyle", "pre-commit", "ipykernel"]
+
+# [tool.pytest.ini_options]
+# addopts = "--ignore=../src/carma"
+
+[tool.scikit-build]
+# wheel.expand-macos-universal-tags = true
+build-dir = "build"
+logging.level = "INFO"
+ninja.make-fallback = true
+# This activates verbose builds
+cmake.verbose = true
+ninja.minimum-version = "1.5"
+cmake.minimum-version = "3.25"

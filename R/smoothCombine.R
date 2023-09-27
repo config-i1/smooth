@@ -115,6 +115,7 @@ smoothCombine <- function(y, models=NULL,
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
+    intervalOriginal <- interval;
 
 # Add all the variables in ellipsis to current environment
     thisEnvironment <- environment();
@@ -191,7 +192,7 @@ smoothCombine <- function(y, models=NULL,
 
     yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
     yHoldout <- yForecastTest$model$holdout;
-    yInSample <- yForecastTest$model$y;
+    yInSample <- actuals(yForecastTest$model);
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
@@ -203,7 +204,7 @@ smoothCombine <- function(y, models=NULL,
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
+    modelsForecasts <- lapply(models,forecast,h=h,interval=intervalOriginal,
                               level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
 

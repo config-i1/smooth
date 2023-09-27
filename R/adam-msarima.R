@@ -197,9 +197,9 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     h=10, holdout=FALSE,
                     # cumulative=FALSE,
                     # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                    bounds=c("admissible","none"),
+                    bounds=c("usual","admissible","none"),
                     silent=TRUE,
-                    xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
+                    xreg=NULL, regressors=c("use","select","adapt"), initialX=NULL, ...){
     # Copyright (C) 2022 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations

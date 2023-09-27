@@ -74,10 +74,6 @@ modelName <- function(object, ...) UseMethod("modelName")
 #' @export modelType
 modelType <- function(object, ...) UseMethod("modelType")
 
-modelLags <- function(object, ...) UseMethod("modelLags")
-
-smoothType <- function(object, ...) UseMethod("smoothType")
-
 ##### Likelihood function and stuff #####
 
 #' @importFrom greybox AICc
@@ -987,10 +983,13 @@ errorType.smooth <- function(object, ...){
 errorType.smooth.sim <- errorType.smooth;
 
 ##### Function returns the modelLags from the model - internal function #####
-modelLags.default <- function(object, ...){
+modelLags <- function(object, ...){
     modelLags <- NA;
     if(is.msarima(object)){
         modelLags <- object$modelLags;
+    }
+    else if(is.adam(object)){
+        modelLags <- object$lagsAll;
     }
     else{
         smoothType <- smoothType(object);
@@ -2613,11 +2612,7 @@ simulate.smooth <- function(object, nsim=1, seed=NULL, obs=NULL, ...){
 }
 
 #### Type of smooth model. Internal function ####
-smoothType.default <- function(object, ...){
-    return(NA);
-}
-
-smoothType.smooth <- function(object, ...){
+smoothType <- function(object, ...){
     if(!is.list(object$model)){
         if(gregexpr("ETS",object$model)!=-1){
             smoothType <- "ETS";
@@ -2651,8 +2646,6 @@ smoothType.smooth <- function(object, ...){
     return(smoothType);
 }
 
-smoothType.smooth.sim <- smoothType.smooth;
-
 #### Summary of objects ####
 #' @export
 summary.smooth <- function(object, ...){
@@ -2662,4 +2655,70 @@ summary.smooth <- function(object, ...){
 #' @export
 summary.smooth.forecast <- function(object, ...){
     print(object);
+}
+
+
+#### Accuracy measures ####
+
+#' @importFrom generics accuracy
+#' @export
+generics::accuracy
+
+#' Error measures for an estimated model
+#'
+#' Function produces error measures for the provided object and the holdout values of the
+#' response variable. Note that instead of parameters \code{x}, \code{test}, the function
+#' accepts the vector of values in \code{holdout}. Also, the parameters \code{d} and \code{D}
+#' are not supported - MASE is always calculated via division by first differences.
+#'
+#' The function is a wrapper for the \link[greybox]{measures} function and is implemented
+#' for convenience.
+#'
+#' @template ssAuthor
+#'
+#' @param object The estimated model or a forecast from the estimated model generated via
+#' either \code{predict()} or \code{forecast()} functions.
+#' @param holdout The vector of values of the response variable in the holdout (test) set.
+#' If not provided, then the function will return the in-sample error measures. If the
+#' \code{holdout=TRUE} parameter was used in the estimation of a model, the holdout values
+#' will be extracted automatically.
+#' @param ... Other variables passed to the \code{forecast()} function (e.g. \code{newdata}).
+#' @examples
+#'
+#' y <- rnorm(100, 100, 10)
+#' ourModel <- adam(y, holdout=TRUE, h=10)
+#' accuracy(ourModel)
+#'
+#' @rdname accuracy
+#' @export
+accuracy.smooth <- function(object, holdout=NULL, ...){
+    if(is.null(object$holdout)){
+        if(is.null(holdout)){
+            return(measures(actuals(object), fitted(object), actuals(object)));
+        }
+        else{
+            h <- length(holdout);
+            return(measures(holdout, forecast(object, h=h, ...)$mean, actuals(object)));
+        }
+    }
+    else{
+        return(object$accuracy);
+    }
+}
+
+#' @rdname accuracy
+#' @export
+accuracy.smooth.forecast <- function(object, holdout=NULL, ...){
+    if(is.null(holdout)){
+        if(is.null(object$model$holdout)){
+            return(measures(actuals(object), fitted(object), actuals(object)));
+        }
+        else{
+            return(object$model$accuracy);
+        }
+    }
+    else{
+        h <- length(holdout);
+        return(measures(holdout, object$mean, actuals(object)));
+    }
 }

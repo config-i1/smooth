@@ -1634,7 +1634,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 }
 
                 #### Pure regression ####
-                #### If this is just a regression, use stepwise / ALM
+                #### If this is just a regression ALM
                 if((!etsModel && !arimaModel) && regressors!="adapt"){
                     # Return the estimated model based on the provided xreg
                     if(is.null(formulaToUse)){
@@ -1661,34 +1661,19 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     }
 
                     # Either use or select the model via greybox functions
-                    if(regressors=="use"){
-                        # Fisher Information
-                        if(is.null(ellipsis$FI)){
-                            FI <- FALSE;
-                        }
-                        else{
-                            FI <- ellipsis$FI;
-                        }
-                        almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
-                                                        distribution=distribution, loss=loss,
-                                                        subset=which(subset),
-                                                        occurrence=oesModel,FI=FI));
-                        almModel$call$data <- as.name(yName);
-                        return(almModel);
+                    # Fisher Information
+                    if(is.null(ellipsis$FI)){
+                        FI <- FALSE;
                     }
-                    else if(regressors=="select"){
-                        warning("The specified model is just a stepwise regression. ",
-                                "It is advised to use stepwise() function from greybox instead.",
-                                call.=FALSE);
-                        if(lossOriginal!="likelihood"){
-                            warning("Stepwise only works with loss='likelihood'. Switching to it.",
-                                    call.=FALSE);
-                            loss <- "likelihood"
-                        }
-                        almModel <- stepwise(xregData, distribution=distribution, subset=which(subset), occurrence=oesModel);
-                        almModel$call$data <- as.name(yName);
-                        return(almModel);
+                    else{
+                        FI <- ellipsis$FI;
                     }
+                    almModel <- do.call("alm", list(formula=formulaToUse, data=xregData,
+                                                    distribution=distribution, loss=loss,
+                                                    subset=which(subset),
+                                                    occurrence=oesModel,FI=FI));
+                    almModel$call$data <- as.name(yName);
+                    return(almModel);
                 }
 
                 #### ETSX / ARIMAX ####
@@ -2237,12 +2222,55 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             }
         }
         else{
+            #### Pure regression ####
+            #### If this is just a regression, use stepwise
+            if((!etsModel && !arimaModel) && regressors!="adapt"){
+                # Return the estimated model based on the provided xreg
+                if(is.null(formulaToUse)){
+                    formulaToUse <- reformulate(setdiff(colnames(xregData), responseName), response=responseName);
+                    # formulaToUse <- as.formula(paste0("`",responseName,"`~."));
+                    formulaProvided <- FALSE;
+                }
+                else{
+                    formulaProvided <- TRUE;
+                }
+                if(distribution=="default"){
+                    distribution[] <- "dnorm";
+                }
+
+                # Form subset in order to use in-sample only
+                subset <- rep(FALSE, obsAll);
+                subset[1:obsInSample] <- TRUE;
+                # Exclude zeroes if this is an occurrence model
+                if(occurrenceModel){
+                    subset[1:obsInSample][!otLogical] <- FALSE;
+                }
+
+                almModel <- do.call("stepwise", list(data=xregData, formula=formulaToUse, subset=subset,
+                                                     distribution=distribution, occurrence=oesModel));
+                almModel$call$data <- as.name(yName);
+                return(almModel);
+            }
+
             # Include only variables from the formula
             if(is.null(formulaToUse)){
                 formulaToUse <- as.formula(paste0("`",responseName,"`~."));
             }
             else{
-                xregData <- xregData[,all.vars(formulaToUse)[-1],drop=FALSE];
+                # Do model.frame manipulations
+                # We do it this way to avoid factors expansion into dummies at this stage
+                mf <- as.call(list(quote(stats::model.frame), formula=formulaToUse,
+                                   data=xregData, drop.unused.levels=FALSE));
+
+                if(!is.data.frame(xregData)){
+                    mf$data <- as.data.frame(xregData);
+                }
+                # Evaluate data frame to do transformations of variables
+                xregData <- eval(mf, parent.frame());
+
+                # Remove variables that have "-x" in the formula
+                dataTerms <- terms(xregData);
+                xregData <- xregData[,colnames(attr(dataTerms,"factors"))];
             }
             xregNumber <- ncol(xregData);
             xregNames <- colnames(xregData);
