@@ -2497,7 +2497,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
     }
 
-    if(arimaModel && obsNonzero < initialArimaNumber && !select){
+    if(arimaModel && obsNonzero < (initialType=="optimal")*initialArimaNumber && !select){
         warning(paste0("In-sample size is ",obsNonzero,", while number of ARIMA components is ",initialArimaNumber,
                        ". Cannot fit the model."),call.=FALSE)
         stop("Not enough observations for such a complicated model.",call.=FALSE);

@@ -1,8 +1,9 @@
-smooth v4.0.1 (Release data: 2023-09-27)
+smooth v4.0.1 (Release data: 2023-09-30)
 =======
 
 Bugfixes:
-* Fixed a bug with multicov.adam() and simulated covariance matrix
+* Fixed a bug with multicov.adam() and simulated covariance matrix.
+* adam() ARIMA and msarima() with backcasting would count number of components towards the number of estimated parameters.
 
 
 smooth v4.0.0 (Release data: 2023-09-15)
