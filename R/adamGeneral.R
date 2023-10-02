@@ -2644,27 +2644,36 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             else if(obsNonzero > (3 + nParamExo) && any(modelDo==c("estimate","use"))){
                 # We don't have enough observations for seasonal models with damped trend
                 if((obsNonzero <= (6 + lagsModelMax + 1 + nParamExo))){
-                    model <- model[!(nchar(model)==4 &
-                                         substr(model,nchar(model),nchar(model))=="A")];
-                    model <- model[!(nchar(model)==4 &
-                                         substr(model,nchar(model),nchar(model))=="M")];
+                    if(nchar(model)==4){
+                        model <- paste0(substr(model,1,2),substr(model,4,4));
+                    }
+                    # model <- model[!(nchar(model)==4 &
+                    #                      substr(model,nchar(model),nchar(model))=="A")];
+                    # model <- model[!(nchar(model)==4 &
+                    #                      substr(model,nchar(model),nchar(model))=="M")];
                 }
                 # We don't have enough observations for seasonal models with trend
                 if((obsNonzero <= (5 + lagsModelMax + 1 + nParamExo))){
-                    model <- model[!(substr(model,2,2)!="N" &
-                                         substr(model,nchar(model),nchar(model))!="N")];
+                    model <- paste0(substr(model,1,1),"N",substr(model,3,3));
+                    # model <- model[!(substr(model,2,2)!="N" &
+                    #                      substr(model,nchar(model),nchar(model))!="N")];
                 }
                 # We don't have enough observations for seasonal models
                 if(obsNonzero <= 2*lagsModelMax){
-                    model <- model[substr(model,nchar(model),nchar(model))=="N"];
+                    model <- paste0(substr(model,1,2),"N");
+                    # model <- model[substr(model,nchar(model),nchar(model))=="N"];
                 }
                 # We don't have enough observations for damped trend
                 if(obsNonzero <= (6 + nParamExo)){
-                    model <- model[nchar(model)!=4];
+                    if(nchar(model)==4){
+                        model <- paste0(substr(model,1,2),substr(model,4,4));
+                    }
+                    # model <- model[nchar(model)!=4];
                 }
                 # We don't have enough observations for any trend
                 if(obsNonzero <= (5 + nParamExo)){
-                    model <- model[substr(model,2,2)=="N"];
+                    model <- paste0(substr(model,1,1),"N",substr(model,3,3));
+                    # model <- model[substr(model,2,2)=="N"];
                 }
             }
             # Extreme cases of small samples

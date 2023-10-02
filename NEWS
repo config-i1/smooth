@@ -1,9 +1,10 @@
-smooth v4.0.1 (Release data: 2023-09-30)
+smooth v4.0.1 (Release data: 2023-10-02)
 =======
 
 Bugfixes:
 * Fixed a bug with multicov.adam() and simulated covariance matrix.
 * adam() ARIMA and msarima() with backcasting would count number of components towards the number of estimated parameters.
+* adam() would not remove components of ETS correctly in cases of small samples (e.g. obs == 2*frequency).
 
 
 smooth v4.0.0 (Release data: 2023-09-15)
