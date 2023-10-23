@@ -2799,7 +2799,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                            "take more time to converge to the optimum. Consider either setting maxeval parameter ",
                            "to a higher value (e.g. maxeval=10000, which will take ~25 times more than this) ",
                            "or using initial='backcasting'."),
-                    call.=FALSE);
+                    call.=FALSE, immediate.=TRUE);
         }
     }
     else{

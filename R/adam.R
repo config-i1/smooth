@@ -1161,6 +1161,20 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
                         switch(Etype, "A"=0, "M"=1);
+                    if(any(lags>1)){
+                        yDecomposition <- tail(msdecompose(switch(Etype,
+                                                                  "A"=yInSample,
+                                                                  "M"=log(yInSample)),
+                                                           lags[lags!=1],
+                                                           type=switch(Etype,
+                                                                       "A"="additive",
+                                                                       "M"="multiplicative"))$seasonal,1)[[1]];
+                    }
+                    else{
+                        yDecomposition <- mean(diff(yInSample));
+                    }
+                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
+                        rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
                         # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
 
                     # Failsafe mechanism in case the sample is too small
@@ -1448,7 +1462,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             # This is needed in order to propagate initials of ARIMA to all components
             else if(any(c(arEstimate,maEstimate))){
-                if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                # if(nrow(nonZeroARI)>0){
                     matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
@@ -1457,7 +1472,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
-                }
+                # }
                 # else{
                 #     matVt[componentsNumberETS+nonZeroMA[,2],
                 #           1:initialArimaNumber] <-
@@ -2064,6 +2079,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
         # print(round(B,3))
         # print(adamElements$vecG)
+        # print(profilesRecentTable)
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,

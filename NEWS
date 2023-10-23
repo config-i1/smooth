@@ -1,5 +1,8 @@
-smooth v4.0.1 (Release data: 2023-10-02)
+smooth v4.0.1 (Release data: 2023-10-23)
 =======
+
+Changes:
+* Initialisation of ARIMA is now more precise, both for "optimal" and "backcasting", leading to a better fit of the model to the data. This was done using more meaningful initial values of states and by cutting the small step of refitting the head states in ARIMA with backcasting.
 
 Bugfixes:
 * Fixed a bug with multicov.adam() and simulated covariance matrix.
