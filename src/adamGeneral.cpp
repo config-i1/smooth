@@ -107,14 +107,14 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
             }
 
             // Fill in the head of the series.
-            if(nArima==0){
+            // if(nArima==0){
                 for (int i=lagsModelMax-1; i>=0; i=i-1) {
                     profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
                                    matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
                     matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
                 }
-            }
+            // }
 
             // Change back the specific element in the state vector
             if(T=='A'){
