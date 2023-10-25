@@ -28,3 +28,9 @@ target_link_libraries(_my_linalg
 )
 
 install(TARGETS _my_linalg DESTINATION smooth/my_linalg)
+
+# Adam General
+pybind11_add_module(_adam_general ../src/python_examples/adamGeneral.cpp)
+target_link_libraries(_adam_general PRIVATE carma::carma ${ARMADILLO_LIBRARIES})
+target_include_directories(_adam_general PRIVATE ../src/python_examples/.)
+install(TARGETS _adam_general DESTINATION smooth/adam_general)
