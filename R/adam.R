@@ -1779,6 +1779,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 Bu[j+1:initialArimaNumber] <- Inf;
             }
             else{
+                # Make sure that ARIMA states are positive to avoid errors
+                B[j+1:initialArimaNumber] <- abs(B[j+1:initialArimaNumber]);
                 Bl[j+1:initialArimaNumber] <- 0;
                 Bu[j+1:initialArimaNumber] <- Inf;
             }
