@@ -1162,16 +1162,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
                         switch(Etype, "A"=0, "M"=1);
                     if(any(lags>1)){
-                        yDecomposition <- tail(msdecompose(switch(Etype,
-                                                                  "A"=yInSample,
-                                                                  "M"=log(yInSample)),
+                        yDecomposition <- tail(msdecompose(yInSample,
                                                            lags[lags!=1],
                                                            type=switch(Etype,
                                                                        "A"="additive",
                                                                        "M"="multiplicative"))$seasonal,1)[[1]];
                     }
                     else{
-                        yDecomposition <- mean(diff(yInSample));
+                        yDecomposition <- switch(Etype,
+                                                 "A"=mean(diff(yInSample)),
+                                                 "M"=exp(mean(diff(log(yInSample)))));
                     }
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
