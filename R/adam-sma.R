@@ -127,6 +127,12 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     }
     else{
         model <- ellipsis$model;
+
+        if(inherits(y,"Mdata")){
+            h <- y$h;
+            holdout <- TRUE;
+            y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
+        }
     }
 
     # If a previous model provided as a model, write down the variables
@@ -190,7 +196,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     ot[] <- 1;
 
     CreatorSMA <- function(order){
-        lagsModelAll <- 1:order;
+        lagsModelAll <- matrix(1:order, ncol=1);
         lagsModelMax <- max(lagsModelAll);
         obsStates <- obsInSample+lagsModelMax;
 
