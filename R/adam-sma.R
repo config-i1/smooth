@@ -195,30 +195,17 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         obsStates <- obsInSample+1;
 
         # Create ADAM profiles
-        profilesRecentTable <- matrix(0,length(lagsModelAll),lagsModelMax,
+        profilesRecentTable <- matrix(mean(yInSample[1:order]),order,lagsModelMax,
                                       dimnames=list(lagsModelAll,NULL));
         # Create the matrix of observed profiles indices
-        profilesObservedTable <- matrix((1:order)-1,length(lagsModelAll),obsAll+lagsModelMax,
+        profilesObservedTable <- matrix((1:order)-1,order,obsAll+lagsModelMax,
                                         dimnames=list(lagsModelAll,NULL));
 
-        if(order>1){
-            matF <- rbind(cbind(rep(1/order,order-1),diag(order-1)),
-                          c(1/order,rep(0,order-1)));
-            matWt <- matrix(c(1,rep(0,order-1)),obsInSample,order,byrow=TRUE);
-        }
-        else{
-            matF <- matrix(1,1,1);
-            matWt <- matrix(1,obsInSample,1);
-        }
+        # State space matrices
+        matF <- matrix(1/order,order,order);
+        matWt <- matrix(1,obsInSample,order,byrow=TRUE);
         vecG <- matrix(1/order,order);
         matVt <- matrix(NA,order,obsStates);
-        matVt[1,1:order] <- rep(mean(yInSample[1:order]),order);
-        # if(order>1){
-        #     for(i in 2:order){
-        #         matVt[i,1:(order-i+1)] <- matVt[i-1,1:(order-i+1)+1] -
-        #             matVt[1,1:(order-i+1)] * matF[i-1,1];
-        #     }
-        # }
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
