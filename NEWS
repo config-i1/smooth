@@ -1,3 +1,16 @@
+smooth v4.0.1 (Release data: 2023-11-01)
+=======
+
+Changes:
+* Initialisation of ARIMA is now more precise, both for "optimal" and "backcasting", leading to a better fit of the model to the data. This was done using more meaningful initial values of states and by cutting the small step of refitting the head states in ARIMA with backcasting.
+
+Bugfixes:
+* Fixed a bug with multicov.adam() and simulated covariance matrix.
+* adam() ARIMA and msarima() with backcasting would count number of components towards the number of estimated parameters.
+* adam() would not remove components of ETS correctly in cases of small samples (e.g. obs == 2*frequency).
+* Fixed the code of sma() - there was a bug in the architecture resulting in wrong fitting.
+
+
 smooth v4.0.0 (Release data: 2023-09-15)
 =======
 

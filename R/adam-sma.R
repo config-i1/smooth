@@ -127,6 +127,12 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     }
     else{
         model <- ellipsis$model;
+
+        if(inherits(y,"Mdata")){
+            h <- y$h;
+            holdout <- TRUE;
+            y <- ts(c(y$x,y$xx),start=start(y$x),frequency=frequency(y$x));
+        }
     }
 
     # If a previous model provided as a model, write down the variables
@@ -190,35 +196,22 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     ot[] <- 1;
 
     CreatorSMA <- function(order){
-        lagsModelAll <- as.matrix(rep(1,order));
-        lagsModelMax <- 1;
-        obsStates <- obsInSample+1;
+        lagsModelAll <- matrix(1:order, ncol=1);
+        lagsModelMax <- max(lagsModelAll);
+        obsStates <- obsInSample+lagsModelMax;
 
-        # Create ADAM profiles
-        profilesRecentTable <- matrix(0,length(lagsModelAll),lagsModelMax,
-                                      dimnames=list(lagsModelAll,NULL));
-        # Create the matrix of observed profiles indices
-        profilesObservedTable <- matrix((1:order)-1,length(lagsModelAll),obsAll+lagsModelMax,
-                                        dimnames=list(lagsModelAll,NULL));
+        # # Create ADAM profiles
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
 
-        if(order>1){
-            matF <- rbind(cbind(rep(1/order,order-1),diag(order-1)),
-                          c(1/order,rep(0,order-1)));
-            matWt <- matrix(c(1,rep(0,order-1)),obsInSample,order,byrow=TRUE);
-        }
-        else{
-            matF <- matrix(1,1,1);
-            matWt <- matrix(1,obsInSample,1);
-        }
+        profilesObservedTable <- adamProfiles$observed;
+        profilesRecentTable <- adamProfiles$recent;
+        profilesRecentTable[order,1:order] <- mean(yInSample[1:order]);
+
+        # State space matrices
+        matF <- matrix(1/order,order,order);
+        matWt <- matrix(1,obsInSample,order,byrow=TRUE);
         vecG <- matrix(1/order,order);
-        matVt <- matrix(NA,order,obsStates);
-        matVt[1,1:order] <- rep(mean(yInSample[1:order]),order);
-        # if(order>1){
-        #     for(i in 2:order){
-        #         matVt[i,1:(order-i+1)] <- matVt[i-1,1:(order-i+1)+1] -
-        #             matVt[1,1:(order-i+1)] * matF[i-1,1];
-        #     }
-        # }
+        matVt <- matrix(0,order,obsStates);
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
@@ -234,7 +227,6 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         ICValue <- icFunction(logLik);
 
         return(ICValue);
-        # return(list(order=order,cfObjective=cfObjective,ICValue=ICValue,logLik=logLik));
     }
 
 

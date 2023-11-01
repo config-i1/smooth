@@ -1161,6 +1161,20 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 if(initialArimaEstimate){
                     matVt[componentsNumberETS+1:componentsNumberARIMA, 1:initialArimaNumber] <-
                         switch(Etype, "A"=0, "M"=1);
+                    if(any(lags>1)){
+                        yDecomposition <- tail(msdecompose(yInSample,
+                                                           lags[lags!=1],
+                                                           type=switch(Etype,
+                                                                       "A"="additive",
+                                                                       "M"="multiplicative"))$seasonal,1)[[1]];
+                    }
+                    else{
+                        yDecomposition <- switch(Etype,
+                                                 "A"=mean(diff(yInSample)),
+                                                 "M"=exp(mean(diff(log(yInSample)))));
+                    }
+                    matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
+                        rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
                         # rep(yInSample[1:initialArimaNumber],each=componentsNumberARIMA);
 
                     # Failsafe mechanism in case the sample is too small
@@ -1448,7 +1462,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             }
             # This is needed in order to propagate initials of ARIMA to all components
             else if(any(c(arEstimate,maEstimate))){
-                if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+                # if(nrow(nonZeroARI)>0){
                     matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
@@ -1457,7 +1472,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
                                            tail(arimaPolynomials$ariPolynomial,1)));
-                }
+                # }
                 # else{
                 #     matVt[componentsNumberETS+nonZeroMA[,2],
                 #           1:initialArimaNumber] <-
@@ -1764,6 +1779,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 Bu[j+1:initialArimaNumber] <- Inf;
             }
             else{
+                # Make sure that ARIMA states are positive to avoid errors
+                B[j+1:initialArimaNumber] <- abs(B[j+1:initialArimaNumber]);
                 Bl[j+1:initialArimaNumber] <- 0;
                 Bu[j+1:initialArimaNumber] <- Inf;
             }
@@ -2064,6 +2081,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         profilesRecentTable[] <- adamElements$matVt[,1:lagsModelMax];
         # print(round(B,3))
         # print(adamElements$vecG)
+        # print(profilesRecentTable)
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(adamElements$matVt, adamElements$matWt, adamElements$matF, adamElements$vecG,
@@ -5755,7 +5773,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
             if(ncol(x$states)>10){
-                message("Too many states. Plotting them one by one on several graphs.");
+                message("Too many states. Plotting them one by one on several plots.");
                 if(is.null(ellipsis$main)){
                     ellipsisMain <- NULL;
                 }
@@ -10121,6 +10139,10 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
                 yForecast[i] <- mean(ySimulated[i,],na.rm=TRUE);
             }
             ySimulated[i,] <- ySimulated[i,]-yForecast[i];
+            # If it is the multiplicative error, return epsilon_t
+            if(Etype=="M"){
+                ySimulated[i,] <- ySimulated[i,]/yForecast[i];
+            }
         }
 
         covarMat <- (ySimulated %*% t(ySimulated))/nsim;
