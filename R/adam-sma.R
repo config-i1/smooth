@@ -190,22 +190,22 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
     ot[] <- 1;
 
     CreatorSMA <- function(order){
-        lagsModelAll <- as.matrix(rep(1,order));
-        lagsModelMax <- 1;
-        obsStates <- obsInSample+1;
+        lagsModelAll <- 1:order;
+        lagsModelMax <- max(lagsModelAll);
+        obsStates <- obsInSample+lagsModelMax;
 
-        # Create ADAM profiles
-        profilesRecentTable <- matrix(mean(yInSample[1:order]),order,lagsModelMax,
-                                      dimnames=list(lagsModelAll,NULL));
-        # Create the matrix of observed profiles indices
-        profilesObservedTable <- matrix((1:order)-1,order,obsAll+lagsModelMax,
-                                        dimnames=list(lagsModelAll,NULL));
+        # # Create ADAM profiles
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
+
+        profilesObservedTable <- adamProfiles$observed;
+        profilesRecentTable <- adamProfiles$recent;
+        profilesRecentTable[order,1:order] <- mean(yInSample[1:order]);
 
         # State space matrices
         matF <- matrix(1/order,order,order);
         matWt <- matrix(1,obsInSample,order,byrow=TRUE);
         vecG <- matrix(1/order,order);
-        matVt <- matrix(NA,order,obsStates);
+        matVt <- matrix(0,order,obsStates);
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
@@ -221,7 +221,6 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         ICValue <- icFunction(logLik);
 
         return(ICValue);
-        # return(list(order=order,cfObjective=cfObjective,ICValue=ICValue,logLik=logLik));
     }
 
 
