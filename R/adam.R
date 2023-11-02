@@ -1170,8 +1170,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                     else{
                         yDecomposition <- switch(Etype,
-                                                 "A"=mean(diff(yInSample)),
-                                                 "M"=exp(mean(diff(log(yInSample)))));
+                                                 "A"=mean(diff(yInSample[otLogical])),
+                                                 "M"=exp(mean(diff(log(yInSample[otLogical])))));
                     }
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
