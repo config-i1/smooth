@@ -2609,7 +2609,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # print(BValues$B);
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
-        # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             adamCreatedARIMA <- filler(BValues$B,
                                        etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
