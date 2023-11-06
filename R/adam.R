@@ -4934,6 +4934,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 }
 
 #### Small useful ADAM functions ####
+# These functions are faster than which() and tail() for vectors are.
+# The main gain is in polinomialiser()
+whichFast <- function(x){
+    return(c(1:length(x))[x]);
+}
+tailFast <- function(x,...){
+    return(x[length(x)]) ;
+}
+
 # This function creates recent and observed profiles for adam
 #' @importFrom greybox detectdst
 adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
@@ -5058,11 +5067,11 @@ polynomialiser <- function(B, arOrders, iOrders, maOrders,
         if(arOrders[i]*lags[i]!=0){
             if(arEstimate){
                 arParameters[1+(1:arOrders[i])*lags[i],i] <- -B[nParam+c(1:arOrders[i])-1];
-                nParam <- nParam + arOrders[i];
+                nParam[] <- nParam + arOrders[i];
             }
             else if(!arEstimate && arRequired){
                 arParameters[1+(1:arOrders[i])*lags[i],i] <- -armaParameters[armanParam+c(1:arOrders[i])-1];
-                armanParam <- armanParam + arOrders[i];
+                armanParam[] <- armanParam + arOrders[i];
             }
         }
 
@@ -5073,11 +5082,11 @@ polynomialiser <- function(B, arOrders, iOrders, maOrders,
         if(maOrders[i]*lags[i]!=0){
             if(maEstimate){
                 maParameters[1+(1:maOrders[i])*lags[i],i] <- B[nParam+c(1:maOrders[i])-1];
-                nParam <- nParam + maOrders[i];
+                nParam[] <- nParam + maOrders[i];
             }
             else if(!maEstimate && maRequired){
                 maParameters[1+(1:maOrders[i])*lags[i],i] <- armaParameters[armanParam+c(1:maOrders[i])-1];
-                armanParam <- armanParam + maOrders[i];
+                armanParam[] <- armanParam + maOrders[i];
             }
         }
     }
@@ -5099,28 +5108,28 @@ polynomialiser <- function(B, arOrders, iOrders, maOrders,
     for(i in 1:length(lags)){
         if(i!=1){
             if(arOrders[i]>0){
-                index1[] <- tail(which(arPolynomial!=0),1);
-                index2[] <- tail(which(arParameters[,i]!=0),1);
+                index1[] <- tailFast(whichFast(arPolynomial!=0));
+                index2[] <- tailFast(whichFast(arParameters[,i]!=0));
                 arPolynomial[1:(index1+index2-1)] <- polyprod(arPolynomial[1:index1], arParameters[1:index2,i]);
             }
 
             if(maOrders[i]>0){
-                index1[] <- tail(which(maPolynomial!=0),1);
-                index2[] <- tail(which(maParameters[,i]!=0),1);
+                index1[] <- tailFast(whichFast(maPolynomial!=0));
+                index2[] <- tailFast(whichFast(maParameters[,i]!=0));
                 maPolynomial[1:(index1+index2-1)] <- polyprod(maPolynomial[1:index1], maParameters[1:index2,i]);
             }
 
             if(iOrders[i]>0){
-                index1[] <- tail(which(iPolynomial!=0),1);
-                index2[] <- tail(which(iParameters[,i]!=0),1);
+                index1[] <- tailFast(whichFast(iPolynomial!=0));
+                index2[] <- tailFast(whichFast(iParameters[,i]!=0));
                 iPolynomial[1:(index1+index2-1)] <- polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
             }
         }
         # This part takes the power of (1-B)^D
         if(iOrders[i]>1){
             for(j in 2:iOrders[i]){
-                index1[] <- tail(which(iPolynomial!=0),1);
-                index2[] <- tail(which(iParameters[,i]!=0),1);
+                index1[] <- tailFast(whichFast(iPolynomial!=0));
+                index2[] <- tailFast(whichFast(iParameters[,i]!=0));
                 iPolynomial[1:(index1+index2-1)] = polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
             }
         }
