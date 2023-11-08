@@ -90,6 +90,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// adamPolynomialiser
+RcppExport SEXP adamPolynomialiser(arma::vec const& B, arma::uvec const& arOrders, arma::uvec const& iOrders, arma::uvec const& maOrders, bool const& arEstimate, bool const& maEstimate, SEXP armaParameters, arma::uvec const& lags);
+RcppExport SEXP _smooth_adamPolynomialiser(SEXP BSEXP, SEXP arOrdersSEXP, SEXP iOrdersSEXP, SEXP maOrdersSEXP, SEXP arEstimateSEXP, SEXP maEstimateSEXP, SEXP armaParametersSEXP, SEXP lagsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec const& >::type B(BSEXP);
+    Rcpp::traits::input_parameter< arma::uvec const& >::type arOrders(arOrdersSEXP);
+    Rcpp::traits::input_parameter< arma::uvec const& >::type iOrders(iOrdersSEXP);
+    Rcpp::traits::input_parameter< arma::uvec const& >::type maOrders(maOrdersSEXP);
+    Rcpp::traits::input_parameter< bool const& >::type arEstimate(arEstimateSEXP);
+    Rcpp::traits::input_parameter< bool const& >::type maEstimate(maEstimateSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type armaParameters(armaParametersSEXP);
+    Rcpp::traits::input_parameter< arma::uvec const& >::type lags(lagsSEXP);
+    rcpp_result_gen = Rcpp::wrap(adamPolynomialiser(B, arOrders, iOrders, maOrders, arEstimate, maEstimate, armaParameters, lags));
+    return rcpp_result_gen;
+END_RCPP
+}
 // adamRefitterWrap
 RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::cube arrayVt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat profilesObserved, arma::cube arrayProfilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
 RcppExport SEXP _smooth_adamRefitterWrap(SEXP matrixYtSEXP, SEXP matrixOtSEXP, SEXP arrayVtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP arrayProfilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {

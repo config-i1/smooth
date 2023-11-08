@@ -45,6 +45,23 @@ inline arma::mat errorvf(arma::mat yact, arma::mat yfit, char const &E){
     }
 }
 
+/* # Function allows to multiply polinomails */
+inline arma::vec polyMult(arma::vec const &poly1, arma::vec const &poly2){
+
+    int poly1Nonzero = arma::as_scalar(find(poly1,1,"last"));
+    int poly2Nonzero = arma::as_scalar(find(poly2,1,"last"));
+
+    arma::vec poly3(poly1Nonzero + poly2Nonzero + 1, arma::fill::zeros);
+
+    for(int i = 0; i <= poly1Nonzero; ++i){
+        for(int j = 0; j <= poly2Nonzero; ++j){
+            poly3(i+j) += poly1(i) * poly2(j);
+        }
+    }
+
+    return poly3;
+}
+
 /* # Function returns value of w() -- y-fitted -- used in the measurement equation */
 inline double wvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW, char const &E, char const &T, char const &S,
               arma::rowvec const &rowvecXt, arma::vec const &vecAt){

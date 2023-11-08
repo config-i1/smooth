@@ -258,3 +258,103 @@ RcppExport SEXP adamErrorerWrap(arma::mat matrixVt, arma::mat matrixWt, arma::ma
                             nNonSeasonal, nSeasonal, nArima, nXreg, constant,
                             horizon, vectorYt, vectorOt));
 }
+
+// [[Rcpp::export]]
+RcppExport SEXP adamPolynomialiser(arma::vec const &B,
+                                   arma::uvec const &arOrders, arma::uvec const &iOrders, arma::uvec const &maOrders,
+                                   bool const &arEstimate, bool const &maEstimate,
+                                   SEXP armaParameters, arma::uvec const &lags){
+
+    // Sometimes armaParameters is NULL. Treat this correctly
+    arma::vec armaParametersValue;
+    if(!Rf_isNull(armaParameters)){
+        armaParametersValue = as<arma::vec>(armaParameters);
+    }
+
+// Form matrices with parameters, that are then used for polynomial multiplication
+    arma::mat arParameters(max(arOrders % lags)+1, arOrders.n_elem, arma::fill::zeros);
+    arma::mat iParameters(max(iOrders % lags)+1, iOrders.n_elem, arma::fill::zeros);
+    arma::mat maParameters(max(maOrders % lags)+1, maOrders.n_elem, arma::fill::zeros);
+
+    arParameters.row(0).fill(1);
+    iParameters.row(0).fill(1);
+    maParameters.row(0).fill(1);
+
+    int lagsModelMax = max(lags);
+
+    int nParam = 0;
+    int armanParam = 0;
+    for(unsigned int i=0; i<lags.n_rows; ++i){
+        if(arOrders(i) * lags(i) != 0){
+            for(unsigned int j=0; j<arOrders(i); ++j){
+                if(arEstimate){
+                    arParameters((j+1)*lags(i),i) = -B(nParam);
+                    nParam += 1;
+                }
+                else{
+                    arParameters((j+1)*lags(i),i) = -armaParametersValue(armanParam);
+                    armanParam += 1;
+                }
+            }
+        }
+
+        if(iOrders(i) * lags(i) != 0){
+            iParameters(lags(i),i) = -1;
+        }
+
+        if(maOrders(i) * lags(i) != 0){
+            for(unsigned int j=0; j<maOrders(i); ++j){
+                if(maEstimate){
+                    maParameters((j+1)*lags(i),i) = B(nParam);
+                    nParam += 1;
+                }
+                else{
+                    maParameters((j+1)*lags(i),i) = armaParametersValue(armanParam);
+                    armanParam += 1;
+                }
+            }
+        }
+    }
+
+// Prepare vectors with coefficients for polynomials
+    arma::vec arPolynomial(sum(arOrders % lags)+1, arma::fill::zeros);
+    arma::vec iPolynomial(sum(iOrders % lags)+1, arma::fill::zeros);
+    arma::vec maPolynomial(sum(maOrders % lags)+1, arma::fill::zeros);
+    arma::vec ariPolynomial(sum(arOrders % lags)+sum(iOrders % lags)+1, arma::fill::zeros);
+    arma::vec buferPolynomial;
+
+    arPolynomial.rows(0,arOrders(0)*lags(0)) = arParameters.submat(0,0,arOrders(0)*lags(0),0);
+    iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
+    maPolynomial.rows(0,maOrders(0)*lags(0)) = maParameters.submat(0,0,maOrders(0)*lags(0),0);
+
+    for(unsigned int i=0; i<lags.n_rows; ++i){
+// Form polynomials
+        if(i!=0){
+            buferPolynomial = polyMult(arPolynomial, arParameters.col(i));
+            arPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+
+            buferPolynomial = polyMult(maPolynomial, maParameters.col(i));
+            maPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+
+            buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+            iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+        }
+        if(iOrders(i)>1){
+            for(unsigned int j=1; j<iOrders(i); ++j){
+                buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+                iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+            }
+        }
+
+    }
+    // ariPolynomial contains 1 in the first place
+    ariPolynomial = polyMult(arPolynomial, iPolynomial);
+
+    // // R dies without this resize... Weird!
+    // maPolynomial.resize(sum(maOrders % lags)+1);
+    // ariPolynomial.resize(sum(arOrders % lags)+sum(iOrders % lags)+1);
+    // arPolynomial.resize(sum(arOrders % lags)+1);
+
+    return wrap(List::create(Named("arPolynomial") = arPolynomial, Named("iPolynomial") = iPolynomial,
+                             Named("ariPolynomial") = ariPolynomial, Named("maPolynomial") = maPolynomial));
+}
