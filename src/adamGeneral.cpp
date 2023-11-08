@@ -321,7 +321,7 @@ RcppExport SEXP adamPolynomialiser(arma::vec const &B,
     arma::vec iPolynomial(sum(iOrders % lags)+1, arma::fill::zeros);
     arma::vec maPolynomial(sum(maOrders % lags)+1, arma::fill::zeros);
     arma::vec ariPolynomial(sum(arOrders % lags)+sum(iOrders % lags)+1, arma::fill::zeros);
-    arma::vec buferPolynomial;
+    arma::vec bufferPolynomial;
 
     arPolynomial.rows(0,arOrders(0)*lags(0)) = arParameters.submat(0,0,arOrders(0)*lags(0),0);
     iPolynomial.rows(0,iOrders(0)*lags(0)) = iParameters.submat(0,0,iOrders(0)*lags(0),0);
@@ -330,19 +330,19 @@ RcppExport SEXP adamPolynomialiser(arma::vec const &B,
     for(unsigned int i=0; i<lags.n_rows; ++i){
 // Form polynomials
         if(i!=0){
-            buferPolynomial = polyMult(arPolynomial, arParameters.col(i));
-            arPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+            bufferPolynomial = polyMult(arPolynomial, arParameters.col(i));
+            arPolynomial.rows(0,bufferPolynomial.n_rows-1) = bufferPolynomial;
 
-            buferPolynomial = polyMult(maPolynomial, maParameters.col(i));
-            maPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+            bufferPolynomial = polyMult(maPolynomial, maParameters.col(i));
+            maPolynomial.rows(0,bufferPolynomial.n_rows-1) = bufferPolynomial;
 
-            buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
-            iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+            bufferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+            iPolynomial.rows(0,bufferPolynomial.n_rows-1) = bufferPolynomial;
         }
         if(iOrders(i)>1){
             for(unsigned int j=1; j<iOrders(i); ++j){
-                buferPolynomial = polyMult(iPolynomial, iParameters.col(i));
-                iPolynomial.rows(0,buferPolynomial.n_rows-1) = buferPolynomial;
+                bufferPolynomial = polyMult(iPolynomial, iParameters.col(i));
+                iPolynomial.rows(0,bufferPolynomial.n_rows-1) = bufferPolynomial;
             }
         }
 

@@ -9317,9 +9317,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             else{
                 for(i in 1:nsim){
                     # Call the function returning ARI and MA polynomials
-                    arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                       arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                                                       armaParameters, lags);
+                    # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                    #                                    armaParameters, lags);
+                    arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                  arOrders, iOrders, maOrders,
+                                                                  arEstimate, maEstimate, armaParameters, lags), as.vector)
                     profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroMA[,2], 1:initialArimaNumber, i] <-
