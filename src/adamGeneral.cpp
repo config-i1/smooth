@@ -350,10 +350,17 @@ RcppExport SEXP adamPolynomialiser(arma::vec const &B,
     // ariPolynomial contains 1 in the first place
     ariPolynomial = polyMult(arPolynomial, iPolynomial);
 
-    // // R dies without this resize... Weird!
-    // maPolynomial.resize(sum(maOrders % lags)+1);
-    // ariPolynomial.resize(sum(arOrders % lags)+sum(iOrders % lags)+1);
-    // arPolynomial.resize(sum(arOrders % lags)+1);
+    // Check if the length of polynomials is correct. Fix if needed
+    // This might happen if one of parameters became equal to zero
+    if(maPolynomial.n_rows!=sum(maOrders % lags)+1){
+        maPolynomial.resize(sum(maOrders % lags)+1);
+    }
+    if(ariPolynomial.n_rows!=sum(arOrders % lags)+sum(iOrders % lags)+1){
+        ariPolynomial.resize(sum(arOrders % lags)+sum(iOrders % lags)+1);
+    }
+    if(arPolynomial.n_rows!=sum(arOrders % lags)+1){
+        arPolynomial.resize(sum(arOrders % lags)+1);
+    }
 
     return wrap(List::create(Named("arPolynomial") = arPolynomial, Named("iPolynomial") = iPolynomial,
                              Named("ariPolynomial") = ariPolynomial, Named("maPolynomial") = maPolynomial));
