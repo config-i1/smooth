@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // adamFitterWrap
-RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& profilesObserved, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast);
-RcppExport SEXP _smooth_adamFitterWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP vectorGSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP, SEXP backcastSEXP) {
+RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& indexLookupTable, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast);
+RcppExport SEXP _smooth_adamFitterWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP vectorGSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP, SEXP backcastSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,7 +22,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat& >::type matrixF(matrixFSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type vectorG(vectorGSEXP);
     Rcpp::traits::input_parameter< arma::uvec& >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat& >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat& >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type profilesRecent(profilesRecentSEXP);
     Rcpp::traits::input_parameter< char const& >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< char const& >::type Ttype(TtypeSEXP);
@@ -35,20 +35,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec& >::type vectorYt(vectorYtSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type vectorOt(vectorOtSEXP);
     Rcpp::traits::input_parameter< bool const& >::type backcast(backcastSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamFitterWrap(matrixVt, matrixWt, matrixF, vectorG, lags, profilesObserved, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, vectorYt, vectorOt, backcast));
+    rcpp_result_gen = Rcpp::wrap(adamFitterWrap(matrixVt, matrixWt, matrixF, vectorG, lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, vectorYt, vectorOt, backcast));
     return rcpp_result_gen;
 END_RCPP
 }
 // adamForecasterWrap
-RcppExport SEXP adamForecasterWrap(arma::mat& matrixWt, arma::mat& matrixF, arma::uvec& lags, arma::umat& profilesObserved, arma::mat& profilesRecent, char const& E, char const& T, char const& S, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, unsigned int const& horizon);
-RcppExport SEXP _smooth_adamForecasterWrap(SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP profilesRecentSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP horizonSEXP) {
+RcppExport SEXP adamForecasterWrap(arma::mat& matrixWt, arma::mat& matrixF, arma::uvec& lags, arma::umat& indexLookupTable, arma::mat& profilesRecent, char const& E, char const& T, char const& S, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, unsigned int const& horizon);
+RcppExport SEXP _smooth_adamForecasterWrap(SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP horizonSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::mat& >::type matrixWt(matrixWtSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type matrixF(matrixFSEXP);
     Rcpp::traits::input_parameter< arma::uvec& >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat& >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat& >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::mat& >::type profilesRecent(profilesRecentSEXP);
     Rcpp::traits::input_parameter< char const& >::type E(ESEXP);
     Rcpp::traits::input_parameter< char const& >::type T(TSEXP);
@@ -59,13 +59,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int const& >::type nXreg(nXregSEXP);
     Rcpp::traits::input_parameter< bool const& >::type constant(constantSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type horizon(horizonSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamForecasterWrap(matrixWt, matrixF, lags, profilesObserved, profilesRecent, E, T, S, componentsNumberETS, nSeasonal, nArima, nXreg, constant, horizon));
+    rcpp_result_gen = Rcpp::wrap(adamForecasterWrap(matrixWt, matrixF, lags, indexLookupTable, profilesRecent, E, T, S, componentsNumberETS, nSeasonal, nArima, nXreg, constant, horizon));
     return rcpp_result_gen;
 END_RCPP
 }
 // adamErrorerWrap
-RcppExport SEXP adamErrorerWrap(arma::mat matrixVt, arma::mat matrixWt, arma::mat matrixF, arma::uvec lags, arma::umat profilesObserved, arma::mat profilesRecent, char Etype, char Ttype, char Stype, unsigned int& componentsNumberETS, unsigned int& nSeasonal, unsigned int nArima, unsigned int nXreg, bool constant, unsigned int horizon, arma::vec vectorYt, arma::vec vectorOt);
-RcppExport SEXP _smooth_adamErrorerWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP horizonSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP) {
+RcppExport SEXP adamErrorerWrap(arma::mat matrixVt, arma::mat matrixWt, arma::mat matrixF, arma::uvec lags, arma::umat indexLookupTable, arma::mat profilesRecent, char Etype, char Ttype, char Stype, unsigned int& componentsNumberETS, unsigned int& nSeasonal, unsigned int nArima, unsigned int nXreg, bool constant, unsigned int horizon, arma::vec vectorYt, arma::vec vectorOt);
+RcppExport SEXP _smooth_adamErrorerWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP horizonSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -73,7 +73,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::mat >::type matrixWt(matrixWtSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type matrixF(matrixFSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type profilesRecent(profilesRecentSEXP);
     Rcpp::traits::input_parameter< char >::type Etype(EtypeSEXP);
     Rcpp::traits::input_parameter< char >::type Ttype(TtypeSEXP);
@@ -86,7 +86,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int >::type horizon(horizonSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type vectorYt(vectorYtSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type vectorOt(vectorOtSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamErrorerWrap(matrixVt, matrixWt, matrixF, lags, profilesObserved, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, horizon, vectorYt, vectorOt));
+    rcpp_result_gen = Rcpp::wrap(adamErrorerWrap(matrixVt, matrixWt, matrixF, lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, horizon, vectorYt, vectorOt));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -109,8 +109,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // adamRefitterWrap
-RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::cube arrayVt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat profilesObserved, arma::cube arrayProfilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
-RcppExport SEXP _smooth_adamRefitterWrap(SEXP matrixYtSEXP, SEXP matrixOtSEXP, SEXP arrayVtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP arrayProfilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
+RcppExport SEXP adamRefitterWrap(arma::mat matrixYt, arma::mat matrixOt, arma::cube arrayVt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat indexLookupTable, arma::cube arrayProfilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
+RcppExport SEXP _smooth_adamRefitterWrap(SEXP matrixYtSEXP, SEXP matrixOtSEXP, SEXP arrayVtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP arrayProfilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -124,20 +124,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< char const& >::type T(TSEXP);
     Rcpp::traits::input_parameter< char const& >::type S(SSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::cube >::type arrayProfilesRecent(arrayProfilesRecentSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nSeasonal(nSeasonalSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type componentsNumberETS(componentsNumberETSSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nArima(nArimaSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nXreg(nXregSEXP);
     Rcpp::traits::input_parameter< bool const& >::type constant(constantSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamRefitterWrap(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, profilesObserved, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant));
+    rcpp_result_gen = Rcpp::wrap(adamRefitterWrap(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant));
     return rcpp_result_gen;
 END_RCPP
 }
 // adamReforecasterWrap
-RcppExport SEXP adamReforecasterWrap(arma::cube arrayErrors, arma::cube arrayOt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec& lags, arma::umat const& profilesObserved, arma::cube arrayProfileRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
-RcppExport SEXP _smooth_adamReforecasterWrap(SEXP arrayErrorsSEXP, SEXP arrayOtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP arrayProfileRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
+RcppExport SEXP adamReforecasterWrap(arma::cube arrayErrors, arma::cube arrayOt, arma::cube arrayF, arma::cube arrayWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec& lags, arma::umat const& indexLookupTable, arma::cube arrayProfileRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumberETS, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
+RcppExport SEXP _smooth_adamReforecasterWrap(SEXP arrayErrorsSEXP, SEXP arrayOtSEXP, SEXP arrayFSEXP, SEXP arrayWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP arrayProfileRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberETSSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -150,20 +150,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< char const& >::type T(TSEXP);
     Rcpp::traits::input_parameter< char const& >::type S(SSEXP);
     Rcpp::traits::input_parameter< arma::uvec& >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat const& >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat const& >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::cube >::type arrayProfileRecent(arrayProfileRecentSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nSeasonal(nSeasonalSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type componentsNumberETS(componentsNumberETSSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nArima(nArimaSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nXreg(nXregSEXP);
     Rcpp::traits::input_parameter< bool const& >::type constant(constantSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamReforecasterWrap(arrayErrors, arrayOt, arrayF, arrayWt, matrixG, E, T, S, lags, profilesObserved, arrayProfileRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant));
+    rcpp_result_gen = Rcpp::wrap(adamReforecasterWrap(arrayErrors, arrayOt, arrayF, arrayWt, matrixG, E, T, S, lags, indexLookupTable, arrayProfileRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant));
     return rcpp_result_gen;
 END_RCPP
 }
 // adamSimulatorWrap
-RcppExport SEXP adamSimulatorWrap(arma::cube arrayVt, arma::mat matrixErrors, arma::mat matrixOt, arma::cube arrayF, arma::mat matrixWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat profilesObserved, arma::mat profilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumber, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
-RcppExport SEXP _smooth_adamSimulatorWrap(SEXP arrayVtSEXP, SEXP matrixErrorsSEXP, SEXP matrixOtSEXP, SEXP arrayFSEXP, SEXP matrixWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP profilesObservedSEXP, SEXP profilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
+RcppExport SEXP adamSimulatorWrap(arma::cube arrayVt, arma::mat matrixErrors, arma::mat matrixOt, arma::cube arrayF, arma::mat matrixWt, arma::mat matrixG, char const& E, char const& T, char const& S, arma::uvec lags, arma::umat indexLookupTable, arma::mat profilesRecent, unsigned int const& nSeasonal, unsigned int const& componentsNumber, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant);
+RcppExport SEXP _smooth_adamSimulatorWrap(SEXP arrayVtSEXP, SEXP matrixErrorsSEXP, SEXP matrixOtSEXP, SEXP arrayFSEXP, SEXP matrixWtSEXP, SEXP matrixGSEXP, SEXP ESEXP, SEXP TSEXP, SEXP SSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP nSeasonalSEXP, SEXP componentsNumberSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -177,14 +177,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< char const& >::type T(TSEXP);
     Rcpp::traits::input_parameter< char const& >::type S(SSEXP);
     Rcpp::traits::input_parameter< arma::uvec >::type lags(lagsSEXP);
-    Rcpp::traits::input_parameter< arma::umat >::type profilesObserved(profilesObservedSEXP);
+    Rcpp::traits::input_parameter< arma::umat >::type indexLookupTable(indexLookupTableSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type profilesRecent(profilesRecentSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nSeasonal(nSeasonalSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type componentsNumber(componentsNumberSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nArima(nArimaSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nXreg(nXregSEXP);
     Rcpp::traits::input_parameter< bool const& >::type constant(constantSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamSimulatorWrap(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG, E, T, S, lags, profilesObserved, profilesRecent, nSeasonal, componentsNumber, nArima, nXreg, constant));
+    rcpp_result_gen = Rcpp::wrap(adamSimulatorWrap(arrayVt, matrixErrors, matrixOt, arrayF, matrixWt, matrixG, E, T, S, lags, indexLookupTable, profilesRecent, nSeasonal, componentsNumber, nArima, nXreg, constant));
     return rcpp_result_gen;
 END_RCPP
 }
