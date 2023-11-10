@@ -1,10 +1,11 @@
-smooth v4.0.1 (Release data: 2023-11-08)
+smooth v4.0.1 (Release data: 2023-11-10)
 =======
 
 Changes:
 * Initialisation of ARIMA is now more precise, both for "optimal" and "backcasting", leading to a better fit of the model to the data. This was done using more meaningful initial values of states and by cutting the small step of refitting the head states in ARIMA with backcasting.
 * Further tuning of the initialisation via backcasting. This time in C++ code for the preheating period.
 * Rewrote the polynomialiser() function in C++. This should speed up ADAM ARIMA and msarima().
+* Renamed the internal variable "profileObseredTable" into a more meaningful "indexLookupTable".
 
 Bugfixes:
 * Fixed a bug with multicov.adam() and simulated covariance matrix.

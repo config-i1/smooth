@@ -203,7 +203,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
         # # Create ADAM profiles
         adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll);
 
-        profilesObservedTable <- adamProfiles$observed;
+        indexLookupTable <- adamProfiles$lookup;
         profilesRecentTable <- adamProfiles$recent;
         profilesRecentTable[order,1:order] <- mean(yInSample[1:order]);
 
@@ -215,7 +215,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
 
         #### Fitter and the losses calculation ####
         adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
-                                     lagsModelAll, profilesObservedTable, profilesRecentTable,
+                                     lagsModelAll, indexLookupTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      order, xregNumber, constantRequired,
                                      yInSample, ot, TRUE);
