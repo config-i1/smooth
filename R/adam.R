@@ -873,8 +873,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # If the arma parameters were provided, fill in the persistence
         if(arimaModel && (!arEstimate && !maEstimate)){
             # Call polynomial
-            arimaPolynomials <- polynomialiser(NULL, arOrders, iOrders, maOrders,
-                                               arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+            # arimaPolynomials <- polynomialiser(NULL, arOrders, iOrders, maOrders,
+            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+            arimaPolynomials <- lapply(adamPolynomialiser(0, arOrders, iOrders, maOrders,
+                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
             # Fill in the transition matrix
             if(nrow(nonZeroARI)>0){
                 matF[componentsNumberETS+nonZeroARI[,2],componentsNumberETS+nonZeroARI[,2]] <-
@@ -1170,8 +1172,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                     else{
                         yDecomposition <- switch(Etype,
-                                                 "A"=mean(diff(yInSample)),
-                                                 "M"=exp(mean(diff(log(yInSample)))));
+                                                 "A"=mean(diff(yInSample[otLogical])),
+                                                 "M"=exp(mean(diff(log(yInSample[otLogical])))));
                     }
                     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <-
                         rep(yDecomposition,ceiling(initialArimaNumber/max(lags)))[1:initialArimaNumber];
@@ -1389,8 +1391,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- polynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))], arOrders, iOrders, maOrders,
-                                               arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+            # arimaPolynomials <- polynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))], arOrders, iOrders, maOrders,
+            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
+            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                          arOrders, iOrders, maOrders,
+                                                          arEstimate, maEstimate, armaParameters, lags), as.vector);
 
             # Fill in the transition matrix
             if(nrow(nonZeroARI)>0){
@@ -1678,7 +1683,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
                 for(i in 1:length(lags)){
                     if(arRequired && arEstimate && arOrders[i]>0){
-                        B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                        if(all(!is.nan(pacfValues[c(1:arOrders[i])*lags[i]]))){
+                            B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                        }
+                        else{
+                            B[j+c(1:arOrders[i])] <- 0.1;
+                        }
                         if(sum(B[j+c(1:arOrders[i])])>1){
                             B[j+c(1:arOrders[i])] <- B[j+c(1:arOrders[i])] / sum(B[j+c(1:arOrders[i])]) - 0.01;
                         }
@@ -1689,7 +1699,12 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         j[] <- j + arOrders[i];
                     }
                     if(maRequired && maEstimate && maOrders[i]>0){
-                        B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                        if(all(!is.nan(acfValues[c(1:maOrders[i])*lags[i]]))){
+                            B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                        }
+                        else{
+                            B[j+c(1:maOrders[i])] <- 0.1;
+                        }
                         if(sum(B[j+c(1:maOrders[i])])>1){
                             B[j+c(1:maOrders[i])] <- B[j+c(1:maOrders[i])] / sum(B[j+c(1:maOrders[i])]) - 0.01;
                         }
@@ -2599,7 +2614,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # print(BValues$B);
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
-        # This is also not needed for I(d) model and d>1, as the backcasting hurts in this case
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             adamCreatedARIMA <- filler(BValues$B,
                                        etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
@@ -4925,6 +4939,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 }
 
 #### Small useful ADAM functions ####
+# These functions are faster than which() and tail() for vectors are.
+# The main gain is in polinomialiser()
+# whichFast <- function(x){
+#     return(c(1:length(x))[x]);
+# }
+# tailFast <- function(x,...){
+#     return(x[length(x)]) ;
+# }
+
 # This function creates recent and observed profiles for adam
 #' @importFrom greybox detectdst
 adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
@@ -5026,102 +5049,102 @@ adamProfileCreator <- function(lagsModelAll, lagsModelMax, obsAll,
 }
 
 #### ARI and MA polynomials function ####
-polynomialiser <- function(B, arOrders, iOrders, maOrders,
-                           arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags){
-
-    # Number of parameters that we have
-    nParamAR <- sum(arOrders);
-    nParamMA <- sum(maOrders);
-
-    # Matrices with parameters
-    arParameters <- matrix(0, max(arOrders * lags) + 1, length(arOrders));
-    iParameters <- matrix(0, max(iOrders * lags) + 1, length(iOrders));
-    maParameters <- matrix(0, max(maOrders * lags) + 1, length(maOrders));
-    # The first element is always 1
-    arParameters[1,] <- iParameters[1,] <- maParameters[1,] <- 1;
-
-    # nParam is used for B
-    nParam <- 1;
-    # armanParam is used for the provided arma parameters
-    armanParam <- 1;
-    # Fill in the matrices with the provided parameters
-    for(i in 1:length(lags)){
-        if(arOrders[i]*lags[i]!=0){
-            if(arEstimate){
-                arParameters[1+(1:arOrders[i])*lags[i],i] <- -B[nParam+c(1:arOrders[i])-1];
-                nParam <- nParam + arOrders[i];
-            }
-            else if(!arEstimate && arRequired){
-                arParameters[1+(1:arOrders[i])*lags[i],i] <- -armaParameters[armanParam+c(1:arOrders[i])-1];
-                armanParam <- armanParam + arOrders[i];
-            }
-        }
-
-        if(iOrders[i]*lags[i] != 0){
-            iParameters[1+lags[i],i] <- -1;
-        }
-
-        if(maOrders[i]*lags[i]!=0){
-            if(maEstimate){
-                maParameters[1+(1:maOrders[i])*lags[i],i] <- B[nParam+c(1:maOrders[i])-1];
-                nParam <- nParam + maOrders[i];
-            }
-            else if(!maEstimate && maRequired){
-                maParameters[1+(1:maOrders[i])*lags[i],i] <- armaParameters[armanParam+c(1:maOrders[i])-1];
-                armanParam <- armanParam + maOrders[i];
-            }
-        }
-    }
-
-    # Vectors of polynomials for the ARIMA
-    arPolynomial <- vector("numeric", sum(arOrders * lags) + 1);
-    iPolynomial <- vector("numeric", sum(iOrders * lags) + 1);
-    maPolynomial <- vector("numeric", sum(maOrders * lags) + 1);
-    ariPolynomial <- vector("numeric", sum(arOrders * lags) + sum(iOrders * lags) + 1);
-
-    # Fill in the first polynomials
-    arPolynomial[0:(arOrders[1]*lags[1])+1] <- arParameters[0:(arOrders[1]*lags[1])+1,1];
-    iPolynomial[0:(iOrders[1]*lags[1])+1] <- iParameters[0:(iOrders[1]*lags[1])+1,1];
-    maPolynomial[0:(maOrders[1]*lags[1])+1] <- maParameters[0:(maOrders[1]*lags[1])+1,1];
-
-    index1 <- 0
-    index2 <- 0;
-    # Fill in all the other polynomials
-    for(i in 1:length(lags)){
-        if(i!=1){
-            if(arOrders[i]>0){
-                index1[] <- tail(which(arPolynomial!=0),1);
-                index2[] <- tail(which(arParameters[,i]!=0),1);
-                arPolynomial[1:(index1+index2-1)] <- polyprod(arPolynomial[1:index1], arParameters[1:index2,i]);
-            }
-
-            if(maOrders[i]>0){
-                index1[] <- tail(which(maPolynomial!=0),1);
-                index2[] <- tail(which(maParameters[,i]!=0),1);
-                maPolynomial[1:(index1+index2-1)] <- polyprod(maPolynomial[1:index1], maParameters[1:index2,i]);
-            }
-
-            if(iOrders[i]>0){
-                index1[] <- tail(which(iPolynomial!=0),1);
-                index2[] <- tail(which(iParameters[,i]!=0),1);
-                iPolynomial[1:(index1+index2-1)] <- polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
-            }
-        }
-        # This part takes the power of (1-B)^D
-        if(iOrders[i]>1){
-            for(j in 2:iOrders[i]){
-                index1[] <- tail(which(iPolynomial!=0),1);
-                index2[] <- tail(which(iParameters[,i]!=0),1);
-                iPolynomial[1:(index1+index2-1)] = polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
-            }
-        }
-    }
-    # ARI polynomials
-    ariPolynomial[] <- polyprod(arPolynomial, iPolynomial);
-
-    return(list(arPolynomial=arPolynomial,iPolynomial=iPolynomial,
-                ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
-}
+# polynomialiser <- function(B, arOrders, iOrders, maOrders,
+#                            arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags){
+#
+#     # Number of parameters that we have
+#     nParamAR <- sum(arOrders);
+#     nParamMA <- sum(maOrders);
+#
+#     # Matrices with parameters
+#     arParameters <- matrix(0, max(arOrders * lags) + 1, length(arOrders));
+#     iParameters <- matrix(0, max(iOrders * lags) + 1, length(iOrders));
+#     maParameters <- matrix(0, max(maOrders * lags) + 1, length(maOrders));
+#     # The first element is always 1
+#     arParameters[1,] <- iParameters[1,] <- maParameters[1,] <- 1;
+#
+#     # nParam is used for B
+#     nParam <- 1;
+#     # armanParam is used for the provided arma parameters
+#     armanParam <- 1;
+#     # Fill in the matrices with the provided parameters
+#     for(i in 1:length(lags)){
+#         if(arOrders[i]*lags[i]!=0){
+#             if(arEstimate){
+#                 arParameters[1+(1:arOrders[i])*lags[i],i] <- -B[nParam+c(1:arOrders[i])-1];
+#                 nParam[] <- nParam + arOrders[i];
+#             }
+#             else if(!arEstimate && arRequired){
+#                 arParameters[1+(1:arOrders[i])*lags[i],i] <- -armaParameters[armanParam+c(1:arOrders[i])-1];
+#                 armanParam[] <- armanParam + arOrders[i];
+#             }
+#         }
+#
+#         if(iOrders[i]*lags[i] != 0){
+#             iParameters[1+lags[i],i] <- -1;
+#         }
+#
+#         if(maOrders[i]*lags[i]!=0){
+#             if(maEstimate){
+#                 maParameters[1+(1:maOrders[i])*lags[i],i] <- B[nParam+c(1:maOrders[i])-1];
+#                 nParam[] <- nParam + maOrders[i];
+#             }
+#             else if(!maEstimate && maRequired){
+#                 maParameters[1+(1:maOrders[i])*lags[i],i] <- armaParameters[armanParam+c(1:maOrders[i])-1];
+#                 armanParam[] <- armanParam + maOrders[i];
+#             }
+#         }
+#     }
+#
+#     # Vectors of polynomials for the ARIMA
+#     arPolynomial <- vector("numeric", sum(arOrders * lags) + 1);
+#     iPolynomial <- vector("numeric", sum(iOrders * lags) + 1);
+#     maPolynomial <- vector("numeric", sum(maOrders * lags) + 1);
+#     ariPolynomial <- vector("numeric", sum(arOrders * lags) + sum(iOrders * lags) + 1);
+#
+#     # Fill in the first polynomials
+#     arPolynomial[0:(arOrders[1]*lags[1])+1] <- arParameters[0:(arOrders[1]*lags[1])+1,1];
+#     iPolynomial[0:(iOrders[1]*lags[1])+1] <- iParameters[0:(iOrders[1]*lags[1])+1,1];
+#     maPolynomial[0:(maOrders[1]*lags[1])+1] <- maParameters[0:(maOrders[1]*lags[1])+1,1];
+#
+#     index1 <- 0;
+#     index2 <- 0;
+#     # Fill in all the other polynomials
+#     for(i in 1:length(lags)){
+#         if(i!=1){
+#             if(arOrders[i]>0){
+#                 index1[] <- tailFast(whichFast(arPolynomial!=0));
+#                 index2[] <- tailFast(whichFast(arParameters[,i]!=0));
+#                 arPolynomial[1:(index1+index2-1)] <- polyprod(arPolynomial[1:index1], arParameters[1:index2,i]);
+#             }
+#
+#             if(maOrders[i]>0){
+#                 index1[] <- tailFast(whichFast(maPolynomial!=0));
+#                 index2[] <- tailFast(whichFast(maParameters[,i]!=0));
+#                 maPolynomial[1:(index1+index2-1)] <- polyprod(maPolynomial[1:index1], maParameters[1:index2,i]);
+#             }
+#
+#             if(iOrders[i]>0){
+#                 index1[] <- tailFast(whichFast(iPolynomial!=0));
+#                 index2[] <- tailFast(whichFast(iParameters[,i]!=0));
+#                 iPolynomial[1:(index1+index2-1)] <- polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
+#             }
+#         }
+#         # This part takes the power of (1-B)^D
+#         if(iOrders[i]>1){
+#             for(j in 2:iOrders[i]){
+#                 index1[] <- tailFast(whichFast(iPolynomial!=0));
+#                 index2[] <- tailFast(whichFast(iParameters[,i]!=0));
+#                 iPolynomial[1:(index1+index2-1)] = polyprod(iPolynomial[1:index1], iParameters[1:index2,i]);
+#             }
+#         }
+#     }
+#     # ARI polynomials
+#     ariPolynomial[] <- polyprod(arPolynomial, iPolynomial);
+#
+#     return(list(arPolynomial=arPolynomial,iPolynomial=iPolynomial,
+#                 ariPolynomial=ariPolynomial,maPolynomial=maPolynomial));
+# }
 
 #### Technical methods ####
 #' @export
@@ -9198,9 +9221,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
 
         for(i in 1:nsim){
             # Call the function returning ARI and MA polynomials
-            arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                               arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                                               armaParameters, lags);
+            # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+            #                                    armaParameters, lags);
+            arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                          arOrders, iOrders, maOrders,
+                                                          arEstimate, maEstimate, armaParameters, lags), as.vector)
 
             # Fill in the transition and persistence matrices
             if(nrow(nonZeroARI)>0){
@@ -9268,9 +9294,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                     # Call the function returning ARI and MA polynomials
                     ### This is not optimal, as the polynomialiser() is called twice (for parameters and here),
                     ### but this is simpler
-                    arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                       arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                                                       armaParameters, lags);
+                    # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                    #                                    armaParameters, lags);
+                    arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                  arOrders, iOrders, maOrders,
+                                                                  arEstimate, maEstimate, armaParameters, lags), as.vector)
                     profilesRecentArray[j+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroARI[,2], 1:initialArimaNumber, i] <-
@@ -9288,9 +9317,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
             else{
                 for(i in 1:nsim){
                     # Call the function returning ARI and MA polynomials
-                    arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
-                                                       arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
-                                                       armaParameters, lags);
+                    # arimaPolynomials <- polynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                    #                                    arOrders, iOrders, maOrders, arRequired, maRequired, arEstimate, maEstimate,
+                    #                                    armaParameters, lags);
+                    arimaPolynomials <- lapply(adamPolynomialiser(randomParameters[i,polyIndex+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                                  arOrders, iOrders, maOrders,
+                                                                  arEstimate, maEstimate, armaParameters, lags), as.vector)
                     profilesRecentArray[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber, i] <-
                         randomParameters[i, k+1:initialArimaNumber];
                     profilesRecentArray[j+nonZeroMA[,2], 1:initialArimaNumber, i] <-

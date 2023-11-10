@@ -13,6 +13,10 @@ adamErrorerWrap <- function(matrixVt, matrixWt, matrixF, lags, profilesObserved,
     .Call('_smooth_adamErrorerWrap', PACKAGE = 'smooth', matrixVt, matrixWt, matrixF, lags, profilesObserved, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, horizon, vectorYt, vectorOt)
 }
 
+adamPolynomialiser <- function(B, arOrders, iOrders, maOrders, arEstimate, maEstimate, armaParameters, lags) {
+    .Call('_smooth_adamPolynomialiser', PACKAGE = 'smooth', B, arOrders, iOrders, maOrders, arEstimate, maEstimate, armaParameters, lags)
+}
+
 adamRefitterWrap <- function(matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, profilesObserved, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant) {
     .Call('_smooth_adamRefitterWrap', PACKAGE = 'smooth', matrixYt, matrixOt, arrayVt, arrayF, arrayWt, matrixG, E, T, S, lags, profilesObserved, arrayProfilesRecent, nSeasonal, componentsNumberETS, nArima, nXreg, constant)
 }
