@@ -38,7 +38,7 @@ def sma(y, order=1, h=10, holdout=False):
         )
 
         # This as well...
-        profiles_observed_table = np.tile(
+        index_lookup_table = np.tile(
             np.arange(order), (obs_all + lags_model_max, 1)
         ).T
 
@@ -56,7 +56,7 @@ def sma(y, order=1, h=10, holdout=False):
             matrixF=matF,
             vectorG=vecG,
             lags=lags_model_all,
-            profilesObserved=profiles_observed_table,
+            indexLookupTable=index_lookup_table,
             profilesRecent=profiles_recent_table,
             E=E_type,
             T=T_type,

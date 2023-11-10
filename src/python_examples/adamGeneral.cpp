@@ -15,7 +15,7 @@ namespace py = pybind11;
 // Convert from Rcpp::List to pybind11::dict
 
 py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matrixF, arma::vec const &vectorG,
-                    arma::uvec &lags, arma::umat const &profilesObserved, arma::mat profilesRecent,
+                    arma::uvec &lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
                     char const &E, char const &T, char const &S,
                     unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                     unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
@@ -52,8 +52,8 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
         // if(!backcast){
         for (int i = 0; i < lagsModelMax; i = i + 1)
         {
-            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
-            profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
+            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+            profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                                                  matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
         }
         // }
@@ -63,7 +63,7 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
         {
 
             /* # Measurement equation and the error term */
-            vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i)),
+            vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
                                                    matrixWt.row(i - lagsModelMax), E, T, S,
                                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
@@ -78,12 +78,12 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
             }
 
             /* # Transition equation */
-            profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
+            profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                                                  matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                                      adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF, matrixWt.row(i - lagsModelMax), E, T, S,
+                                                      adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF, matrixWt.row(i - lagsModelMax), E, T, S,
                                                                  nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant, vectorG, vecErrors(i - lagsModelMax));
 
-            matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
+            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
         }
 
         ////// Backwards run
@@ -102,7 +102,7 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
             for (int i = obs + lagsModelMax - 1; i >= lagsModelMax; i = i - 1)
             {
                 /* # Measurement equation and the error term */
-                vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(profilesObserved.col(i)),
+                vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
                                                        matrixWt.row(i - lagsModelMax), E, T, S,
                                                        nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
 
@@ -117,9 +117,9 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
                 }
 
                 /* # Transition equation */
-                profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
+                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                                                      matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant) +
-                                                          adamGvalue(profilesRecent(profilesObserved.col(i)), matrixF,
+                                                          adamGvalue(profilesRecent(indexLookupTable.col(i)), matrixF,
                                                                      matrixWt.row(i - lagsModelMax), E, T, S,
                                                                      nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant,
                                                                      vectorG, vecErrors(i - lagsModelMax));
@@ -128,10 +128,10 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
             // Fill in the head of the series
             for (int i = lagsModelMax - 1; i >= 0; i = i - 1)
             {
-                profilesRecent(profilesObserved.col(i)) = adamFvalue(profilesRecent(profilesObserved.col(i)),
+                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                                                      matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
 
-                matrixVt.col(i) = profilesRecent(profilesObserved.col(i));
+                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
             }
 
             // Change back the specific element in the state vector
@@ -171,7 +171,7 @@ PYBIND11_MODULE(_adam_general, m)
         py::arg("matrixF"),
         py::arg("vectorG"),
         py::arg("lags"),
-        py::arg("profilesObserved"),
+        py::arg("indexLookupTable"),
         py::arg("profilesRecent"),
         py::arg("E"),
         py::arg("T"),
