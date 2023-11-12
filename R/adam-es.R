@@ -361,7 +361,12 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
 
     # Merge y and xreg into one data frame
     if(!is.null(xreg) && is.numeric(y)){
-        data <- as.matrix(cbind(y=as.data.frame(y),as.data.frame(xreg[1:length(y),])));
+        if(is.matrix(xreg)){
+            data <- as.matrix(cbind(y=as.data.frame(y),as.data.frame(xreg[1:length(y),])));
+        }
+        else{
+            data <- as.matrix(cbind(y=as.data.frame(y),as.data.frame(xreg[1:length(y)])));
+        }
         data <- ts(data, start=start(y), frequency=frequency(y));
         colnames(data)[1] <- "y";
         # Give name to the explanatory variables if they do not have them
