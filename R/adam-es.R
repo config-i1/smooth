@@ -258,7 +258,7 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
     }
 
     # If a previous model provided as a model, write down the variables
-    if(is.smooth(model) | is.smooth.sim(model)){
+    if(is.smooth(model) || is.smooth.sim(model)){
         if(smoothType(model)!="ETS"){
             stop("The provided model is not ETS.",call.=FALSE);
         }
@@ -294,6 +294,14 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
         }
 
         initialX <- model$initialX;
+
+        if(is.adam(model)){
+            y <- model$data;
+        }
+        else{
+            y <- model$y;
+        }
+
         model <- modelType(model);
         if(any(unlist(gregexpr("C",model))!=-1)){
             initial <- "o";
@@ -353,8 +361,7 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
 
     # Merge y and xreg into one data frame
     if(!is.null(xreg) && is.numeric(y)){
-        data <- cbind(y=as.data.frame(y),as.data.frame(xreg));
-        data <- as.matrix(data)
+        data <- as.matrix(cbind(y=as.data.frame(y),as.data.frame(xreg[1:length(y),])));
         data <- ts(data, start=start(y), frequency=frequency(y));
         colnames(data)[1] <- "y";
         # Give name to the explanatory variables if they do not have them
