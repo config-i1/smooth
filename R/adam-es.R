@@ -262,6 +262,7 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
         if(smoothType(model)!="ETS"){
             stop("The provided model is not ETS.",call.=FALSE);
         }
+
         # If this is the simulated data, extract the parameters
         if(is.smooth.sim(model) & !is.null(dim(model$data))){
             warning("The provided model has several submodels. Choosing a random one.",call.=FALSE);
@@ -273,39 +274,30 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
         else{
             persistence <- model$persistence;
             initial <- model$initial;
-            initialSeason <- model$initialSeason;
+            # initialSeason <- model$initialSeason;
             if(any(model$probability!=1)){
                 occurrence <- "a";
             }
         }
         phi <- model$phi;
-        if(is.null(xreg)){
-            xreg <- model$xreg;
-        }
-        else{
-            if(is.null(model$xreg)){
-                xreg <- NULL;
-            }
-            else{
-                if(ncol(xreg)!=ncol(model$xreg)){
-                    xreg <- xreg[,colnames(model$xreg)];
-                }
-            }
+        if(is.null(xreg) && !is.null(model$initial$xreg)){
+            # Exctract xreg
+            xreg <- model$data[,all.vars(model$formula)[-1]];
         }
 
-        initialX <- model$initialX;
+        # initialX <- model$initialX;
 
-        if(is.adam(model)){
-            y <- model$data;
-        }
-        else{
-            y <- model$y;
-        }
+        # if(is.adam(model)){
+        #     y <- model$data;
+        # }
+        # else{
+        #     y <- model$y;
+        # }
 
         model <- modelType(model);
-        if(any(unlist(gregexpr("C",model))!=-1)){
-            initial <- "o";
-        }
+        # if(any(unlist(gregexpr("C",model))!=-1)){
+        #     initial <- "o";
+        # }
     }
     else if(inherits(model,"ets")){
         # Extract smoothing parameters
@@ -383,22 +375,28 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
         data <- y;
     }
 
-    # Prepare initials if they are numeric
-    initialValue <- vector("list",(!is.null(initial))*1 +(!is.null(initialSeason))*1 +(!is.null(initialX))*1);
-    names(initialValue) <- c("level","seasonal","xreg")[c(!is.null(initial),!is.null(initialSeason),!is.null(initialX))];
-    if(is.numeric(initial)){
-        initialValue <- switch(length(initial),
-                               "1"=list(level=initial[1]),
-                               "2"=list(level=initial[1],
-                                        trend=initial[2]));
+    # If the initial is provided in the old school style
+    if(!is.list(initial)){
+        # Prepare initials if they are numeric
+        initialValue <- vector("list",(!is.null(initial))*1 +(!is.null(initialSeason))*1 +(!is.null(initialX))*1);
+        names(initialValue) <- c("level","seasonal","xreg")[c(!is.null(initial),!is.null(initialSeason),!is.null(initialX))];
+        if(is.numeric(initial)){
+            initialValue <- switch(length(initial),
+                                   "1"=list(level=initial[1]),
+                                   "2"=list(level=initial[1],
+                                            trend=initial[2]));
+        }
+        if(!is.null(initialSeason)){
+            initialValue$seasonal <- initialSeason;
+        }
+        if(!is.null(initialX)){
+            initialValue$xreg <- initialX;
+        }
+        if(length(initialValue)==1 && is.null(initialValue$level)){
+            initialValue <- initial;
+        }
     }
-    if(!is.null(initialSeason)){
-        initialValue$seasonal <- initialSeason;
-    }
-    if(!is.null(initialX)){
-        initialValue$xreg <- initialX;
-    }
-    if(length(initialValue)==1 && is.null(initialValue$level)){
+    else{
         initialValue <- initial;
     }
 
