@@ -1,4 +1,4 @@
-smooth v4.0.1 (Release data: 2023-11-10)
+smooth v4.0.1 (Release data: 2023-11-13)
 =======
 
 Changes:
@@ -13,6 +13,7 @@ Bugfixes:
 * adam() would not remove components of ETS correctly in cases of small samples (e.g. obs == 2*frequency).
 * Fixed the code of sma() - there was a bug in the architecture resulting in wrong fitting.
 * ARIMA parameters are now initialised even when ACF/PACF returns NaNs (exotic case).
+* Fixed bugs in es() not accepting xreg of a different length than y and not using the existing data in pre-estimated model via model=ourModel. Thanks to Nikos Kourentzes for spotting these!
 
 
 smooth v4.0.0 (Release data: 2023-09-15)
