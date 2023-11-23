@@ -13,7 +13,12 @@ if(SKBUILD)
 # Pybind11
 find_package(pybind11 REQUIRED)
 # Armadillo
-find_package(armadillo REQUIRED)
+# IS: I had to comment this out and provide the directory directly. Otherwise the bloody thing doesn't work!
+#find_package(armadillo REQUIRED)
+find_package(armadillo)
+IF(NOT ARMADILLO_FOUND)
+    set(ARMADILLO_INCLUDE_DIRS "/usr/lib/")
+ENDIF()
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 # code to add the pybind11 cpp module, look at demo project 
