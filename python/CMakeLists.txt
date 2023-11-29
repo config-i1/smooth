@@ -12,27 +12,31 @@ if(SKBUILD)
 
 # Pybind11
 find_package(pybind11 REQUIRED)
+
+# CARMA
+ADD_SUBDIRECTORY(../src/libs/carma build)
+
 # Armadillo
 # IS: I had to comment this out and provide the directory directly. Otherwise the bloody thing doesn't work!
 #find_package(armadillo REQUIRED)
-find_package(armadillo)
-IF(NOT ARMADILLO_FOUND)
-    set(ARMADILLO_INCLUDE_DIRS "/usr/lib/")
-ENDIF()
-include_directories(${ARMADILLO_INCLUDE_DIRS})
+#find_package(armadillo)
+#IF(NOT ARMADILLO_FOUND)
+#    set(ARMADILLO_INCLUDE_DIRS "/usr/lib/")
+#ENDIF()
+#include_directories(${ARMADILLO_INCLUDE_DIRS})
 
 # code to add the pybind11 cpp module, look at demo project 
 # (https://github.com/ltsaprounis/python-cpp-experiments/tree/main) for details.
-pybind11_add_module(_my_linalg ../src/python_examples/my_linalg.cpp)
+#pybind11_add_module(_my_linalg ../src/python_examples/my_linalg.cpp)
 
 # add CARMA as a subdirectory
-add_subdirectory(../src/libs/carma build)
-target_link_libraries(_my_linalg 
-    PRIVATE carma::carma
-    ${ARMADILLO_LIBRARIES}
-)
+#add_subdirectory(../src/libs/carma build)
+#target_link_libraries(_my_linalg
+#    PRIVATE carma::carma
+#    ${ARMADILLO_LIBRARIES}
+#)
 
-install(TARGETS _my_linalg DESTINATION smooth/my_linalg)
+# install(TARGETS _my_linalg DESTINATION smooth/my_linalg)
 
 # Adam General
 pybind11_add_module(_adam_general ../src/python_examples/adamGeneral.cpp)
