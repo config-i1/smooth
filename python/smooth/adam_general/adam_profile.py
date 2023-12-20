@@ -14,7 +14,8 @@ def adamProfileCreator(
     yIndex (list): The indices needed to get the specific dates (optional).
     yClasses (list): The class used for the actual data (optional).
     Returns:
-    dict: A dictionary with 'recent' (profilesRecentTable) and 'lookup' (indexLookupTable) as keys.
+    dict: A dictionary with 'recent' (profilesRecentTable) and 'lookup'
+    (indexLookupTable) as keys.
     """
     # Initialize matrices
     profilesRecentTable = np.zeros((len(lagsModelAll), lagsModelMax))
@@ -31,10 +32,12 @@ def adamProfileCreator(
         # For every row, fill the first 'lag' elements from 1 to lag
         profilesRecentTable[i, : lag[0]] = np.arange(1, lag[0] + 1)
 
-        # For the i-th row in indexLookupTable, fill with a repeated sequence starting from lagsModelMax to the end of the row.
-        # The repeated sequence is the i-th row of profileIndices, repeated enough times to cover 'obsAll' observations.
+        # For the i-th row in indexLookupTable, fill with a repeated sequence starting
+        # from lagsModelMax to the end of the row.
+        # The repeated sequence is the i-th row of profileIndices, repeated enough times
+        # to cover 'obsAll' observations.
         # '- 1' at the end adjusts these values to Python's zero-based indexing.
-        indexLookupTable[i, lagsModelMax : (lagsModelMax + obsAll)] = (  # noqa
+        indexLookupTable[i, lagsModelMax : (lagsModelMax + obsAll)] = (
             np.tile(
                 profileIndices[i, : lagsModelAll[i][0]],
                 int(np.ceil(obsAll / lagsModelAll[i][0])),
@@ -42,13 +45,15 @@ def adamProfileCreator(
             - 1
         )
 
-        # Extract unique values from from lagsModelMax to lagsModelMax + obsAll of indexLookupTable
+        # Extract unique values from from lagsModelMax to lagsModelMax + obsAll of
+        # indexLookupTable
         unique_values = np.unique(
             indexLookupTable[i, lagsModelMax : lagsModelMax + obsAll]  # noqa
         )
 
         # fix the head of teh data before the sample starts
-        # Repeat the unique values lagsModelMax times and then trim the sequence to only keep the first lagsModelMax elements
+        # Repeat the unique values lagsModelMax times and then trim the sequence to only
+        # keep the first lagsModelMax elements
         indexLookupTable[i, :lagsModelMax] = np.tile(unique_values, lagsModelMax)[
             -lagsModelMax:
         ]

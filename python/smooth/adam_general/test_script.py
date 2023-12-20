@@ -1,4 +1,5 @@
 import numpy as np
+
 from smooth.adam_general.sma import sma
 
 if __name__ == "__main__":
