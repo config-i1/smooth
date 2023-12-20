@@ -65,11 +65,16 @@ select = [
     "E4",
     "E7",
     "E9",
+    "E501",
     "F",
     "I",    # isort rules
-    "E501",
+    "N",    # PEP-8 naming rules 
 ]
-ignore = []
+ignore = [
+    # uppercase names are used for matrices
+    "N803", # allow uppercase argument names 
+    "N806", # allow uppercase variable names
+]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
