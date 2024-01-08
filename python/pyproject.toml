@@ -61,6 +61,7 @@ target-version = "py38"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
+# Rules for ruff are found here: https://docs.astral.sh/ruff/rules/
 select = [
     "E4",
     "E7",
