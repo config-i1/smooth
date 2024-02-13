@@ -159,6 +159,34 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
     return result;
 }
 
+/* # Function produces the point forecasts for the specified model */
+arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
+                         arma::uvec lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                         char const &E, char const &T, char const &S,
+                         unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
+                         unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                         unsigned int const &horizon)
+{
+    // unsigned int lagslength = lags.n_rows;
+    unsigned int nETS = nNonSeasonal + nSeasonal;
+    unsigned int nComponents = indexLookupTable.n_rows;
+
+    arma::vec vecYfor(horizon, arma::fill::zeros);
+
+    /* # Fill in the new xt matrix using F. Do the forecasts. */
+    for (unsigned int i = 0; i < horizon; i = i + 1)
+    {
+        vecYfor.row(i) = adamWvalue(profilesRecent(indexLookupTable.col(i)), matrixWt.row(i), E, T, S,
+                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
+
+        profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                                             matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+    }
+
+    // return List::create(Named("matVt") = matrixVtnew, Named("yForecast") = vecYfor);
+    return vecYfor;
+}
+
 PYBIND11_MODULE(_adam_general, m)
 {
     m.doc() = "Adam code"; // module docstring
@@ -184,4 +212,19 @@ PYBIND11_MODULE(_adam_general, m)
         py::arg("vectorYt"),
         py::arg("vectorOt"),
         py::arg("backcast"));
+    m.def("adam_forecaster", &adamForecaster, "forecasts the adam model",
+          py::arg("matrixWt"),
+          py::arg("matrixF"),
+          py::arg("lags"),
+          py::arg("indexLookupTable"),
+          py::arg("profilesRecent"),
+          py::arg("E"),
+          py::arg("T"),
+          py::arg("S"),
+          py::arg("nNonSeasonal"),
+          py::arg("nSeasonal"),
+          py::arg("nArima"),
+          py::arg("nXreg"),
+          py::arg("constant"),
+          py::arg("horizon"));
 }

@@ -1,6 +1,6 @@
 import numpy as np
 
-from smooth.adam_general._adam_general import adam_fitter
+from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
 from smooth.adam_general.adam_profile import adam_profile_creator
 
 
@@ -75,6 +75,52 @@ def sma(y, order=1, h=10, holdout=False):
             backcast=True,
         )
 
-        return adam_fitted
+        fitted_args = dict(
+            matrixVt=mat_Vt,
+            matrixWt=mat_Wt,
+            matrixF=mat_F,
+            vectorG=vec_G,
+            lags=lags_model_all,
+            indexLookupTable=index_lookup_table,
+            profilesRecent=profiles_recent_table,
+            E=E_type,
+            T=T_type,
+            S=S_type,
+            nNonSeasonal=components_num_ETS,
+            nSeasonal=components_num_ETS_seasonal,
+            nArima=order,
+            nXreg=xreg_number,
+            constant=constant_required,
+            vectorYt=y_in_sample,
+            vectorOt=ot,
+            backcast=True,
+        )
 
-    return creator_sma(order=order)
+        return adam_fitted, fitted_args
+
+    sma_fitted, fitted_args = creator_sma(order=order)
+
+    # need to convert some inputs to the expected dtypes. This is a temporary fix.
+    fitted_args["lags"] = np.array(fitted_args["lags"], dtype="uint64")
+    fitted_args["indexLookupTable"] = np.array(
+        fitted_args["indexLookupTable"], dtype="uint64"
+    )
+
+    sma_forecast = adam_forecaster(
+        matrixWt=fitted_args["matrixWt"],
+        matrixF=fitted_args["matrixF"],
+        lags=fitted_args["lags"],
+        indexLookupTable=fitted_args["indexLookupTable"],
+        profilesRecent=sma_fitted["profile"],
+        E=fitted_args["E"],
+        T=fitted_args["T"],
+        S=fitted_args["S"],
+        nNonSeasonal=fitted_args["nNonSeasonal"],
+        nSeasonal=fitted_args["nSeasonal"],
+        nArima=fitted_args["nArima"],
+        nXreg=fitted_args["nXreg"],
+        constant=fitted_args["constant"],
+        horizon=h,
+    )
+
+    return sma_forecast
