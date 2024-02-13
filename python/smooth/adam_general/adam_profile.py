@@ -1,8 +1,8 @@
 import numpy as np
 
 
-def adamProfileCreator(
-    lagsModelAll, lagsModelMax, obsAll, lags=None, yIndex=None, yClasses=None
+def adam_profile_creator(
+    lags_model_all, lags_model_max, obs_all, lags=None, y_index=None, y_classes=None
 ):
     """
     Creates recent profile and the lookup table for adam.
@@ -14,50 +14,55 @@ def adamProfileCreator(
     yIndex (list): The indices needed to get the specific dates (optional).
     yClasses (list): The class used for the actual data (optional).
     Returns:
-    dict: A dictionary with 'recent' (profilesRecentTable) and 'lookup' (indexLookupTable) as keys.
+    dict: A dictionary with 'recent' (profilesRecentTable) and 'lookup'
+    (indexLookupTable) as keys.
     """
     # Initialize matrices
-    profilesRecentTable = np.zeros((len(lagsModelAll), lagsModelMax))
-    indexLookupTable = np.ones((len(lagsModelAll), obsAll + lagsModelMax))
-    profileIndices = (
-        np.arange(1, lagsModelMax * len(lagsModelAll) + 1)
-        .reshape(-1, len(lagsModelAll))
+    profiles_recent_table = np.zeros((len(lags_model_all), lags_model_max))
+    index_lookup_table = np.ones((len(lags_model_all), obs_all + lags_model_max))
+    profile_indices = (
+        np.arange(1, lags_model_max * len(lags_model_all) + 1)
+        .reshape(-1, len(lags_model_all))
         .T
     )
 
     # Update matrices based on lagsModelAll
-    for i, lag in enumerate(lagsModelAll):
+    for i, lag in enumerate(lags_model_all):
         # Create the matrix with profiles based on the provided lags.
         # For every row, fill the first 'lag' elements from 1 to lag
-        profilesRecentTable[i, : lag[0]] = np.arange(1, lag[0] + 1)
+        profiles_recent_table[i, : lag[0]] = np.arange(1, lag[0] + 1)
 
-        # For the i-th row in indexLookupTable, fill with a repeated sequence starting from lagsModelMax to the end of the row.
-        # The repeated sequence is the i-th row of profileIndices, repeated enough times to cover 'obsAll' observations.
+        # For the i-th row in indexLookupTable, fill with a repeated sequence starting
+        # from lagsModelMax to the end of the row.
+        # The repeated sequence is the i-th row of profileIndices, repeated enough times
+        # to cover 'obsAll' observations.
         # '- 1' at the end adjusts these values to Python's zero-based indexing.
-        indexLookupTable[i, lagsModelMax : (lagsModelMax + obsAll)] = (  # noqa
+        index_lookup_table[i, lags_model_max : (lags_model_max + obs_all)] = (
             np.tile(
-                profileIndices[i, : lagsModelAll[i][0]],
-                int(np.ceil(obsAll / lagsModelAll[i][0])),
-            )[0:obsAll]
+                profile_indices[i, : lags_model_all[i][0]],
+                int(np.ceil(obs_all / lags_model_all[i][0])),
+            )[0:obs_all]
             - 1
         )
 
-        # Extract unique values from from lagsModelMax to lagsModelMax + obsAll of indexLookupTable
+        # Extract unique values from from lagsModelMax to lagsModelMax + obsAll of
+        # indexLookupTable
         unique_values = np.unique(
-            indexLookupTable[i, lagsModelMax : lagsModelMax + obsAll]  # noqa
+            index_lookup_table[i, lags_model_max : lags_model_max + obs_all]  # noqa
         )
 
         # fix the head of teh data before the sample starts
-        # Repeat the unique values lagsModelMax times and then trim the sequence to only keep the first lagsModelMax elements
-        indexLookupTable[i, :lagsModelMax] = np.tile(unique_values, lagsModelMax)[
-            -lagsModelMax:
+        # Repeat the unique values lagsModelMax times and then trim the sequence to only
+        # keep the first lagsModelMax elements
+        index_lookup_table[i, :lags_model_max] = np.tile(unique_values, lags_model_max)[
+            -lags_model_max:
         ]
 
     # Convert to int!
-    indexLookupTable = indexLookupTable.astype(int)
+    index_lookup_table = index_lookup_table.astype(int)
 
     # Note: I skip andling of special cases (e.g., daylight saving time, leap years)
     return {
-        "recent": np.array(profilesRecentTable, dtype="float64"),
-        "lookup": np.array(indexLookupTable, dtype="int64"),
+        "recent": np.array(profiles_recent_table, dtype="float64"),
+        "lookup": np.array(index_lookup_table, dtype="int64"),
     }
