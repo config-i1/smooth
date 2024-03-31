@@ -280,7 +280,7 @@ es <- function(y, model="ZZZ", lags=c(frequency(y)), persistence=NULL, phi=NULL,
             }
         }
         phi <- model$phi;
-        if(is.null(xreg) && !is.null(model$initial$xreg)){
+        if(is.null(xreg) && is.list(model$initial) && !is.null(model$initial$xreg)){
             # Exctract xreg
             xreg <- model$data[,all.vars(model$formula)[-1]];
         }
