@@ -336,6 +336,7 @@ residuals.msdecompose <- function(object, ...){
     }
 }
 
+#' @export
 sigma.msdecompose <- function(object, ...){
     if(errorType(object)=="A"){
         return(sqrt(mean(residuals(object)^2,na.rm=TRUE)));
