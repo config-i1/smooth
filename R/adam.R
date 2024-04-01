@@ -77,6 +77,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template smoothRef
 #' @template ssADAMRef
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
