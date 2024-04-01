@@ -14,7 +14,7 @@ knitr::opts_chunk$set(fig.width=6, fig.height=4, fig.path='Figs/', fig.show='hol
                       warning=FALSE, message=FALSE)
 ```
 
-This vignette explains how to use functions in `smooth` package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a document "[Statistical models underlying functions of 'smooth' package for R](https://github.com/config-i1/smooth/blob/master/vignettes/smooth-Documentation.pdf)". Some of the features of the package are also explained in my [blog](https://forecasting.svetunkov.ru/en/tag/smooth/).
+This vignette explains how to use functions in `smooth` package, what they produce, what each field in outputs and what returned values mean. Underlying statistical models are not discussed here, but if you want to know more about them, then there is a working paper "[Smooth forecasting with the smooth package in R](https://doi.org/10.48550/arXiv.2301.01790)". Some of the features of the package are also explained in my [blog](https://openforecast.org/category/r-en/smooth/). Finally, I have a monograph [Forecasting and Analytics with the Augmented Dynamic Adaptive Model (ADAM)](https://openforecast.org/adam/), which explains the model underlying the majority of forecasting functions in the package.
 
 The package includes the following functions:
 

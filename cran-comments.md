@@ -1,16 +1,24 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "16 September 2023"
+date: "1 April 2024"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v4.0.0.
+This is ``smooth`` package, v4.0.1.
+
+## Note
+I have changed my email from ivan@svetunkov.ru to ivan@svetunkov.com. Because of that, some checks gave this warning:
+
+>New maintainer:
+>  Ivan Svetunkov <ivan@svetunkov.com>
+>Old maintainer(s):
+>  Ivan Svetunkov <ivan@svetunkov.ru>
 
 
 ## Test environments
-* local Ubuntu 22.04.3, R 4.3.1
+* local Ubuntu 22.04.4, R 4.3.3
 * github actions
 * win-builder (devel and release)
 * rhub with rhub::check_for_cran() command
@@ -28,9 +36,9 @@ checking installed package size ... NOTE
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.3.1
-- MacOS latest macOS Monterey 12.6.8 with R 4.3.1
-- Ubuntu 20.04.6 with R 4.3.1
+- Windows latest release with R 4.3.3
+- MacOS latest macOS Monterey 12.6.8 with R 4.3.3
+- Ubuntu latest with R 4.3.3
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
@@ -45,7 +53,7 @@ This is expected, because doMC is not available for Windows.
 
 This is expected from Windows Server - doMC is not available for that platform.
 
-All the resources are available online, not clear why the server cannot find them.
+All the resources are available online, not clear why the server cannot find some of them.
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.
