@@ -44,6 +44,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
 
+    # paste0() is needed in order to avoid line breaks in the name
+    yName <- paste0(deparse(substitute(y)),collapse="");
+
+    # Remove the class
+    y <- as.vector(y);
+
     ma <- function(y, order){
         if (order%%2 == 0){
             weigths <- c(0.5, rep(1, order - 1), 0.5) / order;
@@ -78,9 +84,6 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
         rm(X)
     }
-
-    # paste0() is needed in order to avoid line breaks in the name
-    yName <- paste0(deparse(substitute(y)),collapse="");
 
     obs <- length(y);
     lags <- sort(unique(lags));
