@@ -1,8 +1,9 @@
-smooth v4.0.2 (Release data: 2024-04-03)
+smooth v4.0.2 (Release data: 2024-04-05)
 =======
 
 Changes:
 * occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
+* adam() now allows pure models with some specific components. e.g. model="PNP" will check pure additive and pure multiplicative models without trend. Similarly, model="FNF" will now remove the unneeded trends and skip the branch-and-bound algorithm.
 
 
 smooth v4.0.1 (Release data: 2024-04-01)

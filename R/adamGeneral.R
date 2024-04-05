@@ -219,9 +219,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(!fast){
         # Deal with the list of models. Check what has been provided. Stop if there is a mistake.
         if(length(model)>1){
-            if(any(nchar(model)>4)){
+            if(any(nchar(model)>4) || any(nchar(model)<3)){
                 stop(paste0("You have defined strange model(s) in the pool: ",
-                            paste0(model[nchar(model)>4],collapse=",")),call.=FALSE);
+                            paste0(model[nchar(model)>4 | nchar(model)<3],collapse=",")),call.=FALSE);
             }
             else if(any(substr(model,1,1)!="A" & substr(model,1,1)!="M" & substr(model,1,1)!="C")){
                 stop(paste0("You have defined strange model(s) in the pool: ",
@@ -282,7 +282,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         Stype <- substr(model,4,4);
         damped <- TRUE;
         if(substr(model,3,3)!="d"){
-            message(paste0("You have defined a strange model: ",model));
+            message(paste0("You have defined a strange model: ", model,
+                           ". Switching to ", paste0(Etype,Ttype,"d",Stype)));
             model <- paste0(Etype,Ttype,"d",Stype);
         }
     }
@@ -337,7 +338,25 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                                 "MNN","MAN","MAdN","MMN","MMdN",
                                 "MNA","MAA","MAdA","MMA","MMdA",
                                 "MNM","MAM","MAdM","MMM","MMdM");
-                Etype[] <- Ttype[] <- Stype[] <- "Z";
+                # Remove models from pool if specific elements are provided
+                if(Etype!="F"){
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)==Etype];
+                }
+                else{
+                    Etype[] <- "Z"
+                }
+                if(Ttype!="F"){
+                    modelsPool <- modelsPool[substr(modelsPool,2,2)==Ttype];
+                }
+                else{
+                    Ttype[] <- "Z"
+                }
+                if(Stype!="F"){
+                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))==Stype];
+                }
+                else{
+                    Stype[] <- "Z"
+                }
                 model <- "FFF";
             }
 
@@ -345,7 +364,25 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
             if(any(unlist(strsplit(model,""))=="P")){
                 modelsPool <- c("ANN","AAN","AAdN","ANA","AAA","AAdA",
                                 "MNN","MMN","MMdN","MNM","MMM","MMdM");
-                Etype[] <- Ttype[] <- Stype[] <- "Z";
+                # Remove models from pool if specific elements are provided
+                if(Etype!="P"){
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)==Etype];
+                }
+                else{
+                    Etype[] <- "Z"
+                }
+                if(Ttype!="P"){
+                    modelsPool <- modelsPool[substr(modelsPool,2,2)==Ttype];
+                }
+                else{
+                    Ttype[] <- "Z"
+                }
+                if(Stype!="P"){
+                    modelsPool <- modelsPool[substr(modelsPool,nchar(modelsPool),nchar(modelsPool))==Stype];
+                }
+                else{
+                    Stype[] <- "Z"
+                }
                 model <- "PPP";
             }
         }
