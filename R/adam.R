@@ -3629,6 +3629,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             yFitted[] <- yFitted * pFitted;
         }
 
+        # Fix the cases, when we have zeroes in the provided occurrence
+        if(occurrence=="provided"){
+            yFitted[!otLogical] <- yFitted[!otLogical] * pFitted[!otLogical];
+        }
+
         # Produce forecasts if the horizon is non-zero
         if(horizon>0){
             if(any(yClasses=="ts")){
@@ -3656,7 +3661,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(occurrenceModel && !occurrenceModelProvided){
                 yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h))$mean);
             }
-            else if(occurrenceModel && occurrenceModelProvided){
+            else if((occurrenceModel && occurrenceModelProvided) || occurrence=="provided"){
                 yForecast[] <- yForecast * pForecast;
             }
         }

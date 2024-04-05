@@ -1071,6 +1071,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     obsNonzero <- sum(ot);
     obsZero <- obsInSample - obsNonzero;
 
+    # If occurrence is provided, use it as is
+    if(occurrence=="provided"){
+        ot[] <- pFitted;
+    }
+
     # Check if multiplicative models can be fitted
     allowMultiplicative <- !((any(yInSample<=0) && !occurrenceModel) || (occurrenceModel && any(yInSample<0)));
 

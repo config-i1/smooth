@@ -1,3 +1,10 @@
+smooth v4.0.2 (Release data: 2024-04-03)
+=======
+
+Changes:
+* occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
+
+
 smooth v4.0.1 (Release data: 2024-04-01)
 =======
 
