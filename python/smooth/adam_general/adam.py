@@ -3,7 +3,7 @@
  * Equ
 valent code in R is 
 """
-
+from itertools import product
 from typing import Union, List, Literal, Optional
 
 import numpy as np
@@ -30,15 +30,15 @@ LOSS_OPTIONS = Literal[
 class ADAM:
     def __init__(
         self,
-        model: str = "ZXZ",
-        lags: NDArray = None,
+        model: Union[str, List[str]] = "ZXZ",
+        lags: Optional[NDArray] = None,
         ar_order: Union[int, List[int]] = 0,
         i_order: Union[int, List[int]] = 0,
         ma_order: Union[int, List[int]] = 0,
         # SELECT: skipping this for now (auto.arima thingy)
         constant: bool = False,
         regressors: Literal["use", "select", "adapt"] = "use",
-        distribution: DISTRIBUTON_OPTIONS = None,
+        distribution: Optional[DISTRIBUTON_OPTIONS] = None,
         loss: LOSS_OPTIONS = "likelihood",
         # outliers: we're skipping this for now
         loss_horizon: Optional[int] = None,
@@ -139,6 +139,114 @@ class ADAM:
         self.nlopt_kargs = nlopt_kargs
         self.reg_lambda = reg_lambda
         self.gnorm_shape = gnorm_shape
+
+    def _parameters_checker(self):
+        """Checks the parameters for the model.
+
+        Note: this is in line R/adamGeneral.R
+        """
+        # initialise a matrix storing the number of parameters to estimate
+        # top row corresponds to parameters estimated internally, bottom row to provided
+        # parameters by the user.
+        # The columns are:
+        # 1. ETS & ARIMA parameters
+        # 2. Explanatory variable parameters
+        # 3. Occurence parameters
+        # 4. Scale model parameters
+        # 5. All the parameters (sum of the above)
+        parameters_number = np.zeros((2, 5))
+
+        if isinstance(self.model, list):
+            pool_error_msg = f"You have defined strange models in the pool:\n{self.model}"
+            if not all([isinstance(i, str) for i in self.model]):
+                raise ValueError(
+                    "The model parameter should be a string or a list of strings"
+                )
+            if any([(len(m) > 4 or len(m) < 3) for m in self.model]):
+                raise ValueError(pool_error_msg)
+            if any([m[0] not in ["A", "M"] for m in self.model]):
+                raise ValueError(pool_error_msg)
+            if any([m[1] not in ["A", "M", "N"] for m in self.model]):
+                raise ValueError(pool_error_msg)
+            if any([m[2] not in ["A", "M", "N", "d"] for m in self.model]):
+                raise ValueError(pool_error_msg)
+            if any([m[3] not in ["A", "M", "N"] for m in self.model if len(m) > 3]):
+                raise ValueError(pool_error_msg)
+            models_pool = self.model
+        elif isinstance(self.model, str):
+            model_error_msg = f"You have defined a strange model:\n{self.model}"
+            if len(self.model) > 4 or len(self.model) < 3:
+                raise ValueError(model_error_msg)
+            if self.model[0] not in ["A", "M", "Z", "X", "Y", "P", "F"]:
+                raise ValueError(model_error_msg)
+            if self.model[1] not in ["N", "A", "M", "Z", "X", "Y", "P", "F"]:
+                raise ValueError(model_error_msg)
+            if self.model[2] not in ["N", "A", "M", "Z", "X", "Y", "P", "F", "d"]:
+                raise ValueError(model_error_msg)
+            if len(self.model) > 3 and self.model[3] not in ["N", "A", "M", "Z", "X", "Y", "P", "F"]:
+                raise ValueError(model_error_msg)
+
+            if any([m not in ["A", "M", "N", "d"] for m in self.model]):
+                # pool creating logic
+                if "P" in self.model:
+                    mul_models = list(product(("M"), ("M", "Md", "N"), ("M", "N")))
+                    add_models = list(product(("A"), ("A", "Ad", "N"), ("A", "N")))
+                    models_pool = mul_models + add_models
+                elif "F" in self.model:
+                    models_pool = list(
+                        product(
+                            ("A", "M", "N"),
+                            ("A", "M", "Ad", "Md", "N"),
+                            ("A", "M", "N"),
+                        )
+                    )
+                else:
+                    # create the possible error types for the pool.
+                    if self.model[0] in ("A", "M"):
+                        error_type = (self.model[0],)
+                    elif self.model[0] == "Z":
+                        error_type = ("A", "M")
+                    elif self.model[0] == "X":
+                        error_type = ("A",)
+                    elif self.model[0] == "Y":
+                        error_type = ("M",)
+
+                    # create the possible trend types for the pool.
+                    if len(self.model) == 3:
+                        if self.model[1] in ("A", "M", "N"):
+                            trend_type = (self.model[1],)
+                        elif self.model[1] == "Z":
+                            trend_type = ("A", "M", "Ad", "Md", "N")
+                        elif self.model[1] == "X":
+                            trend_type = ("A", "Ad", "N")
+                        elif self.model[1] == "Y":
+                            trend_type = ("M", "Md", "N")
+                    elif len(self.model) == 4:
+                        trend_type = (self.model[1:3],)
+
+                    if self.model[-1] in ("A", "M", "N"):
+                        season_type = (self.model[-1],)
+                    elif self.model[-1] == "Z":
+                        season_type = ("A", "M", "N")
+                    elif self.model[-1] == "X":
+                        season_type = ("A", "N")
+                    elif self.model[-1] == "Y":
+                        season_type = ("M", "N")
+                    
+                    models_pool = list(product(error_type, trend_type, season_type))
+
+            else:
+                models_pool = [self.model]
+
+        return models_pool
+
+
+    def _architector(self):
+        """Creates the technical variables (lags etc) based on the type of the model.
+
+        Note: this is in line 679 in R/adam.R
+        """
+        pass
 
     def fit(self, y: NDArray, X: Optional[NDArray] = None):
         """Fit"""
