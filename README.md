@@ -6,6 +6,8 @@
 
 The package _smooth_ contains several smoothing (exponential and not) functions that are used in forecasting.
 
+![hex-sticker of the smooth package for R](https://github.com/config-i1/smooth/blob/master/man/figures/smooth-web.png?raw=true)
+
 Here is the list of the included functions:
 
 1. adam - Advanced Dynamic Adaptive Model, implementing ETS, ARIMA and regression and their combinations;
