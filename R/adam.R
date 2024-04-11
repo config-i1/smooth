@@ -851,7 +851,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Modify transition to do drift
-        if(constantRequired){
+        if(!arimaModel && constantRequired){
             matF[1,ncol(matF)] <- 1;
         }
 
@@ -895,6 +895,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else{
             arimaPolynomials <- NULL;
         }
+
 
         if(!profilesRecentProvided){
             # ETS model, initial state
