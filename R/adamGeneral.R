@@ -4,7 +4,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                               distribution=c("default","dnorm","dlaplace","dalaplace","ds","dgnorm",
                                              "dlnorm","dinvgauss","dgamma"),
                               loss, h, holdout, occurrence,
-                              ic=c("AICc","AIC","BIC","BICc"), bounds=c("traditional","usual","admissible","none"),
+                              ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
                               regressors, yName,
                               silent, modelDo, ParentEnvironment,
                               ellipsis, fast=FALSE){

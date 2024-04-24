@@ -229,7 +229,7 @@ procedure.}
 
 \item{bounds}{The type of bounds for the persistence to use in the model
 estimation. Can be either \code{admissible} - guaranteeing the stability of the
-model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
+model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 restrictions (potentially dangerous).}
 
 \item{silent}{Specifies, whether to provide the progress of the function or not.
