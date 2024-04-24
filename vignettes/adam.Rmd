@@ -320,7 +320,7 @@ The same functionality is supported with ARIMA, so you can have, for example, AR
 testModel <- adam(BJData, "NNN", h=18, silent=FALSE, holdout=TRUE, regressors="select", orders=c(0,1,1))
 ```
 
-The two models might differ because they have different initialisation in the optimiser and different bounds for parameters (ARIMA relies on invertibility condition, while ETS does the traditional (0,1) bounds by default). It is possible to make them identical if the number of iterations is increased and the initial parameters are the same. Here is an example of what happens, when the two models have exactly the same parameters:
+The two models might differ because they have different initialisation in the optimiser and different bounds for parameters (ARIMA relies on invertibility condition, while ETS does the usual (0,1) bounds by default). It is possible to make them identical if the number of iterations is increased and the initial parameters are the same. Here is an example of what happens, when the two models have exactly the same parameters:
 
 ```{r}
 BJData <- BJData[,c("y",names(testModel$initial$xreg))];

@@ -241,7 +241,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' procedure.
 #' @param bounds The type of bounds for the persistence to use in the model
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
-#' model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
+#' model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
 #' @param regressors The variable defines what to do with the provided explanatory
 #' variables:
