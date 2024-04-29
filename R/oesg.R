@@ -106,6 +106,12 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                  ...){
     # Function returns the occurrence part of the intermittent state space model, type G
 
+    # A fix for a weird case of selection, when initial disappears.
+    # I don't have time to fix it right now...
+    if(is.null(initialA) || is.null(initialB)){
+        initialA <- initialB <- "o"
+    }
+
 # Start measuring the time of calculations
     startTime <- Sys.time();
 

@@ -50,7 +50,7 @@ If the order is odd, then the function constructs SMA(order) and
 shifts it back in time. Otherwise an AR(order+1) model is constructed
 with the preset parameters:
 
-phi_i = {0.5,1,1,...,0.5} / order
+\deqn{phi_i = {0.5,1,1,...,0.5} / order}
 
 This then corresponds to the centered MA with 0.5 weight for the
 first observation and 0.5 weight for an additional one. e.g. if this is
@@ -74,11 +74,10 @@ summary(ourModel)
 }
 \references{
 \itemize{
+\item Svetunkov I. (2023) Smooth forecasting with the smooth package in R. arXiv:2301.01790.
+\doi{10.48550/arXiv.2301.01790}.
 \item Svetunkov I. (2015 - Inf) "smooth" package for R - series of posts about the underlying
-models and how to use them: \url{https://forecasting.svetunkov.ru/en/tag/smooth/}.
-\item Svetunkov I. (2017). Statistical models underlying functions of 'smooth'
-package for R. Working Paper of Department of Management Science, Lancaster
-University 2017:1, 1-52.
+models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}.
 }
 }
 \seealso{

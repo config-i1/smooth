@@ -77,6 +77,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template smoothRef
 #' @template ssADAMRef
 #' @template ssGeneralRef
 #' @template ssIntermittentRef
@@ -240,7 +241,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' procedure.
 #' @param bounds The type of bounds for the persistence to use in the model
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
-#' model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
+#' model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
 #' @param regressors The variable defines what to do with the provided explanatory
 #' variables:
@@ -850,7 +851,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # Modify transition to do drift
-        if(constantRequired){
+        if(!arimaModel && constantRequired){
             matF[1,ncol(matF)] <- 1;
         }
 
@@ -894,6 +895,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else{
             arimaPolynomials <- NULL;
         }
+
 
         if(!profilesRecentProvided){
             # ETS model, initial state
@@ -3628,6 +3630,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             yFitted[] <- yFitted * pFitted;
         }
 
+        # Fix the cases, when we have zeroes in the provided occurrence
+        if(occurrence=="provided"){
+            yFitted[!otLogical] <- yFitted[!otLogical] * pFitted[!otLogical];
+        }
+
         # Produce forecasts if the horizon is non-zero
         if(horizon>0){
             if(any(yClasses=="ts")){
@@ -3655,7 +3662,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(occurrenceModel && !occurrenceModelProvided){
                 yForecast[] <- yForecast * c(suppressWarnings(forecast(oesModel, h=h))$mean);
             }
-            else if(occurrenceModel && occurrenceModelProvided){
+            else if((occurrenceModel && occurrenceModelProvided) || occurrence=="provided"){
                 yForecast[] <- yForecast * pForecast;
             }
         }
@@ -6654,7 +6661,8 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 
 #' @importFrom greybox coefbootstrap
 #' @export
-coefbootstrap.adam <- function(object, nsim=100, size=floor(0.5*nobs(object)),
+coefbootstrap.adam <- function(object, nsim=100,
+                               size=floor(0.5*nobs(object)),
                                replace=FALSE, prob=NULL, parallel=FALSE, ...){
 
     startTime <- Sys.time();

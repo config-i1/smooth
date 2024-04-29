@@ -229,7 +229,7 @@ procedure.}
 
 \item{bounds}{The type of bounds for the persistence to use in the model
 estimation. Can be either \code{admissible} - guaranteeing the stability of the
-model, \code{traditional} - restricting the values with (0, 1) or \code{none} - no
+model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 restrictions (potentially dangerous).}
 
 \item{silent}{Specifies, whether to provide the progress of the function or not.
@@ -421,8 +421,16 @@ x <- simulate(ourModel)
 }
 \references{
 \itemize{
-\item Svetunkov, I. (2021) Time Series Analysis and Forecasting with ADAM:
-Lancaster, UK. \url{https://openforecast.org/adam/}.
+\item Svetunkov I. (2023) Smooth forecasting with the smooth package in R. arXiv:2301.01790.
+\doi{10.48550/arXiv.2301.01790}.
+\item Svetunkov I. (2015 - Inf) "smooth" package for R - series of posts about the underlying
+models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}.
+}
+
+\itemize{
+\item Svetunkov, I. (2023). Forecasting and Analytics with the Augmented
+Dynamic Adaptive Model (ADAM) (1st ed.). Chapman and Hall/CRC.
+\doi{10.1201/9781003452652}, online version: \url{https://openforecast.org/adam/}.
 }
 
 \itemize{

@@ -7,6 +7,7 @@
 #' function and order specified in \code{lags} variable in order to smooth the
 #' original series and obtain level, trend and seasonal components of the series.
 #'
+#' @template smoothRef
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -43,6 +44,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
 
+    # paste0() is needed in order to avoid line breaks in the name
+    yName <- paste0(deparse(substitute(y)),collapse="");
+
+    # Remove the class
+    y <- as.vector(y);
+
     ma <- function(y, order){
         if (order%%2 == 0){
             weigths <- c(0.5, rep(1, order - 1), 0.5) / order;
@@ -77,9 +84,6 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
         rm(X)
     }
-
-    # paste0() is needed in order to avoid line breaks in the name
-    yName <- paste0(deparse(substitute(y)),collapse="");
 
     obs <- length(y);
     lags <- sort(unique(lags));
@@ -336,6 +340,7 @@ residuals.msdecompose <- function(object, ...){
     }
 }
 
+#' @export
 sigma.msdecompose <- function(object, ...){
     if(errorType(object)=="A"){
         return(sqrt(mean(residuals(object)^2,na.rm=TRUE)));

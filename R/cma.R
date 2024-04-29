@@ -6,7 +6,7 @@
 #' shifts it back in time. Otherwise an AR(order+1) model is constructed
 #' with the preset parameters:
 #'
-#' phi_i = {0.5,1,1,...,0.5} / order
+#' \deqn{phi_i = {0.5,1,1,...,0.5} / order}
 #'
 #' This then corresponds to the centered MA with 0.5 weight for the
 #' first observation and 0.5 weight for an additional one. e.g. if this is

@@ -1,4 +1,15 @@
-smooth v4.0.1 (Release data: 2023-11-13)
+smooth v4.0.2 (Release data: 2024-04-05)
+=======
+
+Changes:
+* occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
+* adam() now allows pure models with some specific components. e.g. model="PNP" will check pure additive and pure multiplicative models without trend. Similarly, model="FNF" will now remove the unneeded trends and skip the branch-and-bound algorithm.
+
+Bugfixes:
+* Transition matrix was not correctly set for ARIMA with drift. It is now.
+
+
+smooth v4.0.1 (Release data: 2024-04-01)
 =======
 
 Changes:
@@ -14,6 +25,7 @@ Bugfixes:
 * Fixed the code of sma() - there was a bug in the architecture resulting in wrong fitting.
 * ARIMA parameters are now initialised even when ACF/PACF returns NaNs (exotic case).
 * Fixed bugs in es() not accepting xreg of a different length than y and not using the existing data in pre-estimated model via model=ourModel. Thanks to Nikos Kourentzes for spotting these!
+* Another bugfix in es() and xreg: resolved the issue with the simulated data.
 
 
 smooth v4.0.0 (Release data: 2023-09-15)

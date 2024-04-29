@@ -50,7 +50,6 @@
 #' }
 #'
 #' @name smooth
-#' @docType package
 #' @aliases smooth-package
 #' @author Ivan Svetunkov
 #'

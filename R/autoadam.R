@@ -674,6 +674,13 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                 }
                 additionalModels <- additionalModels[modelsLeft,,drop=FALSE];
             }
+            # Form orders for ARIMA(1,1,2), SARIMA(1,1,2)(1,1,2) etc
+            # if(any(arMax!=0)){
+            #     arOrdersAdditional <- rep(1, ordersLength);
+            #     iOrdersAdditional <- rep(1, ordersLength);
+            #     maOrdersAdditional <- rep(2, ordersLength);
+            # }
+            # Check the additional models
             if(!is.null(additionalModels)){
                 # Save B from models to speed up calculation afterwards
                 BValues <- vector("list",iCombinations);

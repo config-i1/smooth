@@ -300,7 +300,7 @@ vignette: \code{vignette("es","smooth")}.
 
 Also, there are posts about the functions of the package smooth on the
 website of Ivan Svetunkov:
-\url{https://forecasting.svetunkov.ru/en/tag/smooth/} - they explain the
+\url{https://openforecast.org/category/r-en/smooth/} - they explain the
 underlying models and how to use the functions.
 }
 \examples{

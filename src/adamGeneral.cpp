@@ -62,6 +62,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 vecErrors(i-lagsModelMax) = 0;
             }
             else{
+                // We need this multiplication for cases, when occurrence is fractional
+                vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
                 vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
             }
 
@@ -95,6 +97,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                     vecErrors(i-lagsModelMax) = 0;
                 }
                 else{
+                    // We need this multiplication for cases, when occurrence is fractional
+                    vecYfit(i-lagsModelMax) = vectorOt(i-lagsModelMax)*vecYfit(i-lagsModelMax);
                     vecErrors(i-lagsModelMax) = errorf(vectorYt(i-lagsModelMax), vecYfit(i-lagsModelMax), E);
                 }
 
