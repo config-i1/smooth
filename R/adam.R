@@ -6455,9 +6455,9 @@ coef.adam <- function(object, ...){
 sigma.adam <- function(object, ...){
     df <- (nobs(object, all=FALSE)-nparam(object));
     # If the sample is too small, then use biased estimator
-    if(df<=0){
+    # if(df<=0){
         df[] <- nobs(object);
-    }
+    # }
     return(sqrt(switch(object$distribution,
                        "dnorm"=,
                        "dlaplace"=,
