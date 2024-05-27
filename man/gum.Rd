@@ -7,13 +7,13 @@
 \usage{
 gum(y, orders = c(1, 1), lags = c(1, frequency(y)), type = c("additive",
   "multiplicative"), persistence = NULL, transition = NULL,
-  measurement = NULL, initial = c("optimal", "backcasting"),
+  measurement = rep(1, sum(orders)), initial = c("optimal", "backcasting"),
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 10, holdout = FALSE,
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
   "semiparametric", "nonparametric"), level = 0.95,
   bounds = c("restricted", "admissible", "none"), silent = c("all",
-  "graph", "legend", "output", "none"), xreg = NULL, xregDo = c("use",
+  "graph", "legend", "output", "none"), xreg = NULL, regressors = c("use",
   "select"), initialX = NULL, ...)
 
 ges(...)
@@ -129,7 +129,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
@@ -173,7 +173,8 @@ smoothing parameters live.
 \item \code{upper} - higher bound of prediction interval. When
 \code{interval="none"} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
-\item \code{errors} - matrix of 1 to h steps ahead errors.
+\item \code{errors} - matrix of 1 to h steps ahead errors. Only returned when the
+multistep losses are used and semiparametric interval is needed.
 \item \code{s2} - variance of the residuals (taking degrees of freedom
 into account).
 \item \code{interval} - type of interval asked by user.
@@ -182,7 +183,7 @@ into account).
 \item \code{y} - original data.
 \item \code{holdout} - holdout part of the original data.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If
-\code{xregDo="s"}, then this value will contain only selected exogenous variables.
+\code{regressors="s"}, then this value will contain only selected exogenous variables.
 \item \code{initialX} - initial values for parameters of exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes
 AIC, AICc, BIC and BICc.
@@ -232,23 +233,23 @@ vignette: \code{vignette("gum","smooth")}
 gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval="p")
 
 # A more complicated model with seasonality
-\dontrun{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
+\donttest{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 
 # Redo previous model on a new data and produce prediction interval
-\dontrun{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
+\donttest{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
 
 # Produce something crazy with optimal initials (not recommended)
-\dontrun{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
+\donttest{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
 
 # Simpler model estiamted using trace forecast error loss function and its analytical analogue
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
 gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aTMSE")}
 
 # Introduce exogenous variables
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
 
 # Or select the most appropriate one
-\dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")
+\donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),regressors="s")
 
 summary(ourModel)
 forecast(ourModel)
@@ -257,11 +258,10 @@ plot(forecast(ourModel))}
 }
 \references{
 \itemize{
+\item Svetunkov I. (2023) Smooth forecasting with the smooth package in R. arXiv:2301.01790.
+\doi{10.48550/arXiv.2301.01790}.
 \item Svetunkov I. (2015 - Inf) "smooth" package for R - series of posts about the underlying
-models and how to use them: \url{https://forecasting.svetunkov.ru/en/tag/smooth/}.
-\item Svetunkov I. (2017). Statistical models underlying functions of 'smooth'
-package for R. Working Paper of Department of Management Science, Lancaster
-University 2017:1, 1-52.
+models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}.
 }
 
 \itemize{

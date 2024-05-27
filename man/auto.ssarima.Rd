@@ -12,7 +12,7 @@ auto.ssarima(y, orders = list(ar = c(3, 3), i = c(2, 1), ma = c(3, 3)),
   interval = c("none", "parametric", "likelihood", "semiparametric",
   "nonparametric"), level = 0.95, bounds = c("admissible", "none"),
   silent = c("all", "graph", "legend", "output", "none"), xreg = NULL,
-  xregDo = c("use", "select"), initialX = NULL, ...)
+  regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -119,7 +119,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
@@ -162,23 +162,23 @@ vignette: \code{vignette("ssarima","smooth")}
 }
 \examples{
 
-x <- rnorm(118,100,3)
+\donttest{x <- rnorm(118,100,3)}
 
 # The best ARIMA for the data
-ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
-                     h=18,holdout=TRUE,interval="np")
+\donttest{ourModel <- auto.ssarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
+                                   h=18,holdout=TRUE,interval="np")}
 
 # The other one using optimised states
-\dontrun{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                     initial="o",h=18,holdout=TRUE)}
+\donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
+                       initial="o",h=18,holdout=TRUE)}
 
 # And now combined ARIMA
-\dontrun{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
-                      combine=TRUE,h=18,holdout=TRUE)}
+\donttest{auto.ssarima(x,orders=list(ar=c(3,2),i=c(2,1),ma=c(3,2)),lags=c(1,12),
+                       combine=TRUE,h=18,holdout=TRUE)}
 
-summary(ourModel)
+\donttest{summary(ourModel)
 forecast(ourModel)
-plot(forecast(ourModel))
+plot(forecast(ourModel))}
 
 
 }

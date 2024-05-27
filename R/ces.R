@@ -15,6 +15,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
@@ -71,7 +72,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{upper} - the upper bound of prediction interval. When
 #' \code{interval="none"} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors.
+#' \item \code{errors} - The matrix of 1 to h steps ahead errors. Only returned when the
+#' multistep losses are used and semiparametric interval is needed.
 #' \item \code{s2} - variance of the residuals (taking degrees of
 #' freedom into account).
 #' \item \code{interval} - type of interval asked by user.
@@ -80,7 +82,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' \item \code{y} - The data provided in the call of the function.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{xregDo="s"}, then this value will contain only selected exogenous
+#' \code{regressors="s"}, then this value will contain only selected exogenous
 #' variables.
 #' exogenous variables were estimated as well.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
@@ -110,16 +112,14 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
 #' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 #'
-#' ces(Mcomp::M3[[740]],h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
+#' ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 #'
-#' \dontrun{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
-#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="p",interval="np")
-#' ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="f",interval="p")}
+#' \donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
+#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
+#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
 #'
-#' \dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-#' ces(Mcomp::M3[[1457]],holdout=TRUE,interval="np",xreg=x,loss="TMSE")}
-#'
-#' @export ces
+#' @rdname ces
+#' @export
 ces <- function(y, seasonality=c("none","simple","partial","full"),
                 initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
@@ -127,7 +127,7 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Function estimates CES in state space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -140,11 +140,8 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -461,9 +458,9 @@ CreatorCES <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=FALSE, ot=ot,
                        persistenceX=NULL, transitionX=NULL, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -493,7 +490,7 @@ CreatorCES <- function(silentText=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
@@ -506,7 +503,7 @@ CreatorCES <- function(silentText=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -516,7 +513,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(xregDo=="select"){
+        if(regressors=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                             nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
@@ -547,7 +544,7 @@ CreatorCES <- function(silentText=FALSE,...){
                   oesmodel=oesmodel,
                   bounds="u",
                   silent=silent,
-                  xreg=xreg,xregDo=xregDo,initialX=initialX,
+                  xreg=xreg,regressors=regressors,initialX=initialX,
                   updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
@@ -601,7 +598,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     list2env(cesValues,environment());
 
-    if(xregDo!="u"){
+    if(regressors!="u"){
         # Prepare for fitting
         elements <- ElementsCES(B);
         matF <- elements$matF;
@@ -655,7 +652,7 @@ CreatorCES <- function(silentText=FALSE,...){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
-        if(xregDo=="s"){
+        if(regressors=="s"){
             nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
             parametersNumber[1,2] <- nParamExo;
         }
@@ -797,7 +794,7 @@ CreatorCES <- function(silentText=FALSE,...){
 
     ##### Print output #####
     if(!silentText){
-        if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
+        if(any(abs(eigen(matF - vecg %*% matw, only.values=TRUE)$values)>(1 + 1E-10))){
             if(bounds!="a"){
                 warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
             }

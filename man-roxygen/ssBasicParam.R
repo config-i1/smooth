@@ -2,9 +2,6 @@
 #' @param h Length of forecasting horizon.
 #' @param holdout If \code{TRUE}, holdout sample of size \code{h} is taken from
 #' the end of the data.
-#' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
-#' interval are produced instead of the normal ones. This is useful for
-#' inventory control systems.
 #' @param ic The information criterion used in the model selection procedure.
 #' @param silent If \code{silent="none"}, then nothing is silent, everything is
 #' printed out and drawn. \code{silent="all"} means that nothing is produced or

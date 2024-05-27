@@ -10,17 +10,15 @@
 \usage{
 \method{forecast}{adam}(object, h = 10, newdata = NULL,
   occurrence = NULL, interval = c("none", "prediction", "confidence",
-  "simulated", "approximate", "semiparametric", "nonparametric"),
-  level = 0.95, side = c("both", "upper", "lower"), cumulative = FALSE,
-  nsim = 10000, ...)
+  "simulated", "approximate", "semiparametric", "nonparametric", "empirical",
+  "complete"), level = 0.95, side = c("both", "upper", "lower"),
+  cumulative = FALSE, nsim = NULL, scenarios = FALSE, ...)
 
 \method{forecast}{smooth}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95,
   side = c("both", "upper", "lower"), ...)
 
-\method{forecast}{oes}(object, h = 10, interval = c("parametric",
-  "semiparametric", "nonparametric", "none"), level = 0.95,
-  side = c("both", "upper", "lower"), ...)
+\method{forecast}{oes}(object, h = 10, ...)
 
 \method{forecast}{msdecompose}(object, h = 10, interval = c("parametric",
   "semiparametric", "nonparametric", "none"), level = 0.95, model = NULL,
@@ -36,8 +34,21 @@
 \item{occurrence}{The vector containing the future occurrence variable
 (values in [0,1]), if it is known.}
 
-\item{interval}{Type of interval to construct. See \link[smooth]{es} for
-details.}
+\item{interval}{What type of mechanism to use for interval construction.
+the recommended option is \code{interval="prediction"}, which will use analytical
+solutions for pure additive models and simulations for the others.
+\code{interval="simulated"} is the slowest method, but is robust to the type of
+model. \code{interval="approximate"} (aka \code{interval="parametric"}) uses
+analytical formulae for conditional h-steps ahead variance, but is approximate
+for the non-additive error models. \code{interval="semiparametric"} relies on the
+multiple steps ahead forecast error (extracted via \code{rmultistep} method) and on
+the assumed distribution of the error term. \code{interval="nonparametric"} uses
+Taylor & Bunn (1999) approach with quantile regressions. \code{interval="empirical"}
+constructs intervals based on empirical quantiles of multistep forecast errors.
+\code{interval="complete"} will call for \code{reforecast()} function and produce
+interval based on the uncertainty around the parameters of the model.
+Finally, \code{interval="confidence"} tries to generate the confidence intervals
+for the point forecast based on the \code{reforecast} method.}
 
 \item{level}{Confidence level. Defines width of prediction interval.}
 
@@ -48,7 +59,15 @@ interval or only \code{"upper"}, or \code{"lower"}.}
 interval are produced instead of the normal ones. This is useful for
 inventory control systems.}
 
-\item{nsim}{Number of iterations to do in case of \code{interval="simulated"}.}
+\item{nsim}{Number of iterations to do in cases of \code{interval="simulated"},
+\code{interval="prediction"} (for mixed and multiplicative model),
+\code{interval="confidence"} and \code{interval="complete"}.
+The default value for the prediction / simulated interval is 1000. In case of
+confidence or complete intervals, this is set to 100.}
+
+\item{scenarios}{Binary, defining whether to return scenarios produced via
+simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
+the object will contain \code{scenarios} variable.}
 
 \item{...}{Other arguments accepted by either \link[smooth]{es},
 \link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima}.}
@@ -56,7 +75,7 @@ inventory control systems.}
 \item{model}{The type of ETS model to fit on the decomposed trend. Only applicable to
 "msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then
 it will be selected automatically based on the type of the used decomposition (either
-among pure additive or among pure additive ETS models).}
+among pure additive or among pure multiplicative ETS models).}
 }
 \value{
 Returns object of class "smooth.forecast", which contains:
@@ -70,17 +89,19 @@ Returns object of class "smooth.forecast", which contains:
 \item \code{upper} - upper bound of prediction interval.
 \item \code{level} - confidence level.
 \item \code{interval} - binary variable (whether interval were produced or not).
+\item \code{scenarios} - in case of \code{forecast.adam()} and
+\code{interval="simulated"} returns matrix with scenarios (future paths) that were
+used in simulations.
 }
 }
 \description{
-This function is created in order for the package to be compatible with Rob
-Hyndman's "forecast" package
+Function produces conditional expectation (point forecasts) and prediction
+intervals for the estimated model.
 }
 \details{
-This is not a compulsory function. You can simply use \link[smooth]{es},
-\link[smooth]{ces}, \link[smooth]{gum} or \link[smooth]{ssarima} without
-\code{forecast.smooth}. But if you are really used to \code{forecast}
-function, then go ahead!
+By default the function will generate conditional expectations from the
+estimated model and will also produce a variety of prediction intervals
+based on user preferences.
 }
 \examples{
 
@@ -97,7 +118,7 @@ Forecasting with exponential smoothing: the state space approach,
 Springer-Verlag.
 }
 \seealso{
-\code{\link[greybox]{forecast}}
+\code{\link[generics]{forecast}}
 }
 \author{
 Ivan Svetunkov, \email{ivan@svetunkov.ru}

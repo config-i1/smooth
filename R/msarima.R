@@ -2,190 +2,18 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
                          "ARValue","ARRequired","AREstimate","MAValue","MARequired","MAEstimate",
                          "yForecastStart","nonZeroARI","nonZeroMA"));
 
-#' Multiple Seasonal ARIMA
-#'
-#' Function constructs Multiple Seasonal State Space ARIMA, estimating AR, MA
-#' terms and initial states.
-#'
-#' The model, implemented in this function differs from the one in
-#' \link[smooth]{ssarima} function (Svetunkov & Boylan, 2019), but it is more
-#' efficient and better fitting the data (which might be a limitation).
-#'
-#' The basic ARIMA(p,d,q) used in the function has the following form:
-#'
-#' \eqn{(1 - B)^d (1 - a_1 B - a_2 B^2 - ... - a_p B^p) y_[t] = (1 + b_1 B +
-#' b_2 B^2 + ... + b_q B^q) \epsilon_[t] + c}
-#'
-#' where \eqn{y_[t]} is the actual values, \eqn{\epsilon_[t]} is the error term,
-#' \eqn{a_i, b_j} are the parameters for AR and MA respectively and \eqn{c} is
-#' the constant. In case of non-zero differences \eqn{c} acts as drift.
-#'
-#' This model is then transformed into ARIMA in the Single Source of Error
-#' State space form (based by Snyder, 1985, but in a slightly different
-#' formulation):
-#'
-#' \eqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
-#'
-#' \eqn{v_{t} = F v_{t-l} + g \epsilon_{t}}
-#'
-#' \eqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
-#'
-#' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
-#' normal data equal to 1), \eqn{v_{t}} is the state vector (defined based on
-#' \code{orders}) and \eqn{l} is the vector of \code{lags}, \eqn{x_t} is the
-#' vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
-#' \eqn{F} is the \code{transition} matrix, \eqn{g} is the \code{persistence}
-#' vector, \eqn{a_t} is the vector of parameters for exogenous variables,
-#' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
-#' \code{persistenceX} matrix. The main difference from \link[smooth]{ssarima}
-#' function is that this implementation skips zero polynomials, substantially
-#' decreasing the dimension of the transition matrix. As a result, this
-#' function works faster than \link[smooth]{ssarima} on high frequency data,
-#' and it is more accurate.
-#'
-#' Due to the flexibility of the model, multiple seasonalities can be used. For
-#' example, something crazy like this can be constructed:
-#' SARIMA(1,1,1)(0,1,1)[24](2,0,1)[24*7](0,0,1)[24*30], but the estimation may
-#' take some time... Still this should be estimated in finite time (not like
-#' with \code{ssarima}).
-#'
-#' For some additional details see the vignette: \code{vignette("ssarima","smooth")}
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
 #' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssIntervalsRef
-#' @template ssGeneralRef
-#' @template ssARIMARef
-#'
-#' @param orders List of orders, containing vector variables \code{ar},
-#' \code{i} and \code{ma}. Example:
-#' \code{orders=list(ar=c(1,2),i=c(1),ma=c(1,1,1))}. If a variable is not
-#' provided in the list, then it is assumed to be equal to zero. At least one
-#' variable should have the same length as \code{lags}. Another option is to
-#' specify orders as a vector of a form \code{orders=c(p,d,q)}. The non-seasonal
-#' ARIMA(p,d,q) is constructed in this case.
-#' @param lags Defines lags for the corresponding orders (see examples above).
-#' The length of \code{lags} must correspond to the length of either \code{ar},
-#' \code{i} or \code{ma} in \code{orders} variable. There is no restrictions on
-#' the length of \code{lags} vector. It is recommended to order \code{lags}
-#' ascending.
-#' The orders are set by a user. If you want the automatic order selection,
-#' then use \link[smooth]{auto.ssarima} function instead.
-#' @param constant If \code{TRUE}, constant term is included in the model. Can
-#' also be a number (constant value).
-#' @param AR Vector or matrix of AR parameters. The order of parameters should
-#' be lag-wise. This means that first all the AR parameters of the firs lag
-#' should be passed, then for the second etc. AR of another ssarima can be
-#' passed here.
-#' @param MA Vector or matrix of MA parameters. The order of parameters should
-#' be lag-wise. This means that first all the MA parameters of the firs lag
-#' should be passed, then for the second etc. MA of another ssarima can be
-#' passed here.
-#' @param ...  Other non-documented parameters.
-#'
-#' Parameter \code{model} can accept a previously estimated SARIMA model and
-#' use all its parameters.
-#'
-#' \code{FI=TRUE} will make the function produce Fisher Information matrix,
-#' which then can be used to calculated variances of parameters of the model.
-#'
-#' @return Object of class "smooth" is returned. It contains the list of the
-#' following values:
-#'
-#' \itemize{
-#' \item \code{model} - the name of the estimated model.
-#' \item \code{timeElapsed} - time elapsed for the construction of the model.
-#' \item \code{states} - the matrix of the fuzzy components of ssarima, where
-#' \code{rows} correspond to time and \code{cols} to states.
-#' \item \code{transition} - matrix F.
-#' \item \code{persistence} - the persistence vector. This is the place, where
-#' smoothing parameters live.
-#' \item \code{measurement} - measurement vector of the model.
-#' \item \code{AR} - the matrix of coefficients of AR terms.
-#' \item \code{I} - the matrix of coefficients of I terms.
-#' \item \code{MA} - the matrix of coefficients of MA terms.
-#' \item \code{constant} - the value of the constant term.
-#' \item \code{initialType} - Type of the initial values used.
-#' \item \code{initial} - the initial values of the state vector (extracted
-#' from \code{states}).
-#' \item \code{nParam} - table with the number of estimated / provided parameters.
-#' If a previous model was reused, then its initials are reused and the number of
-#' provided parameters will take this into account.
-#' \item \code{fitted} - the fitted values.
-#' \item \code{forecast} - the point forecast.
-#' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{upper} - the higher bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors.
-#' \item \code{s2} - variance of the residuals (taking degrees of freedom into
-#' account).
-#' \item \code{interval} - type of interval asked by user.
-#' \item \code{level} - confidence level for interval.
-#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{y} - the original data.
-#' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{xregDo="s"}, then this value will contain only selected exogenous
-#' variables.
-#' \item \code{initialX} - initial values for parameters of exogenous
-#' variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{lossValue} - Cost function value.
-#' \item \code{loss} - Type of loss function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
-#' or when \code{FI} is not provided at all.
-#' \item \code{accuracy} - vector of accuracy measures for the holdout sample.
-#' In case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
-#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
-#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
-#' \item \code{B} - the vector of all the estimated parameters.
-#' }
-#'
-#' @seealso \code{\link[smooth]{auto.msarima}, \link[smooth]{orders},
-#' \link[smooth]{ssarima}, \link[smooth]{auto.ssarima}}
-#'
-#' @examples
-#'
-#' # The previous one is equivalent to:
-#' ourModel <- msarima(rnorm(118,100,3),orders=c(1,1,1),lags=1,h=18,holdout=TRUE,interval="p")
-#'
-#' # Example of SARIMA(2,0,0)(1,0,0)[4]
-#' msarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)
-#'
-#' # SARIMA of a peculiar order on AirPassengers data
-#' ourModel <- msarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
-#'                     lags=c(1,6,12),h=10,holdout=TRUE)
-#'
-#' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
-#'
-#' msarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")
-#'
-#' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))
-#'
-#' @export msarima
-msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
-                    constant=FALSE, AR=NULL, MA=NULL,
-                    initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                    h=10, holdout=FALSE, cumulative=FALSE,
-                    interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                    bounds=c("admissible","none"),
-                    silent=c("all","graph","legend","output","none"),
-                    xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+#' @rdname msarima
+#' @export
+msarima_old <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+                        constant=FALSE, AR=NULL, MA=NULL,
+                        initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
+                        loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                        h=10, holdout=FALSE, cumulative=FALSE,
+                        interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                        bounds=c("admissible","none"),
+                        silent=c("all","graph","legend","output","none"),
+                        xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -196,11 +24,8 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -491,9 +316,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -523,7 +348,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
@@ -536,7 +361,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -546,7 +371,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(xregDo=="select"){
+        if(regressors=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                                nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
@@ -580,7 +405,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                        oesmodel=oesmodel,
                        bounds="u",
                        silent=silent,
-                       xreg=xreg,xregDo=xregDo,initialX=initialX,
+                       xreg=xreg,regressors=regressors,initialX=initialX,
                        updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
@@ -637,7 +462,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     list2env(ssarimaValues,environment());
     # print("list2env");
 
-    if(xregDo!="u"){
+    if(regressors!="u"){
         # Prepare for fitting
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
                                 ARValue, MAValue, constantValue, B,
@@ -693,14 +518,14 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             list2env(ssarimaValues,environment());
         }
     }
-    # print("xregDo");
+    # print("regressors");
 
     if(!is.null(xreg)){
         if(ncol(matat)==1){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
-        if(xregDo=="s"){
+        if(regressors=="s"){
             nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
             parametersNumber[1,2] <- nParamExo;
         }

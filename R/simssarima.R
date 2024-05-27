@@ -527,6 +527,9 @@ elementsGenerator <- function(ar.orders=ar.orders, ma.orders=ma.orders, i.orders
             vecConstantValue[] <- constantValue;
         }
     }
+    else{
+        vecConstantValue[] <- 0;
+    }
 
     for(i in 1:nsim){
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, componentsNumber,

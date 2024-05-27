@@ -3,26 +3,29 @@
 #' WARNING! Packages \code{foreach} and either \code{doMC} (Linux and Mac only)
 #' or \code{doParallel} are needed in order to run the function in parallel.
 #' @param outliers Defines what to do with outliers: \code{"ignore"}, so just returning the model,
-#' \code{"detect"} outliers based on specified \code{level} and include dummies for them in the model,
+#' \code{"use"} - detect outliers based on specified \code{level} and include dummies for them in the model,
 #' or detect and \code{"select"} those of them that reduce \code{ic} value.
 #' @param level What confidence level to use for detection of outliers. The default is 99\%. The specific
 #' bounds of confidence interval depend on the distribution used in the model.
 #'
 #' @examples
-#' \dontrun{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
+#' # Automatic selection of appropriate distribution and orders of ADAM ETS+ARIMA
+#' \donttest{ourModel <- auto.adam(rnorm(100,100,10), model="ZZN", lags=c(1,4),
 #'                       orders=list(ar=c(2,2),ma=c(2,2),select=TRUE))}
 #'
 #' @rdname adam
 #' @importFrom stats update.formula
 #' @export
-auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
-                      formula=NULL, outliers=c("ignore","use","select"), level=0.99,
-                      distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
-                      h=0, holdout=FALSE,
-                      persistence=NULL, phi=NULL, initial=c("optimal","backcasting"), arma=NULL,
+auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
+                      orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3),select=TRUE),
+                      formula=NULL, regressors=c("use","select","adapt"),
                       occurrence=c("none","auto","fixed","general","odds-ratio","inverse-odds-ratio","direct"),
+                      distribution=c("dnorm","dlaplace","ds","dgnorm","dlnorm","dinvgauss","dgamma"),
+                      outliers=c("ignore","use","select"), level=0.99,
+                      h=0, holdout=FALSE,
+                      persistence=NULL, phi=NULL, initial=c("optimal","backcasting","complete"), arma=NULL,
                       ic=c("AICc","AIC","BIC","BICc"), bounds=c("usual","admissible","none"),
-                      regressors=c("use","select","adapt"), silent=TRUE, parallel=FALSE, ...){
+                      silent=TRUE, parallel=FALSE, ...){
     # Copyright (C) 2020 - Inf  Ivan Svetunkov
 
     # Start measuring the time of calculations
@@ -43,10 +46,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
     ic <- match.arg(ic,c("AICc","AIC","BIC","BICc"));
     IC <- switch(ic,
-                         "AIC"=AIC,
-                         "AICc"=AICc,
-                         "BIC"=BIC,
-                         "BICc"=BICc);
+                 "AIC"=AIC,
+                 "AICc"=AICc,
+                 "BIC"=BIC,
+                 "BICc"=BICc);
 
     initial <- match.arg(initial);
     outliers <- match.arg(outliers);
@@ -101,9 +104,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     # If this is non-positive data and positive defined distributions are used, fix this
-    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss") %in% distribution) &&
+    if(any(yInSample<=0) && any(c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution) &&
        (!is.occurrence(occurrence) && occurrence[1]=="none")){
-        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss")[c("dlnorm","dllaplace","dls","dinvgauss") %in% distribution];
+        distributionToDrop <- c("dlnorm","dllaplace","dls","dinvgauss","dgamma")[
+            c("dlnorm","dllaplace","dls","dinvgauss","dgamma") %in% distribution];
         warning(paste0("The data is not strictly positive, so not all the distributions make sense. ",
                        "Dropping ",paste0(distributionToDrop,collapse=", "),"."),
                 call.=FALSE);
@@ -340,6 +344,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
         }
     }
+    else{
+        cluster <- NULL;
+    }
 
     if(!silent){
         if(!parallel){
@@ -372,7 +379,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(!silent){
                     cat(distribution[i],"\b, ");
                 }
-                if(etsModel){
+                if(etsModel || xregModel){
                     selectedModels[[i]] <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                                 distribution=distribution[i], formula=formula,
                                                 h=h, holdout=holdout,
@@ -384,7 +391,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(arimaModelSelect){
                     selectedModels[[i]] <- arimaSelector(data=data, model=model,
                                                          lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                                                         distribution=selectedModels[[i]]$distribution, h=h, holdout=holdout,
+                                                         distribution=distribution[i], h=h, holdout=holdout,
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds,
                                                          silent=silent, regressors=regressors,
@@ -394,7 +401,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
         }
         else{
             selectedModels <- foreach::`%dopar%`(foreach::foreach(i=1:length(distribution)),{
-                if(etsModel){
+                if(etsModel || xregModel){
                     testModel <- adam(data=data, model=model, lags=lags, orders=ordersToUse,
                                       distribution=distribution[i], formula=formula,
                                       h=h, holdout=holdout,
@@ -409,7 +416,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(arimaModelSelect){
                     testModel <- arimaSelector(data=data, model=model,
                                                lags=lags, arMax=arMax, iMax=iMax, maMax=maMax,
-                                               distribution=testModel$distribution, h=h, holdout=holdout,
+                                               distribution=distribution[i], h=h, holdout=holdout,
                                                persistence=persistence, phi=phi, initial=initial,
                                                occurrence=occurrence, ic=ic, bounds=bounds,
                                                silent=TRUE, regressors=regressors,
@@ -449,12 +456,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             # If the ETS model was done before this, then extract residuals
             if(is.adam(testModelETS)){
-                yInSample <- data;
                 model <- etsModelType <- modelType(testModelETS);
                 ICOriginal <- IC(testModelETS);
             }
             else{
-                yInSample <- data;
+                ICOriginal <- Inf;
             }
 
             if(!silent){
@@ -496,6 +502,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
 
             ##### Loop for differences #####
             # Prepare table with differences
+            # expand.grid() can be used instead...
+            # iOrders <- as.matrix(cbind(expand.grid(lapply(iMax, seq, 0)), constant=1));
+            # Remove the row with all zeroes,  duplicate orders for the constant
+            # iOrders <- rbind(iOrders[-nrow(iOrders),],iOrders);
+            # First rows should not have constant
+            # iOrders[1:(floor(nrow(iOrders)/2)),ncol(iOrders)] <- 0;
             if(any(iMax!=0)){
                 iOrders[,1] <- rep(c(0:iMax[1]),times=prod(iMax[-1]+1));
                 if(ordersLength>1){
@@ -506,12 +518,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
             # Duplicate the orders
             iOrders[1:iCombinations+iCombinations,] <- iOrders[1:iCombinations,]
-
             # Add constant / no constant
             iOrders[,ordersLength+1] <- rep(c(0,1),each=iCombinations);
 
             iOrdersICs <- vector("numeric",iCombinations*2);
-            iOrdersICs[1] <- Inf;
+            iOrdersICs[1] <- ICOriginal;
 
             # Save B from models to speed up calculation afterwards
             BValues <- vector("list",iCombinations*2);
@@ -523,9 +534,9 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             # Skip ARIMA(0,0,0) without constant
             for(d in 2:(iCombinations*2)){
                     # Run the model for differences
-                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                    testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,i=iOrders[d,1:ordersLength],ma=0),
-                                          constant=(iOrders[d,ordersLength+1]==1),
+                                          constant=(iOrders[d,ordersLength+1]==1), formula=formula,
                                           distribution=distribution,
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
@@ -546,10 +557,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             iBest <- iOrders[d,1:ordersLength];
             constantValue <- iOrders[d,ordersLength+1]==1;
 
-            bestModel <- testModel <- adam(data=yInSample, model=model, lags=lags,
+            # Refit the best model
+            bestModel <- testModel <- adam(data=data, model=model, lags=lags,
                                            orders=list(ar=0,i=iBest,ma=0),
                                            constant=constantValue,
-                                           distribution=distribution,
+                                           distribution=distribution, formula=formula,
                                            h=h, holdout=holdout,
                                            persistence=persistence, phi=phi, initial=initial,
                                            occurrence=occurrence, ic=ic, bounds=bounds,
@@ -566,6 +578,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 cat("\nSelecting ARMA... |");
                 mSymbols <- c("/","-","\\","|","/","-","\\","|","/","-","\\","|","/","-","\\","|");
             }
+
             ##### Loop for ARMA #####
             # Include MA / AR terms starting from furthest lags
             for(i in ordersLength:1){
@@ -584,10 +597,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         acfValues <- acf(residuals(bestModel), lag.max=max((maMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf[-1];
                         maTest[i] <- which.max(abs(acfValues[c(1:maMax[i])*lags[i]]));
 
-                        testModel <- adam(data=yInSample, model=model, lags=lags,
+                        testModel <- adam(data=data, model=model, lags=lags,
                                           orders=list(ar=arBest,i=iBest,ma=maTest),
                                           constant=constantValue,
-                                          distribution=distribution,
+                                          distribution=distribution, formula=formula,
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
@@ -621,10 +634,10 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                         pacfValues <- pacf(residuals(bestModel), lag.max=max((arMax*lags)[i]*2,obsInSample/2)+1, plot=FALSE)$acf;
                         arTest[i] <- which.max(abs(pacfValues[c(1:arMax[i])*lags[i]]));
 
-                        testModel <- adam(data=yInSample, model=model, lags=lags,
+                        testModel <- adam(data=data, model=model, lags=lags,
                                           orders=list(ar=arTest,i=iBest,ma=maBest),
                                           constant=constantValue,
-                                          distribution=distribution,
+                                          distribution=distribution, formula=formula,
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
@@ -648,16 +661,26 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
             }
 
             #### Additional checks for ARIMA(0,d,d) models ####
+            # Increase the pool of models with ARIMA(1,1,2) and similar?
             additionalModels <- NULL;
-            if(any(maMax!=0)){
+            # Form the table with IMA orders, where q=d
+            if(any(maMax!=0) && any(iMax!=0)){
                 # First columns - I(d), the last ones are MA(q)
-                additionalModels <- cbind(iOrders[1:iCombinations,-3],iOrders[1:iCombinations,-3]);
+                additionalModels <- iOrders[1:iCombinations,1:ordersLength,drop=FALSE];
                 modelsLeft <- rep(TRUE,iCombinations);
+                # Make sure that MA orders do not exceed maMax
                 for(i in 1:ordersLength){
-                    modelsLeft[] <- modelsLeft & additionalModels[,ordersLength+i] <= maMax[i];
+                    modelsLeft[] <- (additionalModels[,i] <= maMax[i]);
                 }
                 additionalModels <- additionalModels[modelsLeft,,drop=FALSE];
             }
+            # Form orders for ARIMA(1,1,2), SARIMA(1,1,2)(1,1,2) etc
+            # if(any(arMax!=0)){
+            #     arOrdersAdditional <- rep(1, ordersLength);
+            #     iOrdersAdditional <- rep(1, ordersLength);
+            #     maOrdersAdditional <- rep(2, ordersLength);
+            # }
+            # Check the additional models
             if(!is.null(additionalModels)){
                 # Save B from models to speed up calculation afterwards
                 BValues <- vector("list",iCombinations);
@@ -665,17 +688,18 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 imaOrdersICs[] <- Inf;
                 for(d in 2:nrow(additionalModels)){
                     # Run the model for differences
-                    testModel <- try(adam(data=yInSample, model=model, lags=lags,
+                    testModel <- try(adam(data=data, model=model, lags=lags,
                                           orders=list(ar=0,
                                                       i=additionalModels[d,1:ordersLength],
                                                       ma=additionalModels[d,1:ordersLength]),
                                           constant=FALSE,
-                                          distribution=distribution,
+                                          distribution=distribution, formula=formula,
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
                                           regressors=regressors, silent=TRUE, ...),
                                      silent=TRUE);
+
                     if(!inherits(testModel,"try-error")){
                         imaOrdersICs[d] <- IC(testModel);
                         if(!is.null(testModel$B)){
@@ -685,17 +709,21 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     else{
                         imaOrdersICs[d] <- Inf;
                     }
+                    if(silentDebug){
+                        cat("\nAdditional Model:", additionalModels[d,1:ordersLength], "IC:", imaOrdersICs[d]);
+                    }
                 }
+
                 d <- which.min(imaOrdersICs);
                 imaBest <- additionalModels[d,1:ordersLength];
                 if(imaOrdersICs[d]<bestIC){
                     arBest <- 0;
                     iBest <- maBest <- imaBest;
                     constantValue <- FALSE;
-                    bestModel <- adam(data=yInSample, model=model, lags=lags,
+                    bestModel <- adam(data=data, model=model, lags=lags,
                                       orders=list(ar=0,i=iBest,ma=maBest),
                                       constant=constantValue,
-                                      distribution=distribution,
+                                      distribution=distribution, formula=formula,
                                       h=h, holdout=holdout,
                                       persistence=persistence, phi=phi, initial=initial,
                                       occurrence=occurrence, ic=ic, bounds=bounds,
@@ -703,16 +731,12 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 }
             }
 
-            if(!silent){
-                cat("\nThe best ARIMA is selected. ");
-            }
-
             # If this was something on residuals, reestimate the full model
             if(is.adam(testModelETS)){
-                bestModel <- adam(data=data, model=modelOriginal, lags=lags,
+                bestModel <- adam(data=data, model=model, lags=lags,
                                   orders=list(ar=arBest,i=iBest,ma=maBest),
                                   constant=constantValue,
-                                  distribution=distribution,
+                                  distribution=distribution, formula=formula,
                                   h=h, holdout=holdoutOriginal,
                                   persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
                                   occurrence=occurrenceOriginal, ic=ic, bounds=bounds,
@@ -722,6 +746,17 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                 if(IC(bestModel) >= ICOriginal){
                     bestModel <- testModelETS;
                 }
+            }
+
+            if(!silent){
+                cat("\nThe best ARIMA is selected. ");
+            }
+
+            # Give the correct name to the response variable
+            bestModel$formula[[2]] <- as.name(responseName);
+            colnames(bestModel$data)[colnames(bestModel$data)=="data"] <- responseName;
+            if(holdoutOriginal){
+                colnames(bestModel$holdout)[colnames(bestModel$holdout)=="data"] <- responseName;
             }
 
             return(bestModel);
@@ -803,13 +838,14 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
                     else{
                         formula <- as.formula(paste0(responseName,"~."));
                     }
-                    outliersDo <- regressors;
+                    # outliersDo <- regressors;
                 }
                 else{
                     colnames(data)[1] <- responseName;
                 }
                 newCall <- cl;
                 newCall$data <- data;
+                newCall$formula <- formula;
                 newCall$silent <- TRUE;
                 newCall$regressors <- outliersDo;
                 newCall$outliers <- "ignore";
@@ -839,7 +875,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
     else{
         #### If there is ETS(X), do ARIMA selection on residuals ####
-        # Extract residuals from adams for each distribution, fit best ARIMA for each, refit the models.
+        # Extract residuals from adam for each distribution, fit best ARIMA for each, refit the models.
         if(etsModel || xregModel){
             selectedModels <- adamReturner(data, model, lags, orders,
                                            distribution, h, holdout,
@@ -910,6 +946,11 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar
     }
 
     selectedModels[[which.min(ICValues)]]$call <- cl;
+
+    # Check if the clusters have been made
+    if(!is.null(cluster)){
+        parallel::stopCluster(cluster);
+    }
 
     return(selectedModels[[which.min(ICValues)]]);
 }

@@ -5,9 +5,11 @@
 \alias{multicov.smooth}
 \title{Function returns the multiple steps ahead covariance matrix of forecast errors}
 \usage{
-multicov(object, type = c("analytical", "empirical", "simulated"), ...)
+multicov(object, type = c("analytical", "empirical", "simulated"), h = 10,
+  nsim = 1000, ...)
 
-\method{multicov}{smooth}(object, type = c("analytical", "empirical", "simulated"), ...)
+\method{multicov}{smooth}(object, type = c("analytical", "empirical",
+  "simulated"), h = 10, nsim = 1000, ...)
 }
 \arguments{
 \item{object}{Model estimated using one of the functions of smooth package.}
@@ -24,10 +26,15 @@ same model is applied to it and then the empirical 1 to h steps ahead forecast
 errors are produced;
 }}
 
+\item{h}{Forecast horizon to use in the calculations.}
+
+\item{nsim}{Number of iterations to produce in the simulation. Only needed if
+\code{type="simulated"}}
+
 \item{...}{Other parameters passed to simulate function (if \code{type="simulated"}
-is used). These are \code{obs}, \code{nsim} and \code{seed}. By default
-\code{obs=1000}, \code{nsim=100}. This approach increases the accuracy of
-covariance matrix on small samples and intermittent data;}
+is used). These are \code{obs} and \code{seed}. By default \code{obs=1000}.
+This approach increases the accuracy of covariance matrix on small samples
+and intermittent data;}
 }
 \value{
 Scalar in cases of non-smooth functions. (h x h) matrix otherwise.

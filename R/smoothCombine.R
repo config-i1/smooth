@@ -16,6 +16,7 @@
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssAuthor
 #' @template ssKeywords
@@ -57,7 +58,7 @@
 #' \item \code{cumulative} - whether the produced forecast was cumulative or not.
 #' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{regressors="s"},
 #' then this value will contain only selected exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 #' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -72,18 +73,15 @@
 #'
 #' @examples
 #'
-#' library(Mcomp)
-#'
-#' ourModel <- smoothCombine(M3[[578]],interval="p")
-#' plot(ourModel)
+#' \dontrun{ourModel <- smoothCombine(BJsales,interval="p")
+#' plot(ourModel)}
 #'
 #' # models parameter accepts either previously estimated smoothCombine
 #' # or a manually formed list of smooth models estimated in sample:
-#' smoothCombine(M3[[578]],models=ourModel)
+#' \dontrun{smoothCombine(BJsales,models=ourModel)}
 #'
-#' \dontrun{models <- list(es(M3[[578]]), sma(M3[[578]]))
-#' smoothCombine(M3[[578]],models=models)
-#' }
+#' \dontrun{models <- list(es(BJsales), sma(BJsales))
+#' smoothCombine(BJsales,models=models)}
 #'
 #' @importFrom stats fitted
 #' @export smoothCombine
@@ -95,7 +93,7 @@ smoothCombine <- function(y, models=NULL,
                           bins=200, intervalCombine=c("quantile","probability"),
                           bounds=c("admissible","none"),
                           silent=c("all","graph","legend","output","none"),
-                          xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                          xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Copyright (C) 2018 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -111,15 +109,13 @@ smoothCombine <- function(y, models=NULL,
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
+    intervalOriginal <- interval;
 
 # Add all the variables in ellipsis to current environment
     thisEnvironment <- environment();
@@ -163,25 +159,25 @@ smoothCombine <- function(y, models=NULL,
         }
         esModel <- es(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                       cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                      xreg=xreg,xregDo=xregDo, initialX=initialX);
+                      xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", CES");
         }
         cesModel <- auto.ces(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                              cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo, initialX=initialX);
+                             xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", SSARIMA");
         }
         ssarimaModel <- auto.ssarima(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                                      cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                                     xreg=xreg,xregDo=xregDo, initialX=initialX);
+                                     xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", GUM");
         }
         gumModel <- auto.gum(y,initial=initial,ic=ic,loss=loss,h=h,holdout=holdout,
                              cumulative=cumulative,interval="n",bounds=bounds,silent=TRUE,
-                             xreg=xreg,xregDo=xregDo, initialX=initialX);
+                             xreg=xreg,regressors=regressors, initialX=initialX);
         if(!silentText){
             cat(", SMA");
         }
@@ -196,7 +192,7 @@ smoothCombine <- function(y, models=NULL,
 
     yForecastTest <- forecast(models[[1]],h=h,interval="none",holdout=holdout);
     yHoldout <- yForecastTest$model$holdout;
-    yInSample <- yForecastTest$model$y;
+    yInSample <- actuals(yForecastTest$model);
 
     # Calculate AIC weights
     ICs <- unlist(lapply(models, IC));
@@ -208,7 +204,7 @@ smoothCombine <- function(y, models=NULL,
     icBest <- min(ICs);
     icWeights <- exp(-0.5*(ICs-icBest)) / sum(exp(-0.5*(ICs-icBest)));
 
-    modelsForecasts <- lapply(models,forecast,h=h,interval=interval,
+    modelsForecasts <- lapply(models,forecast,h=h,interval=intervalOriginal,
                               level=0,holdout=holdout,cumulative=cumulative,
                               xreg=xreg);
 

@@ -1,7 +1,6 @@
 #include <RcppArmadillo.h>
 #include <iostream>
 #include <cmath>
-// [[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
 
@@ -32,7 +31,9 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                 vecYfit = rowvecW.cols(0,1) * vecVt.rows(0,1);
                 break;
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1)));
+                // vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1)));
+                vecYfit = arma::real(exp(rowvecW.cols(0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,1)))));
                 break;
             }
             break;
@@ -44,7 +45,10 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
                 vecYfit = rowvecW.cols(0,nETS-1) * vecVt.rows(0,nETS-1);
                 break;
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
+                // vecYfit = exp(rowvecW.cols(0,1) * log(vecVt.rows(0,1))) + rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
+                vecYfit = arma::real(exp(rowvecW.cols(0,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,1))))) +
+                          rowvecW.cols(2,2+nSeasonal-1) * vecVt.rows(2,2+nSeasonal-1);
                 break;
             }
             break;
@@ -53,7 +57,15 @@ inline double adamWvalue(arma::vec const &vecVt, arma::rowvec const &rowvecW,
             switch(T){
             case 'N':
             case 'M':
-                vecYfit = exp(rowvecW.cols(0,nETS-1) * log(vecVt.rows(0,nETS-1)));
+                switch(E){
+                    case 'A':
+                        // Use complex numbers to avoid issues with negative states
+                        vecYfit = arma::real(exp(rowvecW.cols(0,nETS-1) *
+                                             log(arma::conv_to<arma::cx_vec>::from(vecVt.rows(0,nETS-1)))));
+                    break;
+                    case 'M':
+                        vecYfit = exp(rowvecW.cols(0,nETS-1) * log(vecVt.rows(0,nETS-1)));
+                }
                 break;
             case 'A':
                 vecYfit = rowvecW.cols(0,1) * vecVt.rows(0,1) * exp(rowvecW.cols(2,2+nSeasonal-1) * log(vecVt.rows(2,2+nSeasonal-1)));
@@ -135,7 +147,7 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             char const E, char const T, char const S,
                             unsigned int const &nETS, unsigned int const &nNonSeasonal,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
-                            unsigned int const &nComponents){
+                            unsigned int const &nComponents, bool const &constant){
     arma::vec matrixVtnew = matrixVt;
 
     switch(T){
@@ -145,12 +157,10 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
         break;
     case 'M':
         if(nETS>0){
-            matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
-            // This is not needed, because of the line 125
-            // if(nSeasonal>0){
-            //     // This is needed in order not to face log(-x)
-            //     matrixVtnew.rows(2,nComponents-1) = matrixVt.rows(2,nComponents-1);
-            // }
+            // Use complex numbers to avoid issues in mixed models
+            matrixVtnew.rows(0,1) = arma::real(exp(matrixF.submat(0,0,1,1) *
+                                               log(arma::conv_to<arma::cx_vec>::from(matrixVt.rows(0,1)))));
+            // matrixVtnew.rows(0,1) = exp(matrixF.submat(0,0,1,1) * log(matrixVt.rows(0,1)));
         }
         break;
     }
@@ -162,6 +172,11 @@ inline arma::vec adamFvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
             log(matrixVt.rows(nETS,nETS+nArima-1)));
     }
 
+    // If there is a constant, fix the first state of ETS(M,*,*)
+    if(constant && nETS>0 && E=='M'){
+        matrixVtnew.row(0) = (matrixVtnew.row(0)-matrixVt.row(nComponents-1)) % matrixVt.row(nComponents-1);
+    }
+
     return matrixVtnew;
 }
 
@@ -171,7 +186,7 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
                             unsigned int const &nETS, unsigned int const &nNonSeasonal,
                             unsigned int const &nSeasonal, unsigned int const &nArima,
                             unsigned int const &nXreg, unsigned int const &nComponents,
-                            arma::vec const &vectorG, double const error){
+                            bool const &constant, arma::vec const &vectorG, double const error){
     arma::vec g(matrixVt.n_rows, arma::fill::ones);
 
     if(nETS>0){
@@ -306,7 +321,8 @@ inline arma::vec adamGvalue(arma::vec const &matrixVt, arma::mat const &matrixF,
     // If there are arima components, make sure that the g is correct for multiplicative error type
     if(nArima>0 && E=='M'){
         g.rows(nETS,nETS+nArima-1) =
-            adamFvalue(matrixVt, matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents).rows(nETS, nETS+nArima-1) %
+            adamFvalue(matrixVt, matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal,
+                       nArima, nComponents, constant).rows(nETS, nETS+nArima-1) %
             (exp(vectorG.rows(nETS,nETS+nArima-1)*log(1+error)) - 1);
     }
 

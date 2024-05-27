@@ -11,7 +11,7 @@ smoothCombine(y, models = NULL, initial = c("optimal", "backcasting"),
   "semiparametric", "nonparametric"), level = 0.95, bins = 200,
   intervalCombine = c("quantile", "probability"), bounds = c("admissible",
   "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL, ...)
+  xreg = NULL, regressors = c("use", "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be forecasted.}
@@ -111,7 +111,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
@@ -139,7 +139,7 @@ then NA is returned.
 \item \code{cumulative} - whether the produced forecast was cumulative or not.
 \item \code{y} - original data.
 \item \code{holdout} - holdout part of the original data.
-\item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
+\item \code{xreg} - provided vector or matrix of exogenous variables. If \code{regressors="s"},
 then this value will contain only selected exogenous variables.
 \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
 \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
@@ -167,18 +167,15 @@ the resulting interval may be imprecise.
 }
 \examples{
 
-library(Mcomp)
-
-ourModel <- smoothCombine(M3[[578]],interval="p")
-plot(ourModel)
+\dontrun{ourModel <- smoothCombine(BJsales,interval="p")
+plot(ourModel)}
 
 # models parameter accepts either previously estimated smoothCombine
 # or a manually formed list of smooth models estimated in sample:
-smoothCombine(M3[[578]],models=ourModel)
+\dontrun{smoothCombine(BJsales,models=ourModel)}
 
-\dontrun{models <- list(es(M3[[578]]), sma(M3[[578]]))
-smoothCombine(M3[[578]],models=models)
-}
+\dontrun{models <- list(es(BJsales), sma(BJsales))
+smoothCombine(BJsales,models=models)}
 
 }
 \references{

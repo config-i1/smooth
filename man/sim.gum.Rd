@@ -102,11 +102,10 @@ simulate(ourModel,nsim=10)
 }
 \references{
 \itemize{
+\item Svetunkov I. (2023) Smooth forecasting with the smooth package in R. arXiv:2301.01790.
+\doi{10.48550/arXiv.2301.01790}.
 \item Svetunkov I. (2015 - Inf) "smooth" package for R - series of posts about the underlying
-models and how to use them: \url{https://forecasting.svetunkov.ru/en/tag/smooth/}.
-\item Svetunkov I. (2017). Statistical models underlying functions of 'smooth'
-package for R. Working Paper of Department of Management Science, Lancaster
-University 2017:1, 1-52.
+models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}.
 }
 }
 \seealso{

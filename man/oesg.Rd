@@ -8,13 +8,10 @@ oesg(y, modelA = "MNN", modelB = "MNN", persistenceA = NULL,
   persistenceB = NULL, phiA = NULL, phiB = NULL, initialA = "o",
   initialB = "o", initialSeasonA = NULL, initialSeasonB = NULL,
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xregA = NULL, xregB = NULL, initialXA = NULL, initialXB = NULL,
-  xregDoA = c("use", "select"), xregDoB = c("use", "select"),
-  updateXA = FALSE, updateXB = FALSE, transitionXA = NULL,
-  transitionXB = NULL, persistenceXA = NULL, persistenceXB = NULL, ...)
+  bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
+  "legend", "output", "none"), xregA = NULL, xregB = NULL,
+  initialXA = NULL, initialXB = NULL, regressorsA = c("use", "select"),
+  regressorsB = c("use", "select"), ...)
 }
 \arguments{
 \item{y}{Either numeric vector or time series vector.}
@@ -54,34 +51,6 @@ model B. If \code{NULL}, then it is estimated.}
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{interval}{Type of interval to construct. This can be:
-
-\itemize{
-\item \code{"none"}, aka \code{"n"} - do not produce prediction
-interval.
-\item \code{"parametric"}, \code{"p"} - use state-space structure of ETS. In
-case of mixed models this is done using simulations, which may take longer
-time than for the pure additive and pure multiplicative models. This type
-of interval relies on unbiased estimate of in-sample error variance, which
-divides the sume of squared errors by T-k rather than just T.
-\item \code{"likelihood"}, \code{"l"} - these are the same as \code{"p"}, but
-relies on the biased estimate of variance from the likelihood (division by
-T, not by T-k).
-\item \code{"semiparametric"}, \code{"sp"} - interval based on covariance
-matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-distribution (depending on error type).
-\item \code{"nonparametric"}, \code{"np"} - interval based on values from a
-quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-used in this process is e[j] = a j^b, where j=1,..,h.
-}
-The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric interval are constructed, while the latter is equivalent to
-\code{none}.
-If the forecasts of the models were combined, then the interval are combined
-quantile-wise (Lichtendahl et al., 2013).}
-
-\item{level}{Confidence level. Defines width of prediction interval.}
-
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
@@ -108,36 +77,11 @@ A. Ignored if \code{xregA} is NULL.}
 \item{initialXB}{The vector of initial parameters for exogenous variables in the model
 B. Ignored if \code{xregB} is NULL.}
 
-\item{xregDoA}{Variable defines what to do with the provided \code{xregA}:
+\item{regressorsA}{Variable defines what to do with the provided \code{xregA}:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.}
 
-\item{xregDoB}{Similar to the \code{xregDoA}, but for the part B of the model.}
-
-\item{updateXA}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xregA}.}
-
-\item{updateXB}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xregB}.}
-
-\item{transitionXA}{The transition matrix \eqn{F_x} for exogenous variables of the model A.
-Can be provided as a vector. Matrix will be formed using the default
-\code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-\code{xregA}.}
-
-\item{transitionXB}{The transition matrix \eqn{F_x} for exogenous variables of the model B.
-Similar to the \code{transitionXA}.}
-
-\item{persistenceXA}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for the exogenous variables of the model A. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xregA}.}
-
-\item{persistenceXB}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for the exogenous variables of the model B. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xregB}.}
+\item{regressorsB}{Similar to the \code{regressorsA}, but for the part B of the model.}
 
 \item{...}{The parameters passed to the optimiser, such as \code{maxeval},
 \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of

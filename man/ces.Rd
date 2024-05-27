@@ -11,7 +11,7 @@ ces(y, seasonality = c("none", "simple", "partial", "full"),
   cumulative = FALSE, interval = c("none", "parametric", "likelihood",
   "semiparametric", "nonparametric"), level = 0.95,
   bounds = c("admissible", "none"), silent = c("all", "graph", "legend",
-  "output", "none"), xreg = NULL, xregDo = c("use", "select"),
+  "output", "none"), xreg = NULL, regressors = c("use", "select"),
   initialX = NULL, ...)
 }
 \arguments{
@@ -119,7 +119,7 @@ in-sample or to the whole series. If the number of observations in
 \code{xreg} is equal to in-sample, then values for the holdout sample are
 produced using \link[smooth]{es} function.}
 
-\item{xregDo}{The variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
@@ -162,7 +162,8 @@ provided parameters will take this into account.
 \item \code{upper} - the upper bound of prediction interval. When
 \code{interval="none"} then NA is returned.
 \item \code{residuals} - the residuals of the estimated model.
-\item \code{errors} - The matrix of 1 to h steps ahead errors.
+\item \code{errors} - The matrix of 1 to h steps ahead errors. Only returned when the
+multistep losses are used and semiparametric interval is needed.
 \item \code{s2} - variance of the residuals (taking degrees of
 freedom into account).
 \item \code{interval} - type of interval asked by user.
@@ -171,7 +172,7 @@ freedom into account).
 \item \code{y} - The data provided in the call of the function.
 \item \code{holdout} - the holdout part of the original data.
 \item \code{xreg} - provided vector or matrix of exogenous variables. If
-\code{xregDo="s"}, then this value will contain only selected exogenous
+\code{regressors="s"}, then this value will contain only selected exogenous
 variables.
 exogenous variables were estimated as well.
 \item \code{initialX} - initial values for parameters of exogenous variables.
@@ -213,14 +214,11 @@ ces(y,h=20,holdout=FALSE)
 y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
 ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
 
-ces(Mcomp::M3[[740]],h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
+ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
 
-\dontrun{ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="s",interval="sp")
-ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="p",interval="np")
-ces(Mcomp::M3[[1683]],h=18,holdout=TRUE,seasonality="f",interval="p")}
-
-\dontrun{x <- cbind(c(rep(0,25),1,rep(0,43)),c(rep(0,10),1,rep(0,58)))
-ces(Mcomp::M3[[1457]],holdout=TRUE,interval="np",xreg=x,loss="TMSE")}
+\donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
+ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
+ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
 
 }
 \references{

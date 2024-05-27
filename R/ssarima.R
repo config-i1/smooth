@@ -50,6 +50,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
@@ -120,7 +121,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{upper} - the higher bound of prediction interval. When
 #' \code{interval="none"} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors.
+#' \item \code{errors} - The matrix of 1 to h steps ahead errors. Only returned when the
+#' multistep losses are used and semiparametric interval is needed.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom into
 #' account).
 #' \item \code{interval} - type of interval asked by user.
@@ -129,7 +131,7 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' \item \code{y} - the original data.
 #' \item \code{holdout} - the holdout part of the original data.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{xregDo="s"}, then this value will contain only selected exogenous
+#' \code{regressors="s"}, then this value will contain only selected exogenous
 #' variables.
 #' \item \code{initialX} - initial values for parameters of exogenous
 #' variables.
@@ -160,8 +162,8 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #'                              holdout=TRUE,interval="p")
 #'
 #' # The previous one is equivalent to:
-#' \dontrun{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),lags=c(1),h=18,
-#'                     holdout=TRUE,interval="p")}
+#' \donttest{ourModel <- ssarima(rnorm(118,100,3),ar.orders=c(1),i.orders=c(1),ma.orders=c(1),
+#'                               lags=c(1),h=18,holdout=TRUE,interval="p")}
 #'
 #' # Model with the same lags and orders, applied to a different data
 #' ssarima(rnorm(118,100,3),orders=orders(ourModel),lags=lags(ourModel),h=18,holdout=TRUE)
@@ -170,20 +172,20 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' ssarima(rnorm(118,100,3),model=ourModel,h=18,holdout=TRUE)
 #'
 #' # Example of SARIMA(2,0,0)(1,0,0)[4]
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
+#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(2,1)),lags=c(1,4),h=18,holdout=TRUE)}
 #'
 #' # SARIMA(1,1,1)(0,0,1)[4] with different initialisations
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
+#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
 #'         lags=c(1,4),h=18,holdout=TRUE)
 #' ssarima(rnorm(118,100,3),orders=list(ar=c(1),i=c(1),ma=c(1,1)),
 #'         lags=c(1,4),h=18,holdout=TRUE,initial="o")}
 #'
 #' # SARIMA of a peculiar order on AirPassengers data
-#' \dontrun{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),lags=c(1,6,12),
-#'         h=10,holdout=TRUE)}
+#' \donttest{ssarima(AirPassengers,orders=list(ar=c(1,0,3),i=c(1,0,1),ma=c(0,1,2)),
+#'                   lags=c(1,6,12),h=10,holdout=TRUE)}
 #'
 #' # ARIMA(1,1,1) with Mean Squared Trace Forecast Error
-#' \dontrun{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
+#' \donttest{ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="TMSE")
 #' ssarima(rnorm(118,100,3),orders=list(ar=1,i=1,ma=1),lags=1,h=18,holdout=TRUE,loss="aTMSE")}
 #'
 #' # SARIMA(0,1,1) with exogenous variables
@@ -202,7 +204,7 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                     bounds=c("admissible","none"),
                     silent=c("all","graph","legend","output","none"),
-                    xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                    xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
@@ -213,11 +215,8 @@ ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -489,9 +488,9 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -521,7 +520,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
@@ -534,7 +533,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -544,7 +543,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(xregDo=="select"){
+        if(regressors=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                                nParamMax," while the number of observations is ",obsNonzero - nParamExo,"!"),call.=FALSE);
@@ -578,7 +577,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
                        oesmodel=oesmodel,
                        bounds="u",
                        silent=silent,
-                       xreg=xreg,xregDo=xregDo,initialX=initialX,
+                       xreg=xreg,regressors=regressors,initialX=initialX,
                        updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
@@ -632,7 +631,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
 
     list2env(ssarimaValues,environment());
 
-    if(xregDo!="u"){
+    if(regressors!="u"){
         # Prepare for fitting
         elements <- polysoswrap(ar.orders, ma.orders, i.orders, lags, nComponents,
                                 ARValue, MAValue, constantValue, B,
@@ -694,7 +693,7 @@ CreatorSSARIMA <- function(silentText=FALSE,...){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
-        if(xregDo=="s"){
+        if(regressors=="s"){
             nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
             parametersNumber[1,2] <- nParamExo;
         }

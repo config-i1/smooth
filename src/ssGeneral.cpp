@@ -6,23 +6,6 @@
 
 using namespace Rcpp;
 
-/* # Function allows to multiply polinomails */
-arma::vec polyMult(arma::vec const &poly1, arma::vec const &poly2){
-
-    int poly1Nonzero = arma::as_scalar(find(poly1,1,"last"));
-    int poly2Nonzero = arma::as_scalar(find(poly2,1,"last"));
-
-    arma::vec poly3(poly1Nonzero + poly2Nonzero + 1, arma::fill::zeros);
-
-    for(int i = 0; i <= poly1Nonzero; ++i){
-        for(int j = 0; j <= poly2Nonzero; ++j){
-            poly3(i+j) += poly1(i) * poly2(j);
-        }
-    }
-
-    return poly3;
-}
-
 /* # Function returns value of CDF-based likelihood function for the whole series */
 double cdf(arma::vec const &vecYt, arma::vec const &vecYfit, double const &errorSD, char const &E){
 
@@ -137,7 +120,7 @@ RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SE
 //    matrixVt.resize(obs+lagsModelMax, ncomponents);
 
     if(persistence.n_rows < ncomponents){
-        if((E=='M') | (T=='M') | (S=='M')){
+        if((E=='M') || (T=='M') || (S=='M')){
             vecG = persistence.submat(0,1,persistence.n_rows-1,1);
         }
         else{
@@ -145,7 +128,7 @@ RcppExport SEXP initparams(SEXP Etype, SEXP Ttype, SEXP Stype, SEXP datafreq, SE
         }
     }
     else{
-        if((E=='M') | (T=='M') | (S=='M')){
+        if((E=='M') || (T=='M') || (S=='M')){
             vecG = persistence.submat(0,1,ncomponents-1,1);
         }
         else{
@@ -247,7 +230,7 @@ RcppExport SEXP etsmatrices(SEXP matvt, SEXP vecg, SEXP phi, SEXP Cvalues, SEXP 
         currentelement = currentelement + 1;
     }
 
-    if((fitterType=='o') | (fitterType=='p')){
+    if((fitterType=='o') || (fitterType=='p')){
         if(estimateinitial==TRUE){
             matrixVt.col(0).fill(as_scalar(C.col(currentelement).t()));
             currentelement = currentelement + 1;
@@ -728,7 +711,12 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
 
         // This is a failsafe for cases of ridiculously high and ridiculously low values
         if(vecYfit(i-lagsModelMax) > 1e+100){
-            vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            if(i-lagsModelMax==0){
+                vecYfit(i-lagsModelMax) = 0;
+            }
+            else{
+                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            }
         }
 
         // If this is zero (intermittent), then set error to zero
@@ -751,7 +739,7 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
         }
         if(T=='M'){
-            if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+            if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
             }
@@ -786,7 +774,7 @@ List fitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec const &r
             matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
         }
         if(T=='M'){
-            if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+            if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                 matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                 matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
             }
@@ -879,7 +867,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
             if(vecYfit(i-lagsModelMax) > 1e+100){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                // If this is the first value, substitute with zero
+                if(i==lagsModelMax){
+                    vecYfit(i-lagsModelMax) = 0;
+                }
+                else{
+                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+                }
             }
 
             // If this is zero (intermittent), then set error to zero
@@ -891,9 +885,14 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
             }
 
             // This is a failsafe for cases of ridiculously high and ridiculously low values
-            if(!vecYfit.row(i-lagsModelMax).is_finite()){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
-            }
+            // if(!vecYfit.row(i-lagsModelMax).is_finite()){
+            //     if(i-lagsModelMax==0){
+            //         vecYfit(i-lagsModelMax) = 0;
+            //     }
+            //     else{
+            //         vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax-1);
+            //     }
+            // }
 
 /* # Transition equation */
             matrixVt.col(i) = fvalue(matrixVt(lagrows), matrixF, T, S) +
@@ -907,7 +906,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
             }
             if(T=='M'){
-                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                     matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
@@ -941,7 +940,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
             }
             if(T=='M'){
-                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                     matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
@@ -967,7 +966,13 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
             // This is for cases of ridiculously high and ridiculously low values
             if(vecYfit(i-lagsModelMax) > 1e+100){
-                vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax+1);
+                // If this is the first value, substitute with zero
+                if(i==obs+lagsModelMax-1){
+                    vecYfit(i-lagsModelMax) = 0;
+                }
+                else{
+                    vecYfit(i-lagsModelMax) = vecYfit(i-lagsModelMax+1);
+                }
             }
 
             // If this is zero (intermittent), then set error to zero
@@ -990,7 +995,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
             }
             if(T=='M'){
-                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                     matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
@@ -1019,7 +1024,7 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
                 matrixVt(matrixVt.n_rows-1,i) = arma::as_scalar(matrixVt(lagrows.row(matrixVt.n_rows-1)));
             }
             if(T=='M'){
-                if((matrixVt(0,i) <= 0) | (matrixVt(1,i) <= 0)){
+                if((matrixVt(0,i) <= 0) || (matrixVt(1,i) <= 0)){
                     matrixVt(0,i) = arma::as_scalar(matrixVt(lagrows.row(0)));
                     matrixVt(1,i) = arma::as_scalar(matrixVt(lagrows.row(1)));
                 }
@@ -1268,7 +1273,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
                  double const &errorSD){
 // # Make decomposition functions shut up!
     std::ostream nullstream(0);
-    arma::set_cerr_stream(nullstream);
+    // arma::arma_cerr_stream<char>(&nullstream);
 
     int CFSwitch = CFtypeswitch(CFtype);
 
@@ -1279,7 +1284,7 @@ double optimizer(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec con
 
 // yactsum is needed for multiplicative error models
     double yactsum = 0;
-    if((CFSwitch==7) | (CFSwitch==11) | (CFSwitch==15)){
+    if((CFSwitch==7) || (CFSwitch==11) || (CFSwitch==15)){
         arma::vec vecYtNonZero = vecYt.elem(nonzeroes);
         for(unsigned int i=0; i<(obs-hor); ++i){
             yactsum += log(sum(vecYtNonZero.rows(i,i+hor)));
@@ -1840,7 +1845,7 @@ RcppExport SEXP costfuncARIMA(SEXP ARorders, SEXP MAorders, SEXP Iorders, SEXP A
 
     double errorSD = as<double>(SDerror);
 
-    if((nComponents>0) & ((boundtype=='a') | (boundtype=='r'))){
+    if((nComponents>0) & ((boundtype=='a') || (boundtype=='r'))){
         arma::cx_vec eigval;
 
 // Check stability condition

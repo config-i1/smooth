@@ -8,11 +8,9 @@ oes(y, model = "MNN", persistence = NULL, initial = "o",
   initialSeason = NULL, phi = NULL, occurrence = c("fixed", "general",
   "odds-ratio", "inverse-odds-ratio", "direct", "auto", "none"),
   ic = c("AICc", "AIC", "BIC", "BICc"), h = 10, holdout = FALSE,
-  interval = c("none", "parametric", "likelihood", "semiparametric",
-  "nonparametric"), level = 0.95, bounds = c("usual", "admissible",
-  "none"), silent = c("all", "graph", "legend", "output", "none"),
-  xreg = NULL, xregDo = c("use", "select"), initialX = NULL,
-  updateX = FALSE, transitionX = NULL, persistenceX = NULL, ...)
+  bounds = c("usual", "admissible", "none"), silent = c("all", "graph",
+  "legend", "output", "none"), xreg = NULL, regressors = c("use",
+  "select"), initialX = NULL, ...)
 }
 \arguments{
 \item{y}{Either numeric vector or time series vector.}
@@ -56,34 +54,6 @@ parameters (initials and smoothing).}
 \item{holdout}{If \code{TRUE}, holdout sample of size \code{h} is taken from
 the end of the data.}
 
-\item{interval}{Type of interval to construct. This can be:
-
-\itemize{
-\item \code{"none"}, aka \code{"n"} - do not produce prediction
-interval.
-\item \code{"parametric"}, \code{"p"} - use state-space structure of ETS. In
-case of mixed models this is done using simulations, which may take longer
-time than for the pure additive and pure multiplicative models. This type
-of interval relies on unbiased estimate of in-sample error variance, which
-divides the sume of squared errors by T-k rather than just T.
-\item \code{"likelihood"}, \code{"l"} - these are the same as \code{"p"}, but
-relies on the biased estimate of variance from the likelihood (division by
-T, not by T-k).
-\item \code{"semiparametric"}, \code{"sp"} - interval based on covariance
-matrix of 1 to h steps ahead errors and assumption of normal / log-normal
-distribution (depending on error type).
-\item \code{"nonparametric"}, \code{"np"} - interval based on values from a
-quantile regression on error matrix (see Taylor and Bunn, 1999). The model
-used in this process is e[j] = a j^b, where j=1,..,h.
-}
-The parameter also accepts \code{TRUE} and \code{FALSE}. The former means that
-parametric interval are constructed, while the latter is equivalent to
-\code{none}.
-If the forecasts of the models were combined, then the interval are combined
-quantile-wise (Lichtendahl et al., 2013).}
-
-\item{level}{Confidence level. Defines width of prediction interval.}
-
 \item{bounds}{What type of bounds to use in the model estimation. The first
 letter can be used instead of the whole word.}
 
@@ -98,30 +68,21 @@ and \code{FALSE}. In this case \code{silent=TRUE} is equivalent to
 \code{silent="none"}. The parameter also accepts first letter of words ("n",
 "a", "g", "l", "o").}
 
-\item{xreg}{The vector or the matrix of exogenous variables, explaining some parts
-of occurrence variable (probability).}
+\item{xreg}{The vector (either numeric or time series) or the matrix (or
+data.frame) of exogenous variables that should be included in the model. If
+matrix included than columns should contain variables and rows - observations.
+Note that \code{xreg} should have number of observations equal either to
+in-sample or to the whole series. If the number of observations in
+\code{xreg} is equal to in-sample, then values for the holdout sample are
+produced using \link[smooth]{es} function.}
 
-\item{xregDo}{Variable defines what to do with the provided xreg:
+\item{regressors}{The variable defines what to do with the provided xreg:
 \code{"use"} means that all of the data should be used, while
 \code{"select"} means that a selection using \code{ic} should be done.
 \code{"combine"} will be available at some point in future...}
 
 \item{initialX}{The vector of initial parameters for exogenous variables.
 Ignored if \code{xreg} is NULL.}
-
-\item{updateX}{If \code{TRUE}, transition matrix for exogenous variables is
-estimated, introducing non-linear interactions between parameters.
-Prerequisite - non-NULL \code{xreg}.}
-
-\item{transitionX}{The transition matrix \eqn{F_x} for exogenous variables. Can
-be provided as a vector. Matrix will be formed using the default
-\code{matrix(transition,nc,nc)}, where \code{nc} is number of components in
-state vector. If \code{NULL}, then estimated. Prerequisite - non-NULL
-\code{xreg}.}
-
-\item{persistenceX}{The persistence vector \eqn{g_X}, containing smoothing
-parameters for exogenous variables. If \code{NULL}, then estimated.
-Prerequisite - non-NULL \code{xreg}.}
 
 \item{...}{The parameters passed to the optimiser, such as \code{maxeval},
 \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of

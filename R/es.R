@@ -6,231 +6,16 @@ utils::globalVariables(c("vecg","nComponents","lagsModel","phiEstimate","yInSamp
                          "silentText","silentGraph","silentLegend","yForecastStart",
                          "icBest","icSelection","icWeights"));
 
-#' Exponential Smoothing in SSOE state space model
-#'
-#' Function constructs ETS model and returns forecast, fitted values, errors
-#' and matrix of states.
-#'
-#' Function estimates ETS in a form of the Single Source of Error state space
-#' model of the following type:
-#'
-#' \deqn{y_{t} = o_t (w(v_{t-l}) + h(x_t, a_{t-1}) + r(v_{t-l}) \epsilon_{t})}
-#'
-#' \deqn{v_{t} = f(v_{t-l}) + g(v_{t-l}) \epsilon_{t}}
-#'
-#' \deqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
-#'
-#' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
-#' normal data it equals to 1 for all observations), \eqn{v_{t}} is the state
-#' vector and \eqn{l} is the vector of lags, \eqn{x_t} is the vector of
-#' exogenous variables. w(.) is the measurement function, r(.) is the error
-#' function, f(.) is the transition function, g(.) is the persistence
-#' function and h(.) is the explanatory variables function. \eqn{a_t} is the
-#' vector of parameters for exogenous variables, \eqn{F_{X}} is the
-#' \code{transitionX} matrix and \eqn{g_{X}} is the \code{persistenceX} matrix.
-#' Finally, \eqn{\epsilon_{t}} is the error term.
-#'
-#' For the details see Hyndman et al.(2008).
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("es","smooth")}.
-#'
-#' Also, there are posts about the functions of the package smooth on the
-#' website of Ivan Svetunkov:
-#' \url{https://forecasting.svetunkov.ru/en/tag/smooth/} - they explain the
-#' underlying models and how to use the functions.
-#'
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssIntervals
-#' @template ssPersistenceParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssGeneralRef
-#' @template ssIntermittentRef
-#' @template ssETSRef
-#' @template ssIntervalsRef
-#'
-#' @param model The type of ETS model. The first letter stands for the type of
-#' the error term ("A" or "M"), the second (and sometimes the third as well) is for
-#' the trend ("N", "A", "Ad", "M" or "Md"), and the last one is for the type of
-#' seasonality ("N", "A" or "M"). So, the function accepts words with 3 or 4
-#' characters: \code{ANN}, \code{AAN}, \code{AAdN}, \code{AAA}, \code{AAdA},
-#' \code{MAdM} etc. \code{ZZZ} means that the model will be selected based on the
-#' chosen information criteria type. Models pool can be restricted with additive
-#' only components. This is done via \code{model="XXX"}. For example, making
-#' selection between models with none / additive / damped additive trend
-#' component only (i.e. excluding multiplicative trend) can be done with
-#' \code{model="ZXZ"}. Furthermore, selection between multiplicative models
-#' (excluding additive components) is regulated using \code{model="YYY"}. This
-#' can be useful for positive data with low values (for example, slow moving
-#' products). Finally, if \code{model="CCC"}, then all the models are estimated
-#' and combination of their forecasts using AIC weights is produced (Kolassa,
-#' 2011). This can also be regulated. For example, \code{model="CCN"} will
-#' combine forecasts of all non-seasonal models and \code{model="CXY"} will
-#' combine forecasts of all the models with non-multiplicative trend and
-#' non-additive seasonality with either additive or multiplicative error. Not
-#' sure why anyone would need this thing, but it is available.
-#'
-#' The parameter \code{model} can also be a vector of names of models for a
-#' finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
-#' estimate only two models and select the best of them.
-#'
-#' Also \code{model} can accept a previously estimated ES or ETS (from forecast
-#' package) model and use all its parameters.
-#'
-#' Keep in mind that model selection with "Z" components uses Branch and Bound
-#' algorithm and may skip some models that could have slightly smaller
-#' information criteria.
-#' @param phi Value of damping parameter. If \code{NULL} then it is estimated.
-#' @param initial Can be either character or a vector of initial states. If it
-#' is character, then it can be \code{"optimal"}, meaning that the initial
-#' states are optimised, or \code{"backcasting"}, meaning that the initials are
-#' produced using backcasting procedure (advised for data with high frequency).
-#' If character, then \code{initialSeason} will be estimated in the way defined
-#' by \code{initial}.
-#' @param initialSeason Vector of initial values for seasonal components. If
-#' \code{NULL}, they are estimated during optimisation.
-#' @param ...  Other non-documented parameters. For example \code{FI=TRUE} will
-#' make the function also produce Fisher Information matrix, which then can be
-#' used to calculated variances of smoothing parameters and initial states of
-#' the model.
-#' Parameters \code{B}, \code{lb} and \code{ub} can be passed via
-#' ellipsis as well. In this case they will be used for optimisation. \code{B}
-#' sets the initial values before the optimisation, \code{lb} and
-#' \code{ub} define lower and upper bounds for the search inside of the
-#' specified \code{bounds}. These values should have length equal to the number
-#' of parameters to estimate.
-#' You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
-#' number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
-#' optimiser. The default values used in es() are \code{maxeval=500} and
-#' \code{xtol_rel=1e-8}. You can read more about these parameters in the
-#' documentation of \link[nloptr]{nloptr} function.
-#' @return Object of class "smooth" is returned. It contains the list of the
-#' following values for classical ETS models:
-#'
-#' \itemize{
-#' \item \code{model} - type of constructed model.
-#' \item \code{formula} - mathematical formula, describing interactions between
-#' components of es() and exogenous variables.
-#' \item \code{timeElapsed} - time elapsed for the construction of the model.
-#' \item \code{states} - matrix of the components of ETS.
-#' \item \code{persistence} - persistence vector. This is the place, where
-#' smoothing parameters live.
-#' \item \code{phi} - value of damping parameter.
-#' \item \code{transition} - transition matrix of the model.
-#' \item \code{measurement} - measurement vector of the model.
-#' \item \code{initialType} - type of the initial values used.
-#' \item \code{initial} - initial values of the state vector (non-seasonal).
-#' \item \code{initialSeason} - initial values of the seasonal part of state vector.
-#' \item \code{nParam} - table with the number of estimated / provided parameters.
-#' If a previous model was reused, then its initials are reused and the number of
-#' provided parameters will take this into account.
-#' \item \code{fitted} - fitted values of ETS. In case of the intermittent model, the
-#' fitted are multiplied by the probability of occurrence.
-#' \item \code{forecast} - point forecast of ETS.
-#' \item \code{lower} - lower bound of prediction interval. When \code{interval="none"}
-#' then NA is returned.
-#' \item \code{upper} - higher bound of prediction interval. When \code{interval="none"}
-#' then NA is returned.
-#' \item \code{residuals} - residuals of the estimated model.
-#' \item \code{errors} - trace forecast in-sample errors, returned as a matrix. In the
-#' case of trace forecasts this is the matrix used in optimisation. In non-trace estimations
-#' it is returned just for the information.
-#' \item \code{s2} - variance of the residuals (taking degrees of freedom into account).
-#' This is an unbiased estimate of variance.
-#' \item \code{interval} - type of interval asked by user.
-#' \item \code{level} - confidence level for interval.
-#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{y} - original data.
-#' \item \code{holdout} - holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If \code{xregDo="s"},
-#' then this value will contain only selected exogenous variables.
-#' \item \code{initialX} - initial values for parameters of exogenous variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - concentrated log-likelihood of the function.
-#' \item \code{lossValue} - loss function value.
-#' \item \code{loss} - type of loss function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or when \code{FI}
-#' is not provided at all.
-#' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
-#' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
-#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
-#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
-#' \item \code{B} - the vector of all the estimated parameters.
-#' }
-#'
-#' If combination of forecasts is produced (using \code{model="CCC"}), then a
-#' shorter list of values is returned:
-#'
-#' \itemize{
-#' \item \code{model},
-#' \item \code{timeElapsed},
-#' \item \code{initialType},
-#' \item \code{fitted},
-#' \item \code{forecast},
-#' \item \code{lower},
-#' \item \code{upper},
-#' \item \code{residuals},
-#' \item \code{s2} - variance of additive error of combined one-step-ahead forecasts,
-#' \item \code{interval},
-#' \item \code{level},
-#' \item \code{cumulative},
-#' \item \code{y},
-#' \item \code{holdout},
-#' \item \code{ICs} - combined ic,
-#' \item \code{ICw} - ic weights used in the combination,
-#' \item \code{loss},
-#' \item \code{xreg},
-#' \item \code{accuracy}.
-#' }
-#' @seealso \code{\link[smooth]{adam}, \link[greybox]{forecast},
-#' \link[stats]{ts}, \link[smooth]{sim.es}}
-#'
-#' @examples
-#'
-#' # See how holdout and trace parameters influence the forecast
-#' es(Mcomp::M3$N1245$x,model="AAdN",h=8,holdout=FALSE,loss="MSE")
-#' \dontrun{es(Mcomp::M3$N2568$x,model="MAM",h=18,holdout=TRUE,loss="TMSE")}
-#'
-#' # Model selection example
-#' es(Mcomp::M3$N1245$x,model="ZZN",ic="AIC",h=8,holdout=FALSE,bounds="a")
-#'
-#' # Model selection. Compare AICc of these two models:
-#' \dontrun{es(Mcomp::M3$N1683$x,"ZZZ",h=10,holdout=TRUE)
-#' es(Mcomp::M3$N1683$x,"MAdM",h=10,holdout=TRUE)}
-#'
-#' # Model selection, excluding multiplicative trend
-#' \dontrun{es(Mcomp::M3$N1245$x,model="ZXZ",h=8,holdout=TRUE)}
-#'
-#' # Combination example
-#' \dontrun{es(Mcomp::M3$N1245$x,model="CCN",h=8,holdout=TRUE)}
-#'
-#' # Model selection using a specified pool of models
-#' ourModel <- es(Mcomp::M3$N1587$x,model=c("ANN","AAM","AMdA"),h=18)
-#'
-#' # Redo previous model and produce prediction interval
-#' es(Mcomp::M3$N1587$x,model=ourModel,h=18,interval="p")
-#'
-#' # Semiparametric interval example
-#' \dontrun{es(Mcomp::M3$N1587$x,h=18,holdout=TRUE,interval="sp")}
-#'
-#' # This will be the same model as in previous line but estimated on new portion of data
-#' \dontrun{es(Mcomp::M3[[1457]],model=ourModel,h=18,holdout=FALSE)}
-#'
-#' @export es
-es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
+#' @rdname es
+#' @export
+es_old <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
                initial=c("optimal","backcasting"), initialSeason=NULL, ic=c("AICc","AIC","BIC","BICc"),
                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                h=10, holdout=FALSE, cumulative=FALSE,
                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                bounds=c("usual","admissible","none"),
                silent=c("all","graph","legend","output","none"),
-               xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+               xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Copyright (C) 2015 - Inf  Ivan Svetunkov
 
 # Start measuring the time of calculations
@@ -238,11 +23,8 @@ es <- function(y, model="ZZZ", persistence=NULL, phi=NULL,
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -674,7 +456,7 @@ EstimatorES <- function(...){
         B <- BValuesList$B;
     }
     else{
-        # This part is needed for the xregDo="select"
+        # This part is needed for the regressors="select"
         B <- providedC;
         # If the generated B is larger, then probably there is updateX=T
         if(length(BValuesList$B)>length(B)){
@@ -706,7 +488,7 @@ EstimatorES <- function(...){
 
     # Parameters are chosen to speed up the optimisation process and have decent accuracy
     res <- nloptr(B, CF, lb=lb, ub=ub,
-                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
+                  opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=print_level));
     B[] <- res$solution;
 
     # If the optimisation failed, then probably this is because of mixed models...
@@ -744,7 +526,7 @@ EstimatorES <- function(...){
         }
 
         res <- nloptr(B, CF, lb=lb, ub=ub,
-                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=0));
+                      opts=list("algorithm"="NLOPT_LN_BOBYQA", "xtol_rel"=xtol_rel, "maxeval"=maxeval, print_level=print_level));
         B[] <- res$solution;
     }
     # Change B if it is out of the bounds
@@ -765,7 +547,7 @@ EstimatorES <- function(...){
     }
 
     res2 <- nloptr(B, CF, lb=lb, ub=ub,
-                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval, print_level=0));
+                  opts=list("algorithm"="NLOPT_LN_NELDERMEAD", "xtol_rel"=xtol_rel * 10^2, "maxeval"=maxeval, print_level=print_level));
 
     # This condition is needed in order to make sure that we did not make the solution worse
     if((res2$objective <= res$objective) | rounded){
@@ -1050,7 +832,7 @@ PoolPreparerES <- function(...){
                                      nParam=res$nParam,logLik=res$logLik,xreg=xreg,FI=res$FI,
                                      xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
-                if(xregDo!="u"){
+                if(regressors!="u"){
                     listToReturn <- XregSelector(listToReturn=listToReturn);
                 }
                 results[[i]] <- listToReturn;
@@ -1207,7 +989,7 @@ PoolEstimatorES <- function(silent=FALSE,...){
                              cfObjective=res$objective,B=res$B,ICs=res$ICs,icBest=NULL,
                              nParam=res$nParam,logLik=res$logLik,xreg=xreg, FI=res$FI,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
-        if(xregDo!="u"){
+        if(regressors!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
 
@@ -1267,7 +1049,7 @@ CreatorES <- function(silent=FALSE,...){
                              nParam=res$nParam,FI=res$FI,logLik=res$logLik,xreg=xreg,
                              xregNames=xregNames,matFX=matFX,vecgX=vecgX,nExovars=nExovars);
 
-        if(xregDo!="u"){
+        if(regressors!="u"){
             listToReturn <- XregSelector(listToReturn=listToReturn);
         }
 
@@ -1393,10 +1175,10 @@ CreatorES <- function(silent=FALSE,...){
     xregdata <- ssXreg(y=y, Etype=Etype, xreg=xreg, updateX=updateX, ot=ot,
                        persistenceX=persistenceX, transitionX=transitionX, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=basicparams$lagsModelMax, h=h, xregDo=xregDo, silent=silentText,
+                       lagsModelMax=basicparams$lagsModelMax, h=h, regressors=regressors, silent=silentText,
                        allowMultiplicative=allowMultiplicative);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxtOriginal <- matxt <- xregdata$matxt;
         matatOriginal <- matat <- xregdata$matat;
@@ -1428,7 +1210,7 @@ CreatorES <- function(silent=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
@@ -1436,7 +1218,7 @@ CreatorES <- function(silent=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -1696,6 +1478,12 @@ CreatorES <- function(silent=FALSE,...){
             maxeval <- 500;
         }
     }
+    if(any(names(ellipsis)=="print_level")){
+        print_level <- ellipsis$print_level;
+    }
+    else{
+        print_level <- 0;
+    }
     if(any(names(ellipsis)=="xtol_rel")){
         xtol_rel <- ellipsis$xtol_rel;
     }
@@ -1706,7 +1494,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Initials for optimiser #####
     if(!all(c(is.null(providedC),is.null(providedCLower),is.null(providedCUpper)))){
-        if((modelDo==c("estimate")) & (xregDo==c("u"))){
+        if((modelDo==c("estimate")) & (regressors==c("u"))){
             environment(BasicMakerES) <- environment();
             BasicMakerES(ParentEnvironment=environment());
 
@@ -1761,7 +1549,7 @@ CreatorES <- function(silent=FALSE,...){
                 warning("Sorry, but there is nothing to optimise, so we have to drop parameter B.",call.=FALSE);
             }
 
-            if(xregDo==c("select")){
+            if(regressors==c("select")){
                 warning("Predefined values of B cannot be used with xreg selection.",call.=FALSE);
             }
             B <- NULL;
@@ -2018,7 +1806,7 @@ CreatorES <- function(silent=FALSE,...){
     else{
         list2env(esValues,environment());
 
-        if(!is.null(xreg) & (xregDo=="u")){
+        if(!is.null(xreg) & (regressors=="u")){
             colnames(matat) <- xregNames;
             xreg <- matxt;
         }
@@ -2045,7 +1833,7 @@ CreatorES <- function(silent=FALSE,...){
             B <- results[[i]]$B;
             nParam <- results[[i]]$nParam;
             xregNames <- results[[i]]$xregNames
-            if(xregDo!="u"){
+            if(regressors!="u"){
                 if(!is.null(xregNames)){
                     matat <- as.matrix(matatOriginal[,xregNames]);
                     matxt <- as.matrix(matxtOriginal[,xregNames]);
@@ -2185,7 +1973,7 @@ CreatorES <- function(silent=FALSE,...){
 
 ##### Print output #####
     if(!silentText){
-        if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
+        if(modelDo!="combine" & any(abs(eigen(matF - vecg %*% matw, only.values=TRUE)$values)>(1 + 1E-10))){
             warning(paste0("Model ETS(",model,") is unstable! Use a different value of 'bounds' parameter to address this issue!"),
                     call.=FALSE);
         }

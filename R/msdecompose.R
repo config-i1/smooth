@@ -7,6 +7,7 @@
 #' function and order specified in \code{lags} variable in order to smooth the
 #' original series and obtain level, trend and seasonal components of the series.
 #'
+#' @template smoothRef
 #' @template ssAuthor
 #' @template ssKeywords
 #'
@@ -43,6 +44,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
 
+    # paste0() is needed in order to avoid line breaks in the name
+    yName <- paste0(deparse(substitute(y)),collapse="");
+
+    # Remove the class
+    y <- as.vector(y);
+
     ma <- function(y, order){
         if (order%%2 == 0){
             weigths <- c(0.5, rep(1, order - 1), 0.5) / order;
@@ -77,9 +84,6 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         yInsample[yNAValues] <- (X %*% coef(lmFit))[yNAValues];
         rm(X)
     }
-
-    # paste0() is needed in order to avoid line breaks in the name
-    yName <- paste0(deparse(substitute(y)),collapse="");
 
     obs <- length(y);
     lags <- sort(unique(lags));
@@ -169,7 +173,7 @@ fitted.msdecompose <- function(object, ...){
 #' @param model The type of ETS model to fit on the decomposed trend. Only applicable to
 #' "msdecompose" class. This is then returned in parameter "esmodel". If \code{NULL}, then
 #' it will be selected automatically based on the type of the used decomposition (either
-#' among pure additive or among pure additive ETS models).
+#' among pure additive or among pure multiplicative ETS models).
 #' @rdname forecast.smooth
 #' @export
 forecast.msdecompose <- function(object, h=10,
@@ -195,9 +199,10 @@ forecast.msdecompose <- function(object, h=10,
             yDeseasonalised <- yDeseasonalised / rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
         }
     }
-    yesModel <- suppressWarnings(es(yDeseasonalised,model=model,h=h,interval=interval,level=level,initial="b",...));
+    yesModel <- suppressWarnings(adam(yDeseasonalised,model=model,h=h,initial="b",...));
+    yesModel <- forecast(yesModel,h=h,interval=interval,level=level);
 
-    yValues <- ts(c(yDeseasonalised,yesModel$forecast),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
+    yValues <- ts(c(yDeseasonalised,yesModel$mean),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
     if(interval!="none"){
         lower <- ts(c(yDeseasonalised,yesModel$lower),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
         upper <- ts(c(yDeseasonalised,yesModel$upper),start=start(yDeseasonalised),frequency=frequency(yDeseasonalised));
@@ -335,6 +340,7 @@ residuals.msdecompose <- function(object, ...){
     }
 }
 
+#' @export
 sigma.msdecompose <- function(object, ...){
     if(errorType(object)=="A"){
         return(sqrt(mean(residuals(object)^2,na.rm=TRUE)));

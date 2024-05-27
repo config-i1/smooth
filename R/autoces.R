@@ -18,6 +18,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssAuthor
@@ -43,9 +44,10 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' auto.ces(y,h=20,holdout=TRUE)
 #' auto.ces(y,h=20,holdout=FALSE)
 #'
-#' \dontrun{
+#'
 #' # Selection between "none" and "full" seasonalities
-#' auto.ces(AirPassengers,h=8,holdout=TRUE,models=c("n","f"),interval="p",level=0.8,ic="AIC")}
+#' \donttest{auto.ces(AirPassengers,h=8,holdout=TRUE,
+#'                    models=c("n","f"),interval="p",level=0.8,ic="AIC")}
 #'
 #' ourModel <- auto.ces(AirPassengers,interval="sp")
 #'
@@ -61,7 +63,7 @@ auto.ces <- function(y, models=c("none","simple","full"),
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # Function estimates several CES models in state space form with sigma = error,
 #  chooses the one with the lowest ic value and returns complex smoothing parameter
 #  value, fitted values, residuals, point and interval forecasts, matrix of CES components
@@ -74,11 +76,8 @@ auto.ces <- function(y, models=c("none","simple","full"),
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -157,7 +156,7 @@ auto.ces <- function(y, models=c("none","simple","full"),
                         h=h, holdout=holdout,cumulative=cumulative,
                         interval=intervalType, level=level,
                         bounds=bounds, silent=silent,
-                        xreg=xreg, xregDo=xregDo, initialX=initialX,
+                        xreg=xreg, regressors=regressors, initialX=initialX,
                         FI=FI);
         return(CESModel);
     }
@@ -193,7 +192,7 @@ auto.ces <- function(y, models=c("none","simple","full"),
                              h=h, holdout=holdout,cumulative=cumulative,
                              interval=intervalType, level=level,
                              bounds=bounds, silent=TRUE,
-                             xreg=xreg, xregDo=xregDo, initialX=initialX,
+                             xreg=xreg, regressors=regressors, initialX=initialX,
                              FI=FI);
         ICs[j] <- CESModel[[j]]$ICs[ic];
         j <- j+1;

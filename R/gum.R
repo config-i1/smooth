@@ -30,6 +30,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #'
 #' @template ssBasicParam
 #' @template ssAdvancedParam
+#' @template ssXregParam
 #' @template ssIntervals
 #' @template ssInitialParam
 #' @template ssPersistenceParam
@@ -90,7 +91,8 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' \item \code{upper} - higher bound of prediction interval. When
 #' \code{interval="none"} then NA is returned.
 #' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - matrix of 1 to h steps ahead errors.
+#' \item \code{errors} - matrix of 1 to h steps ahead errors. Only returned when the
+#' multistep losses are used and semiparametric interval is needed.
 #' \item \code{s2} - variance of the residuals (taking degrees of freedom
 #' into account).
 #' \item \code{interval} - type of interval asked by user.
@@ -99,7 +101,7 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' \item \code{y} - original data.
 #' \item \code{holdout} - holdout part of the original data.
 #' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{xregDo="s"}, then this value will contain only selected exogenous variables.
+#' \code{regressors="s"}, then this value will contain only selected exogenous variables.
 #' \item \code{initialX} - initial values for parameters of exogenous variables.
 #' \item \code{ICs} - values of information criteria of the model. Includes
 #' AIC, AICc, BIC and BICc.
@@ -125,23 +127,23 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval="p")
 #'
 #' # A more complicated model with seasonality
-#' \dontrun{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
+#' \donttest{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
 #'
 #' # Redo previous model on a new data and produce prediction interval
-#' \dontrun{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
+#' \donttest{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
 #'
 #' # Produce something crazy with optimal initials (not recommended)
-#' \dontrun{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
+#' \donttest{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
 #'
 #' # Simpler model estiamted using trace forecast error loss function and its analytical analogue
-#' \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
+#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
 #' gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aTMSE")}
 #'
 #' # Introduce exogenous variables
-#' \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
+#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
 #'
 #' # Or select the most appropriate one
-#' \dontrun{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),xregDo="s")
+#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),regressors="s")
 #'
 #' summary(ourModel)
 #' forecast(ourModel)
@@ -150,14 +152,14 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
 #' @rdname gum
 #' @export gum
 gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
-                persistence=NULL, transition=NULL, measurement=NULL,
+                persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=10, holdout=FALSE, cumulative=FALSE,
                 interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
                 bounds=c("restricted","admissible","none"),
                 silent=c("all","graph","legend","output","none"),
-                xreg=NULL, xregDo=c("use","select"), initialX=NULL, ...){
+                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 # General Univariate Model function. Crazy thing...
 #
 #    Copyright (C) 2016 - Inf Ivan Svetunkov
@@ -167,11 +169,8 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
 
     ### Depricate the old parameters
     ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "occurrence", "es");
-    ellipsis <- depricator(ellipsis, "oesmodel", "es");
-    ellipsis <- depricator(ellipsis, "updateX", "es");
-    ellipsis <- depricator(ellipsis, "persistenceX", "es");
-    ellipsis <- depricator(ellipsis, "transitionX", "es");
+    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
@@ -467,9 +466,9 @@ CreatorGUM <- function(silentText=FALSE,...){
     xregdata <- ssXreg(y=y, xreg=xreg, updateX=FALSE, ot=ot,
                        persistenceX=NULL, transitionX=NULL, initialX=initialX,
                        obsInSample=obsInSample, obsAll=obsAll, obsStates=obsStates,
-                       lagsModelMax=lagsModelMax, h=h, xregDo=xregDo, silent=silentText);
+                       lagsModelMax=lagsModelMax, h=h, regressors=regressors, silent=silentText);
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         nExovars <- xregdata$nExovars;
         matxt <- xregdata$matxt;
         matat <- xregdata$matat;
@@ -499,7 +498,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     gXEstimate <- xregdata$gXEstimate;
     initialXEstimate <- xregdata$initialXEstimate;
     if(is.null(xreg)){
-        xregDo <- "u";
+        regressors <- "u";
     }
 
     # These three are needed in order to use ssgeneralfun.cpp functions
@@ -512,7 +511,7 @@ CreatorGUM <- function(silentText=FALSE,...){
     nParamOccurrence <- all(occurrence!=c("n","p"))*1;
     nParamMax <- nParamMax + nParamExo + nParamOccurrence;
 
-    if(xregDo=="u"){
+    if(regressors=="u"){
         parametersNumber[1,2] <- nParamExo;
         # If transition is provided and not identity, and other things are provided, write them as "provided"
         parametersNumber[2,2] <- (length(matFX)*(!is.null(transitionX) & !all(matFX==diag(ncol(matat)))) +
@@ -522,7 +521,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 ##### Check number of observations vs number of max parameters #####
     if(obsNonzero <= nParamMax){
-        if(xregDo=="select"){
+        if(regressors=="select"){
             if(obsNonzero <= (nParamMax - nParamExo)){
                 warning(paste0("Not enough observations for the reasonable fit. Number of parameters is ",
                                nParamMax + nParamExo," while the number of observations is ",obsNonzero,"!"),call.=FALSE);
@@ -546,6 +545,11 @@ CreatorGUM <- function(silentText=FALSE,...){
 # If this is tiny sample, use SES instead
     if(tinySample){
         warning("Not enough observations to fit GUM Switching to ETS(A,N,N).",call.=FALSE);
+        if(!is.logical(silent)){
+            silent <- switch(silent[1],
+                             "none"=FALSE,
+                             TRUE);
+        }
         return(es(y,"ANN",initial=initial,loss=loss,
                   h=h,holdout=holdout,cumulative=cumulative,
                   interval=interval,level=level,
@@ -553,7 +557,7 @@ CreatorGUM <- function(silentText=FALSE,...){
                   oesmodel=oesmodel,
                   bounds="u",
                   silent=silent,
-                  xreg=xreg,xregDo=xregDo,initialX=initialX,
+                  xreg=xreg,regressors=regressors,initialX=initialX,
                   updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
     }
 
@@ -674,7 +678,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
     list2env(gumValues,environment());
 
-    if(xregDo!="u"){
+    if(regressors!="u"){
 # Prepare for fitting
         elements <- ElementsGUM(B);
         matw <- elements$matw;
@@ -728,7 +732,7 @@ CreatorGUM <- function(silentText=FALSE,...){
             colnames(matxt) <- colnames(matat) <- xregNames;
         }
         xreg <- matxt;
-        if(xregDo=="s"){
+        if(regressors=="s"){
             nParamExo <- FXEstimate*length(matFX) + gXEstimate*nrow(vecgX) + initialXEstimate*ncol(matat);
             parametersNumber[1,2] <- nParamExo;
         }
@@ -868,7 +872,7 @@ CreatorGUM <- function(silentText=FALSE,...){
 
 ##### Print output #####
     if(!silentText){
-        if(any(abs(eigen(matF - vecg %*% matw)$values)>(1 + 1E-10))){
+        if(any(abs(eigen(matF - vecg %*% matw, only.values=TRUE)$values)>(1 + 1E-10))){
             if(bounds=="n"){
                 warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",
                         call.=FALSE);

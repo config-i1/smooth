@@ -23,69 +23,68 @@ Let's load the necessary packages:
 
 ```{r load_libraries, message=FALSE, warning=FALSE}
 require(smooth)
-require(Mcomp)
 ```
 
 The default call constructs ARIMA(0,1,1):
 
 ```{r ssarima_N2457}
-ssarima(M3$N2457, h=18, silent=FALSE)
+ssarima(AirPassengers, h=12, silent=FALSE)
 ```
 
 Some more complicated model can be defined using parameter `orders` the following way:
 ```{r ssarima_N2457_orders}
-ssarima(M3$N2457, orders=list(ar=c(0,1),i=c(1,0),ma=c(1,1)), lags=c(1,12), h=18)
+ssarima(AirPassengers, orders=list(ar=c(0,1),i=c(1,0),ma=c(1,1)), lags=c(1,12), h=12)
 ```
 
-This would construct us seasonal ARIMA(0,1,1)(1,0,1)$_{12}$.
+This would construct seasonal ARIMA(0,1,1)(1,0,1)$_{12}$.
 
 We could try selecting orders manually, but this can also be done automatically via `auto.ssarima()` function:
 ```{r auto_ssarima_N2457}
-auto.ssarima(M3$N2457$x, h=18)
+auto.ssarima(AirPassengers, h=12)
 ```
 
-Automatic order selection in SSARIMA with optimised initials does not work well and in general is not recommended. This is partially because of the possible high number of parameters in some models and partially because of potential overfitting of first observations when non-zero order of AR is selected. This problem can be seen on example of another time series (which has complicated seasonality):
+Automatic order selection in SSARIMA with optimised initials does not work well and in general is not recommended. This is partially because of the possible high number of parameters in some models and partially because of potential overfitting of first observations when non-zero order of AR is selected:
 ```{r auto_ssarima_N1683}
-auto.ssarima(M3$N1683$x, h=18, initial="backcasting")
-auto.ssarima(M3$N1683$x, h=18, initial="optimal")
+auto.ssarima(AirPassengers, h=12, initial="backcasting")
+auto.ssarima(AirPassengers, h=12, initial="optimal")
 ```
 
-As can be seen from the second graph, ssarima with optimal initial does not select seasonal model and reverts to ARIMA(0,0,3) with constant. In theory this can be due to implemented order selection algorithm, however if we estimate all the model in the pool separately, we will see that this model is optimal for this time series when this type of initials is used.
+As can be seen from the example above the model with optimal initials takes more time and we end up with a different model than in the case of backcasting.
 
 A power of `ssarima()` function is that it can estimate SARIMA models with multiple seasonalities. For example, SARIMA(0,1,1)(0,0,1)_6(1,0,1)_12 model can be estimated the following way:
-```{r ssarima_N2457_orders_multiple_seasonalities}
-ssarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)), lags=c(1,6,12), h=18, silent=FALSE)
+```{r ssarima_N2457_orders_multiple_seasonalities, eval=FALSE}
+ssarima(AirPassengers, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)), lags=c(1,6,12), h=12, silent=FALSE)
 ```
-It probably does not make much sense for this type of data, it would make more sense on high frequency data (for example, `taylor` series from `forecast` package). However, keep in mind that multiple seasonal ARIMAs are very slow in estimation and are very capricious. So it is really hard to obtain an appropriate and efficient multiple seasonal ARIMA model.
+It probably does not make much sense for this type of data, it would make more sense on high frequency data (for example, `taylor` series from `forecast` package). However, keep in mind that multiple seasonal ARIMAs are very slow in estimation and are very capricious. So it is really hard to obtain an appropriate and efficient multiple seasonal ARIMA model. To tackle this issue, I've developed an alternative ARIMA model for multiple seasonalities, called `msarima()`.
 
 Now let's introduce some artificial exogenous variables:
 ```{r es_N2457_xreg_create}
-x <- cbind(rnorm(length(M3$N2457$x),50,3),rnorm(length(M3$N2457$x),100,7))
+x <- cbind(rnorm(length(AirPassengers),50,3),rnorm(length(AirPassengers),100,7))
 ```
 
 If we save model:
 ```{r auto_ssarima_N2457_xreg}
-ourModel <- auto.ssarima(M3$N2457$x, h=18, holdout=TRUE, xreg=x)
+ourModel <- auto.ssarima(AirPassengers, h=12, holdout=TRUE, xreg=x)
 ```
 
 we can then reuse it:
 ```{r auto_ssarima_N2457_xreg_update}
-ssarima(M3$N2457$x, model=ourModel, h=18, holdout=FALSE, xreg=x, interval=TRUE)
+ssarima(AirPassengers, model=ourModel, h=12, holdout=FALSE, xreg=x, interval=TRUE)
 ```
 
 Finally, we can combine several SARIMA models:
 ```{r auto_ssarima_N2457_combination}
-ssarima(M3$N2457$x, h=18, holdout=FALSE, interval=TRUE, combine=TRUE)
+ssarima(AirPassengers, h=12, holdout=FALSE, interval=TRUE, combine=TRUE)
 ```
 
 # MSARIMA
-While SSARIMA is flexible, it is not very fast. In fact, it cannot handle high frequency data well and most probably will take ages to estimate the parameter and produce forecasts. The MSARIMA model (Multiple Seasonal ARIMA) is formulated in a different state-space form, which reduces the size of transition matrix, significantly reducing the computational time for cases with high frequency data. However, due to that formulation, the only way to initialise the model is using backcasting.
+While SSARIMA is flexible, it is not fast. In fact, it cannot handle high frequency data well and most probably will take ages to estimate the parameter and produce forecasts. This is because of the transition matrix, which becomes huge in case of multiple seasonalities. The MSARIMA model (Multiple Seasonal ARIMA) is formulated in a different state-space form, which reduces the size of transition matrix, significantly reducing the computational time for cases with high frequency data.
 
 There are `auto.msarima()` and `msarima()` function in the package, that do things similar to `auto.ssarima()` and `ssarima()`. Here's just one example of what can be done with it:
 ```{r mssarima_N2457_orders_multiple_seasonalities}
-msarima(M3$N2457$x, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)),lags=c(1,6,12),h=18, silent=FALSE)
+msarima(AirPassengers, orders=list(ar=c(0,0,1),i=c(1,0,0),ma=c(1,1,1)),lags=c(1,6,12),h=12, silent=FALSE)
 ```
 
-The forecasts of the two models will differ due to the different state space form.
+The forecasts of the two models might differ due to the different state space form. The detailed explanation of MSARIMA is given in Chapter 9 of [ADAM textbook](https://openforecast.org/adam/).
 
 ## References

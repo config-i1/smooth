@@ -1,9 +1,12 @@
 # smooth
-[![CRAN_Status_Badge](http://www.r-pkg.org/badges/version/smooth)](https://cran.r-project.org/package=smooth)
-[![Downloads](http://cranlogs.r-pkg.org/badges/smooth)](https://cran.r-project.org/package=smooth)
+[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/smooth)](https://cran.r-project.org/package=smooth)
+[![Downloads](https://cranlogs.r-pkg.org/badges/smooth)](https://cran.r-project.org/package=smooth)
+[![R-CMD-check](https://github.com/config-i1/smooth/actions/workflows/test.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/test.yml)
 [![ko-fi](https://ivan.svetunkov.ru/ko-fi.png)](https://ko-fi.com/G2G51C4C4)
 
 The package _smooth_ contains several smoothing (exponential and not) functions that are used in forecasting.
+
+![hex-sticker of the smooth package for R](https://github.com/config-i1/smooth/blob/master/man/figures/smooth-web.png?raw=true)
 
 Here is the list of the included functions:
 
@@ -68,11 +71,11 @@ Future works:
 The stable version of the package is available on CRAN, so you can install it by running:
 > install.packages("smooth")
 
-A recent, development version, is available via github and can be installed using "devtools" in R. First, make sure that you have devtools:
-> if (!require("devtools")){install.packages("devtools")}
+A recent, development version, is available via github and can be installed using "remotes" in R. First, make sure that you have remotes:
+> if (!require("remotes")){install.packages("remotes")}
 
 and after that run:
-> devtools::install_github("config-i1/smooth")
+> remotes::install_github("config-i1/smooth")
 
 ## Notes
 
@@ -80,4 +83,4 @@ The package depends on Rcpp and RcppArmadillo, which will be installed automatic
 
 However Mac OS users may need to install gfortran libraries in order to use Rcpp. Follow the link for the instructions: http://www.thecoatlessprofessor.com/programming/rcpp-rcpparmadillo-and-os-x-mavericks-lgfortran-and-lquadmath-error/
 
-Sometimes after upgrade of smooth from previous versions some functions stop working. This is because C++ functions are occasionally stored in deeper unknown corners of R's mind. Restarting R usually solves the problem. If it  doesn't, completely remove smooth (uninstall + delete the folder "smooth" from R packages folder), restart R and reinstall smooth.
+Sometimes after upgrade of smooth from previous versions some functions stop working. This is because C++ functions are occasionally stored in deeper unknown corners of R's mind. Restarting R usually solves the problem. If it  doesn't, completely remove smooth (uninstal + delete the folder "smooth" from R packages folder), restart R and reinstall smooth.

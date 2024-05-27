@@ -1,4 +1,237 @@
-smooth v3.1.1 (Release data: 2021-03-05)
+smooth v4.0.2 (Release data: 2024-04-05)
+=======
+
+Changes:
+* occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
+* adam() now allows pure models with some specific components. e.g. model="PNP" will check pure additive and pure multiplicative models without trend. Similarly, model="FNF" will now remove the unneeded trends and skip the branch-and-bound algorithm.
+
+Bugfixes:
+* Transition matrix was not correctly set for ARIMA with drift. It is now.
+
+
+smooth v4.0.1 (Release data: 2024-04-01)
+=======
+
+Changes:
+* Initialisation of ARIMA is now more precise, both for "optimal" and "backcasting", leading to a better fit of the model to the data. This was done using more meaningful initial values of states and by cutting the small step of refitting the head states in ARIMA with backcasting.
+* Further tuning of the initialisation via backcasting. This time in C++ code for the preheating period.
+* Rewrote the polynomialiser() function in C++. This should speed up ADAM ARIMA and msarima().
+* Renamed the internal variable "profileObseredTable" into a more meaningful "indexLookupTable".
+
+Bugfixes:
+* Fixed a bug with multicov.adam() and simulated covariance matrix.
+* adam() ARIMA and msarima() with backcasting would count number of components towards the number of estimated parameters.
+* adam() would not remove components of ETS correctly in cases of small samples (e.g. obs == 2*frequency).
+* Fixed the code of sma() - there was a bug in the architecture resulting in wrong fitting.
+* ARIMA parameters are now initialised even when ACF/PACF returns NaNs (exotic case).
+* Fixed bugs in es() not accepting xreg of a different length than y and not using the existing data in pre-estimated model via model=ourModel. Thanks to Nikos Kourentzes for spotting these!
+* Another bugfix in es() and xreg: resolved the issue with the simulated data.
+
+
+smooth v4.0.0 (Release data: 2023-09-15)
+=======
+
+Changes:
+* Starting from v4.0.0, the smooth package for R will be released under the LGPLv2.1 license. The source of the older version of the software under the GPL(>=2) is available here: https://github.com/config-i1/smooth/releases/tag/v3.2.2
+
+
+smooth v3.2.2 (Release data: 2023-09-15)
+=======
+
+Changes:
+* Expanded info on simulate functions in the package description.
+* vcov() now can also return heuristic covariance matrix for adam via the heuristics=0.0025 or something like that. This is an experimental feature, which is why it is not explained in the documentation.
+* auto.msarima() is now a wrapper of adam() with orders=list(..., select=TRUE).
+* accuracy() is now implemented for smooth classes.
+
+Bugfixes:
+* forecast.adam() would not work correctly if the newdata had missing values.
+* Finally found and fixed an annoying bug that caused ARIMA to fail in some cases.
+* Fix in forecast.adam() for cases of h=1 and analytical variance.
+* A fix for adam() with LASSO/RIDGE, where "lambdaOriginal was not found".
+
+
+smooth v3.2.1 (Release data: 2023-06-01)
+=======
+
+Changes:
+* Combined ADAM now skips the models with weights less than 0.001, when producing forecasts.
+* forecast() for combined ADAM now also supports interval="complete".
+* reapply() method for combined ADAM.
+
+Bugfixes:
+* Correct default for initial in auto.adam().
+* PACF in plot.smooth() dropped the first lag because of a typo.
+* adam() would not calculate logLik() correctly for Generalised Normal distribution in case of Multiplicative error models.
+* sma() with order selection would not work on data with number of observations lower than the frequency.
+* Fix in simulate.adam(), which would ignore the states of the model.
+* sm() now works with pure regression and regressors="select". But we now rely on greybox 1.0.8.
+* formula is now properly used in adam() in regressors="select".
+* smoothCombine() wouldn't work because of the wrong interval type.
+* coefbootstrap() now has a slightly larger smallest sample to consider (1 more observation). This should make it more robust.
+* Fix in adam() with Gamma distribution and mixed models.
+* Fixed a bug with ARIMA(0,d,0) with drift and an initial B becoming outside of bounds.
+
+
+smooth v3.2.0 (Release data: 2023-01-18)
+=======
+
+Changes:
+* es() is now a wrapper of adam(). The old es() function will be available until v4.0.0 as es_old().
+* msarima() is now a wrapper of adam() as well. The old version is msarima_old(). auto.msarima() relies on the old algorithm and will provide a solution different to the one from auto.adam().
+* sma() now uses the adam() C++ code instead of the old one.
+* New initialisation approach in adam(), es() and msarima() in place of initial="backcasting". This does backcasting for dynamic part of the model and optimisation for the parameters of the explanatory variables. Useful for ETSX and ARIMAX. The old one is now called "complete".
+* simulate() method for ADAM class.
+* msarima() now has a document "model" parameter. Previously, it was hidden in ellipses.
+* type="simulated" in multicov.adam().
+* Switched off interval and level parameters in oes() and oesg().
+* forecast.adam() now has a parameter "scenarios", defining whether to return the simulated paths or not. Works only in case of interval="simulated".
+* ACF/PACF of squared residuals in plot.adam() and plot.smooth().
+* Removed depricated parameters (updateX, transitionX and persistenceX) from oes() and oesg().
+* xtable method for adam class to produce tables from outputs for LaTeX.
+* sma() now has a fast search of order.
+
+Bugfixes:
+* adam() calculated the number of estimated parameters incorrectly in case of regressors="select".
+* Another fix of the number of estimated parameters in adam() - the internal method would differ from the external one.
+* Fix in C++ code for the matrix of states, which gets contaminated with interim values.
+* Failsafe mechanism in adam() for initial level, trend, seasonal in mixed models, so that they do not become negative, when they should not.
+* A fix for another ETS+ARIMA combination in adam() which resulted in NaNs.
+* A fix for simulated data from mixed ETS models in adam(). These should not produce NaNs anymore.
+* A fix in forecast.adam() for cases of occurrence model and cumulative forecasts.
+* A fix for tibble and tsibble objects in adam().
+* es_old() and other old functions would break if after some checks all the explanatory variables would be dropped (thanks to Ritika Arora for spotting this). This is now fixed.
+* Fix in adam() in case of loss=c("LASSO","RIDGE") and lambda=1. This now corresponds to the deterministic ETS(X) model. ARIMA is still a mistery here.
+* adam() would not work if names of explanatory variables would consist of numbers only.
+* adam() would fail if lags=24 and zoo object with no timestamps was used.
+* A fix in adam() for provided occurrence and multiplicative models with positive distributions.
+
+
+smooth v3.1.7 (Release data: 2022-05-20)
+=======
+
+Changes:
+* Updated LASSO and RIDGE in adam(). We now don't shrink initial states, following Pritularga et al. (2022) paper. Furthermore, in the spirit of the paper, we now shrink AR elements to 1 and MA elements to -1.
+* rmultistep method for es(), ssarima(), msarima(), ces() and sma().
+* Renamed "xregDo" into "regressors" for consistency with ADAM.
+* multicov now accepts parameter h, defining the horizon for multisteps covariance matrix.
+* Fixes in adam() for cases, when eigen() did not use symmetric=FALSE, where this was appropriate. This should speed up the code a bit.
+* Tuning of C++ code for ADAM. This leads to the decrease in computational time and used memory. However, the performance of models needs testing to make sure that they are still robust.
+
+Bugfixes:
+* adam() ETS+ARIMA would check ARIMA parameters, assuming that polynomial matrix is symmetric. This is now fixed.
+* Fixed a bug in adam(), when the function would use erroneously NULL as a name of a variable.
+* interval="prediction" would not produce analytical intervals in case of pure additive models. This is now fixed.
+
+
+smooth v3.1.6 (Release data: 2022-03-30)
+=======
+
+Changes:
+* Renamed nu into df in distribution="dt" of adam() for consistency with alm().
+* We now import forecast from generics package, not from greybox.
+* sm() method for adam. This supports scale model via ETS / ARIMA / Regression.
+* forecast.adam() is now tuned to work with sm.adam() output.
+* forecast.adam() now works properly with object$scale if it is estimated via sm.adam() (i.e. taking the multistep scale into account).
+* implant() method (imported from greybox) to merge adam and the scale model.
+* The default measurement vector in gum() is now unity. This makes model identifiable.
+* Correct number of degrees of freedom in adam-sm model.
+* Fixes for sm() in case of model="NNN".
+* Always record number of estimated parameters for scale in a separate column in adam().
+* plot.adam() now produces diagnostics plots for scale model if it is implanted for which=c(2:6,8,9,13,14).
+* The order in which in plot.smooth() and plot.adam() now matters.
+
+Bugfixes:
+* Fixed a bug in ssGeneral.cpp, which caused ces() to break in the cases of extreme values of smoothing parameters.
+* A fix in forecast.adam(), which would not rbind the rows correctly in cases of nrow(newdata) < h.
+* A fix in ADAMX for exotic cases, where log(y) was used in alm() (for parameters initialisation), when it shouldn't have.
+* A fix in case of rbind() of data.frame, when one of variables is ts.
+
+
+smooth v3.1.5 (Release data: 2022-01-26)
+=======
+
+Changes:
+* summary.adam now prints the standard deviation of the error term (sigma(ourModel)).
+* An explanation of the default nsim value in forecast.adam.
+* Removed Mcomp from suggests.
+
+
+smooth v3.1.4 (Release data: 2021-12-01)
+=======
+
+Changes:
+* Fixed the description of interval option in adam().
+* Renamed refit() into reapply() to avoid conflicts with the generic of the same name from generics package.
+
+Bugfixes:
+* Fixed a bug in the pre-initialisation of parameters of a model with constant.
+
+
+smooth v3.1.3 (Release data: 2021-09-22)
+=======
+
+Changes:
+* adam() now gives names to the models in combinations for a simple access to them.
+* adam() now complains if the data is negative and a non-additive model is applied.
+* forecast.adam() now supports "empirical" and "complete" prediction intervals. The former rely on multistep forecast errors and uses their empirical quantiles. The latter is a shortcut for the prediction interval in the reforecast() function.
+* Allow seasonal model in es() for the 2 full cycles of data.
+
+Bugfixes:
+* adam with pure regression would not do outliers selection.
+* Fix in adam() with half-hourly data.
+* empirical interval in forecast for adam(), which relies on quantiles of multistep forecast errors.
+* Fix in auto.adam() for ETS+ARIMA: the function would enforce drift, when it would not be needed.
+* Fix in rmultistep - it would not use the original profile and would result in ridiculous forecasts.
+* Fix in adamErrorer. It now has a correct alignment of profiles. This will impact the rmultistep() and multistep losses.
+* Fix for GPL and other multistep losses in case of multiplicative models and default distributions.
+* An issue with forecast.adam() with combination, which would not have correct number of elements.
+* adam() now prints the correct name of response variable in auto.adam() ARIMA selection.
+* Fixed issues with initials and with initial profile in adam(), so that any model can now be properly reapplied, no matter what and would result in exactly the same fit. Previously, this would break for some types of ARIMA.
+* Fixed ETS(M,*,*) with drift models. They now produce a proper trend.
+* A fix in the bounds for the optimiser in case of bounds="usual" - should converge to optimal values faster.
+* A fix for the logLik calculation of occurrence model - accept only positive entropy. This needs further investigation, but for some reason makes sense.
+* Make sure that the conventional functions (es, ssarima, sma etc) return y as ts.
+
+
+smooth v3.1.2 (Release data: 2021-06-14)
+=======
+
+Changes:
+* Make forecast.oes() shut up in adam().
+* Print names of oETS models in the adam() model (e.g. [G], [F], etc.).
+* Updated methods description in the vignette of smooth.
+* plot.adam(..., which=c(8,9)) now drops residuals for zero actuals if occurrence model is present. Should look better and provide a proper message.
+* Update in C++ code, substituting SEXP by the expected objects (matrices and vectors) in adam(). This should result in a slight speed up and memory consumption reduction.
+* adam() now has a trick in case of initial="backcasting", changing the value of state obtained in the tail of series. This helps the function to come back to the start of the series with a more meaningful initial.
+* New initialisation for phi and theta of ADAM ARIMA.
+* /donttest{} instead of /dontrun{} in examples in the documentation.
+* on.exit() restore par for plot functions.
+* Use "approximate" intervals for !etsModel in adam().
+* Multistep losses in adam() now do not do log(1+et) and minimise et directly.
+* adam() now does regressors selection between those that are specified in formula if formula is provided.
+* More iterations for xreg models in adam().
+* Refine head of time series in adam() for backcasting (previously was only done for optimal).
+* Gamma is now the default distribution for Etype="M" in ETS.
+* (standardised residuals)^2 vs fitted and abs(standardised residuals) in plot.smooth() and plot.adam() (which=c(13,14)). This should allow doing diagnostics in case of scale model (TBA).
+* occurrence parameter in adam() now also accepts logical vector.
+
+Bugfixes:
+* Fixed a bug in adam() with regressors="select" and errorType=="M".
+* auto.adam() would not check positivity of data for dgamma.
+* A bugfix in auto.adam for additional checks in ARIMA in case of d=0.
+* A bugfix in oesg() and damped trend model with estimated phi.
+* Fixes in ts() for pure regression in adam().
+* A fix for outliers selection in ADAMX andprovided formula.
+* A fix in ADAMX and forecast().
+* A fix for weird cases of ETS(M,N,N) with constant on some time series with very low values.
+* A fix in auto.adam() for ARIMA orders selection in case of the provided formula.
+* A fix in forecast.adam() for interval="approximate" and distribution="dlnorm".
+* Weird bug in es(), where loss="likelihood" was considered as a multistep.
+* Fix in auto.adam() and ARIMA selection with non-default distributions.
+
+
+smooth v3.1.1 (Release data: 2021-04-16)
 =======
 
 Changes:
@@ -6,6 +239,12 @@ Changes:
 * A fix in auto.adam() in case of ETS + ARIMA + Regression and automatic selection. The code is slower but more accurate now.
 * Speed up regression estimation in case of is.matrix(data) and no formula.
 * I minor improvement, when calling forecast() from adam() - don't ask for interval to speed things up.
+* Further optimised adam() code with regressors, in case of regressors="select", removing unnecessary steps.
+* Return distribution="plogis" in oes() and oesg().
+* Select regressors on the model with alpha=0.01, so that it does not overfit the data.
+* Minor optimisations in adam() for RAM consumption in case of explanatory variables and / or backcasting.
+* forecast.adam() now produces point forecasts (not conditional means) if interval=c("nonparametric","semiparametric","approximate").
+* Do Garbage Collection for ADAMX if the sample is bigger than 10k observations. We need to preserve memory in this case.
 
 Bugfixes:
 * Fix for forecast.adam() and factor variables in newdata.
@@ -13,6 +252,15 @@ Bugfixes:
 * A fix for ADAM ETSX / ARIMAX in cases of no variability in explanatory variables.
 * And another one for coefbootstrap() in case of regressors="select".
 * A fix for likelihood calculation for occurrence model and distribution="dgamma".
+* confint() now returns proper intervals for parameters of adam(), not intervals around zero.
+* Fix in forecast.adam() for iETS models and different objects used in oes() and adam().
+* A fix for provided smoothing parameters in case of estimated deltas in adam().
+* Fix for factors in adam().
+* A fix for the previous fix of factors.
+* A fix for iETS in forecast.adam() for cases of zero mean and zeroes in quantiles.
+* Fixed a funny bug in adam() with data.table and cbind.
+* A fix for the case of data.frame() and is.zoo(y).
+* A fix for vcov.adam() in case, when Fisher Information contains NaNs.
 
 
 smooth v3.1.0 (Release data: 2021-02-19)

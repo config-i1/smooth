@@ -24,3 +24,6 @@
 #' If the forecasts of the models were combined, then the interval are combined
 #' quantile-wise (Lichtendahl et al., 2013).
 #' @param level Confidence level. Defines width of prediction interval.
+#' @param cumulative If \code{TRUE}, then the cumulative forecast and prediction
+#' interval are produced instead of the normal ones. This is useful for
+#' inventory control systems.

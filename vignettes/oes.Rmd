@@ -80,7 +80,7 @@ Depending on the restrictions on $a_t$ and $b_t$, there can be several iETS mode
 4. iETS$_D$: $\mu_{a,t} + \mu_{b,t} = 1$, $\mu_{a,t} \leq 1$ - the direct probability model, where the $p_t$ is calculated directly from the occurrence variable $o_t$;
 5. iETS$_G$: No restrictions - the model based on the evolution of both $\mu_{a,t}$ and $\mu_{b,t}$.
 
-Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts. The one thing uniting all the subtypes of models is that all the multiplicative error ETS models in `smooth` package rely on the conditional medians for the demand sizes part of the model rather than on the conditional means. This is caused by the assumption of log normality of the error term and simplifies some of the calculations, preserving the main idea of ETS models (separation of components of the model).
+Depending on the type of the model, there are different mechanisms of the model construction, error calculation, update of the states and the generation of forecasts.
 
 In this vignette we will use ETS(M,N,N) model as a base for the different parts of the models. Although, this is a simplification, it allows better understanding the basics of the different types of iETS model, without the loss of generality.
 
@@ -158,7 +158,7 @@ where $\hat{a}_t$ is the estimate of $\mu_{a,t}$.
 
 Given that the model is estimated using the likelihood (2), it has $k_z+k_a$ parameters to estimate, where $k_z$ includes all the initial values, the smoothing parameters and the scale of the error of the demand sizes part of the model, and $k_a$ includes only initial values and the smoothing parameters of the model for the demand occurrence. In case of iETS$_O$(M,N,N) this number is equal to 5.
 
-The occurrence part of the model iETS$_O$ is constructed using the very same `oes()` function, but also allows specifying the ETS model to use. Foe example, here's the ETS(M,M,N) model:
+The occurrence part of the model iETS$_O$ is constructed using the very same `oes()` function, but also allows specifying the ETS model to use. For example, here's the ETS(M,M,N) model:
 ```{r iETSOExample1}
 oETSOModel <- oes(y, model="MMN", occurrence="o", h=10, holdout=TRUE)
 oETSOModel
@@ -244,7 +244,7 @@ An option with the additive model in this case has a different, more complicated
     \begin{matrix}
         y_t = o_t z_t \\
 		o_t \sim \text{Bernoulli} \left(a_t \right) \\
-		a_t = l_{a,t-1} \left(1 + \epsilon_{a,t} \right) \\
+		a_t = l_{a,t-1} + \epsilon_{a,t} \\
 		l_{a,t} = l_{a,t-1}  + \alpha_{a} \epsilon_{a,t} \\
 		\mu_{a,t} = \max \left( \min(l_{a,t-1}, 1), 0 \right)
     \end{matrix}.
