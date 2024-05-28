@@ -1,8 +1,8 @@
 Package: smooth
 Type: Package
 Title: Forecasting Using State Space Models
-Version: 4.0.2.41003
-Date: 2024-04-11
+Version: 4.0.2.41004
+Date: 2024-05-28
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.com", role = c("aut", "cre"),
                   comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth

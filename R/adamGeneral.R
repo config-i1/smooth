@@ -2878,7 +2878,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         ftol_abs <- ellipsis$ftol_abs;
     }
     if(is.null(ellipsis$algorithm)){
-        algorithm <- "NLOPT_LN_SBPLX";
+        algorithm <- "NLOPT_LN_NELDERMEAD";
     }
     else{
         algorithm <- ellipsis$algorithm;
