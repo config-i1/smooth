@@ -6060,14 +6060,33 @@ print.adam <- function(x, digits=4, ...){
 
     # If this is ARIMA model
     if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
+        lagsModel <- lags(x);
+        ordersModel <- orders(x);
         cat("\nARMA parameters of the model:\n");
         if(!is.null(x$arma$ar)){
-            cat("AR:\n")
-            print(round(x$arma$ar,digits));
+            # cat("AR:\n")
+            arMatrix <- matrix(NA,max(ordersModel$ar),length(lagsModel),
+                               dimnames=list(paste0("AR(",1:max(ordersModel$ar),")"),
+                                             paste0("Lag ",lagsModel,"")));
+            arNumber <- 0;
+            for(i in 1:length(ordersModel$ar)){
+                arMatrix[(1:ordersModel$ar[i]),i] <- x$arma$ar[arNumber+(1:ordersModel$ar[i])];
+                arNumber <- arNumber + ordersModel$ar[i];
+            }
+            print(round(arMatrix, digits));
         }
         if(!is.null(x$arma$ma)){
-            cat("MA:\n")
-            print(round(x$arma$ma,digits));
+            # cat("MA:\n")
+            # print(round(x$arma$ma,digits));
+            maMatrix <- matrix(NA,max(ordersModel$ma),length(lagsModel),
+                               dimnames=list(paste0("MA(",1:max(ordersModel$ma),")"),
+                                             paste0("Lag ",lagsModel,"")))
+            maNumber <- 0;
+            for(i in 1:length(ordersModel$ma)){
+                maMatrix[(1:ordersModel$ma[i]),i] <- x$arma$ma[maNumber+(1:ordersModel$ma[i])];
+                maNumber <- maNumber + ordersModel$ma[i];
+            }
+            print(round(maMatrix, digits));
         }
     }
 
