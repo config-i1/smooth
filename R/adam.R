@@ -6030,6 +6030,11 @@ print.adam <- function(x, digits=4, ...){
         }
     }
 
+    # If there is a Intercept/drift
+    if(!is.null(x$constant)){
+        cat("\nIntercept/Drift value:", round(x$constant, digits));
+    }
+
     if(etsModel){
         if(!is.null(x$persistence)){
             cat("\nPersistence vector g");
@@ -6060,15 +6065,17 @@ print.adam <- function(x, digits=4, ...){
 
     # If this is ARIMA model
     if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
-        lagsModel <- lags(x);
         ordersModel <- orders(x);
+        lagsModel <- lags(x);
         cat("\nARMA parameters of the model:\n");
         if(!is.null(x$arma$ar)){
             # cat("AR:\n")
-            arMatrix <- matrix(NA,max(ordersModel$ar),length(lagsModel),
+            arMatrix <- matrix(NA,max(ordersModel$ar),length(lagsModel[ordersModel$ar!=0]),
                                dimnames=list(paste0("AR(",1:max(ordersModel$ar),")"),
-                                             paste0("Lag ",lagsModel,"")));
+                                             paste0("Lag ",lagsModel[ordersModel$ar!=0],"")));
             arNumber <- 0;
+            # Remove zero lags
+            ordersModel$ar <- ordersModel$ar[ordersModel$ar!=0];
             for(i in 1:length(ordersModel$ar)){
                 arMatrix[(1:ordersModel$ar[i]),i] <- x$arma$ar[arNumber+(1:ordersModel$ar[i])];
                 arNumber <- arNumber + ordersModel$ar[i];
@@ -6078,10 +6085,11 @@ print.adam <- function(x, digits=4, ...){
         if(!is.null(x$arma$ma)){
             # cat("MA:\n")
             # print(round(x$arma$ma,digits));
-            maMatrix <- matrix(NA,max(ordersModel$ma),length(lagsModel),
+            maMatrix <- matrix(NA,max(ordersModel$ma),length(lagsModel[ordersModel$ma!=0]),
                                dimnames=list(paste0("MA(",1:max(ordersModel$ma),")"),
-                                             paste0("Lag ",lagsModel,"")))
+                                             paste0("Lag ",lagsModel[ordersModel$ma!=0],"")))
             maNumber <- 0;
+            ordersModel$ma <- ordersModel$ma[ordersModel$ma!=0];
             for(i in 1:length(ordersModel$ma)){
                 maMatrix[(1:ordersModel$ma[i]),i] <- x$arma$ma[maNumber+(1:ordersModel$ma[i])];
                 maNumber <- maNumber + ordersModel$ma[i];
