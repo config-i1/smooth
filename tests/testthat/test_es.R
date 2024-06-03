@@ -3,7 +3,7 @@ context("Tests for es() function");
 # Basic ETS selection
 testModel <- es(BJsales, silent=TRUE);
 test_that("Test ETS selection on BJsales", {
-    expect_match(testModel$model, "AMdN");
+    expect_match(modelType(testModel), "AAdN");
 })
 
 test_that("Test damped-trend ETS on BJsales", {
