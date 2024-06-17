@@ -10223,7 +10223,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
 }
 
 #' @export
-pointLik.adam <- function(object, ...){
+pointLik.adam <- function(object, log=TRUE, ...){
     distribution <- object$distribution;
     yInSample <- actuals(object);
     obsInSample <- nobs(object);
@@ -10320,6 +10320,10 @@ pointLik.adam <- function(object, ...){
         likValues[] <- likValues + pointLik(object$occurrence);
     }
     likValues <- ts(likValues, start=start(yFitted), frequency=frequency(yFitted));
+
+    if(!log){
+        likValues[] <- exp(likValues);
+    }
 
     return(likValues);
 }

@@ -569,7 +569,7 @@ sigma.smooth.sim <- function(object, ...){
 #### pointLik for smooth ####
 #' @importFrom greybox pointLik
 #' @export
-pointLik.smooth <- function(object, ...){
+pointLik.smooth <- function(object, log=TRUE, ...){
     obs <- nobs(object);
     errors <- residuals(object);
     likValues <- vector("numeric",obs);
@@ -580,13 +580,13 @@ pointLik.smooth <- function(object, ...){
     }
 
     if(any(loss==c("MAE","MAEh","TMAE","GTMAE","MACE"))){
-        likValues <- likValues + dlaplace(errors, 0, mean(abs(errors)), TRUE);
+        likValues <- likValues + dlaplace(errors, 0, mean(abs(errors)), log=log);
     }
     else if(any(loss==c("HAM","HAMh","THAM","GTHAM","CHAM"))){
-        likValues <- likValues + ds(errors, 0, mean(sqrt(abs(errors))/2), TRUE);
+        likValues <- likValues + ds(errors, 0, mean(sqrt(abs(errors))/2), log=log);
     }
     else{
-        likValues <- likValues + dnorm(errors, 0, sqrt(mean(abs(errors)^2)), TRUE);
+        likValues <- likValues + dnorm(errors, 0, sqrt(mean(abs(errors)^2)), log=log);
     }
 
     likValues <- ts(as.vector(likValues), start=start(errors), frequency=frequency(errors));
@@ -595,7 +595,7 @@ pointLik.smooth <- function(object, ...){
 }
 
 #' @export
-pointLik.oes <- function(object, ...){
+pointLik.oes <- function(object, log=TRUE, ...){
     ot <- actuals(object);
     pFitted <- fitted(object);
     likValues <- vector("numeric",nobs(object));
@@ -603,6 +603,9 @@ pointLik.oes <- function(object, ...){
     likValues[ot==0] <- log(1-pFitted[ot==0]);
     likValues <- ts(likValues, start=start(ot), frequency=frequency(ot));
 
+    if(!log){
+        likValues[] <- exp(likValues);
+    }
     return(likValues);
 }
 
