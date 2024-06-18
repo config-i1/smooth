@@ -6066,6 +6066,10 @@ print.adam <- function(x, digits=4, ...){
     # If this is ARIMA model
     if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
         ordersModel <- orders(x);
+        # If the order was just a vector
+        if(!is.list(ordersModel)){
+            ordersModel <- list(ar=ordersModel[1], i=ordersModel[2], ma=ordersModel[3]);
+        }
         lagsModel <- lags(x);
         cat("\nARMA parameters of the model:\n");
         if(!is.null(x$arma$ar)){
