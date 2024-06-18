@@ -17,7 +17,7 @@ test_that("ADAM ETS(ZZZ) selection on AirPassengers", {
 test_that("ADAM ETS(FFF) selection on BJsales", {
     skip_on_cran()
     testModel <- adam(BJsales, "FFF")
-    expect_match(modelType(testModel), "M")
+    expect_match(modelType(testModel), "AAdN")
 })
 
 # ADAM with specified pool
