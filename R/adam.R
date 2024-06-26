@@ -9342,7 +9342,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # ARIMA states in the profileRecent
     if(arimaModel){
         # See if the initials were estimated
-        initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+        # initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+        initialArimaNumber <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
         # This is needed in order to propagate initials of ARIMA to all components
         if(object$initialType=="optimal" && any(c(arEstimate,maEstimate))){
