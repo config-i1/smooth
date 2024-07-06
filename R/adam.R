@@ -5796,8 +5796,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     # 12. Plot of states
     plot8 <- function(x, ...){
-        parDefault <- par(no.readonly = TRUE);
-        on.exit(par(parDefault));
+        parDefault <- par(no.readonly=TRUE);
+        on.exit(par(parDefault), add=TRUE);
         if(any(unlist(gregexpr("C",x$model))==-1)){
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
