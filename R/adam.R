@@ -6256,20 +6256,31 @@ arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
     arPolynomial[variableNumber] <- -5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
     arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+    stoppingCriteria <- 20;
+    i <- 1;
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
         arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+        i[] <- i+1;
+        if(i>=stoppingCriteria){
+            break;
+        }
     }
     lowerBound <- arPolynomial[variableNumber]-0.01;
     # The upper bound
     arPolynomial[variableNumber] <- 5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
     arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+    i[] <- 1;
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
         arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+        i[] <- i+1;
+        if(i>=stoppingCriteria){
+            break;
+        }
     }
     upperBound <- arPolynomial[variableNumber]+0.01;
     return(c(lowerBound, upperBound));
@@ -6693,7 +6704,7 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 #' @importFrom greybox coefbootstrap timeboot
 #' @export
 coefbootstrap.adam <- function(object, nsim=100,
-                               # size=floor(0.5*nobs(object)), replace=FALSE, prob=NULL,
+                               size=floor(0.5*nobs(object)), replace=FALSE, prob=NULL,
                                parallel=FALSE, type="mult", ...){
 
     startTime <- Sys.time();
@@ -8863,7 +8874,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     startTime <- Sys.time();
     parametersNames <- names(coef(object));
 
-    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, ...));
+    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, nsim=nsim, ...));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
     if(vcovEigen<0){
