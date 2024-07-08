@@ -1731,7 +1731,7 @@ plot.smooth <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     # 12. Plot of states
     plot8 <- function(x, ...){
         parDefault <- par(no.readonly=TRUE);
-        on.exit(par(parDefault));
+        on.exit(par(parDefault), add=TRUE);
         smoothType <- smoothType(x);
         if(smoothType=="ETS"){
             if(any(unlist(gregexpr("C",x$model))==-1)){

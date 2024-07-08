@@ -1,3 +1,10 @@
+smooth v4.0.2 (Release data: 2024-06-26)
+=======
+
+Bugfixes:
+* Fix in reapply() for ARIMA.
+
+
 smooth v4.0.2 (Release data: 2024-06-18)
 =======
 
