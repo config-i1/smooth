@@ -6911,7 +6911,7 @@ coefbootstrap.adam <- function(object, nsim=100,
 
     return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
                           coefficients=coefBootstrap, nsim=nsim,
-                          # size=size, replace=replace, prob=prob,
+                          size=NA, replace=NA, prob=NA,
                           parallel=parallel, model=object$call[[1]], timeElapsed=Sys.time()-startTime),
                      class="bootstrap"));
 }
