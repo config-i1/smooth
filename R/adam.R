@@ -282,7 +282,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{ftol_abs} - the stopping criterion in case of the absolute change in the loss
 #' function (the default is 0 - not used);
 #' \item \code{algorithm} - the algorithm to use in optimisation
-#' (by default, \code{"NLOPT_LN_SBPLX"} is used);
+#' (by default, \code{"NLOPT_LN_NELDERMEAD"} is used);
 #' \item \code{print_level} - the level of output for the optimiser (0 by default).
 #' If equal to 41, then the detailed results of the optimisation are returned.
 #' }
@@ -5796,8 +5796,8 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
     # 12. Plot of states
     plot8 <- function(x, ...){
-        parDefault <- par(no.readonly = TRUE);
-        on.exit(par(parDefault));
+        parDefault <- par(no.readonly=TRUE);
+        on.exit(par(parDefault), add=TRUE);
         if(any(unlist(gregexpr("C",x$model))==-1)){
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
@@ -6030,6 +6030,11 @@ print.adam <- function(x, digits=4, ...){
         }
     }
 
+    # If there is a Intercept/drift
+    if(!is.null(x$constant)){
+        cat("\nIntercept/Drift value:", round(x$constant, digits));
+    }
+
     if(etsModel){
         if(!is.null(x$persistence)){
             cat("\nPersistence vector g");
@@ -6060,14 +6065,40 @@ print.adam <- function(x, digits=4, ...){
 
     # If this is ARIMA model
     if(!is.null(x$arma) && (!is.null(x$arma$ar) || !is.null(x$arma$ma))){
+        ordersModel <- orders(x);
+        # If the order was just a vector
+        if(!is.list(ordersModel)){
+            ordersModel <- list(ar=ordersModel[1], i=ordersModel[2], ma=ordersModel[3]);
+        }
+        lagsModel <- lags(x);
         cat("\nARMA parameters of the model:\n");
         if(!is.null(x$arma$ar)){
-            cat("AR:\n")
-            print(round(x$arma$ar,digits));
+            # cat("AR:\n")
+            arMatrix <- matrix(NA,max(ordersModel$ar),length(lagsModel[ordersModel$ar!=0]),
+                               dimnames=list(paste0("AR(",1:max(ordersModel$ar),")"),
+                                             paste0("Lag ",lagsModel[ordersModel$ar!=0],"")));
+            arNumber <- 0;
+            # Remove zero lags
+            ordersModel$ar <- ordersModel$ar[ordersModel$ar!=0];
+            for(i in 1:length(ordersModel$ar)){
+                arMatrix[(1:ordersModel$ar[i]),i] <- x$arma$ar[arNumber+(1:ordersModel$ar[i])];
+                arNumber <- arNumber + ordersModel$ar[i];
+            }
+            print(round(arMatrix, digits));
         }
         if(!is.null(x$arma$ma)){
-            cat("MA:\n")
-            print(round(x$arma$ma,digits));
+            # cat("MA:\n")
+            # print(round(x$arma$ma,digits));
+            maMatrix <- matrix(NA,max(ordersModel$ma),length(lagsModel[ordersModel$ma!=0]),
+                               dimnames=list(paste0("MA(",1:max(ordersModel$ma),")"),
+                                             paste0("Lag ",lagsModel[ordersModel$ma!=0],"")))
+            maNumber <- 0;
+            ordersModel$ma <- ordersModel$ma[ordersModel$ma!=0];
+            for(i in 1:length(ordersModel$ma)){
+                maMatrix[(1:ordersModel$ma[i]),i] <- x$arma$ma[maNumber+(1:ordersModel$ma[i])];
+                maNumber <- maNumber + ordersModel$ma[i];
+            }
+            print(round(maMatrix, digits));
         }
     }
 
@@ -6225,20 +6256,31 @@ arPolinomialsBounds <- function(arPolynomialMatrix,arPolynomial,variableNumber){
     arPolynomial[variableNumber] <- -5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
     arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+    stoppingCriteria <- 20;
+    i <- 1;
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] +0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
         arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+        i[] <- i+1;
+        if(i>=stoppingCriteria){
+            break;
+        }
     }
     lowerBound <- arPolynomial[variableNumber]-0.01;
     # The upper bound
     arPolynomial[variableNumber] <- 5;
     arPolynomialMatrix[,1] <- -arPolynomial[-1];
     arPolyroots <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+    i[] <- 1;
     while(arPolyroots){
         arPolynomial[variableNumber] <- arPolynomial[variableNumber] -0.01;
         arPolynomialMatrix[,1] <- -arPolynomial[-1];
         arPolyroots[] <- any(abs(eigen(arPolynomialMatrix, symmetric=FALSE, only.values=TRUE)$values)>1);
+        i[] <- i+1;
+        if(i>=stoppingCriteria){
+            break;
+        }
     }
     upperBound <- arPolynomial[variableNumber]+0.01;
     return(c(lowerBound, upperBound));
@@ -6659,11 +6701,11 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 }
 
 
-#' @importFrom greybox coefbootstrap
+#' @importFrom greybox coefbootstrap timeboot
 #' @export
 coefbootstrap.adam <- function(object, nsim=100,
-                               size=floor(0.5*nobs(object)),
-                               replace=FALSE, prob=NULL, parallel=FALSE, ...){
+                               size=floor(0.5*nobs(object)), replace=FALSE, prob=NULL,
+                               parallel=FALSE, type="mult", ...){
 
     startTime <- Sys.time();
 
@@ -6760,7 +6802,7 @@ coefbootstrap.adam <- function(object, nsim=100,
         newCall$orders <- orders(object);
         newCall$orders$select <- FALSE;
     }
-    newCall$constant <- object$constant;
+    newCall$constant <- !is.null(object$constant);
 
     newCall$outliers <- "ignore";
 
@@ -6801,27 +6843,39 @@ coefbootstrap.adam <- function(object, nsim=100,
 
     # Use the available parameters as starting point
     newCall$B <- object$B;
+    newCall$lb <- rep(-Inf, length(object$B));
+    newCall$ub <- rep(Inf, length(object$B));
+    newCall$data <- object$data;
 
     # Function creates a random sample. Needed for dynamic models
-    sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
-        if(regressionPure){
-            return(sample(indices,size=size,replace=replace,prob=prob));
-        }
-        else{
-            indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
-            startingIndex <- 0
-            if(changeOrigin){
-                startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
-            }
-            # This way we return the continuous sample, starting from the first observation
-            return(startingIndex+indices);
-        }
-    }
+    # sampler <- function(indices,size,replace,prob,regressionPure=FALSE,changeOrigin=FALSE){
+    #     if(regressionPure){
+    #         return(sample(indices,size=size,replace=replace,prob=prob));
+    #     }
+    #     else{
+    #         indices <- c(1:ceiling(runif(1,obsMinimum,obsInsample)));
+    #         startingIndex <- 0
+    #         if(changeOrigin){
+    #             startingIndex <- floor(runif(1,0,obsInsample-max(indices)));
+    #         }
+    #         # This way we return the continuous sample, starting from the first observation
+    #         return(startingIndex+indices);
+    #     }
+    # }
+
+    responseName <- all.vars(formula(object))[1];
+    newY <- timeboot(y=actuals(object), nsim=nsim, ...)$boot;
 
     if(!parallel){
         for(i in 1:nsim){
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,,drop=FALSE];
+            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+            # newCall$data <- object$data[subsetValues,,drop=FALSE];
+            if(!is.null(dim(newCall$data))){
+                newCall$data[,responseName] <- newY[,i];
+            }
+            else{
+                newCall$data[] <- newY[,i];
+            }
             testModel <- suppressWarnings(eval(newCall));
             coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
         }
@@ -6829,8 +6883,14 @@ coefbootstrap.adam <- function(object, nsim=100,
     else{
         # We don't do rbind for security reasons - in order to deal with skipped variables
         coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
-            subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
-            newCall$data <- object$data[subsetValues,,drop=FALSE];
+            # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
+            # newCall$data <- object$data[subsetValues,,drop=FALSE];
+            if(!is.null(dim(newCall$data))){
+                newCall$data[,responseName] <- newY[,i];
+            }
+            else{
+                newCall$data[] <- newY[,i];
+            }
             testModel <- eval(newCall);
             return(coef(testModel));
         })
@@ -6850,9 +6910,9 @@ coefbootstrap.adam <- function(object, nsim=100,
     coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
 
     return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
-                          coefficients=coefBootstrap,
-                          nsim=nsim, size=size, replace=replace, prob=prob, parallel=parallel,
-                          model=object$call[[1]], timeElapsed=Sys.time()-startTime),
+                          coefficients=coefBootstrap, nsim=nsim,
+                          # size=size, replace=replace, prob=prob,
+                          parallel=parallel, model=object$call[[1]], timeElapsed=Sys.time()-startTime),
                      class="bootstrap"));
 }
 
@@ -8814,7 +8874,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     startTime <- Sys.time();
     parametersNames <- names(coef(object));
 
-    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, ...));
+    vcovAdam <- suppressWarnings(vcov(object, bootstrap=bootstrap, heuristics=heuristics, nsim=nsim, ...));
     # Check if the matrix is positive definite
     vcovEigen <- min(eigen(vcovAdam, only.values=TRUE)$values);
     if(vcovEigen<0){
@@ -9293,7 +9353,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # ARIMA states in the profileRecent
     if(arimaModel){
         # See if the initials were estimated
-        initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+        # initialArimaNumber <- sum(substr(parametersNames,1,10)=="ARIMAState");
+        initialArimaNumber <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
         # This is needed in order to propagate initials of ARIMA to all components
         if(object$initialType=="optimal" && any(c(arEstimate,maEstimate))){
@@ -10193,7 +10254,7 @@ multicov.adam <- function(object, type=c("analytical","empirical","simulated"), 
 }
 
 #' @export
-pointLik.adam <- function(object, ...){
+pointLik.adam <- function(object, log=TRUE, ...){
     distribution <- object$distribution;
     yInSample <- actuals(object);
     obsInSample <- nobs(object);
@@ -10290,6 +10351,10 @@ pointLik.adam <- function(object, ...){
         likValues[] <- likValues + pointLik(object$occurrence);
     }
     likValues <- ts(likValues, start=start(yFitted), frequency=frequency(yFitted));
+
+    if(!log){
+        likValues[] <- exp(likValues);
+    }
 
     return(likValues);
 }
@@ -10593,3 +10658,4 @@ print.adam.sim <- function(x, ...){
 ##### Other methods to implement #####
 # accuracy.adam <- function(object, holdout, ...){}
 # pls.adam
+

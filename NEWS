@@ -1,9 +1,18 @@
-smooth v4.0.2 (Release data: 2024-04-05)
+smooth v4.0.2 (Release data: 2024-06-26)
+=======
+
+Bugfixes:
+* Fix in reapply() for ARIMA.
+
+
+smooth v4.0.2 (Release data: 2024-06-18)
 =======
 
 Changes:
 * occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
 * adam() now allows pure models with some specific components. e.g. model="PNP" will check pure additive and pure multiplicative models without trend. Similarly, model="FNF" will now remove the unneeded trends and skip the branch-and-bound algorithm.
+* We now use algorithm="NLOPT_LN_NELDERMEAD" in adam() - it produces more consistent and unbiased results than the "NLOPT_LN_SBPLX".
+* New output for ARIMA models to list all parameters in a form of a table.
 
 Bugfixes:
 * Transition matrix was not correctly set for ARIMA with drift. It is now.
