@@ -1,8 +1,9 @@
-smooth v4.0.2 (Release data: 2024-06-26)
+smooth v4.0.3 (Release data: 2024-07-12)
 =======
 
 Bugfixes:
 * Fix in reapply() for ARIMA.
+* New initialisation mechanism for ARIMA in case of initial="optimal". Now we do backcasting in the first step and then grab what we got and optimise.
 
 
 smooth v4.0.2 (Release data: 2024-06-18)

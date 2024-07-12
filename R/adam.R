@@ -2617,73 +2617,137 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
-            adamCreatedARIMA <- filler(BValues$B,
-                                       etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                       componentsNumberETS, componentsNumberETSNonSeasonal,
-                                       componentsNumberETSSeasonal, componentsNumberARIMA,
-                                       lags, lagsModel, lagsModelMax,
-                                       adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
-                                       persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                       persistenceSeasonalEstimate, persistenceXregEstimate,
-                                       phiEstimate,
-                                       initialType, initialEstimate,
-                                       initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                       initialArimaEstimate, initialXregEstimate,
-                                       arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
-                                       arRequired, maRequired, armaParameters,
-                                       nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
-                                       xregModel, xregNumber,
-                                       xregParametersMissing, xregParametersIncluded,
-                                       xregParametersEstimated, xregParametersPersistence, constantEstimate);
-
-            # Write down the initials in the recent profile
-            profilesRecentTable[] <- adamCreatedARIMA$matVt[,1:lagsModelMax];
-
-            # Do initial fit to get the state values from the backcasting
-            adamFitted <- adamFitterWrap(adamCreatedARIMA$matVt, adamCreatedARIMA$matWt, adamCreatedARIMA$matF, adamCreatedARIMA$vecG,
-                                         lagsModelAll, indexLookupTable, profilesRecentTable,
-                                         Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                         componentsNumberARIMA, xregNumber, constantRequired,
-                                         yInSample, ot, TRUE);
-
-            adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
-            # Produce new initials
-            BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
-                                      componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
-                                      lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
-                                      adamCreated$matVt,
-                                      persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
-                                      persistenceSeasonalEstimate, persistenceXregEstimate,
-                                      phiEstimate, initialType, initialEstimate,
-                                      initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
-                                      initialArimaEstimate, initialXregEstimate,
-                                      arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
-                                      componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
-                                      xregModel, xregNumber,
-                                      xregParametersEstimated, xregParametersPersistence,
-                                      constantEstimate, constantName, otherParameterEstimate);
-            B <- BValuesNew$B;
-            # Failsafe, just in case if the initial values contain NA / NaN
-            if(any(is.na(B))){
-                B[is.na(B)] <- BValues$B[is.na(B)];
+            # Estimate ARIMA with backcasting first
+            # This call is needed for msarima() to work
+            if(!is.null(ellipsis$call)){
+                clNew <- ellipsis$call;
             }
-            if(any(is.nan(B))){
-                B[is.nan(B)] <- BValues$B[is.nan(B)];
+            else{
+                clNew <- cl;
             }
-            # Fix for mixed ETS models producing negative values
-            if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
-               Ttype=="M" & any(c(Etype,Stype)=="A") ||
-               Stype=="M" & any(c(Etype,Ttype)=="A")){
-                if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
-                    B["level"] <- yInSample[1];
+            # Modify model in case of ETS+ARIMA
+            if(etsModel){
+                clNew$model <- paste0(Etype, Ttype, "d"[phiEstimate], Stype);
+            }
+            # Use complete backcasting
+            clNew$initial <- "complete";
+            # Shut things up
+            clNew$silent <- TRUE;
+            # Call for ADAM with backcasting
+            adamBack <- eval(clNew);
+            # Vector of initial estimates of parameters
+            B <- BValues$B;
+            # Number of smoothing, dampening and ARMA parameters
+            nParametersBack <- (etsModel*(persistenceLevelEstimate + modelIsTrendy*persistenceTrendEstimate +
+                                              modelIsSeasonal*sum(persistenceSeasonalEstimate) + phiEstimate) +
+                                    xregModel*persistenceXregEstimate*max(xregParametersPersistence) +
+                                    # AR and MA values
+                                    arimaModel*(arEstimate*sum(arOrders)+maEstimate*sum(maOrders)));
+            # Use the estimated parameters
+            B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
+            # Remove redundant seasonal initials
+            if(modelIsSeasonal){
+                if(length(lagsModelSeasonal)>1){
+                    for(i in 1:length(lagsModelSeasonal)){
+                        adamBack$initial$seasonal[[i]] <- adamBack$initial$seasonal[[i]][1:(lagsModelSeasonal[i]-1)];
+                    }
                 }
-                if(Ttype=="M" && B["trend"]<=0){
-                    B["trend"] <- 1;
-                }
-                if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
-                    B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
+                else{
+                    adamBack$initial$seasonal <- adamBack$initial$seasonal[1:(lagsModelSeasonal-1)];
                 }
             }
+            # Use the initials
+            B[nParametersBack + c(1:length(unlist(adamBack$initial)))] <- unlist(adamBack$initial);
+
+            # If the constant is used, record it
+            if(constantEstimate){
+                B[nParametersBack+componentsNumberETS+componentsNumberARIMA+xregNumber+1] <- adamBack$constant;
+            }
+
+            # Other parameters (shape etc)
+            if(otherParameterEstimate){
+                B[length(B)] <- abs(tail(adamBack$B,1));
+            }
+
+            # Parameter bounds
+            lb <- BValues$Bl;
+            ub <- BValues$Bu;
+
+            # Make sure that the bounds are reasonable
+            if(any(lb>B)){
+                lb[lb>B] <- -Inf;
+            }
+            if(any(ub<B)){
+                ub[ub<B] <- Inf;
+            }
+
+#             adamCreatedARIMA <- filler(BValues$B,
+#                                        etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+#                                        componentsNumberETS, componentsNumberETSNonSeasonal,
+#                                        componentsNumberETSSeasonal, componentsNumberARIMA,
+#                                        lags, lagsModel, lagsModelMax,
+#                                        adamCreated$matVt, adamCreated$matWt, adamCreated$matF, adamCreated$vecG,
+#                                        persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+#                                        persistenceSeasonalEstimate, persistenceXregEstimate,
+#                                        phiEstimate,
+#                                        initialType, initialEstimate,
+#                                        initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+#                                        initialArimaEstimate, initialXregEstimate,
+#                                        arimaModel, arEstimate, maEstimate, arOrders, iOrders, maOrders,
+#                                        arRequired, maRequired, armaParameters,
+#                                        nonZeroARI, nonZeroMA, adamCreated$arimaPolynomials,
+#                                        xregModel, xregNumber,
+#                                        xregParametersMissing, xregParametersIncluded,
+#                                        xregParametersEstimated, xregParametersPersistence, constantEstimate);
+#
+#             # Write down the initials in the recent profile
+#             profilesRecentTable[] <- adamCreatedARIMA$matVt[,1:lagsModelMax];
+#
+#             # Do initial fit to get the state values from the backcasting
+#             adamFitted <- adamFitterWrap(adamCreatedARIMA$matVt, adamCreatedARIMA$matWt, adamCreatedARIMA$matF, adamCreatedARIMA$vecG,
+#                                          lagsModelAll, indexLookupTable, profilesRecentTable,
+#                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
+#                                          componentsNumberARIMA, xregNumber, constantRequired,
+#                                          yInSample, ot, TRUE);
+#
+#             adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
+#             # Produce new initials
+#             BValuesNew <- initialiser(etsModel, Etype, Ttype, Stype, modelIsTrendy, modelIsSeasonal,
+#                                       componentsNumberETSNonSeasonal, componentsNumberETSSeasonal, componentsNumberETS,
+#                                       lags, lagsModel, lagsModelSeasonal, lagsModelARIMA, lagsModelMax,
+#                                       adamCreated$matVt,
+#                                       persistenceEstimate, persistenceLevelEstimate, persistenceTrendEstimate,
+#                                       persistenceSeasonalEstimate, persistenceXregEstimate,
+#                                       phiEstimate, initialType, initialEstimate,
+#                                       initialLevelEstimate, initialTrendEstimate, initialSeasonalEstimate,
+#                                       initialArimaEstimate, initialXregEstimate,
+#                                       arimaModel, arRequired, maRequired, arEstimate, maEstimate, arOrders, maOrders,
+#                                       componentsNumberARIMA, componentsNamesARIMA, initialArimaNumber,
+#                                       xregModel, xregNumber,
+#                                       xregParametersEstimated, xregParametersPersistence,
+#                                       constantEstimate, constantName, otherParameterEstimate);
+#             B <- BValuesNew$B;
+#             # Failsafe, just in case if the initial values contain NA / NaN
+#             if(any(is.na(B))){
+#                 B[is.na(B)] <- BValues$B[is.na(B)];
+#             }
+#             if(any(is.nan(B))){
+#                 B[is.nan(B)] <- BValues$B[is.nan(B)];
+#             }
+#             # Fix for mixed ETS models producing negative values
+#             if(Etype=="M" & any(c(Ttype,Stype)=="A") ||
+#                Ttype=="M" & any(c(Etype,Stype)=="A") ||
+#                Stype=="M" & any(c(Etype,Ttype)=="A")){
+#                 if(Etype=="M" && (!is.null(B["level"]) && B["level"]<=0)){
+#                     B["level"] <- yInSample[1];
+#                 }
+#                 if(Ttype=="M" && B["trend"]<=0){
+#                     B["trend"] <- 1;
+#                 }
+#                 if(Stype=="M" && any(B[substr(names(B),1,8)=="seasonal"]<=0)){
+#                     B[B[substr(names(B),1,8)=="seasonal"]<=0] <- 1;
+#                 }
+#             }
         }
 
         # Create the vector of initials for the optimisation
