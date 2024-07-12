@@ -2625,6 +2625,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             else{
                 clNew <- cl;
             }
+            # If environment is provided, use it
+            if(!is.null(ellipsis$environment)){
+                env <- ellipsis$environment;
+            }
+            else{
+                env <- environment();
+            }
             # Modify model in case of ETS+ARIMA
             if(etsModel){
                 clNew$model <- paste0(Etype, Ttype, "d"[phiEstimate], Stype);
@@ -2633,8 +2640,23 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             clNew$initial <- "complete";
             # Shut things up
             clNew$silent <- TRUE;
+            # Switch of regressors selection
+            clNew$regressors <- "use";
+            # Get rid of explanatory variables if they are not needed
+            if(xregModel){
+                xregVariables <- xregNames;
+            }
+            else{
+                xregVariables <- 1;
+            }
+            if(is.null(clNew$formula) || !inherits(clNew$formula, "formula")){
+                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregVariables,collapse="+")));
+            }
+            else{
+                clNew$formula[[3]] <- paste0(xregVariables,collapse="+");
+            }
             # Call for ADAM with backcasting
-            adamBack <- eval(clNew);
+            adamBack <- suppressWarnings(eval(clNew, envir=env));
             # Vector of initial estimates of parameters
             B <- BValues$B;
             # Number of smoothing, dampening and ARMA parameters
@@ -2643,8 +2665,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                     xregModel*persistenceXregEstimate*max(xregParametersPersistence) +
                                     # AR and MA values
                                     arimaModel*(arEstimate*sum(arOrders)+maEstimate*sum(maOrders)));
-            # Use the estimated parameters
-            B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
+            if(nParametersBack>0){
+                # Use the estimated parameters
+                B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
+            }
             # Remove redundant seasonal initials
             if(modelIsSeasonal){
                 if(length(lagsModelSeasonal)>1){
