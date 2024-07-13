@@ -6799,7 +6799,7 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 #' @export
 coefbootstrap.adam <- function(object, nsim=100,
                                size=floor(0.5*nobs(object)), replace=FALSE, prob=NULL,
-                               parallel=FALSE, type="mult", ...){
+                               parallel=FALSE, ...){
 
     startTime <- Sys.time();
 
