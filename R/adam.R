@@ -392,6 +392,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
     startTime <- Sys.time();
 
     cl <- match.call();
+    # Record the parental environment. Needed for ARIMA initialisation
+    env <- parent.frame();
     ellipsis <- list(...);
     # Assume that the model is not provided
     profilesRecentProvided <- FALSE;
@@ -2622,9 +2624,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             # If environment is provided, use it
             if(!is.null(ellipsis$environment)){
                 env <- ellipsis$environment;
-            }
-            else{
-                env <- environment();
             }
             # Modify model in case of ETS+ARIMA
             if(etsModel){
