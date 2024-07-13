@@ -2618,13 +2618,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             # Estimate ARIMA with backcasting first
-            # This call is needed for msarima() to work
-            if(!is.null(ellipsis$call)){
-                clNew <- ellipsis$call;
-            }
-            else{
-                clNew <- cl;
-            }
+            clNew <- cl;
             # If environment is provided, use it
             if(!is.null(ellipsis$environment)){
                 env <- ellipsis$environment;
@@ -2640,20 +2634,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             clNew$initial <- "complete";
             # Shut things up
             clNew$silent <- TRUE;
-            # Switch of regressors selection
-            clNew$regressors <- "use";
+            # If this is an xreg model, we do selection, and there's no formula, create one
+            if(xregModel && !is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
+            }
+            # Switch off regressors selection
+            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$regressors <- "use";
+            }
             # Get rid of explanatory variables if they are not needed
-            if(xregModel){
-                xregVariables <- xregNames;
-            }
-            else{
-                xregVariables <- 1;
-            }
-            if(is.null(clNew$formula) || !inherits(clNew$formula, "formula")){
-                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregVariables,collapse="+")));
-            }
-            else{
-                clNew$formula[[3]] <- paste0(xregVariables,collapse="+");
+            if(!xregModel && (!is.null(ncol(data)) && ncol(data)>1)){
+                clNew$data <- data[,responseName];
             }
             # Call for ADAM with backcasting
             adamBack <- suppressWarnings(eval(clNew, envir=env));
@@ -2669,6 +2660,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 # Use the estimated parameters
                 B[1:nParametersBack] <- adamBack$B[1:nParametersBack];
             }
+
             # Remove redundant seasonal initials
             if(modelIsSeasonal){
                 if(length(lagsModelSeasonal)>1){
@@ -2680,11 +2672,20 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     adamBack$initial$seasonal <- adamBack$initial$seasonal[1:(lagsModelSeasonal-1)];
                 }
             }
-            # Use the initials
-            B[nParametersBack + c(1:length(unlist(adamBack$initial)))] <- unlist(adamBack$initial);
 
-            # If the constant is used, record it
-            if(constantEstimate){
+            # If there are explanatory variables, use only those initials that are required
+            if(xregModel){
+                adamBack$initial$xreg <- adamBack$initial$xreg[xregParametersEstimated==1];
+            }
+
+            initialsUnlisted <- unlist(adamBack$initial);
+            # If initials are reasonable, use them
+            if(!any(is.na(initialsUnlisted))){
+                B[nParametersBack + c(1:length(initialsUnlisted))] <- initialsUnlisted;
+            }
+
+            # If the constant is used and it's good, record it
+            if(constantEstimate && !is.na(adamBack$constant)){
                 B[nParametersBack+componentsNumberETS+componentsNumberARIMA+xregNumber+1] <- adamBack$constant;
             }
 
@@ -2698,8 +2699,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             ub <- BValues$Bu;
 
             # Make sure that the bounds are reasonable
+            if(any(is.na(lb))){
+                lb[is.na(lb)] <- -Inf;
+            }
             if(any(lb>B)){
                 lb[lb>B] <- -Inf;
+            }
+            if(any(is.na(ub))){
+                ub[is.na(ub)] <- Inf;
             }
             if(any(ub<B)){
                 ub[ub<B] <- Inf;
