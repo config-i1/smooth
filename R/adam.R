@@ -335,6 +335,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' \item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 #' \item \code{call} - the call used in the evaluation,
 #' \item \code{bounds} - the type of bounds used in the process,
+#' \item \code{res} - result of the model estimation, the output of the \code{nloptr()} function, explaining
+#' how optimisation went,
 #' \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
 #' polynomials.
 #' }
@@ -1449,24 +1451,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             if(all(initialType!=c("complete","backcasting")) && initialArimaEstimate){
                 matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                    # matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                    matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
-                        switch(Etype,
-                               "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
-                                   tail(arimaPolynomials$ariPolynomial,1),
-                               "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
-                                           tail(arimaPolynomials$ariPolynomial,1)));
-                # }
-                # else{
-                #     matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                #     matVt[componentsNumberETS+nonZeroMA[,2], 1:initialArimaNumber] <-
-                #         switch(Etype,
-                #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(B[j+1:initialArimaNumber]) /
-                #                    tail(arimaPolynomials$maPolynomial,1),
-                #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
-                #                            tail(arimaPolynomials$maPolynomial,1)));
-                # }
+                matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
+                    switch(Etype,
+                           "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]),
+                           "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber]))));
+                    # switch(Etype,
+                    #        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
+                    #            tail(arimaPolynomials$ariPolynomial,1),
+                    #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber])) /
+                    #                    tail(arimaPolynomials$ariPolynomial,1)));
                 j[] <- j+initialArimaNumber;
             }
             # This is needed in order to propagate initials of ARIMA to all components
@@ -1720,6 +1713,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     }
                 }
             }
+
+            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                          arOrders, iOrders, maOrders,
+                                                          arEstimate, maEstimate, armaParameters, lags), as.vector)
         }
 
         # Initials
@@ -1790,9 +1787,15 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
 
         # ARIMA initials
-        if(all(initialType!=c("complete","backcasting")) && arimaModel && initialArimaEstimate){
+        if(arimaModel && all(initialType!=c("complete","backcasting")) && initialArimaEstimate){
             B[j+1:initialArimaNumber] <- head(matVt[componentsNumberETS+componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
             names(B)[j+1:initialArimaNumber] <- paste0("ARIMAState",1:initialArimaNumber);
+
+            # Fix initial state if the polynomial is not zero
+            if(tail(arimaPolynomials$ariPolynomial,1)!=0){
+                B[j+1:initialArimaNumber] <- B[j+1:initialArimaNumber] / tail(arimaPolynomials$ariPolynomial,1);
+            }
+
             if(Etype=="A"){
                 Bl[j+1:initialArimaNumber] <- -Inf;
                 Bu[j+1:initialArimaNumber] <- Inf;
@@ -2617,6 +2620,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         # print(BValues$B);
 
+        #### Preheating initials for ARIMA ####
         # Preheat the initial state of ARIMA. Do this only for optimal initials and if B is not provided
         if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
             # Estimate ARIMA with backcasting first
@@ -3266,7 +3270,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     initialXregEstimate=initialXregEstimate, persistenceXregEstimate=persistenceXregEstimate,
                     xregParametersMissing=xregParametersMissing,xregParametersIncluded=xregParametersIncluded,
                     xregParametersEstimated=xregParametersEstimated,xregParametersPersistence=xregParametersPersistence,
-                    arimaPolynomials=adamCreated$arimaPolynomials));
+                    arimaPolynomials=adamCreated$arimaPolynomials,
+                    res=res));
     }
 
 
@@ -3842,6 +3847,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             initialEstimated[j] <- initialArimaEstimate;
             if(initialArimaEstimate){
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
+                # Fix the values to get proper initials, not just the values of states
+                if(tail(arimaPolynomials$ariPolynomial,1)!=0){
+                    initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
+                }
             }
             else{
                 initialValue[[j]] <- initialArima;
@@ -3975,7 +3984,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     constant=constantValue, nParam=parametersNumber, occurrence=oesModel,
                     formula=formula, regressors=regressors,
                     loss=loss, lossValue=CFValue, logLik=logLikADAMValue, distribution=distribution,
-                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, FI=FI));
+                    scale=scale, other=otherReturned, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI));
     }
 
     #### Deal with occurrence model ####

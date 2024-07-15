@@ -333,6 +333,8 @@ the model,
 \item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process,
+\item \code{res} - result of the model estimation, the output of the \code{nloptr()} function, explaining
+how optimisation went,
 \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
 polynomials.
 }
