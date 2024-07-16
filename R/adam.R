@@ -4657,6 +4657,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         else{
             FI <- NULL;
         }
+        res <- NULL;
     }
 
     # Transform everything into appropriate classes
