@@ -13,7 +13,8 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 char const &E, char const &T, char const &S,
                 unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast){
+                arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast,
+                unsigned int const &nIterations){
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
@@ -30,10 +31,10 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     arma::vec vecErrors(obs, arma::fill::zeros);
 
     // Loop for the backcasting
-    unsigned int nIterations = 1;
-    if(backcast){
-        nIterations = 2;
-    }
+    // unsigned int nIterations = 1;
+    // if(backcast){
+    //     nIterations = 5;
+    // }
 
     // Loop for the backcast
     for (unsigned int j=1; j<=nIterations; j=j+1) {
@@ -145,14 +146,15 @@ RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat &matrixWt, arma::ma
                                char const &Etype, char const &Ttype, char const &Stype,
                                unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
                                unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                               arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast){
+                               arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast,
+                               unsigned int const &nIterations){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamFitter(matrixVt, matrixWt, matrixF, vectorG,
                            lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype,
                            nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                           vectorYt, vectorOt, backcast));
+                           vectorYt, vectorOt, backcast, nIterations));
 }
 
 /* # Function produces the point forecasts for the specified model */
@@ -282,8 +284,6 @@ RcppExport SEXP adamPolynomialiser(arma::vec const &B,
     arParameters.row(0).fill(1);
     iParameters.row(0).fill(1);
     maParameters.row(0).fill(1);
-
-    int lagsModelMax = max(lags);
 
     int nParam = 0;
     int armanParam = 0;

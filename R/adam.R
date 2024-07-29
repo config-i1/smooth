@@ -15,7 +15,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "xregParametersMissing","xregParametersIncluded","xregParametersEstimated",
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
-                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal"));
+                         "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
+                         "nIterations"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -258,10 +259,12 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' the model. This is calculated based on the hessian of log-likelihood function and
 #' accepts \code{stepSize} parameter, determining how it is calculated. The default value
 #' is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
-#' Starting values of parameters can be passed via \code{B}, while the upper and lower
-#' bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
-#' will be used for optimisation. These values should have the length equal
-#' to the number of parameters to estimate in the following order:
+#' Number of iterations inside the backcasting loop to do is regulated with \code{nIterations}
+#' parameter. By default it is set to 2. Furthermore, starting values of parameters can be
+#' passed via \code{B}, while the upper and lower bounds should be passed in \code{ub}
+#' and \code{lb} respectively. In this case they will be used for optimisation. These
+#' values should have the length equal to the number of parameters to estimate in
+#' the following order:
 #' \enumerate{
 #' \item All smoothing parameters (for the states and then for the explanatory variables);
 #' \item Damping parameter (if needed);
@@ -2110,7 +2113,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      lagsModelAll, indexLookupTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     yInSample, ot, any(initialType==c("complete","backcasting")));
+                                     yInSample, ot, any(initialType==c("complete","backcasting")),
+                                     nIterations);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2532,7 +2536,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              lagsModelAll, indexLookupTable, profilesRecentTable,
                                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                              componentsNumberARIMA, xregNumber, constantRequired,
-                                             yInSample, ot, any(initialType==c("complete","backcasting")));
+                                             yInSample, ot, any(initialType==c("complete","backcasting")),
+                                             nIterations);
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
@@ -2742,7 +2747,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 #                                          lagsModelAll, indexLookupTable, profilesRecentTable,
 #                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
 #                                          componentsNumberARIMA, xregNumber, constantRequired,
-#                                          yInSample, ot, TRUE);
+#                                          yInSample, ot, TRUE, nIterations);
 #
 #             adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
 #             # Produce new initials
@@ -3059,7 +3064,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          lagsModelAll, indexLookupTable, profilesRecentTable,
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
-                                         yInSample, ot, any(initialType==c("complete","backcasting")));
+                                         yInSample, ot, any(initialType==c("complete","backcasting")),
+                                         nIterations);
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3684,7 +3690,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      lagsModelAll, indexLookupTable, profilesRecentTable,
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
-                                     yInSample, ot, any(initialType==c("complete","backcasting")));
+                                     yInSample, ot, any(initialType==c("complete","backcasting")),
+                                     nIterations);
 
         matVt[] <- adamFitted$matVt;
 

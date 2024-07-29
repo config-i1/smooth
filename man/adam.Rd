@@ -242,10 +242,12 @@ used to calculated variances of smoothing parameters and initial states of
 the model. This is calculated based on the hessian of log-likelihood function and
 accepts \code{stepSize} parameter, determining how it is calculated. The default value
 is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
-Starting values of parameters can be passed via \code{B}, while the upper and lower
-bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
-will be used for optimisation. These values should have the length equal
-to the number of parameters to estimate in the following order:
+Number of iterations inside the backcasting loop to do is regulated with \code{nIterations}
+parameter. By default it is set to 2. Furthermore, starting values of parameters can be
+passed via \code{B}, while the upper and lower bounds should be passed in \code{ub}
+and \code{lb} respectively. In this case they will be used for optimisation. These
+values should have the length equal to the number of parameters to estimate in
+the following order:
 \enumerate{
 \item All smoothing parameters (for the states and then for the explanatory variables);
 \item Damping parameter (if needed);
