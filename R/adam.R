@@ -1454,10 +1454,22 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         if(arimaModel){
             if(all(initialType!=c("complete","backcasting")) && initialArimaEstimate){
                 matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber] <- B[j+1:initialArimaNumber];
-                matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
-                    switch(Etype,
-                           "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]),
-                           "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber]))));
+                # for(i in (componentsNumberARIMA-1):1){
+                #     indeces <-
+                #         (1+lagsModelAll[componentsNumberETS+i+1] -
+                #              lagsModelAll[componentsNumberETS+i]):lagsModelAll[componentsNumberETS+i+1];
+                #     matVt[componentsNumberETS+i,
+                #           1:lagsModelAll[componentsNumberETS+i]] <-
+                #         (matVt[componentsNumberETS+componentsNumberARIMA, indeces] -
+                #              # We need a sum of states here...
+                #              matVt[componentsNumberETS+i+1, 1:lagsModelAll[componentsNumberETS+i]]);
+                # }
+
+                # matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
+                #     switch(Etype,
+                #            "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]),
+                #            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(log(B[j+1:initialArimaNumber]))));
+
                     # switch(Etype,
                     #        "A"=arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*% t(B[j+1:initialArimaNumber]) /
                     #            tail(arimaPolynomials$ariPolynomial,1),
@@ -1466,30 +1478,30 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 j[] <- j+initialArimaNumber;
             }
             # This is needed in order to propagate initials of ARIMA to all components
-            else if(any(c(arEstimate,maEstimate))){
-                # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
-                # if(nrow(nonZeroARI)>0){
-                    matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
-                        switch(Etype,
-                               "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                   t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                                   tail(arimaPolynomials$ariPolynomial,1),
-                               "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                           t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                                           tail(arimaPolynomials$ariPolynomial,1)));
-                # }
-                # else{
-                #     matVt[componentsNumberETS+nonZeroMA[,2],
-                #           1:initialArimaNumber] <-
-                #         switch(Etype,
-                #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                #                    t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                #                    tail(arimaPolynomials$maPolynomial,1),
-                #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
-                #                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                #                            tail(arimaPolynomials$maPolynomial,1)));
-                # }
-            }
+            # else if(any(c(arEstimate,maEstimate))){
+            #     # if(nrow(nonZeroARI)>0 && nrow(nonZeroARI)>=nrow(nonZeroMA)){
+            #     # if(nrow(nonZeroARI)>0){
+            #         matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
+            #             switch(Etype,
+            #                    "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+            #                        t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+            #                        tail(arimaPolynomials$ariPolynomial,1),
+            #                    "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+            #                                t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+            #                                tail(arimaPolynomials$ariPolynomial,1)));
+            #     # }
+            #     # else{
+            #     #     matVt[componentsNumberETS+nonZeroMA[,2],
+            #     #           1:initialArimaNumber] <-
+            #     #         switch(Etype,
+            #     #                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+            #     #                    t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+            #     #                    tail(arimaPolynomials$maPolynomial,1),
+            #     #                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
+            #     #                            t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+            #     #                            tail(arimaPolynomials$maPolynomial,1)));
+            #     # }
+            # }
         }
 
         # Initials of the xreg
@@ -3855,9 +3867,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(initialArimaEstimate){
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
                 # Fix the values to get proper initials, not just the values of states
-                if(tail(arimaPolynomials$ariPolynomial,1)!=0){
-                    initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
-                }
+                # if(tail(arimaPolynomials$ariPolynomial,1)!=0){
+                #     initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
+                # }
             }
             else{
                 initialValue[[j]] <- initialArima;
