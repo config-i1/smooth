@@ -1484,11 +1484,17 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 matVt[componentsNumberETS+nonZeroARI[,2], 1:initialArimaNumber] <-
                     switch(Etype,
                            "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                               t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
-                               tail(arimaPolynomials$ariPolynomial,1),
+                               t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]),
                            "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
-                                       t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
-                                       tail(arimaPolynomials$ariPolynomial,1)));
+                                       t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]))));
+
+                    # switch(Etype,
+                    #        "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #            t(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber]) /
+                    #            tail(arimaPolynomials$ariPolynomial,1),
+                    #        "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
+                    #                    t(log(matVt[componentsNumberETS+componentsNumberARIMA, 1:initialArimaNumber])) /
+                    #                    tail(arimaPolynomials$ariPolynomial,1)));
 
                 # }
                 # else{
