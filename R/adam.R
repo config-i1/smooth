@@ -2886,6 +2886,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             yDenominator <- NULL;
         }
 
+        ##### Parameter estimation ####
         # Parameters are chosen to speed up the optimisation process and have decent accuracy
         res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
@@ -3868,9 +3869,9 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
             if(initialArimaEstimate){
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
                 # Fix the values to get proper initials, not just the values of states
-                # if(tail(arimaPolynomials$ariPolynomial,1)!=0){
-                #     initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
-                # }
+                if(tail(arimaPolynomials$ariPolynomial,1)!=0){
+                    initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
+                }
             }
             else{
                 initialValue[[j]] <- initialArima;
