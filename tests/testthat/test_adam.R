@@ -14,9 +14,9 @@ test_that("ADAM ETS(ZZZ) selection on AirPassengers", {
 })
 
 # Full ADAM selection
-test_that("ADAM ETS(FFF) selection on BJsales", {
+test_that("ADAM ETS(PPP) selection on BJsales", {
     skip_on_cran()
-    testModel <- adam(BJsales, "FFF")
+    testModel <- adam(BJsales, "PPP")
     expect_match(modelType(testModel), "AAdN")
 })
 

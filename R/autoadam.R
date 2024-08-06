@@ -31,6 +31,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
     # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    env <- environment();
 
     # paste0() is needed in order to get rid of potential issues with names
     responseName <- paste0(deparse(substitute(data)),collapse="");
@@ -364,6 +365,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                              occurrence, ic, bounds,
                              regressors, parallel,
                              arimaModelSelect, arMax, iMax, maMax, ...){
+        env <- environment();
         # If we select ARIMA, don't do it in the first step
         if(arimaModelSelect){
             ordersToUse <- c(0,0,0);
@@ -385,7 +387,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                                 h=h, holdout=holdout,
                                                 persistence=persistence, phi=phi, initial=initial, arma=arma,
                                                 occurrence=occurrence, ic=ic, bounds=bounds,
-                                                regressors=regressors, silent=TRUE, ...);
+                                                regressors=regressors, silent=TRUE, environment=env, ...);
                 }
 
                 if(arimaModelSelect){
@@ -395,7 +397,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                                          persistence=persistence, phi=phi, initial=initial,
                                                          occurrence=occurrence, ic=ic, bounds=bounds,
                                                          silent=silent, regressors=regressors,
-                                                         testModelETS=selectedModels[[i]], ...)
+                                                         testModelETS=selectedModels[[i]], environment=env, ...)
                 }
             }
         }
@@ -407,7 +409,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                       h=h, holdout=holdout,
                                       persistence=persistence, phi=phi, initial=initial, arma=arma,
                                       occurrence=occurrence, ic=ic, bounds=bounds,
-                                      regressors=regressors, silent=TRUE, ...)
+                                      regressors=regressors, silent=TRUE, environment=env, ...)
                 }
                 else{
                     testModel <- NULL;
@@ -444,6 +446,8 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                   silent, regressors, testModelETS, ...){
             silentDebug <- FALSE;
             # silentDebug <- TRUE;
+
+            env <- environment();
 
             # Save the original values
             modelOriginal <- model;
@@ -541,7 +545,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
-                                          regressors=regressors, silent=TRUE, ...),
+                                          regressors=regressors, silent=TRUE, environment=env, ...),
                                      silent=TRUE);
                     if(!inherits(testModel,"try-error")){
                         iOrdersICs[d] <- IC(testModel);
@@ -565,7 +569,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                            h=h, holdout=holdout,
                                            persistence=persistence, phi=phi, initial=initial,
                                            occurrence=occurrence, ic=ic, bounds=bounds,
-                                           regressors=regressors, silent=TRUE, B=BValues[[d]], ...);
+                                           regressors=regressors, silent=TRUE, B=BValues[[d]], environment=env, ...);
             bestIC <- iOrdersICs[d];
 
             if(silentDebug){
@@ -604,7 +608,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
-                                          regressors=regressors, silent=TRUE, ...);
+                                          regressors=regressors, silent=TRUE, environment=env, ...);
                         ICValue <- IC(testModel);
 
                         if(silentDebug){
@@ -641,7 +645,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
-                                          regressors=regressors, silent=TRUE, ...);
+                                          regressors=regressors, silent=TRUE, environment=env, ...);
                         ICValue <- IC(testModel);
                         if(silentDebug){
                             cat("\nTested AR:", arTest, "IC:", ICValue);
@@ -697,7 +701,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                           h=h, holdout=holdout,
                                           persistence=persistence, phi=phi, initial=initial,
                                           occurrence=occurrence, ic=ic, bounds=bounds,
-                                          regressors=regressors, silent=TRUE, ...),
+                                          regressors=regressors, silent=TRUE, environment=env, ...),
                                      silent=TRUE);
 
                     if(!inherits(testModel,"try-error")){
@@ -727,7 +731,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                       h=h, holdout=holdout,
                                       persistence=persistence, phi=phi, initial=initial,
                                       occurrence=occurrence, ic=ic, bounds=bounds,
-                                      regressors=regressors, silent=TRUE, B=BValues[[d]], ...);
+                                      regressors=regressors, silent=TRUE, B=BValues[[d]], environment=env, ...);
                 }
             }
 
@@ -740,7 +744,7 @@ auto.adam <- function(data, model="ZXZ", lags=c(frequency(data)),
                                   h=h, holdout=holdoutOriginal,
                                   persistence=persistenceOriginal, phi=phiOriginal, initial=initial,
                                   occurrence=occurrenceOriginal, ic=ic, bounds=bounds,
-                                  regressors=regressors, silent=TRUE, ...);
+                                  regressors=regressors, silent=TRUE, environment=env, ...);
 
                 # If this is not better than just ETS, use ETS
                 if(IC(bestModel) >= ICOriginal){

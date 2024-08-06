@@ -205,6 +205,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    env <- environment();
     ellipsis <- list(...);
 
     # Check if the simulated thing is provided
@@ -346,7 +347,7 @@ msarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                      arma=list(ar=AR,ma=MA),
                      loss=loss, h=h, holdout=holdout, initial=initialValue,
                      ic=ic, bounds=bounds[1], distribution="dnorm",
-                     silent=silent, regressors=regressors[1], ...);
+                     silent=silent, regressors=regressors[1], environment=env, ...);
     ourModel$call <- cl;
     ourModel$timeElapsed=Sys.time()-startTime;
 

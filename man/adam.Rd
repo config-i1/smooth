@@ -242,10 +242,12 @@ used to calculated variances of smoothing parameters and initial states of
 the model. This is calculated based on the hessian of log-likelihood function and
 accepts \code{stepSize} parameter, determining how it is calculated. The default value
 is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
-Starting values of parameters can be passed via \code{B}, while the upper and lower
-bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
-will be used for optimisation. These values should have the length equal
-to the number of parameters to estimate in the following order:
+Number of iterations inside the backcasting loop to do is regulated with \code{nIterations}
+parameter. By default it is set to 2. Furthermore, starting values of parameters can be
+passed via \code{B}, while the upper and lower bounds should be passed in \code{ub}
+and \code{lb} respectively. In this case they will be used for optimisation. These
+values should have the length equal to the number of parameters to estimate in
+the following order:
 \enumerate{
 \item All smoothing parameters (for the states and then for the explanatory variables);
 \item Damping parameter (if needed);
@@ -333,6 +335,8 @@ the model,
 \item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process,
+\item \code{res} - result of the model estimation, the output of the \code{nloptr()} function, explaining
+how optimisation went,
 \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
 polynomials.
 }

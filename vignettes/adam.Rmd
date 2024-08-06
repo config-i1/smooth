@@ -380,13 +380,13 @@ testModel <- auto.adam(BJsales, "ZZZ", silent=FALSE, parallel=TRUE,
 If you want to add ARIMA or regression components, you can do it in the exactly the same way as for the `adam()` function. Here is an example of ETS+ARIMA:
 
 ```{r}
-testModel <- auto.adam(BJsales, "AAN", orders=list(ar=2,i=2,ma=2), silent=TRUE,
+testModel <- auto.adam(BJsales, "AAN", orders=list(ar=2,i=0,ma=0), silent=TRUE,
                        distribution=c("dnorm","dlaplace","ds","dgnorm"),
                        h=12, holdout=TRUE)
 testModel
 ```
 
-However, this way the function will just use ARIMA(2,2,2) and fit it together with ETS. If you want it to select the most appropriate ARIMA orders from the provided (e.g. up to AR(2), I(1) and MA(2)), you need to add parameter `select=TRUE` to the list in `orders`:
+However, this way the function will just use ARIMA(2,0,0) and fit it together with ETS(A,A,N). If you want it to select the most appropriate ARIMA orders from the provided (e.g. up to AR(2), I(1) and MA(2)), you need to add parameter `select=TRUE` to the list in `orders`:
 
 ```{r}
 testModel <- auto.adam(BJsales, "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE),
@@ -397,7 +397,7 @@ testModel
 
 Knowing how to work with `adam()`, you can use similar principles, when dealing with `auto.adam()`. Just keep in mind that the provided `persistence`, `phi`, `initial`, `arma` and `B` won't work, because this contradicts the idea of the model selection.
 
-Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of thw width `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
+Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of the width `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
 ```{r}
 testModel <- auto.adam(AirPassengers, "PPP", silent=FALSE, outliers="use",
                        distribution="default",

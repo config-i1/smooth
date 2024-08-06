@@ -2955,6 +2955,18 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
         }
         names(other) <- "nu";
     }
+    # Number of iterations for backcasting
+    if(is.null(ellipsis$nIterations)){
+        # 1 iteration in case of optimal/provided initials
+        nIterations <- 1;
+        # 2 iterations otherwise
+        if(any(initialType==c("complete","backcasting"))){
+            nIterations[] <- 2;
+        }
+    }
+    else{
+        nIterations <- ellipsis$nIterations;
+    }
     # Fisher Information
     if(is.null(ellipsis$FI)){
         FI <- FALSE;
@@ -3237,6 +3249,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("otherParameterEstimate",otherParameterEstimate,ParentEnvironment);
     # LASSO / RIDGE
     assign("lambda",lambda,ParentEnvironment);
+    # Number of iterations in backcasting
+    assign("nIterations",nIterations,ParentEnvironment);
     # Fisher Information
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian
