@@ -3876,7 +3876,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 initialValue[[j]] <- head(matVt[componentsNumberETS+componentsNumberARIMA,],initialArimaNumber);
                 # Fix the values to get proper initials, not just the values of states
                 if(tail(arimaPolynomials$ariPolynomial,1)!=0){
-                    initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
+                    initialValue[[j]] <- switch(Etype,
+                                                "A"=initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1),
+                                                "M"=exp(log(initialValue[[j]]) / tail(arimaPolynomials$ariPolynomial,1)));
+                    # initialValue[[j]] <- initialValue[[j]] / tail(arimaPolynomials$ariPolynomial,1);
                 }
             }
             else{
