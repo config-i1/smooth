@@ -9510,12 +9510,10 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                         switch(Etype,
                                "A"= arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                    t(profilesRecentArray[j+componentsNumberARIMA,
-                                                         1:initialArimaNumber, i]) /
-                                   tail(arimaPolynomials$ariPolynomial,1),
+                                                         1:initialArimaNumber, i]),
                                "M"=exp(arimaPolynomials$ariPolynomial[nonZeroARI[,1]] %*%
                                            t(log(profilesRecentArray[j+componentsNumberARIMA,
-                                                                     1:initialArimaNumber, i])) /
-                                           tail(arimaPolynomials$ariPolynomial,1)));
+                                                                     1:initialArimaNumber, i]))));
                 }
             }
             else{
@@ -9533,12 +9531,10 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
                         switch(Etype,
                                "A"=arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
                                    t(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
-                                                         1:initialArimaNumber, i]) /
-                                   tail(arimaPolynomials$maPolynomial,1),
+                                                         1:initialArimaNumber, i]),
                                "M"=exp(arimaPolynomials$maPolynomial[nonZeroMA[,1]] %*%
                                            t(log(profilesRecentArray[componentsNumberETS+componentsNumberARIMA,
-                                                                     1:initialArimaNumber, i])) /
-                                           tail(arimaPolynomials$maPolynomial,1)));
+                                                                     1:initialArimaNumber, i]))));
                 }
             }
         }
