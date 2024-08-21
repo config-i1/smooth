@@ -642,7 +642,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         }
         parametersNumber[1,5] <- sum(parametersNumber[1,1:3]);
         modelReturned$nParam <- parametersNumber;
-        modelReturned$occurrence <- checkerReturn$occurrence;
         modelReturned$formula <- formula(checkerReturn);
         modelReturned$regressors <- "use";
         modelReturned$loss <- checkerReturn$loss;
@@ -656,6 +655,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         modelReturned$lags <- 1;
         modelReturned$lagsAll <- rep(1,nParam);
         modelReturned$FI <- checkerReturn$FI;
+        modelReturned$occurrence <- checkerReturn$occurrence;
         if(holdout){
             # This won't work if transformations of the response variable are done...
             modelReturned$accuracy <- measures(modelReturned$holdout[,responseName],modelReturned$forecast,
