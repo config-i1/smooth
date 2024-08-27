@@ -6836,15 +6836,21 @@ xtable.summary.adam <- function(x, caption = NULL, label = NULL, align = NULL, d
 }
 
 
-#' @importFrom greybox coefbootstrap timeboot
+#' @importFrom greybox coefbootstrap dsrboot
 #' @export
-coefbootstrap.adam <- function(object, nsim=100,
-                               size=floor(0.5*nobs(object)), replace=FALSE, prob=NULL,
-                               parallel=FALSE, ...){
+coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
+                               replace=FALSE, prob=NULL, parallel=FALSE,
+                               method=c("dsr","cr"), ...){
 
     startTime <- Sys.time();
 
     cl <- match.call();
+
+    method <- match.arg(method);
+    if(method=="cr"){
+        warning("Only dsr is supported as the bootstrap method for adam().",
+                call.=FALSE);
+    }
 
     if(is.numeric(parallel)){
         nCores <- parallel;
@@ -6999,18 +7005,25 @@ coefbootstrap.adam <- function(object, nsim=100,
     # }
 
     responseName <- all.vars(formula(object))[1];
-    newY <- timeboot(y=actuals(object), nsim=nsim, ...)$boot;
+    # Create a new dataset
+    newData <- replicate(nsim, newCall$data, simplify=FALSE);
+    newCall$formula <- as.formula(paste0(responseName,"~."));
+    # Bootstrap the data
+    dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
+                                       nsim=nsim, intermittent=FALSE));
+    nLevels <- length(dataBoot);
+    # Fill in the list of data
+    for(i in 1:nsim){
+        for(j in 1:nLevels){
+            newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
+        }
+    }
 
     if(!parallel){
         for(i in 1:nsim){
             # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
             # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            if(!is.null(dim(newCall$data))){
-                newCall$data[,responseName] <- newY[,i];
-            }
-            else{
-                newCall$data[] <- newY[,i];
-            }
+            newCall$data[] <- newData[[i]];
             testModel <- suppressWarnings(eval(newCall));
             coefBootstrap[i,variablesNames %in% names(coef(testModel))] <- coef(testModel);
         }
@@ -7020,12 +7033,7 @@ coefbootstrap.adam <- function(object, nsim=100,
         coefBootstrapParallel <- foreach::`%dopar%`(foreach::foreach(i=1:nsim),{
             # subsetValues <- sampler(indices,size,replace,prob,regressionPure,changeOrigin);
             # newCall$data <- object$data[subsetValues,,drop=FALSE];
-            if(!is.null(dim(newCall$data))){
-                newCall$data[,responseName] <- newY[,i];
-            }
-            else{
-                newCall$data[] <- newY[,i];
-            }
+            newCall$data[] <- newData[[i]];
             testModel <- eval(newCall);
             return(coef(testModel));
         })
@@ -7045,8 +7053,8 @@ coefbootstrap.adam <- function(object, nsim=100,
     coefvcov <- coefBootstrap - matrix(coefficientsOriginal, nsim, nVariables, byrow=TRUE);
 
     return(structure(list(vcov=(t(coefvcov) %*% coefvcov)/nsim,
-                          coefficients=coefBootstrap, nsim=nsim,
-                          size=NA, replace=NA, prob=NA,
+                          coefficients=coefBootstrap, method=method,
+                          nsim=nsim, size=NA, replace=NA, prob=NA,
                           parallel=parallel, model=object$call[[1]], timeElapsed=Sys.time()-startTime),
                      class="bootstrap"));
 }

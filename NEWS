@@ -1,9 +1,10 @@
-smooth v4.1.0 (Release data: 2024-07-30)
+smooth v4.1.0 (Release data: 2024-08-27)
 =======
 
 Changes:
 * New initialisation mechanism for ARIMA in case of initial="optimal". Now we do backcasting in the first step and then grab what we got and optimise.
 * nIterations for the backcasting is now set outside the C++ code, can be provided as a parameter in the ellipsis of adam().
+* coefbootstrap() now relies on the dsrboot() function from the greybox, implementing the "Data Shape Replication" bootstrap algorithm.
 
 Bugfixes:
 * Fix in reapply() for ARIMA.
