@@ -4,7 +4,7 @@ Title: Forecasting Using State Space Models
 Version: 4.1.0.41004
 Date: 2024-08-27
 Authors@R: person("Ivan", "Svetunkov", email = "ivan@svetunkov.com", role = c("aut", "cre"),
-                  comment="Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
+                  comment="Senior Lecturer at Centre for Marketing Analytics and Forecasting, Lancaster University, UK")
 URL: https://github.com/config-i1/smooth
 BugReports: https://github.com/config-i1/smooth/issues
 Language: en-GB
