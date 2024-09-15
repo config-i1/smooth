@@ -2230,9 +2230,14 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                                                      (1-1/scale)*digamma(1/scale)) +
                                                  sum(log(scale*adamFitted$yFitted[!otLogical]))
                     );
-                    # If the entropy is NA or negative, then something is wrong. It shouldn't be!
-                    if(is.na(CFValueEntropy) || CFValueEntropy<0){
-                        CFValueEntropy <- Inf;
+                    # If the entropy is NA then something is wrong. It shouldn't be!
+                    if(is.na(CFValueEntropy)){
+                        CFValueEntropy[] <- Inf;
+                    }
+                    # If it is negative (it shouldn't be), substitute with zero.
+                    # Otherwise occurrence screws the demand sizes model
+                    if(CFValueEntropy<0){
+                        CFValueEntropy[] <- 0;
                     }
                     CFValue <- CFValue + CFValueEntropy;
                 }
