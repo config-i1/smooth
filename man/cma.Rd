@@ -84,7 +84,7 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 \code{\link[smooth]{es}, \link[smooth]{ssarima}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

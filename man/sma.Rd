@@ -173,7 +173,7 @@ Production Research, 7543(January), 1-14.
 \code{\link[stats]{filter}, \link[smooth]{adam}, \link[smooth]{msarima}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

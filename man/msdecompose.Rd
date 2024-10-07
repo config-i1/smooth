@@ -57,7 +57,7 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 \code{\link[stats]{filter}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}
