@@ -323,7 +323,7 @@ International Journal of Production Research, 0(0), 1–10.
 \link[smooth]{sim.ssarima}, \link[smooth]{adam}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

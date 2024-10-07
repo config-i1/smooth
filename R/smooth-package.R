@@ -51,9 +51,8 @@
 #'
 #' @name smooth
 #' @aliases smooth-package
-#' @author Ivan Svetunkov
+#' @template ssAuthor
 #'
-#' Maintainer: Ivan Svetunkov <ivan@svetunkov.ru>
 #' @seealso \code{\link[greybox]{forecast}, \link[smooth]{es},
 #' \link[smooth]{ssarima}, \link[smooth]{ces}, \link[smooth]{gum}}
 #'

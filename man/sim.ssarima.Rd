@@ -133,7 +133,7 @@ International Journal of Production Research, 0(0), 1–10.
 \link[stats]{Distributions}, \link[smooth]{orders}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

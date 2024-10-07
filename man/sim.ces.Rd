@@ -113,7 +113,7 @@ for Time Series Forecasting. Not yet published.
 \link[smooth]{ces}, \link[stats]{Distributions}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}
