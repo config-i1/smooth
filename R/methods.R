@@ -120,12 +120,12 @@ BICc.smooth <- function(object, ...){
 #' Function returns the multiple steps ahead covariance matrix of forecast errors
 #'
 #' This function extracts covariance matrix of 1 to h steps ahead forecast errors for
-#' \code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and \code{ces()} models.
+#' \code{adam()}, \code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and
+#' \code{ces()} models.
 #'
 #' The function returns either scalar (if it is a non-smooth model)
 #' or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
-#' forecast errors. This is currently done based on empirical values. The analytical ones
-#' are more complicated.
+#' forecast errors.
 #'
 #' @template ssAuthor
 #' @template ssKeywords
