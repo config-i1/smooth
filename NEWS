@@ -1,8 +1,9 @@
-smooth v4.1.1 (Release data: 2024-10-07)
+smooth v4.1.1 (Release data: 2024-10-29)
 =======
 
 Bugfixes:
 * Corrected the author details in the documentation.
+* reapply() would not work with bootstrap in case of negative data. Now it does.
 
 
 smooth v4.1.0 (Release data: 2024-10-01)

@@ -6850,6 +6850,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     startTime <- Sys.time();
 
     cl <- match.call();
+    yInSample <- actuals(object);
 
     method <- match.arg(method);
     if(method=="cr"){
@@ -7013,16 +7014,26 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     # Create a new dataset
     newData <- replicate(nsim, newCall$data, simplify=FALSE);
     newCall$formula <- as.formula(paste0(responseName,"~."));
-    # Bootstrap the data
-    dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
-                                       nsim=nsim, intermittent=FALSE));
-    nLevels <- length(dataBoot);
-    # Fill in the list of data
-    for(i in 1:nsim){
-        for(j in 1:nLevels){
-            newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
-        }
+    type <- "multiplicative";
+    if(any(yInSample<0)){
+        type[] <- "additive";
     }
+    # Bootstrap the data
+    # Only bootstrap the response variable
+    dataBoot <- dsrboot(yInSample, nsim=nsim, type=type, intermittent=FALSE);
+    for(i in 1:nsim){
+        newData[[i]][,responseName] <- dataBoot$boot[,i];
+    }
+    # This chunk of code does the bootstrap for explanatory variables as well
+    # dataBoot <- suppressWarnings(apply(newCall$data, 2, dsrboot,
+    #                                    nsim=nsim, type=type, intermittent=FALSE));
+    # nLevels <- length(dataBoot);
+    # # Fill in the list of data
+    # for(i in 1:nsim){
+    #     for(j in 1:nLevels){
+    #         newData[[i]][,j] <- dataBoot[[j]]$boot[,i];
+    #     }
+    # }
 
     if(!parallel){
         for(i in 1:nsim){
