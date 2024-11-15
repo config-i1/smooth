@@ -1598,25 +1598,25 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     else if(Etype=="M" && Ttype=="A"){
                         if(any(initialType==c("complete","backcasting"))){
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.1,0,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.1,0,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                         else{
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.2,0.01,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.2,0.01,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                     }
                     else if(Etype=="M" && Ttype=="M"){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.1,0.05,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else{
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.1,0.05,rep(0.05,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                 }
                 else{
                     B[1:sum(persistenceEstimateVector)] <-
-                        c(0.1,0.05,rep(0.11,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                        c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                 }
                 if(bounds=="usual"){
                     Bl[1:sum(persistenceEstimateVector)] <- rep(0, sum(persistenceEstimateVector));

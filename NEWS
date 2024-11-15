@@ -1,5 +1,8 @@
-smooth v4.1.1 (Release data: 2024-10-29)
+smooth v4.1.1 (Release data: 2024-11-15)
 =======
+
+Changes:
+* We now initialise seasonal ETS with a higher smoothing parameter (0.3).
 
 Bugfixes:
 * Corrected the author details in the documentation.
