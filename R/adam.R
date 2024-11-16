@@ -914,7 +914,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         if(obsNonzero>=lagsModelMax*2){
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
-                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType);
+                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
+                                                          smoother="lowess");
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
@@ -987,7 +988,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                (Etype=="A" & Stype=="M")){
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]];
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- head(yDecomposition$seasonal[[i]],
+                                                                                lagsModel[i+j-1]);
                                         # Renormalise the initial seasons
                                         if(Stype=="A"){
                                             matVt[i+j-1,1:lagsModel[i+j-1]] <-

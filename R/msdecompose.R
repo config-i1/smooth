@@ -15,6 +15,15 @@
 #' @param lags Vector of lags, corresponding to the frequencies in the data.
 #' @param type The type of decomposition. If \code{"multiplicative"} is selected,
 #' then the logarithm of data is taken prior to the decomposition.
+#' @param smoother The type of function used in the smoother of the data to
+#' extract the trend and in seasonality smoothing. \code{smoother="ma"} relies
+#' on the centred moving average and will result in the classical decomposition.
+#' \code{smoother="lowess"} will use \link[stats]{lowess}, resulting in a
+#' decomposition similar to the STL (\link[stats]{stl}). Finally,
+#' \code{smoother="supsmu"} will use the Friedman's super smoother via
+#' \link[stats]{supsmu}.
+#' @param ... Other parameters passed to smoothers. Only works with
+#' lowess/supsmu.
 #'
 #' @return The object of the class "msdecompose" is return, containing:
 #' \itemize{
@@ -40,9 +49,11 @@
 #'
 #' @importFrom stats filter poly .lm.fit
 #' @export msdecompose
-msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
+msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
+                        smoother=c("ma","lowess","supsmu"), ...){
     # Function decomposes time series, assuming multiple frequencies provided in lags
     type <- match.arg(type);
+    smoother <- match.arg(smoother);
 
     # paste0() is needed in order to avoid line breaks in the name
     yName <- paste0(deparse(substitute(y)),collapse="");
@@ -50,14 +61,33 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # Remove the class
     y <- as.vector(y);
 
-    ma <- function(y, order){
-        if (order%%2 == 0){
-            weigths <- c(0.5, rep(1, order - 1), 0.5) / order;
+    smoothingFunction <- function(y, order=NULL, smoother="ma"){
+        if(smoother=="ma"){
+            if (order%%2 == 0){
+                smoothWeigths <- c(0.5, rep(1, order - 1), 0.5) / order;
+            }
+            else {
+                smoothWeigths <- rep(1, order) / order;
+            }
+            return(filter(y[!is.na(y)], smoothWeigths))
         }
-        else {
-            weigths <- rep(1, order) / order;
+        else if(smoother=="lowess"){
+            # The default value of the smoother
+            if(is.null(order) || any(order==c(lags[lagsLength], obsInSample))){
+                order <- 3/2;
+            }
+            return(lowess(y, f=1/order, ...)$y)
         }
-        return(filter(y, weigths))
+        else if(smoother=="supsmu"){
+            # The default value of the smoother
+            if(!is.null(order) && any(order==c(lags[lagsLength], obsInSample))){
+                span <- "cv";
+            }
+            else{
+                span <- 1/order;
+            }
+            return(supsmu(1:length(y), y, span=span, ...)$y)
+        }
     }
 
     obsInSample <- length(y);
@@ -85,7 +115,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
         rm(X)
     }
 
-    obs <- length(y);
+    obsInSample <- length(y);
     lags <- sort(unique(lags));
     lagsLength <- length(lags);
     # List of smoothed values
@@ -96,7 +126,12 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     yClear <- vector("list",lagsLength);
     # Smooth time series with different lags
     for(i in 1:lagsLength){
-        ySmooth[[i+1]] <- ma(yInsample,lags[i]);
+        ySmooth[[i+1]] <- smoothingFunction(yInsample,order=lags[i],smoother=smoother);
+        # ySmooth[[i+1]] <- smoothingFunction(yInsample,lags[i],smoother="ma");
+        # if(smoother!="ma"){
+        #     ySmooth[[i+1]][is.na(ySmooth[[i+1]])] <- spline(ySmooth[[i+1]], method="periodic",
+        #                                                     xout=which(is.na(ySmooth[[i+1]])))$y
+        # }
     }
     trend <- ySmooth[[lagsLength+1]];
 
@@ -108,9 +143,17 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     # The seasonal patterns
     patterns <- vector("list",lagsLength);
     for(i in 1:lagsLength){
-        patterns[[i]] <- vector("numeric",lags[i]);
+        # patterns[[i]] <- vector("numeric",lags[i]);
+        # patterns[[i]] <- vector("numeric",ceiling(obsInSample/lags[i]));
+        patterns[[i]] <- vector("numeric",obsInSample);
         for(j in 1:lags[i]){
-            patterns[[i]][j] <- mean(yClear[[i]][(1:(obs/lags[i])-1)*lags[i]+j],na.rm=TRUE);
+            ySeasonal <- yClear[[i]][(1:(obsInSample/lags[i])-1)*lags[i]+j];
+            ySeasonalSmooth <- smoothingFunction(ySeasonal,
+                                                 order=switch(smoother,
+                                                              "ma"=length(ySeasonal[!is.na(ySeasonal)]),
+                                                              obsInSample),
+                                                 smoother=smoother);
+            patterns[[i]][(1:(obsInSample/lags[i])-1)*lags[i]+j] <- ySeasonalSmooth[!is.na(ySeasonalSmooth)];
         }
         patterns[[i]][] <- patterns[[i]] - mean(patterns[[i]]);
     }
@@ -134,7 +177,7 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative")){
     }
 
     return(structure(list(y=y, initial=initial, trend=trend, seasonal=patterns, loss="MSE",
-                          lags=lags, type=type, yName=yName), class=c("msdecompose","smooth")));
+                          lags=lags, type=type, yName=yName, smoother=smoother), class=c("msdecompose","smooth")));
 }
 
 #' @export
@@ -155,15 +198,15 @@ errorType.msdecompose <- function(object, ...){
 #' @export
 fitted.msdecompose <- function(object, ...){
     yFitted <- object$trend;
-    obs <- nobs(object);
+    obsInSample <- nobs(object);
     if(object$type=="additive"){
         for(i in 1:length(object$lags)){
-            yFitted <- yFitted + rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+            yFitted <- yFitted + rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
         }
     }
     else{
         for(i in 1:length(object$lags)){
-            yFitted <- yFitted * rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+            yFitted <- yFitted * rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
         }
     }
     return(yFitted);
@@ -186,17 +229,17 @@ forecast.msdecompose <- function(object, h=10,
                         "M"="YYY");
     }
 
-    obs <- nobs(object);
+    obsInSample <- nobs(object);
     yDeseasonalised <- actuals(object);
     yForecastStart <- time(yDeseasonalised)[length(time(yDeseasonalised))]+1/frequency(yDeseasonalised);
     if(errorType(object)=="A"){
         for(i in 1:length(object$lags)){
-            yDeseasonalised <- yDeseasonalised - rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+            yDeseasonalised <- yDeseasonalised - rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
         }
     }
     else{
         for(i in 1:length(object$lags)){
-            yDeseasonalised <- yDeseasonalised / rep(object$seasonal[[i]],ceiling(obs/object$lags[i]))[1:obs];
+            yDeseasonalised <- yDeseasonalised / rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
         }
     }
     yesModel <- suppressWarnings(adam(yDeseasonalised,model=model,h=h,initial="b",...));
@@ -213,19 +256,19 @@ forecast.msdecompose <- function(object, h=10,
     # Add seasonality
     if(errorType(object)=="A"){
         for(i in 1:length(object$lags)){
-            yValues <- yValues + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            yValues <- yValues + rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
             if(interval!="none"){
-                lower <- lower + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
-                upper <- upper + rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+                lower <- lower + rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
+                upper <- upper + rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
             }
         }
     }
     else{
         for(i in 1:length(object$lags)){
-            yValues <- yValues * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+            yValues <- yValues * rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
             if(interval!="none"){
-                lower <- lower * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
-                upper <- upper * rep(object$seasonal[[i]],ceiling((obs+h)/object$lags[i]))[1:(obs+h)];
+                lower <- lower * rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
+                upper <- upper * rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
             }
         }
     }
@@ -279,7 +322,7 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
                              ask=prod(par("mfcol")) < length(which) && dev.interactive(),
                              lowess=TRUE, ...){
     ellipsis <- list(...);
-    obs <- nobs(x);
+    obsInSample <- nobs(x);
 
     # Define, whether to wait for the hit of "Enter"
     if(ask){
@@ -311,7 +354,7 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     if(any(which==12)){
         yDecomposed <- cbind(actuals(x),x$trend);
         for(i in 1:length(x$seasonal)){
-            yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obs/x$lags[i]))[1:obs]);
+            yDecomposed <- cbind(yDecomposed,rep(x$seasonal[[i]],ceiling(obsInSample/x$lags[i]))[1:obsInSample]);
         }
         yDecomposed <- cbind(yDecomposed, residuals(x));
         colnames(yDecomposed) <- c("Actuals","Trend",paste0("Seasonal ",c(1:length(x$seasonal))),"Residuals");
@@ -319,7 +362,7 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
         if(!any(names(ellipsis)=="main")){
             ellipsis$main <- paste0("Decomposition of ", x$yName);
         }
-        ellipsis$x <- yDecomposed;
+        ellipsis$x <- ts(yDecomposed);
         do.call(plot,ellipsis);
     }
 }
