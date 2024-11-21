@@ -915,7 +915,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
                             yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
-                                                          smoother="lowess");
+                                                          smoother="ma");
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
