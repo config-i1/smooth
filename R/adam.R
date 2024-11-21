@@ -919,11 +919,11 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
-                                # matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
-                                matVt[j,1:lagsModelMax] <-
-                                    switch(decompositionType,
-                                           "additive"=yDecomposition$initial[1]-yDecomposition$initial[2]*lagsModelMax,
-                                           "multiplicative"=yDecomposition$initial[1]/yDecomposition$initial[2]^lagsModelMax);
+                                matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
+                                # matVt[j,1:lagsModelMax] <-
+                                #     switch(decompositionType,
+                                #            "additive"=yDecomposition$initial[1]-yDecomposition$initial[2]*lagsModelMax,
+                                #            "multiplicative"=yDecomposition$initial[1]/yDecomposition$initial[2]^lagsModelMax);
                                 # matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
                                 if(xregModel){
                                     if(Etype=="A"){
@@ -964,10 +964,10 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                         # trend
                                         matVt[j,1:lagsModelMax] <- sum(abs(yDecomposition$initial))/abs(yDecomposition$initial[1]);
                                     }
-                                    # else if(Ttype=="M"){
-                                    #     # trend is too dangerous, make it start from 1.
-                                    #     matVt[j,1:lagsModelMax] <- 1;
-                                    # }
+                                    else if(Ttype=="M"){
+                                        # trend is too dangerous, make it start from 1.
+                                        matVt[j,1:lagsModelMax] <- 1;
+                                    }
                                     else{
                                         # trend
                                         matVt[j,1:lagsModelMax] <- yDecomposition$initial[2];
