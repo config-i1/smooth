@@ -192,14 +192,14 @@ msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
     if(seasonalLags){
         states <- cbind(trend, c(NA,diff(trend)), matrix(unlist(patterns)[1:obsInSample], obsInSample, lagsLength));
         colnames(states) <- c("level","trend",paste0("seasonal",1:lagsLength));
-        if(object$type=="additive"){
-            for(i in 1:length(object$lags)){
-                yFitted[] <- yFitted + rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
+        if(type=="additive"){
+            for(i in 1:length(lags)){
+                yFitted[] <- yFitted + rep(patterns[[i]],ceiling(obsInSample/lags[i]))[1:obsInSample];
             }
         }
         else{
-            for(i in 1:length(object$lags)){
-                yFitted[] <- yFitted * rep(object$seasonal[[i]],ceiling(obsInSample/object$lags[i]))[1:obsInSample];
+            for(i in 1:length(lags)){
+                yFitted[] <- yFitted * rep(patterns[[i]],ceiling(obsInSample/lags[i]))[1:obsInSample];
             }
         }
     }
