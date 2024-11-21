@@ -274,7 +274,9 @@ forecast.msdecompose <- function(object, h=10,
     else{
         lower <- upper <- NA;
     }
+
     # Add seasonality
+    #### This is correct for MA only. If we used another smoother, we should forecast seasonal pattern ####
     if(errorType(object)=="A"){
         for(i in 1:length(object$lags)){
             yValues <- yValues + rep(object$seasonal[[i]],ceiling((obsInSample+h)/object$lags[i]))[1:(obsInSample+h)];
