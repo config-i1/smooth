@@ -301,7 +301,7 @@ forecast.msdecompose <- function(object, h=10,
     }
 
     return(structure(list(model=object, esmodel=yesModel, method=paste0("ETS(",modelType(yesModel),") with decomposition"),
-                          mean=yForecast, forecast=yForecast, lower=lower, upper=upper,
+                          mean=yForecast, forecast=yForecast, lower=lower, upper=upper, side="both",
                           level=level, interval=interval),class=c("msdecompose.forecast","smooth.forecast","forecast")));
 }
 
