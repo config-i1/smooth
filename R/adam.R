@@ -992,8 +992,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                (Etype=="A" & Stype=="M")){
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- head(yDecomposition$seasonal[[i]],
-                                                                                lagsModel[i+j-1]);
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]][1:lagsModel[i+j-1]];
                                         # Renormalise the initial seasons
                                         if(Stype=="A"){
                                             matVt[i+j-1,1:lagsModel[i+j-1]] <-
@@ -1015,7 +1014,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             else if(Etype=="M" && Stype=="A"){
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- log(yDecomposition$seasonal[[i]])*min(yInSample[otLogical]);
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                            log(yDecomposition$seasonal[[i]][1:lagsModel[i+j-1]])*min(yInSample[otLogical]);
                                         # Renormalise the initial seasons
                                         if(Stype=="A"){
                                             matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
