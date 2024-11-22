@@ -16,7 +16,7 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
                          "xregParametersPersistence","xregModelInitials","constantName","yDenominator",
                          "damped","dataStart","initialEstimate","initialSeasonEstimate","maxeval","icFunction",
                          "modelIsMultiplicative","modelIsSeasonal","nComponentsAll","nComponentsNonSeasonal",
-                         "nIterations"));
+                         "nIterations","smoother"));
 
 #' ADAM is Augmented Dynamic Adaptive Model
 #'
@@ -291,6 +291,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #' You can read more about these parameters by running the function
 #' \link[nloptr]{nloptr.print.options}.
+#' It is also possible to regulate what smoother to use to get initial seasonal indices
+#' from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
 #' Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 #' Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 #' can be provided here as well.
@@ -914,11 +916,16 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                         if(obsNonzero>=lagsModelMax*2){
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
-                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType);
+                            yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
+                                                          smoother=smoother);
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
                                 matVt[j,1:lagsModelMax] <- yDecomposition$initial[1];
+                                # matVt[j,1:lagsModelMax] <-
+                                #     switch(decompositionType,
+                                #            "additive"=yDecomposition$initial[1]-yDecomposition$initial[2]*lagsModelMax,
+                                #            "multiplicative"=yDecomposition$initial[1]/yDecomposition$initial[2]^lagsModelMax);
                                 # matVt[j,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
                                 if(xregModel){
                                     if(Etype=="A"){
@@ -987,7 +994,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                (Etype=="A" & Stype=="M")){
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]];
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- yDecomposition$seasonal[[i]][1:lagsModel[i+j-1]];
                                         # Renormalise the initial seasons
                                         if(Stype=="A"){
                                             matVt[i+j-1,1:lagsModel[i+j-1]] <-
@@ -1009,7 +1016,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             else if(Etype=="M" && Stype=="A"){
                                 for(i in 1:componentsNumberETSSeasonal){
                                     if(initialSeasonalEstimate[i]){
-                                        matVt[i+j-1,1:lagsModel[i+j-1]] <- log(yDecomposition$seasonal[[i]])*min(yInSample[otLogical]);
+                                        matVt[i+j-1,1:lagsModel[i+j-1]] <-
+                                            log(yDecomposition$seasonal[[i]][1:lagsModel[i+j-1]])*min(yInSample[otLogical]);
                                         # Renormalise the initial seasons
                                         if(Stype=="A"){
                                             matVt[i+j-1,1:lagsModel[i+j-1]] <- matVt[i+j-1,1:lagsModel[i+j-1]] -
@@ -1027,7 +1035,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             }
                         }
                         else{
-                            # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
@@ -1598,25 +1605,25 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                     else if(Etype=="M" && Ttype=="A"){
                         if(any(initialType==c("complete","backcasting"))){
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.1,0,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.1,0,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                         else{
                             B[1:sum(persistenceEstimateVector)] <-
-                                c(0.2,0.01,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                                c(0.2,0.01,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                         }
                     }
                     else if(Etype=="M" && Ttype=="M"){
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.1,0.05,rep(0.01,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                     else{
                         B[1:sum(persistenceEstimateVector)] <-
-                            c(0.1,0.05,rep(0.05,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                            c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                     }
                 }
                 else{
                     B[1:sum(persistenceEstimateVector)] <-
-                        c(0.1,0.05,rep(0.11,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
+                        c(0.1,0.05,rep(0.3,componentsNumberETSSeasonal))[which(persistenceEstimateVector)];
                 }
                 if(bounds=="usual"){
                     Bl[1:sum(persistenceEstimateVector)] <- rep(0, sum(persistenceEstimateVector));

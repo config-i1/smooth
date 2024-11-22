@@ -1,5 +1,10 @@
-smooth v4.1.1 (Release data: 2024-10-29)
+smooth v4.1.1 (Release data: 2024-11-16)
 =======
+
+Changes:
+* We now initialise seasonal ETS with a higher smoothing parameter (0.3).
+* msdecompose() now does decomposition using ma/lowess/supsmu - regulated with the smoother parameter. This still requires tuning.
+* adam() now uses msdecompose with lowess to extract initial seasonal indices.
 
 Bugfixes:
 * Corrected the author details in the documentation.

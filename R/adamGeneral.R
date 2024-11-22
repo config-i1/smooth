@@ -2967,6 +2967,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         nIterations <- ellipsis$nIterations;
     }
+    # Smoother used in msdecompose
+    if(is.null(ellipsis$smoother)){
+        smoother <- "ma";
+    }
+    else{
+        smoother <- ellipsis$smoother;
+    }
     # Fisher Information
     if(is.null(ellipsis$FI)){
         FI <- FALSE;
@@ -3251,6 +3258,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("lambda",lambda,ParentEnvironment);
     # Number of iterations in backcasting
     assign("nIterations",nIterations,ParentEnvironment);
+    # Smoother used in the msdecompose
+    assign("smoother",smoother,ParentEnvironment);
     # Fisher Information
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian
