@@ -47,7 +47,7 @@
 #' plot(ourModel)
 #' plot(forecast(ourModel, model="AAN", h=12))
 #'
-#' @importFrom stats filter poly .lm.fit
+#' @importFrom stats filter poly .lm.fit supsmu
 #' @export msdecompose
 msdecompose <- function(y, lags=c(12), type=c("additive","multiplicative"),
                         smoother=c("ma","lowess","supsmu"), ...){
