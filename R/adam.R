@@ -291,6 +291,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' }
 #' You can read more about these parameters by running the function
 #' \link[nloptr]{nloptr.print.options}.
+#' It is also possible to regulate what smoother to use to get initial seasonal indices
+#' from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
 #' Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 #' Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 #' can be provided here as well.
@@ -915,7 +917,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                             # If either Etype or Stype are multiplicative, do multiplicative decomposition
                             decompositionType <- c("additive","multiplicative")[any(c(Etype,Stype)=="M")+1];
                             yDecomposition <- msdecompose(yInSample, lags[lags!=1], type=decompositionType,
-                                                          smoother="ma");
+                                                          smoother=smoother);
                             j <- 1;
                             # level
                             if(initialLevelEstimate){
