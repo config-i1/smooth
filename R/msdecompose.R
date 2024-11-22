@@ -395,8 +395,9 @@ plot.msdecompose <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
 
 #' @export
 print.msdecompose <- function(x, ...){
-    cat(paste0("Multiple seasonal decomposition of ",x$yName," using c(",paste0(x$lags,collapse=","),") lags.\n"));
-    cat("Type of decomposition:",x$type);
+    cat(paste0("Multiple seasonal decomposition of ",x$yName," with c(",paste0(x$lags,collapse=","),") lags"));
+    cat("\nType of decomposition:",x$type);
+    cat("\nSmoother type:",x$smoother);
 }
 
 #' @export
