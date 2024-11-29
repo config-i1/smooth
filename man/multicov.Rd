@@ -41,13 +41,13 @@ Scalar in cases of non-smooth functions. (h x h) matrix otherwise.
 }
 \description{
 This function extracts covariance matrix of 1 to h steps ahead forecast errors for
-\code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and \code{ces()} models.
+\code{adam()}, \code{ssarima()}, \code{gum()}, \code{sma()}, \code{es()} and
+\code{ces()} models.
 }
 \details{
 The function returns either scalar (if it is a non-smooth model)
 or the matrix of (h x h) size with variances and covariances of 1 to h steps ahead
-forecast errors. This is currently done based on empirical values. The analytical ones
-are more complicated.
+forecast errors.
 }
 \examples{
 
@@ -62,7 +62,7 @@ multicov(ourModel)
 \link[smooth]{orders}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

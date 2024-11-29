@@ -1,6 +1,6 @@
 #' Function returns the ultimate answer to any question
 #'
-#' You need description? So what?
+#' You need a description? So what?
 #'
 #' You need details? So what?
 #'

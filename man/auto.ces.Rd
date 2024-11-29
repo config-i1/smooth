@@ -167,7 +167,7 @@ for Time Series Forecasting. Not yet published.
 \link[greybox]{forecast}, \link[stats]{ts}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

@@ -113,7 +113,7 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 \link[smooth]{sim.ces}, \link[smooth]{gum}, \link[stats]{Distributions}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

@@ -1,9 +1,37 @@
-smooth v4.0.2 (Release data: 2024-04-05)
+smooth v4.1.1 (Release data: 2024-11-16)
+=======
+
+Changes:
+* We now initialise seasonal ETS with a higher smoothing parameter (0.3).
+* msdecompose() now does decomposition using ma/lowess/supsmu - regulated with the smoother parameter. This still requires tuning.
+* adam() now uses msdecompose with lowess to extract initial seasonal indices.
+
+Bugfixes:
+* Corrected the author details in the documentation.
+* reapply() would not work with bootstrap in case of negative data. Now it does.
+
+
+smooth v4.1.0 (Release data: 2024-10-01)
+=======
+
+Changes:
+* New initialisation mechanism for ARIMA in case of initial="optimal". Now we do backcasting in the first step and then grab what we got and optimise.
+* nIterations for the backcasting is now set outside the C++ code, can be provided as a parameter in the ellipsis of adam().
+* coefbootstrap() now relies on the dsrboot() function from the greybox, implementing the "Data Shape Replication" bootstrap algorithm.
+* adam() with occurrence now calculates the likelihood differently in cases when entropy is negative. This is needed for the model to be estimable. Otherwise it just produces a straight line around zero and returns likelihood of Infinity.
+
+Bugfixes:
+* Fix in reapply() for ARIMA.
+
+
+smooth v4.0.2 (Release data: 2024-06-18)
 =======
 
 Changes:
 * occurrence in adam() now accepts proportions. This might be useful if you know that you only have a share of demand that you usually get.
 * adam() now allows pure models with some specific components. e.g. model="PNP" will check pure additive and pure multiplicative models without trend. Similarly, model="FNF" will now remove the unneeded trends and skip the branch-and-bound algorithm.
+* We now use algorithm="NLOPT_LN_NELDERMEAD" in adam() - it produces more consistent and unbiased results than the "NLOPT_LN_SBPLX".
+* New output for ARIMA models to list all parameters in a form of a table.
 
 Bugfixes:
 * Transition matrix was not correctly set for ARIMA with drift. It is now.

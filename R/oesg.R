@@ -74,7 +74,7 @@ utils::globalVariables(c("modelDo","initialValue","lagsModelMax","updateX","regr
 #' \code{xtol_rel}, \code{algorithm} and \code{print_level}. The description of
 #' these is printed out by \code{nloptr.print.options()} function from the \code{nloptr}
 #' package. The default values in the oes function are \code{maxeval=500},
-#' \code{xtol_rel=1E-8}, \code{algorithm="NLOPT_LN_SBPLX"} and \code{print_level=0}.
+#' \code{xtol_rel=1E-8}, \code{algorithm="NLOPT_LN_NELDERMEAD"} and \code{print_level=0}.
 #' @return The object of class "occurrence" is returned. It contains following list of
 #' values:
 #'
@@ -193,7 +193,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
         algorithm <- ellipsis$algorithm;
     }
     else{
-        algorithm <- "NLOPT_LN_SBPLX";
+        algorithm <- "NLOPT_LN_NELDERMEAD";
     }
     if(any(names(ellipsis)=="print_level")){
         print_level <- ellipsis$print_level;

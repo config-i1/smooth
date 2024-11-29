@@ -1,44 +1,35 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "1 April 2024"
+date: "01 October 2024"
 output: html_document
 ---
 
 ## Version
-This is ``smooth`` package, v4.0.1.
-
-## Note
-I have changed my email from ivan@svetunkov.ru to ivan@svetunkov.com. Because of that, some checks gave this warning:
-
->New maintainer:
->  Ivan Svetunkov <ivan@svetunkov.com>
->Old maintainer(s):
->  Ivan Svetunkov <ivan@svetunkov.ru>
-
+This is ``smooth`` package, v4.1.0.
 
 ## Test environments
-* local Ubuntu 22.04.4, R 4.3.3
+* local Ubuntu 24.04.1, R 4.4.1
 * github actions
 * win-builder (devel and release)
-* rhub with rhub::check_for_cran() command
+* rhub v2
 
 ## R CMD check results
 R CMD check results
 checking installed package size ... NOTE
-    installed size is 20.5Mb
+    installed size is 20.8Mb
     sub-directories of 1Mb or more:
-      R      1.3Mb
+      R      1.2Mb
       doc    3.3Mb
-      libs  15.4Mb
+      libs  15.7Mb
 0 errors | 0 warnings | 1 note
 
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.3.3
-- MacOS latest macOS Monterey 12.6.8 with R 4.3.3
-- Ubuntu latest with R 4.3.3
+- Windows latest release with R 4.4.1
+- MacOS latest macOS Sonoma 14.6.1 with R 4.4.1
+- Ubuntu 22.04.5 LTS with R 4.4.1
 
 ## win-builder check results
 >* checking package dependencies ... NOTE
@@ -46,14 +37,8 @@ Successful checks for:
 
 This is expected, because doMC is not available for Windows.
 
-## rhub checks
-### Windows Server 2022, R-devel, 64 bit
-> * checking package dependencies ... ERROR
-> Package suggested but not available: 'doMC'
-
-This is expected from Windows Server - doMC is not available for that platform.
-
-All the resources are available online, not clear why the server cannot find some of them.
+## R-hub
+All is fine
 
 ## Downstream dependencies
 I have also run R CMD check on reverse dependencies of smooth.

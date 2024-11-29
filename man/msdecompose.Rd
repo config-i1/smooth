@@ -4,7 +4,8 @@
 \alias{msdecompose}
 \title{Multiple seasonal classical decomposition}
 \usage{
-msdecompose(y, lags = c(12), type = c("additive", "multiplicative"))
+msdecompose(y, lags = c(12), type = c("additive", "multiplicative"),
+  smoother = c("ma", "lowess", "supsmu"), ...)
 }
 \arguments{
 \item{y}{Vector or ts object, containing data needed to be smoothed.}
@@ -13,6 +14,17 @@ msdecompose(y, lags = c(12), type = c("additive", "multiplicative"))
 
 \item{type}{The type of decomposition. If \code{"multiplicative"} is selected,
 then the logarithm of data is taken prior to the decomposition.}
+
+\item{smoother}{The type of function used in the smoother of the data to
+extract the trend and in seasonality smoothing. \code{smoother="ma"} relies
+on the centred moving average and will result in the classical decomposition.
+\code{smoother="lowess"} will use \link[stats]{lowess}, resulting in a
+decomposition similar to the STL (\link[stats]{stl}). Finally,
+\code{smoother="supsmu"} will use the Friedman's super smoother via
+\link[stats]{supsmu}.}
+
+\item{...}{Other parameters passed to smoothers. Only works with
+lowess/supsmu.}
 }
 \value{
 The object of the class "msdecompose" is return, containing:
@@ -57,7 +69,7 @@ models and how to use them: \url{https://openforecast.org/category/r-en/smooth/}
 \code{\link[stats]{filter}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

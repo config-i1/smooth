@@ -242,10 +242,12 @@ used to calculated variances of smoothing parameters and initial states of
 the model. This is calculated based on the hessian of log-likelihood function and
 accepts \code{stepSize} parameter, determining how it is calculated. The default value
 is \code{stepSize=.Machine$double.eps^(1/4)}. This is used in the \link[stats]{vcov} method.
-Starting values of parameters can be passed via \code{B}, while the upper and lower
-bounds should be passed in \code{ub} and \code{lb} respectively. In this case they
-will be used for optimisation. These values should have the length equal
-to the number of parameters to estimate in the following order:
+Number of iterations inside the backcasting loop to do is regulated with \code{nIterations}
+parameter. By default it is set to 2. Furthermore, starting values of parameters can be
+passed via \code{B}, while the upper and lower bounds should be passed in \code{ub}
+and \code{lb} respectively. In this case they will be used for optimisation. These
+values should have the length equal to the number of parameters to estimate in
+the following order:
 \enumerate{
 \item All smoothing parameters (for the states and then for the explanatory variables);
 \item Damping parameter (if needed);
@@ -266,12 +268,14 @@ function (the default is 1E-8);
 \item \code{ftol_abs} - the stopping criterion in case of the absolute change in the loss
 function (the default is 0 - not used);
 \item \code{algorithm} - the algorithm to use in optimisation
-(by default, \code{"NLOPT_LN_SBPLX"} is used);
+(by default, \code{"NLOPT_LN_NELDERMEAD"} is used);
 \item \code{print_level} - the level of output for the optimiser (0 by default).
 If equal to 41, then the detailed results of the optimisation are returned.
 }
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
+It is also possible to regulate what smoother to use to get initial seasonal indices
+from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
@@ -333,6 +337,8 @@ the model,
 \item \code{profileInitial} - the matrix with the initial profile (for the before the sample values),
 \item \code{call} - the call used in the evaluation,
 \item \code{bounds} - the type of bounds used in the process,
+\item \code{res} - result of the model estimation, the output of the \code{nloptr()} function, explaining
+how optimisation went,
 \item \code{other} - the list with other parameters, such as shape for distributions or ARIMA
 polynomials.
 }
@@ -473,7 +479,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 \code{\link[smooth]{es}, \link[smooth]{msarima}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

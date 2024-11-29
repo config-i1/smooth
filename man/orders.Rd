@@ -77,7 +77,7 @@ sim.es(model=modelType(ourModel))
 \link[smooth]{ssarima}, \link[smooth]{msarima}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}
