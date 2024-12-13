@@ -1,6 +1,6 @@
 import numpy as np
 
-from smooth.adam_general.sma import sma
+from python.smooth.adam_general.core.sma import sma
 
 if __name__ == "__main__":
     y = np.arange(0, 100)
