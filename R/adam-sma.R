@@ -144,7 +144,7 @@ sma <- function(y, order=NULL, ic=c("AICc","AIC","BIC","BICc"),
             stop("The provided model is not Simple Moving Average!",call.=FALSE);
         }
         else{
-            order <- model$order;
+            order <- model$orders[1];
         }
     }
 
