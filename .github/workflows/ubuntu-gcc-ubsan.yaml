@@ -35,7 +35,7 @@ jobs:
         wget https://stat.ethz.ch/R/daily/R-devel.tar.gz
         tar -xzf R-devel.tar.gz
         cd R-devel
-        ./configure --enable-strict-barrier --with-ubsan --with-gcc
+        ./configure --enable-strict-barrier --with-ubsan --with-gcc --with-x=no
         make
         echo "R-devel installed."
 
