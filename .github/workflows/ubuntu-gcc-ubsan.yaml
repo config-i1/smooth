@@ -23,7 +23,7 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y gfortran gcc libcurl4-openssl-dev libxml2-dev libssl-dev
+        sudo apt-get install -y gfortran gcc libcurl4-openssl-dev libxml2-dev libssl-dev libreadline-dev
 
     - name: Install R package dependencies
       run: |
