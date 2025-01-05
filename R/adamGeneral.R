@@ -2435,7 +2435,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If we don't need to estimate anything, flag initialEstimate
     if(!any(c(etsModel && initialLevelEstimate,
               (etsModel && modelIsTrendy && initialTrendEstimate),
-              (etsModel & modelIsSeasonal & initialSeasonalEstimate),
+              (etsModel && modelIsSeasonal && initialSeasonalEstimate),
               (arimaModel && initialArimaEstimate),
               (xregModel && initialXregEstimate)))){
         initialEstimate[] <- FALSE;
@@ -3050,9 +3050,9 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, phiEstimate,
                            (initialType!="complete") & c(initialLevelEstimate,
-                                                            initialTrendEstimate,
-                                                            initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialArimaEstimate),
+                                                         initialTrendEstimate,
+                                                         initialSeasonalEstimate)),
+              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialEstimate & initialArimaEstimate),
               xregModel & c(persistenceXregEstimate, (initialType!="complete") & initialXregEstimate),
               constantEstimate,
               otherParameterEstimate))){
