@@ -2447,7 +2447,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If at least something is provided, flag it as "provided"
     if((etsModel && !initialLevelEstimate) ||
        (etsModel && modelIsTrendy && !initialTrendEstimate) ||
-       any(etsModel & modelIsSeasonal & !initialSeasonalEstimate) ||
+       (etsModel && modelIsSeasonal && any(!initialSeasonalEstimate)) ||
        (arimaModel && !initialArimaEstimate) ||
        (xregModel && !initialXregEstimate)){
         initialType[] <- "provided";
