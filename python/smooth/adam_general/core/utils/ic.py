@@ -114,7 +114,7 @@ def BICc(loglik, nobs=None, df=None):
     bic = BIC(loglik, nobs, df)
     return bic + (np.log(nobs) * df * (df + 1)) / (nobs - df - 1)
 
-def ic_function(ic_name):
+def ic_function(ic_name, loglik):
     """
     Select information criterion function based on name
     
@@ -128,11 +128,14 @@ def ic_function(ic_name):
     function
         Selected information criterion function
     """
+    value = loglik['value']
+    nobs = loglik['nobs']
+    df = loglik['df']
     ic_functions = {
-        'AIC': AIC,
-        'AICc': AICc,
-        'BIC': BIC,
-        'BICc': BICc
+        'AIC': AIC(value, nobs, df),
+        'AICc': AICc(value, nobs, df),
+        'BIC': BIC(value, nobs, df),
+        'BICc': BICc(value, nobs, df)
     }
     
     if ic_name not in ic_functions:
