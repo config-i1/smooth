@@ -1,9 +1,6 @@
 name: R Package UBSan Check
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
