@@ -1,9 +1,15 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "02 February 2025"
+date: "03 February 2025"
 output: html_document
 ---
+
+## Update
+I think this should fix the issue with the clang-UBSAN, gcc-UBSAN.
+
+Also, the suggested package `legion` has been submitted to CRAN as well, and will become available soon.
+
 
 ## Version
 This is ``smooth`` package, v4.1.1.
