@@ -10,3 +10,4 @@ man-roxygen
 cran-comments.md
 ^CRAN-SUBMISSION$
 python
+src/python_examples
