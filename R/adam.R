@@ -8925,14 +8925,14 @@ plot.adam.forecast <- function(x, ...){
         obsNew <- floor(obsInSample/x$h);
         yCum <- yFittedCum <- vector("numeric", obsNew);
         for(i in 1:obsNew){
-            yCum[i] <- sum(ellipsis$actuals[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
-            yFittedCum[i] <- sum(ellipsis$fitted[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
+            yCum[i] <- sum(ellipsis$actuals[obsInSample-(x$h:1)+1-(obsNew-i)*x$h], na.rm=TRUE);
+            yFittedCum[i] <- sum(ellipsis$fitted[obsInSample-(x$h:1)+1-(obsNew-i)*x$h], na.rm=TRUE);
         }
 
         # Get deltat to see where to place forecast
         if(!is.null(x$model$holdout)){
             yDeltat <- 0;
-            yCum <- c(yCum, sum(ellipsis$actuals[obsInSample+(1:x$h)]));
+            yCum <- c(yCum, sum(ellipsis$actuals[obsInSample+(1:x$h)]), na.rm=TRUE);
         }
         else{
             yDeltat <- deltat(ellipsis$actuals);
@@ -8943,10 +8943,10 @@ plot.adam.forecast <- function(x, ...){
         # We ignore zoo here because who cares...
         ellipsis$actuals <- ts(yCum,
                                start=start(ellipsis$actuals),
-                               frequency=yFreqCum)
+                               frequency=yFreqCum);
         ellipsis$fitted <- ts(yFittedCum,
                               start=start(ellipsis$actuals),
-                              frequency=yFreqCum)
+                              frequency=yFreqCum);
         ellipsis$forecast <- ts(ellipsis$forecast,
                                 start=end(ellipsis$actuals)+yDeltat,
                                 frequency=frequency(ellipsis$forecast));
@@ -8988,6 +8988,7 @@ plot.adam.forecast <- function(x, ...){
 
     # A fix for weird frequencies for the cumulative forecasts
     if(x$cumulative){
+        points(ellipsis$actuals);
         abline(v=tail(time(ellipsis$fitted),1),col="red2",lwd=2);
     }
 }
