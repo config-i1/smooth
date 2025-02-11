@@ -8925,8 +8925,8 @@ plot.adam.forecast <- function(x, ...){
         obsNew <- floor(obsInSample/x$h);
         yCum <- yFittedCum <- vector("numeric", obsNew);
         for(i in 1:obsNew){
-            yCum[i] <- sum(ellipsis$actuals[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
-            yFittedCum[i] <- sum(ellipsis$fitted[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
+            yCum[i] <- sum(ellipsis$actuals[obsInSample-(x$h:1)+1-(obsNew-i)*x$h], na.rm=TRUE);
+            yFittedCum[i] <- sum(ellipsis$fitted[obsInSample-(x$h:1)+1-(obsNew-i)*x$h], na.rm=TRUE);
         }
 
         # Get deltat to see where to place forecast
@@ -8943,10 +8943,10 @@ plot.adam.forecast <- function(x, ...){
         # We ignore zoo here because who cares...
         ellipsis$actuals <- ts(yCum,
                                start=start(ellipsis$actuals),
-                               frequency=yFreqCum)
+                               frequency=yFreqCum);
         ellipsis$fitted <- ts(yFittedCum,
                               start=start(ellipsis$actuals),
-                              frequency=yFreqCum)
+                              frequency=yFreqCum);
         ellipsis$forecast <- ts(ellipsis$forecast,
                                 start=end(ellipsis$actuals)+yDeltat,
                                 frequency=frequency(ellipsis$forecast));
