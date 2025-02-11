@@ -8920,32 +8920,76 @@ plot.adam.forecast <- function(x, ...){
     ellipsis$level <- x$level;
 
     if(x$cumulative){
-        if(any(yClasses=="ts")){
-            ellipsis$forecast <- ts(ellipsis$forecast / x$h,
-                                    start=start(ellipsis$forecast),
-                                    frequency=frequency(ellipsis$forecast));
-            ellipsis$lower <- ts(ellipsis$lower / x$h,
-                                    start=start(ellipsis$lower),
-                                    frequency=frequency(ellipsis$lower));
-            ellipsis$upper <- ts(ellipsis$upper / x$h,
-                                    start=start(ellipsis$upper),
-                                    frequency=frequency(ellipsis$upper));
-            ellipsis$main <- paste0("Mean ", ellipsis$main);
+        # Create cumulative actuals and fitted values
+        obsInSample <- nobs(x$model);
+        obsNew <- floor(obsInSample/x$h);
+        yCum <- yFittedCum <- vector("numeric", obsNew);
+        for(i in 1:obsNew){
+            yCum[i] <- sum(ellipsis$actuals[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
+            yFittedCum[i] <- sum(ellipsis$fitted[obsInSample-(x$h:1)+1-(obsNew-i)*x$h])
+        }
+
+        # Get deltat to see where to place forecast
+        if(!is.null(x$model$holdout)){
+            yDeltat <- 0;
+            yCum <- c(yCum, sum(ellipsis$actuals[obsInSample+(1:x$h)]));
         }
         else{
-            ellipsis$forecast <- zoo(ellipsis$forecast / x$h,
-                                    order.by=time(ellipsis$forecast)+c(1:x$h)-1);
-            ellipsis$lower <- zoo(ellipsis$lower / x$h,
-                                    order.by=time(ellipsis$lower)+c(1:x$h)-1);
-            ellipsis$upper <- zoo(ellipsis$upper / x$h,
-                                    order.by=time(ellipsis$upper)+c(1:x$h)-1);
-            ellipsis$main <- paste0("Mean ", ellipsis$main);
-            ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(yHoldout)),
-                                    order.by=c(time(actuals(x$model)),time(yHoldout)));
+            yDeltat <- deltat(ellipsis$actuals);
         }
+        yFreqCum <- frequency(ellipsis$actuals)/x$h;
+
+        # Form new ts objects based on the cumulative values
+        # We ignore zoo here because who cares...
+        ellipsis$actuals <- ts(yCum,
+                               start=start(ellipsis$actuals),
+                               frequency=yFreqCum)
+        ellipsis$fitted <- ts(yFittedCum,
+                              start=start(ellipsis$actuals),
+                              frequency=yFreqCum)
+        ellipsis$forecast <- ts(ellipsis$forecast,
+                                start=end(ellipsis$actuals)+yDeltat,
+                                frequency=frequency(ellipsis$forecast));
+        ellipsis$lower <- ts(ellipsis$lower,
+                                start=end(ellipsis$actuals)+yDeltat,
+                                frequency=frequency(ellipsis$forecast));
+        ellipsis$upper <- ts(ellipsis$upper,
+                                start=end(ellipsis$actuals)+yDeltat,
+                                frequency=frequency(ellipsis$forecast));
+        ellipsis$main <- paste0("Cumulative ", ellipsis$main);
+        ellipsis$vline <- FALSE;
+
+        # if(any(yClasses=="ts")){
+        #     ellipsis$forecast <- ts(ellipsis$forecast / x$h,
+        #                             start=start(ellipsis$forecast),
+        #                             frequency=frequency(ellipsis$forecast));
+        #     ellipsis$lower <- ts(ellipsis$lower / x$h,
+        #                          start=start(ellipsis$lower),
+        #                          frequency=frequency(ellipsis$lower));
+        #     ellipsis$upper <- ts(ellipsis$upper / x$h,
+        #                          start=start(ellipsis$upper),
+        #                          frequency=frequency(ellipsis$upper));
+        #     ellipsis$main <- paste0("Mean ", ellipsis$main);
+        # }
+        # else{
+        #     ellipsis$forecast <- zoo(ellipsis$forecast / x$h,
+        #                              order.by=time(ellipsis$forecast)+c(1:x$h)-1);
+        #     ellipsis$lower <- zoo(ellipsis$lower / x$h,
+        #                           order.by=time(ellipsis$lower)+c(1:x$h)-1);
+        #     ellipsis$upper <- zoo(ellipsis$upper / x$h,
+        #                           order.by=time(ellipsis$upper)+c(1:x$h)-1);
+        #     ellipsis$main <- paste0("Mean ", ellipsis$main);
+        #     ellipsis$actuals <- zoo(c(as.vector(actuals(x$model)),as.vector(yHoldout)),
+        #                             order.by=c(time(actuals(x$model)),time(yHoldout)));
+        # }
     }
 
     do.call(graphmaker, ellipsis);
+
+    # A fix for weird frequencies for the cumulative forecasts
+    if(x$cumulative){
+        abline(v=tail(time(ellipsis$fitted),1),col="red2",lwd=2);
+    }
 }
 
 
