@@ -8932,7 +8932,7 @@ plot.adam.forecast <- function(x, ...){
         # Get deltat to see where to place forecast
         if(!is.null(x$model$holdout)){
             yDeltat <- 0;
-            yCum <- c(yCum, sum(ellipsis$actuals[obsInSample+(1:x$h)]));
+            yCum <- c(yCum, sum(ellipsis$actuals[obsInSample+(1:x$h)]), na.rm=TRUE);
         }
         else{
             yDeltat <- deltat(ellipsis$actuals);
