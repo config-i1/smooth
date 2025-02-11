@@ -8988,6 +8988,7 @@ plot.adam.forecast <- function(x, ...){
 
     # A fix for weird frequencies for the cumulative forecasts
     if(x$cumulative){
+        points(ellipsis$actuals);
         abline(v=tail(time(ellipsis$fitted),1),col="red2",lwd=2);
     }
 }
