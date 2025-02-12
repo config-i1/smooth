@@ -3049,10 +3049,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # See if the estimation of the model is not needed (do we estimate anything?)
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, phiEstimate,
-                           (initialType!="complete") & c(initialLevelEstimate,
-                                                         initialTrendEstimate,
-                                                         initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialEstimate & initialArimaEstimate),
+                           all(initialType!=c("complete","backcasting")) & c(initialLevelEstimate,
+                                                                             initialTrendEstimate,
+                                                                             initialSeasonalEstimate)),
+              arimaModel & c(arEstimate, maEstimate,
+                             all(initialType!=c("complete","backcasting")) & initialEstimate & initialArimaEstimate),
               xregModel & c(persistenceXregEstimate, (initialType!="complete") & initialXregEstimate),
               constantEstimate,
               otherParameterEstimate))){

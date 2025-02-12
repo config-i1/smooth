@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
 
 This vignette explains briefly how to use the function `adam()` and the related `auto.adam()` in `smooth` package. It does not aim at covering all aspects of the function, but focuses on the main ones.
 
-ADAM is Augmented Dynamic Adaptive Model. It is a model that underlies ETS, ARIMA and regression, connecting them in a unified framework. The underlying model for ADAM is a Single Source of Error state space model, which is explained in detail separately in an [online textbook](https://openforecast.org/adam/).
+ADAM is Augmented Dynamic Adaptive Model. It is a model that underlies ETS, ARIMA and regression, connecting them in a unified framework. The underlying model for ADAM is a Single Source of Error state space model, which is explained in detail separately in an [online monograph](https://openforecast.org/adam/).
 
 The main philosophy of `adam()` function is to be agnostic of the provided data. This means that it will work with `ts`, `msts`, `zoo`, `xts`, `data.frame`, `numeric` and other classes of data. The specification of seasonality in the model is done using a separate parameter `lags`, so you are not obliged to transform the existing data to something specific, and can use it as is. If you provide a `matrix`, or a `data.frame`, or a `data.table`, or any other multivariate structure, then the function will use the first column for the response variable and the others for the explanatory ones. One thing that is currently assumed in the function is that the data is measured at a regular frequency. If this is not the case, you will need to introduce missing values manually.
 
@@ -40,7 +40,7 @@ require(smooth)
 ## ADAM ETS
 First and foremost, ADAM implements ETS model, although in a more flexible way than [@Hyndman2008b]: it supports different distributions for the error term, which are regulated via `distribution` parameter. By default, the additive error model relies on Normal distribution, while the multiplicative error one assumes Inverse Gaussian. If you want to reproduce the classical ETS, you would need to specify `distribution="dnorm"`. Here is an example of ADAM ETS(MMM) with Normal distribution on `AirPassengers` data:
 
-```{r}
+```{r ETSMMM}
 testModel <- adam(AirPassengers, "MMM", lags=c(1,12), distribution="dnorm",
                   h=12, holdout=TRUE)
 summary(testModel)
@@ -49,19 +49,19 @@ plot(forecast(testModel,h=12,interval="prediction"))
 
 You might notice that the summary contains more than what is reported by other `smooth` functions. This one also produces standard errors for the estimated parameters based on Fisher Information calculation. Note that this is computationally expensive, so if you have a model with more than 30 variables, the calculation of standard errors might take plenty of time. As for the default `print()` method, it will produce a shorter summary from the model, without the standard errors (similar to what `es()` does):
 
-```{r}
+```{r ETSMMMPrint}
 testModel
 ```
 
 Also, note that the prediction interval in case of multiplicative error models are approximate. It is advisable to use simulations instead (which is slower, but more accurate):
 
-```{r}
+```{r ETSMMMForecast}
 plot(forecast(testModel,h=18,interval="simulated"))
 ```
 
 If you want to do the residuals diagnostics, then it is recommended to use `plot` function, something like this (you can select, which of the plots to produce):
 
-```{r}
+```{r ETSMMMPlots}
 par(mfcol=c(3,4))
 plot(testModel,which=c(1:11))
 par(mfcol=c(1,1))
@@ -70,7 +70,7 @@ plot(testModel,which=12)
 
 By default ADAM will estimate models via maximising likelihood function. But there is also a parameter `loss`, which allows selecting from a list of already implemented loss functions (again, see documentation for `adam()` for the full list) or using a function written by a user. Here is how to do the latter on the example of `BJsales`:
 
-```{r}
+```{r ETSLoss}
 lossFunction <- function(actual, fitted, B){
   return(sum(abs(actual-fitted)^3))
 }
@@ -82,14 +82,14 @@ testModel
 Note that you need to have parameters actual, fitted and B in the function, which correspond to the vector of actual values, vector of fitted values on each iteration and a vector of the optimised parameters.
 
 `loss` and `distribution` parameters are independent, so in the example above, we have assumed that the error term follows Normal distribution, but we have estimated its parameters using a non-conventional loss because we can. Some of distributions assume that there is an additional parameter, which can either be estimated or provided by user. These include Asymmetric Laplace (`distribution="dalaplace"`) with `alpha`, Generalised Normal and Log-Generalised normal (`distribution=c("gnorm","dlgnorm")`) with `shape` and Student's T (`distribution="dt"`) with `nu`:
-```{r}
+```{r ETSDGNorm}
 testModel <- adam(BJsales, "MMN", silent=FALSE, distribution="dgnorm", shape=3,
                   h=12, holdout=TRUE)
 ```
 
 The model selection in ADAM ETS relies on information criteria and works correctly only for the `loss="likelihood"`. There are several options, how to select the model, see them in the description of the function: `?adam()`. The default one uses branch-and-bound algorithm, similar to the one used in `es()`, but only considers additive trend models (the multiplicative trend ones are less stable and need more attention from a forecaster):
 
-```{r}
+```{r ETSSelection}
 testModel <- adam(AirPassengers, "ZXZ", lags=c(1,12), silent=FALSE,
                   h=12, holdout=TRUE)
 testModel
@@ -99,7 +99,7 @@ Note that the function produces point forecasts if `h>0`, but it won't generate 
 
 Similarly to `es()`, function supports combination of models, but it saves all the tested models in the output for a potential reuse. Here how it works:
 
-```{r}
+```{r ETSCombination}
 testModel <- adam(AirPassengers, "CXC", lags=c(1,12),
                   h=12, holdout=TRUE)
 testForecast <- forecast(testModel,h=18,interval="semiparametric", level=c(0.9,0.95))
@@ -109,14 +109,14 @@ plot(testForecast)
 
 Yes, now we support vectors for the levels in case you want to produce several. In fact, we also support side for prediction interval, so you can extract specific quantiles without a hustle:
 
-```{r}
+```{r ETSInterval}
 forecast(testModel,h=18,interval="semiparametric", level=c(0.9,0.95,0.99), side="upper")
 ```
 
 A brand new thing in the function is the possibility to use several frequencies (double / triple / quadruple / ... seasonal models). 
 In order to show how it works, we will generate an artificial time series, inspired by half-hourly electricity demand using `sim.gum()` function:
 
-```{r}
+```{r GUMData}
 ordersGUM <- c(1,1,1)
 lagsGUM <- c(1,48,336)
 initialGUM1 <- -25381.7
@@ -175,7 +175,7 @@ y <- sim.gum(orders=ordersGUM, lags=lagsGUM, nsim=1, frequency=336, obs=3360,
 
 We can then apply ADAM to this data:
 
-```{r}
+```{r ETSMultiFreq}
 testModel <- adam(y, "MMdM", lags=c(1,48,336), initial="backcasting",
                   silent=FALSE, h=336, holdout=TRUE)
 testModel
@@ -183,7 +183,7 @@ testModel
 
 Note that the more lags you have, the more initial seasonal components the function will need to estimate, which is a difficult task. This is why we used `initial="backcasting"` in the example above - this speeds up the estimation by reducing the number of parameters to estimate. Still, the optimiser might not get close to the optimal value, so we can help it. First, we can give more time for the calculation, increasing the number of iterations via `maxeval`  (the default value is 40 iterations for each estimated parameter, e.g. $40 \times 5 = 200$ in our case):
 
-```{r}
+```{r ETSMultiFreq10000}
 testModel <- adam(y, "MMdM", lags=c(1,48,336), initial="backcasting",
                   silent=FALSE, h=336, holdout=TRUE, maxeval=10000)
 testModel
@@ -191,13 +191,13 @@ testModel
 
 This will take more time, but will typically lead to more refined parameters. You can control other parameters of the optimiser as well, such as `algorithm`, `xtol_rel`, `print_level` and others, which are explained in the documentation for `nloptr` function from nloptr package (run `nloptr.print.options()` for details). Second, we can give a different set of initial parameters for the optimiser, have a look at what the function saves:
 
-```{r eval=FALSE, echo=TRUE}
+```{r ETSMultiFreqB, eval=FALSE, echo=TRUE}
 testModel$B
 ```
 
 and use this as a starting point for the reestimation (e.g. with a different algorithm):
 
-```{r}
+```{r ETSMultiFreqBReused}
 testModel <- adam(y, "MMdM", lags=c(1,48,336), initial="backcasting",
                   silent=FALSE, h=336, holdout=TRUE, B=testModel$B)
 testModel
@@ -207,7 +207,7 @@ If you are ready to wait, you can change the initialisation to the `initial="opt
 
 In addition, you can specify some parts of the initial state vector or some parts of the persistence vector, here is an example:
 
-```{r}
+```{r ETSMultiFreqBeta}
 testModel <- adam(y, "MMdM", lags=c(1,48,336), initial="backcasting",
                   silent=TRUE, h=336, holdout=TRUE, persistence=list(beta=0.1))
 testModel
@@ -216,14 +216,14 @@ testModel
 
 The function also handles intermittent data (the data with zeroes) and the data with missing values. This is partially covered in the vignette on the [oes()](oes.html) function. Here is a simple example:
 
-```{r}
+```{r ETSMultiFreqOccurrence}
 testModel <- adam(rpois(120,0.5), "MNN", silent=FALSE, h=12, holdout=TRUE,
                   occurrence="odds-ratio")
 testModel
 ```
 
 Finally, `adam()` is faster than `es()` function, because its code is more efficient and it uses a different optimisation algorithm with more finely tuned parameters by default. Let's compare:
-```{r}
+```{r ADAMETSvES}
 adamModel <- adam(AirPassengers, "CCC",
                   h=12, holdout=TRUE)
 esModel <- es(AirPassengers, "CCC",
@@ -238,7 +238,7 @@ esModel
 # ADAM ARIMA
 As mentioned above, ADAM does not only contain ETS, it also contains ARIMA model, which is regulated via `orders` parameter. If you want to have a pure ARIMA, you need to switch off ETS, which is done via `model="NNN"`:
 
-```{r}
+```{r ARIMA022}
 testModel <- adam(BJsales, "NNN", silent=FALSE, orders=c(0,2,2),
                   h=12, holdout=TRUE)
 testModel
@@ -250,7 +250,7 @@ The functionality of ADAM ARIMA is similar to the one of `msarima` function in `
 
 First, changing the `distribution` parameter will allow switching between additive / multiplicative models. For example, `distribution="dlnorm"` will create an ARIMA, equivalent to the one on logarithms of the data:
 
-```{r}
+```{r ARIMADLNorm}
 testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dlnorm",
                   h=12, holdout=TRUE)
@@ -259,7 +259,7 @@ testModel
 
 Second, if you want the model with intercept / drift, you can do it using `constant` parameter:
 
-```{r}
+```{r ARIMADrift}
 testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12), constant=TRUE,
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm",
                   h=12, holdout=TRUE)
@@ -268,7 +268,7 @@ testModel
 
 If the model contains non-zero differences, then the constant acts as a drift. Third, you can specify parameters of ARIMA via the `arma` parameter in the following manner:
 
-```{r}
+```{r ARIMABProvided}
 testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,2)), distribution="dnorm",
                   arma=list(ar=c(0.1,0.1), ma=c(-0.96, 0.03, -0.12, 0.03)),
@@ -278,7 +278,7 @@ testModel
 
 Finally, the initials for the states can also be provided, although getting the correct ones might be a challenging task (you also need to know how many of them to provide; checking `testModel$initial` might help):
 
-```{r}
+```{r ARIMAInitials}
 testModel <- adam(AirPassengers, "NNN", silent=FALSE, lags=c(1,12),
                   orders=list(ar=c(1,1),i=c(1,1),ma=c(2,0)), distribution="dnorm",
                   initial=list(arima=AirPassengers[1:24]),
@@ -295,14 +295,14 @@ Finally, ARIMA is typically slower than ETS, mainly because its initial states a
 # ADAM ETSX / ARIMAX / ETSX+ARIMA
 Another important feature of ADAM is introduction of explanatory variables. Unlike in `es()`, `adam()` expects a matrix for `data` and can work with a formula. If the latter is not provided, then it will use all explanatory variables. Here is a brief example:
 
-```{r}
+```{r ADAMX1}
 BJData <- cbind(BJsales,BJsales.lead)
 testModel <- adam(BJData, "AAN", h=18, silent=FALSE)
 ```
 
 If you work with data.frame or similar structures, then you can use them directly, ADAM will extract the response variable either assuming that it is in the first column or from the provided formula (if you specify one via `formula` parameter). Here is an example, where we create a matrix with lags and leads of an explanatory variable:
 
-```{r}
+```{r ADAMXLags}
 BJData <- cbind(as.data.frame(BJsales),as.data.frame(xregExpander(BJsales.lead,c(-7:7))))
 colnames(BJData)[1] <- "y"
 testModel <- adam(BJData, "ANN", h=18, silent=FALSE, holdout=TRUE, formula=y~xLag1+xLag2+xLag3)
@@ -311,18 +311,18 @@ testModel
 
 Similarly to `es()`, there is a support for variables selection, but via the `regressors` parameter instead of `xregDo`, which will then use `stepwise()` function from `greybox` package on the residuals of the model:
 
-```{r}
+```{r ADAMXSelect}
 testModel <- adam(BJData, "ANN", h=18, silent=FALSE, holdout=TRUE, regressors="select")
 ```
 
 The same functionality is supported with ARIMA, so you can have, for example, ARIMAX(0,1,1), which is equivalent to ETSX(A,N,N):
-```{r}
+```{r ADAMXARIMA}
 testModel <- adam(BJData, "NNN", h=18, silent=FALSE, holdout=TRUE, regressors="select", orders=c(0,1,1))
 ```
 
 The two models might differ because they have different initialisation in the optimiser and different bounds for parameters (ARIMA relies on invertibility condition, while ETS does the usual (0,1) bounds by default). It is possible to make them identical if the number of iterations is increased and the initial parameters are the same. Here is an example of what happens, when the two models have exactly the same parameters:
 
-```{r}
+```{r ADAMARIMA-ETS}
 BJData <- BJData[,c("y",names(testModel$initial$xreg))];
 testModel <- adam(BJData, "NNN", h=18, silent=TRUE, holdout=TRUE, orders=c(0,1,1),
                   initial=testModel$initial, arma=testModel$arma)
@@ -335,7 +335,7 @@ testModel2
 
 Another feature of ADAM is the time varying parameters in the SSOE framework, which can be switched on via `regressors="adapt"`:
 
-```{r}
+```{r ADAMXAdapt}
 testModel <- adam(BJData, "ANN", h=18, silent=FALSE, holdout=TRUE, regressors="adapt")
 testModel$persistence
 ```
@@ -344,7 +344,7 @@ Note that the default number of iterations might not be sufficient in order to g
 
 Finally, you can produce a mixture of ETS, ARIMA and regression, by using the respective parameters, like this:
 
-```{r}
+```{r ADAMMixture}
 testModel <- adam(BJData, "AAN", h=18, silent=FALSE, holdout=TRUE, orders=c(1,0,0))
 summary(testModel)
 ```
@@ -353,7 +353,7 @@ This might be handy, when you explore a high frequency data, want to add calenda
 
 Finally, if you estimate ETSX or ARIMAX model and want to speed things up, it is recommended to use `initial="backcasting"`, which will then initialise dynamic part of the model via backcasting and use optimisation for the parameters of the explanatory variables:
 
-```{r}
+```{r ADAMMixtureBackcasting}
 testModel <- adam(BJData, "AAN", h=18, silent=TRUE, holdout=TRUE, initial="backcasting")
 summary(testModel)
 ```
@@ -363,7 +363,7 @@ While the original `adam()` function allows selecting ETS components and explana
 
 In order to do the selection of the most appropriate distribution, you need to provide a vector of those that you want to check:
 
-```{r}
+```{r AutoADAM}
 testModel <- auto.adam(BJsales, "XXX", silent=FALSE,
                        distribution=c("dnorm","dlaplace","ds"),
                        h=12, holdout=TRUE)
@@ -372,14 +372,14 @@ testModel
 
 This process can also be done in parallel on either the automatically selected number of cores (e.g. `parallel=TRUE`) or on the specified by user (e.g. `parallel=4`):
 
-```{r eval=FALSE, echo=TRUE}
+```{r AutoADAMParallel, eval=FALSE, echo=TRUE}
 testModel <- auto.adam(BJsales, "ZZZ", silent=FALSE, parallel=TRUE,
                        h=12, holdout=TRUE)
 ```
 
 If you want to add ARIMA or regression components, you can do it in the exactly the same way as for the `adam()` function. Here is an example of ETS+ARIMA:
 
-```{r}
+```{r AutoADAMETSARIMA}
 testModel <- auto.adam(BJsales, "AAN", orders=list(ar=2,i=0,ma=0), silent=TRUE,
                        distribution=c("dnorm","dlaplace","ds","dgnorm"),
                        h=12, holdout=TRUE)
@@ -388,7 +388,7 @@ testModel
 
 However, this way the function will just use ARIMA(2,0,0) and fit it together with ETS(A,A,N). If you want it to select the most appropriate ARIMA orders from the provided (e.g. up to AR(2), I(1) and MA(2)), you need to add parameter `select=TRUE` to the list in `orders`:
 
-```{r}
+```{r AutoADAMETSARIMASelect}
 testModel <- auto.adam(BJsales, "XXN", orders=list(ar=2,i=2,ma=2,select=TRUE),
                        distribution="default", silent=FALSE,
                        h=12, holdout=TRUE)
@@ -398,7 +398,7 @@ testModel
 Knowing how to work with `adam()`, you can use similar principles, when dealing with `auto.adam()`. Just keep in mind that the provided `persistence`, `phi`, `initial`, `arma` and `B` won't work, because this contradicts the idea of the model selection.
 
 Finally, there is also the mechanism of automatic outliers detection, which extracts residuals from the best model, flags observations that lie outside the prediction interval of the width `level` in sample and then refits `auto.adam()` with the dummy variables for the outliers. Here how it works:
-```{r}
+```{r AutoADAMETSOutliers}
 testModel <- auto.adam(AirPassengers, "PPP", silent=FALSE, outliers="use",
                        distribution="default",
                        h=12, holdout=TRUE)
@@ -407,4 +407,4 @@ testModel
 
 If you specify `outliers="select"`, the function will create leads and lags 1 of the outliers and then select the most appropriate ones via the `regressors` parameter of adam.
 
-If you want to know more about ADAM, you are welcome to visit [the online textbook](https://www.openforecast.org/adam/) (this is a work in progress at the moment).
+If you want to know more about ADAM, you are welcome to visit [the online monograph](https://www.openforecast.org/adam/).

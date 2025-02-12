@@ -3,6 +3,8 @@
 [![Downloads](https://cranlogs.r-pkg.org/badges/smooth)](https://cran.r-project.org/package=smooth)
 [![R-CMD-check](https://github.com/config-i1/smooth/actions/workflows/test.yml/badge.svg)](https://github.com/config-i1/smooth/actions/workflows/test.yml)
 
+# ATTENTION: THIS IS AN EXPERIMENTAL BRANCH AIMING TO ADD A PYTHON API FOR SMOOTH!
+
 The package _smooth_ contains several smoothing (exponential and not) functions that are used in forecasting.
 
 ![hex-sticker of the smooth package for R](https://github.com/config-i1/smooth/blob/master/man/figures/smooth-web.png?raw=true)

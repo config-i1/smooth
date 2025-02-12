@@ -1,4 +1,4 @@
-smooth v4.1.1 (Release data: 2025-01-05)
+smooth v4.1.1 (Release data: 2025-02-03)
 =======
 
 Changes:
@@ -10,6 +10,7 @@ Bugfixes:
 * Corrected the author details in the documentation.
 * reapply() would not work with bootstrap in case of negative data. Now it does.
 * Added a check in adam() to make sure that model is not estimated when all parameters are provided in case of ARIMA.
+* Tried to fix the issue with UBSAN, but not sure whether it worked, because it is not possible to reproduce it on my PC or github Actions... Just praying that it works.
 
 
 smooth v4.1.0 (Release data: 2024-10-01)
