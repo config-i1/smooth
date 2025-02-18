@@ -74,6 +74,10 @@ pure multiplicative models. "P" stands for "Pure". This cannot be mixed with
 other types of components.
 \item \code{model="FFF"} will select between all the 30 types of models. "F"
 stands for "Full". This cannot be mixed with other types of components.
+\item \code{model="SSS"} creates a pool of 19 standard sensible models, which
+have finite variance. This can be combined with "X" or "Y" to further restrict
+the pool. For example, \code{model="SXS"} corresponds to the default pool of 15
+models in the \code{ets()} function from the forecast package.
 \item The parameter \code{model} can also be a vector of names of models for a
 finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
 estimate only two models and select the best of them.

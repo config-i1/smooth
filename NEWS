@@ -1,8 +1,9 @@
-smooth v4.1.2 (Release data: 2025-02-12)
+smooth v4.1.2 (Release data: 2025-02-18)
 =======
 
 Changes:
 * A better visualisation of forecasts in case of cumulative ones.
+* model="SSS" in adam() and es(), which restricts the pool to the standard models. model="SXS" corresponds to the pool from the ets() function in the forecast package.
 
 
 smooth v4.1.1 (Release data: 2025-02-03)
