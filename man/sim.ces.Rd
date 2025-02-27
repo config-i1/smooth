@@ -101,11 +101,9 @@ simulate(ourModel,nsim=10)
 }
 \references{
 \itemize{
-\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
-smoothing. Working Paper of Department of Management Science, Lancaster
-University 2015:1, 1-31.
-\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
-for Time Series Forecasting. Not yet published.
+\item  Svetunkov, I., Kourentzes, N., & Ord, J. K. (2022).
+Complex exponential smoothing. Naval Research Logistics, 69(8),
+1108–1123. https://doi.org/10.1002/nav.22074
 }
 }
 \seealso{

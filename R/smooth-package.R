@@ -66,13 +66,13 @@
 #'
 #' @examples
 #'
-#' \donttest{y <- ts(rnorm(100,10,3),frequency=12)
+#' \donttest{y <- ts(rnorm(100,10,3), frequency=12)
 #'
-#' adam(y,h=20,holdout=TRUE)
-#' es(y,h=20,holdout=TRUE)
-#' gum(y,h=20,holdout=TRUE)
-#' auto.ces(y,h=20,holdout=TRUE)
-#' auto.ssarima(y,h=20,holdout=TRUE)}
+#' adam(y, h=20, holdout=TRUE)
+#' es(y, h=20, holdout=TRUE)
+#' gum(y, h=20, holdout=TRUE)
+#' auto.ces(y, h=20, holdout=TRUE)
+#' auto.ssarima(y, h=20, holdout=TRUE)}
 #'
 #' @import zoo Rcpp
 #' @importFrom nloptr nloptr

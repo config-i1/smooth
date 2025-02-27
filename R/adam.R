@@ -5948,7 +5948,7 @@ plot.adam <- function(x, which=c(1,2,4,6), level=0.95, legend=FALSE,
     plot8 <- function(x, ...){
         parDefault <- par(no.readonly=TRUE);
         on.exit(par(parDefault), add=TRUE);
-        if(any(unlist(gregexpr("C",x$model))==-1)){
+        if(smoothType(x)=="CES" || any(unlist(gregexpr("C",x$model))==-1)){
             statesNames <- c("actuals",colnames(x$states),"residuals");
             x$states <- cbind(actuals(x),x$states,residuals(x));
             colnames(x$states) <- statesNames;
@@ -6125,6 +6125,7 @@ print.adam <- function(x, digits=4, ...){
     }
     etsModel <- any(unlist(gregexpr("ETS",x$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",x$model))!=-1);
+    cesModel <- smoothType(x)=="CES";
 
     cat("Time elapsed:",round(as.numeric(x$timeElapsed,units="secs"),2),"seconds");
     # tail all.vars is needed in case smooth::adam() was used
@@ -6184,6 +6185,20 @@ print.adam <- function(x, digits=4, ...){
     # If there is a Intercept/drift
     if(!is.null(x$constant)){
         cat("\nIntercept/Drift value:", round(x$constant, digits));
+    }
+
+    if(cesModel){
+        if(!is.null(x$parameters)){
+            cat("\na0 + ia1:",round(x$parameters$a,digits),"\n");
+            if(!is.null(x$parameters$b)){
+                if(Im(x$parameters$b)!=0){
+                    cat("b0 + ib1:",round(x$parameters$b,digits),"\n");
+                }
+                else{
+                    cat("b:",round(as.numeric(x$parameters$b),digits),"\n");
+                }
+            }
+        }
     }
 
     if(etsModel){
@@ -6862,6 +6877,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
 
     cl <- match.call();
     yInSample <- actuals(object);
+    cesModel <- smoothType(object)=="CES";
 
     method <- match.arg(method);
     if(method=="cr"){
@@ -6952,7 +6968,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         newCall$loss <- object$loss;
     }
     # If ETS was selected
-    if(any(object$call!=modelType(object))){
+    if(!cesModel && any(object$call!=modelType(object))){
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
@@ -7123,6 +7139,49 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             testModel$data[,1] <- object$data[,1];
             colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
             return(vcov(testModel));
+        }
+        else if(smoothType(object)=="CES"){
+            modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+                                                FI=TRUE, stepSize=ellipsis$stepSize));
+            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
+            # If there are issues, try the same stuff, but with a different step size for hessian
+            if(any(brokenVariables)){
+                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                brokenVariables <- apply(modelReturn$FI==0,1,all);
+            }
+            # If there are NaNs, then this has not been estimated well
+            if(any(is.nan(modelReturn$FI))){
+                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
+                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
+            }
+            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+                               "which means that the likelihood was not maximised properly. ",
+                               "Consider reestimating the model, tuning the optimiser or ",
+                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
+            }
+            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
+
+            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+            if(inherits(vcovMatrix,"try-error")){
+                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
+                if(inherits(vcovMatrix,"try-error")){
+                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
+                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
+                            call.=FALSE);
+                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+                }
+            }
+            # If there were broken variables, reproduce the zero elements.
+            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+
+            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+            return(modelReturn$FI);
         }
         else{
             modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
@@ -7824,6 +7883,7 @@ plot.adam.predict <- function(x, ...){
 #' @param scenarios Binary, defining whether to return scenarios produced via
 #' simulations or not. Only works if \code{interval="simulated"}. If \code{TRUE}
 #' the object will contain \code{scenarios} variable.
+#'
 #' @rdname forecast.smooth
 #' @importFrom stats rnorm rlogis rt rlnorm rgamma
 #' @importFrom stats qnorm qlogis qt qlnorm qgamma
@@ -7890,6 +7950,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
+    cesModel <- smoothType(object)=="CES";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7904,19 +7965,29 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     profilesRecentTable <- object$profile;
 
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+    if(!cesModel){
+        if(!is.null(object$initial$seasonal)){
+            if(is.list(object$initial$seasonal)){
+                componentsNumberETSSeasonal <- length(object$initial$seasonal);
+            }
+            else{
+                componentsNumberETSSeasonal <- 1;
+            }
         }
         else{
-            componentsNumberETSSeasonal <- 1;
+            componentsNumberETSSeasonal <- 0;
         }
+        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else{
-        componentsNumberETSSeasonal <- 0;
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
     }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
     obsStates <- nrow(object$states);
     obsInSample <- nobs(object);
@@ -7938,8 +8009,8 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
 
     # Get the lookup table
     indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample+h,
-                                                lags(object), c(yIndex,yForecastIndex),
-                                                yClasses)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
+                                           lags(object), c(yIndex,yForecastIndex),
+                                           yClasses)$lookup[,-c(1:(obsInSample+lagsModelMax)),drop=FALSE];
 
     # All the important matrices
     matVt <- t(object$states[obsStates-(lagsModelMax:1)+1,,drop=FALSE]);
@@ -10649,19 +10720,31 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     #
     # }
 
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+    cesModel <- smoothType(object)=="CES";
+
+    if(!cesModel){
+        if(!is.null(object$initial$seasonal)){
+            if(is.list(object$initial$seasonal)){
+                componentsNumberETSSeasonal <- length(object$initial$seasonal);
+            }
+            else{
+                componentsNumberETSSeasonal <- 1;
+            }
         }
         else{
-            componentsNumberETSSeasonal <- 1;
+            componentsNumberETSSeasonal <- 0;
         }
+        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else{
-        componentsNumberETSSeasonal <- 0;
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
     }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -10751,7 +10834,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     }
     profiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsInSample);
     indexLookupTable <- profiles$lookup;
-    profilesRecentTable <- profiles$recent;
 
     #### Prepare the necessary matrices ####
     # States are defined similar to how it is done in adam.
