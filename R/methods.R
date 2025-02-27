@@ -718,11 +718,8 @@ fitted.smooth.forecast <- function(object, ...){
 #' @keywords ts univar
 #' @examples
 #'
-#' ourModel <- ces(rnorm(100,0,1),h=10)
-#'
-#' forecast(ourModel,h=10)
-#' forecast(ourModel,h=10,interval=TRUE)
-#' plot(forecast(ourModel,h=10,interval=TRUE))
+#' ourModel <- es(rnorm(100,0,1), h=10)
+#' forecast(ourModel, h=10, interval="parametric")
 #'
 #' @rdname forecast.smooth
 #' @importFrom generics forecast
@@ -2638,8 +2635,11 @@ smoothType <- function(object, ...){
         else if(gregexpr("VES",object$model)!=-1){
             smoothType <- "VES";
         }
+        else if(gregexpr("Constant",object$model)!=-1){
+            smoothType <- "ARIMA";
+        }
         else{
-            smoothType <- NA;
+            smoothType <- "none";
         }
     }
     else{

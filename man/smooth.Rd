@@ -57,13 +57,13 @@ is passed).
 }
 \examples{
 
-\donttest{y <- ts(rnorm(100,10,3),frequency=12)
+\donttest{y <- ts(rnorm(100,10,3), frequency=12)
 
-adam(y,h=20,holdout=TRUE)
-es(y,h=20,holdout=TRUE)
-gum(y,h=20,holdout=TRUE)
-auto.ces(y,h=20,holdout=TRUE)
-auto.ssarima(y,h=20,holdout=TRUE)}
+adam(y, h=20, holdout=TRUE)
+es(y, h=20, holdout=TRUE)
+gum(y, h=20, holdout=TRUE)
+auto.ces(y, h=20, holdout=TRUE)
+auto.ssarima(y, h=20, holdout=TRUE)}
 
 }
 \references{
@@ -89,11 +89,9 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 }
 
 \itemize{
-\item Svetunkov, I., Kourentzes, N. (February 2015). Complex exponential
-smoothing. Working Paper of Department of Management Science, Lancaster
-University 2015:1, 1-31.
-\item Svetunkov I., Kourentzes N. (2017) Complex Exponential Smoothing
-for Time Series Forecasting. Not yet published.
+\item  Svetunkov, I., Kourentzes, N., & Ord, J. K. (2022).
+Complex exponential smoothing. Naval Research Logistics, 69(8),
+1108–1123. https://doi.org/10.1002/nav.22074
 }
 
 \itemize{
