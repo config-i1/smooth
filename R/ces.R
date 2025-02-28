@@ -23,10 +23,10 @@ ces_old <- function(data, seasonality=c("none","simple","partial","full"),
     startTime <- Sys.time();
 
     ### Depricate the old parameters
-    ellipsis <- list(...)
+    ellipsis <- list(...);
 
     y <- data;
-    cumulative <- FALSE
+    cumulative <- FALSE;
     interval <- ifelse(!is.null(ellipsis$interval),ellipsis$interval,"none");
     level <- ifelse(!is.null(ellipsis$level),ellipsis$level,0.95);
     xreg <- ellipsis$xreg;

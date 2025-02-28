@@ -23,6 +23,8 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template ADAMDataFormulaRegLossSilentHHoldout
+#'
 #' @template smoothRef
 #' @template ssADAMRef
 #' @template ssGeneralRef
@@ -48,12 +50,6 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param formula Formula to use in case of explanatory variables. If \code{NULL},
 #' then all the variables are used as is. Can also include \code{trend}, which would add
 #' the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.
-#' @param regressors The variable defines what to do with the provided explanatory
-#' variables:
-#' \code{"use"} means that all of the data should be used, while
-#' \code{"select"} means that a selection using \code{ic} should be done,
-#' \code{"adapt"} will trigger the mechanism of time varying parameters for the
-#' explanatory variables.
 #' @param initial Should be a character, which can be \code{"optimal"},
 #' meaning that all initial states are optimised, or \code{"backcasting"},
 #' meaning that the initials of dynamic part of the model are produced using
@@ -69,46 +65,11 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param b Second complex smoothing parameter. Can be real if
 #' \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 #' complex number.
-#' @param ic The information criterion to use in the model selection.
-#' @param loss The type of Loss Function used in optimization. \code{loss} can
-#' be:
-#' \itemize{
-#' \item \code{likelihood} - the model is estimated via the maximisation of the
-#' likelihood of the function specified in \code{distribution};
-#' \item \code{MSE} (Mean Squared Error),
-#' \item \code{MAE} (Mean Absolute Error),
-#' \item \code{HAM} (Half Absolute Moment),
-#' \item \code{LASSO} - use LASSO to shrink the parameters of the model;
-#' \item \code{RIDGE} - use RIDGE to shrink the parameters of the model;
-#' \item \code{TMSE} - Trace Mean Squared Error,
-#' \item \code{GTMSE} - Geometric Trace Mean Squared Error,
-#' \item \code{MSEh} - optimisation using only h-steps ahead error,
-#' \item \code{MSCE} - Mean Squared Cumulative Error.
-#' }
-#'
-#' Note that model selection and combination works properly only for the default
-#' \code{loss="likelihood"}.
-#'
-#' Furthermore, just for fun the absolute and half analogues of multistep estimators
-#' are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE},
-#' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
-#'
-#' Last but not least, user can provide their own function here as well, making sure
-#' that it accepts parameters \code{actual}, \code{fitted} and \code{B}. Here is an
-#' example:
-#'
-#' \code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
-#'
-#' \code{loss=lossFunction}
-#' @param h The forecast horizon. Mainly needed for the multistep loss functions.
-#' @param holdout Logical. If \code{TRUE}, then the holdout of the size \code{h}
-#' is taken from the data (can be used for the model testing purposes).
 #' @param bounds The type of bounds for the persistence to use in the model
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, or \code{none} - no restrictions (potentially dangerous).
-#' @param silent Specifies, whether to provide the progress of the function or not.
-#' If \code{TRUE}, then the function will print what it does and how much it has
-#' already done.
+#' @param model A previously estimated GUM model, if provided, the function
+#' will not estimate anything and will use all its parameters.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
 #' details
 #'
@@ -119,7 +80,6 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' @examples
 #' y <- rnorm(100,10,3)
-#' ces(y, h=20, holdout=TRUE)
 #' ces(y, h=20, holdout=FALSE)
 #'
 #' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
@@ -136,11 +96,10 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
                 formula=NULL, regressors=c("use","select","adapt"),
                 initial=c("optimal","backcasting","complete"), a=NULL, b=NULL,
-                ic=c("AICc","AIC","BIC","BICc"),
+                # ic=c("AICc","AIC","BIC","BICc"),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                h=0, holdout=FALSE,
-                bounds=c("admissible","none"),
-                silent=TRUE, ...){
+                h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
+                model=NULL, ...){
 # Function estimates CES in state space form with sigma = error
 # and returns complex smoothing parameter value, fitted values,
 # residuals, point and interval forecasts, matrix of CES components and values of
@@ -166,31 +125,31 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     profilesRecentTable <- NULL;
 
     # If a previous model provided as a model, write down the variables
-    if(!is.null(ellipsis$model)){
-        if(is.null(ellipsis$model$model)){
+    if(!is.null(model)){
+        if(is.null(model$model)){
             stop("The provided model is not CES.",call.=FALSE);
         }
-        else if(smoothType(ellipsis$model)!="CES"){
+        else if(smoothType(model)!="CES"){
             stop("The provided model is not CES.",call.=FALSE);
         }
         # This needs to be fixed to align properly in case of various seasonals
-        profilesRecentInitial <- profilesRecentTable <- ellipsis$model$profileInitial;
+        profilesRecentInitial <- profilesRecentTable <- model$profileInitial;
         profilesRecentProvided[] <- TRUE;
         # This is needed to save initials and to avoid the standard checks
-        initialValueProvided <- ellipsis$model$initial;
-        initialOriginal <- initial <- ellipsis$model$initialType;
-        a <- ellipsis$model$parameters$a;
-        b <- ellipsis$model$parameters$b;
-        seasonality <- ellipsis$model$seasonality;
-        matVt <- t(ellipsis$model$states);
-        matWt <- ellipsis$model$measurement;
-        matF <- ellipsis$model$transition;
-        vecG <- ellipsis$model$persistence;
-        ellipsis$B <- coef(ellipsis$model);
-        lags <- lags(ellipsis$model);
+        initialValueProvided <- model$initial;
+        initialOriginal <- initial <- model$initialType;
+        a <- model$parameters$a;
+        b <- model$parameters$b;
+        seasonality <- model$seasonality;
+        matVt <- t(model$states);
+        matWt <- model$measurement;
+        matF <- model$transition;
+        vecG <- model$persistence;
+        ellipsis$B <- coef(model);
+        lags <- lags(model);
 
-        model <- ellipsis$model$model;
-        ellipsis$model <- NULL;
+        model <- model$model;
+        model <- NULL;
         modelDo <- modelDoOriginal <- "use";
     }
     else{
@@ -237,7 +196,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                        constant=FALSE, arma=NULL,
                                        outliers="ignore", level=0.99,
                                        persistence=NULL, phi=NULL, initial,
-                                       distribution="dnorm", loss, h, holdout, occurrence="none", ic, bounds=bounds[1],
+                                       distribution="dnorm", loss, h, holdout, occurrence="none",
+                                       # This is not needed by the function
+                                       ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 

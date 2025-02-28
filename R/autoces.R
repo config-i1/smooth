@@ -1,3 +1,4 @@
+#' @param ic The information criterion to use in the model selection.
 #' @examples
 #'
 #' y <- ts(rnorm(100,10,3),frequency=12)
