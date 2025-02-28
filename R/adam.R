@@ -78,6 +78,8 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssAuthor
 #' @template ssKeywords
 #'
+#' @template ADAMDataFormulaRegLossSilentHHoldout
+#'
 #' @template smoothRef
 #' @template ssADAMRef
 #' @template ssGeneralRef
@@ -85,11 +87,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' @template ssETSRef
 #' @template ssIntervalsRef
 #'
-#' @param data Vector, containing data needed to be forecasted. If a matrix (or
-#' data.frame / data.table) is provided, then the first column is used as a
-#' response variable, while the rest of the matrix is used as a set of explanatory
-#' variables. \code{formula} can be used in the latter case in order to define what
-#' relation to have.
 #' @param model The type of ETS model. The first letter stands for the type of
 #' the error term ("A" or "M"), the second (and sometimes the third as well) is for
 #' the trend ("N", "A", "Ad", "M" or "Md"), and the last one is for the type of
@@ -153,9 +150,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' mechanism similar to \code{auto.msarima()}, but implemented in \code{auto.adam()}.
 #' The values \code{list(ar=...,i=...,ma=...)} specify the maximum orders to check in
 #' this case.
-#' @param formula Formula to use in case of explanatory variables. If \code{NULL},
-#' then all the variables are used as is. Can also include \code{trend}, which would add
-#' the global trend. Only needed if \code{data} is a matrix or if \code{trend} is provided.
 #' @param constant Logical, determining, whether the constant is needed in the model or not.
 #' This is mainly needed for ARIMA part of the model, but can be used for ETS as well. In
 #' case of pure regression, this is completely ignored (use \code{formula} instead).
@@ -164,41 +158,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' "density". The names align with the names of distribution functions in R.
 #' For example, see \link[stats]{dnorm}. For detailed explanation of available
 #' distributions, see vignette in greybox package: \code{vignette("greybox","alm")}.
-#' @param loss The type of Loss Function used in optimization. \code{loss} can
-#' be:
-#' \itemize{
-#' \item \code{likelihood} - the model is estimated via the maximisation of the
-#' likelihood of the function specified in \code{distribution};
-#' \item \code{MSE} (Mean Squared Error),
-#' \item \code{MAE} (Mean Absolute Error),
-#' \item \code{HAM} (Half Absolute Moment),
-#' \item \code{LASSO} - use LASSO to shrink the parameters of the model;
-#' \item \code{RIDGE} - use RIDGE to shrink the parameters of the model;
-#' \item \code{TMSE} - Trace Mean Squared Error,
-#' \item \code{GTMSE} - Geometric Trace Mean Squared Error,
-#' \item \code{MSEh} - optimisation using only h-steps ahead error,
-#' \item \code{MSCE} - Mean Squared Cumulative Error.
-#' }
-#' In case of LASSO / RIDGE, the variables are not normalised prior to the estimation,
-#' but the parameters are divided by the mean values of explanatory variables.
-#'
-#' Note that model selection and combination works properly only for the default
-#' \code{loss="likelihood"}.
-#'
-#' Furthermore, just for fun the absolute and half analogues of multistep estimators
-#' are available: \code{MAEh}, \code{TMAE}, \code{GTMAE}, \code{MACE},
-#' \code{HAMh}, \code{THAM}, \code{GTHAM}, \code{CHAM}.
-#'
-#' Last but not least, user can provide their own function here as well, making sure
-#' that it accepts parameters \code{actual}, \code{fitted} and \code{B}. Here is an
-#' example:
-#'
-#' \code{lossFunction <- function(actual, fitted, B) return(mean(abs(actual-fitted)))}
-#'
-#' \code{loss=lossFunction}
-#' @param h The forecast horizon. Mainly needed for the multistep loss functions.
-#' @param holdout Logical. If \code{TRUE}, then the holdout of the size \code{h}
-#' is taken from the data (can be used for the model testing purposes).
 #' @param persistence Persistence vector \eqn{g}, containing smoothing
 #' parameters. If \code{NULL}, then estimated. Can be also passed as a names list of
 #' the type: \code{persistence=list(level=0.1, trend=0.05, seasonal=c(0.1,0.2),
@@ -248,15 +207,6 @@ utils::globalVariables(c("adamFitted","algorithm","arEstimate","arOrders","arReq
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, \code{usual} - restricting the values with (0, 1) or \code{none} - no
 #' restrictions (potentially dangerous).
-#' @param regressors The variable defines what to do with the provided explanatory
-#' variables:
-#' \code{"use"} means that all of the data should be used, while
-#' \code{"select"} means that a selection using \code{ic} should be done,
-#' \code{"adapt"} will trigger the mechanism of time varying parameters for the
-#' explanatory variables.
-#' @param silent Specifies, whether to provide the progress of the function or not.
-#' If \code{TRUE}, then the function will print what it does and how much it has
-#' already done.
 #' @param ...  Other non-documented parameters. For example, \code{FI=TRUE} will
 #' make the function also produce Fisher Information matrix, which then can be
 #' used to calculated variances of smoothing parameters and initial states of

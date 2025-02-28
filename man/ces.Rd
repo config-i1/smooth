@@ -9,10 +9,9 @@
 ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
   "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
-  a = NULL, b = NULL, ic = c("AICc", "AIC", "BIC", "BICc"),
-  loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE",
-  "MSCE"), h = 0, holdout = FALSE, bounds = c("admissible", "none"),
-  silent = TRUE, ...)
+  a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
+  "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
+  bounds = c("admissible", "none"), silent = TRUE, ...)
 
 auto.ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
@@ -78,8 +77,6 @@ leave them alone, or to use values from previously estimated model.}
 \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
 complex number.}
 
-\item{ic}{The information criterion to use in the model selection.}
-
 \item{loss}{The type of Loss Function used in optimization. \code{loss} can
 be:
 \itemize{
@@ -95,6 +92,8 @@ likelihood of the function specified in \code{distribution};
 \item \code{MSEh} - optimisation using only h-steps ahead error,
 \item \code{MSCE} - Mean Squared Cumulative Error.
 }
+In case of LASSO / RIDGE, the variables are not normalised prior to the estimation,
+but the parameters are divided by the mean values of explanatory variables.
 
 Note that model selection and combination works properly only for the default
 \code{loss="likelihood"}.
@@ -126,6 +125,8 @@ already done.}
 
 \item{...}{Other non-documented parameters. See \link[smooth]{adam} for
 details}
+
+\item{ic}{The information criterion to use in the model selection.}
 }
 \value{
 Object of class "adam" is returned with similar elements to the
@@ -151,7 +152,6 @@ vignette: \code{vignette("ces","smooth")}
 }
 \examples{
 y <- rnorm(100,10,3)
-ces(y, h=20, holdout=TRUE)
 ces(y, h=20, holdout=FALSE)
 
 y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
