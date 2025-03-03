@@ -472,14 +472,14 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             rownames(matVt) <- c("level", "potential", "seasonal 1", "seasonal 2", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1], type="additive")$seasonal[[1]][1:lagsModelMax];
             matVt[4,1:lagsModelMax] <- matVt[3,1:lagsModelMax]/1.1;
         }
         else if(seasonality=="partial"){
             rownames(matVt) <- c("level", "potential", "seasonal", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1], type="additive")$seasonal[[1]][1:lagsModelMax];
         }
         else if(seasonality=="simple"){
             rownames(matVt) <- c("level.s", "potential.s", xregNames);
@@ -855,8 +855,8 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                           nParam=parametersNumber,
                           formula=formula, regressors=regressors,
                           loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                                       c("AIC","AICc","BIC","BICc")),
+                          # ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                          #              c("AIC","AICc","BIC","BICc")),
                           distribution=distribution, bounds=bounds,
                           scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
 

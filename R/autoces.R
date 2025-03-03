@@ -156,12 +156,16 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         seasonality <- seasonality[seasonality!="s"];
     }
 
+    # Get back to the full names
+    seasonalityTypes <- c("none","simple","partial","full");
+    seasonality <- seasonalityTypes[substr(seasonalityTypes,1,1) %in% seasonality];
+
     CESModel <- vector("list",length(seasonality));
     names(CESModel) <- seasonality
     ICs <- vector("numeric", length(seasonality));
 
     if(!silent){
-        cat("Estimating CES with seasonality: ")
+        cat("Estimating CES with seasonality: ");
     }
     for(i in 1:length(seasonality)){
         if(!silent){
@@ -169,7 +173,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         }
 
         cl$seasonality <- seasonality[i];
-        CESModel[[i]] <- eval(cl)
+        CESModel[[i]] <- eval(cl);
         # CESModel[[i]] <- ces(y, seasonality=seasonality[i],
         #                      initial=initialType, ic=ic,
         #                      loss=loss,
@@ -196,6 +200,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         plot(bestModel, 7)
     }
 
+    bestModel$ICs <- ICs;
     bestModel$timeElapsed <- Sys.time()-startTime;
 
     return(bestModel);

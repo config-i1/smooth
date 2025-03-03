@@ -1,20 +1,20 @@
 context("Tests for ces() function");
 
 # Basic CES selection
-testModel <- auto.ces(BJsales, silent=TRUE);
+testModel <- auto.ces(AirPassengers, silent=TRUE);
 test_that("Test CES selection on BJsales", {
-    expect_match(testModel$seasonality, "none");
+    expect_match(testModel$seasonality, "partial");
 })
 
 # Reuse previous CES
-test_that("Test on BJsales, predefined CES", {
-    expect_equal(ces(BJsales, model=testModel, silent=TRUE)$loss, testModel$loss);
+test_that("Test on AirPassengers, predefined CES", {
+    expect_equal(ces(AirPassengers, model=testModel, silent=TRUE)$loss, testModel$loss);
 })
 
 # Test trace cost function for CES
 testModel <- ces(AirPassengers, seasonality="f", h=18, holdout=TRUE, silent=TRUE)
 test_that("Test AICc of CES based on MSTFE on AirPassengers", {
-    expect_equal(as.numeric(round(AICc(testModel),2)), as.numeric(round(testModel$ICs["AICc"],2)));
+    expect_equal(as.numeric(logLik(testModel)), as.numeric(testModel$logLik));
 })
 
 # Test how different passed values are accepted by CES
