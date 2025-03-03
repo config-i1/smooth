@@ -463,9 +463,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 
     # Add parameters for the X
     if(xregModel){
-        if(measurementEstimate){
-            matWt[,componentsNumber+c(1:xregNumber)] <- xregData[1:obsInSample,];
-        }
+        matWt[,componentsNumber+c(1:xregNumber)] <- xregData[1:obsInSample,];
         if(initialXregEstimate && initialType!="complete"){
             matVt[componentsNumber+c(1:xregNumber),1] <- xregModelInitials[[1]][[1]];
         }
