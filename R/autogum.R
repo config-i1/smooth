@@ -88,7 +88,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
         obsInSample <- length(data) - holdout*h;
     }
 
-    icsFinal <- rep(NA,length(type));
+    ICsFinal <- rep(NA,length(type));
     lagsFinal <- list(NA);
     ordersFinal <- list(NA);
 
@@ -109,7 +109,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
     }
 
     for(t in 1:length(type)){
-        ics <- rep(NA,lags);
+        ICs <- rep(NA,lags);
         lagsBest <- NULL
 
         if((!silent) & length(type)!=1){
@@ -129,7 +129,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                             initial=initial, loss=loss,
                             h=h, holdout=holdout,
                             bounds=bounds, silent=TRUE, ...);
-            ics[i] <- IC(gumModel);
+            ICs[i] <- IC(gumModel);
             if(!silent){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
                 cat(paste0(i," out of ",lags));
@@ -141,9 +141,9 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
             cat(". Done.\n");
             cat("Searching for appropriate lags:  ");
         }
-        lagsBest <- c(which(ics==min(ics)),lagsBest);
-        icsBest <- 1E100;
-        while(min(ics)<icsBest){
+        lagsBest <- c(which(ICs==min(ICs)),lagsBest);
+        ICsBest <- 1E100;
+        while(min(ICs)<ICsBest){
             for(i in 1:lags){
                 if(!silent){
                     cat("\b");
@@ -158,7 +158,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                 nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
                               + (ordersTest %*% lagsTest)*(initial=="optimal"));
                 if(obsInSample<=nParamMax){
-                    ics[i] <- 1E100;
+                    ICs[i] <- 1E100;
                     next;
                 }
                 gumModel <- gum(data, orders=ordersTest, lags=lagsTest, type=type[t],
@@ -166,12 +166,12 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                                 initial=initial, loss=loss,
                                 h=h, holdout=holdout,
                                 bounds=bounds, silent=TRUE, ...);
-                ics[i] <- IC(gumModel);
+                ICs[i] <- IC(gumModel);
             }
-            if(!any(which(ics==min(ics))==lagsBest)){
-                lagsBest <- c(which(ics==min(ics)),lagsBest);
+            if(!any(which(ICs==min(ICs))==lagsBest)){
+                lagsBest <- c(which(ICs==min(ICs)),lagsBest);
             }
-            icsBest <- min(ics);
+            ICsBest <- min(ICs);
         }
 
         #### Checking all the possible orders ####
@@ -180,10 +180,10 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
             cat("We found them!\n");
             cat("Searching for appropriate orders:  ");
         }
-        icsBest <- min(ics);
-        ics <- array(c(1:(orders^length(lagsBest))),rep(orders,length(lagsBest)));
-        ics[1] <- icsBest;
-        for(i in 1:length(ics)){
+        ICsBest <- min(ICs);
+        ICs <- array(c(1:(orders^length(lagsBest))),rep(orders,length(lagsBest)));
+        ICs[1] <- ICsBest;
+        for(i in 1:length(ICs)){
             if(!silent){
                 cat("\b");
                 cat(progressBar[(i/4-floor(i/4))*4+1]);
@@ -191,12 +191,12 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
             if(i==1){
                 next;
             }
-            ordersTest <- which(ics==ics[i],arr.ind=TRUE);
+            ordersTest <- which(ICs==ICs[i],arr.ind=TRUE);
             nComponents <- sum(ordersTest);
             nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
                           + (ordersTest %*% lagsBest)*(initial=="optimal"));
             if(obsInSample<=nParamMax){
-                ics[i] <- NA;
+                ICs[i] <- NA;
                 next;
             }
             gumModel <- gum(data, orders=ordersTest, lags=lagsBest, type=type[t],
@@ -204,19 +204,19 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                             initial=initial, loss=loss,
                             h=h, holdout=holdout,
                             bounds=bounds, silent=TRUE, ...);
-            ics[i] <- IC(gumModel);
+            ICs[i] <- IC(gumModel);
         }
-        ordersBest <- which(ics==min(ics,na.rm=TRUE),arr.ind=TRUE);
+        ordersBest <- which(ICs==min(ICs,na.rm=TRUE),arr.ind=TRUE);
         if(!silent){
             cat("\b");
             cat("Orders found.\n");
         }
 
-        icsFinal[t] <- min(ics,na.rm=TRUE);
+        ICsFinal[t] <- min(ICs,na.rm=TRUE);
         lagsFinal[[t]] <- lagsBest;
         ordersFinal[[t]] <- ordersBest;
     }
-    t <- which(icsFinal==min(icsFinal))[1];
+    t <- which(ICsFinal==min(ICsFinal))[1];
 
     if(!silent){
         cat("Reestimating the model. ");
@@ -227,12 +227,6 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                      initial=initial, loss=loss,
                      h=h, holdout=holdout,
                      bounds=bounds, silent=TRUE, ...);
-
-    yFitted <- bestModel$fitted;
-    yForecast <- bestModel$forecast;
-    yUpper <- bestModel$upper;
-    yLower <- bestModel$lower;
-    modelname <- bestModel$model;
 
     bestModel$timeElapsed <- Sys.time()-startTime;
 
