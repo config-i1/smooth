@@ -9146,19 +9146,36 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     #
     # }
 
-    if(!is.null(object$initial$seasonal)){
-        if(is.list(object$initial$seasonal)){
-            componentsNumberETSSeasonal <- length(object$initial$seasonal);
+    cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
+
+    if(cesModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
         }
-        else{
-            componentsNumberETSSeasonal <- 1;
-        }
+    }
+    else if(gumModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- sum(orders(object));
     }
     else{
-        componentsNumberETSSeasonal <- 0;
+        if(!is.null(object$initial$seasonal)){
+            if(is.list(object$initial$seasonal)){
+                componentsNumberETSSeasonal <- length(object$initial$seasonal);
+            }
+            else{
+                componentsNumberETSSeasonal <- 1;
+            }
+        }
+        else{
+            componentsNumberETSSeasonal <- 0;
+        }
+        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
+        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
-    componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-    componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
 
     # Prepare variables for xreg
     if(!is.null(object$initial$xreg)){
@@ -9534,7 +9551,8 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     # j is the index for the components in the profile
     j <- 0
     # Fill in the profile values
-    profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
+    # profilesRecentArray <- array(t(object$states[1:lagsModelMax,]),c(dim(object$profile),nsim));
+    profilesRecentArray <- array(object$profileInitial,c(dim(object$profile),nsim));
     if(etsModel && object$initialType=="optimal"){
         if(any(parametersNames=="level")){
             j <- j+1;
@@ -10656,8 +10674,21 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     # }
 
     cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
 
-    if(!cesModel){
+    if(cesModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
+    }
+    else if(gumModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- sum(orders(object));
+    }
+    else{
         if(!is.null(object$initial$seasonal)){
             if(is.list(object$initial$seasonal)){
                 componentsNumberETSSeasonal <- length(object$initial$seasonal);
@@ -10671,14 +10702,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
         }
         componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
         componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
-    else{
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
     }
 
     # Prepare variables for xreg
@@ -10776,7 +10799,8 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
                    dimnames=list(colnames(object$states),NULL,paste0("nsim",c(1:nsim))));
 
     # Set profile, which is used in the data generation
-    profilesRecentTable <- t(object$states[1:lagsModelMax,]);
+    # profilesRecentTable <- t(object$states[1:lagsModelMax,]);
+    profilesRecentTable <- object$profileInitial;
 
     # Transition and measurement
     arrF <- array(object$transition,c(dim(object$transition),nsim));
