@@ -167,21 +167,14 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     if(!silent){
         cat("Estimating CES with seasonality: ");
     }
-    for(i in 1:length(seasonality)){
+    # ivan41 is needed to avoid conflicts with using index i
+    for(ivan41 in 1:length(seasonality)){
         if(!silent){
-            cat(paste0('"',seasonality[i],'" '));
+            cat(paste0('"',seasonality[ivan41],'" '));
         }
 
-        cl$seasonality <- seasonality[i];
-        CESModel[[i]] <- eval(cl);
-        # CESModel[[i]] <- ces(y, seasonality=seasonality[i],
-        #                      initial=initialType, ic=ic,
-        #                      loss=loss,
-        #                      h=h, holdout=holdout,cumulative=cumulative,
-        #                      interval=intervalType, level=level,
-        #                      bounds=bounds, silent=TRUE,
-        #                      xreg=xreg, regressors=regressors, initialX=initialX,
-        #                      FI=FI);
+        cl$seasonality <- seasonality[ivan41];
+        CESModel[[ivan41]] <- eval(cl);
     }
     ICs <- sapply(CESModel, IC);
 
