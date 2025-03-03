@@ -45,6 +45,26 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     ### Depricate the old parameters
     ellipsis <- list(...);
 
+    # If this is simulated, extract the actuals
+    if(is.adam.sim(data) || is.smooth.sim(data)){
+        data <- data$data;
+    }
+    # If this is Mdata, use all the available stuff
+    else if(inherits(data,"Mdata")){
+        h <- data$h;
+        holdout <- TRUE;
+        lags <- frequency(data$x);
+        data <- ts(c(data$x,data$xx),start=start(data$x),frequency=frequency(data$x));
+    }
+
+    # Measure the sample size based on what was provided as data
+    if(!is.null(dim(data)) && length(dim(data))>1){
+        obsInSample <- nrow(data) - holdout*h;
+    }
+    else{
+        obsInSample <- length(data) - holdout*h;
+    }
+
 # If the pool of models is wrong, fall back to default
     modelsOk <- rep(FALSE,length(seasonality));
     modelsOk[] <- seasonality %in% c("n","s","p","f","none","simple","partial","full");
@@ -63,14 +83,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
                  "BICc"=BICc);
 
     initial <- match.arg(initial);
-    dataFreq <- max(lags);
-    # Measure the sample size based on what was provided as data
-    if(!is.null(dim(data)) && length(dim(data))>1){
-        obsInSample <- nrow(data) - holdout*h;
-    }
-    else{
-        obsInSample <- length(data) - holdout*h;
-    }
+    yFrequency <- max(lags);
 
     # Define maximum needed number of parameters
     if(any(seasonality=="n")){
@@ -83,7 +96,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     if(any(seasonality=="p")){
         nParamMax <- 4;
         if(initial=="optimal"){
-            nParamMax <- nParamMax + 2 + dataFreq;
+            nParamMax <- nParamMax + 2 + yFrequency;
         }
         if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use partial seasonal model.",call.=FALSE);
@@ -93,7 +106,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     if(any(seasonality=="s")){
         nParamMax <- 3;
         if(initial=="optimal"){
-            nParamMax <- nParamMax + 2*dataFreq;
+            nParamMax <- nParamMax + 2*yFrequency;
         }
         if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use simple seasonal model.",call.=FALSE);
@@ -103,7 +116,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     if(any(seasonality=="f")){
         nParamMax <- 5;
         if(initial=="optimal"){
-            nParamMax <- nParamMax + 2 + 2*dataFreq;
+            nParamMax <- nParamMax + 2 + 2*yFrequency;
         }
         if(obsInSample <= nParamMax){
             warning("The sample is too small. We cannot use full seasonal model.",call.=FALSE);
@@ -111,7 +124,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         }
     }
 
-    if(dataFreq==1){
+    if(yFrequency==1){
         if(!silent){
             message("The data is not seasonal. Simple CES was the only solution here.");
         }
@@ -130,15 +143,15 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     }
 
 # Check the number of observations and number of parameters.
-    if(any(seasonality=="f") & (obsInSample <= dataFreq*2 + 2 + 4 + 1)){
+    if(any(seasonality=="f") & (obsInSample <= yFrequency*2 + 2 + 4 + 1)){
         warning("Sorry, but you don't have enough observations for CES(f).",call.=FALSE);
         seasonality <- seasonality[seasonality!="f"];
     }
-    if(any(seasonality=="p") & (obsInSample <= dataFreq + 2 + 3 + 1)){
+    if(any(seasonality=="p") & (obsInSample <= yFrequency + 2 + 3 + 1)){
         warning("Sorry, but you don't have enough observations for CES(p).",call.=FALSE);
         seasonality <- seasonality[seasonality!="p"];
     }
-    if(any(seasonality=="s") & (obsInSample <= dataFreq*2 + 2 + 1)){
+    if(any(seasonality=="s") & (obsInSample <= yFrequency*2 + 2 + 1)){
         warning("Sorry, but you don't have enough observations for CES(s).",call.=FALSE);
         seasonality <- seasonality[seasonality!="s"];
     }
