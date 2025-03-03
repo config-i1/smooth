@@ -137,6 +137,8 @@ will not estimate anything and will use all its parameters.}
 
 \item{...}{Other non-documented parameters. See \link[smooth]{adam} for
 details}
+
+\item{ic}{The information criterion to use in the model selection.}
 }
 \value{
 Object of class "adam" is returned with similar elements to the

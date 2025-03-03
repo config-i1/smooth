@@ -238,6 +238,10 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
 
+    # This is the variable needed for the C++ code to determine whether the head of data needs to be
+    # refined. GUM doesn't need that.
+    refineHead <- FALSE;
+
     ##### Elements of GUM #####
     filler <- function(B, vt, matF, vecG, matWt){
 
@@ -307,7 +311,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, FALSE,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations);
+                                     nIterations, refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -404,6 +408,13 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 
     matF <- diag(componentsNumber+xregNumber);
     vecG <- matrix(0,componentsNumber+xregNumber,1);
+    if(xregModel){
+        rownames(vecG) <- c(paste0("g",1:componentsNumber),
+                            paste0("delta",1:xregNumber));
+    }
+    else{
+        rownames(vecG) <- paste0("g",1:componentsNumber);
+    }
     matWt <- matrix(1, obsInSample, componentsNumber+xregNumber);
     matVt <- matrix(0, componentsNumber+xregNumber, obsStates,
                     dimnames=list(c(paste0("Component ",1:(componentsNumber)), xregNames), NULL));
@@ -579,8 +590,8 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 
         # Prepare for fitting
         elements <- filler(B, matVt[,1:lagsModelMax,drop=FALSE], matF, vecG, matWt);
-        matF <- elements$matF;
-        vecG <- elements$vecG;
+        matF[] <- elements$matF;
+        vecG[] <- elements$vecG;
         matVt[,1:lagsModelMax] <- elements$vt;
         matWt[] <- elements$matWt;
 
@@ -662,7 +673,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                  Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                  componentsNumberARIMA, xregNumber, FALSE,
                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations);
+                                 nIterations, refineHead);
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$yFitted;
@@ -795,7 +806,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                           data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
                           forecast=yForecast, states=matVt, accuracy=errormeasures,
                           profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG, transition=matF,
+                          persistence=vecG[,1], transition=matF,
                           measurement=matWt, initial=initialValue, initialType=initialType,
                           nParam=parametersNumber,
                           formula=formula, regressors=regressors,

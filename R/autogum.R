@@ -3,6 +3,8 @@
 #' (see \link[smooth]{gum}) and selects the best one based on the specified
 #' information criterion.
 #'
+#' @param ic The information criterion to use in the model selection.
+#'
 #' @seealso \code{\link[smooth]{gum}, \link[smooth]{es},
 #' \link[smooth]{ces}, \link[smooth]{sim.es}, \link[smooth]{ssarima}}
 #'
@@ -16,7 +18,7 @@
 #' \donttest{summary(ourModel)}
 #'
 #' @rdname gum
-#' @export auto.gum
+#' @export
 auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","multiplicative","select"),
                      formula=NULL, regressors=c("use","select","adapt","integrate"),
                      initial=c("optimal","backcasting","complete"), ic=c("AICc","AIC","BIC","BICc"),

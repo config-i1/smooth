@@ -639,6 +639,13 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                         ic=ic, bounds=bounds, silent=silent, ...)));
     }
 
+    # This is the variable needed for the C++ code to determine whether the head of data needs to be
+    # refined. Only needed for the ETS(*,Z,*) models
+    refineHead <- FALSE;
+    if(initialType!="backcasting" | componentsNumberARIMA==0){
+        refineHead[] <- TRUE;
+    }
+
     #### The function creates the technical variables (lags etc) based on the type of the model ####
     architector <- function(etsModel, Etype, Ttype, Stype, lags, lagsModelSeasonal,
                             xregNumber, obsInSample, initialType,
@@ -2094,7 +2101,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations);
+                                     nIterations, refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -2522,7 +2529,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                              Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                              componentsNumberARIMA, xregNumber, constantRequired,
                                              yInSample, ot, any(initialType==c("complete","backcasting")),
-                                             nIterations);
+                                             nIterations, refineHead);
                 logLikReturn[] <- logLikReturn - sum(log(abs(adamFitted$yFitted)));
             }
 
@@ -2732,7 +2739,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 #                                          lagsModelAll, indexLookupTable, profilesRecentTable,
 #                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
 #                                          componentsNumberARIMA, xregNumber, constantRequired,
-#                                          yInSample, ot, TRUE, nIterations);
+#                                          yInSample, ot, TRUE, nIterations, refineHead);
 #
 #             adamCreated$matVt[,1:lagsModelMax] <- adamFitted$matVt[,1:lagsModelMax];
 #             # Produce new initials
@@ -3051,7 +3058,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                          Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                          componentsNumberARIMA, xregNumber, constantRequired,
                                          yInSample, ot, any(initialType==c("complete","backcasting")),
-                                         nIterations);
+                                         nIterations, refineHead);
 
             # Extract the errors correctly
             errors <- switch(distributionNew,
@@ -3677,7 +3684,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, constantRequired,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations);
+                                     nIterations, refineHead);
 
         matVt[] <- adamFitted$matVt;
 

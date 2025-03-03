@@ -144,7 +144,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         matVt <- t(model$states);
         matWt <- model$measurement;
         matF <- model$transition;
-        vecG <- model$persistence;
+        vecG <- as.matrix(model$persistence);
         ellipsis$B <- coef(model);
         lags <- lags(model);
 
@@ -201,6 +201,10 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+
+    # This is the variable needed for the C++ code to determine whether the head of data needs to be
+    # refined. GUM doesn't need that.
+    refineHead <- FALSE;
 
     # Fix lagsModel and Ttype for CES. This is needed because the function drops duplicate seasonal lags
     # if(seasonality=="simple"){
@@ -338,7 +342,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, FALSE,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations);
+                                     nIterations, refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -689,7 +693,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                  Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                  componentsNumberARIMA, xregNumber, FALSE,
                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations);
+                                 nIterations, refineHead);
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$yFitted;
@@ -846,7 +850,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                           data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
                           forecast=yForecast, states=matVt, accuracy=errormeasures,
                           profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG, transition=matF,
+                          persistence=vecG[,1], transition=matF,
                           measurement=matWt, initial=initialValue, initialType=initialType,
                           nParam=parametersNumber,
                           formula=formula, regressors=regressors,
