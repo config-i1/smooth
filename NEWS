@@ -1,10 +1,11 @@
-smooth v4.1.2 (Release data: 2025-02-18)
+smooth v4.1.2 (Release data: 2025-03-01)
 =======
 
 Changes:
 * A better visualisation of forecasts in case of cumulative ones.
 * model="SSS" in adam() and es(), which restricts the pool to the standard models. model="SXS" corresponds to the pool from the ets() function in the forecast package.
 * ces() now uses adam() engine instead of the old one. It lacks some functionality (e.g. variable selection, provided initials, occurrence model), but works in general quite well. If you want more features, please file an issue on Github.
+* gum() now also uses adam() engine, has more flexibility, but also lacks some functionality (variable selection, occurrence model). Let me know if anyone needs that.
 
 
 smooth v4.1.1 (Release data: 2025-02-03)

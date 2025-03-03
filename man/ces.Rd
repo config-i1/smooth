@@ -11,7 +11,7 @@ ces(data, seasonality = c("none", "simple", "partial", "full"),
   "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
   a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
   "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = TRUE, ...)
+  bounds = c("admissible", "none"), silent = TRUE, model = NULL, ...)
 
 auto.ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
@@ -122,6 +122,9 @@ model, or \code{none} - no restrictions (potentially dangerous).}
 \item{silent}{Specifies, whether to provide the progress of the function or not.
 If \code{TRUE}, then the function will print what it does and how much it has
 already done.}
+
+\item{model}{A previously estimated GUM model, if provided, the function
+will not estimate anything and will use all its parameters.}
 
 \item{...}{Other non-documented parameters. See \link[smooth]{adam} for
 details}

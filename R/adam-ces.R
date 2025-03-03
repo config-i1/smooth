@@ -1,5 +1,5 @@
 utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","adamElements","yFrequency",
+                         "otLogical","yFrequency","yIndex",
                          "persistenceXreg","yHoldout","distribution"));
 
 #' Complex Exponential Smoothing
@@ -290,7 +290,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
 
             # If exogenous are included
-            if(initialXregEstimate){
+            if(xregModel && initialXregEstimate && initialType!="complete"){
                 vt[j+(1:xregNumber),] <- B[nCoefficients+(1:xregNumber)];
                 nCoefficients[] <- nCoefficients + xregNumber;
             }
@@ -365,7 +365,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            adamErrors <- adamErrorerWrap(adamFitted$matVt, adamElements$matWt, adamElements$matF,
+            adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
                                           lagsModelAll, indexLookupTable, profilesRecentTable,
                                           Etype, Ttype, Stype,
                                           componentsNumberETS, componentsNumberETSSeasonal,
@@ -642,10 +642,42 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
         initialType <- initialOriginal;
         initialXregEstimate <- initialXregEstimateOriginal;
-        a$estimate <- substr(names(B)[1],1,5)=="alpha";
-        if(!is.null(b$value)){
-            b$estimate <- any(substr(names(B),1,4)=="beta");
+    }
+
+    #### Fisher Information ####
+    if(FI){
+        # Substitute values to get hessian
+        if(any(substr(names(B),1,5)=="alpha")){
+            a$estimateOriginal <- a$estimate;
+            a$estimate <- TRUE;
         }
+        if(any(substr(names(B),1,4)=="beta")){
+            b$estimateOriginal <- b$estimate;
+            b$estimate <- TRUE;
+        }
+        initialTypeOriginal <- initialType;
+        initialType <- "optimal";
+        if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
+            initialXregEstimateOriginal <- initialXregEstimate;
+            initialXregEstimate <- TRUE;
+        }
+
+        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+        colnames(FI) <- rownames(FI) <- names(B);
+
+        if(any(substr(names(B),1,5)=="alpha")){
+            a$estimate <- a$estimateOriginal;
+        }
+        if(any(substr(names(B),1,4)=="beta")){
+            b$estimate <- b$estimateOriginal;
+        }
+        initialType <- initialTypeOriginal;
+        if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
+            initialXregEstimate <- initialXregEstimateOriginal;
+        }
+    }
+    else{
+        FI <- NA;
     }
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.
@@ -667,14 +699,13 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
+    if(any(yClasses=="ts")){
+        yForecast <- ts(rep(NA, max(1,h)), start=yForecastStart, frequency=yFrequency);
+    }
+    else{
+        yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
+    }
     if(h>0){
-        if(any(yClasses=="ts")){
-            yForecast <- ts(rep(NA, h), start=yForecastStart, frequency=yFrequency);
-        }
-        else{
-            yForecast <- zoo(rep(NA, h), order.by=yForecastIndex);
-        }
-
         yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
                                           lagsModelAll,
                                           indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
@@ -685,7 +716,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                           h);
     }
     else{
-        yForecast <- NA;
+        yForecast[] <- NA;
     }
 
     ##### Do final check and make some preparations for output #####
@@ -706,7 +737,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             initialValue$seasonal <- matVt[lagsModelAll!=1,1:lagsModelMax];
         }
 
-        if(initialType!="backcasting"){
+        if(initialType=="optimal"){
             parametersNumber[1,1] <- (parametersNumber[1,1] + 2*(seasonality!="simple") +
                                       lagsModelMax*(seasonality!="none") + lagsModelMax*any(seasonality==c("full","simple")));
         }
@@ -757,15 +788,6 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
     parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
 
-    #### Fisher Information ####
-    if(FI){
-        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
-        colnames(FI) <- rownames(FI) <- names(B);
-    }
-    else{
-        FI <- NA;
-    }
-
     ##### Deal with the holdout sample #####
     if(holdout && h>0){
         errormeasures <- measures(yHoldout,yForecast,yInSample);
@@ -776,7 +798,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
     # Amend the class of state matrix
     if(any(yClasses=="ts")){
-        matVt <- ts(t(matVt), start=(time(y)[1]-deltat(y)*lagsModelMax), frequency=yFrequency);
+        matVt <- ts(t(matVt), start=(yIndex[1]-(yIndex[2]-yIndex[1])*lagsModelMax), frequency=yFrequency);
     }
     else{
         yStatesIndex <- yInSampleIndex[1] - lagsModelMax*diff(tail(yInSampleIndex,2)) +

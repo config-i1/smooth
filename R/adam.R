@@ -6828,6 +6828,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     cl <- match.call();
     yInSample <- actuals(object);
     cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
 
     method <- match.arg(method);
     if(method=="cr"){
@@ -6918,7 +6919,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         newCall$loss <- object$loss;
     }
     # If ETS was selected
-    if(!cesModel && any(object$call!=modelType(object))){
+    if(!any(c(cesModel,gumModel)) && any(object$call!=modelType(object))){
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
@@ -7090,58 +7091,37 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
             return(vcov(testModel));
         }
-        else if(smoothType(object)=="CES"){
-            modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
-            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
-            # If there are issues, try the same stuff, but with a different step size for hessian
-            if(any(brokenVariables)){
-                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
-                brokenVariables <- apply(modelReturn$FI==0,1,all);
-            }
-            # If there are NaNs, then this has not been estimated well
-            if(any(is.nan(modelReturn$FI))){
-                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
-                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
-            }
-            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
-            }
-            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
-
-            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-            if(inherits(vcovMatrix,"try-error")){
-                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-                if(inherits(vcovMatrix,"try-error")){
-                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
-                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
-                            call.=FALSE);
-                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
-                }
-            }
-            # If there were broken variables, reproduce the zero elements.
-            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
-
-            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
-            return(modelReturn$FI);
-        }
         else{
-            modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                                 FI=TRUE, stepSize=ellipsis$stepSize));
+            cesModel <- smoothType(object)=="CES";
+            gumModel <- smoothType(object)=="GUM";
+            if(cesModel){
+                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+                                                FI=TRUE, stepSize=ellipsis$stepSize));
+            }
+            else if(gumModel){
+                modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
+                                                FI=TRUE, stepSize=ellipsis$stepSize));
+            }
+            else{
+                modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
+                                                     FI=TRUE, stepSize=ellipsis$stepSize));
+            }
             # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
             brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
             # If there are issues, try the same stuff, but with a different step size for hessian
             if(any(brokenVariables)){
-                modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
-                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                if(cesModel){
+                    modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+                                                        FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
+                else if(gumModel){
+                    modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
+                                                        FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
+                else{
+                    modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
+                                                         FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
                 brokenVariables <- apply(modelReturn$FI==0,1,all);
             }
             # If there are NaNs, then this has not been estimated well
@@ -7901,6 +7881,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     etsModel <- any(unlist(gregexpr("ETS",object$model))!=-1);
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     cesModel <- smoothType(object)=="CES";
+    gumModel <- smoothType(object)=="GUM";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7915,7 +7896,19 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     }
     profilesRecentTable <- object$profile;
 
-    if(!cesModel){
+    if(cesModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
+        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
+        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
+            componentsNumberARIMA[] <- componentsNumberARIMA+1;
+        }
+    }
+    else if(gumModel){
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- sum(orders(object));
+    }
+    else{
         if(!is.null(object$initial$seasonal)){
             if(is.list(object$initial$seasonal)){
                 componentsNumberETSSeasonal <- length(object$initial$seasonal);
@@ -7929,14 +7922,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
         componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
         componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
-    }
-    else{
-        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
-        componentsNumberARIMA <- length(object$initial$nonseasonal) + !is.null(object$initial$seasonal);
-        # If seasonal is formed via a matrix, this must be "simple" or a "full" model
-        if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
-            componentsNumberARIMA[] <- componentsNumberARIMA+1;
-        }
     }
 
     obsStates <- nrow(object$states);
