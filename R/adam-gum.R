@@ -91,7 +91,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive","multiplicative"),
                 formula=NULL, regressors=c("use","select","adapt","integrate"),
-                initial=c("optimal","backcasting","complete"),
+                initial=c("backcasting","optimal","complete"),
                 persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
@@ -216,6 +216,9 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
+    }
+    else{
+        initial <- match.arg(initial);
     }
 
     # Hack parametersChecker if initial="integrate"

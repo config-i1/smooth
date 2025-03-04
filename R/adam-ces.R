@@ -110,6 +110,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    # Record the parental environment. Needed for optimal initialisation
+    env <- parent.frame();
+
     ellipsis <- list(...);
 
     # Check seasonality and loss
@@ -188,6 +191,12 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                     "none"="AAN",
                     "partial"="AAA",
                     "ANA");
+
+    # If initial was provided, trick parametersChecker
+    if(!is.character(initial)){
+        initialValueProvided <- initial;
+        initial <- "optimal";
+    }
 
     ##### Set environment for ssInput and make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
@@ -533,6 +542,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         #               xreg=xreg,regressors=regressors,initialX=initialX,
         #               updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
         # }
+
         # Initialisation before the optimiser
         # if(any(initialType=="optimal",a$estimate,b$estimate)){
         B <- NULL;
@@ -542,41 +552,69 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             names(B) <- c("alpha_0","alpha_1");
         }
 
-        # Index for states
-        j <- 0
-        if(any(seasonality==c("none","simple"))){
-            if(initialType=="optimal"){
-                B <- c(B,c(matVt[1:2,1:lagsModelMax]));
-                j <- 2;
-            }
-        }
-        else if(seasonality=="partial"){
-            if(b$estimate){
+        if(b$estimate){
+            if(seasonality=="partial"){
                 B <- c(B, setNames(0.1, "beta"));
             }
-            if(initialType=="optimal"){
-                B <- c(B,
-                       setNames(matVt[1:2,1], c("level","potential")));
-                B <- c(B,
-                       setNames(matVt[3,1:lagsModelMax],
-                                paste0("seasonal_", c(1:lagsModelMax))));
-                j <- 3;
-            }
-        }
-        else{
-            if(b$estimate){
+            else{
                 B <- c(B,
                        setNames(c(1.3,1), c("beta_0","beta_1")));
             }
-            if(initialType=="optimal"){
-                B <- c(B,
-                       setNames(matVt[1:2,1], c("level","potential")));
-                B <- c(B,
-                       setNames(matVt[3:4,1:lagsModelMax],
-                                paste0(rep(c("seasonal 1_","seasonal 2_"), each=lagsModelMax),
-                                       rep(c(1:lagsModelMax), times=2))));
-                j <- 4;
+        }
+
+        # Index for states
+        if(initialType=="optimal"){
+            clNew <- cl;
+            # If environment is provided, use it
+            if(!is.null(ellipsis$environment)){
+                env <- ellipsis$environment;
             }
+            # Use complete backcasting
+            clNew$initial <- "complete";
+            # Shut things up
+            clNew$silent <- TRUE;
+            # Switch off regressors selection
+            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$regressors <- "use";
+            }
+
+            # Call for CES with backcasting
+            cesBack <- suppressWarnings(eval(clNew, envir=env));
+            B <- cesBack$B;
+            # Vector of initial estimates of parameters
+            if(seasonality!="simple"){
+                B <- c(B, cesBack$initial$nonseasonal);
+            }
+            if(seasonality!="none"){
+                BSeasonal <- as.vector(cesBack$initial$seasonal);
+                if(seasonality=="partial"){
+                    names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
+                }
+                else{
+                    names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
+                                               rep(c(1:lagsModelMax), each=2))
+                }
+                B <- c(B, BSeasonal);
+            }
+
+            # if(any(seasonality==c("none","simple"))){
+            #     B <- c(B,c(matVt[1:2,1:lagsModelMax]));
+            # }
+            # else if(seasonality=="partial"){
+            #     B <- c(B,
+            #            setNames(matVt[1:2,1], c("level","potential")));
+            #     B <- c(B,
+            #            setNames(matVt[3,1:lagsModelMax],
+            #                     paste0("seasonal_", c(1:lagsModelMax))));
+            # }
+            # else{
+            #     B <- c(B,
+            #            setNames(matVt[1:2,1], c("level","potential")));
+            #     B <- c(B,
+            #            setNames(matVt[3:4,1:lagsModelMax],
+            #                     paste0(rep(c("seasonal 1_","seasonal 2_"), each=lagsModelMax),
+            #                            rep(c(1:lagsModelMax), times=2))));
+            # }
         }
 
         if(xregModel){
