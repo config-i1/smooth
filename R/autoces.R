@@ -42,6 +42,10 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
     # Make sure that the thing is silent
     cl$silent <- TRUE;
 
+    # Record the parental environment. Needed for optimal initialisation
+    env <- parent.frame();
+    cl$environment <- env;
+
     ### Depricate the old parameters
     ellipsis <- list(...);
 
@@ -129,7 +133,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
             message("The data is not seasonal. Simple CES was the only solution here.");
         }
         cl$seasonality <- "none";
-        return(eval(cl));
+        return(eval(cl, envir=env));
 #
 #         CESModel <- ces(y, seasonality="n",
 #                         initial=initialType, ic=ic,
