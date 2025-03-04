@@ -28,7 +28,7 @@ gum(data, orders = c(1, 1), lags = c(1, frequency(data)),
 
 auto.gum(data, orders = 3, lags = frequency(data), type = c("additive",
   "multiplicative", "select"), formula = NULL, regressors = c("use",
-  "select", "adapt", "integrate"), initial = c("backcasting", "optimal",
+  "select", "adapt", "integrate"), initial = c("optimal", "backcasting",
   "complete"), ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood",
   "MSE", "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0,
   holdout = FALSE, bounds = c("admissible", "none"), silent = TRUE, ...)

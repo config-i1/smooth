@@ -91,7 +91,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive","multiplicative"),
                 formula=NULL, regressors=c("use","select","adapt","integrate"),
-                initial=c("backcasting","optimal","complete"),
+                initial=c("optimal","backcasting","complete"),
                 persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
@@ -103,6 +103,9 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    # Record the parental environment. Needed for optimal initialisation
+    env <- parent.frame();
+
     ellipsis <- list(...);
 
     # Check seasonality and loss
@@ -148,6 +151,11 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         initialOriginal <- initial;
         initialValueProvided <- NULL;
         persistenceOriginal <- persistence;
+    }
+
+    # If this is Mcomp data, then take the frequency from it
+    if(any(class(data)=="Mdata") && all(lags %in% c(1,frequency(data)))){
+        lags <- c(1,frequency(data$x));
     }
 
     orders <- orders[order(lags)];
@@ -243,7 +251,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
-    refineHead <- FALSE;
+    refineHead <- TRUE;
 
     ##### Elements of GUM #####
     filler <- function(B, vt, matF, vecG, matWt){
@@ -545,9 +553,30 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                 nCoefficients[] <- nCoefficients + componentsNumber;
             }
 
+            # In case of optimal, get some initials from backcasting
             if(initialEstimate && (initialType=="optimal")){
+                clNew <- cl;
+                # If environment is provided, use it
+                if(!is.null(ellipsis$environment)){
+                    env <- ellipsis$environment;
+                }
+                # Use complete backcasting
+                clNew$initial <- "complete";
+                # Shut things up
+                clNew$silent <- TRUE;
+                # Switch off regressors selection
+                if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                    clNew$regressors <- "use";
+                }
+
+                # Call for GUM with backcasting
+                gumBack <- suppressWarnings(eval(clNew, envir=env));
+                B[1:nCoefficients] <- gumBack$B;
+
+                # B <- c(B, gumBack$initial$endogenous);
                 for(i in 1:componentsNumber){
-                    B[nCoefficients+(1:lagsModel[i])] <- matVt[i,lagsModelRev[i]:lagsModelMax];
+                    # B[nCoefficients+(1:lagsModel[i])] <- matVt[i,lagsModelRev[i]:lagsModelMax];
+                    B[nCoefficients+(1:lagsModel[i])] <- gumBack$initial$endogenous[i,lagsModelRev[i]:lagsModelMax];
                     nCoefficients[] <- nCoefficients + lagsModel[i];
                 }
             }
@@ -710,7 +739,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     ##### Do final check and make some preparations for output #####
     # Write down initials of states vector and exogenous
     if(initialType!="provided"){
-        initialValue <- list(endogenous=matVt[1:componentsNumber,1:lagsModelMax]);
+        initialValue <- list(endogenous=matVt[1:componentsNumber,1:lagsModelMax,drop=FALSE]);
         # initialValue <- vector("list", 1*(seasonality!="simple") + 1*(seasonality!="none") + xregModel);
         # if(seasonality=="none"){
         #     names(initialValue) <- c("nonseasonal","xreg")[c(TRUE,xregModel)]

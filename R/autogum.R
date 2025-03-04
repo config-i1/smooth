@@ -21,7 +21,7 @@
 #' @export
 auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","multiplicative","select"),
                      formula=NULL, regressors=c("use","select","adapt","integrate"),
-                     initial=c("backcasting","optimal","complete"), ic=c("AICc","AIC","BIC","BICc"),
+                     initial=c("optimal","backcasting","complete"), ic=c("AICc","AIC","BIC","BICc"),
                      loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                      h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                      ...){
@@ -35,12 +35,26 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
     ### Depricate the old parameters
     ellipsis <- list(...)
 
+    # Record the parental environment. Needed for optimal initialisation
+    env <- environment();
+
 # Add all the variables in ellipsis to current environment
     list2env(ellipsis,environment());
 
     # If this is Mcomp data, then take the frequency from it
     if(any(class(data)=="Mdata") && lags==frequency(data)){
         lags <- frequency(data$x);
+        # Measure the sample size based on what was provided as data
+        obsInSample <- length(data$x) - holdout*h;
+    }
+    else{
+        # Measure the sample size based on what was provided as data
+        if(!is.null(dim(data)) && length(dim(data))>1){
+            obsInSample <- nrow(data) - holdout*h;
+        }
+        else{
+            obsInSample <- length(data) - holdout*h;
+        }
     }
 
     if(any(is.complex(c(orders,lags)))){
@@ -79,14 +93,6 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                  "AICc"=AICc,
                  "BIC"=BIC,
                  "BICc"=BICc);
-
-    # Measure the sample size based on what was provided as data
-    if(!is.null(dim(data)) && length(dim(data))>1){
-        obsInSample <- nrow(data) - holdout*h;
-    }
-    else{
-        obsInSample <- length(data) - holdout*h;
-    }
 
     ICsFinal <- rep(NA,length(type));
     lagsFinal <- list(NA);
@@ -128,7 +134,8 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                             formula=formula, regressors=regressors,
                             initial=initial, loss=loss,
                             h=h, holdout=holdout,
-                            bounds=bounds, silent=TRUE, ...);
+                            bounds=bounds, silent=TRUE, environment=env,
+                            ...);
             ICs[i] <- IC(gumModel);
             if(!silent){
                 cat(paste0(rep("\b",nchar(paste0(i-1," out of ",lags))),collapse=""));
@@ -141,7 +148,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
             cat(". Done.\n");
             cat("Searching for appropriate lags:  ");
         }
-        lagsBest <- c(which(ICs==min(ICs)),lagsBest);
+        lagsBest <- c(which(ICs==min(ICs))[1],lagsBest);
         ICsBest <- 1E100;
         while(min(ICs)<ICsBest){
             for(i in 1:lags){
@@ -165,11 +172,12 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                                 formula=formula, regressors=regressors,
                                 initial=initial, loss=loss,
                                 h=h, holdout=holdout,
-                                bounds=bounds, silent=TRUE, ...);
+                                bounds=bounds, silent=TRUE, environment=env,
+                                ...);
                 ICs[i] <- IC(gumModel);
             }
             if(!any(which(ICs==min(ICs))==lagsBest)){
-                lagsBest <- c(which(ICs==min(ICs)),lagsBest);
+                lagsBest <- c(which(ICs==min(ICs))[1],lagsBest);
             }
             ICsBest <- min(ICs);
         }
@@ -203,7 +211,8 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                             formula=formula, regressors=regressors,
                             initial=initial, loss=loss,
                             h=h, holdout=holdout,
-                            bounds=bounds, silent=TRUE, ...);
+                            bounds=bounds, silent=TRUE, environment=env,
+                            ...);
             ICs[i] <- IC(gumModel);
         }
         ordersBest <- which(ICs==min(ICs,na.rm=TRUE),arr.ind=TRUE);
@@ -226,7 +235,8 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                      formula=formula, regressors=regressors,
                      initial=initial, loss=loss,
                      h=h, holdout=holdout,
-                     bounds=bounds, silent=TRUE, ...);
+                     bounds=bounds, silent=TRUE, environment=env,
+                     ...);
 
     bestModel$timeElapsed <- Sys.time()-startTime;
 
