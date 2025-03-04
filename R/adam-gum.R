@@ -407,7 +407,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     obsStates[] <- obsInSample + lagsModelMax;
 
     # The reversed lags to fill in values in the state vector
-    lagsModelRev <- lagsModelMax - lagsModel + 1;
+    # lagsModelRev <- lagsModelMax - lagsModel + 1;
     componentsNumberARIMA <- componentsNumber <- sum(orders);
 
     # componentsNumberAll is used to fill in all matrices
@@ -477,7 +477,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
 
             nCoefficients[] <- 0;
             for(i in 1:componentsNumber){
-                matVt[i,lagsModelRev[i]:lagsModelMax] <- vtvalues[nCoefficients+(1:lagsModel[i])];
+                matVt[i,1:lagsModel[i]] <- vtvalues[nCoefficients+(1:lagsModel[i])];
                 nCoefficients[] <- nCoefficients + lagsModel[i];
             }
         }
@@ -576,7 +576,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                 # B <- c(B, gumBack$initial$endogenous);
                 for(i in 1:componentsNumber){
                     # B[nCoefficients+(1:lagsModel[i])] <- matVt[i,lagsModelRev[i]:lagsModelMax];
-                    B[nCoefficients+(1:lagsModel[i])] <- gumBack$initial$endogenous[i,lagsModelRev[i]:lagsModelMax];
+                    B[nCoefficients+(1:lagsModel[i])] <- gumBack$initial$endogenous[i,1:lagsModel[i]];
                     nCoefficients[] <- nCoefficients + lagsModel[i];
                 }
             }
