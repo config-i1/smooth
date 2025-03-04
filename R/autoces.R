@@ -178,7 +178,7 @@ auto.ces <- function(data, seasonality=c("none","simple","partial","full"), lags
         }
 
         cl$seasonality <- seasonality[ivan41];
-        CESModel[[ivan41]] <- eval(cl);
+        CESModel[[ivan41]] <- eval(cl, envir=env);
     }
     ICs <- sapply(CESModel, IC);
 
