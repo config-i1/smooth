@@ -212,7 +212,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
-    refineHead <- FALSE;
+    refineHead <- TRUE;
 
     # Fix lagsModel and Ttype for CES. This is needed because the function drops duplicate seasonal lags
     # if(seasonality=="simple"){
@@ -562,7 +562,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
         }
 
-        # Index for states
+        # In case of optimal, get some initials from backcasting
         if(initialType=="optimal"){
             clNew <- cl;
             # If environment is provided, use it
