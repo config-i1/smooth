@@ -203,23 +203,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         lags <- lagsNew;
     }
 
-    # Check whether the multiplicative model is applicable
-    if(type=="multiplicative"){
-        if(any(yInSample<=0)){
-            warning("Multiplicative model can only be used on positive data. Switching to the additive one.",
-                    call.=FALSE);
-            modelIsMultiplicative <- FALSE;
-            type <- "additive";
-        }
-        else{
-            yInSample <- log(yInSample);
-            modelIsMultiplicative <- TRUE;
-        }
-    }
-    else{
-        modelIsMultiplicative <- FALSE;
-    }
-
     # If initial was provided, trick parametersChecker
     if(!is.character(initial)){
         initialValueProvided <- initial;
@@ -248,6 +231,23 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+
+    # Check whether the multiplicative model is applicable
+    if(type=="multiplicative"){
+        if(any(yInSample<=0)){
+            warning("Multiplicative model can only be used on positive data. Switching to the additive one.",
+                    call.=FALSE);
+            modelIsMultiplicative <- FALSE;
+            type <- "additive";
+        }
+        else{
+            yInSample <- log(yInSample);
+            modelIsMultiplicative <- TRUE;
+        }
+    }
+    else{
+        modelIsMultiplicative <- FALSE;
+    }
 
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
@@ -768,6 +768,9 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     nCoefficients <- 0;
 
     modelname <- "GUM";
+    if(type=="multiplicative"){
+        modelname[] <- paste0("log",modelname);
+    }
     if(xregModel){
         modelname[] <- paste0(modelname,"X");
     }
@@ -780,13 +783,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
     parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
 
-    ##### Deal with the holdout sample #####
-    if(holdout && h>0){
-        errormeasures <- measures(yHoldout,yForecast,yInSample);
-    }
-    else{
-        errormeasures <- NULL;
-    }
+    ##### Prepare objects to return #####
 
     # Amend the class of state matrix
     if(any(yClasses=="ts")){
@@ -798,19 +795,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         yStatesIndex <- c(yStatesIndex, yInSampleIndex);
         matVt <- zoo(t(matVt), order.by=yStatesIndex);
     }
-
-    ##### Print output #####
-    # if(!silent){
-    #     if(any(abs(eigen(matF - vecG %*% matWt, only.values=TRUE)$values)>(1 + 1E-10))){
-    #         if(bounds!="a"){
-    #             warning("Unstable model was estimated! Use bounds='admissible' to address this issue!",call.=FALSE);
-    #         }
-    #         else{
-    #             warning("Something went wrong in optimiser - unstable model was estimated! Please report this error to the maintainer.",
-    #                     call.=FALSE);
-    #         }
-    #     }
-    # }
 
     ##### Make a plot #####
     if(!silent){
@@ -832,9 +816,24 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         }
     }
 
+    # If this was a log-models, fix it
+    if(modelIsMultiplicative){
+        logLikValue[] <- logLikValue - sum(yInSample);
+        yInSample[] <- exp(yInSample);
+        yFitted[] <- exp(yFitted);
+        yForecast[] <- exp(yForecast);
+    }
+
+    if(holdout && h>0){
+        errormeasures <- measures(yHoldout,yForecast,yInSample);
+    }
+    else{
+        errormeasures <- NULL;
+    }
+
     ##### Return values #####
     modelReturned <- list(model=modelname, timeElapsed=Sys.time()-startTime,
-                          call=cl, orders=orders, lags=lags,
+                          call=cl, orders=orders, lags=lags, type=type,
                           data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
                           forecast=yForecast, states=matVt, accuracy=errormeasures,
                           profile=profilesRecentTable, profileInitial=profilesRecentInitial,

@@ -8768,6 +8768,13 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         }
     }
 
+    # Fix values if we have a log-model in case of GUM
+    if(gumModel && object$type=="multiplicative"){
+        yForecast[] <- exp(yForecast);
+        yLower[] <- exp(yLower);
+        yUpper[] <- exp(yUpper);
+    }
+
     return(structure(list(mean=yForecast, lower=yLower, upper=yUpper, model=object,
                           level=level, interval=interval, side=side, cumulative=cumulative, h=h,
                           scenarios=ySimulated),
