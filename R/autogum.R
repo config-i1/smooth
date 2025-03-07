@@ -177,7 +177,9 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
                 ordersTest <- rep(1,length(lagsBest)+1);
                 lagsTest <- c(i,lagsBest);
                 nComponents <- sum(ordersTest);
-                nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
+                # We don't estimate measurement by default, so the nParamMax is lower
+                # nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
+                nParamMax <- (1 + nComponents + (nComponents^2)
                               + (ordersTest %*% lagsTest)*(initial=="optimal"));
                 if(obsInSample<=nParamMax){
                     ICs[i] <- 1E100;
@@ -216,7 +218,7 @@ auto.gum <- function(data, orders=3, lags=frequency(data), type=c("additive","mu
             }
             ordersTest <- which(ICs==ICs[i],arr.ind=TRUE);
             nComponents <- sum(ordersTest);
-            nParamMax <- (1 + nComponents + nComponents + (nComponents^2)
+            nParamMax <- (1 + nComponents + (nComponents^2)
                           + (ordersTest %*% lagsBest)*(initial=="optimal"));
             if(obsInSample<=nParamMax){
                 ICs[i] <- NA;

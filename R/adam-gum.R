@@ -464,6 +464,8 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     # The reversed lags to fill in values in the state vector
     # lagsModelRev <- lagsModelMax - lagsModel + 1;
     componentsNumberARIMA <- componentsNumber <- sum(orders);
+    # Record how many values in the initial state vector need to be estimated
+    initialsNumber <- orders %*% lags;
 
     # componentsNumberAll is used to fill in all matrices
     componentsNumberAll <- componentsNumber
@@ -509,33 +511,36 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         initialType <- "provided";
     }
     else{
-        if(initialType!="complete"){
-            slope <- (cov(yInSample[1:min(max(12,lagsModelMax),obsInSample),],c(1:min(max(12,lagsModelMax),obsInSample)))/
-                          var(c(1:min(max(12,lagsModelMax),obsInSample))));
-            intercept <- (sum(yInSample[1:min(max(12,lagsModelMax),obsInSample),])/min(max(12,lagsModelMax),obsInSample) -
-                              slope * (sum(c(1:min(max(12,lagsModelMax),obsInSample)))/
-                                           min(max(12,lagsModelMax),obsInSample) - 1));
+        # if(initialType!="complete"){
+        slope <- (cov(yInSample[1:min(max(12,lagsModelMax),obsInSample),],c(1:min(max(12,lagsModelMax),obsInSample)))/
+                      var(c(1:min(max(12,lagsModelMax),obsInSample))));
+        intercept <- (sum(yInSample[1:min(max(12,lagsModelMax),obsInSample),])/min(max(12,lagsModelMax),obsInSample) -
+                          slope * (sum(c(1:min(max(12,lagsModelMax),obsInSample)))/
+                                       min(max(12,lagsModelMax),obsInSample) - 1));
 
-            vtvalues <- vector("numeric", orders %*% lags);
-            nCoefficients <- 0;
-            if(any(lags==1) && length(orders[lags==1])>=1){
-                vtvalues[nCoefficients+1] <- intercept;
-                nCoefficients[] <- nCoefficients + 1;
-            }
-            if(any(lags==1) && length(orders[lags==1])>1){
-                vtvalues[nCoefficients+1] <- slope;
-                nCoefficients[] <- nCoefficients + 1;
-            }
-            if((orders %*% lags)>2){
-                vtvalues[nCoefficients + 1:(orders %*% lags - nCoefficients)] <- yInSample[1:(orders %*% lags - nCoefficients),];
-            }
-
-            nCoefficients[] <- 0;
-            for(i in 1:componentsNumber){
-                matVt[i,1:lagsModel[i]] <- vtvalues[nCoefficients+(1:lagsModel[i])];
-                nCoefficients[] <- nCoefficients + lagsModel[i];
-            }
+        vtvalues <- vector("numeric", initialsNumber);
+        nCoefficients <- 0;
+        if(any(lags==1) && length(orders[lags==1])>=1){
+            vtvalues[nCoefficients+1] <- intercept;
+            nCoefficients[] <- nCoefficients + 1;
         }
+        if(any(lags==1) && length(orders[lags==1])>1){
+            vtvalues[nCoefficients+1] <- slope;
+            nCoefficients[] <- nCoefficients + 1;
+        }
+        if((initialsNumber)>2){
+            # rep is needed to make things work for the small samples
+            vtvalues[nCoefficients + 1:(initialsNumber - nCoefficients)] <-
+                rep(yInSample[1:min(initialsNumber - nCoefficients,obsInSample),],
+                    ceiling(obsInSample/initialsNumber)+1)[1:(initialsNumber - nCoefficients)];
+        }
+
+        nCoefficients[] <- 0;
+        for(i in 1:componentsNumber){
+            matVt[i,1:lagsModel[i]] <- vtvalues[nCoefficients+(1:lagsModel[i])];
+            nCoefficients[] <- nCoefficients + lagsModel[i];
+        }
+        # }
     }
 
     # Add parameters for the X
@@ -582,14 +587,14 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
             B <- vector("numeric", persistenceEstimate*componentsNumberAll +
                             transitionEstimate*componentsNumberAll^2 +
                             measurementEstimate*componentsNumber +
-                            initialEstimate*(initialType=="optimal")*sum(orders %*% lags) +
+                            initialEstimate*(initialType=="optimal")*sum(initialsNumber) +
                             xregNumber*initialXregEstimate*(initialType!="complete"));
             names(B) <- c(paste0("g",1:componentsNumberAll)[persistenceEstimate*(1:componentsNumberAll)],
                           paste0("F",paste0(rep(1:componentsNumberAll,each=componentsNumberAll),
                                             rep(1:componentsNumberAll,times=componentsNumberAll))
                           )[transitionEstimate*(1:(componentsNumberAll^2))],
                           paste0("w",1:componentsNumber)[measurementEstimate*(1:componentsNumber)],
-                          paste0("vt",1:sum(orders %*% lags))[initialEstimate*(initialType=="optimal")*(1:sum(orders %*% lags))],
+                          paste0("vt",1:sum(initialsNumber))[initialEstimate*(initialType=="optimal")*(1:sum(initialsNumber))],
                           xregNames[(1:xregNumber)*initialXregEstimate*(initialType!="complete")]);
 
             nCoefficients <- 0;
@@ -824,7 +829,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         # }
 
         # if(initialType=="optimal"){
-        #     parametersNumber[1,1] <- (parametersNumber[1,1] + orders %*% lags);
+        #     parametersNumber[1,1] <- (parametersNumber[1,1] + initialsNumber);
         # }
     }
     if(xregModel){
@@ -864,12 +869,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         matVt <- zoo(t(matVt), order.by=yStatesIndex);
     }
 
-    ##### Make a plot #####
-    if(!silent){
-        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
-                   legend=FALSE,main=modelname);
-    }
-
     # Transform everything into appropriate classes
     if(any(yClasses=="ts")){
         yInSample <- ts(yInSample,start=yStart, frequency=yFrequency);
@@ -897,6 +896,11 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
     else{
         errormeasures <- NULL;
+    }
+
+    if(!silent){
+        graphmaker(actuals=y,forecast=yForecast,fitted=yFitted,
+                   legend=FALSE,main=modelname);
     }
 
     ##### Return values #####
