@@ -8,14 +8,14 @@
 \usage{
 ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
+  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
   a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
   "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
   bounds = c("admissible", "none"), silent = TRUE, model = NULL, ...)
 
 auto.ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
+  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
   bounds = c("admissible", "none"), silent = TRUE, ...)

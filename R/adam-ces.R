@@ -110,7 +110,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
                 formula=NULL, regressors=c("use","select","adapt"),
-                initial=c("optimal","backcasting","complete"), a=NULL, b=NULL,
+                initial=c("backcasting","optimal","complete"), a=NULL, b=NULL,
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                 model=NULL, ...){
@@ -211,6 +211,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
+    }
+    else{
+        initial <- match.arg(initial);
     }
 
     ##### Set environment for ssInput and make all the checks #####
