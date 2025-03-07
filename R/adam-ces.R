@@ -17,6 +17,10 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' \code{ces_old()} is the old implementation of the model and will be discontinued
 #' starting from smooth v4.5.0.
 #'
+#' \code{ces()} uses two optimisers to get good estimates of parameters. By default
+#' these are BOBYQA and then Nelder-Mead. This can be regulated via \code{...} - see
+#' details below.
+#'
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("ces","smooth")}
 #'
@@ -71,7 +75,18 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param model A previously estimated GUM model, if provided, the function
 #' will not estimate anything and will use all its parameters.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
-#' details
+#' details. However, there are several unique parameters passed to the optimiser
+#' in comparison with \code{adam}:
+#' 1. \code{algorithm0}, which defines what algorithm to use in nloptr for the initial
+#' optimisation. By default, this is "NLOPT_LN_BOBYQA".
+#' 2. \code{algorithm} determines the second optimiser. By default this is
+#' "NLOPT_LN_NELDERMEAD".
+#' 3. maxeval0 and maxeval, that determine the number of iterations for the two
+#' optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+#' k is the number of estimated parameters.
+#' 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
+#' There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
+#' are set to values explained in the \code{nloptr.print.options()} function.
 #'
 #' @return Object of class "adam" is returned with similar elements to the
 #' \link[smooth]{adam} function.
@@ -213,6 +228,51 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
     refineHead <- FALSE;
+
+    # Values for the preliminary optimiser
+    if(is.null(ellipsis$algorithm0)){
+        algorithm0 <- "NLOPT_LN_BOBYQA";
+    }
+    else{
+        algorithm0 <- ellipsis$algorithm0;
+    }
+    if(is.null(ellipsis$maxeval0)){
+        maxeval0 <- 1000;
+    }
+    else{
+        maxeval0 <- ellipsis$maxeval0;
+    }
+    if(is.null(ellipsis$maxtime0)){
+        maxtime0 <- -1;
+    }
+    else{
+        maxtime0 <- ellipsis$maxtime0;
+    }
+    if(is.null(ellipsis$xtol_rel0)){
+        xtol_rel0 <- 1e-8;
+    }
+    else{
+        xtol_rel0 <- ellipsis$xtol_rel0;
+    }
+    if(is.null(ellipsis$xtol_abs0)){
+        xtol_abs0 <- 0;
+    }
+    else{
+        xtol_abs0 <- ellipsis$xtol_abs0;
+    }
+    if(is.null(ellipsis$ftol_rel0)){
+        ftol_rel0 <- 0;
+    }
+    else{
+        ftol_rel0 <- ellipsis$ftol_rel0;
+    }
+    if(is.null(ellipsis$ftol_abs0)){
+        ftol_abs0 <- 0;
+    }
+    else{
+        ftol_abs0 <- ellipsis$ftol_abs0;
+    }
+
 
     # Fix lagsModel and Ttype for CES. This is needed because the function drops duplicate seasonal lags
     # if(seasonality=="simple"){
@@ -480,14 +540,16 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             rownames(matVt) <- c("level", "potential", "seasonal 1", "seasonal 2", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1], type="additive")$seasonal[[1]][1:lagsModelMax];
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
             matVt[4,1:lagsModelMax] <- matVt[3,1:lagsModelMax]/1.1;
         }
         else if(seasonality=="partial"){
             rownames(matVt) <- c("level", "potential", "seasonal", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1], type="additive")$seasonal[[1]][1:lagsModelMax];
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
         }
         else if(seasonality=="simple"){
             rownames(matVt) <- c("level.s", "potential.s", xregNames);
@@ -496,8 +558,8 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         }
         else{
             rownames(matVt) <- c("level", "potential", xregNames);
-            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(10,obsInSample)]),
-                                             mean(yInSample[1:min(10,obsInSample)])/1.1);
+            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(max(10,yFrequency),obsInSample)]),
+                                             mean(yInSample[1:min(max(10,yFrequency),obsInSample)])/1.1);
         }
 
         # Add parameters for the X
@@ -638,6 +700,19 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
         }
 
+        # First run of BOBYQA to get better values of B
+        res <- nloptr(B, CF, opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
+                                       ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
+                                       maxeval=maxeval0, maxtime=maxtime0, print_level=print_level),
+                      matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+
+        if(print_level_hidden>0){
+            print(res);
+        }
+
+        B[] <- res$solution;
+
+        # Tuning the best obtained values using Nelder-Mead
         res <- suppressWarnings(nloptr(B, CF,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
