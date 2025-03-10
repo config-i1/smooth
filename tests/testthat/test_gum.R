@@ -1,7 +1,7 @@
 context("Tests for gum() function")
 
 # Basic GUM selection
-testModel <- gum(BJsales, orders=c(2,1),lags=c(1,4), silent=TRUE)
+testModel <- gum(BJsales, orders=c(2,1),lags=c(1,4), silent=TRUE, initial="optimal")
 test_that("Test if GUM worked on BJsales", {
     expect_equal(testModel$model, "GUM(2[1],1[4])")
 })

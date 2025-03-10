@@ -445,6 +445,11 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     initial <- initialOriginal;
     persistence <- persistenceOriginal;
 
+    # Reuse initials if they were provided
+    if(!is.null(initialValue)){
+        initialType <- "provided";
+    }
+
     orders <- ordersOriginal;
     lags <- lagsOriginal;
 
@@ -491,7 +496,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     persistenceEstimate <- is.null(persistence);
     transitionEstimate <- is.null(transition);
     measurementEstimate <- is.null(measurement);
-    initialEstimate <- is.null(initialValueProvided);
+    initialEstimate <- is.null(initialValue);
 
     # Provided measurement should be just a vector for the dynamic elements
     if(!measurementEstimate){
@@ -712,7 +717,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         if(initialType=="optimal"){
             initialType <- "provided";
         }
-        initialValue <- profilesRecentTable;
+        # initialValue <- profilesRecentInitial;
         initialXregEstimateOriginal <- initialXregEstimate;
         initialXregEstimate <- FALSE;
 
@@ -722,7 +727,6 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
         # Only variance is estimated
         nParamEstimated <- 1;
 
-        initialType <- initialOriginal;
         initialXregEstimate <- initialXregEstimateOriginal;
     }
 
@@ -785,6 +789,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
     matVt[] <- adamFitted$matVt;
+    profilesRecentInitial <- matVt[,1:lagsModelMax,drop=FALSE]
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
