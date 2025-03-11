@@ -623,9 +623,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
             }
 
             # Clean and remove NAs
-            B <- B[!is.na(B)];
-            lb <- lb[!is.na(lb)];
-            ub <- ub[!is.na(ub)];
+            B <- as.numeric(B[!is.na(B)]);
+            lb <- as.numeric(lb[!is.na(lb)]);
+            ub <- as.numeric(ub[!is.na(ub)]);
 
             return(list(B=B,lb=lb,ub=ub));
         }
@@ -760,22 +760,9 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                              lagsModelMax, nComponentsAll, nComponentsNonSeasonal,
                              vecg, matvt, matat, matFX, vecgX, xregNames, nExovars);
 
-                # Run the optimisation
-                res <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
-                              opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
-                              lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
-                              nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
-                              lagsModelMax=lagsModelMax, damped=damped,
-                              persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
-                              modelIsSeasonal=modelIsSeasonal, initialSeasonEstimate=initialSeasonEstimate,
-                              xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
-                              matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
-                              ot=ot, bounds=bounds);
-
-                # If the smoothing parameters are high, try different initialisation and reestimate
-                if(persistenceEstimate && any(res$solution[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))]>0.5)){
-                    B$B[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))] <- 0.01;
-                    res2 <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
+                if(length(B$B)>0){
+                    # Run the optimisation
+                    res <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
                                   opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
                                   lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
                                   nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
@@ -785,12 +772,27 @@ oes <- function(y, model="MNN", persistence=NULL, initial="o", initialSeason=NUL
                                   xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
                                   matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
                                   ot=ot, bounds=bounds);
-                    # If the new optimal is better than the old, use it
-                    if(res$objective > res2$objective){
-                        res <- res2;
+
+                    # If the smoothing parameters are high, try different initialisation and reestimate
+                    if(persistenceEstimate && any(res$solution[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))]>0.5)){
+                        B$B[c(1:(1+(Ttype!="N")*1+(Stype!="N")*1))] <- 0.01;
+                        res2 <- nloptr(B$B, CF, lb=B$lb, ub=B$ub,
+                                       opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
+                                       lagsModel=lagsModel, Etype=Etype, Ttype=Ttype, Stype=Stype, occurrence=occurrence,
+                                       nComponentsAll=nComponentsAll, nComponentsNonSeasonal=nComponentsNonSeasonal, nExovars=nExovars,
+                                       lagsModelMax=lagsModelMax, damped=damped,
+                                       persistenceEstimate=persistenceEstimate, initialType=initialType, phiEstimate=phiEstimate,
+                                       modelIsSeasonal=modelIsSeasonal, initialSeasonEstimate=initialSeasonEstimate,
+                                       xregEstimate=xregEstimate, initialXEstimate=initialXEstimate, updateX=updateX,
+                                       matvt=matvt, vecg=vecg, matF=matF, matw=matw, matat=matat, matFX=matFX, vecgX=vecgX, matxt=matxt,
+                                       ot=ot, bounds=bounds);
+                        # If the new optimal is better than the old, use it
+                        if(res$objective > res2$objective){
+                            res <- res2;
+                        }
                     }
+                    B <- res$solution;
                 }
-                B <- res$solution;
 
                 # Parameters estimated. The variance is not estimated, so not needed
                 parametersNumber[1,1] <- length(B);
