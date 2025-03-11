@@ -124,7 +124,7 @@ example:
 \item{holdout}{Logical. If \code{TRUE}, then the holdout of the size \code{h}
 is taken from the data (can be used for the model testing purposes).}
 
-\item{bounds}{The type of bounds for the persistence to use in the model
+\item{bounds}{The type of bounds for the parameters to use in the model
 estimation. Can be either \code{admissible} - guaranteeing the stability of the
 model, or \code{none} - no restrictions (potentially dangerous).}
 

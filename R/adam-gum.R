@@ -60,7 +60,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' \code{NULL}, then estimated.
 #' @param measurement Measurement vector \eqn{w}. If \code{NULL}, then
 #' estimated.
-#' @param bounds The type of bounds for the persistence to use in the model
+#' @param bounds The type of bounds for the parameters to use in the model
 #' estimation. Can be either \code{admissible} - guaranteeing the stability of the
 #' model, or \code{none} - no restrictions (potentially dangerous).
 #' @param model A previously estimated GUM model, if provided, the function
