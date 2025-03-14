@@ -124,6 +124,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     obsAll <- length(y) + (1 - holdout)*h;
     obsInSample <- length(y) - holdout*h;
 
+
     if(obsInSample<=0){
         stop("The number of in-sample observations is not positive. Cannot do anything.",
              call.=FALSE);
@@ -327,7 +328,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 any(unlist(strsplit(model,""))=="X") ||
                 any(unlist(strsplit(model,""))=="Y") ||
                 any(unlist(strsplit(model,""))=="F") ||
-                any(unlist(strsplit(model,""))=="P")){
+                any(unlist(strsplit(model,""))=="P") ||
+                any(unlist(strsplit(model,""))=="S")){
             modelDo <- "select";
 
             # The full test, sidestepping branch and bound
@@ -384,6 +386,45 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     Stype[] <- "Z"
                 }
                 model <- "PPP";
+            }
+
+            # The pool of sensible/standard models, those that have finite variance
+            if(any(unlist(strsplit(model,""))=="S")){
+                modelsPool <- c("ANN", "AAN", "AAdN", "ANA", "AAA", "AAdA",
+                                "MNN", "MAN", "MAdN", "MNA", "MAA", "MAdA",
+                                "MNM", "MAM", "MAdM", "MMN", "MMdN", "MMM", "MMdM");
+                # Remove models from pool if specific elements are provided
+                if(Etype!="S"){
+                    # Switch is needed here if people want to restrict the basic pool further
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)==switch(Etype,
+                                                                            "X"="A",
+                                                                            "Y"="M",
+                                                                            Etype)];
+                }
+                else{
+                    Etype[] <- "Z"
+                }
+                if(Ttype!="S"){
+                    modelsPool <- modelsPool[substr(modelsPool,2,2) %in% switch(Ttype,
+                                                                                "X"=c("A","N"),
+                                                                                "Y"=c("M","N"),
+                                                                                Ttype)];
+                }
+                else{
+                    Ttype[] <- "Z"
+                }
+                if(Stype!="S"){
+                    modelsPool <- modelsPool[substr(modelsPool,
+                                                    nchar(modelsPool),
+                                                    nchar(modelsPool))==switch(Stype,
+                                                                               "X"=c("A","N"),
+                                                                               "Y"=c("M","N"),
+                                                                               Stype)];
+                }
+                else{
+                    Stype[] <- "Z"
+                }
+                model <- "SSS";
             }
         }
         else{

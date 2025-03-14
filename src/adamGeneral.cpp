@@ -14,7 +14,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
                 unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                 arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast,
-                unsigned int const &nIterations){
+                unsigned int const &nIterations, bool const &refineHead){
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
@@ -30,6 +30,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
 
+    
     // Loop for the backcasting
     // unsigned int nIterations = 1;
     // if(backcast){
@@ -41,11 +42,12 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
 
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
-        if(!backcast || nArima==0){
+        if(refineHead){
             for (int i=0; i<lagsModelMax; i=i+1) {
                 matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                
             }
         }
         ////// Run forward
@@ -147,14 +149,14 @@ RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat &matrixWt, arma::ma
                                unsigned int const &componentsNumberETS, unsigned int const &nSeasonal,
                                unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
                                arma::vec &vectorYt, arma::vec &vectorOt, bool const &backcast,
-                               unsigned int const &nIterations){
+                               unsigned int const &nIterations, bool const &refineHead){
 
     unsigned int nNonSeasonal = componentsNumberETS - nSeasonal;
 
     return wrap(adamFitter(matrixVt, matrixWt, matrixF, vectorG,
                            lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype,
                            nNonSeasonal, nSeasonal, nArima, nXreg, constant,
-                           vectorYt, vectorOt, backcast, nIterations));
+                           vectorYt, vectorOt, backcast, nIterations, refineHead));
 }
 
 /* # Function produces the point forecasts for the specified model */

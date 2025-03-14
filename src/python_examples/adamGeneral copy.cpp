@@ -14,35 +14,35 @@ namespace py = pybind11;
 // # Fitter for univariate models
 // Convert from Rcpp::List to pybind11::dict
 
-py::dict adamFitter(arma::mat &matrixVt, 
-                    arma::mat const &matrixWt, 
-                    arma::mat &matrixF, 
-                    arma::vec const &vectorG,
-                    arma::uvec &lags, 
-                    arma::umat const &indexLookupTable, 
-                    arma::mat profilesRecent,
+py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matrixF, arma::vec const &vectorG,
+                    arma::uvec &lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
                     char const &E, char const &T, char const &S,
                     unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                    unsigned int const &nArima, 
-                    unsigned int const &nXreg, 
-                    bool const &constant,
-                    arma::vec const &vectorYt, 
-                    arma::vec const &vectorOt, 
-                    bool const &backcast)
+                    unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                    arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast)
 {
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
      * # lags is a vector of lags
      */
+
     int obs = vectorYt.n_rows;
     unsigned int nETS = nNonSeasonal + nSeasonal;
     int nComponents = matrixVt.n_rows;
     int lagsModelMax = max(lags);
-  
+
     // Fitted values and the residuals
     arma::vec vecYfit(obs, arma::fill::zeros);
-    arma::vec vecErrors(obs, arma::fill::zeros);
+    arma::vec vecErrors(obs, arma::dfill::zeros);
+
+    // Print vectors F and G
+    std::cout << "Matrix F:" << std::endl;
+    matrixF.print();
+    
+    std::cout << "Vector G:" << std::endl;
+    vectorG.print();
+
 
 
     // Loop for the backcasting
@@ -59,7 +59,6 @@ py::dict adamFitter(arma::mat &matrixVt,
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
         if(!backcast || nArima==0){
-            
             for (int i = 0; i < lagsModelMax; i = i + 1)
             {
                 matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
@@ -71,13 +70,13 @@ py::dict adamFitter(arma::mat &matrixVt,
         // Loop for the model construction
         for (int i = lagsModelMax; i < obs + lagsModelMax; i = i + 1)
         {
+
             
 
             /* # Measurement equation and the error term */
             vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
                                                    matrixWt.row(i - lagsModelMax), E, T, S,
                                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
-
 
             // If this is zero (intermittent), then set error to zero
             if (vectorOt(i - lagsModelMax) == 0)
@@ -182,19 +181,12 @@ py::dict adamFitter(arma::mat &matrixVt,
 }
 
 /* # Function produces the point forecasts for the specified model */
-arma::vec adamForecaster(arma::mat const &matrixWt, 
-                         arma::mat const &matrixF,
-                         arma::uvec lags, 
-                         arma::umat const &indexLookupTable, 
-                         arma::mat profilesRecent,
-                         char const &E, 
-                         char const &T, 
-                         char const &S,
-                         unsigned int const &nNonSeasonal, 
-                         unsigned int const &nSeasonal,
-                         unsigned int const &nArima, 
-                         unsigned int const &nXreg, 
-                         bool const &constant, unsigned int const &horizon)
+arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
+                         arma::uvec lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
+                         char const &E, char const &T, char const &S,
+                         unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
+                         unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
+                         unsigned int const &horizon)
 {
     // unsigned int lagslength = lags.n_rows;
     unsigned int nETS = nNonSeasonal + nSeasonal;

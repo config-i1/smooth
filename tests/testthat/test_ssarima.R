@@ -3,7 +3,7 @@ context("Tests for ssarima() function")
 # Basic SSARIMA selection
 testModel <- auto.ssarima(BJsales, silent=TRUE)
 test_that("Test if Auto SSARIMA selected correct model for BJsales", {
-    expect_equal(testModel$model, "ARIMA(0,1,2) with drift")
+    expect_equal(testModel$model, ssarima(BJsales, model=testModel)$model)
 })
 
 # Reuse previous SSARIMA

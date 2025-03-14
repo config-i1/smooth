@@ -105,11 +105,8 @@ based on user preferences.
 }
 \examples{
 
-ourModel <- ces(rnorm(100,0,1),h=10)
-
-forecast(ourModel,h=10)
-forecast(ourModel,h=10,interval=TRUE)
-plot(forecast(ourModel,h=10,interval=TRUE))
+ourModel <- es(rnorm(100,0,1), h=10)
+forecast(ourModel, h=10, interval="parametric")
 
 }
 \references{

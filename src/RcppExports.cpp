@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // adamFitterWrap
-RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& indexLookupTable, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast, unsigned int const& nIterations);
-RcppExport SEXP _smooth_adamFitterWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP vectorGSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP, SEXP backcastSEXP, SEXP nIterationsSEXP) {
+RcppExport SEXP adamFitterWrap(arma::mat matrixVt, arma::mat& matrixWt, arma::mat& matrixF, arma::vec& vectorG, arma::uvec& lags, arma::umat& indexLookupTable, arma::mat& profilesRecent, char const& Etype, char const& Ttype, char const& Stype, unsigned int const& componentsNumberETS, unsigned int const& nSeasonal, unsigned int const& nArima, unsigned int const& nXreg, bool const& constant, arma::vec& vectorYt, arma::vec& vectorOt, bool const& backcast, unsigned int const& nIterations, bool const& refineHead);
+RcppExport SEXP _smooth_adamFitterWrap(SEXP matrixVtSEXP, SEXP matrixWtSEXP, SEXP matrixFSEXP, SEXP vectorGSEXP, SEXP lagsSEXP, SEXP indexLookupTableSEXP, SEXP profilesRecentSEXP, SEXP EtypeSEXP, SEXP TtypeSEXP, SEXP StypeSEXP, SEXP componentsNumberETSSEXP, SEXP nSeasonalSEXP, SEXP nArimaSEXP, SEXP nXregSEXP, SEXP constantSEXP, SEXP vectorYtSEXP, SEXP vectorOtSEXP, SEXP backcastSEXP, SEXP nIterationsSEXP, SEXP refineHeadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -36,7 +36,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::vec& >::type vectorOt(vectorOtSEXP);
     Rcpp::traits::input_parameter< bool const& >::type backcast(backcastSEXP);
     Rcpp::traits::input_parameter< unsigned int const& >::type nIterations(nIterationsSEXP);
-    rcpp_result_gen = Rcpp::wrap(adamFitterWrap(matrixVt, matrixWt, matrixF, vectorG, lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, vectorYt, vectorOt, backcast, nIterations));
+    Rcpp::traits::input_parameter< bool const& >::type refineHead(refineHeadSEXP);
+    rcpp_result_gen = Rcpp::wrap(adamFitterWrap(matrixVt, matrixWt, matrixF, vectorG, lags, indexLookupTable, profilesRecent, Etype, Ttype, Stype, componentsNumberETS, nSeasonal, nArima, nXreg, constant, vectorYt, vectorOt, backcast, nIterations, refineHead));
     return rcpp_result_gen;
 END_RCPP
 }

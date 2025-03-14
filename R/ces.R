@@ -1,133 +1,17 @@
 utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType","yForecastStart"));
 
-#' Complex Exponential Smoothing
-#'
-#' Function estimates CES in state space form with information potential equal
-#' to errors and returns several variables.
-#'
-#' The function estimates Complex Exponential Smoothing in the state space 2
-#' described in Svetunkov, Kourentzes (2017) with the information potential
-#' equal to the approximation error.  The estimation of initial states of xt is
-#' done using backcast.
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("ces","smooth")}
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssXregParam
-#' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template ssCESRef
-#'
-#' @param seasonality The type of seasonality used in CES. Can be: \code{none}
-#' - No seasonality; \code{simple} - Simple seasonality, using lagged CES
-#' (based on \code{t-m} observation, where \code{m} is the seasonality lag);
-#' \code{partial} - Partial seasonality with real seasonal components
-#' (equivalent to additive seasonality); \code{full} - Full seasonality with
-#' complex seasonal components (can do both multiplicative and additive
-#' seasonality, depending on the data). First letter can be used instead of
-#' full words.  Any seasonal CES can only be constructed for time series
-#' vectors.
-#' @param a First complex smoothing parameter. Should be a complex number.
-#'
-#' NOTE! CES is very sensitive to a and b values so it is advised either to
-#' leave them alone, or to use values from previously estimated model.
-#' @param b Second complex smoothing parameter. Can be real if
-#' \code{seasonality="partial"}. In case of \code{seasonality="full"} must be
-#' complex number.
-#' @param ...  Other non-documented parameters.  For example parameter
-#' \code{model} can accept a previously estimated CES model and use all its
-#' parameters.  \code{FI=TRUE} will make the function produce Fisher
-#' Information matrix, which then can be used to calculated variances of
-#' parameters of the model.
-#' @return Object of class "smooth" is returned. It contains the list of the
-#' following values: \itemize{
-#' \item \code{model} - type of constructed model.
-#' \item \code{timeElapsed} - time elapsed for the construction of the model.
-#' \item \code{states} - the matrix of the components of CES. The included
-#' minimum is "level" and "potential". In the case of seasonal model the
-#' seasonal component is also included. In the case of exogenous variables the
-#' estimated coefficients for the exogenous variables are also included.
-#' \item \code{a} - complex smoothing parameter in the form a0 + ia1
-#' \item \code{b} - smoothing parameter for the seasonal component. Can either
-#' be real (if \code{seasonality="P"}) or complex (if \code{seasonality="F"})
-#' in a form b0 + ib1.
-#' \item \code{persistence} - persistence vector. This is the place, where
-#' smoothing parameters live.
-#' \item \code{transition} - transition matrix of the model.
-#' \item \code{measurement} - measurement vector of the model.
-#' \item \code{initialType} - Type of the initial values used.
-#' \item \code{initial} - the initial values of the state vector (non-seasonal).
-#' \item \code{nParam} - table with the number of estimated / provided parameters.
-#' If a previous model was reused, then its initials are reused and the number of
-#' provided parameters will take this into account.
-#' \item \code{fitted} - the fitted values of CES.
-#' \item \code{forecast} - the point forecast of CES.
-#' \item \code{lower} - the lower bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{upper} - the upper bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - The matrix of 1 to h steps ahead errors. Only returned when the
-#' multistep losses are used and semiparametric interval is needed.
-#' \item \code{s2} - variance of the residuals (taking degrees of
-#' freedom into account).
-#' \item \code{interval} - type of interval asked by user.
-#' \item \code{level} - confidence level for interval.
-#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{y} - The data provided in the call of the function.
-#' \item \code{holdout} - the holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{regressors="s"}, then this value will contain only selected exogenous
-#' variables.
-#' exogenous variables were estimated as well.
-#' \item \code{initialX} - initial values for parameters of exogenous variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{lossValue} - Cost function value.
-#' \item \code{loss} - Type of loss function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE}
-#' or when \code{FI} is not provided at all.
-#' \item \code{accuracy} - vector of accuracy measures for the holdout sample. In
-#' case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
-#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
-#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
-#' \item \code{B} - the vector of all the estimated parameters.
-#' }
-#' @seealso \code{\link[smooth]{es}, \link[stats]{ts}, \link[smooth]{auto.ces}}
-#'
-#' @examples
-#'
-#' y <- rnorm(100,10,3)
-#' ces(y,h=20,holdout=TRUE)
-#' ces(y,h=20,holdout=FALSE)
-#'
-#' y <- 500 - c(1:100)*0.5 + rnorm(100,10,3)
-#' ces(y,h=20,holdout=TRUE,interval="p",bounds="a")
-#'
-#' ces(BJsales,h=8,holdout=TRUE,seasonality="s",interval="sp",level=0.8)
-#'
-#' \donttest{ces(AirPassengers,h=18,holdout=TRUE,seasonality="s",interval="sp")
-#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="p",interval="np")
-#' ces(AirPassengers,h=18,holdout=TRUE,seasonality="f",interval="p")}
 #'
 #' @rdname ces
 #' @export
-ces <- function(y, seasonality=c("none","simple","partial","full"),
-                initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
-                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                h=10, holdout=FALSE, cumulative=FALSE,
-                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                bounds=c("admissible","none"),
-                silent=c("all","graph","legend","output","none"),
-                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
+ces_old <- function(data, seasonality=c("none","simple","partial","full"),
+                    initial=c("backcasting","optimal"), a=NULL, b=NULL, ic=c("AICc","AIC","BIC","BICc"),
+                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    h=10, holdout=FALSE,
+                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                    bounds=c("admissible","none"),
+                    silent=c("all","graph","legend","output","none"),
+                    # xreg=NULL, regressors=c("use","select"), initialX=NULL,
+                    ...){
 # Function estimates CES in state space form with sigma = error
 #  and returns complex smoothing parameter value, fitted values,
 #  residuals, point and interval forecasts, matrix of CES components and values of
@@ -139,8 +23,15 @@ ces <- function(y, seasonality=c("none","simple","partial","full"),
     startTime <- Sys.time();
 
     ### Depricate the old parameters
-    ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+    ellipsis <- list(...);
+
+    y <- data;
+    cumulative <- FALSE;
+    interval <- ifelse(!is.null(ellipsis$interval),ellipsis$interval,"none");
+    level <- ifelse(!is.null(ellipsis$level),ellipsis$level,0.95);
+    xreg <- ellipsis$xreg;
+    regressors <- ifelse(!is.null(ellipsis$regressors),ellipsis$regressors,"use");
+    initialX <- ellipsis$initialX;
 
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
