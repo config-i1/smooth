@@ -1,5 +1,5 @@
 utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimate","xregNames",
-                         "otLogical","adamElements","yFrequency",
+                         "otLogical","yFrequency","yIndex",
                          "persistenceXreg","yHoldout","distribution"));
 
 #' Complex Exponential Smoothing
@@ -16,6 +16,10 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #'
 #' \code{ces_old()} is the old implementation of the model and will be discontinued
 #' starting from smooth v4.5.0.
+#'
+#' \code{ces()} uses two optimisers to get good estimates of parameters. By default
+#' these are BOBYQA and then Nelder-Mead. This can be regulated via \code{...} - see
+#' details below.
 #'
 #' For some more information about the model and its implementation, see the
 #' vignette: \code{vignette("ces","smooth")}
@@ -71,7 +75,18 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @param model A previously estimated GUM model, if provided, the function
 #' will not estimate anything and will use all its parameters.
 #' @param ...  Other non-documented parameters. See \link[smooth]{adam} for
-#' details
+#' details. However, there are several unique parameters passed to the optimiser
+#' in comparison with \code{adam}:
+#' 1. \code{algorithm0}, which defines what algorithm to use in nloptr for the initial
+#' optimisation. By default, this is "NLOPT_LN_BOBYQA".
+#' 2. \code{algorithm} determines the second optimiser. By default this is
+#' "NLOPT_LN_NELDERMEAD".
+#' 3. maxeval0 and maxeval, that determine the number of iterations for the two
+#' optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+#' k is the number of estimated parameters.
+#' 4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
+#' There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
+#' are set to values explained in the \code{nloptr.print.options()} function.
 #'
 #' @return Object of class "adam" is returned with similar elements to the
 #' \link[smooth]{adam} function.
@@ -95,8 +110,7 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(frequency(data)),
                 formula=NULL, regressors=c("use","select","adapt"),
-                initial=c("optimal","backcasting","complete"), a=NULL, b=NULL,
-                # ic=c("AICc","AIC","BIC","BICc"),
+                initial=c("backcasting","optimal","complete"), a=NULL, b=NULL,
                 loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                 h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                 model=NULL, ...){
@@ -111,6 +125,9 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    # Record the parental environment. Needed for optimal initialisation
+    env <- parent.frame();
+
     ellipsis <- list(...);
 
     # Check seasonality and loss
@@ -144,7 +161,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         matVt <- t(model$states);
         matWt <- model$measurement;
         matF <- model$transition;
-        vecG <- model$persistence;
+        vecG <- as.matrix(model$persistence);
         ellipsis$B <- coef(model);
         lags <- lags(model);
 
@@ -190,6 +207,15 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                     "partial"="AAA",
                     "ANA");
 
+    # If initial was provided, trick parametersChecker
+    if(!is.character(initial)){
+        initialValueProvided <- initial;
+        initial <- "optimal";
+    }
+    else{
+        initial <- match.arg(initial);
+    }
+
     ##### Set environment for ssInput and make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=list(ar=c(0),i=c(0),ma=c(0),select=FALSE),
@@ -201,6 +227,55 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                        ic="AICc", bounds=bounds[1],
                                        regressors=regressors, yName=yName,
                                        silent, modelDo, ParentEnvironment=environment(), ellipsis, fast=FALSE);
+
+    # This is the variable needed for the C++ code to determine whether the head of data needs to be
+    # refined. GUM doesn't need that.
+    refineHead <- FALSE;
+
+    # Values for the preliminary optimiser
+    if(is.null(ellipsis$algorithm0)){
+        algorithm0 <- "NLOPT_LN_BOBYQA";
+    }
+    else{
+        algorithm0 <- ellipsis$algorithm0;
+    }
+    if(is.null(ellipsis$maxeval0)){
+        maxeval0 <- 1000;
+    }
+    else{
+        maxeval0 <- ellipsis$maxeval0;
+    }
+    if(is.null(ellipsis$maxtime0)){
+        maxtime0 <- -1;
+    }
+    else{
+        maxtime0 <- ellipsis$maxtime0;
+    }
+    if(is.null(ellipsis$xtol_rel0)){
+        xtol_rel0 <- 1e-8;
+    }
+    else{
+        xtol_rel0 <- ellipsis$xtol_rel0;
+    }
+    if(is.null(ellipsis$xtol_abs0)){
+        xtol_abs0 <- 0;
+    }
+    else{
+        xtol_abs0 <- ellipsis$xtol_abs0;
+    }
+    if(is.null(ellipsis$ftol_rel0)){
+        ftol_rel0 <- 0;
+    }
+    else{
+        ftol_rel0 <- ellipsis$ftol_rel0;
+    }
+    if(is.null(ellipsis$ftol_abs0)){
+        ftol_abs0 <- 0;
+    }
+    else{
+        ftol_abs0 <- ellipsis$ftol_abs0;
+    }
+
 
     # Fix lagsModel and Ttype for CES. This is needed because the function drops duplicate seasonal lags
     # if(seasonality=="simple"){
@@ -290,7 +365,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
 
             # If exogenous are included
-            if(initialXregEstimate){
+            if(xregModel && initialXregEstimate && initialType!="complete"){
                 vt[j+(1:xregNumber),] <- B[nCoefficients+(1:xregNumber)];
                 nCoefficients[] <- nCoefficients + xregNumber;
             }
@@ -338,7 +413,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                      Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                      componentsNumberARIMA, xregNumber, FALSE,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
-                                     nIterations);
+                                     nIterations, refineHead);
 
         if(!multisteps){
             if(loss=="likelihood"){
@@ -365,7 +440,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         }
         else{
             # Call for the Rcpp function to produce a matrix of multistep errors
-            adamErrors <- adamErrorerWrap(adamFitted$matVt, adamElements$matWt, adamElements$matF,
+            adamErrors <- adamErrorerWrap(adamFitted$matVt, elements$matWt, elements$matF,
                                           lagsModelAll, indexLookupTable, profilesRecentTable,
                                           Etype, Ttype, Stype,
                                           componentsNumberETS, componentsNumberETSSeasonal,
@@ -468,14 +543,16 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             rownames(matVt) <- c("level", "potential", "seasonal 1", "seasonal 2", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
             matVt[4,1:lagsModelMax] <- matVt[3,1:lagsModelMax]/1.1;
         }
         else if(seasonality=="partial"){
             rownames(matVt) <- c("level", "potential", "seasonal", xregNames);
             matVt[1,1:lagsModelMax] <- mean(yInSample[1:lagsModelMax]);
             matVt[2,1:lagsModelMax] <- matVt[1,1:lagsModelMax]/1.1;
-            matVt[3,1:lagsModelMax] <- decompose(ts(yInSample,frequency=lagsModelMax),type="additive")$figure;
+            matVt[3,1:lagsModelMax] <- msdecompose(yInSample, lags=lags[lags!=1],
+                                                   type="additive")$seasonal[[1]][1:lagsModelMax];
         }
         else if(seasonality=="simple"){
             rownames(matVt) <- c("level.s", "potential.s", xregNames);
@@ -484,8 +561,8 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         }
         else{
             rownames(matVt) <- c("level", "potential", xregNames);
-            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(10,obsInSample)]),
-                                             mean(yInSample[1:min(10,obsInSample)])/1.1);
+            matVt[1:componentsNumber,1] <- c(mean(yInSample[1:min(max(10,yFrequency),obsInSample)]),
+                                             mean(yInSample[1:min(max(10,yFrequency),obsInSample)])/1.1);
         }
 
         # Add parameters for the X
@@ -530,6 +607,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
         #               xreg=xreg,regressors=regressors,initialX=initialX,
         #               updateX=updateX,persistenceX=persistenceX,transitionX=transitionX));
         # }
+
         # Initialisation before the optimiser
         # if(any(initialType=="optimal",a$estimate,b$estimate)){
         B <- NULL;
@@ -539,41 +617,69 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             names(B) <- c("alpha_0","alpha_1");
         }
 
-        # Index for states
-        j <- 0
-        if(any(seasonality==c("none","simple"))){
-            if(initialType=="optimal"){
-                B <- c(B,c(matVt[1:2,1:lagsModelMax]));
-                j <- 2;
-            }
-        }
-        else if(seasonality=="partial"){
-            if(b$estimate){
+        if(b$estimate){
+            if(seasonality=="partial"){
                 B <- c(B, setNames(0.1, "beta"));
             }
-            if(initialType=="optimal"){
-                B <- c(B,
-                       setNames(matVt[1:2,1], c("level","potential")));
-                B <- c(B,
-                       setNames(matVt[3,1:lagsModelMax],
-                                paste0("seasonal_", c(1:lagsModelMax))));
-                j <- 3;
-            }
-        }
-        else{
-            if(b$estimate){
+            else{
                 B <- c(B,
                        setNames(c(1.3,1), c("beta_0","beta_1")));
             }
-            if(initialType=="optimal"){
-                B <- c(B,
-                       setNames(matVt[1:2,1], c("level","potential")));
-                B <- c(B,
-                       setNames(matVt[3:4,1:lagsModelMax],
-                                paste0(rep(c("seasonal 1_","seasonal 2_"), each=lagsModelMax),
-                                       rep(c(1:lagsModelMax), times=2))));
-                j <- 4;
+        }
+
+        # In case of optimal, get some initials from backcasting
+        if(initialType=="optimal"){
+            clNew <- cl;
+            # If environment is provided, use it
+            if(!is.null(ellipsis$environment)){
+                env <- ellipsis$environment;
             }
+            # Use complete backcasting
+            clNew$initial <- "complete";
+            # Shut things up
+            clNew$silent <- TRUE;
+            # Switch off regressors selection
+            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$regressors <- "use";
+            }
+
+            # Call for CES with backcasting
+            cesBack <- suppressWarnings(eval(clNew, envir=env));
+            B <- cesBack$B;
+            # Vector of initial estimates of parameters
+            if(seasonality!="simple"){
+                B <- c(B, cesBack$initial$nonseasonal);
+            }
+            if(seasonality!="none"){
+                BSeasonal <- as.vector(cesBack$initial$seasonal);
+                if(seasonality=="partial"){
+                    names(BSeasonal) <- paste0("seasonal_", c(1:lagsModelMax));
+                }
+                else{
+                    names(BSeasonal) <- paste0(rep(c("seasonal 1_","seasonal 2_"), times=lagsModelMax),
+                                               rep(c(1:lagsModelMax), each=2))
+                }
+                B <- c(B, BSeasonal);
+            }
+
+            # if(any(seasonality==c("none","simple"))){
+            #     B <- c(B,c(matVt[1:2,1:lagsModelMax]));
+            # }
+            # else if(seasonality=="partial"){
+            #     B <- c(B,
+            #            setNames(matVt[1:2,1], c("level","potential")));
+            #     B <- c(B,
+            #            setNames(matVt[3,1:lagsModelMax],
+            #                     paste0("seasonal_", c(1:lagsModelMax))));
+            # }
+            # else{
+            #     B <- c(B,
+            #            setNames(matVt[1:2,1], c("level","potential")));
+            #     B <- c(B,
+            #            setNames(matVt[3:4,1:lagsModelMax],
+            #                     paste0(rep(c("seasonal 1_","seasonal 2_"), each=lagsModelMax),
+            #                            rep(c(1:lagsModelMax), times=2))));
+            # }
         }
 
         if(xregModel){
@@ -597,6 +703,19 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             }
         }
 
+        # First run of BOBYQA to get better values of B
+        res <- nloptr(B, CF, opts=list(algorithm=algorithm0, xtol_rel=xtol_rel0, xtol_abs=xtol_abs0,
+                                       ftol_rel=ftol_rel0, ftol_abs=ftol_abs0,
+                                       maxeval=maxeval0, maxtime=maxtime0, print_level=print_level),
+                      matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+
+        if(print_level_hidden>0){
+            print(res);
+        }
+
+        B[] <- res$solution;
+
+        # Tuning the best obtained values using Nelder-Mead
         res <- suppressWarnings(nloptr(B, CF,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
@@ -642,10 +761,42 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
         initialType <- initialOriginal;
         initialXregEstimate <- initialXregEstimateOriginal;
-        a$estimate <- substr(names(B)[1],1,5)=="alpha";
-        if(!is.null(b$value)){
-            b$estimate <- any(substr(names(B),1,4)=="beta");
+    }
+
+    #### Fisher Information ####
+    if(FI){
+        # Substitute values to get hessian
+        if(any(substr(names(B),1,5)=="alpha")){
+            a$estimateOriginal <- a$estimate;
+            a$estimate <- TRUE;
         }
+        if(any(substr(names(B),1,4)=="beta")){
+            b$estimateOriginal <- b$estimate;
+            b$estimate <- TRUE;
+        }
+        initialTypeOriginal <- initialType;
+        initialType <- "optimal";
+        if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
+            initialXregEstimateOriginal <- initialXregEstimate;
+            initialXregEstimate <- TRUE;
+        }
+
+        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
+        colnames(FI) <- rownames(FI) <- names(B);
+
+        if(any(substr(names(B),1,5)=="alpha")){
+            a$estimate <- a$estimateOriginal;
+        }
+        if(any(substr(names(B),1,4)=="beta")){
+            b$estimate <- b$estimateOriginal;
+        }
+        initialType <- initialTypeOriginal;
+        if(!is.null(initialValueProvided$xreg) && initialOriginal!="complete"){
+            initialXregEstimate <- initialXregEstimateOriginal;
+        }
+    }
+    else{
+        FI <- NA;
     }
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.
@@ -657,7 +808,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                  Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
                                  componentsNumberARIMA, xregNumber, FALSE,
                                  yInSample, ot, any(initialType==c("complete","backcasting")),
-                                 nIterations);
+                                 nIterations, refineHead);
 
     errors[] <- adamFitted$errors;
     yFitted[] <- adamFitted$yFitted;
@@ -667,14 +818,13 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
+    if(any(yClasses=="ts")){
+        yForecast <- ts(rep(NA, max(1,h)), start=yForecastStart, frequency=yFrequency);
+    }
+    else{
+        yForecast <- zoo(rep(NA, max(1,h)), order.by=yForecastIndex);
+    }
     if(h>0){
-        if(any(yClasses=="ts")){
-            yForecast <- ts(rep(NA, h), start=yForecastStart, frequency=yFrequency);
-        }
-        else{
-            yForecast <- zoo(rep(NA, h), order.by=yForecastIndex);
-        }
-
         yForecast[] <- adamForecasterWrap(tail(matWt,h), matF,
                                           lagsModelAll,
                                           indexLookupTable[,lagsModelMax+obsInSample+c(1:h),drop=FALSE],
@@ -685,7 +835,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                                           h);
     }
     else{
-        yForecast <- NA;
+        yForecast[] <- NA;
     }
 
     ##### Do final check and make some preparations for output #####
@@ -706,7 +856,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
             initialValue$seasonal <- matVt[lagsModelAll!=1,1:lagsModelMax];
         }
 
-        if(initialType!="backcasting"){
+        if(initialType=="optimal"){
             parametersNumber[1,1] <- (parametersNumber[1,1] + 2*(seasonality!="simple") +
                                       lagsModelMax*(seasonality!="none") + lagsModelMax*any(seasonality==c("full","simple")));
         }
@@ -757,15 +907,6 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
     parametersNumber[1,5] <- sum(parametersNumber[1,1:4]);
     parametersNumber[2,5] <- sum(parametersNumber[2,1:4]);
 
-    #### Fisher Information ####
-    if(FI){
-        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, a=a, b=b);
-        colnames(FI) <- rownames(FI) <- names(B);
-    }
-    else{
-        FI <- NA;
-    }
-
     ##### Deal with the holdout sample #####
     if(holdout && h>0){
         errormeasures <- measures(yHoldout,yForecast,yInSample);
@@ -776,7 +917,7 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
 
     # Amend the class of state matrix
     if(any(yClasses=="ts")){
-        matVt <- ts(t(matVt), start=(time(y)[1]-deltat(y)*lagsModelMax), frequency=yFrequency);
+        matVt <- ts(t(matVt), start=(yIndex[1]-(yIndex[2]-yIndex[1])*lagsModelMax), frequency=yFrequency);
     }
     else{
         yStatesIndex <- yInSampleIndex[1] - lagsModelMax*diff(tail(yInSampleIndex,2)) +
@@ -824,13 +965,13 @@ ces <- function(data, seasonality=c("none","simple","partial","full"), lags=c(fr
                           data=yInSample, holdout=yHoldout, fitted=yFitted, residuals=errors,
                           forecast=yForecast, states=matVt, accuracy=errormeasures,
                           profile=profilesRecentTable, profileInitial=profilesRecentInitial,
-                          persistence=vecG, transition=matF,
+                          persistence=vecG[,1], transition=matF,
                           measurement=matWt, initial=initialValue, initialType=initialType,
                           nParam=parametersNumber,
                           formula=formula, regressors=regressors,
                           loss=loss, lossValue=CFValue, lossFunction=lossFunction, logLik=logLikValue,
-                          ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
-                                       c("AIC","AICc","BIC","BICc")),
+                          # ICs=setNames(c(AIC(logLikValue), AICc(logLikValue), BIC(logLikValue), BICc(logLikValue)),
+                          #              c("AIC","AICc","BIC","BICc")),
                           distribution=distribution, bounds=bounds,
                           scale=scale, B=B, lags=lags, lagsAll=lagsModelAll, res=res, FI=FI);
 
