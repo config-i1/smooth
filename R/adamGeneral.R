@@ -124,6 +124,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     obsAll <- length(y) + (1 - holdout)*h;
     obsInSample <- length(y) - holdout*h;
 
+
     if(obsInSample<=0){
         stop("The number of in-sample observations is not positive. Cannot do anything.",
              call.=FALSE);
