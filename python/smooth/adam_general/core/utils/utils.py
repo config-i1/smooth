@@ -4,181 +4,155 @@ from scipy.linalg import eigvals
 from scipy.special import gamma, digamma, beta
 
 
-
-def ma(y, order):
-    if order % 2 == 0:
-        weights = np.concatenate([[0.5], np.ones(order - 1), [0.5]]) / order
-    else:
-        weights = np.ones(order) / order
-    
-    result = np.convolve(y, weights, mode='valid')
-    
-    # Pad the result with NaNs at the edges to match the original length
-    pad_width = (len(y) - len(result)) // 2
-    return np.pad(result, (pad_width, pad_width), mode='constant', constant_values=np.nan)
-
-
-def msdecompose(y, lags=[12], type="additive"):
+def msdecompose(y, lags=[12], type="additive", smoother="ma"):
     """
-    Multiple Seasonal Classical Decomposition
-
-    This function decomposes multiple seasonal time series into components using
-    the principles of classical decomposition.
-
-    The function applies centered moving averages to smooth the original series
-    and obtain level, trend, and seasonal components of the series. It supports
-    both additive and multiplicative decomposition methods.
-
-    Parameters
-    ----------
-    y : array-like
-        Vector or array containing the time series data to be decomposed.
-    lags : list of int, optional (default=[12])
-        List of lags corresponding to the frequencies in the data.
-        For example, [7, 365] for weekly and yearly seasonality in daily data.
-    type : {'additive', 'multiplicative'}, optional (default='additive')
-        The type of decomposition. If 'multiplicative' is selected,
-        then the logarithm of data is taken prior to the decomposition.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following components:
-        - y : array-like
-            The original time series.
-        - initial : array-like
-            The estimates of the initial level and trend.
-        - trend : array-like
-            The long-term trend in the data.
-        - seasonal : list of array-like
-            List of seasonal patterns for each specified lag.
-        - loss : str
-            The loss function used (always 'MSE' for this implementation).
-        - lags : list of int
-            The provided lags used for decomposition.
-        - type : str
-            The selected type of decomposition ('additive' or 'multiplicative').
-        - yName : str
-            The name of the provided data (always 'y' in this implementation).
-
-    Notes
-    -----
-    - The function handles missing values by imputing them using a polynomial
-      and trigonometric regression.
-    - For multiplicative decomposition, non-positive values are treated as missing.
-    - The seasonal components are centered around zero for additive decomposition
-      and around one for multiplicative decomposition.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from msedecompose import msedecompose
-    >>> 
-    >>> # Generate sample data with multiple seasonalities
-    >>> t = np.arange(1000)
-    >>> y = 10 + 0.01*t + 5*np.sin(2*np.pi*t/7) + 3*np.sin(2*np.pi*t/365) + np.random.normal(0, 1, 1000)
-    >>> 
-    >>> # Perform decomposition
-    >>> result = msedecompose(y, lags=[7, 365], type="additive")
-    >>> 
-    >>> # Access components
-    >>> trend = result['trend']
-    >>> weekly_seasonal = result['seasonal'][0]
-    >>> yearly_seasonal = result['seasonal'][1]
-
- 
+    Decomposes a time series assuming multiple frequencies provided in lags.
+    Uses only 'ma' smoother and avoids statsmodels package.
+    
+    Parameters:
+    - y: numpy array, the time series data
+    - lags: list or array, seasonal periods
+    - type: str, 'additive' or 'multiplicative'
+    - smoother: str, set to 'ma' only in this implementation
+    
+    Returns:
+    - dict: decomposition results including states, fitted values, etc.
     """
-    # ensure type is valid and lags a list
+    # Argument validation
     if type not in ["additive", "multiplicative"]:
         raise ValueError("type must be 'additive' or 'multiplicative'")
-    
-    # ensure lags is a list
-    if not isinstance(lags, list):
-        raise ValueError("lags must be a list")
-    
+    if smoother != "ma":
+        raise ValueError("Only 'ma' smoother is supported in this implementation")
+
+    # Variable name handling
+    y_name = "y"
+
+    # Data preparation
     y = np.asarray(y)
+    seasonal_lags = any(lag > 1 for lag in lags)
+
+    # Smoothing function definition
+    def smoothing_function(y, order):
+        # Convert y to float to avoid integer overflow
+        y = y.astype(float)
+        if order == np.sum(~np.isnan(y)) or order % 2 != 0:
+            # Odd order or order equals non-NA count: simple moving average
+            k = order
+            weights = np.ones(k) / order
+        else:
+            # Even order: use filter of length order + 1
+            k = order + 1
+            weights = np.array([0.5] + [1] * (order - 1) + [0.5]) / order
+        half_k = (k - 1) // 2  # e.g., for k=13, half_k=6
+        trend = np.full_like(y, np.nan)
+        for i in range(half_k, len(y) - half_k):
+            trend[i] = np.sum(y[i - half_k : i + half_k + 1] * weights)
+        return trend
+
+    # Initial data processing
     obs_in_sample = len(y)
     y_na_values = np.isnan(y)
-
-    # transform the data if needed and split the sample
     if type == "multiplicative":
         shifted_data = False
-        if any(y[~y_na_values] <= 0):
-            y_na_values[:] = y_na_values | (y <= 0)
-            
+        if np.any(y[~y_na_values] <= 0):
+            y_na_values = y_na_values | (y <= 0)
         y_insample = np.log(y)
-    
     else:
-        y_insample = y
+        y_insample = y.copy()
 
-    # treat the missing values
-    if any(y_na_values):
-        # create the design matrix
-        X = np.c_[np.ones(obs_in_sample), np.poly(np.arange(1, obs_in_sample + 1), degree=min(max(int(obs_in_sample/10),1),5)).T, np.sin(np.pi * np.outer(np.arange(1, obs_in_sample + 1), np.arange(1, max(lags) + 1)) / max(lags))]
-        # We use the least squares method to fit the model
-        lm_fit = np.linalg.lstsq(X[~y_na_values], y_insample[~y_na_values], rcond=None)
-        # replace the missing values with the fitted values
-        y_insample[y_na_values] = np.dot(X, lm_fit[0])[y_na_values]
-        del X
+    # Missing value imputation
+    if np.any(y_na_values):
+        degree = min(max(int(np.floor(obs_in_sample / 10)), 1), 5)
+        t = np.arange(1, obs_in_sample + 1)
+        X_poly = np.vander(t, degree + 1, increasing=True)
+        max_lag = np.max(lags)
+        X_sin = np.column_stack([np.sin(np.pi * t * k / max_lag) for k in range(1, max_lag + 1)])
+        X = np.column_stack((X_poly, X_sin))
+        coef = np.linalg.lstsq(X[~y_na_values], y_insample[~y_na_values], rcond=None)[0]
+        y_insample[y_na_values] = X[y_na_values] @ coef
+
+    # Smoothing and trend extraction
+    lags = np.sort(np.unique(lags))
     
-    obs = len(y)
-    lags = sorted(set(lags))
     lags_length = len(lags)
-    
-    # List of smoothed values
     y_smooth = [None] * (lags_length + 1)
-    y_smooth[0] = y_insample  # Put actuals in the first element of the list
-    
-    # List of cleared values
-    y_clear = [None] * lags_length
-    
-    # Smooth time series with different lags
+    y_smooth[0] = y_insample
     for i in range(lags_length):
-        y_smooth[i + 1] = ma(y_insample, lags[i])
-    
+        y_smooth[i + 1] = smoothing_function(y_insample, order=lags[i])
     trend = y_smooth[lags_length]
 
-    # Produce the cleared series
-    for i in range(lags_length):
-        y_clear[i] = y_smooth[i] - y_smooth[i + 1]
+    # Cleared series
+    if seasonal_lags:
+        y_clear = [None] * lags_length
+        for i in range(lags_length):
+            y_clear[i] = y_smooth[i] - y_smooth[i + 1]
 
-    # The seasonal patterns
-    patterns = [None] * lags_length
-    for i in range(lags_length):
-        patterns[i] = np.array([np.nanmean(y_clear[i][j::lags[i]]) for j in range(lags[i])])
-        patterns[i] -= np.nanmean(patterns[i])
+    # Seasonal patterns
+    if seasonal_lags:
+        patterns = []
+        for i in range(lags_length):
+            pattern_i = np.full(obs_in_sample, np.nan)
+            for j in range(lags[i]):
+                indices = np.arange(j, obs_in_sample, lags[i])
+                y_seasonal = y_clear[i][indices]
+                y_seasonal_non_na = y_seasonal[~np.isnan(y_seasonal)]
+                if len(y_seasonal_non_na) > 0:
+                    y_seasonal_smooth = np.mean(y_seasonal_non_na)
+                    pattern_i[indices] = y_seasonal_smooth
+            if np.any(~np.isnan(pattern_i)):
+                pattern_i -= np.nanmean(pattern_i)
+            patterns.append(pattern_i)
+    else:
+        patterns = None
 
     # Initial level and trend
-    valid_trend = trend[~np.isnan(trend)]
-    initial = np.array([
-        valid_trend[0],
-        np.nanmean(np.diff(valid_trend))
-    ])
-    
-    # Fix the initial, to get to the beginning of the sample
+    data_for_initial = y_smooth[lags_length - 1]  # Matches R's ySmooth[[lagsLength]]
+    valid_data_for_initial = data_for_initial[~np.isnan(data_for_initial)]
+    if len(valid_data_for_initial) == 0:
+        init_level = 0.0
+        init_trend = 0.0
+    else:
+        init_level = valid_data_for_initial[0]
+        diffs = np.diff(valid_data_for_initial)
+        init_trend = np.nanmean(diffs) if len(diffs) > 0 else 0.0
+    initial = np.array([init_level, init_trend], dtype=float)
+    #print(lags)
     initial[0] -= initial[1] * np.floor(max(lags) / 2)
-
-    # Return to the original scale
+    # Multiplicative adjustment
     if type == "multiplicative":
         initial = np.exp(initial)
         trend = np.exp(trend)
-        patterns = [np.exp(pattern) for pattern in patterns]
-        if shifted_data:
-            initial[0] -= 1
-            trend -= 1
+        if seasonal_lags:
+            patterns = [np.exp(pattern) for pattern in patterns]
 
-    # Prepare the return structure
+    # Fitted values and states
+    y_fitted = trend.copy()
+    if seasonal_lags:
+        states = np.column_stack((trend, np.concatenate(([np.nan], np.diff(trend))), np.column_stack(patterns)))
+        if type == "additive":
+            for i in range(lags_length):
+                pattern_rep = np.tile(patterns[i], int(np.ceil(obs_in_sample / lags[i])))[:obs_in_sample]
+                y_fitted += pattern_rep
+        else:
+            for i in range(lags_length):
+                pattern_rep = np.tile(patterns[i], int(np.ceil(obs_in_sample / lags[i])))[:obs_in_sample]
+                y_fitted *= pattern_rep
+    else:
+        states = np.column_stack((trend, np.concatenate(([np.nan], np.diff(trend)))))
+
+    # Return structure
     result = {
         "y": y,
+        "states": states,
         "initial": initial,
-        "trend": trend,
         "seasonal": patterns,
+        "fitted": y_fitted,
         "loss": "MSE",
         "lags": lags,
         "type": type,
-        "yName": "y"  # You might want to pass the actual name as an argument
+        "yName": y_name,
+        "smoother": smoother
     }
-
     return result
 
 

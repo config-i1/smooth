@@ -34,6 +34,7 @@ def estimator(
         maxeval = None,
 ):
 
+    
 
     # Create the basic variables
     model_type_dict, components_dict, lags_dict, observations_dict, profile_dict = architector(
@@ -62,7 +63,7 @@ def estimator(
         components_dict = components_dict,
         explanatory_checked = explanatory_dict
     )
-
+    
     # Initialize B
     # Initialize B
     b_values = initialiser(
@@ -79,7 +80,6 @@ def estimator(
         bounds = general_dict['bounds'],
         phi_dict = phi_dict,
     )
-    
 
     # The following is a translation from R -> why do we need it?
     #B = b_values['B']
@@ -99,7 +99,7 @@ def estimator(
     lb = b_values['Bl']
     #if ub is None:
     ub = b_values['Bu']
-
+    
 
     #if(!is.null(B)){
     #    if(!is.null(names(B))){
@@ -147,22 +147,21 @@ def estimator(
             general_dict['distribution_new'] = "dnorm"
     else:
         general_dict['distribution_new'] = general_dict['distribution']
-
     # Print initial parameters if print_level is 41
     print_level_hidden = print_level
     if print_level == 1:
-        print("Initial parameters:", B)
+        #print("Initial parameters:", B)
         print_level = 0
 
     # Set maxeval based on parameters
     maxeval_used = maxeval
     if maxeval is None:
-        maxeval_used = len(B) * 40
+        maxeval_used = len(B) * 200
         
         # If xreg model, do more iterations
         if explanatory_dict['xreg_model']:
-            maxeval_used = len(B) * 100
-            maxeval_used = max(1000, maxeval_used)
+            maxeval_used = len(B) * 150
+            maxeval_used = max(1500, maxeval_used)
 
     # Handle LASSO/RIDGE denominator calculation
     if general_dict['loss'] in ["LASSO", "RIDGE"]:
@@ -194,39 +193,81 @@ def estimator(
     #    'maxtime': maxtime,
         #   'print_level': print_level
     #}
-
     # Create nlopt optimizer object
-    opt = nlopt.opt(nlopt.LD_SLSQP, len(B))  # Use SLSQP algorithm to match R code
+    opt = nlopt.opt(nlopt.LN_BOBYQA, len(B))  # Use BOBYQA algorithm which is better for this type of problem
     
     # Set bounds
     opt.set_lower_bounds(lb)
     opt.set_upper_bounds(ub)
-    opt.set_xtol_rel(1e-6)  # Relative tolerance on optimization parameters
-    opt.set_ftol_rel(1e-6)  # Relative tolerance on function value
+    opt.set_xtol_rel(1e-6)  # Match R's tolerance
+    opt.set_ftol_rel(1e-8)  # Match R's tolerance
+    opt.set_ftol_abs(0)     # Match R's tolerance
+    opt.set_xtol_abs(1e-8)  # Match R's tolerance
 
+    # Increase maxeval to match or exceed R's value
+    if maxeval is None:
+        # Increase the default multiplier to ensure we run at least as many iterations as R
+        maxeval_used = len(B) * 200  # Increased from 120 to 200
+        
+        # If xreg model, do more iterations
+        if explanatory_dict['xreg_model']:
+            maxeval_used = len(B) * 150  # Increased from 100 to 150
+            maxeval_used = max(1500, maxeval_used)  # Increased from 1000 to 1500
+
+    opt.set_maxeval(maxeval_used)
+
+    # Remove the default timeout to allow the optimizer to run until maxeval is reached
     if maxtime is not None:
         opt.set_maxtime(maxtime)
-    
+    else:
+        # Set a much longer timeout (30 minutes instead of 5)
+        opt.set_maxtime(1800)  # 30 minutes default timeout
+
+
+    iteration_count = [0]  
     # Define objective function wrapper since nlopt expects different signature
     def objective_wrapper(x, grad):
-        return CF(x,
-                model_type_dict,
-                components_dict,
-                lags_dict,
-                adam_created,
-                persistence_dict,
-                initials_dict,
-                arima_dict,
-                explanatory_dict,
-                phi_dict,
-                constant_dict,
-                observations_dict,
-                profile_dict,
-                general_dict,
-                bounds = "usual")
+        """
+        Wrapper for the objective function.
+        """
+
+        iteration_count[0] += 1
+        
+        # Calculate the cost function
+        cf_value = CF(
+            B = x,
+            model_type_dict = model_type_dict,
+            components_dict = components_dict,
+            lags_dict = lags_dict,
+            matrices_dict = adam_created,
+            persistence_checked = persistence_dict,
+            initials_checked = initials_dict,
+            arima_checked = arima_dict,
+            explanatory_checked = explanatory_dict,
+            phi_dict = phi_dict,
+            constants_checked = constant_dict,
+            observations_dict = observations_dict,
+            profile_dict = profile_dict,
+            general = general_dict,
+            bounds = "usual"
+        )
+        
+        # Limit extreme values to prevent numerical instability
+        if not np.isfinite(cf_value) or cf_value > 1e10:
+            return 1e10
+        
+        #print(f"Iteration {iteration_count[0]}: Cost = {cf_value}")
+       # print(f"Parameters: {x}")
+        
+        return cf_value
     
     # Set objective function
     opt.set_min_objective(objective_wrapper)
+    
+    # Print initial values before optimization
+    #print(f"DEBUG - Starting optimization with initial parameters: {B}")
+    #print(f"DEBUG - Lower bounds: {lb}")
+    #print(f"DEBUG - Upper bounds: {ub}")
     
     try:
         # Run optimization
@@ -237,42 +278,17 @@ def estimator(
             'fun': res_fun,
             'success': True
         })
+        #print(f"Optimization completed after {iteration_count[0]} iterations")
+        #print(f"Final parameters: {x}")
+        #print(f"Final CF value: {res_fun}")
     except Exception as e:
-        print(f"Optimization failed: {str(e)}")
+        #print(f"Optimization failed after {iteration_count[0]} iterations: {str(e)}")  
+        #print(f"Optimization failed: {str(e)}")
         res = type('OptimizeResult', (), {
             'x': B,
             'fun': 1e+300,
             'success': False
         })
-
-    # If optimization failed, try again with modified initial values
-    if np.isinf(res.fun) or res.fun == 1e+300:
-        # Reset initial values
-        if model_type_dict['ets_model']:
-            B[:components_dict['components_number_ets']] = 0
-        if model_type_dict['arima_model']:
-            start_idx = components_dict['components_number_ets'] + persistence_dict['persistence_xreg_estimate'] * explanatory_dict['xreg_number']
-            end_idx = start_idx + sum(np.array(arima_dict['ar_orders']) * arima_dict['ar_estimate'] + np.array(arima_dict['ma_orders']) * arima_dict['ma_estimate'])
-            B[start_idx:end_idx] = 0.01
-        try:
-            # Try optimization again
-            x = opt.optimize(B)
-            res_fun = opt.last_optimum_value()
-            res = type('OptimizeResult', (), {
-                'x': x,
-                'fun': res_fun,
-                'success': True
-            })
-        except Exception as e:
-            print(f"Second optimization attempt failed: {str(e)}")
-            res = type('OptimizeResult', (), {
-                'x': B,
-                'fun': 1e+300,
-                'success': False
-            })
-
-    if print_level_hidden > 0:
-        print(res)
 
     # Check the obtained parameters and the loss value and remove redundant parameters
     # Cases to consider:
@@ -314,6 +330,7 @@ def estimator(
         'nobs': observations_dict['obs_in_sample'],
         'df': n_param_estimated + (1 if general_dict['loss'] == "likelihood" else 0)
     }
+    #print(f"DEBUG - Log likelihood value: {log_lik_adam_value}")
 
     # Here I will add regressors when I have olm
     # line 3032 - 3322
@@ -363,7 +380,7 @@ def selector(
 ):
     """Creates a pool of models and selects the best of them"""
     
-
+    
 
     # Note:
     # If we call the selector we need custom dictionairies to pass each time!
@@ -453,8 +470,7 @@ def selector(
         check = True
         best_i = best_j = 1
         results = [None] * len(pool_small)
-
-
+        
         # Branch and bound is here
         while check:
 
@@ -463,7 +479,7 @@ def selector(
 
             i += 1
             model_current = pool_small[j-1]
-            
+
             # create a copy of the model_type_dict and the phi_dict
             model_type_dict_temp = model_type_dict.copy()
             model_type_dict_temp['model'] = model_current
@@ -482,6 +498,7 @@ def selector(
                 phi_dict_temp['phi_estimate'] = False
                 model_type_dict_temp['season_type'] = model_current[2]
 
+            #print('estimator', flush=True)
             results[i-1] = {}
             results[i-1]['adam_estimated'] = estimator(
                         general_dict= general_dict,
@@ -567,7 +584,7 @@ def selector(
                 check = False
         
         # Prepare a bigger pool based on the small one
-        models_pool = list(set(
+        model_type_dict['models_pool'] = list(set(
             models_tested + 
             [e + t + s for e in pool_errors 
                 for t in pool_trends 
@@ -577,10 +594,9 @@ def selector(
 
     else:
         j = 0
-        results = [None] * len(models_pool)
+        results = [None] * len(model_type_dict['models_pool'])
 
-    models_number = len(models_pool)
-
+    models_number = len(model_type_dict['models_pool'])
     # Run the full pool of models
     if not silent:
         print("Estimation progress:    ", end="")
@@ -594,8 +610,13 @@ def selector(
             print("\b" * (len(str(round((j-1)/models_number * 100))) + 1), end="")
             print(f"{round(j/models_number * 100)}%", end="")
 
-        model_current = models_pool[j-1]
-        # print(model_current)
+        model_current = model_type_dict['models_pool'][j-1]
+        #print(model_current)
+
+        # temporary copies for estimations
+        model_type_dict_temp = model_type_dict.copy()
+        phi_dict_temp = phi_dict.copy()
+
         model_type_dict_temp['error_type'] = model_current[0]
         model_type_dict_temp['trend_type'] = model_current[1]
         if len(model_current) == 4:
@@ -607,9 +628,10 @@ def selector(
             model_type_dict_temp['season_type'] = model_current[2]
             phi_dict_temp['phi_estimate'] = False
 
-
-        results[i-1] = {}
-        results[i-1]['adam_estimated'] = estimator(
+        results[j-1] = {}
+        #print(lags_dict)
+        #print(model_type_dict_temp)
+        results[j-1]['adam_estimated'] = estimator(
                     general_dict= general_dict,
                     model_type_dict = model_type_dict_temp,
                     lags_dict = lags_dict,
@@ -622,20 +644,20 @@ def selector(
                     persistence_dict=persistence_results,
                     initials_dict=initials_results,
                     occurrence_dict=occurrence_dict,
-                    phi_dict=phi_dict,
+                    phi_dict=phi_dict_temp,
                     components_dict=components_dict,
                 )
-
+        #print(results[j-1]['adam_estimated'])
         # this need further itteration on how to return outputs
-        results[i-1]["IC"] = ic_function(general_dict['ic'],loglik=results[i-1]['adam_estimated']["log_lik_adam_value"])
-        results[i-1]['model_type_dict'] = model_type_dict_temp
-        results[i-1]['phi_dict'] = phi_dict_temp
-        results[i-1]['model'] = model_current
+        results[j-1]["IC"] = ic_function(general_dict['ic'],loglik=results[j-1]['adam_estimated']["log_lik_adam_value"])
+        results[j-1]['model_type_dict'] = model_type_dict_temp
+        results[j-1]['phi_dict'] = phi_dict_temp
+        results[j-1]['model'] = model_current
 
-        if phi_dict_temp['phi_estimate']:
-            results[i-1]['phi_dict']["phi"] = results[i-1]["B"].get("phi")
-        else:
-            results[i-1]['phi_dict']["phi"] = 1
+        #if phi_dict_temp['phi_estimate']:
+        #    results[j-1]['phi_dict']["phi"] = results[j-1]["B"].get("phi")
+        #else:
+        #    results[j-1]['phi_dict']["phi"] = 1
 
 
     if not silent:
@@ -643,18 +665,18 @@ def selector(
 
     # Extract ICs and find the best
     ic_selection = [None] * models_number
-    for i in range(models_number):
-        ic_selection[i] = results[i]["IC"]
+    for j in range(models_number):
+        ic_selection[j] = results[j]["IC"]
 
     # Set names for ic_selection
-    ic_selection_dict = dict(zip(models_pool, ic_selection))
+    ic_selection_dict = dict(zip(model_type_dict['models_pool'], ic_selection))
 
     # Replace NaN values with large number
     ic_selection = [1e100 if math.isnan(x) else x for x in ic_selection]
 
     return {"results": results, "ic_selection": ic_selection_dict}
 
-def preparator(
+def preparator_old(
     
 # Model type info
     model_type_dict,
@@ -692,20 +714,20 @@ def preparator(
     
 
     # Fill in the matrices if needed
-    if general_dict.get("model_do") != "use":
-        matrices_dict = filler(
-            adam_estimated['B'],
-            model_type_dict = model_type_dict,
-            components_dict = components_dict,
-            lags_dict = lags_dict,
-            matrices_dict = matrices_dict,
-            persistence_checked = persistence_checked,
-            initials_checked = initials_checked,
-            arima_checked = arima_checked,
-            explanatory_checked = explanatory_checked,
-            phi_dict = phi_dict,
-            constants_checked = constants_checked
-        )
+    #if general_dict.get("model_do") != "use":
+    matrices_dict = filler(
+        adam_estimated['B'],
+        model_type_dict = model_type_dict,
+        components_dict = components_dict,
+        lags_dict = lags_dict,
+        matrices_dict = matrices_dict,
+        persistence_checked = persistence_checked,
+        initials_checked = initials_checked,
+        arima_checked = arima_checked,
+        explanatory_checked = explanatory_checked,
+        phi_dict = phi_dict,
+        constants_checked = constants_checked
+    )
 
     # Write down phi
     if phi_dict["phi_estimate"]:
@@ -714,19 +736,70 @@ def preparator(
     # Write down the initials in the recent profile
     profiles_dict["profiles_recent_table"][:] = matrices_dict['mat_vt'][:, :lags_dict["lags_model_max"]]
     profiles_dict["profiles_recent_initial"] = matrices_dict['mat_vt'][:, :lags_dict["lags_model_max"]].copy()
+    
+
+    # Convert pandas Series/DataFrames to numpy arrays
+    y_in_sample = np.asarray(observations_dict['y_in_sample'].values.flatten(), dtype=np.float64)
+    ot = np.asarray(observations_dict['ot'].values.flatten(), dtype=np.float64)
+    
+    mat_vt = np.asfortranarray(matrices_dict['mat_vt'], dtype=np.float64)
+    mat_wt = np.asfortranarray(matrices_dict['mat_wt'], dtype=np.float64)
+    mat_f = np.asfortranarray(matrices_dict['mat_f'], dtype=np.float64)
+    vec_g = np.asfortranarray(matrices_dict['vec_g'], dtype=np.float64) # Make sure it's a 1D array
+    lags_model_all = np.asfortranarray(lags_dict['lags_model_all'], dtype=np.uint64).reshape(-1,1)  # Make sure it's a 1D array
+    index_lookup_table = np.asfortranarray(profiles_dict['index_lookup_table'], dtype=np.uint64)
+    profiles_recent_table = np.asfortranarray(profiles_dict['profiles_recent_table'], dtype=np.float64)
+
+
+    # Print debug information
+    # print('mat_vt:', mat_vt)
+    # print('mat_wt:', mat_wt)
+    # print('dim mat_wt:', mat_wt.shape)
+    # print('mat_f:', mat_f)
+    # print('vec_g:', vec_g)
+    # print('lags_model_all:', lags_model_all)
+    # print('index_lookup_table:', index_lookup_table)
+    # print('profiles_recent_table:', profiles_recent_table)
+    # print('error_type:', model_type_dict['error_type'])
+    # print('trend_type:', model_type_dict['trend_type'])
+    # print('season_type:', model_type_dict['season_type'])
+    # print('components_number_ets:', components_dict['components_number_ets'])
+    # print('components_number_ets_seasonal:', components_dict['components_number_ets_seasonal'])
+    # print('components_number_arima:', components_dict['components_number_arima'])
+    # print('xreg_number:', explanatory_checked['xreg_number'])
+    # print('constant_required:', constants_checked['constant_required'])
+    # print('y_in_sample:', y_in_sample)
+    # print('ot:', ot)
+    # print('double checking', y_in_sample)
+
 
     # Fit the model to the data
     adam_fitted = adam_fitter(
-        matrices_dict['mat_vt'], matrices_dict['mat_wt'], matrices_dict['mat_f'], matrices_dict['vec_g'],
-        lags_dict['lags_model_all'], profiles_dict['index_lookup_table'], profiles_dict['profiles_recent_table'],
-        model_type_dict["error_type"], model_type_dict["trend_type"], model_type_dict["season_type"], 
-        components_dict["components_number_ets"], components_dict["components_number_ets_seasonal"],
-        components_dict.get("components_number_arima", 0), explanatory_checked["xreg_number"], 
-        constants_checked["constant_required"],
-        observations_dict["y_in_sample"], observations_dict["ot"], 
-        any(x in initials_checked["initial_type"] for x in ["complete", "backcasting"])
-    )
+        matrixVt=mat_vt,
+        matrixWt=mat_wt,
+        matrixF=mat_f,
+        vectorG=vec_g,
+        lags=lags_model_all, 
+        indexLookupTable=index_lookup_table,
+        profilesRecent=profiles_recent_table,
+        E=model_type_dict['error_type'],
+        T=model_type_dict['trend_type'],
+        S=model_type_dict['season_type'],
 
+        # non seasonal makes the calculation here
+        nNonSeasonal=components_dict['components_number_ets'] - components_dict['components_number_ets_seasonal'],
+        nSeasonal=components_dict['components_number_ets_seasonal'],
+        nArima=components_dict['components_number_arima'],
+        nXreg=explanatory_checked['xreg_number'],
+        constant=constants_checked['constant_required'],
+        vectorYt=y_in_sample,  # Ensure correct mapping
+        vectorOt=ot,  # Ensure correct mapping
+        backcast=any([t == "complete" or t == "backcasting" for t in initials_checked['initial_type']])    
+        )
+    #print(adam_fitted)
+
+    #print('adam_fitted')
+    #print(adam_fitted)
     matrices_dict['mat_vt'][:] = adam_fitted["matVt"]
     profiles_dict["profiles_recent_table"] = adam_fitted["profile"]
 
@@ -783,6 +856,49 @@ def preparator(
         else:
             y_forecast = pd.Series(np.full(general_dict["h"], np.nan), 
                                   index=observations_dict["y_forecast_index"])
+        
+        
+        
+        
+        # print(observations_dict["obs_in_sample"])
+        #index_lookup_table = np.asfortranarray(profiles_dict['index_lookup_table'], dtype=np.uint64)
+        #profiles_recent_table = np.asfortranarray(profiles_dict['profiles_recent_table'], dtype=np.float64)
+        # index_lookup_table = np.asfortranarray(
+        #     profiles_dict['index_lookup_table'][:, lags_dict["lags_model_max"] + observations_dict["obs_in_sample"] + np.arange(general_dict["h"])],
+        #     dtype=np.uint64
+        # ).copy()
+        # profiles_recent_table = np.asfortranarray(profiles_dict['profiles_recent_table'], dtype=np.float64).copy()
+
+        # mat_wt = np.asfortranarray(matrices_dict['mat_wt'][-general_dict["h"]:].copy(), dtype=np.float64).copy()
+        # mat_f = np.asfortranarray(matrices_dict['mat_f'], dtype=np.float64).copy()
+        # lags_model_all = np.asfortranarray(lags_dict["lags_model_all"], dtype=np.uint64).reshape(-1,1).copy()
+            
+        # print('index_lookup_table', index_lookup_table)
+        # print('profiles_recent_table', profiles_recent_table)
+        # print('mat_wt', mat_wt, mat_wt.shape)
+        # print('mat_f', mat_f)
+        # print('lags_model_all', lags_model_all)
+        # print('model_type_dict', model_type_dict)
+        # print('check', flush=True)
+        
+        # y_forecast[:] = adam_forecaster(
+        #      matrixWt=mat_wt,
+        #      matrixF=mat_f,
+        #     lags=lags_model_all,
+        #     indexLookupTable=index_lookup_table,
+        #     profilesRecent=profiles_recent_table,
+        #     E=model_type_dict["error_type"],
+        #     T=model_type_dict["trend_type"],
+        #     S=model_type_dict["season_type"],
+        #     nNonSeasonal=components_dict["components_number_ets"],
+        #     nSeasonal=components_dict["components_number_ets_seasonal"],
+        #     nArima=components_dict.get("components_number_arima", 0),
+        #     nXreg=explanatory_checked["xreg_number"],
+        #     constant=constants_checked["constant_required"],
+        #     horizon=general_dict["h"]
+        # ).flatten()
+        
+        
         y_forecast[:] = adam_forecaster(
             matrixWt=matrices_dict['mat_wt'][-general_dict["h"]:],
             matrixF=matrices_dict['mat_f'],

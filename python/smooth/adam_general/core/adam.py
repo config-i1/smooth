@@ -1,9 +1,10 @@
 import time
 import warnings
 from core.checker import parameters_checker
-from core.estimator import estimator, selector, preparator
+from core.estimator import estimator, selector
 from core.creator import creator, initialiser, architector, filler
 from core.utils.ic import ic_function
+from core.forecaster import preparator, forecaster
 import numpy as np
 import pandas as pd
 
@@ -117,7 +118,6 @@ class Adam(object):
                                         lambda_param=self.lambda_param,
                                         frequency=self.frequency)
         
-
         # line 534 -> use regression here
 
         # line 677 -> do the adam selection here
@@ -127,7 +127,6 @@ class Adam(object):
 
         # then I also skip the regression data on lines 4036
         # I also skip the number of parameters on line 4070
-
         # line 4099 we continue:
         if self.model_type_dict["model_do"] == "estimate":
             # If this is LASSO/RIDGE with lambda=1, use MSE to estimate initials only
@@ -220,7 +219,6 @@ class Adam(object):
             # Calculate IC
             self.ic_selection = ic_function(self.general['ic'], 
                                          self.adam_estimated['log_lik_adam_value'])
-
             # Update parameters number
             self.n_param_estimated = self.adam_estimated['n_param_estimated']
 
@@ -250,10 +248,10 @@ class Adam(object):
             self.adam_selected = selector(
                 model_type_dict=self.model_type_dict,
                 phi_dict=self.phi_dict,
-                general=self.general,
-                lags_dict=self.lags_dict,
-                observations_dict=self.observations_dict,
-                arima_results=self.arima_results,
+                general_dict=self.general, 
+                lags_dict=self.lags_dict, 
+                observations_dict=self.observations_dict, 
+                arima_dict=self.arima_results,
                 constant_dict=self.constant_dict,
                 explanatory_dict=self.explanatory_dict,
                 occurrence_dict=self.occurrence_dict,
@@ -266,8 +264,10 @@ class Adam(object):
                 silent=self.silent
             )
 
+
             # Get selection results
             self.ic_selection = self.adam_selected['ic_selection']
+            
             self.results = self.adam_selected['results']
 
             # Find best model
@@ -546,7 +546,7 @@ class Adam(object):
     def predict(self):
         """Make predictions using the fitted model"""
         
-        out = preparator(
+        self.prepared_model = preparator(
             # Model info
             model_type_dict=self.model_type_dict,
             
@@ -580,5 +580,23 @@ class Adam(object):
             bounds="usual",
             other=None
         )
+
+
+        self.predictions = forecaster(
+            model_prepared=self.prepared_model,
+            observations_dict=self.observations_dict,
+            general_dict=self.general,
+            occurrence_dict=self.occurrence_dict,
+            lags_dict=self.lags_dict,
+            model_type_dict=self.model_type_dict,
+            explanatory_checked=self.explanatory_dict,
+            components_dict=self.components_dict,
+            constants_checked=self.constant_dict
+        )
+
+        return self.predictions
         
-        return out
+
+
+        
+        #return out
