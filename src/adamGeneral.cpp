@@ -30,6 +30,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
     arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
 
+    
     // Loop for the backcasting
     // unsigned int nIterations = 1;
     // if(backcast){
@@ -46,6 +47,7 @@ List adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matri
                 matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
                 profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
                                matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+                
             }
         }
         ////// Run forward

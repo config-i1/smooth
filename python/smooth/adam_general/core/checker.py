@@ -6,13 +6,14 @@ def _warn(msg, silent=False):
     if not silent:
         print(f"Warning: {msg}")
 
-def _check_occurrence(data, occurrence, frequency = None, silent=False):
+def _check_occurrence(data, occurrence, frequency = None, silent=False, holdout=False, h=0):
     """
     Check / handle 'occurrence' parameter similarly to R code.
     Return a dict with occurrence details and nonzero counts.
     """
     data_list = list(data) if not isinstance(data, list) else data
     obs_in_sample = len(data_list)
+    obs_all = obs_in_sample + (1 - holdout) * h
     # Identify non-zero observations
     nonzero_indices = [i for i, val in enumerate(data_list) if val is not None and val != 0]
     obs_nonzero = len(nonzero_indices)
@@ -23,7 +24,8 @@ def _check_occurrence(data, occurrence, frequency = None, silent=False):
             "occurrence": "none",
             "occurrence_model": False,
             "obs_in_sample": obs_in_sample,
-            "obs_nonzero": 0
+            "obs_nonzero": 0,
+            "obs_all": obs_all
         }
 
     # Validate the occurrence choice
@@ -38,7 +40,8 @@ def _check_occurrence(data, occurrence, frequency = None, silent=False):
         "occurrence": occurrence,
         "occurrence_model": occurrence_model,
         "obs_in_sample": obs_in_sample,
-        "obs_nonzero": obs_nonzero
+        "obs_nonzero": obs_nonzero,
+        "obs_all": obs_all
     }
 
 def _check_lags(lags, obs_in_sample, silent=False):
@@ -61,7 +64,6 @@ def _check_lags(lags, obs_in_sample, silent=False):
     
     # Get seasonal lags (all lags > 1)
     lags_model_seasonal = [lag for lag in lags_model if lag > 1]
-    
     max_lag = max(lags) if lags else 1
     if max_lag >= obs_in_sample:
         _warn(f"The maximum lags value is {max_lag}, while sample size is {obs_in_sample}. I cannot guarantee that I'll be able to fit the model.", silent)
@@ -290,7 +292,7 @@ def _generate_models_pool(error_type, trend_type, season_type, allow_multiplicat
         # Generate based on provided components
         error_options = ["A", "M"] if allow_multiplicative else ["A"]
         trend_options = ["N", "A", "Ad"] if trend_type != "N" else ["N"]
-        season_options = ["N", "A"] if season_type != "N" else ["N"]
+        season_options = ["N", "A", "M"] if season_type != "N" and allow_multiplicative else ["N", "A"] if season_type != "N" else ["N"]
         
         if error_type in ["A", "M"]:
             error_options = [error_type]
@@ -330,7 +332,6 @@ def _check_ets_model(model, distribution, data, silent=False):
 
     # Now call _check_model_composition with all required arguments
     model_info = _check_model_composition(model, allow_multiplicative, silent)
-    
     # Extract components
     error_type = model_info["error_type"]
     trend_type = model_info["trend_type"]
@@ -711,8 +712,8 @@ def _check_initial(initial, ets_model, trend_type, season_type, arima_model=Fals
     
     # If no initial provided, return defaults with optimal type
     if initial is None:
-        if not silent:
-            print("Initial value is not selected. Switching to optimal.")
+        #if not silent:
+            #print("Initial value is not selected. Switching to optimal.")
         return result
 
     # Handle string types
@@ -1004,6 +1005,7 @@ def _organize_lags_info(validated_lags, lags_model, lags_model_seasonal, lags_mo
     else:
         lags_model_all = sorted(set(lags_model + (lags_model_arima if lags_model_arima else [])))
 
+    # flatten lags_model_all
     return {
         "lags": validated_lags,
         "lags_model": lags_model,
@@ -1011,6 +1013,7 @@ def _organize_lags_info(validated_lags, lags_model, lags_model_seasonal, lags_mo
         "lags_model_arima": lags_model_arima,
         "lags_model_all": lags_model_all,
         "max_lag": max(lags_model_all) if lags_model_all else 1,
+        "lags_model_min": min(lags_model_all) if lags_model_all else 1,
         "lags_length": len(validated_lags)
     }
 
@@ -1129,7 +1132,14 @@ def parameters_checker(
     fast=False,
     models_pool=None,
     lambda_param=None,
-    frequency=None
+    frequency=None,
+    interval="parametric",
+    interval_level=[0.95],
+    side="both",
+    cumulative=False,
+    nsim=1000,
+    scenarios=100,
+    ellipsis=None
 ):
     """
     Extended parameters_checker that includes initialization logic for estimation.
@@ -1151,7 +1161,7 @@ def parameters_checker(
     #####################
     # 1) Occurrence
     #####################
-    occ_info = _check_occurrence(data_values, occurrence, silent)
+    occ_info = _check_occurrence(data_values, occurrence, silent, holdout, h)
     obs_in_sample = occ_info["obs_in_sample"]
     obs_nonzero = occ_info["obs_nonzero"]
     occurrence_model = occ_info["occurrence_model"]
@@ -1287,21 +1297,25 @@ def parameters_checker(
         model_str = "ANN"
     # We might do more checks, but keep it short here.
 
-    #####################
-    # 13) Model pooling
-    #####################
-    # If model_do in ["select","combine"] and we have a models_pool, ensure it's valid. 
-    # The original R code has logic to unify model & models_pool. We'll only store it here.
-    if model_do in ["select","combine"] and models_pool is not None:
-        # The user can specify e.g. ["ANN","MNN"] etc. We won't do deep validation here.
-        pass
-
     # Check if multiplicative models are allowed (using data_values instead of data)
     allow_multiplicative = not ((any(y <= 0 for y in data_values if not pd.isna(y)) and not occurrence_model) or 
                               (occurrence_model and any(y < 0 for y in data_values if not pd.isna(y))))
     
-    # Check model composition
-    model_info = _check_model_composition(model, allow_multiplicative, silent)
+    # Check model composition - reuse components from ets_info if possible
+    if ets_model:
+        # Reuse the model_info from ets_info to avoid inconsistency
+        error_type = ets_info["error_type"]
+        trend_type = ets_info["trend_type"]
+        season_type = ets_info["season_type"]
+        damped = ets_info["damped"]
+        model_str = ets_info["model"]
+        
+        # Check model composition with current allow_multiplicative value
+        model_info = _check_model_composition(model_str, allow_multiplicative, silent)
+    else:
+        # For non-ETS models, check composition directly
+        model_info = _check_model_composition(model, allow_multiplicative, silent)
+    
     final_model_do = model_info["model_do"]
     candidate_pool = model_info["models_pool"]
 
@@ -1381,10 +1395,11 @@ def parameters_checker(
                                   occurrence_dict["occurrence_model"], 
                                   obs_in_sample,
                                   frequency, h, holdout)
+
     observations_dict = {
         "obs_in_sample": obs_in_sample,
         "obs_nonzero": obs_nonzero,
-        "obs_all": obs_in_sample + (1 - holdout) * h,
+        "obs_all": occ_info["obs_all"],
         "ot_logical": ot_info["ot_logical"],
         "ot": ot_info["ot"],
         "y_in_sample": ot_info.get("y_in_sample", data),  # Use split data if available
@@ -1406,7 +1421,14 @@ def parameters_checker(
         "bounds": bounds,
         "model_do": model_do,
         "fast": fast,
-        "models_pool": models_pool
+        "models_pool": models_pool,
+        "interval": interval,
+        "interval_level": interval_level,
+        "side": side,
+        "cumulative": cumulative,
+        "nsim": nsim,
+        "scenarios": scenarios,
+        "ellipsis": ellipsis
     }
 
     #####################
@@ -1462,13 +1484,15 @@ def parameters_checker(
     # Create model type dictionary
     model_type_dict = _organize_model_type_info(ets_info, arima_info, xreg_model=False)
     
-    # Create components dictionary
-    components_dict = _organize_components_info(ets_info, arima_info, lags_model_seasonal)
+    # Update model_do based on final_model_do instead of input parameter
+    model_type_dict["model_do"] = final_model_do
     
-    # Update model_do based on input parameter
-    model_type_dict["model_do"] = model_do
-
-
+    # Add candidate_pool to model_type_dict if model selection is needed
+    if final_model_do in ["select", "combine"]:
+        model_type_dict["models_pool"] = candidate_pool
+    
+    # Organize components info
+    components_dict = _organize_components_info(ets_info, arima_info, lags_model_seasonal)
     # Initiliaze the explonatory dict -> will not be used for now
     xreg_dict = {
         "xreg_model": False,
