@@ -205,11 +205,11 @@ plot(ourData)
 par(mfcol=c(1,1))
 ```
 
-## Generalised Exponential Smoothing
+## Generalised Univariate Model
 There is also `sim.gum()` function in the package that generates data from GUM model. If we do not provide specific parameters, then they will be automatically generated. This model is very flexible and taking that there is a lot of parameters to set, in general it is not advised to leave such parameters as `measurement`, `transition` and `persistence` blank. The good practice is to simulate data from a fitted model:
 ```{r simulate_smooth_gum}
 x <- ts(100 + rnorm(120,0,5) + rep(runif(12,-50,50),10)*rep(c(1:10),each=12) ,frequency=12)
-ourModel <- auto.gum(x, h=18, silent=TRUE)
+ourModel <- auto.gum(x, h=18, silent=TRUE, initial="backcasting")
 ourData <- simulate(ourModel, nsim=50)
 ```
 

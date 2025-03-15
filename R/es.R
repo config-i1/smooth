@@ -410,9 +410,9 @@ BValues <- function(bounds,Etype,Ttype,Stype,vecg,matvt,phi,lagsModelMax,nCompon
     }
 
     names(B) <- BNames;
-    B <- B[!is.na(B)];
-    lb <- lb[!is.na(lb)];
-    ub <- ub[!is.na(ub)];
+    B <- as.numeric(B[!is.na(B)]);
+    lb <- as.numeric(lb[!is.na(lb)]);
+    ub <- as.numeric(ub[!is.na(ub)]);
 
     return(list(B=B,lb=lb,ub=ub));
 }

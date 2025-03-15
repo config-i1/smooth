@@ -8,14 +8,14 @@
 \usage{
 ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
+  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
   a = NULL, b = NULL, loss = c("likelihood", "MSE", "MAE", "HAM", "MSEh",
   "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
-  bounds = c("admissible", "none"), silent = TRUE, ...)
+  bounds = c("admissible", "none"), silent = TRUE, model = NULL, ...)
 
 auto.ces(data, seasonality = c("none", "simple", "partial", "full"),
   lags = c(frequency(data)), formula = NULL, regressors = c("use",
-  "select", "adapt"), initial = c("optimal", "backcasting", "complete"),
+  "select", "adapt"), initial = c("backcasting", "optimal", "complete"),
   ic = c("AICc", "AIC", "BIC", "BICc"), loss = c("likelihood", "MSE",
   "MAE", "HAM", "MSEh", "TMSE", "GTMSE", "MSCE"), h = 0, holdout = FALSE,
   bounds = c("admissible", "none"), silent = TRUE, ...)
@@ -123,8 +123,22 @@ model, or \code{none} - no restrictions (potentially dangerous).}
 If \code{TRUE}, then the function will print what it does and how much it has
 already done.}
 
+\item{model}{A previously estimated GUM model, if provided, the function
+will not estimate anything and will use all its parameters.}
+
 \item{...}{Other non-documented parameters. See \link[smooth]{adam} for
-details}
+details. However, there are several unique parameters passed to the optimiser
+in comparison with \code{adam}:
+1. \code{algorithm0}, which defines what algorithm to use in nloptr for the initial
+optimisation. By default, this is "NLOPT_LN_BOBYQA".
+2. \code{algorithm} determines the second optimiser. By default this is
+"NLOPT_LN_NELDERMEAD".
+3. maxeval0 and maxeval, that determine the number of iterations for the two
+optimisers. By default, \code{maxeval0=1000}, \code{maxeval=40*k}, where
+k is the number of estimated parameters.
+4. xtol_rel0 and xtol_rel, which are 1e-8 and 1e-6 respectively.
+There are also ftol_rel0, ftol_rel, ftol_abs0 and ftol_abs, which by default
+are set to values explained in the \code{nloptr.print.options()} function.}
 
 \item{ic}{The information criterion to use in the model selection.}
 }
@@ -146,6 +160,10 @@ selection based on information criteria.
 
 \code{ces_old()} is the old implementation of the model and will be discontinued
 starting from smooth v4.5.0.
+
+\code{ces()} uses two optimisers to get good estimates of parameters. By default
+these are BOBYQA and then Nelder-Mead. This can be regulated via \code{...} - see
+details below.
 
 For some more information about the model and its implementation, see the
 vignette: \code{vignette("ces","smooth")}
