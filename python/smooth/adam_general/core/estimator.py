@@ -194,7 +194,7 @@ def estimator(
         #   'print_level': print_level
     #}
     # Create nlopt optimizer object
-    opt = nlopt.opt(nlopt.LN_BOBYQA, len(B))  # Use BOBYQA algorithm which is better for this type of problem
+    opt = nlopt.opt(nlopt.LN_NELDERMEAD, len(B))  # Use BOBYQA algorithm which is better for this type of problem
     
     # Set bounds
     opt.set_lower_bounds(lb)
@@ -204,10 +204,13 @@ def estimator(
     opt.set_ftol_abs(0)     # Match R's tolerance
     opt.set_xtol_abs(1e-8)  # Match R's tolerance
 
+
+
+
     # Increase maxeval to match or exceed R's value
     if maxeval is None:
         # Increase the default multiplier to ensure we run at least as many iterations as R
-        maxeval_used = len(B) * 200  # Increased from 120 to 200
+        maxeval_used = len(B) * 40  # Increased from 120 to 200
         
         # If xreg model, do more iterations
         if explanatory_dict['xreg_model']:
@@ -257,7 +260,7 @@ def estimator(
             return 1e10
         
         #print(f"Iteration {iteration_count[0]}: Cost = {cf_value}")
-       # print(f"Parameters: {x}")
+        #print(f"Parameters: {x}")
         
         return cf_value
     
