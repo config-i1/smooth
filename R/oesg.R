@@ -803,7 +803,7 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
             # This is needed for the degrees of freedom calculation
             nParamB <- length(BValuesB$B);
 
-            if(length(BValuesA$B)>0 || length(BValuesB$B)>0){
+            if(length(BValuesA$B)>0 && length(BValuesB$B)>0){
                 # Run the optimisation
                 res <- nloptr(c(BValuesA$B,BValuesB$B), CF, lb=c(BValuesA$lb,BValuesB$lb), ub=c(BValuesA$ub,BValuesB$ub),
                               opts=list(algorithm=algorithm, xtol_rel=xtol_rel, maxeval=maxeval, print_level=print_level),
@@ -828,6 +828,9 @@ oesg <- function(y, modelA="MNN", modelB="MNN", persistenceA=NULL, persistenceB=
                               matatB=matatB, matFXB=matFXB, vecgXB=vecgXB, matxtB=matxtB);
 
                 B <- res$solution;
+            }
+            else{
+                B <- c(BValuesA$B,BValuesB$B);
             }
         }
 

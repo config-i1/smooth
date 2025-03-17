@@ -86,6 +86,7 @@ In this vignette we will use ETS(M,N,N) model as a base for the different parts 
 
 We will use an artificial data in order to see how the functions work:
 ```{r artificialData}
+set.seed(41)
 y <- ts(c(rpois(20,0.25),rpois(20,0.5),rpois(20,1),rpois(20,2),rpois(20,3),rpois(20,5)))
 ```
 
@@ -315,9 +316,9 @@ oETSGModel2
 plot(oETSGModel2)
 ```
 
-Finally, the more flexible way to construct iETS model would be to do it in two steps: either using `oesg()` or `oes()` and then using the `es()` with the provided model in `occurrence` variable. But a simpler option is available as well:
+Finally, the more flexible way to construct iETS model would be to do it in two steps: either using `oesg()` or `oes()` and then using the `adam()` with the provided model in `occurrence` variable. But a simpler option is available as well:
 ```{r iETSGExample3}
-es(y, "MMN", occurrence="g", oesmodel="MMN", h=10, holdout=TRUE, silent=FALSE)
+adam(y, "MMN", occurrence="g", oesmodel="MMN", h=10, holdout=TRUE, silent=FALSE)
 ```
 
 
