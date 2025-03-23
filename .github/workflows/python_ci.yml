@@ -1,0 +1,16 @@
+name: Python CI
+
+on:
+    push:
+        branches: [Python]
+    pull_request:
+        branches: [Python]
+
+jobs:
+    linting:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: chartboost/ruff-action@v1
+              with:
+                src: "./python"

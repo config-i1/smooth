@@ -207,7 +207,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 \link[smooth]{auto.ces}, \link[smooth]{auto.gum}, \link[smooth]{sma}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

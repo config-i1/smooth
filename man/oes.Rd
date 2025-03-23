@@ -166,7 +166,7 @@ estimates. International Journal of Forecasting, 21(2), 303-314.
 \code{\link[smooth]{adam}, \link[smooth]{oesg}, \link[smooth]{es}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

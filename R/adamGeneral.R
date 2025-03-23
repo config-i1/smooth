@@ -124,6 +124,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     obsAll <- length(y) + (1 - holdout)*h;
     obsInSample <- length(y) - holdout*h;
 
+
     if(obsInSample<=0){
         stop("The number of in-sample observations is not positive. Cannot do anything.",
              call.=FALSE);
@@ -327,7 +328,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                 any(unlist(strsplit(model,""))=="X") ||
                 any(unlist(strsplit(model,""))=="Y") ||
                 any(unlist(strsplit(model,""))=="F") ||
-                any(unlist(strsplit(model,""))=="P")){
+                any(unlist(strsplit(model,""))=="P") ||
+                any(unlist(strsplit(model,""))=="S")){
             modelDo <- "select";
 
             # The full test, sidestepping branch and bound
@@ -384,6 +386,45 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
                     Stype[] <- "Z"
                 }
                 model <- "PPP";
+            }
+
+            # The pool of sensible/standard models, those that have finite variance
+            if(any(unlist(strsplit(model,""))=="S")){
+                modelsPool <- c("ANN", "AAN", "AAdN", "ANA", "AAA", "AAdA",
+                                "MNN", "MAN", "MAdN", "MNA", "MAA", "MAdA",
+                                "MNM", "MAM", "MAdM", "MMN", "MMdN", "MMM", "MMdM");
+                # Remove models from pool if specific elements are provided
+                if(Etype!="S"){
+                    # Switch is needed here if people want to restrict the basic pool further
+                    modelsPool <- modelsPool[substr(modelsPool,1,1)==switch(Etype,
+                                                                            "X"="A",
+                                                                            "Y"="M",
+                                                                            Etype)];
+                }
+                else{
+                    Etype[] <- "Z"
+                }
+                if(Ttype!="S"){
+                    modelsPool <- modelsPool[substr(modelsPool,2,2) %in% switch(Ttype,
+                                                                                "X"=c("A","N"),
+                                                                                "Y"=c("M","N"),
+                                                                                Ttype)];
+                }
+                else{
+                    Ttype[] <- "Z"
+                }
+                if(Stype!="S"){
+                    modelsPool <- modelsPool[substr(modelsPool,
+                                                    nchar(modelsPool),
+                                                    nchar(modelsPool))==switch(Stype,
+                                                                               "X"=c("A","N"),
+                                                                               "Y"=c("M","N"),
+                                                                               Stype)];
+                }
+                else{
+                    Stype[] <- "Z"
+                }
+                model <- "SSS";
             }
         }
         else{
@@ -2435,7 +2476,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If we don't need to estimate anything, flag initialEstimate
     if(!any(c(etsModel && initialLevelEstimate,
               (etsModel && modelIsTrendy && initialTrendEstimate),
-              (etsModel & modelIsSeasonal & initialSeasonalEstimate),
+              (etsModel && modelIsSeasonal && all(initialSeasonalEstimate)),
               (arimaModel && initialArimaEstimate),
               (xregModel && initialXregEstimate)))){
         initialEstimate[] <- FALSE;
@@ -2447,7 +2488,7 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # If at least something is provided, flag it as "provided"
     if((etsModel && !initialLevelEstimate) ||
        (etsModel && modelIsTrendy && !initialTrendEstimate) ||
-       any(etsModel & modelIsSeasonal & !initialSeasonalEstimate) ||
+       (etsModel && modelIsSeasonal && any(!initialSeasonalEstimate)) ||
        (arimaModel && !initialArimaEstimate) ||
        (xregModel && !initialXregEstimate)){
         initialType[] <- "provided";
@@ -2967,6 +3008,13 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     else{
         nIterations <- ellipsis$nIterations;
     }
+    # Smoother used in msdecompose
+    if(is.null(ellipsis$smoother)){
+        smoother <- "ma";
+    }
+    else{
+        smoother <- ellipsis$smoother;
+    }
     # Fisher Information
     if(is.null(ellipsis$FI)){
         FI <- FALSE;
@@ -3042,10 +3090,11 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     # See if the estimation of the model is not needed (do we estimate anything?)
     if(!any(c(etsModel & c(persistenceLevelEstimate, persistenceTrendEstimate,
                            persistenceSeasonalEstimate, phiEstimate,
-                           (initialType!="complete") & c(initialLevelEstimate,
-                                                            initialTrendEstimate,
-                                                            initialSeasonalEstimate)),
-              arimaModel & c(arEstimate, maEstimate, (initialType!="complete") & initialArimaEstimate),
+                           all(initialType!=c("complete","backcasting")) & c(initialLevelEstimate,
+                                                                             initialTrendEstimate,
+                                                                             initialSeasonalEstimate)),
+              arimaModel & c(arEstimate, maEstimate,
+                             all(initialType!=c("complete","backcasting")) & initialEstimate & initialArimaEstimate),
               xregModel & c(persistenceXregEstimate, (initialType!="complete") & initialXregEstimate),
               constantEstimate,
               otherParameterEstimate))){
@@ -3251,6 +3300,8 @@ parametersChecker <- function(data, model, lags, formulaToUse, orders, constant=
     assign("lambda",lambda,ParentEnvironment);
     # Number of iterations in backcasting
     assign("nIterations",nIterations,ParentEnvironment);
+    # Smoother used in the msdecompose
+    assign("smoother",smoother,ParentEnvironment);
     # Fisher Information
     assign("FI",FI,ParentEnvironment);
     # Step size for the hessian

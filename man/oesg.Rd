@@ -131,7 +131,7 @@ oesg(y, modelA="MNN", modelB="ANN")
 \code{\link[smooth]{es}, \link[smooth]{oes}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{demand}
 \keyword{exponential}

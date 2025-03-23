@@ -1,24 +1,23 @@
 ---
 title: "Cran Comments"
 author: "Ivan Svetunkov"
-date: "20 June 2024"
+date: "03 February 2025"
 output: html_document
 ---
 
+## Update
+I think this should fix the issue with the clang-UBSAN, gcc-UBSAN.
+
+Also, the suggested package `legion` has been submitted to CRAN as well, and will become available soon.
+
+
 ## Version
-This is ``smooth`` package, v4.0.2.
+This is ``smooth`` package, v4.1.1.
 
-## Note
-I have changed my email from ivan@svetunkov.ru to ivan@svetunkov.com. Because of that, some checks gave this warning:
-
->New maintainer:
->  Ivan Svetunkov <ivan@svetunkov.com>
->Old maintainer(s):
->  Ivan Svetunkov <ivan@svetunkov.ru>
-
+This is a try to fix the UBSAN issue on CRAN.
 
 ## Test environments
-* local Ubuntu 22.04.4, R 4.4.0
+* local Ubuntu 24.04.1, R 4.4.1
 * github actions
 * win-builder (devel and release)
 * rhub v2
@@ -36,9 +35,9 @@ checking installed package size ... NOTE
 ## Github actions
 Successful checks for:
 
-- Windows latest release with R 4.4.0
-- MacOS latest macOS Monterey 12.6.8 with R 4.4.0
-- Ubuntu latest with R 4.4.0
+- Windows latest release with R 4.4.1
+- MacOS latest macOS Sonoma 14.6.1 with R 4.4.1
+- Ubuntu 22.04.5 LTS with R 4.4.1
 
 ## win-builder check results
 >* checking package dependencies ... NOTE

@@ -74,6 +74,10 @@ pure multiplicative models. "P" stands for "Pure". This cannot be mixed with
 other types of components.
 \item \code{model="FFF"} will select between all the 30 types of models. "F"
 stands for "Full". This cannot be mixed with other types of components.
+\item \code{model="SSS"} creates a pool of 19 standard sensible models, which
+have finite variance. This can be combined with "X" or "Y" to further restrict
+the pool. For example, \code{model="SXS"} corresponds to the default pool of 15
+models in the \code{ets()} function from the forecast package.
 \item The parameter \code{model} can also be a vector of names of models for a
 finer tuning (pool of models). For example, \code{model=c("ANN","AAA")} will
 estimate only two models and select the best of them.
@@ -274,6 +278,8 @@ If equal to 41, then the detailed results of the optimisation are returned.
 }
 You can read more about these parameters by running the function
 \link[nloptr]{nloptr.print.options}.
+It is also possible to regulate what smoother to use to get initial seasonal indices
+from the \link[smooth]{msdecompose} function via the \code{smoother} parameter.
 Finally, the parameter \code{lambda} for LASSO / RIDGE, \code{alpha} for the Asymmetric
 Laplace, \code{shape} for the Generalised Normal and \code{nu} for Student's distributions
 can be provided here as well.}
@@ -477,7 +483,7 @@ Quantiles? Management Science 59(7):1594-1611. DOI:
 \code{\link[smooth]{es}, \link[smooth]{msarima}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

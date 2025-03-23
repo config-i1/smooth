@@ -1,0 +1,98 @@
+[build-system]
+requires = ["scikit-build-core>=0.3.3", "pybind11", "numpy>=1.14"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "smooth"
+version = "0.0.1"
+description = "Python vesrion of the smooth forecasting library"
+readme = "README.md"
+requires-python = ">=3.8,<3.11"
+dependencies = ["pybind11[global]>=2.6.0", "numpy>=1.14"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
+
+[tool.scikit-build]
+# wheel.expand-macos-universal-tags = true
+build-dir = "build"
+logging.level = "INFO"
+ninja.make-fallback = true
+# This activates verbose builds
+cmake.verbose = true
+ninja.minimum-version = "1.5"
+cmake.minimum-version = "3.25"
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "tools/cookiecutter_templates",
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.8
+target-version = "py38"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+# Rules for ruff are found here: https://docs.astral.sh/ruff/rules/
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "E501",
+    "F",
+    "I",    # isort rules
+    "N",    # PEP-8 naming rules 
+]
+ignore = [
+    # uppercase names are used for matrices
+    "N803", # allow uppercase argument names 
+    "N806", # allow uppercase variable names
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"

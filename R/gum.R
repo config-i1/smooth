@@ -2,164 +2,19 @@ utils::globalVariables(c("measurementEstimate","transitionEstimate", "B",
                          "persistenceEstimate","obsAll","obsInSample","multisteps","ot","obsNonzero","ICs","cfObjective",
                          "yForecast","yLower","yUpper","normalizer","yForecastStart"));
 
-#' Generalised Univariate Model
-#'
-#' Function constructs Generalised Univariate Model, estimating matrices F, w,
-#' vector g and initial parameters.
-#'
-#' The function estimates the Single Source of Error state space model of the
-#' following type:
-#'
-#' \deqn{y_{t} = o_{t} (w' v_{t-l} + x_t a_{t-1} + \epsilon_{t})}
-#'
-#' \deqn{v_{t} = F v_{t-l} + g \epsilon_{t}}
-#'
-#' \deqn{a_{t} = F_{X} a_{t-1} + g_{X} \epsilon_{t} / x_{t}}
-#'
-#' Where \eqn{o_{t}} is the Bernoulli distributed random variable (in case of
-#' normal data equal to 1), \eqn{v_{t}} is the state vector (defined using
-#' \code{orders}) and \eqn{l} is the vector of \code{lags}, \eqn{x_t} is the
-#' vector of exogenous parameters. \eqn{w} is the \code{measurement} vector,
-#' \eqn{F} is the \code{transition} matrix, \eqn{g} is the \code{persistence}
-#' vector, \eqn{a_t} is the vector of parameters for exogenous variables,
-#' \eqn{F_{X}} is the \code{transitionX} matrix and \eqn{g_{X}} is the
-#' \code{persistenceX} matrix. Finally, \eqn{\epsilon_{t}} is the error term.
-#'
-#' For some more information about the model and its implementation, see the
-#' vignette: \code{vignette("gum","smooth")}
-#'
-#' @template ssBasicParam
-#' @template ssAdvancedParam
-#' @template ssXregParam
-#' @template ssIntervals
-#' @template ssInitialParam
-#' @template ssPersistenceParam
-#' @template ssAuthor
-#' @template ssKeywords
-#'
-#' @template smoothRef
-#' @template ssIntervalsRef
-#'
-#' @param orders Order of the model. Specified as vector of number of states
-#' with different lags. For example, \code{orders=c(1,1)} means that there are
-#' two states: one of the first lag type, the second of the second type.
-#' @param lags Defines lags for the corresponding orders. If, for example,
-#' \code{orders=c(1,1)} and lags are defined as \code{lags=c(1,12)}, then the
-#' model will have two states: the first will have lag 1 and the second will
-#' have lag 12. The length of \code{lags} must correspond to the length of
-#' \code{orders}.
-#' @param type Type of model. Can either be \code{"A"} - additive - or
-#' \code{"M"} - multiplicative. The latter means that the GUM is fitted on
-#' log-transformed data.
-#' @param transition Transition matrix \eqn{F}. Can be provided as a vector.
-#' Matrix will be formed using the default \code{matrix(transition,nc,nc)},
-#' where \code{nc} is the number of components in state vector. If \code{NULL},
-#' then estimated.
-#' @param measurement Measurement vector \eqn{w}. If \code{NULL}, then
-#' estimated.
-#' @param ...  Other non-documented parameters.  For example parameter
-#' \code{model} can accept a previously estimated GUM model and use all its
-#' parameters.  \code{FI=TRUE} will make the function produce Fisher
-#' Information matrix, which then can be used to calculated variances of
-#' parameters of the model.
-#' You can also pass two parameters to the optimiser: 1. \code{maxeval} - maximum
-#' number of evaluations to carry on; 2. \code{xtol_rel} - the precision of the
-#' optimiser. The default values used in es() are \code{maxeval=5000} and
-#' \code{xtol_rel=1e-8}. You can read more about these parameters in the
-#' documentation of \link[nloptr]{nloptr} function.
-#' @return Object of class "smooth" is returned. It contains:
-#'
-#' \itemize{
-#' \item \code{model} - name of the estimated model.
-#' \item \code{timeElapsed} - time elapsed for the construction of the model.
-#' \item \code{states} - matrix of fuzzy components of GUM, where \code{rows}
-#' correspond to time and \code{cols} to states.
-#' \item \code{initialType} - Type of the initial values used.
-#' \item \code{initial} - initial values of state vector (extracted from
-#' \code{states}).
-#' \item \code{nParam} - table with the number of estimated / provided parameters.
-#' If a previous model was reused, then its initials are reused and the number of
-#' provided parameters will take this into account.
-#' \item \code{measurement} - matrix w.
-#' \item \code{transition} - matrix F.
-#' \item \code{persistence} - persistence vector. This is the place, where
-#' smoothing parameters live.
-#' \item \code{fitted} - fitted values.
-#' \item \code{forecast} - point forecast.
-#' \item \code{lower} - lower bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{upper} - higher bound of prediction interval. When
-#' \code{interval="none"} then NA is returned.
-#' \item \code{residuals} - the residuals of the estimated model.
-#' \item \code{errors} - matrix of 1 to h steps ahead errors. Only returned when the
-#' multistep losses are used and semiparametric interval is needed.
-#' \item \code{s2} - variance of the residuals (taking degrees of freedom
-#' into account).
-#' \item \code{interval} - type of interval asked by user.
-#' \item \code{level} - confidence level for interval.
-#' \item \code{cumulative} - whether the produced forecast was cumulative or not.
-#' \item \code{y} - original data.
-#' \item \code{holdout} - holdout part of the original data.
-#' \item \code{xreg} - provided vector or matrix of exogenous variables. If
-#' \code{regressors="s"}, then this value will contain only selected exogenous variables.
-#' \item \code{initialX} - initial values for parameters of exogenous variables.
-#' \item \code{ICs} - values of information criteria of the model. Includes
-#' AIC, AICc, BIC and BICc.
-#' \item \code{logLik} - log-likelihood of the function.
-#' \item \code{lossValue} - Cost function value.
-#' \item \code{loss} - Type of loss function used in the estimation.
-#' \item \code{FI} - Fisher Information. Equal to NULL if \code{FI=FALSE} or
-#' when \code{FI} variable is not provided at all.
-#' \item \code{accuracy} - vector of accuracy measures for the holdout sample.
-#' In case of non-intermittent data includes: MPE, MAPE, SMAPE, MASE, sMAE,
-#' RelMAE, sMSE and Bias coefficient (based on complex numbers). In case of
-#' intermittent data the set of errors will be: sMSE, sPIS, sCE (scaled
-#' cumulative error) and Bias coefficient. This is available only when
-#' \code{holdout=TRUE}.
-#' \item \code{B} - the vector of all the estimated parameters.
-#' }
-#' @seealso \code{\link[smooth]{adam}, \link[smooth]{es}, \link[smooth]{ces},
-#' \link[smooth]{sim.es}}
-#'
-#' @examples
-#'
-#' # Something simple:
-#' gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="a",interval="p")
-#'
-#' # A more complicated model with seasonality
-#' \donttest{ourModel <- gum(rnorm(118,100,3),orders=c(2,1),lags=c(1,4),h=18,holdout=TRUE)}
-#'
-#' # Redo previous model on a new data and produce prediction interval
-#' \donttest{gum(rnorm(118,100,3),model=ourModel,h=18,interval="sp")}
-#'
-#' # Produce something crazy with optimal initials (not recommended)
-#' \donttest{gum(rnorm(118,100,3),orders=c(1,1,1),lags=c(1,3,5),h=18,holdout=TRUE,initial="o")}
-#'
-#' # Simpler model estiamted using trace forecast error loss function and its analytical analogue
-#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="TMSE")
-#' gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,bounds="n",loss="aTMSE")}
-#'
-#' # Introduce exogenous variables
-#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118))}
-#'
-#' # Or select the most appropriate one
-#' \donttest{gum(rnorm(118,100,3),orders=c(1),lags=c(1),h=18,holdout=TRUE,xreg=c(1:118),regressors="s")
-#'
-#' summary(ourModel)
-#' forecast(ourModel)
-#' plot(forecast(ourModel))}
-#'
 #' @rdname gum
-#' @export gum
-gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
-                persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
-                initial=c("optimal","backcasting"), ic=c("AICc","AIC","BIC","BICc"),
-                loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                h=10, holdout=FALSE, cumulative=FALSE,
-                interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                bounds=c("restricted","admissible","none"),
-                silent=c("all","graph","legend","output","none"),
-                xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
+#' @export
+gum_old <- function(data, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","multiplicative"),
+                    persistence=NULL, transition=NULL, measurement=rep(1,sum(orders)),
+                    initial=c("optimal","backcasting"),
+                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                    h=10, holdout=FALSE,
+                    # cumulative=FALSE,
+                    # interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                    bounds=c("restricted","admissible","none"),
+                    silent=c("all","graph","legend","output","none"),
+                    # xreg=NULL, regressors=c("use","select"), initialX=NULL,
+                    ...){
 # General Univariate Model function. Crazy thing...
 #
 #    Copyright (C) 2016 - Inf Ivan Svetunkov
@@ -168,13 +23,21 @@ gum <- function(y, orders=c(1,1), lags=c(1,frequency(y)), type=c("additive","mul
     startTime <- Sys.time();
 
     ### Depricate the old parameters
-    ellipsis <- list(...)
-    ellipsis <- depricator(ellipsis, "xregDo", "regressors");
+    ellipsis <- list(...);
+
+    y <- data;
+    cumulative <- FALSE;
+    interval <- ifelse(!is.null(ellipsis$interval),ellipsis$interval,"none");
+    level <- ifelse(!is.null(ellipsis$level),ellipsis$level,0.95);
+    xreg <- ellipsis$xreg;
+    regressors <- ifelse(!is.null(ellipsis$regressors),ellipsis$regressors,"use");
+    initialX <- ellipsis$initialX;
 
     updateX <- FALSE;
     persistenceX <- transitionX <- NULL;
     occurrence <- "none";
     oesmodel <- "MNN";
+    ic <- "AICc";
 
 # Add all the variables in ellipsis to current environment
     list2env(ellipsis,environment());
