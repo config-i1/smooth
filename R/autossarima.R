@@ -32,6 +32,7 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' @template ssIntermittentRef
 #' @template ssARIMARef
 #'
+#' @param ic The information criterion to use in the model selection.
 #' @param orders List of maximum orders to check, containing vector variables
 #' \code{ar}, \code{i} and \code{ma}. If a variable is not provided in the
 #' list, then it is assumed to be equal to zero. At least one variable should
@@ -79,8 +80,8 @@ utils::globalVariables(c("silentText","silentGraph","silentLegend","initialType"
 #' forecast(ourModel)
 #' plot(forecast(ourModel))}
 #'
-#'
-#' @export auto.ssarima
+#' @rdname ssarima
+#' @export
 auto.ssarima <- function(y, orders=list(ar=c(3,3),i=c(2,1),ma=c(3,3)), lags=c(1,frequency(y)),
                          combine=FALSE, fast=TRUE, constant=NULL,
                          initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),

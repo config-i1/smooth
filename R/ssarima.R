@@ -195,16 +195,17 @@ utils::globalVariables(c("normalizer","constantValue","constantRequired","consta
 #' forecast(ourModel)
 #' plot(forecast(ourModel))
 #'
+#' @rdname ssarima
 #' @export ssarima
-ssarima <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
-                    constant=FALSE, AR=NULL, MA=NULL,
-                    initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
-                    loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
-                    h=10, holdout=FALSE, cumulative=FALSE,
-                    interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
-                    bounds=c("admissible","none"),
-                    silent=c("all","graph","legend","output","none"),
-                    xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
+ssarima_old <- function(y, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
+                        constant=FALSE, AR=NULL, MA=NULL,
+                        initial=c("backcasting","optimal"), ic=c("AICc","AIC","BIC","BICc"),
+                        loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
+                        h=10, holdout=FALSE, cumulative=FALSE,
+                        interval=c("none","parametric","likelihood","semiparametric","nonparametric"), level=0.95,
+                        bounds=c("admissible","none"),
+                        silent=c("all","graph","legend","output","none"),
+                        xreg=NULL, regressors=c("use","select"), initialX=NULL, ...){
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 # ar.orders contains vector of seasonal ARs. ar.orders=c(2,1,3) will mean AR(2)*SAR(1)*SAR(3) - model with double seasonality.
 #
