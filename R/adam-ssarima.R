@@ -125,18 +125,12 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 ##### Function constructs SARIMA model (possible triple seasonality) using state space approach
 #
 #    Copyright (C) 2016 - Inf Ivan Svetunkov
-
-
-
-
-
 # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
     ellipsis <- list(...);
 
     # Check seasonality and loss
-    type <- match.arg(type);
     loss <- match.arg(loss);
 
     # paste0() is needed in order to get rid of potential issues with names
@@ -159,7 +153,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         profilesRecentProvided[] <- TRUE;
         # This is needed to save initials and to avoid the standard checks
         initialValueProvided <- model$initial;
-        initialOriginal <- initial <- model$initialType;
+        initial <- model$initialType;
         seasonality <- model$seasonality;
         # matVt <- t(model$states);
         measurement <- model$measurement;
@@ -175,85 +169,27 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
     else{
         modelDo <- modelDoOriginal <- "estimate";
-        initialOriginal <- initial;
         initialValueProvided <- NULL;
         persistenceOriginal <- persistence;
     }
+    initialOriginal <- initial;
 
-    orders <- orders[order(lags)];
-    lags <- sort(lags);
-    # Remove redundant lags (if present)
-    lags <- lags[!is.na(orders)];
-    # Remove NAs (if lags are longer than orders)
-    orders <- orders[!is.na(orders)];
+    # orders <- orders[order(lags)];
+    # lags <- sort(lags);
+    # # Remove redundant lags (if present)
+    # lags <- lags[!is.na(orders)];
+    # # Remove NAs (if lags are longer than orders)
+    # orders <- orders[!is.na(orders)];
 
-    # GUM is "checked" as ARIMA
+    # SSARIMA is checked as ADAM ARIMA
     model <- "NNN";
     ordersOriginal <- orders;
     lagsOriginal <- lags;
-
-    # Specific checks for orders and lags
-    if(any(is.complex(c(orders,lags)))){
-        stop("Complex values? Right! Come on! Be real!", call.=FALSE);
-    }
-    if(any(c(orders)<0)){
-        stop("Funny guy! How am I gonna construct a model with negative orders?", call.=FALSE);
-    }
-    if(any(c(lags)<0)){
-        stop("Right! Why don't you try complex lags then, mister smart guy?", call.=FALSE);
-    }
-
-    # If there are zero lags, drop them
-    if(any(lags==0)){
-        orders <- orders[lags!=0];
-        lags <- lags[lags!=0];
-    }
-    # If zeroes are defined for some orders, drop them.
-    if(any(orders==0)){
-        lags <- lags[orders!=0];
-        orders <- orders[orders!=0];
-    }
-
-    # Get rid of duplicates in lags
-    if(length(unique(lags))!=length(lags)){
-        lagsNew <- unique(lags);
-        ordersNew <- lagsNew;
-        for(i in 1:length(lagsNew)){
-            ordersNew[i] <- max(orders[which(lags==lagsNew[i])]);
-        }
-        orders <- ordersNew;
-        lags <- lagsNew;
-    }
-
-    # Check whether the multiplicative model is applicable
-    if(type=="multiplicative"){
-        if(any(yInSample<=0)){
-            warning("Multiplicative model can only be used on positive data. Switching to the additive one.",
-                    call.=FALSE);
-            modelIsMultiplicative <- FALSE;
-            type <- "additive";
-        }
-        else{
-            yInSample <- log(yInSample);
-            modelIsMultiplicative <- TRUE;
-        }
-    }
-    else{
-        modelIsMultiplicative <- FALSE;
-    }
 
     # If initial was provided, trick parametersChecker
     if(!is.character(initial)){
         initialValueProvided <- initial;
         initial <- "optimal";
-    }
-
-    # Hack parametersChecker if initial="integrate"
-    regressorsIntegrate <- FALSE;
-    regressors <- match.arg(regressors);
-    if(regressors=="integrate"){
-        regressorsIntegrate <- TRUE;
-        regressors <- "adapt";
     }
 
     ##### Set environment for ssInput and make all the checks #####
@@ -271,6 +207,15 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
     refineHead <- FALSE;
+
+    lagsModelAll <- matrix(rep(1,nComponents),ncol=1);
+
+    if(constantRequired){
+        lagsModelAll <- rbind(lagsModelAll,1);
+    }
+    lagsModelMax <- 1;
+
+
 
     ##### Elements of GUM #####
     filler <- function(B, vt, matF, vecG, matWt){
