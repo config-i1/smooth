@@ -324,8 +324,8 @@ def creator(
                             
                             if t_type == "A":
                                 mat_vt[1, 0:lags_model_max] = np.nanmean(np.diff(y_in_sample[0:max(lags_model_max + 1, int(obs_in_sample * 0.2))], axis=0))
-                            else:  # t_type == "M"
-                                mat_vt[1, 0:lags_model_max] = np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]))))
+                            elif t_type == "M":
+                                mat_vt[1, 0:lags_model_max] = np.exp(np.nanmean(np.diff(np.log(y_in_sample[ot_logical]), axis=0)))
                         else:
                             mat_vt[1, 0:lags_model_max] = initials_checked['initial_trend']
 
@@ -354,7 +354,7 @@ def creator(
                     y_decomposition = msdecompose(y_in_sample, [lag for lag in lags if lag != 1], 
                                                 type="additive" if e_type == "A" else "multiplicative")['seasonal'][-1][0]
                 else:
-                    y_decomposition = np.mean(np.diff(y_in_sample[ot_logical])) if e_type == "A" else np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]))))
+                    y_decomposition = np.mean(np.diff(y_in_sample[ot_logical], axis=0)) if e_type == "A" else np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]), axis=0)))
                 
                 mat_vt[components_number_ets+components_number_arima-1, 0:initials_checked['initial_arima_number']] = \
                     np.tile(y_decomposition, int(np.ceil(initials_checked['initial_arima_number'] / max(lags))))[:initials_checked['initial_arima_number']]
@@ -381,9 +381,9 @@ def creator(
                 # Add first differences
                 else:
                     if e_type == "A":
-                        mat_vt[components_number_ets+components_number_arima+explanatory_checked['xreg_number'], :] = np.mean(np.diff(y_in_sample[ot_logical]))
+                        mat_vt[components_number_ets+components_number_arima+explanatory_checked['xreg_number'], :] = np.mean(np.diff(y_in_sample[ot_logical], axis=0))
                     else:
-                        mat_vt[components_number_ets+components_number_arima+explanatory_checked['xreg_number'], :] = np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]))))
+                        mat_vt[components_number_ets+components_number_arima+explanatory_checked['xreg_number'], :] = np.exp(np.mean(np.diff(np.log(y_in_sample[ot_logical]), axis=0)))
             else:
                 mat_vt[components_number_ets+components_number_arima+explanatory_checked['xreg_number'], :] = constants_checked['constant_value']
             
@@ -667,11 +667,11 @@ def initialiser(
         names.append(constants_checked['constant_name'] or "constant")
         if model_type_dict["ets_model"] or (arima_checked['i_orders'] is not None and sum(arima_checked['i_orders']) != 0):
             if model_type_dict["error_type"] == "A":
-                Bu[j-1] = np.quantile(np.diff(observations_dict['y_in_sample'][observations_dict['ot_logical']]), 0.6)
+                Bu[j-1] = np.quantile(np.diff(observations_dict['y_in_sample'][observations_dict['ot_logical']], axis=0), 0.6)
                 Bl[j-1] = -Bu[j-1]
             else:
-                Bu[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']])), 0.6))
-                Bl[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']])), 0.4))
+                Bu[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']]), axis=0), 0.6))
+                Bl[j-1] = np.exp(np.quantile(np.diff(np.log(observations_dict['y_in_sample'][observations_dict['ot_logical']]), axis=0), 0.4))
             
             if Bu[j-1] <= Bl[j-1]:
                 Bu[j-1] = np.inf

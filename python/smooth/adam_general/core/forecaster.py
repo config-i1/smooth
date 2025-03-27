@@ -130,7 +130,7 @@ def forecaster(model_prepared,
 
     # Make a warning about the potential explosive trend
     if (model_type_dict["trend_type"] == "M" and not model_type_dict["damped"] and 
-        model_prepared['profiles_recent_table']["profiles_recent_table"][1,0] > 1 and general_dict["h"] > 10):
+        model_prepared["profiles_recent_table"][1,0] > 1 and general_dict["h"] > 10):
         warnings.warn("Your model has a potentially explosive multiplicative trend. "
                     "I cannot do anything about it, so please just be careful.")
 
