@@ -7,7 +7,8 @@ Python version of smooth.
 
 1. To build the project using [scikit-build-core](https://github.com/scikit-build/scikit-build-core) simply do `pip install -e .`
 2. The files in python/smooth/mylinalg and src/my_linalg.cpp are example files for carma and pybind11 and will be removed later.
-
+3. The latest CARMA releases support numpy 2. We will need to update this at some point soon, for more info check
+the [CARMA requirements](https://github.com/RUrlus/carma#requirements)
 
 # TODOs:
 - [X] use scikit-build-core to compile the C++ modules

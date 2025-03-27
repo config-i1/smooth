@@ -7,8 +7,14 @@ name = "smooth"
 version = "0.0.1"
 description = "Python vesrion of the smooth forecasting library"
 readme = "README.md"
-requires-python = ">=3.8,<3.11"
-dependencies = ["pybind11[global]>=2.6.0", "numpy>=1.14"]
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "pybind11[global]>=2.6.0",
+    "numpy>=1.14",
+    "pandas>=2.0",
+    "nlopt",
+    "scipy"
+]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
