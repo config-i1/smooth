@@ -7,7 +7,7 @@ name = "smooth"
 version = "0.0.1"
 description = "Python vesrion of the smooth forecasting library"
 readme = "README.md"
-requires-python = ">=3.8,<3.11"
+requires-python = ">=3.8,<3.12.4"
 dependencies = ["pybind11[global]>=2.6.0", "numpy>=1.14"]
 
 [project.optional-dependencies]
@@ -18,10 +18,10 @@ dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
 build-dir = "build"
 logging.level = "INFO"
 ninja.make-fallback = true
-# This activates verbose builds
-cmake.verbose = true
-ninja.minimum-version = "1.5"
-cmake.minimum-version = "3.25"
+# Update these version specifications with proper format
+cmake.version = ">=3.25.0"
+ninja.version = ">=1.5.0"
+build.verbose = true
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
