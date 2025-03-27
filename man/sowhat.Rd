@@ -13,7 +13,7 @@ sowhat(...)
 It doesn't return any value, only messages. So what?
 }
 \description{
-You need description? So what?
+You need a description? So what?
 }
 \details{
 You need details? So what?
@@ -39,7 +39,7 @@ sowhat("I don't have a girlfriend.")
 Nowwhat (to be implemented),
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{42}
 \keyword{sowhat}

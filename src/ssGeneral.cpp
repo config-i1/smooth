@@ -799,6 +799,8 @@ List backfitter(arma::mat &matrixVt, arma::mat const &matrixF, arma::rowvec cons
 
     int nloops;
     // If... this is ssarima, don't do backcasting
+    // This is because in ssarima the value moves from one state to another.
+    // When the backwards move is done, the values need to be reverted or something like that
     if(all(lags==1) & (lags.n_elem > 3)){
         nloops = 0;
     }

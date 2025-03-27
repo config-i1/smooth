@@ -36,7 +36,7 @@ rmultistep(ourModel, h=13)
 \link[stats]{residuals},
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

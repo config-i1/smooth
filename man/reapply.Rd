@@ -98,7 +98,7 @@ ourForecast <- reforecast(ourModel, nsim=50)
 \link[smooth]{forecast.smooth}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

@@ -2,6 +2,7 @@
 #'
 #' @examples
 #'
+#' x <- rnorm(118,100,3)
 #' # The best ARIMA for the data
 #' ourModel <- auto.msarima(x,orders=list(ar=c(2,1),i=c(1,1),ma=c(2,1)),lags=c(1,12),
 #'                      h=18,holdout=TRUE)

@@ -14,33 +14,42 @@ namespace py = pybind11;
 // # Fitter for univariate models
 // Convert from Rcpp::List to pybind11::dict
 
-py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &matrixF, arma::vec const &vectorG,
-                    arma::uvec &lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
+py::dict adamFitter(arma::mat &matrixVt, 
+                    arma::mat const &matrixWt, 
+                    arma::mat &matrixF, 
+                    arma::vec const &vectorG,
+                    arma::uvec &lags, 
+                    arma::umat const &indexLookupTable, 
+                    arma::mat profilesRecent,
                     char const &E, char const &T, char const &S,
                     unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                    unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                    arma::vec const &vectorYt, arma::vec const &vectorOt, bool const &backcast)
+                    unsigned int const &nArima, 
+                    unsigned int const &nXreg, 
+                    bool const &constant,
+                    arma::vec const &vectorYt, 
+                    arma::vec const &vectorOt, 
+                    bool const &backcast)
 {
     /* # matrixVt should have a length of obs + lagsModelMax.
      * # matrixWt is a matrix with nrows = obs
      * # vecG should be a vector
      * # lags is a vector of lags
      */
-
     int obs = vectorYt.n_rows;
     unsigned int nETS = nNonSeasonal + nSeasonal;
     int nComponents = matrixVt.n_rows;
     int lagsModelMax = max(lags);
-
+  
     // Fitted values and the residuals
     arma::vec vecYfit(obs, arma::fill::zeros);
     arma::vec vecErrors(obs, arma::fill::zeros);
+
 
     // Loop for the backcasting
     unsigned int nIterations = 1;
     if (backcast)
     {
-        nIterations = 2;
+        nIterations = 1;
     }
 
     // Loop for the backcast
@@ -49,23 +58,26 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
 
         // Refine the head (in order for it to make sense)
         // This is only needed for ETS(*,Z,*) models, with trend.
-        // if(!backcast){
-        for (int i = 0; i < lagsModelMax; i = i + 1)
-        {
-            matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
-            profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
-                                                                 matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+        if(!backcast || nArima==0){
+            
+            for (int i = 0; i < lagsModelMax; i = i + 1)
+            {
+                matrixVt.col(i) = profilesRecent(indexLookupTable.col(i));
+                profilesRecent(indexLookupTable.col(i)) = adamFvalue(profilesRecent(indexLookupTable.col(i)),
+                                                                     matrixF, E, T, S, nETS, nNonSeasonal, nSeasonal, nArima, nComponents, constant);
+            }
         }
-        // }
         ////// Run forward
         // Loop for the model construction
         for (int i = lagsModelMax; i < obs + lagsModelMax; i = i + 1)
         {
+            
 
             /* # Measurement equation and the error term */
             vecYfit(i - lagsModelMax) = adamWvalue(profilesRecent(indexLookupTable.col(i)),
                                                    matrixWt.row(i - lagsModelMax), E, T, S,
                                                    nETS, nNonSeasonal, nSeasonal, nArima, nXreg, nComponents, constant);
+
 
             // If this is zero (intermittent), then set error to zero
             if (vectorOt(i - lagsModelMax) == 0)
@@ -74,6 +86,8 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
             }
             else
             {
+                // We need this multiplication for cases, when occurrence is fractional
+                vecYfit(i - lagsModelMax) = vectorOt(i - lagsModelMax) * vecYfit(i - lagsModelMax);
                 vecErrors(i - lagsModelMax) = errorf(vectorYt(i - lagsModelMax), vecYfit(i - lagsModelMax), E);
             }
 
@@ -113,6 +127,8 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
                 }
                 else
                 {
+                    // Need to add this line to match the R version
+                    vecYfit(i - lagsModelMax) = vectorOt(i - lagsModelMax) * vecYfit(i - lagsModelMax);
                     vecErrors(i - lagsModelMax) = errorf(vectorYt(i - lagsModelMax), vecYfit(i - lagsModelMax), E);
                 }
 
@@ -138,10 +154,16 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
             if (T == 'A')
             {
                 profilesRecent(1) = -profilesRecent(1);
+                // Write down correct initials
+                // Fil's update on 04/03/2025
+                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
             else if (T == 'M')
             {
                 profilesRecent(1) = 1 / profilesRecent(1);
+                // Write down correct initials
+                // Fil's update on 04/03/2025
+                matrixVt.col(0) = profilesRecent(indexLookupTable.col(0));
             }
         }
     }
@@ -160,12 +182,19 @@ py::dict adamFitter(arma::mat &matrixVt, arma::mat const &matrixWt, arma::mat &m
 }
 
 /* # Function produces the point forecasts for the specified model */
-arma::vec adamForecaster(arma::mat const &matrixWt, arma::mat const &matrixF,
-                         arma::uvec lags, arma::umat const &indexLookupTable, arma::mat profilesRecent,
-                         char const &E, char const &T, char const &S,
-                         unsigned int const &nNonSeasonal, unsigned int const &nSeasonal,
-                         unsigned int const &nArima, unsigned int const &nXreg, bool const &constant,
-                         unsigned int const &horizon)
+arma::vec adamForecaster(arma::mat const &matrixWt, 
+                         arma::mat const &matrixF,
+                         arma::uvec lags, 
+                         arma::umat const &indexLookupTable, 
+                         arma::mat profilesRecent,
+                         char const &E, 
+                         char const &T, 
+                         char const &S,
+                         unsigned int const &nNonSeasonal, 
+                         unsigned int const &nSeasonal,
+                         unsigned int const &nArima, 
+                         unsigned int const &nXreg, 
+                         bool const &constant, unsigned int const &horizon)
 {
     // unsigned int lagslength = lags.n_rows;
     unsigned int nETS = nNonSeasonal + nSeasonal;

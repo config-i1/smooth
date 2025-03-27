@@ -1,1 +1,1 @@
-#' @author Ivan Svetunkov, \email{ivan@svetunkov.ru}
+#' @author Ivan Svetunkov, \email{ivan@svetunkov.com}

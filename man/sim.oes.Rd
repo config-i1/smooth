@@ -119,7 +119,7 @@ Springer-Verlag. \doi{10.1007/978-3-540-71918-2}.
 \code{\link[smooth]{oes}, \link[smooth]{sim.es}, \link[stats]{Distributions}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{models}
 \keyword{nonlinear}

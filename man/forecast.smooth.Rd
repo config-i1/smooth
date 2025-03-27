@@ -105,11 +105,8 @@ based on user preferences.
 }
 \examples{
 
-ourModel <- ces(rnorm(100,0,1),h=10)
-
-forecast(ourModel,h=10)
-forecast(ourModel,h=10,interval=TRUE)
-plot(forecast(ourModel,h=10,interval=TRUE))
+ourModel <- es(rnorm(100,0,1), h=10)
+forecast(ourModel, h=10, interval="parametric")
 
 }
 \references{
@@ -121,7 +118,7 @@ Springer-Verlag.
 \code{\link[generics]{forecast}}
 }
 \author{
-Ivan Svetunkov, \email{ivan@svetunkov.ru}
+Ivan Svetunkov, \email{ivan@svetunkov.com}
 }
 \keyword{ts}
 \keyword{univar}
