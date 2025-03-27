@@ -1,11 +1,11 @@
 import numpy as np
 from typing import List, Optional, Dict, Any, Union
-from core.utils.utils import (
+from smooth.adam_general.core.utils.utils import (
     measurement_inverter, scaler, msdecompose, calculate_acf, 
     calculate_pacf, calculate_likelihood, calculate_entropy, 
     calculate_multistep_loss
 )
-from core.utils.polynomials import adam_polynomialiser
+from smooth.adam_general.core.utils.polynomials import adam_polynomialiser
 from scipy import stats
 from scipy.linalg import eigvals
 from scipy.optimize import minimize

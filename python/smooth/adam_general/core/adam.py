@@ -1,12 +1,13 @@
-import time
+
 import warnings
-from core.checker import parameters_checker
-from core.estimator import estimator, selector
-from core.creator import creator, initialiser, architector, filler
-from core.utils.ic import ic_function
-from core.forecaster import preparator, forecaster
+from smooth.adam_general.core.checker import parameters_checker
+from smooth.adam_general.core.estimator import estimator, selector
+from smooth.adam_general.core.creator import creator, initialiser, architector, filler
+from smooth.adam_general.core.utils.ic import ic_function
+from smooth.adam_general.core.forecaster import preparator, forecaster
 import numpy as np
 import pandas as pd
+import time
 
 from smooth.adam_general._adam_general import adam_fitter, adam_forecaster
 
