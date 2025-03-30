@@ -742,7 +742,7 @@ forecast.smooth <- function(object, h=10,
         newModel <- es_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="CES"){
-        newModel <- ces(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
+        newModel <- ces_old(actuals(object),model=object,h=h,interval=interval,level=levelNew,silent="all",...);
     }
     else if(smoothType=="GUM"){
         newModel <- gum(actuals(object),model=object,type=errorType(object),h=h,interval=interval,level=levelNew,silent="all",...);

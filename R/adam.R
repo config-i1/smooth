@@ -7953,8 +7953,6 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
         if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
             componentsNumberARIMA[] <- componentsNumberARIMA+1;
         }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -10742,8 +10740,6 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
         if(!is.null(object$initial$seasonal) && is.matrix(object$initial$seasonal)){
             componentsNumberARIMA[] <- componentsNumberARIMA+1;
         }
-        componentsNumberETS <- length(object$initial$level) + length(object$initial$trend) + componentsNumberETSSeasonal;
-        componentsNumberARIMA <- sum(substr(colnames(object$states),1,10)=="ARIMAState");
     }
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
