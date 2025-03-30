@@ -117,8 +117,8 @@ utils::globalVariables(c("xregData","xregModel","xregNumber","initialXregEstimat
 #' @export
 ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     constant=FALSE, arma=NULL,
-                    formula=NULL, regressors=c("use","select","adapt","integrate"),
-                    initial=c("backcasting","optimal","complete"),
+                    formula=NULL, regressors=c("use","select","adapt"),
+                    initial=c("optimal","backcasting","complete"),
                     loss=c("likelihood","MSE","MAE","HAM","MSEh","TMSE","GTMSE","MSCE"),
                     h=0, holdout=FALSE, bounds=c("admissible","none"), silent=TRUE,
                     model=NULL, ...){
@@ -163,14 +163,11 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         lags <- lags(model);
         orders <- orders(model);
 
-        model <- model$model;
-        model <- NULL;
         modelDo <- modelDoOriginal <- "use";
     }
     else{
         modelDo <- modelDoOriginal <- "estimate";
         initialValueProvided <- NULL;
-        persistenceOriginal <- persistence;
     }
     initialOriginal <- initial;
 
@@ -186,15 +183,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ordersOriginal <- orders;
     lagsOriginal <- lags;
 
-    # If initial was provided, trick parametersChecker
-    if(!is.character(initial)){
-        initialValueProvided <- initial;
-        initial <- "optimal";
-    }
-
     ##### Set environment for ssInput and make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
-                                       orders=list(ar=c(orders),i=c(0),ma=c(0),select=FALSE),
+                                       orders=orders,
                                        constant=FALSE, arma=NULL,
                                        outliers="ignore", level=0.99,
                                        persistence=NULL, phi=NULL, initial,
@@ -208,16 +199,19 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # refined. GUM doesn't need that.
     refineHead <- FALSE;
 
-    lagsModelAll <- matrix(rep(1,nComponents),ncol=1);
+    componentsNumberARIMA <- max(arOrders %*% lags + iOrders %*% lags, maOrders %*% lags);
+
+    lagsModelAll <- matrix(rep(1,componentsNumberARIMA),ncol=1);
 
     if(constantRequired){
         lagsModelAll <- rbind(lagsModelAll,1);
     }
     lagsModelMax <- 1;
 
+    print(lagsModelAll)
+    stop()
 
-
-    ##### Elements of GUM #####
+    ##### Elements of SSARIMA #####
     filler <- function(B, vt, matF, vecG, matWt){
 
         nCoefficients <- 0;
