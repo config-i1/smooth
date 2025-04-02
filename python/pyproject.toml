@@ -16,6 +16,11 @@ dependencies = [
     "scipy"
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["smooth*"]
+exclude = ["tests*", "tests.*", "*.tests", "*.tests.*"]
+
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "pre-commit", "ipykernel"]
 
