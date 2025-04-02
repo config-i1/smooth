@@ -1368,8 +1368,6 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
         # ARMA parameters. This goes before xreg in persistence
         if(arimaModel){
             # Call the function returning ARI and MA polynomials
-            # arimaPolynomials <- polynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))], arOrders, iOrders, maOrders,
-            #                                    arRequired, maRequired, arEstimate, maEstimate, armaParameters, lags);
             arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector);
@@ -1637,6 +1635,8 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
 
         # ARIMA parameters (AR / MA)
         if(arimaModel){
+            # This index is needed to get the correct polynomials
+            k <- j
             # These are filled in lags-wise
             if(any(c(arEstimate,maEstimate))){
                 acfValues <- rep(-0.1, maOrders %*% lags);
@@ -1704,7 +1704,7 @@ adam <- function(data, model="ZXZ", lags=c(frequency(data)), orders=list(ar=c(0)
                 }
             }
 
-            arimaPolynomials <- lapply(adamPolynomialiser(B[j+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+            arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
                                                           arOrders, iOrders, maOrders,
                                                           arEstimate, maEstimate, armaParameters, lags), as.vector)
         }
