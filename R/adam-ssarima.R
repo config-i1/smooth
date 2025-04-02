@@ -186,7 +186,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ##### Set environment for ssInput and make all the checks #####
     checkerReturn <- parametersChecker(data=data, model, lags, formulaToUse=formula,
                                        orders=orders,
-                                       constant=FALSE, arma=NULL,
+                                       constant=constant, arma=arma,
                                        outliers="ignore", level=0.99,
                                        persistence=NULL, phi=NULL, initial,
                                        distribution="dnorm", loss, h, holdout, occurrence="none",
@@ -198,18 +198,6 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # This is the variable needed for the C++ code to determine whether the head of data needs to be
     # refined. GUM doesn't need that.
     refineHead <- FALSE;
-
-    componentsNumberARIMA <- max(arOrders %*% lags + iOrders %*% lags, maOrders %*% lags);
-
-    lagsModelAll <- matrix(rep(1,componentsNumberARIMA),ncol=1);
-
-    if(constantRequired){
-        lagsModelAll <- rbind(lagsModelAll,1);
-    }
-    lagsModelMax <- 1;
-
-    print(lagsModelAll)
-    stop()
 
     ##### Elements of SSARIMA #####
     filler <- function(B, vt, matF, vecG, matWt){
@@ -344,114 +332,69 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt));
     }
 
+
+    #### Basic ARIMA parameters ####
+    componentsNumberARIMA <- max(arOrders %*% lags + iOrders %*% lags, maOrders %*% lags);
+
+    lagsModelAll <- matrix(rep(1,componentsNumberARIMA),ncol=1);
+
+    if(constantRequired){
+        lagsModelAll <- rbind(lagsModelAll,1);
+    }
+    lagsModelMax <- 1;
+
     initialValue <- initialValueProvided;
     initial <- initialOriginal;
-    persistence <- persistenceOriginal;
 
-    orders <- ordersOriginal;
-    lags <- lagsOriginal;
+    # componentsNumberAll is the ARIMA components + intercept/drift
+    componentsNumberAll <- componentsNumberARIMA + constantRequired;
 
-    # Fixes to get correct number of components and lags
-    # lagsModel is the lags of GUM
-    lagsModel <- matrix(rep(lags, times=orders),ncol=1);
-    # lagsModelAll is all the lags, GUM+X
-    if(xregModel){
-        lagsModelAll <- c(lagsModel, rep(1, xregNumber));
-    }
-    else{
-        lagsModelAll <- lagsModel;
-    }
-    lagsModelMax <- max(lagsModelAll);
-    obsStates[] <- obsInSample + lagsModelMax;
-
-    # The reversed lags to fill in values in the state vector
-    lagsModelRev <- lagsModelMax - lagsModel + 1;
-    componentsNumberARIMA <- componentsNumber <- sum(orders);
-
-    # componentsNumberAll is used to fill in all matrices
-    componentsNumberAll <- componentsNumber
-    if(regressorsIntegrate){
-        regressors <- "integrate";
-        componentsNumberAll <- componentsNumber+xregNumber;
+    if(initialType=="optimal"){
+        initialArimaNumber <- componentsNumberARIMA;
     }
 
-    matF <- diag(componentsNumber+xregNumber);
-    vecG <- matrix(0,componentsNumber+xregNumber,1);
-    if(xregModel){
-        rownames(vecG) <- c(paste0("g",1:componentsNumber),
-                            paste0("delta",1:xregNumber));
-    }
-    else{
-        rownames(vecG) <- paste0("g",1:componentsNumber);
-    }
-    matWt <- matrix(1, obsInSample, componentsNumber+xregNumber);
-    matVt <- matrix(0, componentsNumber+xregNumber, obsStates,
-                    dimnames=list(c(paste0("Component ",1:(componentsNumber)), xregNames), NULL));
+    ##### Preset values of matvt and other matrices ######
+    matF <- diag(componentsNumberAll+xregNumber);
+    vecG <- matrix(0,componentsNumberAll+xregNumber,1,
+                   dimnames=list(c(paste0("psi",1:(componentsNumberARIMA)),
+                                   constantName,
+                                   paste0("delta",1:xregNumber))[xregNumber>0], NULL));
+    matWt <- matrix(1, obsInSample, componentsNumberAll+xregNumber);
+    matVt <- matrix(0, componentsNumberAll+xregNumber, obsStates,
+                    dimnames=list(c(paste0("Component ",1:(componentsNumberARIMA)), constantName, xregNames), NULL));
 
-    # Fixes for what to estimate
-    persistenceEstimate <- is.null(persistence);
-    transitionEstimate <- is.null(transition);
-    measurementEstimate <- is.null(measurement);
-    initialEstimate <- is.null(initialValueProvided);
-
-    # Provided measurement should be just a vector for the dynamic elements
-    if(!measurementEstimate){
-        matWt[,1:componentsNumber] <- matrix(measurement, obsInSample, componentsNumber, byrow=TRUE);
-    }
-    if(!transitionEstimate){
-        matF[1:componentsNumberAll,1:componentsNumberAll] <- transition;
-    }
-    if(!persistenceEstimate){
-        vecG[1:componentsNumberAll,] <- persistence;
-    }
-    if(!initialEstimate){
-        matVt[1:componentsNumber,1:lagsModelMax] <- initialValue$endogenous;
-        if(xregModel){
-            matVt[componentsNumber+1:xregNumber,1:lagsModelMax] <- initialValue$xreg;
+    if(componentsNumberARIMA > 0){
+        # Transition matrix, measurement vector and persistence vector + state vector
+        matF[1,1] <- 0;
+        matF[componentsNumberARIMA,componentsNumberARIMA] <- 0;
+        matF[1:(componentsNumberARIMA-1),2:componentsNumberARIMA] <- diag(componentsNumberARIMA-1);
+        # Add element for the intercept in the transition matrix
+        if(constantRequired){
+            matF[1,componentsNumberAll] <- 1;
         }
-        initialType <- "provided";
-    }
-    else{
-        if(initialType!="complete"){
-            slope <- (cov(yInSample[1:min(max(12,lagsModelMax),obsInSample),],c(1:min(max(12,lagsModelMax),obsInSample)))/
-                          var(c(1:min(max(12,lagsModelMax),obsInSample))));
-            intercept <- (sum(yInSample[1:min(max(12,lagsModelMax),obsInSample),])/min(max(12,lagsModelMax),obsInSample) -
-                              slope * (sum(c(1:min(max(12,lagsModelMax),obsInSample)))/
-                                           min(max(12,lagsModelMax),obsInSample) - 1));
-
-            vtvalues <- vector("numeric", orders %*% lags);
-            nCoefficients <- 0;
-            if(any(lags==1) && length(orders[lags==1])>=1){
-                vtvalues[nCoefficients+1] <- intercept;
-                nCoefficients[] <- nCoefficients + 1;
+        matWt[,2:componentsNumberARIMA] <- 0;
+        if(initialType=="provided"){
+            matVt[1:componentsNumberARIMA,1] <- initialValue;
+        }
+        else{
+            if(obsInSample<(componentsNumberARIMA+yFrequency)){
+                matVt[1:componentsNumberARIMA,1] <- yInSample[1:componentsNumberARIMA] + diff(yInSample[1:(componentsNumberARIMA+1)]);
             }
-            if(any(lags==1) && length(orders[lags==1])>1){
-                vtvalues[nCoefficients+1] <- slope;
-                nCoefficients[] <- nCoefficients + 1;
+            else{
+                matVt[1:componentsNumberARIMA,1] <- (yInSample[1:componentsNumberARIMA]+yInSample[1:componentsNumberARIMA+yFrequency])/2;
             }
-            if((orders %*% lags)>2){
-                vtvalues[nCoefficients + 1:(orders %*% lags - nCoefficients)] <- yInSample[1:(orders %*% lags - nCoefficients),];
-            }
-
-            nCoefficients[] <- 0;
-            for(i in 1:componentsNumber){
-                matVt[i,lagsModelRev[i]:lagsModelMax] <- vtvalues[nCoefficients+(1:lagsModel[i])];
-                nCoefficients[] <- nCoefficients + lagsModel[i];
+            if(constantRequired){
+                matVt[componentsNumberARIMA+1,1] <- 1;
             }
         }
     }
 
     # Add parameters for the X
     if(xregModel){
-        matWt[,componentsNumber+c(1:xregNumber)] <- xregData[1:obsInSample,];
+        matWt[,componentsNumberAll+c(1:xregNumber)] <- xregData[1:obsInSample,];
         if(initialXregEstimate && initialType!="complete"){
-            matVt[componentsNumber+c(1:xregNumber),1] <- xregModelInitials[[1]][[1]];
+            matVt[componentsNumberAll+c(1:xregNumber),1] <- xregModelInitials[[1]][[1]];
         }
-    }
-
-    # A hack in case all the parameters were provided
-    if(modelDoOriginal=="use"){
-        modelDo <- modelDoOriginal;
     }
 
     ##### Pre-set yFitted, yForecast, errors and basic parameters #####
@@ -466,12 +409,13 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
     yForecast <- rep(NA, h);
 
-    # Values for occurrence. No longer supported in ces()
+    # Values for occurrence. No longer supported in ssarima()
     parametersNumber[1,3] <- parametersNumber[2,3] <- 0;
     # Xreg parameters
     parametersNumber[1,2] <- xregNumber + sum(persistenceXreg);
     # Scale value
     parametersNumber[1,4] <- 1;
+
 
     #### If we need to estimate the model ####
     if(modelDo=="estimate"){
@@ -481,6 +425,186 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         profilesRecentTable <- adamProfiles$recent;
         indexLookupTable <- adamProfiles$lookup;
 
+        B <- Bl <- Bu <- vector("numeric",
+                                # Dynamic ADAMX
+                                xregModel*persistenceXregEstimate*max(xregParametersPersistence) +
+                                    # AR and MA values
+                                    (arEstimate*sum(arOrders)+maEstimate*sum(maOrders)) +
+                                    # initials of ARIMA
+                                    all(initialType!=c("complete","backcasting"))*initialArimaNumber*initialArimaEstimate +
+                                    # initials of xreg
+                                    (initialType!="complete")*xregModel*initialXregEstimate*sum(xregParametersEstimated) +
+                                    constantEstimate);
+
+        j <- 0;
+        if(xregModel && persistenceXregEstimate){
+            xregPersistenceNumber <- max(xregParametersPersistence);
+            B[j+1:xregPersistenceNumber] <- rep(0.01, xregPersistenceNumber);
+            Bl[j+1:xregPersistenceNumber] <- rep(-5, xregPersistenceNumber);
+            Bu[j+1:xregPersistenceNumber] <- rep(5, xregPersistenceNumber);
+            names(B)[j+1:xregPersistenceNumber] <- paste0("delta",c(1:xregPersistenceNumber));
+            j[] <- j+xregPersistenceNumber;
+        }
+
+        # These are filled in lags-wise
+        if(any(c(arEstimate,maEstimate))){
+            # This index is needed to get the correct polynomials
+            k <- j
+            acfValues <- rep(-0.1, maOrders %*% lags);
+            pacfValues <- rep(0.1, arOrders %*% lags);
+            if(!all(iOrders==0)){
+                yDifferenced <- yInSample;
+                # If the model has differences, take them
+                if(any(iOrders>0)){
+                    for(i in 1:length(iOrders)){
+                        if(iOrders[i]>0){
+                            yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
+                        }
+                    }
+                }
+                # Do ACF/PACF initialisation only for non-seasonal models
+                if(all(lags<=1)){
+                    if(maRequired && maEstimate){
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        acfValues[1:min(maOrders %*% lags, length(yDifferenced)-1)] <-
+                            acf(yDifferenced,lag.max=max(1,maOrders %*% lags),plot=FALSE)$acf[-1];
+                    }
+                    if(arRequired && arEstimate){
+                        # If the sample is smaller than lags, it will be substituted by default values
+                        pacfValues[1:min(arOrders %*% lags, length(yDifferenced)-1)] <-
+                            pacf(yDifferenced,lag.max=max(1,arOrders %*% lags),plot=FALSE)$acf;
+                    }
+                }
+            }
+            for(i in 1:length(lags)){
+                if(arRequired && arEstimate && arOrders[i]>0){
+                    if(all(!is.nan(pacfValues[c(1:arOrders[i])*lags[i]]))){
+                        B[j+c(1:arOrders[i])] <- pacfValues[c(1:arOrders[i])*lags[i]];
+                    }
+                    else{
+                        B[j+c(1:arOrders[i])] <- 0.1;
+                    }
+                    if(sum(B[j+c(1:arOrders[i])])>1){
+                        B[j+c(1:arOrders[i])] <- B[j+c(1:arOrders[i])] / sum(B[j+c(1:arOrders[i])]) - 0.01;
+                    }
+                    # B[j+c(1:arOrders[i])] <- rep(0.1,arOrders[i]);
+                    Bl[j+c(1:arOrders[i])] <- -5;
+                    Bu[j+c(1:arOrders[i])] <- 5;
+                    names(B)[j+1:arOrders[i]] <- paste0("phi",1:arOrders[i],"[",lags[i],"]");
+                    j[] <- j + arOrders[i];
+                }
+                if(maRequired && maEstimate && maOrders[i]>0){
+                    if(all(!is.nan(acfValues[c(1:maOrders[i])*lags[i]]))){
+                        B[j+c(1:maOrders[i])] <- acfValues[c(1:maOrders[i])*lags[i]];
+                    }
+                    else{
+                        B[j+c(1:maOrders[i])] <- 0.1;
+                    }
+                    if(sum(B[j+c(1:maOrders[i])])>1){
+                        B[j+c(1:maOrders[i])] <- B[j+c(1:maOrders[i])] / sum(B[j+c(1:maOrders[i])]) - 0.01;
+                    }
+                    # B[j+c(1:maOrders[i])] <- rep(-0.1,maOrders[i]);
+                    Bl[j+c(1:maOrders[i])] <- -5;
+                    Bu[j+c(1:maOrders[i])] <- 5;
+                    names(B)[j+1:maOrders[i]] <- paste0("theta",1:maOrders[i],"[",lags[i],"]");
+                    j[] <- j + maOrders[i];
+                }
+            }
+        }
+
+        arimaPolynomials <- lapply(adamPolynomialiser(B[k+1:sum(c(arOrders*arEstimate,maOrders*maEstimate))],
+                                                      arOrders, iOrders, maOrders,
+                                                      arEstimate, maEstimate, armaParameters, lags), as.vector)
+
+        stop()
+
+        # ARIMA initials
+        if(all(initialType!=c("complete","backcasting")) && initialArimaEstimate){
+            B[j+1:initialArimaNumber] <- head(matVt[componentsNumberARIMA,1:lagsModelMax],initialArimaNumber);
+            names(B)[j+1:initialArimaNumber] <- paste0("ARIMAState",1:initialArimaNumber);
+
+            # Fix initial state if the polynomial is not zero
+            if(tail(arimaPolynomials$ariPolynomial,1)!=0){
+                B[j+1:initialArimaNumber] <- B[j+1:initialArimaNumber] / tail(arimaPolynomials$ariPolynomial,1);
+            }
+
+            if(Etype=="A"){
+                Bl[j+1:initialArimaNumber] <- -Inf;
+                Bu[j+1:initialArimaNumber] <- Inf;
+            }
+            else{
+                # Make sure that ARIMA states are positive to avoid errors
+                B[j+1:initialArimaNumber] <- abs(B[j+1:initialArimaNumber]);
+                Bl[j+1:initialArimaNumber] <- 0;
+                Bu[j+1:initialArimaNumber] <- Inf;
+            }
+            j[] <- j+initialArimaNumber;
+        }
+
+        # Initials of the xreg
+        if(initialType!="complete" && initialXregEstimate){
+            xregNumberToEstimate <- sum(xregParametersEstimated);
+            B[j+1:xregNumberToEstimate] <- matVt[componentsNumberETS+componentsNumberARIMA+
+                                                     which(xregParametersEstimated==1),1];
+            names(B)[j+1:xregNumberToEstimate] <- rownames(matVt)[componentsNumberETS+componentsNumberARIMA+
+                                                                      which(xregParametersEstimated==1)];
+            if(Etype=="A"){
+                Bl[j+1:xregNumberToEstimate] <- -Inf;
+                Bu[j+1:xregNumberToEstimate] <- Inf;
+            }
+            else{
+                Bl[j+1:xregNumberToEstimate] <- -Inf;
+                Bu[j+1:xregNumberToEstimate] <- Inf;
+            }
+            j[] <- j+xregNumberToEstimate;
+        }
+
+        if(constantEstimate){
+            j[] <- j+1;
+            B[j] <- matVt[componentsNumberETS+componentsNumberARIMA+xregNumber+1,1];
+            names(B)[j] <- constantName;
+            if(etsModel || sum(iOrders)!=0){
+                if(Etype=="A"){
+                    Bu[j] <- quantile(diff(yInSample[otLogical]),0.6);
+                    Bl[j] <- -Bu[j];
+                }
+                else{
+                    Bu[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.6));
+                    Bl[j] <- exp(quantile(diff(log(yInSample[otLogical])),0.4));
+                }
+
+                # Failsafe for weird cases, when upper bound is the same or lower than the lower one
+                if(Bu[j]<=Bl[j]){
+                    Bu[j] <- Inf;
+                    Bl[j] <- switch(Etype,"A"=-Inf,"M"=0);
+                }
+
+                # Failsafe for cases, when the B is outside of bounds
+                if(B[j]<=Bl[j]){
+                    Bl[j] <- switch(Etype,"A"=-Inf,"M"=0);
+                }
+                if(B[j]>=Bu[j]){
+                    Bu[j] <- Inf;
+                }
+            }
+            else{
+                # if(Etype=="A"){
+                    # B[j]*1.01 is needed to make sure that the bounds cover the initial value
+                    Bu[j] <- max(abs(yInSample[otLogical]),abs(B[j])*1.01);
+                    Bl[j] <- -Bu[j];
+                # }
+                # else{
+                #     Bu[j] <- 1.5;
+                #     Bl[j] <- 0.1;
+                # }
+                # If this is just a constant
+            }
+        }
+
+
+
+
+        stop()
         if(is.null(B)){
             B <- vector("numeric", persistenceEstimate*componentsNumberAll +
                             transitionEstimate*componentsNumberAll^2 +
@@ -495,6 +619,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                           paste0("vt",1:sum(orders %*% lags))[initialEstimate*(initialType=="optimal")*(1:sum(orders %*% lags))],
                           xregNames[(1:xregNumber)*initialXregEstimate*(initialType!="complete")]);
 
+            stop()
             nCoefficients <- 0;
             if(persistenceEstimate){
                 B[nCoefficients+1:componentsNumberAll] <- rep(0.1, componentsNumberAll);
