@@ -573,7 +573,7 @@ gum <- function(data, orders=c(1,1), lags=c(1,frequency(data)), type=c("additive
     }
     yForecast <- rep(NA, h);
 
-    # Values for occurrence. No longer supported in ces()
+    # Values for occurrence. No longer supported in gum()
     parametersNumber[1,3] <- parametersNumber[2,3] <- 0;
     # Xreg parameters
     parametersNumber[1,2] <- xregNumber + sum(persistenceXreg);
