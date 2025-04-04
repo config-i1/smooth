@@ -2620,6 +2620,9 @@ smoothType <- function(object, ...){
         else if(gregexpr("CES",object$model)!=-1){
             smoothType <- "CES";
         }
+        else if(gregexpr("SSARIMA",object$model)!=-1){
+            smoothType <- "SSARIMA";
+        }
         else if(gregexpr("ARIMA",object$model)!=-1){
             smoothType <- "ARIMA";
         }

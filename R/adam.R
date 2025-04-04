@@ -7098,52 +7098,54 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             colnames(testModel$data)[1] <- all.vars(modelFormula)[1];
             return(vcov(testModel));
         }
-        else if(smoothType(object)=="CES"){
-            modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                FI=TRUE, stepSize=ellipsis$stepSize));
-            # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
-            brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
-            # If there are issues, try the same stuff, but with a different step size for hessian
-            if(any(brokenVariables)){
-                modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
-                                                     FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
-                brokenVariables <- apply(modelReturn$FI==0,1,all);
-            }
-            # If there are NaNs, then this has not been estimated well
-            if(any(is.nan(modelReturn$FI))){
-                stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
-                     "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
-            }
-            if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
-                warning(paste0("Observed Fisher Information is not positive semi-definite, ",
-                               "which means that the likelihood was not maximised properly. ",
-                               "Consider reestimating the model, tuning the optimiser or ",
-                               "using bootstrap via bootstrap=TRUE."), call.=FALSE);
-            }
-            FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
-
-            vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
-            if(inherits(vcovMatrix,"try-error")){
-                vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
-                if(inherits(vcovMatrix,"try-error")){
-                    warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
-                                   "I failed to produce the covariance matrix of parameters. Shame on me!"),
-                            call.=FALSE);
-                    vcovMatrix <- diag(1e+100,ncol(FIMatrix));
-                }
-            }
-            # If there were broken variables, reproduce the zero elements.
-            # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
-            modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
-            modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
-
-            # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
-            diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
-            return(modelReturn$FI);
-        }
+        # else if(smoothType(object)=="CES"){
+        #     modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+        #                                         FI=TRUE, stepSize=ellipsis$stepSize));
+        #     # If any row contains all zeroes, then it means that the variable does not impact the likelihood. Invert the matrix without it.
+        #     brokenVariables <- apply(modelReturn$FI==0,1,all) | apply(is.nan(modelReturn$FI),1,any);
+        #     # If there are issues, try the same stuff, but with a different step size for hessian
+        #     if(any(brokenVariables)){
+        #         modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
+        #                                              FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+        #         brokenVariables <- apply(modelReturn$FI==0,1,all);
+        #     }
+        #     # If there are NaNs, then this has not been estimated well
+        #     if(any(is.nan(modelReturn$FI))){
+        #         stop("The Fisher Information cannot be calculated numerically with provided parameters - it contains NaNs.",
+        #              "Try setting stepSize for the hessian to something like stepSize=1e-6 or using the bootstrap.", call.=FALSE);
+        #     }
+        #     if(any(eigen(modelReturn$FI,only.values=TRUE)$values<0)){
+        #         warning(paste0("Observed Fisher Information is not positive semi-definite, ",
+        #                        "which means that the likelihood was not maximised properly. ",
+        #                        "Consider reestimating the model, tuning the optimiser or ",
+        #                        "using bootstrap via bootstrap=TRUE."), call.=FALSE);
+        #     }
+        #     FIMatrix <- modelReturn$FI[!brokenVariables,!brokenVariables,drop=FALSE];
+        #
+        #     vcovMatrix <- try(chol2inv(chol(FIMatrix)), silent=TRUE);
+        #     if(inherits(vcovMatrix,"try-error")){
+        #         vcovMatrix <- try(solve(FIMatrix, diag(ncol(FIMatrix)), tol=1e-20), silent=TRUE);
+        #         if(inherits(vcovMatrix,"try-error")){
+        #             warning(paste0("Sorry, but the hessian is singular, so I could not invert it.\n",
+        #                            "I failed to produce the covariance matrix of parameters. Shame on me!"),
+        #                     call.=FALSE);
+        #             vcovMatrix <- diag(1e+100,ncol(FIMatrix));
+        #         }
+        #     }
+        #     # If there were broken variables, reproduce the zero elements.
+        #     # Reuse FI object in order to preserve memory. The names of cols / rows should be fine.
+        #     modelReturn$FI[!brokenVariables,!brokenVariables] <- vcovMatrix;
+        #     modelReturn$FI[brokenVariables,] <- modelReturn$FI[,brokenVariables] <- Inf;
+        #
+        #     # Just in case, take absolute values for the diagonal (in order to avoid possible issues with FI)
+        #     diag(modelReturn$FI) <- abs(diag(modelReturn$FI));
+        #     return(modelReturn$FI);
+        # }
         else{
             cesModel <- smoothType(object)=="CES";
             gumModel <- smoothType(object)=="GUM";
+            # Smooth type won't do the proper trick here
+            ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
@@ -7151,6 +7153,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
             else if(gumModel){
                 modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                 FI=TRUE, stepSize=ellipsis$stepSize));
+            }
+            else if(ssarimaModel){
+                modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                        FI=TRUE, stepSize=ellipsis$stepSize));
             }
             else{
                 modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
