@@ -6836,6 +6836,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
     yInSample <- actuals(object);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     method <- match.arg(method);
     if(method=="cr"){
@@ -6926,7 +6927,7 @@ coefbootstrap.adam <- function(object, nsim=1000, size=floor(0.75*nobs(object)),
         newCall$loss <- object$loss;
     }
     # If ETS was selected
-    if(!any(c(cesModel,gumModel)) && any(object$call!=modelType(object))){
+    if(!any(c(cesModel,gumModel,ssarimaModel)) && any(object$call!=modelType(object))){
         newCall$model <- modelType(object);
     }
     # If ARIMA was selected
@@ -7144,7 +7145,6 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
         else{
             cesModel <- smoothType(object)=="CES";
             gumModel <- smoothType(object)=="GUM";
-            # Smooth type won't do the proper trick here
             ssarimaModel <- smoothType(object)=="SSARIMA";
             if(cesModel){
                 modelReturn <- suppressWarnings(ces(object$data, h=0, model=object, formula=formula(object),
@@ -7173,6 +7173,10 @@ vcov.adam <- function(object, bootstrap=FALSE, heuristics=NULL, ...){
                 else if(gumModel){
                     modelReturn <- suppressWarnings(gum(object$data, h=0, model=object, formula=formula(object),
                                                         FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
+                }
+                else if(ssarimaModel){
+                    modelReturn <- suppressWarnings(ssarima(object$data, h=0, model=object, formula=formula(object),
+                                                            FI=TRUE, stepSize=.Machine$double.eps^(1/6)));
                 }
                 else{
                     modelReturn <- suppressWarnings(adam(object$data, h=0, model=object, formula=formula(object),
@@ -7938,6 +7942,7 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     arimaModel <- any(unlist(gregexpr("ARIMA",object$model))!=-1);
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     # Technical parameters
     lagsModelAll <- modelLags(object);
@@ -7963,6 +7968,12 @@ forecast.adam <- function(object, h=10, newdata=NULL, occurrence=NULL,
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -9211,6 +9222,7 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -9223,6 +9235,12 @@ reapply.adam <- function(object, nsim=1000, bootstrap=FALSE, heuristics=NULL, ..
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){
@@ -10738,6 +10756,7 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
 
     cesModel <- smoothType(object)=="CES";
     gumModel <- smoothType(object)=="GUM";
+    ssarimaModel <- smoothType(object)=="SSARIMA";
 
     if(cesModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
@@ -10750,6 +10769,12 @@ simulate.adam <- function(object, nsim=1, seed=NULL, obs=nobs(object), ...){
     else if(gumModel){
         componentsNumberETS <- componentsNumberETSSeasonal <- 0;
         componentsNumberARIMA <- sum(orders(object));
+    }
+    else if(ssarimaModel){
+        arimaOrders <- orders(object);
+        lags <- lags(object);
+        componentsNumberETS <- componentsNumberETSSeasonal <- 0;
+        componentsNumberARIMA <- max(arimaOrders$ar %*% lags + arimaOrders$i %*% lags, arimaOrders$ma %*% lags);
     }
     else{
         if(!is.null(object$initial$seasonal)){

@@ -128,6 +128,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
 # Start measuring the time of calculations
     startTime <- Sys.time();
     cl <- match.call();
+    # Record the parental environment. Needed for ARIMA initialisation
+    env <- parent.frame();
     ellipsis <- list(...);
 
     # Check seasonality and loss
@@ -166,12 +168,15 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         arimaPolynomials <- model$other$polynomial;
         arPolynomialMatrix <- model$other$arPolynomialMatrix;
         maPolynomialMatrix <- model$other$maPolynomialMatrix;
+        constant <- model$constant;
 
         modelDo <- modelDoOriginal <- "use";
     }
     else{
         modelDo <- modelDoOriginal <- "estimate";
         initialValueProvided <- NULL;
+        arimaPolynomials <- NULL;
+        arPolynomialMatrix <- maPolynomialMatrix <- NULL;
     }
 
     # orders <- orders[order(lags)];
@@ -203,7 +208,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     refineHead <- FALSE;
 
     ##### Elements of SSARIMA #####
-    filler <- function(B, matVt, matF, vecG, matWt){
+    filler <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
 
         j <- 0;
         # ARMA parameters. This goes before xreg in persistence
@@ -218,10 +223,15 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                 matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
                 # Fill in the persistence vector
                 vecG[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
+                if(maEstimate){
+                    vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
+                        arimaPolynomials$maPolynomial[-1];
+                }
             }
-            if(maEstimate){
-                vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
-                    arimaPolynomials$maPolynomial[-1];
+            else{
+                if(maEstimate){
+                    vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- arimaPolynomials$maPolynomial[-1];
+                }
             }
             j[] <- j+sum(c(arOrders*arEstimate,maOrders*maEstimate));
         }
@@ -271,9 +281,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     ##### Cost function #####
-    CF <- function(B, matVt, matF, vecG, matWt){
+    CF <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
         # Obtain the main elements
-        elements <- filler(B, matVt, matF, vecG, matWt);
+        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
 
         #### The usual bounds ####
         if(bounds=="usual"){
@@ -356,12 +366,12 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         }
 
         # Write down the initials in the recent profile
-        matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1];
+        matVt[,1] <- profilesRecentTable[] <- elements$matVt[,1, drop=FALSE];
 
         adamFitted <- adamFitterWrap(matVt, elements$matWt, elements$matF, elements$vecG,
                                      lagsModelAll, indexLookupTable, profilesRecentTable,
-                                     Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                     componentsNumberARIMA, xregNumber, FALSE,
+                                     Etype, Ttype, Stype, 0, 0,
+                                     componentsNumberARIMA, xregNumber, constantEstimate,
                                      yInSample, ot, any(initialType==c("complete","backcasting")),
                                      nIterations, refineHead);
 
@@ -423,12 +433,17 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     #### Likelihood function ####
-    logLikFunction <- function(B, matVt, matF, vecG, matWt){
-        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt));
+    logLikFunction <- function(B, matVt, matF, vecG, matWt, arEstimate=TRUE, maEstimate=TRUE){
+        return(-CF(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt, arEstimate=arEstimate, maEstimate=maEstimate));
     }
 
-
     #### Basic ARIMA parameters ####
+    # Fix orders if they were all zero and became NULL
+    if(is.null(arOrders)){
+        arOrders <- 0;
+        iOrders <- 0;
+        maOrders <- 0;
+    }
     componentsNumberARIMA <- max(arOrders %*% lags + iOrders %*% lags, maOrders %*% lags);
 
     # componentsNumberAll is the ARIMA components + intercept/drift
@@ -447,30 +462,43 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     ##### Preset values of matvt and other matrices ######
     matF <- diag(componentsNumberAll+xregNumber);
     vecG <- matrix(0,componentsNumberAll+xregNumber,1,
-                   dimnames=list(c(paste0("psi",1:(componentsNumberARIMA)),
+                   dimnames=list(c(paste0("psi",1:(componentsNumberARIMA))[componentsNumberARIMA>0],
                                    paste0("delta",1:xregNumber)[xregNumber>0],
                                    constantName), NULL));
     matWt <- matrix(1, obsInSample, componentsNumberAll+xregNumber);
     matVt <- matrix(0, componentsNumberAll+xregNumber, obsStates,
-                    dimnames=list(c(paste0("Component ",1:(componentsNumberARIMA)), xregNames, constantName), NULL));
+                    dimnames=list(c(paste0("Component ",1:(componentsNumberARIMA))[componentsNumberARIMA>0],
+                                    xregNames, constantName), NULL));
 
     if(componentsNumberARIMA > 0){
         # Transition matrix, measurement vector and persistence vector + state vector
-        matF[1,1] <- 0;
-        matF[componentsNumberARIMA,componentsNumberARIMA] <- 0;
-        matF[1:(componentsNumberARIMA-1),2:componentsNumberARIMA] <- diag(componentsNumberARIMA-1);
-        matWt[,2:componentsNumberARIMA] <- 0;
+        if(componentsNumberARIMA>1){
+            matF[1,1] <- 0;
+            matF[componentsNumberARIMA,componentsNumberARIMA] <- 0;
+            matF[1:(componentsNumberARIMA-1),2:componentsNumberARIMA] <- diag(componentsNumberARIMA-1);
+            matWt[,2:componentsNumberARIMA] <- 0;
+        }
         if(initialType=="provided"){
             matVt[1:componentsNumberARIMA,1] <- initialArima;
         }
         else{
-            # if(obsInSample<(componentsNumberARIMA+yFrequency)){
-            #     matVt[1:componentsNumberARIMA,1] <- yInSample[1:componentsNumberARIMA] + diff(yInSample[1:(componentsNumberARIMA+1)]);
-            # }
-            # else{
-                matVt[1:componentsNumberARIMA,1] <- yInSample[componentsNumberARIMA:1] - mean(yInSample[1:componentsNumberARIMA]);
-                # matVt[1:componentsNumberARIMA,1] <- (yInSample[1:componentsNumberARIMA]+yInSample[1:componentsNumberARIMA+yFrequency])/2;
-            # }
+            yDifferenced <- yInSample;
+            # If the model has differences, take them
+            if(any(iOrders>0)){
+                for(i in 1:length(iOrders)){
+                    if(iOrders[i]>0){
+                        yDifferenced <- diff(yDifferenced,lag=lags[i],differences=iOrders[i]);
+                    }
+                }
+            }
+            if(iOrders[lags==1]==0 || all(iOrders==0)){
+                matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1]-
+                    mean(yDifferenced[componentsNumberARIMA:1]);
+            }
+            else{
+                matVt[1:componentsNumberARIMA,1] <- yDifferenced[componentsNumberARIMA:1 + as.vector(iOrders %*% lags)-1];
+            }
+            matVt[1,1] <- yDifferenced[1];
         }
     }
 
@@ -486,11 +514,16 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     if(constantRequired){
         matF[1,componentsNumberAll+xregNumber] <- 1;
         # If the model has differences, set this to zero
-        if(any(iOrders>0)){
-            matVt[componentsNumberAll+xregNumber,1] <- 0;
+        if(constantEstimate){
+            if(any(iOrders>0)){
+                matVt[componentsNumberAll+xregNumber,] <- 0;
+            }
+            else{
+                matVt[componentsNumberAll+xregNumber,] <- mean(yInSample[1:componentsNumberAll]);
+            }
         }
         else{
-            matVt[componentsNumberAll+xregNumber,1] <- mean(yInSample[1:componentsNumberAll]);
+            matVt[componentsNumberAll+xregNumber,] <- constantValue;
         }
     }
 
@@ -521,8 +554,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         profilesRecentTable <- adamProfiles$recent;
         indexLookupTable <- adamProfiles$lookup;
 
-        if(is.null(B)){
-            #### Initialise vector B ####
+        #### Initialise vector B ####
+        initialiser <- function(...){
             B <- Bl <- Bu <- vector("numeric",
                                     # Dynamic ADAMX
                                     xregModel*persistenceXregEstimate*max(xregParametersPersistence) +
@@ -662,6 +695,88 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                     Bl[j] <- -Bu[j];
                 }
             }
+            return(list(B=B, Bu=Bu, Bl=Bl));
+        }
+
+        BValues <- initialiser();
+
+        ##### Pre-heat initial parameters by doing the backcasted ARIMA ####
+        if(arimaModel && initialType=="optimal" && initialArimaEstimate && is.null(B)){
+            B <- BValues$B;
+            # Parameter bounds
+            lb <- BValues$Bl;
+            ub <- BValues$Bu;
+
+            # Estimate ARIMA with backcasting first
+            clNew <- cl;
+            # If environment is provided, use it
+            if(!is.null(ellipsis$environment)){
+                env <- ellipsis$environment;
+            }
+            # Use complete backcasting
+            clNew$initial <- "complete";
+            # Shut things up
+            clNew$silent <- TRUE;
+            # If this is an xreg model, we do selection, and there's no formula, create one
+            if(xregModel && !is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$formula <- as.formula(paste0(responseName,"~",paste0(xregNames,collapse="+")));
+            }
+            # Switch off regressors selection
+            if(!is.null(clNew$regressors) && clNew$regressors=="select"){
+                clNew$regressors <- "use";
+            }
+            # Get rid of explanatory variables if they are not needed
+            if(!xregModel && (!is.null(ncol(data)) && ncol(data)>1)){
+                clNew$data <- data[,responseName];
+            }
+            # Call for ADAM with backcasting
+            ssarimaBack <- suppressWarnings(eval(clNew, envir=env));
+            B <- BValues$B;
+            # Number of smoothing, dampening and ARMA parameters
+            nParametersBack <- (xregModel*persistenceXregEstimate*max(xregParametersPersistence) +
+                                    # AR and MA values
+                                    arimaModel*(arEstimate*sum(arOrders)+maEstimate*sum(maOrders)));
+            if(nParametersBack>0){
+                # Use the estimated parameters
+                B[1:nParametersBack] <- ssarimaBack$B[1:nParametersBack];
+            }
+
+            # If there are explanatory variables, use only those initials that are required
+            if(xregModel){
+                ssarimaBack$initial$xreg <- ssarimaBack$initial$xreg[xregParametersEstimated==1];
+            }
+
+            initialsUnlisted <- unlist(ssarimaBack$initial);
+            # If initials are reasonable, use them
+            if(!any(is.na(initialsUnlisted))){
+                B[nParametersBack + c(1:length(initialsUnlisted))] <- initialsUnlisted;
+            }
+
+            # If the constant is used and it's good, record it
+            if(constantEstimate && !is.na(ssarimaBack$constant)){
+                B[nParametersBack+componentsNumberARIMA+xregNumber+1] <- ssarimaBack$constant;
+            }
+
+            # Make sure that the bounds are reasonable
+            if(any(is.na(lb))){
+                lb[is.na(lb)] <- -Inf;
+            }
+            if(any(lb>B)){
+                lb[lb>B] <- -Inf;
+            }
+            if(any(is.na(ub))){
+                ub[is.na(ub)] <- Inf;
+            }
+            if(any(ub<B)){
+                ub[ub<B] <- Inf;
+            }
+        }
+
+        if(is.null(B)){
+            B <- BValues$B;
+            # Parameter bounds
+            lb <- BValues$Bl;
+            ub <- BValues$Bu;
         }
 
         # Companion matrices for the polynomials calculation -> stationarity / stability checks
@@ -696,11 +811,13 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
             }
         }
 
-        res <- suppressWarnings(nloptr(B, CF,
+        # Tuning the best obtained values using Nelder-Mead
+        res <- suppressWarnings(nloptr(B, CF, lb=lb, ub=ub,
                                        opts=list(algorithm=algorithm, xtol_rel=xtol_rel, xtol_abs=xtol_abs,
                                                  ftol_rel=ftol_rel, ftol_abs=ftol_abs,
                                                  maxeval=maxevalUsed, maxtime=maxtime, print_level=print_level),
-                                       matVt=matVt, matF=matF, vecG=vecG, matWt=matWt));
+                                       matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                       arEstimate=arEstimate, maEstimate=maEstimate));
 
         if(print_level_hidden>0){
             print(res);
@@ -713,7 +830,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         nParamEstimated <- length(B) + (loss=="likelihood")*1;
 
         # Prepare for fitting
-        elements <- filler(B, matVt, matF, vecG, matWt);
+        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arEstimate, maEstimate=maEstimate);
         matF[] <- elements$matF;
         vecG[] <- elements$vecG;
         matVt[,1] <- elements$matVt[,1];
@@ -726,28 +843,34 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
     #### If we just use the provided values ####
     else{
+        # Setting this to zero is essential for the polynomialiser to work
+        if(is.null(B)){
+            B <- 0;
+        }
+
         # Create index lookup table
-        indexLookupTable <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
-                                               lags=lags, yIndex=yIndexAll, yClasses=yClasses)$lookup;
+        adamProfiles <- adamProfileCreator(lagsModelAll, lagsModelMax, obsAll,
+                                       lags=lags, yIndex=yIndexAll, yClasses=yClasses);
+        indexLookupTable <- adamProfiles$lookup;
+        if(is.null(profilesRecentTable)){
+            profilesRecentInitial <- profilesRecentTable <- adamProfiles$recent;
+        }
+
         if(initialType=="optimal"){
             initialType <- "provided";
         }
-        # initialValue <- profilesRecentTable;
         initialXregEstimateOriginal <- initialXregEstimate;
         initialXregEstimate <- FALSE;
 
-        if(arRequired || any(iOrders>0)){
-            # Fill in the transition matrix
-            matF[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
-            # Fill in the persistence vector
-            vecG[1:length(arimaPolynomials$ariPolynomial[-1]),1] <- -arimaPolynomials$ariPolynomial[-1];
-        }
-        if(maRequired){
-            vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] <- vecG[1:length(arimaPolynomials$maPolynomial[-1]),1] +
-                arimaPolynomials$maPolynomial[-1];
-        }
+        # Prepare for fitting
+        elements <- filler(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
+        matF[] <- elements$matF;
+        vecG[] <- elements$vecG;
+        matVt[,1] <- elements$matVt[,1];
+        matWt[] <- elements$matWt;
+        arimaPolynomials <- elements$arimaPolynomials;
 
-        CFValue <- CF(B, matVt, matF, vecG, matWt);
+        CFValue <- CF(B, matVt, matF, vecG, matWt, arEstimate=arRequired, maEstimate=maRequired);
         res <- NULL;
 
         # Only variance is estimated
@@ -789,7 +912,8 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
         bounds <- "none";
 
         # Calculate hessian
-        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt);
+        FI <- -hessian(logLikFunction, B, h=stepSize, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                       arEstimate=arEstimate, maEstimate=maEstimate);
         colnames(FI) <- rownames(FI) <- names(B);
 
         if(any(substr(names(B),1,3)=="phi")){
@@ -815,13 +939,14 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     }
 
     # In case of likelihood, we typically have one more parameter to estimate - scale.
-    logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt),
+    logLikValue <- structure(logLikFunction(B, matVt=matVt, matF=matF, vecG=vecG, matWt=matWt,
+                                            arEstimate=arEstimate, maEstimate=maEstimate),
                              nobs=obsInSample, df=nParamEstimated, class="logLik");
 
     adamFitted <- adamFitterWrap(matVt, matWt, matF, vecG,
                                  lagsModelAll, indexLookupTable, profilesRecentTable,
-                                 Etype, Ttype, Stype, componentsNumberETS, componentsNumberETSSeasonal,
-                                 componentsNumberARIMA, xregNumber, FALSE,
+                                 Etype, Ttype, Stype, 0, 0,
+                                 componentsNumberARIMA, xregNumber, constantEstimate,
                                  yInSample, ot, any(initialType==c("complete","backcasting")),
                                  nIterations, refineHead);
 
@@ -830,6 +955,9 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
     # Write down the recent profile for future use
     profilesRecentTable <- adamFitted$profile;
     matVt[] <- adamFitted$matVt;
+
+    # Write down the initials in the recent profile
+    profilesRecentInitial <- matVt[,1,drop=FALSE];
 
     scale <- scaler(adamFitted$errors[otLogical], obsInSample);
 
@@ -846,7 +974,7 @@ ssarima <- function(data, orders=list(ar=c(0),i=c(1),ma=c(1)), lags=c(1),
                                           profilesRecentTable,
                                           Etype, Ttype, Stype,
                                           componentsNumberETS, componentsNumberETSSeasonal,
-                                          componentsNumberARIMA, xregNumber, FALSE,
+                                          componentsNumberARIMA, xregNumber, constantEstimate,
                                           h);
     }
     else{
